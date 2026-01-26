@@ -1,0 +1,1461 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Music ConnectZ v6 bi K-Oth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <style>
+    :root {
+      --primary: #2196F3;
+      --primary-dark: #1565C0;
+      --accent: #FF9800;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --text: #333333;
+      --text-light: #666666;
+      --border: #e0e0e0;
+      --success: #4CAF50;
+      --danger: #F44336;
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a1a;
+      --surface: #2d2d2d;
+      --text: #e0e0e0;
+      --text-light: #b0b0b0;
+      --border: #404040;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); }
+    .container { display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: nowrap; gap: 8px; width: 100%; }
+    .nav-wrapper { display: flex; gap: 8px; flex: 0 0 auto; }
+    .theme-toggle { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.5); }
+    .header-center { text-align: center; flex: 1 1 auto; min-width: 150px; }
+    .header-title { font-size: 16px; font-weight: 700; }
+    .header-subtitle { font-size: 9px; opacity: 0.9; margin-top: 2px; }
+    .nav-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .nav-btn:hover { background: rgba(255,255,255,0.5); }
+    .header-right { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
+    .balance { background: rgba(255,255,255,0.25); padding: 6px 10px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; }
+    .profile-pic { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.2); cursor: pointer; }
+    .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+    .tabs { display: flex; background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+    .tab-btn { flex: 1; padding: 11px 12px; border: none; background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-light); border-bottom: 3px solid transparent; white-space: nowrap; min-width: 65px; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .card-header { font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 8px rgba(33, 150, 243, 0.2); }
+    .btn { padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #45a049; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #da190b; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-small { padding: 5px 10px; font-size: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .modal { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .modal.active { display: flex !important; }
+    .modal-content { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h2 { font-size: 14px; color: var(--primary); }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); }
+    .close-btn:hover { color: var(--danger); }
+    .tag { display: inline-block; background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; }
+    .persona-card { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .persona-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .persona-name { font-size: 16px; font-weight: 700; }
+    .persona-btn { background: var(--bg); padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border); text-align: center; font-weight: 700; font-size: 12px; color: var(--text); }
+    .persona-btn:hover { border-color: var(--primary); }
+    .post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .post-header { display: flex; gap: 8px; margin-bottom: 10px; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0; }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .post-info { flex: 1; }
+    .post-user { font-weight: 700; font-size: 12px; }
+    .post-meta { font-size: 10px; color: var(--text-light); }
+    .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+    .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skill-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; }
+    .skill-btn:hover { border-color: var(--primary); }
+    .skill-btn.sel { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important; color: white !important; border: 3px solid #1565C0 !important; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6) !important; transform: scale(1.08) !important; font-weight: 700 !important; }
+    .skill-btn.any-skill { background: var(--accent); color: white; border-color: var(--accent); }
+    .skill-btn.any-skill::after { content: 'ðŸ”„'; position: absolute; top: 2px; right: 4px; font-size: 9px; }
+    .skill-btn.any-skill.sel { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%) !important; border: 3px solid #E65100 !important; box-shadow: 0 0 12px rgba(255, 152, 0, 0.6) !important; transform: scale(1.08) !important; }
+    .skill-item { background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text); }
+    .skill-item-name { font-weight: 600; flex: 1; color: var(--text); }
+    .skill-item-exp { color: var(--text-light); font-size: 10px; margin-right: 8px; }
+    .skill-item-actions { display: flex; gap: 4px; }
+    .toggle-btn { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); cursor: pointer; font-weight: 600; font-size: 11px; margin: 4px; }
+    .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter-badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 6px; }
+    .gps-status { font-size: 11px; color: var(--text-light); margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; display: none; }
+    .gps-status.active { display: block; }
+    .genre-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; margin: 4px; display: inline-block; font-size: 12px; font-weight: 600; }
+    .genre-btn:hover { border-color: var(--primary); }
+    .genre-btn.sel { background: var(--primary); color: white; border-color: var(--primary); }
+    #collabMap { width: 100%; height: 500px; border-radius: 10px; margin-bottom: 16px; }
+    .map-container { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0; margin-bottom: 16px; overflow: hidden; }
+    .user-card-on-map { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .user-card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .user-card-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+    .user-card-title { flex: 1; }
+    .user-name { font-weight: 700; font-size: 12px; }
+    .user-rating { font-size: 11px; color: #FFD700; }
+    .user-card-content { font-size: 10px; line-height: 1.5; }
+    .user-card-content div { margin-bottom: 4px; }
+    .theme-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .theme-color-btn { border: 3px solid transparent; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; color: white; transition: all 0.3s; }
+    .theme-color-btn:hover { transform: scale(1.05); }
+    .theme-color-btn.active { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    .toggle-setting { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .toggle-switch { width: 50px; height: 26px; background: #ccc; border-radius: 13px; position: relative; cursor: pointer; transition: 0.3s; }
+    .toggle-switch.on { background: var(--primary); }
+    .toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-switch.on .toggle-slider { left: 27px; }
+    .verification-status { display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--bg); border-radius: 6px; margin-top: 8px; }
+    .verification-status.verified { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+    .verification-status.unverified { background: rgba(244, 67, 54, 0.1); color: #F44336; }
+    @media (max-width: 768px) { 
+      .header { padding: 8px 10px; flex-wrap: wrap; justify-content: center; gap: 6px; } 
+      .nav-wrapper { flex: 0 1 auto; order: 1; }
+      .header-center { flex: 0 1 100%; order: 2; margin: 4px 0; }
+      .header-title { font-size: 13px; }
+      .header-subtitle { font-size: 7px; }
+      .header-right { flex: 0 1 auto; order: 3; }
+      .theme-toggle { padding: 5px 8px; font-size: 11px; }
+      .nav-btn { padding: 5px 8px; font-size: 11px; }
+      .balance { padding: 5px 8px; font-size: 9px; }
+      .profile-pic { width: 28px; height: 28px; font-size: 14px; }
+      .tabs { width: 100%; }
+      .tab-btn { padding: 8px 6px; font-size: 9px; min-width: 50px; flex: 0 1 auto; }
+      .content { padding: 10px; }
+      .card { padding: 10px; margin-bottom: 10px; }
+      .card-header { font-size: 12px; padding-bottom: 5px; margin-bottom: 8px; }
+      .form-group { margin-bottom: 8px; }
+      .form-group label { font-size: 10px; margin-bottom: 3px; }
+      .form-group input, .form-group select, .form-group textarea { padding: 7px; font-size: 10px; }
+      .btn { padding: 7px 10px; font-size: 10px; }
+      .btn-small { padding: 4px 8px; font-size: 9px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 8px; }
+      .skill-grid { grid-template-columns: 1fr; }
+      .modal-content { padding: 14px; max-width: 95%; }
+      .modal-header h2 { font-size: 12px; }
+      .persona-name { font-size: 13px; }
+      .post-header { gap: 6px; }
+      .post-avatar { width: 32px; height: 32px; font-size: 14px; }
+      .post-user { font-size: 10px; }
+      .post-meta { font-size: 8px; }
+      .post-content { font-size: 10px; }
+      .filter-panel { padding: 8px; }
+      .filter-row { gap: 6px; }
+      .skill-btn { padding: 5px 8px; font-size: 9px; }
+      .genre-btn { padding: 5px 8px; font-size: 10px; margin: 2px; }
+      .toggle-btn { padding: 4px 8px; font-size: 9px; margin: 2px; }
+      #collabMap { height: 250px; }
+      .user-card-on-map { padding: 8px; margin-bottom: 8px; }
+      .user-card-avatar { width: 28px; height: 28px; font-size: 12px; }
+      .user-name { font-size: 10px; }
+      .user-rating { font-size: 9px; }
+      .user-card-content { font-size: 8px; }
+      .theme-selector { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .theme-color-btn { padding: 8px; font-size: 11px; }
+      .toggle-setting { padding: 6px 0; }
+      .toggle-switch { width: 40px; height: 22px; }
+      .toggle-slider { width: 16px; height: 16px; top: 3px; left: 3px; }
+      .toggle-switch.on .toggle-slider { left: 21px; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 6px 8px; }
+      .nav-wrapper { gap: 4px; order: 1; }
+      .header-center { order: 2; margin: 4px 0; flex: 0 1 100%; }
+      .header-title { font-size: 11px; }
+      .header-subtitle { font-size: 6px; }
+      .header-right { order: 3; gap: 4px; }
+      .theme-toggle { padding: 4px 6px; font-size: 10px; }
+      .nav-btn { padding: 4px 6px; font-size: 10px; }
+      .balance { padding: 4px 6px; font-size: 8px; }
+      .profile-pic { width: 24px; height: 24px; font-size: 12px; }
+      .tabs { width: 100%; }
+      .tab-btn { padding: 6px 4px; font-size: 8px; min-width: 45px; }
+      .content { padding: 8px; }
+      .card { padding: 8px; margin-bottom: 8px; }
+      .card-header { font-size: 11px; margin-bottom: 6px; padding-bottom: 4px; }
+      .form-group { margin-bottom: 6px; }
+      .form-group label { font-size: 9px; }
+      .form-group input, .form-group select, .form-group textarea { padding: 6px; font-size: 9px; }
+      .btn { padding: 6px 8px; font-size: 9px; }
+      .btn-small { padding: 3px 6px; font-size: 8px; }
+      .grid-2, .grid-3 { gap: 6px; }
+      .modal-content { padding: 12px; max-width: 98%; }
+      .modal-header h2 { font-size: 11px; }
+      .post-avatar { width: 28px; height: 28px; font-size: 12px; }
+      .post-user { font-size: 9px; }
+      .post-meta { font-size: 7px; }
+      .post-content { font-size: 9px; }
+      #collabMap { height: 200px; }
+      .user-card-avatar { width: 24px; height: 24px; font-size: 10px; }
+      .user-name { font-size: 9px; }
+      .user-rating { font-size: 8px; }
+      .user-card-content { font-size: 7px; }
+      .theme-selector { grid-template-columns: 1fr; gap: 6px; }
+      .theme-color-btn { padding: 6px; font-size: 10px; }
+      .toggle-switch { width: 36px; height: 20px; }
+      .toggle-slider { width: 14px; height: 14px; }
+      .toggle-switch.on .toggle-slider { left: 19px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">â†</button><button class="nav-btn" onclick="nextTab()">â†’</button><button class="theme-toggle" onclick="toggleTheme()">ðŸŒ™</button></div>
+    <div class="header-center"><div class="header-title">ðŸŽµ Music ConnectZ v6.1 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration â€¢ 1/24/2026</div></div>
+    <div class="header-right"><div class="balance" onclick="switchTab('money')">ðŸ’° $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">ðŸ‘¤</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('setup')">âš™ï¸ Setup</button>
+    <button class="tab-btn" onclick="switchTab('personas')">ðŸŽ­ Personas</button>
+    <button class="tab-btn" onclick="switchTab('examples')">ðŸŽµ Work</button>
+    <button class="tab-btn" onclick="switchTab('collaborate')">ðŸ¤ Collab</button>
+    <button class="tab-btn" onclick="switchTab('profile')">ðŸ‘¤ Profile</button>
+    <button class="tab-btn" onclick="switchTab('money')">ðŸ’° Money</button>
+    <button class="tab-btn" onclick="switchTab('settings')">âš™ï¸ Settings</button>
+  </div>
+
+  <div class="content">
+    <div id="setup" class="tab active">
+      <div class="card">
+        <div class="card-header">ðŸ‘¤ Your Profile</div>
+        <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Your name" /></div>
+        <div class="grid-2"><div class="form-group"><label>ðŸ“§ Email *</label><input type="email" id="email" /></div><div class="form-group"><label>ðŸ“± Phone *</label><input type="tel" id="phone" /></div></div>
+        <div class="grid-2"><div class="form-group"><label>ðŸŽ‚ Birthday *</label><input type="date" id="birthday" /></div><div class="form-group"><label>âš§ï¸ Gender *</label><select id="gender"><option value="">Select</option><option value="Male">ðŸš¹ Male â™‚ï¸</option><option value="Female">ðŸšº Female â™€ï¸</option><option value="Non-Binary">âš§ï¸ Non-Binary</option></select></div></div>
+        <div class="form-group">
+          <label>ðŸ“ Location *</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="location" placeholder="City, State or Zip" style="flex: 1;" />
+            <button class="btn btn-secondary btn-small" onclick="requestGPS()" id="gpsBtn">ðŸ“ GPS</button>
+          </div>
+          <div class="gps-status" id="gpsStatus">Requesting location...</div>
+        </div>
+        <div class="form-group"><label>ðŸ“¸ Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
+        <div class="form-group"><label>ðŸ“ Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">ðŸ’¾ Save Profile</button>
+      </div>
+    </div>
+
+    <div id="personas" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸŽ­ Select Your Personas & Add Skills</div>
+        <div class="grid-3">
+          <button class="persona-btn" onclick="openSkillModal('indie-artist','ðŸŽ¤ Indie Artist')">ðŸŽ¤ Indie</button>
+          <button class="persona-btn" onclick="openSkillModal('beat-producer','ðŸŽšï¸ Beat Producer')">ðŸŽšï¸ Producer</button>
+          <button class="persona-btn" onclick="openSkillModal('mix-engineer','ðŸŽ›ï¸ Mix Engineer')">ðŸŽ›ï¸ Engineer</button>
+          <button class="persona-btn" onclick="openSkillModal('designer','ðŸŽ¨ Designer')">ðŸŽ¨ Designer</button>
+          <button class="persona-btn" onclick="openSkillModal('videographer','ðŸŽ¬ Videographer')">ðŸŽ¬ Video</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">ðŸŽ­ Your Personas</div>
+        <div id="personasDisplay">No personas yet</div>
+      </div>
+    </div>
+
+    <div id="examples" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸŽµ Upload Work Example</div>
+        <input type="hidden" id="editingExampleIdx" value="" />
+        <div class="form-group"><label>ðŸŽ¯ Title *</label><input type="text" id="exampleTitle" placeholder="e.g., My Latest Beat" /></div>
+        <div class="form-group"><label>ðŸ“ Description *</label><textarea id="exampleDesc" placeholder="Tell us about this work..." style="height: 50px;"></textarea></div>
+        <div class="form-group"><label>ðŸŽµ Genre/Style *</label><button class="btn" onclick="openGenreModal()" style="width: 100%; margin-bottom: 8px;">ðŸŽµ Select Genre</button><div id="exampleGenreDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Genre"</div></div>
+        <div class="form-group"><label>ðŸŽ§ Audio/Video File *</label><input type="file" id="exampleMedia" accept="audio/*,video/*" /><div id="currentMediaDisplay" style="margin-top: 6px; font-size: 10px; color: var(--text-light);"></div></div>
+        <div class="form-group"><label>ðŸ–¼ï¸ Thumbnail Image</label><input type="file" id="exampleImage" accept="image/*" /></div>
+        <div class="form-group">
+          <label>ðŸŽ¯ Skills Used * (Required)</label>
+          <div id="skillsUsedDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px; max-height: 150px; overflow-y: auto; margin-bottom: 8px;" onclick="openSkillsUsedModal()">Click to select required skills</div>
+          <button class="btn" onclick="openSkillsUsedModal()" style="width: 100%;">ðŸ“‹ Select Required Skills</button>
+        </div>
+        <div class="form-group"><label>ðŸ”’ Privacy</label><div style="display: flex; gap: 8px; margin-top: 8px;"><button class="toggle-btn active" onclick="setExamplePrivacy('private')">ðŸ”’ Private</button><button class="toggle-btn" onclick="setExamplePrivacy('public')">ðŸŒ Public</button></div></div>
+        <button class="btn btn-success" onclick="uploadExample()" style="width: 100%;" id="exampleSubmitBtn">ðŸ“¤ Upload</button>
+        <button class="btn btn-secondary" onclick="cancelEditExample()" style="width: 100%; margin-top: 8px; display: none;" id="exampleCancelBtn">âŒ Cancel Edit</button>
+      </div>
+      <div class="card">
+        <div class="card-header">ðŸŽµ Your Work Examples</div>
+        <div id="examplesDisplay">No examples yet</div>
+      </div>
+    </div>
+
+    <div id="collaborate" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸ¤ Post Collaboration Request</div>
+        <input type="hidden" id="editingCollabIdx" value="" />
+        <div class="form-group"><label>ðŸŽ­ Select Persona *</label><select id="collabPersona" onchange="updateCollabExampleOptions()"><option value="">Choose persona</option></select></div>
+        <div class="form-group"><label>ðŸŽµ Select Public Example *</label><select id="collabPublicExample"><option value="">Choose example</option></select></div>
+        <div class="form-group"><label>ðŸ“ Description (200 chars) *</label><textarea id="collabPostDesc" placeholder="What collaboration are you looking for?" style="height: 60px;" maxlength="200"></textarea></div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);"><div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--primary);">ðŸŽ¯ Collaborator Requirements</div>
+          <div class="grid-2"><div class="form-group"><label>ðŸ‘¥ Min Age</label><input type="number" id="collabMinAge" min="13" max="120" placeholder="13" /></div><div class="form-group"><label>ðŸ‘¥ Max Age</label><input type="number" id="collabMaxAge" min="13" max="120" placeholder="120" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>ðŸ“ Max Distance (miles)</label><input type="number" id="collabMaxDistance" min="0" placeholder="Unlimited" /></div><div class="form-group"><label>ðŸ’µ Budget per Collab ($)</label><input type="number" id="collabBudget" min="0" step="0.01" placeholder="No limit" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>ðŸ“Š Min Experience (yrs)</label><input type="number" id="collabMinExp" min="0" step="0.5" placeholder="0" /></div><div class="form-group"><label>â­ Min Profile Rating</label><input type="number" id="collabMinProfileRating" min="0" max="10" step="0.1" placeholder="0" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>ðŸ“¸ Min Picture Rating</label><input type="number" id="collabMinPictureRating" min="0" max="10" step="0.1" placeholder="0" /></div><div class="form-group"><label>âš§ï¸ Preferred Gender</label><select id="collabPreferredGender"><option value="">Any</option><option value="Male">ðŸš¹ Male</option><option value="Female">ðŸšº Female</option><option value="Non-Binary">âš§ï¸ Non-Binary</option></select></div></div></div>
+        <button class="btn btn-success" onclick="postCollabRequest()" style="width: 100%;" id="collabSubmitBtn">ðŸ“¤ Post</button>
+        <button class="btn btn-secondary" onclick="cancelEditCollab()" style="width: 100%; margin-top: 8px; display: none;" id="collabCancelBtn">âŒ Cancel Edit</button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>ðŸ” Filter Requests</span>
+          <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">ðŸŽ­ Persona:</label>
+            <select id="filterPersona" onchange="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;">
+              <option value="">All Personas</option>
+              <option value="ðŸŽ¤ Indie Artist">ðŸŽ¤ Indie Artist</option>
+              <option value="ðŸŽšï¸ Beat Producer">ðŸŽšï¸ Beat Producer</option>
+              <option value="ðŸŽ›ï¸ Mix Engineer">ðŸŽ›ï¸ Mix Engineer</option>
+              <option value="ðŸŽ¨ Designer">ðŸŽ¨ Designer</option>
+              <option value="ðŸŽ¬ Videographer">ðŸŽ¬ Videographer</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">ðŸ“ Location:</label>
+            <input type="text" id="filterLocation" placeholder="City/State" oninput="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">ðŸ—ºï¸ Collaborators Map</div>
+        <div class="map-container">
+          <div id="collabMap"></div>
+        </div>
+        <div id="mapUsersListContainer">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--primary);">ðŸ‘¥ Nearby Collaborators</div>
+          <div id="mapUsersList"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>ðŸ’¼ Collaboration Feed</span>
+          <span class="filter-badge" id="feedCount">0</span>
+        </div>
+        <div id="collabFeed">No posts yet</div>
+      </div>
+    </div>
+
+    <div id="profile" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸ‘¤ Your Public Profile</div>
+        <div style="text-align: center; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px;"><div id="pubPic" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden;">ðŸ‘¤</div><div id="pubUsername" style="font-weight: 700; font-size: 14px;">Not Set</div><div id="pubInfo" style="font-size: 11px; color: var(--text-light);"></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">ðŸ“ Bio:</div><div id="pubBio">No bio</div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">ðŸ“§ Email:</div><div id="pubEmail" style="display: flex; gap: 6px; align-items: center;"><span id="pubEmailText">No email</span><button class="btn btn-small btn-secondary" onclick="copyEmail()" id="copyEmailBtn">ðŸ“‹ Copy</button></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">ðŸŽ¯ Skills:</div><div id="pubSkills">No skills</div></div>
+      </div>
+    </div>
+
+    <div id="money" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸ’° Wallet</div>
+        <div class="grid-2">
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">ðŸ’µ Balance</div><div style="font-size: 16px; font-weight: 700;" id="walletBalance">$0.00</div></div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">ðŸ’¸ Total Earned</div><div style="font-size: 16px; font-weight: 700;" id="walletEarned">$0.00</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">âž• Add Income</div>
+        <div class="grid-2">
+          <div class="form-group"><label>ðŸ’µ Amount ($)</label><input type="number" id="incomeAmt" min="0" step="1" /></div>
+          <div class="form-group"><label>ðŸ§¾ Tax %</label><input type="number" id="incomeTax" min="0" max="100" step="1" value="10" /></div>
+        </div>
+        <button class="btn btn-success" onclick="addIncome()" style="width: 100%;">âœ“ Add</button>
+      </div>
+    </div>
+
+    <div id="settings" class="tab">
+      <div class="card">
+        <div class="card-header">ðŸŽ¨ Theme Colors</div>
+        <div class="theme-selector">
+          <button class="theme-color-btn" style="background: #2196F3;" onclick="applyTheme('blue', '#2196F3', '#1565C0')" title="Blue">ðŸ’™ Blue</button>
+          <button class="theme-color-btn" style="background: #FF6B35;" onclick="applyTheme('orange', '#FF6B35', '#E55100')" title="Orange">ðŸ§¡ Orange</button>
+          <button class="theme-color-btn" style="background: #764BA2;" onclick="applyTheme('purple', '#764BA2', '#5E35B1')" title="Purple">ðŸ’œ Purple</button>
+          <button class="theme-color-btn" style="background: #F44336;" onclick="applyTheme('red', '#F44336', '#D32F2F')" title="Red">â¤ï¸ Red</button>
+          <button class="theme-color-btn" style="background: #00BCD4;" onclick="applyTheme('cyan', '#00BCD4', '#0097A7')" title="Cyan">ðŸ’Ž Cyan</button>
+          <button class="theme-color-btn" style="background: #E91E63;" onclick="applyTheme('pink', '#E91E63', '#C2185B')" title="Pink">ðŸ’– Pink</button>
+          <button class="theme-color-btn" style="background: #4CAF50;" onclick="applyTheme('green', '#4CAF50', '#2E7D32')" title="Green">ðŸ’š Green</button>
+          <button class="theme-color-btn" style="background: #FF9800;" onclick="applyTheme('amber', '#FF9800', '#F57C00')" title="Amber">ðŸ§¨ Amber</button>
+          <button class="theme-color-btn" style="background: #9C27B0;" onclick="applyTheme('deep-purple', '#9C27B0', '#7B1FA2')" title="Deep Purple">â˜‚ï¸ Deep Purple</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">ðŸŒ“ Display</div>
+        <div class="toggle-setting">
+          <div>
+            <div style="font-weight: 700;">ðŸŒ™ Dark Mode</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Switch between light and dark themes</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleDarkMode()" id="darkModeToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">ðŸŒ Language</div>
+        <div class="form-group">
+          <label>Select Language</label>
+          <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="English">ðŸ‡¬ðŸ‡§ English</option>
+            <option value="Spanish">ðŸ‡ªðŸ‡¸ Spanish</option>
+            <option value="French">ðŸ‡«ðŸ‡· French</option>
+            <option value="German">ðŸ‡©ðŸ‡ª German</option>
+            <option value="Japanese">ðŸ‡¯ðŸ‡µ Japanese</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">ðŸ”” Notifications</div>
+        <div class="toggle-setting">
+          <div>
+            <div style="font-weight: 700;">ðŸ“§ Email Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Receive updates via email</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('email')" id="emailNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div id="emailVerifSection" style="margin-top: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="sendVerificationEmail()" style="width: 100%;">âœ‰ï¸ Send Verification Email</button>
+          <div class="verification-status unverified" id="emailVerifStatus">
+            <span>âŒ</span>
+            <span>Email not verified</span>
+          </div>
+        </div>
+
+        <div class="toggle-setting" style="margin-top: 12px;">
+          <div>
+            <div style="font-weight: 700;">ðŸ”Š Push Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Browser push notifications</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('push')" id="pushNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+
+        <div class="toggle-setting" style="margin-top: 12px;">
+          <div>
+            <div style="font-weight: 700;">ðŸ“± SMS Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Text message alerts</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('phone')" id="phoneNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div id="phoneVerifSection" style="margin-top: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="sendVerificationSMS()" style="width: 100%;">ðŸ“² Send Verification SMS</button>
+          <div class="verification-status unverified" id="phoneVerifStatus">
+            <span>âŒ</span>
+            <span>Phone not verified</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">ðŸ’¾ Data Management</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="exportData()">ðŸ“¥ Export Data</button>
+          <button class="btn btn-danger" onclick="resetSettings()">ðŸ”„ Reset Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="genreModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>ðŸŽµ Select Music Genre</h2><button class="close-btn" onclick="closeGenreModal()">âœ•</button></div>
+    <div id="genreCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeGenreModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addGenre()" style="flex: 1;">âœ“ Select</button></div>
+  </div>
+</div>
+
+<div id="skillModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="skillModalTitle">Select Skills</h2><button class="close-btn" onclick="closeSkillModal()">âœ•</button></div>
+    <input type="hidden" id="editingPersonaIdx" value="" />
+    <div style="background: #4caf50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">âœ¨ Click MULTIPLE skills (including "Any" skills), then click "Add Skills" to save them all with the same date!</div>
+    <div class="form-group"><label>ðŸ“… Start Date *</label><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><select id="skillMo"></select><select id="skillDay"></select><select id="skillYr"></select></div></div>
+    <div id="skillCats" style="max-height: 350px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeSkillModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addSkills()" style="flex: 1;" id="skillSubmitBtn">âœ“ Add Skills</button></div>
+  </div>
+</div>
+
+<div id="skillsUsedModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>ðŸŽ¯ Choose Skills Used on This Example</h2><button class="close-btn" onclick="closeSkillsUsedModal()">âœ•</button></div>
+    <div style="background: var(--accent); color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">â„¹ï¸ Click skills to select them. Click "Any" to see specific options. Selected skills update in real-time at the top!</div>
+    <div id="skillsUsedCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-success" onclick="closeSkillsUsedModal()" style="flex: 1;">âœ“ Done</button></div>
+  </div>
+</div>
+
+
+  <div id="mediaPlayerModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header"><h2 id="mediaPlayerTitle"> Play Work</h2><button class="close-btn" onclick="closeMediaPlayer()"></button></div>
+      <div id="mediaPlayerContainer" style="background: var(--bg); padding: 16px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+        <audio id="audioPlayer" style="width: 100%; margin-bottom: 12px;" controls></audio>
+        <video id="videoPlayer" style="width: 100%; max-height: 400px; margin-bottom: 12px; border-radius: 6px; display: none;"></video>
+        <div id="mediaMetadata" style="text-align: left; font-size: 11px; color: var(--text-light);"></div>
+      </div>
+    </div>
+  </div>
+  <script src="https://maps.googleapis.com/maps/api/js?key=
+  function playMedia(idx) {
+    const example = appState.examples[idx];
+    if (!example || !example.media) { alert(' No media found for this work'); return; }
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const mediaTitle = document.getElementById('mediaPlayerTitle');
+    const mediaMetadata = document.getElementById('mediaMetadata');
+    
+    mediaTitle.textContent = ' ' + example.title;
+    mediaMetadata.innerHTML = <strong>Genre:</strong> <br><strong>Skills:</strong> <br><strong>Uploaded by:</strong> ;
+    
+    // Determine if audio or video
+    const isAudio = example.mediaType.startsWith('audio/');
+    if (isAudio) {
+      audioPlayer.src = example.media;
+      audioPlayer.style.display = 'block';
+      videoPlayer.style.display = 'none';
+      videoPlayer.src = '';
+    } else {
+      videoPlayer.src = example.media;
+      videoPlayer.style.display = 'block';
+      audioPlayer.style.display = 'none';
+      audioPlayer.src = '';
+    }
+    document.getElementById('mediaPlayerModal').classList.add('active');
+  }
+  
+  function closeMediaPlayer() {
+    document.getElementById('audioPlayer').pause();
+    document.getElementById('audioPlayer').src = '';
+    document.getElementById('videoPlayer').pause();
+    document.getElementById('videoPlayer').src = '';
+    document.getElementById('mediaPlayerModal').classList.remove('active');
+  }AIzaSyDummy123456&libraries=places"></script>
+<script>
+const instrumentDatabase = {
+  'indie-artist': {
+    'String Instruments': {'Any String': 'Any String ðŸŽ¸','Acoustic Guitar': 'Acoustic Guitar ðŸŽ¸','Electric Guitar': 'Electric Guitar ðŸŽ¸','Bass Guitar': 'Bass Guitar ðŸŽ¸','Ukulele': 'Ukulele ðŸŽ¸','Banjo': 'Banjo ðŸŽ¸','Mandolin': 'Mandolin ðŸŽ¸','Violin': 'Violin ðŸŽ»','Viola': 'Viola ðŸŽ»','Cello': 'Cello ðŸŽ»','Double Bass': 'Double Bass ðŸŽ»','Harp': 'Harp ðŸŽµ'},
+    'Keyboard Instruments': {'Any Keyboard': 'Any Keyboard ðŸŽ¹','Acoustic Piano': 'Acoustic Piano ðŸŽ¹','Digital Piano': 'Digital Piano ðŸŽ¹','Synthesizer': 'Synthesizer ðŸŽ¹','Organ': 'Organ ðŸŽ¹','Harpsichord': 'Harpsichord ðŸŽ¹','Accordion': 'Accordion ðŸŽ¹'},
+    'Percussion Instruments': {'Any Percussion': 'Any Percussion ðŸ¥','Drums (Snare)': 'Drums (Snare) ðŸ¥','Drums (Bass)': 'Drums (Bass) ðŸ¥','Drums (Bongo)': 'Drums (Bongo) ðŸ¥','Cymbals': 'Cymbals ðŸ¥'},
+    'Rapping': {'Any Rapping': 'Any Rapping ðŸŽ¤','Alternative Rap': 'Alternative Rap ðŸŽ¸','Boom Bap': 'Boom Bap ðŸ¥','Chopper': 'Chopper ðŸš','Cloud Rap': 'Cloud Rap â˜ï¸','Conscious Rap': 'Conscious Rap ðŸ§ ','Crunk': 'Crunk ðŸ”¥','Drill': 'Drill âš”ï¸','Emo Rap': 'Emo Rap ðŸ–¤','G-Funk': 'G-Funk ðŸŒ´','Gangsta Rap': 'Gangsta Rap â›“ï¸','Hardcore Hip Hop': 'Hardcore Hip Hop ðŸŽ¤','Jazz Rap': 'Jazz Rap ðŸŽ·','Mumble Rap': 'Mumble Rap ðŸ’¤','Old School': 'Old School ðŸ“»','Snap': 'Snap ðŸ«°','Trap': 'Trap ðŸšï¸'},
+    'Singing': {'Any Singing': 'Any Singing ðŸŽ¶','Bass': 'Bass ðŸ§”â€â™‚ï¸','Baritone': 'Baritone ðŸŽ™ï¸','Tenor': 'Tenor ðŸŽ¤','Countertenor': 'Countertenor ðŸ•Šï¸','Contralto': 'Contralto ðŸŽ»','Alto': 'Alto ðŸŽ¶','Mezzo-Soprano': 'Mezzo-Soprano ðŸŒŠ','Soprano': 'Soprano â˜€ï¸'}
+  },
+  'beat-producer': {
+    'Music DAWs': {'Any DAW': 'Any DAW ðŸŽ›ï¸','Ableton Live': 'Ableton Live ðŸŽµ','Adobe Audition': 'Adobe Audition ðŸŽ™ï¸','Audacity': 'Audacity ðŸŽ§','Bitwig Studio': 'Bitwig Studio ðŸŽšï¸','Cakewalk': 'Cakewalk ðŸŽ¼','Cubase': 'Cubase ðŸŽ›ï¸','FL Studio': 'FL Studio ðŸŽšï¸','GarageBand': 'GarageBand ðŸŽµ','Logic Pro': 'Logic Pro ðŸŽµ','Luna': 'Luna â˜ï¸','Mixcraft': 'Mixcraft ðŸŽšï¸','PreSonus Studio One': 'PreSonus Studio One ðŸŽ›ï¸','Pro Tools': 'Pro Tools ðŸŽ™ï¸','Reason': 'Reason ðŸŽ›ï¸','Reaper': 'Reaper ðŸ”§','Studio One': 'Studio One ðŸŽ›ï¸','Waveform Pro': 'Waveform Pro ðŸ“Š'},
+    'Production Techniques': {'Any Production': 'Any Production ðŸŽšï¸','Beat Making': 'Beat Making ðŸŽšï¸','Sampling': 'Sampling ðŸŽµ','Sound Design': 'Sound Design ðŸŽ›ï¸','Arrangement': 'Arrangement ðŸŽ¼','Synthesis': 'Synthesis ðŸŽ¹'}
+  },
+  'mix-engineer': {
+    'Music DAWs': {'Any DAW': 'Any DAW ðŸŽ›ï¸','Ableton Live': 'Ableton Live ðŸŽµ','Adobe Audition': 'Adobe Audition ðŸŽ™ï¸','Audacity': 'Audacity ðŸŽ§','Bitwig Studio': 'Bitwig Studio ðŸŽšï¸','Cakewalk': 'Cakewalk ðŸŽ¼','Cubase': 'Cubase ðŸŽ›ï¸','FL Studio': 'FL Studio ðŸŽšï¸','GarageBand': 'GarageBand ðŸŽµ','Logic Pro': 'Logic Pro ðŸŽµ','Luna': 'Luna â˜ï¸','Mixcraft': 'Mixcraft ðŸŽšï¸','PreSonus Studio One': 'PreSonus Studio One ðŸŽ›ï¸','Pro Tools': 'Pro Tools ðŸŽ™ï¸','Reason': 'Reason ðŸŽ›ï¸','Reaper': 'Reaper ðŸ”§','Studio One': 'Studio One ðŸŽ›ï¸','Waveform Pro': 'Waveform Pro ðŸ“Š'},
+    'Engineering Skills': {'Any Engineering': 'Any Engineering ðŸŽ›ï¸','Mixing': 'Mixing ðŸŽ›ï¸','Mastering': 'Mastering ðŸŽ™ï¸','EQ': 'EQ ðŸ“Š','Compression': 'Compression ðŸ”§','Reverb/Effects': 'Reverb/Effects âœ¨'}
+  },
+  'designer': {
+    'Design Software': {'Any Design Software': 'Any Design Software ðŸŽ¨','Photoshop': 'Adobe Photoshop ðŸŽ¨','Illustrator': 'Adobe Illustrator ðŸ–Œï¸','Figma': 'Figma ðŸŽ¯','Canva': 'Canva ðŸŒˆ','Affinity Designer': 'Affinity Designer âœ¨','CorelDRAW': 'CorelDRAW ðŸŽ¨','Sketch': 'Sketch ðŸ“','InDesign': 'Adobe InDesign ðŸ“„'},
+    'Design Skills': {'Any Design Skill': 'Any Design Skill ðŸŽ¨','UI/UX Design': 'UI/UX Design ðŸŽ¯','Graphic Design': 'Graphic Design ðŸ–Œï¸','Branding': 'Branding ðŸ·ï¸','Layout Design': 'Layout Design ðŸ“','Typography': 'Typography ðŸ”¤','Color Theory': 'Color Theory ðŸŒˆ','Icon Design': 'Icon Design ðŸŽ­'}
+  },
+  'videographer': {
+    'Video Software': {'Any Video Software': 'Any Video Software ðŸŽ¬','Adobe Premiere': 'Adobe Premiere ðŸŽ¬','DaVinci Resolve': 'DaVinci Resolve ðŸŽžï¸','Final Cut Pro': 'Final Cut Pro ðŸŽ¥','Sony Vegas': 'Sony Vegas ðŸ“¹','Filmora': 'Filmora ðŸŽ¬','After Effects': 'After Effects âœ¨','OBS': 'OBS Studio ðŸ”´'},
+    'Video Skills': {'Any Video Skill': 'Any Video Skill ðŸŽ¬','Editing': 'Editing ðŸŽ¬','Color Grading': 'Color Grading ðŸŽ¨','Motion Graphics': 'Motion Graphics âœ¨','Cinematography': 'Cinematography ðŸŽ¥','Drone Footage': 'Drone Footage ðŸš','Lighting': 'Lighting ðŸ’¡','Sound Design': 'Sound Design ðŸŽ™ï¸'}
+  }
+};
+
+let appState = {
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null},
+  personas: [],
+  examples: [],
+  collabs: [],
+  skillsUsed: [],
+  selectedGenre: '',
+  selectedSkillsInModal: new Set(),
+  wallet: {balance: 0, earned: 0},
+  examplePrivacy: 'private',
+  currentTab: 'setup',
+  filteredCollabs: [],
+  map: null,
+  userMarkers: [],
+  settings: {
+    theme: 'blue',
+    darkMode: false,
+    language: 'English',
+    emailNotifications: true,
+    pushNotifications: true,
+    phoneNotifications: false,
+    emailVerified: false,
+    phoneVerified: false
+  }
+};
+
+function saveAppState() {
+  const stateToSave = JSON.parse(JSON.stringify(appState));
+  stateToSave.selectedSkillsInModal = Array.from(appState.selectedSkillsInModal);
+  localStorage.setItem('musicConnectZState', JSON.stringify(stateToSave));
+}
+
+function loadAppState() {
+  const saved = localStorage.getItem('musicConnectZState');
+  if (saved) {
+    const loaded = JSON.parse(saved);
+    appState = {
+      user: loaded.user || appState.user,
+      personas: loaded.personas || [],
+      examples: loaded.examples || [],
+      collabs: loaded.collabs || [],
+      skillsUsed: loaded.skillsUsed || [],
+      selectedGenre: loaded.selectedGenre || '',
+      selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
+      wallet: loaded.wallet || {balance: 0, earned: 0},
+      examplePrivacy: loaded.examplePrivacy || 'private',
+      currentTab: loaded.currentTab || 'setup',
+      filteredCollabs: loaded.filteredCollabs || [],
+      map: null,
+      userMarkers: [],
+      settings: loaded.settings || {
+        theme: 'blue',
+        darkMode: false,
+        language: 'English',
+        emailNotifications: true,
+        pushNotifications: true,
+        phoneNotifications: false,
+        emailVerified: false,
+        phoneVerified: false
+      }
+    };
+  }
+  if (appState.settings.darkMode) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  updateAllDisplays();
+}
+
+function switchTab(tabName) {
+  try {
+    const tabEl = document.getElementById(tabName);
+    if (!tabEl) { console.warn('Tab not found:', tabName); return; }
+    
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    tabEl.classList.add('active');
+    
+    const allButtons = document.querySelectorAll('.tab-btn');
+    const tabNames = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+    const tabIdx = tabNames.indexOf(tabName);
+    if (tabIdx >= 0 && tabIdx < allButtons.length) {
+      allButtons[tabIdx].classList.add('active');
+    }
+    
+    appState.currentTab = tabName;
+    saveAppState();
+    
+    if (tabName === 'collaborate') { 
+      updateCollabPersonaOptions(); 
+      renderCollabFeed();
+      setTimeout(() => initMap(), 300);
+    }
+    if (tabName === 'profile') { updateProfileDisplay(); }
+  } catch (e) { console.error('switchTab error:', e); }
+}
+
+function prevTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = currentIdx === 0 ? tabs.length - 1 : currentIdx - 1;
+  switchTab(tabs[newIdx]);
+}
+
+function nextTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = (currentIdx + 1) % tabs.length;
+  switchTab(tabs[newIdx]);
+}
+
+function saveProfile() {
+  appState.user = { name: document.getElementById('username').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, birthday: document.getElementById('birthday').value, gender: document.getElementById('gender').value, location: document.getElementById('location').value, bio: document.getElementById('bio').value, profilePic: appState.user.profilePic, lat: appState.user.lat, lng: appState.user.lng };
+  saveAppState();
+  updateProfileDisplay();
+  alert('âœ“ Profile saved!');
+}
+
+function loadProfilePic(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => { appState.user.profilePic = e.target.result; document.getElementById('headerPic').innerHTML = `<img src="${e.target.result}" />`; saveAppState(); updateProfileDisplay(); };
+    reader.readAsDataURL(file);
+  }
+}
+
+function reverseGeocode(lat, lng, callback) {
+  const geocoder = new google.maps.Geocoder();
+  const latlng = { lat: lat, lng: lng };
+  geocoder.geocode({ location: latlng }, (results, status) => {
+    if (status === 'OK' && results[0]) {
+      const components = {};
+      results[0].address_components.forEach(comp => {
+        if (comp.types.includes('locality')) components.city = comp.long_name;
+        if (comp.types.includes('administrative_area_level_1')) components.state = comp.short_name;
+        if (comp.types.includes('country')) components.country = comp.short_name;
+      });
+      const cityStateCountry = `${components.city || 'Unknown'}, ${components.state || 'Unknown'}, ${components.country || 'Unknown'}`;
+      callback(cityStateCountry);
+    } else {
+      callback('Unknown Location');
+    }
+  });
+}
+
+function requestGPS() {
+  const status = document.getElementById('gpsStatus');
+  status.classList.add('active');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude.toFixed(4);
+      const lng = pos.coords.longitude.toFixed(4);
+      appState.user.lat = parseFloat(lat);
+      appState.user.lng = parseFloat(lng);
+      status.textContent = 'âœ“ Getting location...';
+      reverseGeocode(parseFloat(lat), parseFloat(lng), (location) => {
+        document.getElementById('location').value = location;
+        appState.user.location = location;
+        status.textContent = `âœ“ GPS: ${location}`;
+      });
+    }, () => { status.textContent = 'âœ— GPS denied or unavailable'; });
+  }
+}
+
+function updateProfileDisplay() {
+  const user = appState.user;
+  document.getElementById('pubUsername').textContent = user.name || 'Not Set';
+  document.getElementById('pubInfo').innerHTML = `ðŸ“§ ${user.email || 'No email'}<br>ðŸ“± ${user.phone || 'No phone'}<br>ðŸ“ ${user.location || 'No location'}`;
+  document.getElementById('pubBio').textContent = user.bio || 'No bio';
+  document.getElementById('pubEmailText').textContent = user.email || 'No email';
+  if (user.email) { document.getElementById('copyEmailBtn').style.display = 'block'; } else { document.getElementById('copyEmailBtn').style.display = 'none'; }
+  if (user.profilePic) { document.getElementById('pubPic').innerHTML = `<img src="${user.profilePic}" />`; document.getElementById('headerPic').innerHTML = `<img src="${user.profilePic}" />`; }
+  const skillsList = appState.personas.map(p => p.skills.map(s => s.name)).flat();
+  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag">${s}</span>`).join('') : 'No skills';
+}
+
+function openSkillModal(personaKey, personaName) {
+  document.getElementById('skillModalTitle').textContent = `Add Skills - ${personaName}`;
+  document.getElementById('editingPersonaIdx').value = personaKey;
+  appState.selectedSkillsInModal = new Set();
+  renderSkillModal(personaKey);
+  populateDateSelects();
+  document.getElementById('skillModal').classList.add('active');
+}
+
+function populateDateSelects() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const moSelect = document.getElementById('skillMo');
+  moSelect.innerHTML = '';
+  months.forEach((m, i) => moSelect.innerHTML += `<option value="${i+1}">${m}</option>`);
+  const daySelect = document.getElementById('skillDay');
+  daySelect.innerHTML = '';
+  for (let i = 1; i <= 31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+  const yrSelect = document.getElementById('skillYr');
+  yrSelect.innerHTML = '';
+  const currentYear = new Date().getFullYear();
+  for (let i = currentYear; i >= 2000; i--) yrSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function renderSkillModal(personaKey) {
+  const skillCats = document.getElementById('skillCats');
+  skillCats.innerHTML = '';
+  const categories = instrumentDatabase[personaKey];
+  for (const [catName, skills] of Object.entries(categories)) {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${catName}</div><div class="skill-grid"></div>`;
+    for (const [skillKey, skillName] of Object.entries(skills)) {
+      const isAny = skillKey.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''}`;
+      btn.textContent = skillName;
+      btn.onclick = (e) => { e.preventDefault(); btn.classList.toggle('sel'); if (btn.classList.contains('sel')) { appState.selectedSkillsInModal.add(skillName); } else { appState.selectedSkillsInModal.delete(skillName); } };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    }
+    skillCats.appendChild(catDiv);
+  }
+}
+
+function addSkills() {
+  const personaKey = document.getElementById('editingPersonaIdx').value;
+  if (appState.selectedSkillsInModal.size === 0) { alert('âŒ Please select at least one skill'); return; }
+  const mo = document.getElementById('skillMo').value;
+  const day = document.getElementById('skillDay').value;
+  const yr = document.getElementById('skillYr').value;
+  const startDate = `${mo}/${day}/${yr}`;
+  const personaNames = { 'indie-artist': 'ðŸŽ¤ Indie Artist', 'beat-producer': 'ðŸŽšï¸ Beat Producer', 'mix-engineer': 'ðŸŽ›ï¸ Mix Engineer', 'designer': 'ðŸŽ¨ Designer', 'videographer': 'ðŸŽ¬ Videographer' };
+  let persona = appState.personas.find(p => p.key === personaKey);
+  if (!persona) { persona = {key: personaKey, name: personaNames[personaKey], skills: []}; appState.personas.push(persona); }
+  const skillCount = appState.selectedSkillsInModal.size;
+  appState.selectedSkillsInModal.forEach(skillName => { persona.skills.push({name: skillName, startDate: startDate}); });
+  appState.selectedSkillsInModal.clear();
+  renderPersonasDisplay();
+  closeSkillModal();
+  saveAppState();
+  alert(`âœ“ Added ${skillCount} skill${skillCount !== 1 ? 's' : ''} with start date ${startDate}`);
+}
+
+function renderPersonasDisplay() {
+  const display = document.getElementById('personasDisplay');
+  if (appState.personas.length === 0) { display.innerHTML = 'No personas yet'; return; }
+  display.innerHTML = '';
+  appState.personas.forEach((persona, idx) => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.innerHTML = `<div class="persona-header"><div class="persona-name">${persona.name}</div><button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button></div><div style="font-size: 11px;"><div style="font-weight: 600; margin-bottom: 6px;">Skills:</div><div id="personaSkills${idx}"></div></div>`;
+    display.appendChild(card);
+    const skillsDiv = document.getElementById(`personaSkills${idx}`);
+    persona.skills.forEach((skill, sIdx) => {
+      const skillItem = document.createElement('div');
+      skillItem.className = 'skill-item';
+      skillItem.innerHTML = `<span class="skill-item-name">${skill.name}</span><span class="skill-item-exp">${skill.startDate}</span><div class="skill-item-actions"><button class="btn btn-danger btn-small" onclick="removePersonaSkill(${idx}, ${sIdx})">âœ•</button></div>`;
+      skillsDiv.appendChild(skillItem);
+    });
+  });
+  updateProfileDisplay();
+}
+
+function removePersona(idx) { if (confirm('Remove this persona and all its skills?')) { appState.personas.splice(idx, 1); renderPersonasDisplay(); saveAppState(); } }
+
+function removePersonaSkill(personaIdx, skillIdx) { appState.personas[personaIdx].skills.splice(skillIdx, 1); renderPersonasDisplay(); saveAppState(); }
+
+function closeSkillModal() { document.getElementById('skillModal').classList.remove('active'); }
+
+function openGenreModal() {
+  const genreCats = document.getElementById('genreCats');
+  genreCats.innerHTML = '';
+  const genres = ['Blues', 'Brass & Military', 'Children\'s', 'Classical', 'Country', 'Electronic', 'Folk', 'Funk / Soul', 'Hip-Hop', 'House', 'International', 'Jazz', 'Latin', 'Newage', 'Non-Music', 'Pop', 'Pop/Rock', 'R&B', 'Reggae', 'Religious', 'Rock', 'Rap', 'Soul', 'Soundtrack', 'Techno', 'Traditional', 'World'];
+  genres.forEach(genre => {
+    const btn = document.createElement('button');
+    btn.className = `genre-btn ${appState.selectedGenre === genre ? 'sel' : ''}`;
+    btn.textContent = genre;
+    btn.onclick = () => { document.querySelectorAll('#genreCats .genre-btn').forEach(b => b.classList.remove('sel')); btn.classList.add('sel'); appState.selectedGenre = genre; };
+    genreCats.appendChild(btn);
+  });
+  document.getElementById('genreModal').classList.add('active');
+}
+
+function closeGenreModal() { document.getElementById('genreModal').classList.remove('active'); }
+
+function addGenre() { if (!appState.selectedGenre) { alert('âŒ Please select a genre'); return; } document.getElementById('exampleGenreDisplay').textContent = appState.selectedGenre; closeGenreModal(); }
+
+function findCategoryForSkill(personaKey, skillName) {
+  const personaDb = instrumentDatabase[personaKey];
+  if (!personaDb) return null;
+  for (const [catName, skillsObj] of Object.entries(personaDb)) {
+    for (const val of Object.values(skillsObj)) { if (val === skillName) return catName; }
+  }
+  return null;
+}
+
+function openSpecificSkillsFromAny(personaKey, anySkillName) {
+  const categoryName = findCategoryForSkill(personaKey, anySkillName);
+  if (!categoryName) { alert('âŒ Could not find specific skills for this category.'); return; }
+  const personaDb = instrumentDatabase[personaKey];
+  const skillsObj = personaDb[categoryName];
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  
+    // Re-add the realtime selected skills display
+    const selectedDisplay = document.createElement('div');
+    selectedDisplay.id = 'realtimeSkillsDisplay';
+    selectedDisplay.style.cssText = 'background: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;';
+    selectedDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">âœ•</button></span>`).join('') : 'âœ¨ Select skills below...';
+    skillsUsedCats.appendChild(selectedDisplay);
+  
+  const catDiv = document.createElement('div');
+  catDiv.style.marginBottom = '14px';
+  catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">âœ¨ ${categoryName} â€“ select specific skill</div><div class="skill-grid"></div><div style="margin-top: 8px;"><button class="btn btn-secondary" onclick="openSkillsUsedModal()" style="width: 100%;">â† Back to Categories</button></div>`;
+  Object.entries(skillsObj).forEach(([skillKey, skillLabel]) => {
+    if (skillKey.toLowerCase().includes('any')) return;
+    const btn = document.createElement('button');
+    btn.className = `skill-btn ${appState.skillsUsed.includes(skillLabel) ? 'sel' : ''}`;
+    btn.textContent = skillLabel;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      if (!appState.skillsUsed.includes(skillLabel)) {
+        appState.skillsUsed.push(skillLabel);
+        btn.classList.add('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      } else {
+        appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillLabel);
+        btn.classList.remove('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      }
+    };
+    catDiv.querySelector('.skill-grid').appendChild(btn);
+  });
+  skillsUsedCats.appendChild(catDiv);
+}
+
+function openSkillsUsedModal() {
+  if (appState.personas.length === 0) { alert('âŒ You need to add personas and skills first!'); return; }
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  
+  // Add real-time selected skills display
+  const selectedDisplay = document.createElement('div');
+  selectedDisplay.id = 'realtimeSkillsDisplay';
+  selectedDisplay.style.cssText = 'background: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;';
+  selectedDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">âœ•</button></span>`).join('') : 'âœ¨ Select skills below...';
+  skillsUsedCats.appendChild(selectedDisplay);
+  
+  appState.personas.forEach(persona => {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${persona.name}</div><div class="skill-grid"></div>`;
+    persona.skills.forEach(skill => {
+      const isAny = skill.name.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''} ${appState.skillsUsed.includes(skill.name) ? 'sel' : ''}`;
+      btn.textContent = skill.name;
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (isAny) { openSpecificSkillsFromAny(persona.key, skill.name); } else {
+          if (!appState.skillsUsed.includes(skill.name)) {
+            appState.skillsUsed.push(skill.name);
+            btn.classList.add('sel');
+          } else {
+            appState.skillsUsed = appState.skillsUsed.filter(s => s !== skill.name);
+            btn.classList.remove('sel');
+          }
+          updateRealtimeSkillsDisplay();
+          saveAppState();
+        }
+      };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    });
+    skillsUsedCats.appendChild(catDiv);
+  });
+  document.getElementById('skillsUsedModal').classList.add('active');
+}
+
+function updateSkillsUsedDisplay() {
+  const display = document.getElementById('skillsUsedDisplay');
+  if (appState.skillsUsed.length === 0) { display.textContent = 'Click to select required skills'; } else { display.innerHTML = appState.skillsUsed.map(s => `<span class="tag">${s}</span>`).join(''); }
+}
+
+function updateRealtimeSkillsDisplay() {
+  const realtimeDisplay = document.getElementById('realtimeSkillsDisplay');
+  if (realtimeDisplay) {
+    realtimeDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">âœ•</button></span>`).join('') : 'âœ¨ Select skills below...';
+  }
+  updateSkillsUsedDisplay();
+}
+
+function removeSkillFromUsed(skillName) {
+  appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillName);
+  updateRealtimeSkillsDisplay();
+  saveAppState();
+  // Update button states in the modal
+  document.querySelectorAll('#skillsUsedCats .skill-btn').forEach(btn => {
+    if (btn.textContent.trim() === skillName.trim()) btn.classList.remove('sel');
+  });
+}
+
+function closeSkillsUsedModal() { 
+  updateSkillsUsedDisplay(); 
+  saveAppState(); 
+  document.getElementById('skillsUsedModal').classList.remove('active'); 
+}
+
+function setExamplePrivacy(privacy) {
+  appState.examplePrivacy = privacy;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`button[onclick="setExamplePrivacy('${privacy}')"]`).classList.add('active');
+}
+
+function uploadExample() {
+  const title = document.getElementById('exampleTitle').value.trim();
+  const desc = document.getElementById('exampleDesc').value.trim();
+  const mediaFile = document.getElementById('exampleMedia').files[0];
+  if (!title || !desc || !appState.selectedGenre || !mediaFile || appState.skillsUsed.length === 0) { alert('âŒ VALIDATION ERROR: Fill all required fields:\n- Title\n- Description\n- Genre\n- Media File\n- At least one skill'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
+    const imageFile = document.getElementById('exampleImage').files[0];
+    if (imageFile) {
+      const imgReader = new FileReader();
+      imgReader.onload = (imgE) => { example.image = imgE.target.result; finalizeExample(example); };
+      imgReader.readAsDataURL(imageFile);
+    } else {
+      finalizeExample(example);
+    }
+  };
+  reader.readAsDataURL(mediaFile);
+}
+
+function finalizeExample(example) {
+  const editIdx = document.getElementById('editingExampleIdx').value;
+  if (editIdx) { appState.examples[parseInt(editIdx)] = example; alert('âœ“ Example updated!'); } else { appState.examples.push(example); alert('âœ“ Example uploaded!'); }
+  appState.skillsUsed = [];
+  appState.selectedGenre = '';
+  document.getElementById('exampleTitle').value = '';
+  document.getElementById('exampleDesc').value = '';
+  document.getElementById('exampleMedia').value = '';
+  document.getElementById('exampleImage').value = '';
+  document.getElementById('exampleGenreDisplay').textContent = 'Click "Select Genre"';
+  updateSkillsUsedDisplay();
+  cancelEditExample();
+  renderExamplesDisplay();
+  saveAppState();
+}
+
+function renderExamplesDisplay() {
+  const display = document.getElementById('examplesDisplay');
+  if (appState.examples.length === 0) { display.innerHTML = 'No examples yet'; return; }
+  display.innerHTML = '';
+  appState.examples.forEach((example, idx) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? 'ðŸŽµ' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} â€¢ ${example.privacy === 'public' ? 'ðŸŒ Public' : 'ðŸ”’ Private'}</div><div class="post-meta">ðŸ“ ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">ðŸŽ¯ ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">ðŸŽµ ${example.genre}</span>${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/></div>` : ''}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">âœï¸ Edit</button></div>`;
+    display.appendChild(card);
+  });
+}
+
+function editExample(idx) {
+  const example = appState.examples[idx];
+  document.getElementById('exampleTitle').value = example.title;
+  document.getElementById('exampleDesc').value = example.desc;
+  document.getElementById('exampleGenreDisplay').textContent = example.genre;
+  appState.selectedGenre = example.genre;
+  appState.skillsUsed = [...example.skills];
+  updateSkillsUsedDisplay();
+  setExamplePrivacy(example.privacy);
+  document.getElementById('editingExampleIdx').value = idx;
+  document.getElementById('exampleSubmitBtn').textContent = 'âœï¸ Update';
+  document.getElementById('exampleCancelBtn').style.display = 'block';
+  document.getElementById('currentMediaDisplay').textContent = `Current: ${example.mediaName}`;
+  document.getElementById('exampleMedia').value = '';
+  switchTab('examples');
+}
+
+function cancelEditExample() {
+  document.getElementById('editingExampleIdx').value = '';
+  document.getElementById('exampleSubmitBtn').textContent = 'ðŸ“¤ Upload';
+  document.getElementById('exampleCancelBtn').style.display = 'none';
+  document.getElementById('currentMediaDisplay').textContent = '';
+  appState.examplePrivacy = 'private';
+  setExamplePrivacy('private');
+}
+
+function removeExample(idx) { if (confirm('Delete this example?')) { appState.examples.splice(idx, 1); renderExamplesDisplay(); saveAppState(); } }
+
+function updateCollabPersonaOptions() {
+  const select = document.getElementById('collabPersona');
+  select.innerHTML = '<option value="">Choose persona</option>';
+  appState.personas.forEach((persona, idx) => { select.innerHTML += `<option value="${idx}">${persona.name}</option>`; });
+}
+
+function updateCollabExampleOptions() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleSelect = document.getElementById('collabPublicExample');
+  exampleSelect.innerHTML = '<option value="">Choose example</option>';
+  if (personaIdx !== '') {
+    const personaKey = appState.personas[parseInt(personaIdx)].key;
+    const publicExamples = appState.examples.filter(ex => ex.privacy === 'public' && ex.skills.some(s => {
+      const skillPersona = Object.keys(instrumentDatabase).find(key => { const cats = instrumentDatabase[key]; return Object.values(cats).some(cat => Object.values(cat).includes(s)); });
+      return skillPersona === personaKey;
+    }));
+    publicExamples.forEach((ex, idx) => { exampleSelect.innerHTML += `<option value="${idx}">${ex.title}</option>`; });
+  }
+}
+
+function postCollabRequest() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleIdx = document.getElementById('collabPublicExample').value;
+  const desc = document.getElementById('collabPostDesc').value.trim();
+  if (!personaIdx || !exampleIdx || !desc) { alert('âŒ Please fill all fields'); return; }
+  const minAge = parseInt(document.getElementById('collabMinAge').value) || 13;
+  const maxAge = parseInt(document.getElementById('collabMaxAge').value) || 120;
+  const maxDist = parseFloat(document.getElementById('collabMaxDistance').value) || null;
+  const budget = parseFloat(document.getElementById('collabBudget').value) || null;
+  const minExp = parseFloat(document.getElementById('collabMinExp').value) || 0;
+  const minProfileRating = parseFloat(document.getElementById('collabMinProfileRating').value) || 0;
+  const minPictureRating = parseFloat(document.getElementById('collabMinPictureRating').value) || 0;
+  const prefGender = document.getElementById('collabPreferredGender').value || '';
+  if (minAge > maxAge) { alert('âŒ Minimum age cannot be greater than maximum age'); return; }
+  const collab = { id: Date.now(), personaIdx: parseInt(personaIdx), personaName: appState.personas[parseInt(personaIdx)].name, exampleTitle: appState.examples[parseInt(exampleIdx)].title, description: desc, userName: appState.user.name || 'Anonymous', userLocation: appState.user.location || 'Unknown', userPic: appState.user.profilePic || null, userLat: appState.user.lat || null, userLng: appState.user.lng || null, timestamp: new Date().toLocaleString(), requirements: { ageRange: {min: minAge, max: maxAge}, maxDistance: maxDist, budget: budget, minExperience: minExp, minProfileRating: minProfileRating, minPictureRating: minPictureRating, preferredGender: prefGender }, ratings: [], comments: [] };
+  const editIdx = document.getElementById('editingCollabIdx').value;
+  if (editIdx) { appState.collabs[parseInt(editIdx)] = collab; alert('âœ“ Collab request updated!'); } else { appState.collabs.push(collab); alert('âœ“ Collab request posted!'); }
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  document.getElementById('collabMinAge').value = '';
+  document.getElementById('collabMaxAge').value = '';
+  document.getElementById('collabMaxDistance').value = '';
+  document.getElementById('collabBudget').value = '';
+  document.getElementById('collabMinExp').value = '';
+  document.getElementById('collabMinProfileRating').value = '';
+  document.getElementById('collabMinPictureRating').value = '';
+  document.getElementById('collabPreferredGender').value = '';
+  cancelEditCollab();
+  renderCollabFeed();
+  saveAppState();
+}
+
+function renderCollabFeed() {
+  const feed = document.getElementById('collabFeed');
+  appState.filteredCollabs = [...appState.collabs];
+  applyFilters();
+  const filterPersona = document.getElementById('filterPersona').value;
+  const filterLocation = document.getElementById('filterLocation').value;
+  if (filterPersona) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.personaName === filterPersona);
+  if (filterLocation) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.userLocation.toLowerCase().includes(filterLocation.toLowerCase()));
+  document.getElementById('feedCount').textContent = appState.filteredCollabs.length;
+  if (appState.filteredCollabs.length === 0) { feed.innerHTML = 'No collaboration requests matching your filters'; return; }
+  feed.innerHTML = '';
+  appState.filteredCollabs.forEach((collab, idx) => {
+    const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? 'ðŸŽ¤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">ðŸ“ ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">âœï¸ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">ðŸ—‘ï¸ Delete</button></div>`;
+    feed.appendChild(card);
+  });
+}
+
+function editCollab(idx) {
+  const collab = appState.collabs[idx];
+  document.getElementById('collabPersona').value = appState.personas.findIndex(p => p.name === collab.personaName);
+  updateCollabExampleOptions();
+  document.getElementById('collabPublicExample').value = appState.examples.findIndex(ex => ex.title === collab.exampleTitle);
+  document.getElementById('collabPostDesc').value = collab.description;
+  document.getElementById('editingCollabIdx').value = idx;
+  document.getElementById('collabSubmitBtn').textContent = 'âœï¸ Update';
+  document.getElementById('collabCancelBtn').style.display = 'block';
+  switchTab('collaborate');
+}
+
+function cancelEditCollab() {
+  document.getElementById('editingCollabIdx').value = '';
+  document.getElementById('collabSubmitBtn').textContent = 'ðŸ“¤ Post';
+  document.getElementById('collabCancelBtn').style.display = 'none';
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+}
+
+function removeCollab(idx) { if (confirm('Delete this collaboration request?')) { appState.collabs.splice(idx, 1); renderCollabFeed(); saveAppState(); } }
+
+function applyFilters() { renderCollabFeed(); }
+
+function resetFilters() {
+  document.getElementById('filterPersona').value = '';
+  document.getElementById('filterLocation').value = '';
+  renderCollabFeed();
+}
+
+function addIncome() {
+  const amt = parseFloat(document.getElementById('incomeAmt').value);
+  const tax = parseFloat(document.getElementById('incomeTax').value) || 0;
+  if (!amt || amt <= 0) { alert('âŒ Please enter a valid amount'); return; }
+  const afterTax = amt * (1 - tax / 100);
+  appState.wallet.balance += afterTax;
+  appState.wallet.earned += amt;
+  document.getElementById('incomeAmt').value = '';
+  document.getElementById('incomeTax').value = '10';
+  updateWalletDisplay();
+  saveAppState();
+  alert(`âœ“ Added $${amt.toFixed(2)} (after ${tax}% tax = $${afterTax.toFixed(2)})`);
+}
+
+function updateWalletDisplay() {
+  document.getElementById('walletBalance').textContent = appState.wallet.balance.toFixed(2);
+  document.getElementById('walletEarned').textContent = appState.wallet.earned.toFixed(2);
+  document.getElementById('balanceAmount').textContent = appState.wallet.balance.toFixed(2);
+}
+
+function updateAllDisplays() {
+  updateWalletDisplay();
+  renderPersonasDisplay();
+  renderExamplesDisplay();
+  updateCollabPersonaOptions();
+  renderCollabFeed();
+  updateProfileDisplay();
+  document.getElementById('username').value = appState.user.name;
+  document.getElementById('email').value = appState.user.email;
+  document.getElementById('phone').value = appState.user.phone;
+  document.getElementById('birthday').value = appState.user.birthday;
+  document.getElementById('gender').value = appState.user.gender;
+  document.getElementById('location').value = appState.user.location;
+  document.getElementById('bio').value = appState.user.bio;
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeButton(newTheme);
+}
+
+function updateThemeButton(theme) {
+  const btn = document.querySelector('.theme-toggle');
+  btn.textContent = theme === 'dark' ? 'â˜€ï¸' : 'ðŸŒ™';
+}
+
+function copyEmail() {
+  const email = appState.user.email;
+  if (!email) { alert('âŒ No email to copy'); return; }
+  navigator.clipboard.writeText(email).then(() => { alert(`âœ“ Email copied: ${email}`); }).catch(() => { alert('âŒ Could not copy email'); });
+}
+
+function initMap() {
+  const mapContainer = document.getElementById('collabMap');
+  if (!mapContainer) return;
+  const userLat = appState.user.lat || 40.7128;
+  const userLng = appState.user.lng || -74.0060;
+  const mapOptions = { zoom: 12, center: { lat: userLat, lng: userLng }, mapTypeControl: false };
+  
+  appState.map = new google.maps.Map(mapContainer, mapOptions);
+  
+  // Add user's location marker
+  new google.maps.Marker({
+    position: { lat: userLat, lng: userLng },
+    map: appState.map,
+    title: appState.user.name || 'Your Location',
+    icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+  });
+  
+  renderMapUsers();
+}
+
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function renderMapUsers() {
+  const mapUsersList = document.getElementById('mapUsersList');
+  if (!mapUsersList) return;
+  mapUsersList.innerHTML = '';
+  
+  appState.userMarkers.forEach(marker => marker.setMap(null));
+  appState.userMarkers = [];
+  
+  if (!appState.map) return;
+  
+  const userLat = appState.user.lat || 40.7128;
+  const userLng = appState.user.lng || -74.0060;
+  
+  appState.filteredCollabs.forEach((collab, idx) => {
+    const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    if (!collab.userLat || !collab.userLng) return;
+    
+    const distance = calculateDistance(userLat, userLng, collab.userLat, collab.userLng);
+    const avgRating = collab.ratings && collab.ratings.length > 0 ? (collab.ratings.reduce((a, b) => a + b, 0) / collab.ratings.length).toFixed(1) : 'N/A';
+    const req = collab.requirements || {};
+    
+    // Add map marker
+    const marker = new google.maps.Marker({
+      position: { lat: collab.userLat, lng: collab.userLng },
+      map: appState.map,
+      title: collab.userName
+    });
+    
+    // Build info window content
+    const infoContent = `<div style="font-size: 11px; max-width: 250px;"><div style="font-weight: 700; margin-bottom: 4px;">${collab.userName}</div><div style="color: #FFD700; margin-bottom: 4px;">â­ ${avgRating}</div><div style="font-size: 10px; margin-bottom: 6px;">ðŸ“ ${distance.toFixed(1)} miles away</div><div style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #ddd;"><div style="font-weight: 600; margin-bottom: 2px;">ðŸŽ¯ Seeking:</div>${req.ageRange ? `<div>ðŸ‘¥ Age: ${req.ageRange.min}-${req.ageRange.max}</div>` : ''}<div>ðŸ’µ Budget: $${req.budget || 'Any'}</div><div>ðŸ“Š Min Exp: ${req.minExperience || 0} yrs</div></div></div>`;
+    
+    const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+    marker.addListener('click', () => infoWindow.open(appState.map, marker));
+    appState.userMarkers.push(marker);
+    
+    // Add to list
+    const card = document.createElement('div');
+    card.className = 'user-card-on-map';
+    card.innerHTML = `<div class="user-card-header"><div class="user-card-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover;"` : ''}>${!collab.userPic ? 'ðŸŽ¤' : ''}</div><div class="user-card-title"><div class="user-name">${collab.userName}</div><div class="user-rating">â­ ${avgRating} â€¢ ðŸ“ ${distance.toFixed(1)}mi</div></div></div><div class="user-card-content"><div><strong>ðŸ‘¤ Persona:</strong> ${collab.personaName}</div><div><strong>ðŸŽµ Work:</strong> ${collab.exampleTitle}</div>${req.minExperience ? `<div><strong>ðŸ“Š Min Exp:</strong> ${req.minExperience} years</div>` : ''}<div><strong>ðŸ’° Budget:</strong> $${req.budget || 'Any'}</div><div><strong>ðŸ“ Distance:</strong> ${distance.toFixed(1)} miles max ${req.maxDistance ? `(Requested: ${req.maxDistance}mi)` : ''}</div>${req.ageRange ? `<div><strong>ðŸ‘¥ Age Range:</strong> ${req.ageRange.min}-${req.ageRange.max} years</div>` : ''}<div><strong>âš§ï¸ Gender:</strong> ${req.preferredGender || 'Any'}</div></div>`;
+    mapUsersList.appendChild(card);
+  });
+}
+
+
+// Settings Functions
+function applyTheme(themeName, primaryColor, primaryDark) {
+  document.documentElement.style.setProperty('--primary', primaryColor);
+  document.documentElement.style.setProperty('--primary-dark', primaryDark);
+  appState.settings.theme = themeName;
+  saveAppState();
+  document.querySelectorAll('.theme-color-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.closest('.theme-color-btn').classList.add('active');
+}
+
+function toggleDarkMode() {
+  const html = document.documentElement;
+  const isDark = appState.settings.darkMode;
+  appState.settings.darkMode = !isDark;
+  html.setAttribute('data-theme', !isDark ? 'dark' : 'light');
+  updateThemeButton(!isDark ? 'dark' : 'light');
+  const toggle = document.getElementById('darkModeToggle');
+  toggle.classList.toggle('on');
+  saveAppState();
+}
+
+function toggleNotification(type) {
+  if (type === 'email') {
+    appState.settings.emailNotifications = !appState.settings.emailNotifications;
+    document.getElementById('emailNotifToggle').classList.toggle('on');
+  } else if (type === 'push') {
+    appState.settings.pushNotifications = !appState.settings.pushNotifications;
+    document.getElementById('pushNotifToggle').classList.toggle('on');
+  } else if (type === 'phone') {
+    appState.settings.phoneNotifications = !appState.settings.phoneNotifications;
+    document.getElementById('phoneNotifToggle').classList.toggle('on');
+  }
+  saveAppState();
+}
+
+function changeLanguage(lang) {
+  appState.settings.language = lang;
+  saveAppState();
+  alert(`Language changed to ${lang}`);
+}
+
+function sendVerificationEmail() {
+  const email = appState.user.email;
+  if (!email) { alert('Please set an email in your profile first'); return; }
+  alert(`âœ… Verification email sent to ${email}. Check your inbox!`);
+  appState.settings.emailVerified = true;
+  updateVerificationStatus('email', true);
+  saveAppState();
+}
+
+function sendVerificationSMS() {
+  const phone = appState.user.phone;
+  if (!phone) { alert('Please set a phone number in your profile first'); return; }
+  alert(`âœ… Verification SMS sent to ${phone}. Check your messages!`);
+  appState.settings.phoneVerified = true;
+  updateVerificationStatus('phone', true);
+  saveAppState();
+}
+
+function updateVerificationStatus(type, verified) {
+  const statusEl = document.getElementById(type === 'email' ? 'emailVerifStatus' : 'phoneVerifStatus');
+  if (verified) {
+    statusEl.classList.remove('unverified');
+    statusEl.classList.add('verified');
+    statusEl.innerHTML = '<span>âœ…</span><span>' + (type === 'email' ? 'Email' : 'Phone') + ' verified</span>';
+  } else {
+    statusEl.classList.remove('verified');
+    statusEl.classList.add('unverified');
+    statusEl.innerHTML = '<span>âŒ</span><span>' + (type === 'email' ? 'Email' : 'Phone') + ' not verified</span>';
+  }
+}
+
+function exportData() {
+  const dataStr = JSON.stringify(appState, (key, value) => value instanceof Set ? Array.from(value) : value);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'MusicConnectZ_backup_' + new Date().toISOString() + '.json';
+  a.click();
+  alert('âœ… Data exported successfully!');
+}
+
+function resetSettings() {
+  if (!confirm('Are you sure? This will reset all settings to default.')) return;
+  appState.settings = {
+    theme: 'blue',
+    darkMode: false,
+    language: 'English',
+    emailNotifications: true,
+    pushNotifications: true,
+    phoneNotifications: false,
+    emailVerified: false,
+    phoneVerified: false
+  };
+  saveAppState();
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.documentElement.style.setProperty('--primary', '#2196F3');
+  document.documentElement.style.setProperty('--primary-dark', '#1565C0');
+  alert('âœ… Settings reset to default!');
+  location.reload();
+}
+
+function initializeSettings() {
+  document.getElementById('languageSelect').value = appState.settings.language;
+  if (appState.settings.darkMode) {
+    document.getElementById('darkModeToggle').classList.add('on');
+  }
+  if (appState.settings.emailNotifications) {
+    document.getElementById('emailNotifToggle').classList.add('on');
+  }
+  if (appState.settings.pushNotifications) {
+    document.getElementById('pushNotifToggle').classList.add('on');
+  }
+  if (appState.settings.phoneNotifications) {
+    document.getElementById('phoneNotifToggle').classList.add('on');
+  }
+  updateVerificationStatus('email', appState.settings.emailVerified);
+  updateVerificationStatus('phone', appState.settings.phoneVerified);
+  document.querySelectorAll('.theme-color-btn').forEach((btn, idx) => {
+    if ((idx === 0 && appState.settings.theme === 'blue') || (idx === 1 && appState.settings.theme === 'orange') || (idx === 2 && appState.settings.theme === 'purple') || (idx === 3 && appState.settings.theme === 'red') || (idx === 4 && appState.settings.theme === 'cyan') || (idx === 5 && appState.settings.theme === 'pink') || (idx === 6 && appState.settings.theme === 'green') || (idx === 7 && appState.settings.theme === 'amber') || (idx === 8 && appState.settings.theme === 'deep-purple')) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('beforeunload', () => { saveAppState(); });
+window.addEventListener('load', () => { 
+  loadAppState();
+  updateAllDisplays();
+  setTimeout(initializeSettings, 100);
+  switchTab(appState.currentTab || 'setup');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevTab(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); nextTab(); }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+  }
+});
+</script>
+</body>
+</html>
+
+
+
+
+

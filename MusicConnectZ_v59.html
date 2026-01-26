@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Music ConnectZ v5.9 bi K-Oth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <style>
+    :root {
+      --primary: #2196F3;
+      --primary-dark: #1565C0;
+      --accent: #FF9800;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --text: #333333;
+      --text-light: #666666;
+      --border: #e0e0e0;
+      --success: #4CAF50;
+      --danger: #F44336;
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a1a;
+      --surface: #2d2d2d;
+      --text: #e0e0e0;
+      --text-light: #b0b0b0;
+      --border: #404040;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); }
+    .container { display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .theme-toggle { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.5); }
+    .header-center { text-align: center; flex: 1; }
+    .header-title { font-size: 16px; font-weight: 700; }
+    .header-subtitle { font-size: 9px; opacity: 0.9; margin-top: 2px; }
+    .nav-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .nav-btn:hover { background: rgba(255,255,255,0.5); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .balance { background: rgba(255,255,255,0.25); padding: 6px 10px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; }
+    .profile-pic { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.2); cursor: pointer; }
+    .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+    .tabs { display: flex; background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab-btn { flex: 1; padding: 11px 12px; border: none; background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-light); border-bottom: 3px solid transparent; white-space: nowrap; min-width: 70px; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .card-header { font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 8px rgba(33, 150, 243, 0.2); }
+    .btn { padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #45a049; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #da190b; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-small { padding: 5px 10px; font-size: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .modal { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .modal.active { display: flex !important; }
+    .modal-content { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h2 { font-size: 14px; color: var(--primary); }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); }
+    .close-btn:hover { color: var(--danger); }
+    .tag { display: inline-block; background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; }
+    .persona-card { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .persona-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .persona-name { font-size: 16px; font-weight: 700; }
+    .persona-btn { background: var(--bg); padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border); text-align: center; font-weight: 700; font-size: 12px; color: var(--text); }
+    .persona-btn:hover { border-color: var(--primary); }
+    .post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .post-header { display: flex; gap: 8px; margin-bottom: 10px; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0; }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .post-info { flex: 1; }
+    .post-user { font-weight: 700; font-size: 12px; }
+    .post-meta { font-size: 10px; color: var(--text-light); }
+    .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+    .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .comment-section { background: var(--bg); padding: 12px; border-radius: 8px; margin-top: 12px; margin-bottom: 10px; }
+    .comment-item { background: var(--surface); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid var(--primary); }
+    .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .comment-user { font-weight: 600; font-size: 11px; }
+    .comment-time { font-size: 9px; color: var(--text-light); }
+    .comment-text { font-size: 11px; margin-bottom: 6px; }
+    .comment-actions { display: flex; gap: 6px; font-size: 10px; }
+    .rating-display { display: flex; gap: 4px; align-items: center; margin-top: 6px; }
+    .star { font-size: 14px; cursor: pointer; color: #ddd; }
+    .star.active { color: #FFD700; }
+    .star-avg { font-size: 11px; color: var(--text-light); margin-left: 6px; }
+    .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skill-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; }
+    .skill-btn:hover { border-color: var(--primary); }
+    .skill-btn.sel { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important; color: white !important; border: 3px solid #1565C0 !important; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6) !important; transform: scale(1.08) !important; font-weight: 700 !important; }
+    .skill-btn.any-skill { background: var(--accent); color: white; border-color: var(--accent); }
+    .skill-btn.any-skill::after { content: '🔄'; position: absolute; top: 2px; right: 4px; font-size: 9px; }
+    .skill-btn.any-skill.sel { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%) !important; border: 3px solid #E65100 !important; box-shadow: 0 0 12px rgba(255, 152, 0, 0.6) !important; transform: scale(1.08) !important; }
+    .skill-item { background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+    .skill-item-name { font-weight: 600; flex: 1; }
+    .skill-item-exp { color: var(--text-light); font-size: 10px; margin-right: 8px; }
+    .skill-item-actions { display: flex; gap: 4px; }
+    .toggle-btn { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); cursor: pointer; font-weight: 600; font-size: 11px; margin: 4px; }
+    .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter-badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 6px; }
+    .gps-status { font-size: 11px; color: var(--text-light); margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; display: none; }
+    .gps-status.active { display: block; }
+    .genre-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; margin: 4px; display: inline-block; font-size: 12px; font-weight: 600; }
+    .genre-btn:hover { border-color: var(--primary); }
+    .genre-btn.sel { background: var(--primary); color: white; border-color: var(--primary); }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .skill-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div style="display: flex; gap: 8px;"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button></div>
+    <div class="header-center"><div class="header-title">🎵 Music ConnectZ v5.9 bi K-Oth</div><div class="header-subtitle">1/24/2026</div></div>
+    <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
+    <button class="tab-btn" onclick="switchTab('personas')">🎭 Personas</button>
+    <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
+    <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
+    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
+    <button class="tab-btn" onclick="switchTab('money')">💰 Money</button>
+  </div>
+
+  <div class="content">
+    <div id="setup" class="tab active">
+      <div class="card">
+        <div class="card-header">👤 Your Profile</div>
+        <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Your name" /></div>
+        <div class="grid-2"><div class="form-group"><label>📧 Email *</label><input type="email" id="email" /></div><div class="form-group"><label>📱 Phone *</label><input type="tel" id="phone" /></div></div>
+        <div class="grid-2"><div class="form-group"><label>🎂 Birthday *</label><input type="date" id="birthday" /></div><div class="form-group"><label>⚧️ Gender *</label><select id="gender"><option value="">Select</option><option value="Male">🚹 Male ♂️</option><option value="Female">🚺 Female ♀️</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div>
+        <div class="form-group">
+          <label>📍 Location *</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="location" placeholder="City, State or Zip" style="flex: 1;" />
+            <button class="btn btn-secondary btn-small" onclick="requestGPS()" id="gpsBtn">📍 GPS</button>
+          </div>
+          <div class="gps-status" id="gpsStatus">Requesting location...</div>
+        </div>
+        <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
+        <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
+      </div>
+    </div>
+
+    <div id="personas" class="tab">
+      <div class="card">
+        <div class="card-header">🎭 Select Your Personas & Add Skills</div>
+        <div class="grid-3">
+          <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Indie Artist')">🎤 Indie</button>
+          <button class="persona-btn" onclick="openSkillModal('beat-producer','🎚️ Beat Producer')">🎚️ Producer</button>
+          <button class="persona-btn" onclick="openSkillModal('mix-engineer','🎛️ Mix Engineer')">🎛️ Engineer</button>
+          <button class="persona-btn" onclick="openSkillModal('designer','🎨 Designer')">🎨 Designer</button>
+          <button class="persona-btn" onclick="openSkillModal('videographer','🎬 Videographer')">🎬 Video</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🎭 Your Personas</div>
+        <div id="personasDisplay">No personas yet</div>
+      </div>
+    </div>
+
+    <div id="examples" class="tab">
+      <div class="card">
+        <div class="card-header">🎵 Upload Work Example</div>
+        <input type="hidden" id="editingExampleIdx" value="" />
+        <div class="form-group"><label>🎯 Title *</label><input type="text" id="exampleTitle" placeholder="e.g., My Latest Beat" /></div>
+        <div class="form-group"><label>📝 Description *</label><textarea id="exampleDesc" placeholder="Tell us about this work..." style="height: 50px;"></textarea></div>
+        <div class="form-group"><label>🎵 Genre/Style *</label><button class="btn" onclick="openGenreModal()" style="width: 100%; margin-bottom: 8px;">🎵 Select Genre</button><div id="exampleGenreDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Genre"</div></div>
+        <div class="form-group"><label>🎧 Audio/Video File *</label><input type="file" id="exampleMedia" accept="audio/*,video/*" /><div id="currentMediaDisplay" style="margin-top: 6px; font-size: 10px; color: var(--text-light);"></div></div>
+        <div class="form-group"><label>🖼️ Thumbnail Image</label><input type="file" id="exampleImage" accept="image/*" /></div>
+        <div class="form-group">
+          <label>🎯 Skills Used * (Required)</label>
+          <div id="skillsUsedDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px; max-height: 150px; overflow-y: auto; margin-bottom: 8px;" onclick="openSkillsUsedModal()">Click to select required skills</div>
+          <button class="btn" onclick="openSkillsUsedModal()" style="width: 100%;">📋 Select Required Skills</button>
+        </div>
+        <div class="form-group"><label>🔒 Privacy</label><div style="display: flex; gap: 8px; margin-top: 8px;"><button class="toggle-btn active" onclick="setExamplePrivacy('private')">🔒 Private</button><button class="toggle-btn" onclick="setExamplePrivacy('public')">🌐 Public</button></div></div>
+        <button class="btn btn-success" onclick="uploadExample()" style="width: 100%;" id="exampleSubmitBtn">📤 Upload</button>
+        <button class="btn btn-secondary" onclick="cancelEditExample()" style="width: 100%; margin-top: 8px; display: none;" id="exampleCancelBtn">❌ Cancel Edit</button>
+      </div>
+      <div class="card">
+        <div class="card-header">🎵 Your Work Examples</div>
+        <div id="examplesDisplay">No examples yet</div>
+      </div>
+    </div>
+
+    <div id="collaborate" class="tab">
+      <div class="card">
+        <div class="card-header">🤝 Post Collaboration Request</div>
+        <input type="hidden" id="editingCollabIdx" value="" />
+        <div class="form-group"><label>🎭 Select Persona *</label><select id="collabPersona" onchange="updateCollabExampleOptions()"><option value="">Choose persona</option></select></div>
+        <div class="form-group"><label>🎵 Select Public Example *</label><select id="collabPublicExample"><option value="">Choose example</option></select></div>
+        <div class="form-group"><label>📝 Description (200 chars) *</label><textarea id="collabPostDesc" placeholder="What collaboration are you looking for?" style="height: 60px;" maxlength="200"></textarea></div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);"><div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--primary);">🎯 Collaborator Requirements</div>
+          <div class="grid-2"><div class="form-group"><label>👥 Min Age</label><input type="number" id="collabMinAge" min="13" max="120" placeholder="13" /></div><div class="form-group"><label>👥 Max Age</label><input type="number" id="collabMaxAge" min="13" max="120" placeholder="120" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>📍 Max Distance (miles)</label><input type="number" id="collabMaxDistance" min="0" placeholder="Unlimited" /></div><div class="form-group"><label>💵 Budget per Collab ($)</label><input type="number" id="collabBudget" min="0" step="0.01" placeholder="No limit" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>📊 Min Experience (yrs)</label><input type="number" id="collabMinExp" min="0" step="0.5" placeholder="0" /></div><div class="form-group"><label>⭐ Min Profile Rating</label><input type="number" id="collabMinProfileRating" min="0" max="10" step="0.1" placeholder="0" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>📸 Min Picture Rating</label><input type="number" id="collabMinPictureRating" min="0" max="10" step="0.1" placeholder="0" /></div><div class="form-group"><label>⚧️ Preferred Gender</label><select id="collabPreferredGender"><option value="">Any</option><option value="Male">🚹 Male</option><option value="Female">🚺 Female</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div></div>
+        <button class="btn btn-success" onclick="postCollabRequest()" style="width: 100%;" id="collabSubmitBtn">📤 Post</button>
+        <button class="btn btn-secondary" onclick="cancelEditCollab()" style="width: 100%; margin-top: 8px; display: none;" id="collabCancelBtn">❌ Cancel Edit</button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>🔍 Filter Requests</span>
+          <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">🎭 Persona:</label>
+            <select id="filterPersona" onchange="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;">
+              <option value="">All Personas</option>
+              <option value="🎤 Indie Artist">🎤 Indie Artist</option>
+              <option value="🎚️ Beat Producer">🎚️ Beat Producer</option>
+              <option value="🎛️ Mix Engineer">🎛️ Mix Engineer</option>
+              <option value="🎨 Designer">🎨 Designer</option>
+              <option value="🎬 Videographer">🎬 Videographer</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">📍 Location:</label>
+            <input type="text" id="filterLocation" placeholder="City/State" oninput="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>💼 Collaboration Feed</span>
+          <span class="filter-badge" id="feedCount">0</span>
+        </div>
+        <div id="collabFeed">No posts yet</div>
+      </div>
+    </div>
+
+    <div id="profile" class="tab">
+      <div class="card">
+        <div class="card-header">👤 Your Public Profile</div>
+        <div style="text-align: center; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px;"><div id="pubPic" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden;">👤</div><div id="pubUsername" style="font-weight: 700; font-size: 14px;">Not Set</div><div id="pubInfo" style="font-size: 11px; color: var(--text-light);"></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📝 Bio:</div><div id="pubBio">No bio</div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📧 Email:</div><div id="pubEmail" style="display: flex; gap: 6px; align-items: center;"><span id="pubEmailText">No email</span><button class="btn btn-small btn-secondary" onclick="copyEmail()" id="copyEmailBtn">📋 Copy</button></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">🎯 Skills:</div><div id="pubSkills">No skills</div></div>
+      </div>
+    </div>
+
+    <div id="money" class="tab">
+      <div class="card">
+        <div class="card-header">💰 Wallet</div>
+        <div class="grid-2">
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💵 Balance</div><div style="font-size: 16px; font-weight: 700;" id="walletBalance">$0.00</div></div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💸 Total Earned</div><div style="font-size: 16px; font-weight: 700;" id="walletEarned">$0.00</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">➕ Add Income</div>
+        <div class="grid-2">
+          <div class="form-group"><label>💵 Amount ($)</label><input type="number" id="incomeAmt" min="0" step="1" /></div>
+          <div class="form-group"><label>🧾 Tax %</label><input type="number" id="incomeTax" min="0" max="100" step="1" value="10" /></div>
+        </div>
+        <button class="btn btn-success" onclick="addIncome()" style="width: 100%;">✓ Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="genreModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🎵 Select Music Genre</h2><button class="close-btn" onclick="closeGenreModal()">✕</button></div>
+    <div id="genreCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeGenreModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addGenre()" style="flex: 1;">✓ Select</button></div>
+  </div>
+</div>
+
+<div id="skillModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="skillModalTitle">Select Skills</h2><button class="close-btn" onclick="closeSkillModal()">✕</button></div>
+    <input type="hidden" id="editingPersonaIdx" value="" />
+    <div style="background: #4caf50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">✨ Click MULTIPLE skills (including "Any" skills), then click "Add Skills" to save them all with the same date!</div>
+    <div class="form-group"><label>📅 Start Date *</label><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><select id="skillMo"></select><select id="skillDay"></select><select id="skillYr"></select></div></div>
+    <div id="skillCats" style="max-height: 350px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeSkillModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addSkills()" style="flex: 1;" id="skillSubmitBtn">✓ Add Skills</button></div>
+  </div>
+</div>
+
+<div id="skillsUsedModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🎯 Choose Skills Used on This Example</h2><button class="close-btn" onclick="closeSkillsUsedModal()">✕</button></div>
+    <div style="background: var(--accent); color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">ℹ️ Click skills to select them. Click "Any" to see specific options. Selected skills update in real-time at the top!</div>
+    <div id="skillsUsedCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-success" onclick="closeSkillsUsedModal()" style="flex: 1;">✓ Done</button></div>
+  </div>
+</div>
+
+<div id="commentModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>💬 Comments</h2><button class="close-btn" onclick="closeCommentModal()">✕</button></div>
+    <input type="hidden" id="commentingCollabIdx" value="" />
+    <div style="max-height: 350px; overflow-y: auto; margin-bottom: 12px;" id="commentsList"></div>
+    <div class="form-group"><textarea id="commentText" placeholder="Add your comment..." style="height: 60px; margin-bottom: 8px;"></textarea><button class="btn btn-success" onclick="submitComment()" style="width: 100%;">💬 Post Comment</button></div>
+  </div>
+</div>
+
+<script>
+const instrumentDatabase = {
+  'indie-artist': {
+    'String Instruments': {'Any String': 'Any String 🎸','Acoustic Guitar': 'Acoustic Guitar 🎸','Electric Guitar': 'Electric Guitar 🎸','Bass Guitar': 'Bass Guitar 🎸','Ukulele': 'Ukulele 🎸','Banjo': 'Banjo 🎸','Mandolin': 'Mandolin 🎸','Violin': 'Violin 🎻','Viola': 'Viola 🎻','Cello': 'Cello 🎻','Double Bass': 'Double Bass 🎻','Harp': 'Harp 🎵'},
+    'Keyboard Instruments': {'Any Keyboard': 'Any Keyboard 🎹','Acoustic Piano': 'Acoustic Piano 🎹','Digital Piano': 'Digital Piano 🎹','Synthesizer': 'Synthesizer 🎹','Organ': 'Organ 🎹','Harpsichord': 'Harpsichord 🎹','Accordion': 'Accordion 🎹'},
+    'Percussion Instruments': {'Any Percussion': 'Any Percussion 🥁','Drums (Snare)': 'Drums (Snare) 🥁','Drums (Bass)': 'Drums (Bass) 🥁','Drums (Bongo)': 'Drums (Bongo) 🥁','Cymbals': 'Cymbals 🥁'},
+    'Rapping': {'Any Rapping': 'Any Rapping 🎤','Alternative Rap': 'Alternative Rap 🎸','Boom Bap': 'Boom Bap 🥁','Chopper': 'Chopper 🚁','Cloud Rap': 'Cloud Rap ☁️','Conscious Rap': 'Conscious Rap 🧠','Crunk': 'Crunk 🔥','Drill': 'Drill ⚔️','Emo Rap': 'Emo Rap 🖤','G-Funk': 'G-Funk 🌴','Gangsta Rap': 'Gangsta Rap ⛓️','Hardcore Hip Hop': 'Hardcore Hip Hop 🎤','Jazz Rap': 'Jazz Rap 🎷','Mumble Rap': 'Mumble Rap 💤','Old School': 'Old School 📻','Snap': 'Snap 🫰','Trap': 'Trap 🏚️'},
+    'Singing': {'Any Singing': 'Any Singing 🎶','Bass': 'Bass 🧔‍♂️','Baritone': 'Baritone 🎙️','Tenor': 'Tenor 🎤','Countertenor': 'Countertenor 🕊️','Contralto': 'Contralto 🎻','Alto': 'Alto 🎶','Mezzo-Soprano': 'Mezzo-Soprano 🌊','Soprano': 'Soprano ☀️'}
+  },
+  'beat-producer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Production Techniques': {'Any Production': 'Any Production 🎚️','Beat Making': 'Beat Making 🎚️','Sampling': 'Sampling 🎵','Sound Design': 'Sound Design 🎛️','Arrangement': 'Arrangement 🎼','Synthesis': 'Synthesis 🎹'}
+  },
+  'mix-engineer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Engineering Skills': {'Any Engineering': 'Any Engineering 🎛️','Mixing': 'Mixing 🎛️','Mastering': 'Mastering 🎙️','EQ': 'EQ 📊','Compression': 'Compression 🔧','Reverb/Effects': 'Reverb/Effects ✨'}
+  },
+  'designer': {
+    'Design Software': {'Any Design Software': 'Any Design Software 🎨','Photoshop': 'Adobe Photoshop 🎨','Illustrator': 'Adobe Illustrator 🖌️','Figma': 'Figma 🎯','Canva': 'Canva 🌈','Affinity Designer': 'Affinity Designer ✨','CorelDRAW': 'CorelDRAW 🎨','Sketch': 'Sketch 📐','InDesign': 'Adobe InDesign 📄'},
+    'Design Skills': {'Any Design Skill': 'Any Design Skill 🎨','UI/UX Design': 'UI/UX Design 🎯','Graphic Design': 'Graphic Design 🖌️','Branding': 'Branding 🏷️','Layout Design': 'Layout Design 📐','Typography': 'Typography 🔤','Color Theory': 'Color Theory 🌈','Icon Design': 'Icon Design 🎭'}
+  },
+  'videographer': {
+    'Video Software': {'Any Video Software': 'Any Video Software 🎬','Adobe Premiere': 'Adobe Premiere 🎬','DaVinci Resolve': 'DaVinci Resolve 🎞️','Final Cut Pro': 'Final Cut Pro 🎥','Sony Vegas': 'Sony Vegas 📹','Filmora': 'Filmora 🎬','After Effects': 'After Effects ✨','OBS': 'OBS Studio 🔴'},
+    'Video Skills': {'Any Video Skill': 'Any Video Skill 🎬','Editing': 'Editing 🎬','Color Grading': 'Color Grading 🎨','Motion Graphics': 'Motion Graphics ✨','Cinematography': 'Cinematography 🎥','Drone Footage': 'Drone Footage 🚁','Lighting': 'Lighting 💡','Sound Design': 'Sound Design 🎙️'}
+  }
+};
+
+let appState = {
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null},
+  personas: [],
+  examples: [],
+  collabs: [],
+  skillsUsed: [],
+  selectedGenre: '',
+  selectedSkillsInModal: new Set(),
+  wallet: {balance: 0, earned: 0},
+  examplePrivacy: 'private',
+  currentTab: 'setup',
+  filteredCollabs: []
+};
+
+function saveAppState() {
+  const stateToSave = JSON.parse(JSON.stringify(appState));
+  stateToSave.selectedSkillsInModal = Array.from(appState.selectedSkillsInModal);
+  localStorage.setItem('musicConnectZState', JSON.stringify(stateToSave));
+}
+
+function loadAppState() {
+  const saved = localStorage.getItem('musicConnectZState');
+  if (saved) {
+    const loaded = JSON.parse(saved);
+    appState = {
+      user: loaded.user || appState.user,
+      personas: loaded.personas || [],
+      examples: loaded.examples || [],
+      collabs: loaded.collabs || [],
+      skillsUsed: loaded.skillsUsed || [],
+      selectedGenre: loaded.selectedGenre || '',
+      selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
+      wallet: loaded.wallet || {balance: 0, earned: 0},
+      examplePrivacy: loaded.examplePrivacy || 'private',
+      currentTab: loaded.currentTab || 'setup',
+      filteredCollabs: loaded.filteredCollabs || []
+    };
+  }
+  updateAllDisplays();
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+  appState.currentTab = tabName;
+  saveAppState();
+  if (tabName === 'collaborate') { updateCollabPersonaOptions(); renderCollabFeed(); }
+  if (tabName === 'profile') { updateProfileDisplay(); }
+}
+
+function prevTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = currentIdx === 0 ? tabs.length - 1 : currentIdx - 1;
+  switchTab(tabs[newIdx]);
+}
+
+function nextTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = (currentIdx + 1) % tabs.length;
+  switchTab(tabs[newIdx]);
+}
+
+function saveProfile() {
+  appState.user = { name: document.getElementById('username').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, birthday: document.getElementById('birthday').value, gender: document.getElementById('gender').value, location: document.getElementById('location').value, bio: document.getElementById('bio').value, profilePic: appState.user.profilePic };
+  saveAppState();
+  updateProfileDisplay();
+  alert('✓ Profile saved!');
+}
+
+function loadProfilePic(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => { appState.user.profilePic = e.target.result; document.getElementById('headerPic').innerHTML = `<img src="${e.target.result}" />`; saveAppState(); updateProfileDisplay(); };
+    reader.readAsDataURL(file);
+  }
+}
+
+function requestGPS() {
+  const status = document.getElementById('gpsStatus');
+  status.classList.add('active');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude.toFixed(4);
+      const lng = pos.coords.longitude.toFixed(4);
+      document.getElementById('location').value = `${lat}, ${lng}`;
+      status.textContent = `✓ GPS: ${lat}, ${lng}`;
+    }, () => { status.textContent = '✗ GPS denied or unavailable'; });
+  }
+}
+
+function updateProfileDisplay() {
+  const user = appState.user;
+  document.getElementById('pubUsername').textContent = user.name || 'Not Set';
+  document.getElementById('pubInfo').innerHTML = `📧 ${user.email || 'No email'}<br>📱 ${user.phone || 'No phone'}<br>📍 ${user.location || 'No location'}`;
+  document.getElementById('pubBio').textContent = user.bio || 'No bio';
+  document.getElementById('pubEmailText').textContent = user.email || 'No email';
+  if (user.email) { document.getElementById('copyEmailBtn').style.display = 'block'; } else { document.getElementById('copyEmailBtn').style.display = 'none'; }
+  if (user.profilePic) { document.getElementById('pubPic').innerHTML = `<img src="${user.profilePic}" />`; document.getElementById('headerPic').innerHTML = `<img src="${user.profilePic}" />`; }
+  const skillsList = appState.personas.map(p => p.skills.map(s => s.name)).flat();
+  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag">${s}</span>`).join('') : 'No skills';
+}
+
+function openSkillModal(personaKey, personaName) {
+  document.getElementById('skillModalTitle').textContent = `Add Skills - ${personaName}`;
+  document.getElementById('editingPersonaIdx').value = personaKey;
+  appState.selectedSkillsInModal = new Set();
+  renderSkillModal(personaKey);
+  populateDateSelects();
+  document.getElementById('skillModal').classList.add('active');
+}
+
+function populateDateSelects() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const moSelect = document.getElementById('skillMo');
+  moSelect.innerHTML = '';
+  months.forEach((m, i) => moSelect.innerHTML += `<option value="${i+1}">${m}</option>`);
+  const daySelect = document.getElementById('skillDay');
+  daySelect.innerHTML = '';
+  for (let i = 1; i <= 31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+  const yrSelect = document.getElementById('skillYr');
+  yrSelect.innerHTML = '';
+  const currentYear = new Date().getFullYear();
+  for (let i = currentYear; i >= 2000; i--) yrSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function renderSkillModal(personaKey) {
+  const skillCats = document.getElementById('skillCats');
+  skillCats.innerHTML = '';
+  const categories = instrumentDatabase[personaKey];
+  for (const [catName, skills] of Object.entries(categories)) {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${catName}</div><div class="skill-grid"></div>`;
+    for (const [skillKey, skillName] of Object.entries(skills)) {
+      const isAny = skillKey.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''}`;
+      btn.textContent = skillName;
+      btn.onclick = (e) => { e.preventDefault(); btn.classList.toggle('sel'); if (btn.classList.contains('sel')) { appState.selectedSkillsInModal.add(skillName); } else { appState.selectedSkillsInModal.delete(skillName); } };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    }
+    skillCats.appendChild(catDiv);
+  }
+}
+
+function addSkills() {
+  const personaKey = document.getElementById('editingPersonaIdx').value;
+  if (appState.selectedSkillsInModal.size === 0) { alert('❌ Please select at least one skill'); return; }
+  const mo = document.getElementById('skillMo').value;
+  const day = document.getElementById('skillDay').value;
+  const yr = document.getElementById('skillYr').value;
+  const startDate = `${mo}/${day}/${yr}`;
+  const personaNames = { 'indie-artist': '🎤 Indie Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Designer', 'videographer': '🎬 Videographer' };
+  let persona = appState.personas.find(p => p.key === personaKey);
+  if (!persona) { persona = {key: personaKey, name: personaNames[personaKey], skills: []}; appState.personas.push(persona); }
+  const skillCount = appState.selectedSkillsInModal.size;
+  appState.selectedSkillsInModal.forEach(skillName => { persona.skills.push({name: skillName, startDate: startDate}); });
+  appState.selectedSkillsInModal.clear();
+  renderPersonasDisplay();
+  closeSkillModal();
+  saveAppState();
+  alert(`✓ Added ${skillCount} skill${skillCount !== 1 ? 's' : ''} with start date ${startDate}`);
+}
+
+function renderPersonasDisplay() {
+  const display = document.getElementById('personasDisplay');
+  if (appState.personas.length === 0) { display.innerHTML = 'No personas yet'; return; }
+  display.innerHTML = '';
+  appState.personas.forEach((persona, idx) => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.innerHTML = `<div class="persona-header"><div class="persona-name">${persona.name}</div><button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button></div><div style="font-size: 11px;"><div style="font-weight: 600; margin-bottom: 6px;">Skills:</div><div id="personaSkills${idx}"></div></div>`;
+    display.appendChild(card);
+    const skillsDiv = document.getElementById(`personaSkills${idx}`);
+    persona.skills.forEach((skill, sIdx) => {
+      const skillItem = document.createElement('div');
+      skillItem.className = 'skill-item';
+      skillItem.innerHTML = `<span class="skill-item-name">${skill.name}</span><span class="skill-item-exp">${skill.startDate}</span><div class="skill-item-actions"><button class="btn btn-danger btn-small" onclick="removePersonaSkill(${idx}, ${sIdx})">✕</button></div>`;
+      skillsDiv.appendChild(skillItem);
+    });
+  });
+  updateProfileDisplay();
+}
+
+function removePersona(idx) { if (confirm('Remove this persona and all its skills?')) { appState.personas.splice(idx, 1); renderPersonasDisplay(); saveAppState(); } }
+
+function removePersonaSkill(personaIdx, skillIdx) { appState.personas[personaIdx].skills.splice(skillIdx, 1); renderPersonasDisplay(); saveAppState(); }
+
+function closeSkillModal() { document.getElementById('skillModal').classList.remove('active'); }
+
+function openGenreModal() {
+  const genreCats = document.getElementById('genreCats');
+  genreCats.innerHTML = '';
+  const genres = ['Blues', 'Brass & Military', 'Children\'s', 'Classical', 'Country', 'Electronic', 'Folk', 'Funk / Soul', 'Hip-Hop', 'House', 'International', 'Jazz', 'Latin', 'Newage', 'Non-Music', 'Pop', 'Pop/Rock', 'R&B', 'Reggae', 'Religious', 'Rock', 'Rap', 'Soul', 'Soundtrack', 'Techno', 'Traditional', 'World'];
+  genres.forEach(genre => {
+    const btn = document.createElement('button');
+    btn.className = `genre-btn ${appState.selectedGenre === genre ? 'sel' : ''}`;
+    btn.textContent = genre;
+    btn.onclick = () => { document.querySelectorAll('#genreCats .genre-btn').forEach(b => b.classList.remove('sel')); btn.classList.add('sel'); appState.selectedGenre = genre; };
+    genreCats.appendChild(btn);
+  });
+  document.getElementById('genreModal').classList.add('active');
+}
+
+function closeGenreModal() { document.getElementById('genreModal').classList.remove('active'); }
+
+function addGenre() { if (!appState.selectedGenre) { alert('❌ Please select a genre'); return; } document.getElementById('exampleGenreDisplay').textContent = appState.selectedGenre; closeGenreModal(); }
+
+function findCategoryForSkill(personaKey, skillName) {
+  const personaDb = instrumentDatabase[personaKey];
+  if (!personaDb) return null;
+  for (const [catName, skillsObj] of Object.entries(personaDb)) {
+    for (const val of Object.values(skillsObj)) { if (val === skillName) return catName; }
+  }
+  return null;
+}
+
+function openSpecificSkillsFromAny(personaKey, anySkillName) {
+  const categoryName = findCategoryForSkill(personaKey, anySkillName);
+  if (!categoryName) { alert('❌ Could not find specific skills for this category.'); return; }
+  const personaDb = instrumentDatabase[personaKey];
+  const skillsObj = personaDb[categoryName];
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  const catDiv = document.createElement('div');
+  catDiv.style.marginBottom = '14px';
+  catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">✨ ${categoryName} – select specific skill</div><div class="skill-grid"></div><div style="margin-top: 8px;"><button class="btn btn-secondary" onclick="openSkillsUsedModal()" style="width: 100%;">← Back to Categories</button></div>`;
+  Object.entries(skillsObj).forEach(([skillKey, skillLabel]) => {
+    if (skillKey.toLowerCase().includes('any')) return;
+    const btn = document.createElement('button');
+    btn.className = `skill-btn ${appState.skillsUsed.includes(skillLabel) ? 'sel' : ''}`;
+    btn.textContent = skillLabel;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      if (!appState.skillsUsed.includes(skillLabel)) {
+        appState.skillsUsed.push(skillLabel);
+        btn.classList.add('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      } else {
+        appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillLabel);
+        btn.classList.remove('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      }
+    };
+    catDiv.querySelector('.skill-grid').appendChild(btn);
+  });
+  skillsUsedCats.appendChild(catDiv);
+}
+
+function openSkillsUsedModal() {
+  if (appState.personas.length === 0) { alert('❌ You need to add personas and skills first!'); return; }
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  
+  // Add real-time selected skills display
+  const selectedDisplay = document.createElement('div');
+  selectedDisplay.id = 'realtimeSkillsDisplay';
+  selectedDisplay.style.cssText = 'background: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;';
+  selectedDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">✕</button></span>`).join('') : '✨ Select skills below...';
+  skillsUsedCats.appendChild(selectedDisplay);
+  
+  appState.personas.forEach(persona => {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${persona.name}</div><div class="skill-grid"></div>`;
+    persona.skills.forEach(skill => {
+      const isAny = skill.name.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''} ${appState.skillsUsed.includes(skill.name) ? 'sel' : ''}`;
+      btn.textContent = skill.name;
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (isAny) { openSpecificSkillsFromAny(persona.key, skill.name); } else {
+          if (!appState.skillsUsed.includes(skill.name)) {
+            appState.skillsUsed.push(skill.name);
+            btn.classList.add('sel');
+          } else {
+            appState.skillsUsed = appState.skillsUsed.filter(s => s !== skill.name);
+            btn.classList.remove('sel');
+          }
+          updateRealtimeSkillsDisplay();
+          saveAppState();
+        }
+      };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    });
+    skillsUsedCats.appendChild(catDiv);
+  });
+  document.getElementById('skillsUsedModal').classList.add('active');
+}
+
+function updateSkillsUsedDisplay() {
+  const display = document.getElementById('skillsUsedDisplay');
+  if (appState.skillsUsed.length === 0) { display.textContent = 'Click to select required skills'; } else { display.innerHTML = appState.skillsUsed.map(s => `<span class="tag">${s}</span>`).join(''); }
+}
+
+function updateRealtimeSkillsDisplay() {
+  const realtimeDisplay = document.getElementById('realtimeSkillsDisplay');
+  if (realtimeDisplay) {
+    realtimeDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">✕</button></span>`).join('') : '✨ Select skills below...';
+  }
+  updateSkillsUsedDisplay();
+}
+
+function removeSkillFromUsed(skillName) {
+  appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillName);
+  updateRealtimeSkillsDisplay();
+  saveAppState();
+  // Update button states in the modal
+  document.querySelectorAll('#skillsUsedCats .skill-btn').forEach(btn => {
+    if (btn.textContent.trim() === skillName.trim()) btn.classList.remove('sel');
+  });
+}
+
+function closeSkillsUsedModal() { document.getElementById('skillsUsedModal').classList.remove('active'); }
+
+function setExamplePrivacy(privacy) {
+  appState.examplePrivacy = privacy;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`button[onclick="setExamplePrivacy('${privacy}')"]`).classList.add('active');
+}
+
+function uploadExample() {
+  const title = document.getElementById('exampleTitle').value.trim();
+  const desc = document.getElementById('exampleDesc').value.trim();
+  const mediaFile = document.getElementById('exampleMedia').files[0];
+  if (!title || !desc || !appState.selectedGenre || !mediaFile || appState.skillsUsed.length === 0) { alert('❌ VALIDATION ERROR: Fill all required fields:\n- Title\n- Description\n- Genre\n- Media File\n- At least one skill'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
+    const imageFile = document.getElementById('exampleImage').files[0];
+    if (imageFile) {
+      const imgReader = new FileReader();
+      imgReader.onload = (imgE) => { example.image = imgE.target.result; finalizeExample(example); };
+      imgReader.readAsDataURL(imageFile);
+    } else {
+      finalizeExample(example);
+    }
+  };
+  reader.readAsDataURL(mediaFile);
+}
+
+function finalizeExample(example) {
+  const editIdx = document.getElementById('editingExampleIdx').value;
+  if (editIdx) { appState.examples[parseInt(editIdx)] = example; alert('✓ Example updated!'); } else { appState.examples.push(example); alert('✓ Example uploaded!'); }
+  appState.skillsUsed = [];
+  appState.selectedGenre = '';
+  document.getElementById('exampleTitle').value = '';
+  document.getElementById('exampleDesc').value = '';
+  document.getElementById('exampleMedia').value = '';
+  document.getElementById('exampleImage').value = '';
+  document.getElementById('exampleGenreDisplay').textContent = 'Click "Select Genre"';
+  updateSkillsUsedDisplay();
+  cancelEditExample();
+  renderExamplesDisplay();
+  saveAppState();
+}
+
+function renderExamplesDisplay() {
+  const display = document.getElementById('examplesDisplay');
+  if (appState.examples.length === 0) { display.innerHTML = 'No examples yet'; return; }
+  display.innerHTML = '';
+  appState.examples.forEach((example, idx) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/></div>` : ''}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    display.appendChild(card);
+  });
+}
+
+function editExample(idx) {
+  const example = appState.examples[idx];
+  document.getElementById('exampleTitle').value = example.title;
+  document.getElementById('exampleDesc').value = example.desc;
+  document.getElementById('exampleGenreDisplay').textContent = example.genre;
+  appState.selectedGenre = example.genre;
+  appState.skillsUsed = [...example.skills];
+  updateSkillsUsedDisplay();
+  setExamplePrivacy(example.privacy);
+  document.getElementById('editingExampleIdx').value = idx;
+  document.getElementById('exampleSubmitBtn').textContent = '✏️ Update';
+  document.getElementById('exampleCancelBtn').style.display = 'block';
+  document.getElementById('currentMediaDisplay').textContent = `Current: ${example.mediaName}`;
+  document.getElementById('exampleMedia').value = '';
+  switchTab('examples');
+}
+
+function cancelEditExample() {
+  document.getElementById('editingExampleIdx').value = '';
+  document.getElementById('exampleSubmitBtn').textContent = '📤 Upload';
+  document.getElementById('exampleCancelBtn').style.display = 'none';
+  document.getElementById('currentMediaDisplay').textContent = '';
+  appState.examplePrivacy = 'private';
+  setExamplePrivacy('private');
+}
+
+function removeExample(idx) { if (confirm('Delete this example?')) { appState.examples.splice(idx, 1); renderExamplesDisplay(); saveAppState(); } }
+
+function updateCollabPersonaOptions() {
+  const select = document.getElementById('collabPersona');
+  select.innerHTML = '<option value="">Choose persona</option>';
+  appState.personas.forEach((persona, idx) => { select.innerHTML += `<option value="${idx}">${persona.name}</option>`; });
+}
+
+function updateCollabExampleOptions() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleSelect = document.getElementById('collabPublicExample');
+  exampleSelect.innerHTML = '<option value="">Choose example</option>';
+  if (personaIdx !== '') {
+    const personaKey = appState.personas[parseInt(personaIdx)].key;
+    const publicExamples = appState.examples.filter(ex => ex.privacy === 'public' && ex.skills.some(s => {
+      const skillPersona = Object.keys(instrumentDatabase).find(key => { const cats = instrumentDatabase[key]; return Object.values(cats).some(cat => Object.values(cat).includes(s)); });
+      return skillPersona === personaKey;
+    }));
+    publicExamples.forEach((ex, idx) => { exampleSelect.innerHTML += `<option value="${idx}">${ex.title}</option>`; });
+  }
+}
+
+function postCollabRequest() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleIdx = document.getElementById('collabPublicExample').value;
+  const desc = document.getElementById('collabPostDesc').value.trim();
+  if (!personaIdx || !exampleIdx || !desc) { alert('❌ Please fill all fields'); return; }
+  const minAge = parseInt(document.getElementById('collabMinAge').value) || 13;
+  const maxAge = parseInt(document.getElementById('collabMaxAge').value) || 120;
+  const maxDist = parseFloat(document.getElementById('collabMaxDistance').value) || null;
+  const budget = parseFloat(document.getElementById('collabBudget').value) || null;
+  const minExp = parseFloat(document.getElementById('collabMinExp').value) || 0;
+  const minProfileRating = parseFloat(document.getElementById('collabMinProfileRating').value) || 0;
+  const minPictureRating = parseFloat(document.getElementById('collabMinPictureRating').value) || 0;
+  const prefGender = document.getElementById('collabPreferredGender').value || '';
+  if (minAge > maxAge) { alert('❌ Minimum age cannot be greater than maximum age'); return; }
+  const collab = { id: Date.now(), personaIdx: parseInt(personaIdx), personaName: appState.personas[parseInt(personaIdx)].name, exampleTitle: appState.examples[parseInt(exampleIdx)].title, description: desc, userName: appState.user.name || 'Anonymous', userLocation: appState.user.location || 'Unknown', userPic: appState.user.profilePic || null, timestamp: new Date().toLocaleString(), requirements: { ageRange: {min: minAge, max: maxAge}, maxDistance: maxDist, budget: budget, minExperience: minExp, minProfileRating: minProfileRating, minPictureRating: minPictureRating, preferredGender: prefGender }, comments: [], ratings: [] };
+  const editIdx = document.getElementById('editingCollabIdx').value;
+  if (editIdx) { appState.collabs[parseInt(editIdx)] = collab; alert('✓ Collab request updated!'); } else { appState.collabs.push(collab); alert('✓ Collab request posted!'); }
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  document.getElementById('collabMinAge').value = '';
+  document.getElementById('collabMaxAge').value = '';
+  document.getElementById('collabMaxDistance').value = '';
+  document.getElementById('collabBudget').value = '';
+  document.getElementById('collabMinExp').value = '';
+  document.getElementById('collabMinProfileRating').value = '';
+  document.getElementById('collabMinPictureRating').value = '';
+  document.getElementById('collabPreferredGender').value = '';
+  cancelEditCollab();
+  renderCollabFeed();
+  saveAppState();
+}
+
+function renderCollabFeed() {
+  const feed = document.getElementById('collabFeed');
+  appState.filteredCollabs = [...appState.collabs];
+  applyFilters();
+  const filterPersona = document.getElementById('filterPersona').value;
+  const filterLocation = document.getElementById('filterLocation').value;
+  if (filterPersona) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.personaName === filterPersona);
+  if (filterLocation) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.userLocation.toLowerCase().includes(filterLocation.toLowerCase()));
+  document.getElementById('feedCount').textContent = appState.filteredCollabs.length;
+  if (appState.filteredCollabs.length === 0) { feed.innerHTML = 'No collaboration requests matching your filters'; return; }
+  feed.innerHTML = '';
+  appState.filteredCollabs.forEach((collab, idx) => {
+    const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    const req = collab.requirements || {};
+    let reqHtml = '';
+    if (req.ageRange || req.maxDistance || req.budget || req.minExperience || req.minProfileRating || req.minPictureRating || req.preferredGender) {
+      const reqItems = [];
+      if (req.ageRange) reqItems.push(`👥 Age: ${req.ageRange.min}-${req.ageRange.max}`);
+      if (req.maxDistance) reqItems.push(`📍 Distance: ${req.maxDistance}mi max`);
+      if (req.budget) reqItems.push(`💰 Budget: $${req.budget.toFixed(2)}`);
+      if (req.minExperience) reqItems.push(`⭐ Exp: ${req.minExperience}yrs`);
+      if (req.minProfileRating) reqItems.push(`👤 Profile: ${req.minProfileRating}★+`);
+      if (req.minPictureRating) reqItems.push(`📸 Picture: ${req.minPictureRating}★+`);
+      if (req.preferredGender) reqItems.push(`👫 Gender: ${req.preferredGender}`);
+      reqHtml = `<div style="background: rgba(255, 165, 0, 0.1); border-left: 3px solid var(--accent); padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 11px;"><div style="font-weight: 600; margin-bottom: 6px; color: var(--primary);">🎯 Seeking:</div><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">${reqItems.map(item => `<div style="padding: 4px 6px; background: white; border-radius: 4px;">${item}</div>`).join('')}</div></div>`;
+    }
+    const comments = collab.comments || [];
+    const ratings = collab.ratings || [];
+    const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'N/A';
+    const ratingHtml = `<div style="font-size: 10px; margin: 8px 0;"><span style="color: #FFD700;">⭐ ${avgRating}</span> (${ratings.length} ratings) • 💬 ${comments.length} comments</div>`;
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div>${reqHtml}${ratingHtml}<div class="post-actions"><button class="btn btn-secondary btn-small" onclick="openCommentModal(${originalIdx})">💬 Comment</button><button class="btn btn-secondary btn-small" onclick="openRatingModal(${originalIdx})">⭐ Rate</button><button class="btn btn-secondary btn-small" onclick="sharePost(${originalIdx})">📤 Share</button><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button></div>`;
+    feed.appendChild(card);
+  });
+}
+
+function openCommentModal(idx) {
+  document.getElementById('commentingCollabIdx').value = idx;
+  document.getElementById('commentText').value = '';
+  document.getElementById('commentsList').innerHTML = '';
+  const collab = appState.collabs[idx];
+  const comments = collab.comments || [];
+  if (comments.length === 0) {
+    document.getElementById('commentsList').innerHTML = '<div style="text-align: center; color: var(--text-light); padding: 20px;">No comments yet. Be the first!</div>';
+  } else {
+    comments.forEach(comment => {
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'comment-item';
+      commentDiv.innerHTML = `<div class="comment-header"><span class="comment-user">${comment.user}</span><span class="comment-time">${comment.time}</span></div><div class="comment-text">${comment.text}</div>`;
+      document.getElementById('commentsList').appendChild(commentDiv);
+    });
+  }
+  document.getElementById('commentModal').classList.add('active');
+}
+
+function submitComment() {
+  const idx = parseInt(document.getElementById('commentingCollabIdx').value);
+  const text = document.getElementById('commentText').value.trim();
+  if (!text) { alert('❌ Please enter a comment'); return; }
+  if (!appState.collabs[idx].comments) appState.collabs[idx].comments = [];
+  const comment = { user: appState.user.name || 'Anonymous', text: text, time: new Date().toLocaleString() };
+  appState.collabs[idx].comments.push(comment);
+  saveAppState();
+  renderCollabFeed();
+  alert('✓ Comment posted!');
+  closeCommentModal();
+}
+
+function closeCommentModal() { document.getElementById('commentModal').classList.remove('active'); }
+
+function openRatingModal(idx) {
+  const collab = appState.collabs[idx];
+  const ratings = collab.ratings || [];
+  const avgRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'No ratings';
+  let html = `<div style="text-align: center; margin-bottom: 16px;"><div style="font-size: 18px; margin: 8px 0;">⭐ ${avgRating}</div><div style="font-size: 11px; color: var(--text-light);">${ratings.length} total ratings</div></div><div style="text-align: center; margin-bottom: 16px;">`;
+  for (let i = 1; i <= 10; i++) {
+    html += `<span class="star" onclick="submitRating(${idx}, ${i})" style="font-size: 24px; cursor: pointer; margin: 0 4px;">★</span>`;
+  }
+  html += '</div>';
+  alert(html);
+  // Better approach: modal
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--surface); padding: 20px; border-radius: 12px; z-index: 6000; text-align: center;';
+  modal.innerHTML = `<h3 style="margin-bottom: 16px;">⭐ Rate This Post (1-10)</h3><div style="margin-bottom: 16px;">${Array(10).fill(0).map((_, i) => `<span class="star" onclick="submitRating(${idx}, ${i+1}); document.body.removeChild(this.parentElement.parentElement);" style="font-size: 32px; cursor: pointer; margin: 0 8px; color: #ddd;">★</span>`).join('')}</div>`;
+  document.body.appendChild(modal);
+  setTimeout(() => { if (document.body.contains(modal)) { document.body.removeChild(modal); } }, 5000);
+}
+
+function submitRating(idx, rating) {
+  if (!appState.collabs[idx].ratings) appState.collabs[idx].ratings = [];
+  appState.collabs[idx].ratings.push(rating);
+  saveAppState();
+  renderCollabFeed();
+  alert(`✓ You rated this post ${rating}/10 stars!`);
+}
+
+function sharePost(idx) {
+  const collab = appState.collabs[idx];
+  const shareText = `Check out this collaboration request: "${collab.personaName}" - ${collab.description.substring(0, 50)}... via Music ConnectZ`;
+  if (navigator.share) {
+    navigator.share({ title: 'Music ConnectZ Post', text: shareText, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(shareText).then(() => { alert(`✓ Share text copied:\n\n${shareText}`); });
+  }
+}
+
+function editCollab(idx) {
+  const collab = appState.collabs[idx];
+  document.getElementById('collabPersona').value = appState.personas.findIndex(p => p.name === collab.personaName);
+  updateCollabExampleOptions();
+  document.getElementById('collabPublicExample').value = appState.examples.findIndex(ex => ex.title === collab.exampleTitle);
+  document.getElementById('collabPostDesc').value = collab.description;
+  const req = collab.requirements || {};
+  document.getElementById('collabMinAge').value = req.ageRange ? req.ageRange.min : '';
+  document.getElementById('collabMaxAge').value = req.ageRange ? req.ageRange.max : '';
+  document.getElementById('collabMaxDistance').value = req.maxDistance || '';
+  document.getElementById('collabBudget').value = req.budget || '';
+  document.getElementById('collabMinExp').value = req.minExperience || '';
+  document.getElementById('collabMinProfileRating').value = req.minProfileRating || '';
+  document.getElementById('collabMinPictureRating').value = req.minPictureRating || '';
+  document.getElementById('collabPreferredGender').value = req.preferredGender || '';
+  document.getElementById('editingCollabIdx').value = idx;
+  document.getElementById('collabSubmitBtn').textContent = '✏️ Update';
+  document.getElementById('collabCancelBtn').style.display = 'block';
+  switchTab('collaborate');
+}
+
+function cancelEditCollab() {
+  document.getElementById('editingCollabIdx').value = '';
+  document.getElementById('collabSubmitBtn').textContent = '📤 Post';
+  document.getElementById('collabCancelBtn').style.display = 'none';
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  document.getElementById('collabMinAge').value = '';
+  document.getElementById('collabMaxAge').value = '';
+  document.getElementById('collabMaxDistance').value = '';
+  document.getElementById('collabBudget').value = '';
+  document.getElementById('collabMinExp').value = '';
+  document.getElementById('collabMinProfileRating').value = '';
+  document.getElementById('collabMinPictureRating').value = '';
+  document.getElementById('collabPreferredGender').value = '';
+}
+
+function removeCollab(idx) { if (confirm('Delete this collaboration request?')) { appState.collabs.splice(idx, 1); renderCollabFeed(); saveAppState(); } }
+
+function applyFilters() { renderCollabFeed(); }
+
+function resetFilters() {
+  document.getElementById('filterPersona').value = '';
+  document.getElementById('filterLocation').value = '';
+  renderCollabFeed();
+}
+
+function addIncome() {
+  const amt = parseFloat(document.getElementById('incomeAmt').value);
+  const tax = parseFloat(document.getElementById('incomeTax').value) || 0;
+  if (!amt || amt <= 0) { alert('❌ Please enter a valid amount'); return; }
+  const afterTax = amt * (1 - tax / 100);
+  appState.wallet.balance += afterTax;
+  appState.wallet.earned += amt;
+  document.getElementById('incomeAmt').value = '';
+  document.getElementById('incomeTax').value = '10';
+  updateWalletDisplay();
+  saveAppState();
+  alert(`✓ Added $${amt.toFixed(2)} (after ${tax}% tax = $${afterTax.toFixed(2)})`);
+}
+
+function updateWalletDisplay() {
+  document.getElementById('walletBalance').textContent = appState.wallet.balance.toFixed(2);
+  document.getElementById('walletEarned').textContent = appState.wallet.earned.toFixed(2);
+  document.getElementById('balanceAmount').textContent = appState.wallet.balance.toFixed(2);
+}
+
+function updateAllDisplays() {
+  updateWalletDisplay();
+  renderPersonasDisplay();
+  renderExamplesDisplay();
+  updateCollabPersonaOptions();
+  renderCollabFeed();
+  updateProfileDisplay();
+  document.getElementById('username').value = appState.user.name;
+  document.getElementById('email').value = appState.user.email;
+  document.getElementById('phone').value = appState.user.phone;
+  document.getElementById('birthday').value = appState.user.birthday;
+  document.getElementById('gender').value = appState.user.gender;
+  document.getElementById('location').value = appState.user.location;
+  document.getElementById('bio').value = appState.user.bio;
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeButton(newTheme);
+}
+
+function updateThemeButton(theme) {
+  const btn = document.querySelector('.theme-toggle');
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function copyEmail() {
+  const email = appState.user.email;
+  if (!email) { alert('❌ No email to copy'); return; }
+  navigator.clipboard.writeText(email).then(() => { alert(`✓ Email copied: ${email}`); }).catch(() => { alert('❌ Could not copy email'); });
+}
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeButton(savedTheme);
+}
+
+window.addEventListener('load', () => {
+  initTheme();
+  loadAppState();
+  updateAllDisplays();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevTab(); } 
+    else if (e.key === 'ArrowRight') { e.preventDefault(); nextTab(); }
+  }
+  if (e.key === 'Escape') { document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active')); }
+});
+
+window.addEventListener('beforeunload', () => { saveAppState(); });
+</script>
+</body>
+</html>

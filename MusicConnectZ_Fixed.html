@@ -1,0 +1,1912 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Music ConnectZ v6 bi K-Oth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="stripe-config.js"></script>
+  <style>
+    :root {
+      --primary: #2196F3;
+      --primary-dark: #1565C0;
+      --accent: #FF9800;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --text: #333333;
+      --text-light: #666666;
+      --border: #e0e0e0;
+      --success: #4CAF50;
+      --danger: #F44336;
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a1a;
+      --surface: #2d2d2d;
+      --text: #e0e0e0;
+      --text-light: #b0b0b0;
+      --border: #404040;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); }
+    .container { display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; flex-wrap: nowrap; gap: 8px; width: 100%; }
+    .nav-wrapper { display: flex; gap: 8px; flex: 0 0 auto; }
+    .theme-toggle { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.5); }
+    .header-center { text-align: center; flex: 1 1 auto; min-width: 150px; }
+    .header-title { font-size: 16px; font-weight: 700; }
+    .header-subtitle { font-size: 9px; opacity: 0.9; margin-top: 2px; }
+    .nav-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .nav-btn:hover { background: rgba(255,255,255,0.5); }
+    .header-right { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
+    .balance { background: rgba(255,255,255,0.25); padding: 6px 10px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; }
+    .profile-pic { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.2); cursor: pointer; }
+    .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-wrapper { position: relative; display: inline-block; }
+    .rating-badge { position: absolute; right: -6px; bottom: -6px; background: #FFD700; color: #111; padding: 4px 8px; border-radius: 10px; font-weight: 800; font-size: 11px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+    .tabs { display: flex; background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+    .tab-btn { flex: 1; padding: 11px 12px; border: none; background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-light); border-bottom: 3px solid transparent; white-space: nowrap; min-width: 65px; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .card-header { font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 8px rgba(33, 150, 243, 0.2); }
+    .btn { padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #45a049; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #da190b; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-small { padding: 5px 10px; font-size: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .modal { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .modal.active { display: flex !important; }
+    .modal-content { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h2 { font-size: 14px; color: var(--primary); }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); }
+    .close-btn:hover { color: var(--danger); }
+    .tag { display: inline-block; background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; }
+    .persona-card { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .persona-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .persona-name { font-size: 16px; font-weight: 700; }
+    .persona-btn { background: var(--bg); padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border); text-align: center; font-weight: 700; font-size: 12px; color: var(--text); }
+    .persona-btn:hover { border-color: var(--primary); }
+    .post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .post-header { display: flex; gap: 8px; margin-bottom: 10px; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0; }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .post-info { flex: 1; }
+    .post-user { font-weight: 700; font-size: 12px; }
+    .post-meta { font-size: 10px; color: var(--text-light); }
+    .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+    .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skill-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; }
+    .skill-btn:hover { border-color: var(--primary); }
+    .skill-btn.sel { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important; color: white !important; border: 3px solid #1565C0 !important; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6) !important; transform: scale(1.08) !important; font-weight: 700 !important; }
+    .skill-btn.any-skill { background: var(--accent); color: white; border-color: var(--accent); }
+    .skill-btn.any-skill::after { content: '🔄'; position: absolute; top: 2px; right: 4px; font-size: 9px; }
+    .skill-btn.any-skill.sel { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%) !important; border: 3px solid #E65100 !important; box-shadow: 0 0 12px rgba(255, 152, 0, 0.6) !important; transform: scale(1.08) !important; }
+    .skill-item { background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text); }
+    .skill-item-name { font-weight: 600; flex: 1; color: var(--text); }
+    .skill-item-exp { color: var(--text-light); font-size: 10px; margin-right: 8px; }
+    .skill-item-actions { display: flex; gap: 4px; }
+    .toggle-btn { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); cursor: pointer; font-weight: 600; font-size: 11px; margin: 4px; }
+    .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter-badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 6px; }
+    .gps-status { font-size: 11px; color: var(--text-light); margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; display: none; }
+    .gps-status.active { display: block; }
+    .genre-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; margin: 4px; display: inline-block; font-size: 12px; font-weight: 600; }
+    .genre-btn:hover { border-color: var(--primary); }
+    .genre-btn.sel { background: var(--primary); color: white; border-color: var(--primary); }
+    #collabMap { width: 100%; height: 500px; border-radius: 10px; margin-bottom: 16px; }
+    .map-container { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0; margin-bottom: 16px; overflow: hidden; }
+    .user-card-on-map { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .user-card-header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .user-card-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+    .user-card-title { flex: 1; }
+    .user-name { font-weight: 700; font-size: 12px; }
+    .user-rating { font-size: 11px; color: #FFD700; }
+    .user-card-content { font-size: 10px; line-height: 1.5; }
+    .user-card-content div { margin-bottom: 4px; }
+    .theme-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .theme-color-btn { border: 3px solid transparent; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 700; color: white; transition: all 0.3s; }
+    .theme-color-btn:hover { transform: scale(1.05); }
+    .theme-color-btn.active { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    .toggle-setting { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .toggle-switch { width: 50px; height: 26px; background: #ccc; border-radius: 13px; position: relative; cursor: pointer; transition: 0.3s; }
+    .toggle-switch.on { background: var(--primary); }
+    .toggle-switch.disabled { opacity: 0.4; cursor: not-allowed; }
+    .toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-switch.on .toggle-slider { left: 27px; }
+    .verification-status { display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--bg); border-radius: 6px; margin-top: 8px; }
+    .verification-status.verified { background: rgba(76, 175, 80, 0.1); color: #4CAF50; }
+    .verification-status.unverified { background: rgba(244, 67, 54, 0.1); color: #F44336; }
+    @media (max-width: 768px) { 
+      .header { padding: 8px 10px; flex-wrap: wrap; justify-content: center; gap: 6px; } 
+      .nav-wrapper { flex: 0 1 auto; order: 1; }
+      .header-center { flex: 0 1 100%; order: 2; margin: 4px 0; }
+      .header-title { font-size: 13px; }
+      .header-subtitle { font-size: 7px; }
+      .header-right { flex: 0 1 auto; order: 3; }
+      .theme-toggle { padding: 5px 8px; font-size: 11px; }
+      .nav-btn { padding: 5px 8px; font-size: 11px; }
+      .balance { padding: 5px 8px; font-size: 9px; }
+      .profile-pic { width: 28px; height: 28px; font-size: 14px; }
+      .tabs { width: 100%; }
+      .tab-btn { padding: 8px 6px; font-size: 9px; min-width: 50px; flex: 0 1 auto; }
+      .content { padding: 10px; }
+      .card { padding: 10px; margin-bottom: 10px; }
+      .card-header { font-size: 12px; padding-bottom: 5px; margin-bottom: 8px; }
+      .form-group { margin-bottom: 8px; }
+      .form-group label { font-size: 10px; margin-bottom: 3px; }
+      .form-group input, .form-group select, .form-group textarea { padding: 7px; font-size: 10px; }
+      .btn { padding: 7px 10px; font-size: 10px; }
+      .btn-small { padding: 4px 8px; font-size: 9px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 8px; }
+      .skill-grid { grid-template-columns: 1fr; }
+      .modal-content { padding: 14px; max-width: 95%; }
+      .modal-header h2 { font-size: 12px; }
+      .persona-name { font-size: 13px; }
+      .post-header { gap: 6px; }
+      .post-avatar { width: 32px; height: 32px; font-size: 14px; }
+      .post-user { font-size: 10px; }
+      .post-meta { font-size: 8px; }
+      .post-content { font-size: 10px; }
+      .filter-panel { padding: 8px; }
+      .filter-row { gap: 6px; }
+      .skill-btn { padding: 5px 8px; font-size: 9px; }
+      .genre-btn { padding: 5px 8px; font-size: 10px; margin: 2px; }
+      .toggle-btn { padding: 4px 8px; font-size: 9px; margin: 2px; }
+      #collabMap { height: 250px; }
+      .user-card-on-map { padding: 8px; margin-bottom: 8px; }
+      .user-card-avatar { width: 28px; height: 28px; font-size: 12px; }
+      .user-name { font-size: 10px; }
+      .user-rating { font-size: 9px; }
+      .user-card-content { font-size: 8px; }
+      .theme-selector { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .theme-color-btn { padding: 8px; font-size: 11px; }
+      .toggle-setting { padding: 6px 0; }
+      .toggle-switch { width: 40px; height: 22px; }
+      .toggle-slider { width: 16px; height: 16px; top: 3px; left: 3px; }
+      .toggle-switch.on .toggle-slider { left: 21px; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 6px 8px; }
+      .nav-wrapper { gap: 4px; order: 1; }
+      .header-center { order: 2; margin: 4px 0; flex: 0 1 100%; }
+      .header-title { font-size: 11px; }
+      .header-subtitle { font-size: 6px; }
+      .header-right { order: 3; gap: 4px; }
+      .theme-toggle { padding: 4px 6px; font-size: 10px; }
+      .nav-btn { padding: 4px 6px; font-size: 10px; }
+      .balance { padding: 4px 6px; font-size: 8px; }
+      .profile-pic { width: 24px; height: 24px; font-size: 12px; }
+      .tabs { width: 100%; }
+      .tab-btn { padding: 6px 4px; font-size: 8px; min-width: 45px; }
+      .content { padding: 8px; }
+      .card { padding: 8px; margin-bottom: 8px; }
+      .card-header { font-size: 11px; margin-bottom: 6px; padding-bottom: 4px; }
+      .form-group { margin-bottom: 6px; }
+      .form-group label { font-size: 9px; }
+      .form-group input, .form-group select, .form-group textarea { padding: 6px; font-size: 9px; }
+      .btn { padding: 6px 8px; font-size: 9px; }
+      .btn-small { padding: 3px 6px; font-size: 8px; }
+      .grid-2, .grid-3 { gap: 6px; }
+      .modal-content { padding: 12px; max-width: 98%; }
+      .modal-header h2 { font-size: 11px; }
+      .post-avatar { width: 28px; height: 28px; font-size: 12px; }
+      .post-user { font-size: 9px; }
+      .post-meta { font-size: 7px; }
+      .post-content { font-size: 9px; }
+      #collabMap { height: 200px; }
+      .user-card-avatar { width: 24px; height: 24px; font-size: 10px; }
+      .user-name { font-size: 9px; }
+      .user-rating { font-size: 8px; }
+      .user-card-content { font-size: 7px; }
+      .theme-selector { grid-template-columns: 1fr; gap: 6px; }
+      .theme-color-btn { padding: 6px; font-size: 10px; }
+      .toggle-switch { width: 36px; height: 20px; }
+      .toggle-slider { width: 14px; height: 14px; }
+      .toggle-switch.on .toggle-slider { left: 19px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button></div>
+    <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.1 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/24/2026</div></div>
+    <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
+    <button class="tab-btn" onclick="switchTab('personas')">🎭 Personas</button>
+    <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
+    <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
+    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
+    <button class="tab-btn" onclick="switchTab('money')">💰 Money</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <div class="content">
+    <div id="setup" class="tab active">
+      <div class="card">
+        <div class="card-header">👤 Your Profile</div>
+        <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Your name" /></div>
+        <div class="grid-2"><div class="form-group"><label>📧 Email *</label><input type="email" id="email" /></div><div class="form-group"><label>📱 Phone *</label><input type="tel" id="phone" /></div></div>
+        <div class="grid-2"><div class="form-group"><label>🎂 Birthday *</label><input type="date" id="birthday" /></div><div class="form-group"><label>⚧️ Gender *</label><select id="gender"><option value="">Select</option><option value="Male">🚹 Male ♂️</option><option value="Female">🚺 Female ♀️</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div>
+        <div class="form-group">
+          <label>📍 Location *</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="location" placeholder="City, State or Zip" style="flex: 1;" />
+            <button class="btn btn-secondary btn-small" onclick="requestGPS()" id="gpsBtn">📍 GPS</button>
+          </div>
+          <div class="gps-status" id="gpsStatus">Requesting location...</div>
+        </div>
+        <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
+        <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
+      </div>
+    </div>
+
+    <div id="personas" class="tab">
+      <div class="card">
+        <div class="card-header">🎭 Select Your Personas & Add Skills</div>
+        <div class="grid-3">
+          <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Indie Artist')">🎤 Indie</button>
+          <button class="persona-btn" onclick="openSkillModal('beat-producer','🎚️ Beat Producer')">🎚️ Producer</button>
+          <button class="persona-btn" onclick="openSkillModal('mix-engineer','🎛️ Mix Engineer')">🎛️ Engineer</button>
+          <button class="persona-btn" onclick="openSkillModal('designer','🎨 Designer')">🎨 Designer</button>
+          <button class="persona-btn" onclick="openSkillModal('videographer','🎬 Videographer')">🎬 Video</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🎭 Your Personas</div>
+        <div id="personasDisplay">No personas yet</div>
+      </div>
+    </div>
+
+    <div id="examples" class="tab">
+      <div class="card">
+        <div class="card-header">🎵 Upload Work Example</div>
+        <input type="hidden" id="editingExampleIdx" value="" />
+        <div class="form-group"><label>🎯 Title *</label><input type="text" id="exampleTitle" placeholder="e.g., My Latest Beat" /></div>
+        <div class="form-group"><label>📝 Description *</label><textarea id="exampleDesc" placeholder="Tell us about this work..." style="height: 50px;"></textarea></div>
+        <div class="form-group"><label>🎵 Genre/Style *</label><button class="btn" onclick="openGenreModal()" style="width: 100%; margin-bottom: 8px;">🎵 Select Genre</button><div id="exampleGenreDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Genre"</div></div>
+        <div class="form-group"><label>🎧 Audio/Video File *</label><input type="file" id="exampleMedia" accept="audio/*,video/*" /><div id="currentMediaDisplay" style="margin-top: 6px; font-size: 10px; color: var(--text-light);"></div></div>
+        <div class="form-group"><label>🖼️ Thumbnail Image</label><input type="file" id="exampleImage" accept="image/*" /></div>
+        <div class="form-group">
+          <label>🎯 Skills Used * (Required)</label>
+          <div id="skillsUsedDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px; max-height: 150px; overflow-y: auto; margin-bottom: 8px;" onclick="openSkillsUsedModal()">Click to select skills used</div>
+          <button class="btn" onclick="openSkillsUsedModal()" style="width: 100%;">📋 Select Skills Used</button>
+        </div>
+        <div class="form-group"><label>🔒 Privacy</label><div style="display: flex; gap: 8px; margin-top: 8px;"><button class="toggle-btn active" onclick="setExamplePrivacy('private')">🔒 Private</button><button class="toggle-btn" onclick="setExamplePrivacy('public')">🌐 Public</button></div></div>
+        <button class="btn btn-success" onclick="uploadExample()" style="width: 100%;" id="exampleSubmitBtn">📤 Upload</button>
+        <button class="btn btn-secondary" onclick="cancelEditExample()" style="width: 100%; margin-top: 8px; display: none;" id="exampleCancelBtn">❌ Cancel Edit</button>
+      </div>
+      <div class="card">
+        <div class="card-header">🎵 Your Work Examples</div>
+        <div id="examplesDisplay">No examples yet</div>
+      </div>
+    </div>
+
+    <div id="collaborate" class="tab">
+      <div class="card">
+        <div class="card-header">🤝 Post Collaboration Request</div>
+        <input type="hidden" id="editingCollabIdx" value="" />
+        <div class="form-group"><label>🎭 Select Persona *</label><select id="collabPersona" onchange="updateCollabExampleOptions()"><option value="">Choose persona</option></select></div>
+        <div class="form-group"><label>🎵 Select Public Example *</label><select id="collabPublicExample"><option value="">Choose example</option></select></div>
+        <div class="form-group"><label>📝 Description (200 chars) *</label><textarea id="collabPostDesc" placeholder="What collaboration are you looking for?" style="height: 60px;" maxlength="200"></textarea></div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);"><div style="font-weight: 600; font-size: 12px; margin-bottom: 10px; color: var(--primary);">🎯 Collaborator Requirements</div>
+          <div class="grid-2"><div class="form-group"><label>👥 Min Age</label><input type="number" id="collabMinAge" min="13" max="120" placeholder="13" /></div><div class="form-group"><label>👥 Max Age</label><input type="number" id="collabMaxAge" min="13" max="120" placeholder="120" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>📍 Max Distance (miles)</label><input type="number" id="collabMaxDistance" min="0" placeholder="Unlimited" /></div><div class="form-group"><label>💵 Budget per Collab ($ range)</label><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"><input type="number" id="collabBudgetMin" min="0" step="0.01" placeholder="Min" /><input type="number" id="collabBudgetMax" min="0" step="0.01" placeholder="Max" /></div><div style="font-size: 10px; color: var(--text-light); margin-top: 4px;">Leave blank for no min/max.</div></div></div>
+          <div class="grid-2"><div class="form-group"><label>📊 Min Experience (yrs)</label><input type="number" id="collabMinExp" min="0" step="0.5" placeholder="0" /></div><div class="form-group"><label>⭐ Min Profile Rating</label><input type="number" id="collabMinProfileRating" min="0" max="10" step="0.1" placeholder="0" /></div></div>
+          <div class="grid-2"><div class="form-group"><label>📸 Min Picture Rating</label><input type="number" id="collabMinPictureRating" min="0" max="10" step="0.1" placeholder="0" /></div><div class="form-group"><label>⚧️ Preferred Gender</label><select id="collabPreferredGender"><option value="">Any</option><option value="Male">🚹 Male</option><option value="Female">🚺 Female</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div></div>
+        <button class="btn btn-success" onclick="postCollabRequest()" style="width: 100%;" id="collabSubmitBtn">📤 Post</button>
+        <button class="btn btn-secondary" onclick="cancelEditCollab()" style="width: 100%; margin-top: 8px; display: none;" id="collabCancelBtn">❌ Cancel Edit</button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>🔍 Filter Requests</span>
+          <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">🎭 Persona:</label>
+            <select id="filterPersona" onchange="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;">
+              <option value="">All Personas</option>
+              <option value="🎤 Indie Artist">🎤 Indie Artist</option>
+              <option value="🎚️ Beat Producer">🎚️ Beat Producer</option>
+              <option value="🎛️ Mix Engineer">🎛️ Mix Engineer</option>
+              <option value="🎨 Designer">🎨 Designer</option>
+              <option value="🎬 Videographer">🎬 Videographer</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">📍 Location:</label>
+            <input type="text" id="filterLocation" placeholder="City/State" oninput="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">🗺️ Collaborators Map</div>
+        <div class="map-container">
+          <div id="collabMap"></div>
+        </div>
+        <div id="mapUsersListContainer">
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--primary);">👥 Nearby Collaborators</div>
+          <div id="mapUsersList"></div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>💼 Collaboration Feed</span>
+          <span class="filter-badge" id="feedCount">0</span>
+        </div>
+        <div id="collabFeed">No posts yet</div>
+      </div>
+    </div>
+
+    <div id="profile" class="tab">
+      <div class="card">
+        <div class="card-header">👤 Your Public Profile</div>
+        <div style="text-align: center; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px;">
+          <div class="avatar-wrapper" style="margin: 0 auto 8px;">
+            <div id="pubPic" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden;">👤</div>
+            <div id="pubRatingBadge" class="rating-badge">⭐ N/A</div>
+          </div>
+          <div id="pubUsername" style="font-weight: 700; font-size: 14px;">Not Set</div>
+          <div id="pubInfo" style="font-size: 11px; color: var(--text-light);"></div>
+        </div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📝 Bio:</div><div id="pubBio">No bio</div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📧 Email:</div><div id="pubEmail" style="display: flex; gap: 6px; align-items: center;"><span id="pubEmailText">No email</span><button class="btn btn-small btn-secondary" onclick="copyEmail()" id="copyEmailBtn">📋 Copy</button></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">🎯 Skills (with experience):</div><div id="pubSkills">No skills</div></div>
+      </div>
+    </div>
+
+    <div id="money" class="tab">
+      <div class="card">
+        <div class="card-header">💰 Wallet</div>
+        <div class="grid-2">
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💵 Balance</div><div style="font-size: 16px; font-weight: 700;" id="walletBalance">$0.00</div></div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💸 Total Earned</div><div style="font-size: 16px; font-weight: 700;" id="walletEarned">$0.00</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">💳 Accept Payments with Stripe (Tax Included)</div>
+        <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;">
+          <strong>🔒 Secure Payments:</strong> Stripe automatically calculates and collects taxes based on customer location
+        </div>
+        <div class="form-group"><label>💵 Service Amount ($)</label><input type="number" id="serviceAmount" min="1" step="0.01" placeholder="50.00" /></div>
+        <div class="form-group"><label>📝 Service Description</label><input type="text" id="serviceDesc" placeholder="Beat production, mixing, etc." /></div>
+        <div class="form-group">
+          <label>🧾 Tax Handling</label>
+          <select id="taxMode">
+            <option value="automatic">✨ Automatic (Recommended) - Stripe calculates tax</option>
+            <option value="manual">🔧 Manual - Fixed tax rate</option>
+            <option value="none">❌ No tax collection</option>
+          </select>
+        </div>
+        <div class="form-group" id="manualTaxDiv" style="display: none;">
+          <label>Tax Rate (%)</label>
+          <input type="number" id="manualTaxRate" min="0" max="100" step="0.1" value="8.5" />
+        </div>
+        <button class="btn btn-success" onclick="createStripeCheckout()" style="width: 100%;">💳 Create Payment Link</button>
+        <div id="paymentLinkDisplay" style="margin-top: 12px; display: none;">
+          <div style="background: var(--success); color: white; padding: 12px; border-radius: 8px; font-size: 11px;">
+            <strong>✅ Payment Link Created!</strong><br>
+            <a href="#" id="paymentLink" target="_blank" style="color: white; text-decoration: underline; word-break: break-all;"></a>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">➕ Add Income Manually</div>
+        <div class="grid-2">
+          <div class="form-group"><label>💵 Amount ($)</label><input type="number" id="incomeAmt" min="0" step="1" /></div>
+          <div class="form-group"><label>🧾 Tax % (deducted)</label><input type="number" id="incomeTaxRate" min="0" max="100" step="0.1" value="5" /></div>
+        </div>
+        <button class="btn btn-success" onclick="addIncome()" style="width: 100%;">✓ Add</button>
+      </div>
+      <div class="card">
+        <div class="card-header">📊 Tax Collection Summary</div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px;">
+            <span>Total Sales Tax Collected:</span>
+            <strong id="totalTaxCollected">$0.00</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>Net Income (after tax):</span>
+            <strong id="netIncome">$0.00</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings" class="tab">
+      <div class="card">
+        <div class="card-header">🎨 Theme Colors</div>
+        <div class="theme-selector">
+          <button class="theme-color-btn" style="background: #2196F3;" onclick="applyTheme('blue', '#2196F3', '#1565C0')" title="Blue">💙 Blue</button>
+          <button class="theme-color-btn" style="background: #FF6B35;" onclick="applyTheme('orange', '#FF6B35', '#E55100')" title="Orange">🧡 Orange</button>
+          <button class="theme-color-btn" style="background: #764BA2;" onclick="applyTheme('purple', '#764BA2', '#5E35B1')" title="Purple">💜 Purple</button>
+          <button class="theme-color-btn" style="background: #F44336;" onclick="applyTheme('red', '#F44336', '#D32F2F')" title="Red">❤️ Red</button>
+          <button class="theme-color-btn" style="background: #00BCD4;" onclick="applyTheme('cyan', '#00BCD4', '#0097A7')" title="Cyan">💎 Cyan</button>
+          <button class="theme-color-btn" style="background: #E91E63;" onclick="applyTheme('pink', '#E91E63', '#C2185B')" title="Pink">💖 Pink</button>
+          <button class="theme-color-btn" style="background: #4CAF50;" onclick="applyTheme('green', '#4CAF50', '#2E7D32')" title="Green">💚 Green</button>
+          <button class="theme-color-btn" style="background: #FF9800;" onclick="applyTheme('amber', '#FF9800', '#F57C00')" title="Amber">🧨 Amber</button>
+          <button class="theme-color-btn" style="background: #9C27B0;" onclick="applyTheme('deep-purple', '#9C27B0', '#7B1FA2')" title="Deep Purple">☂️ Deep Purple</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🌓 Display</div>
+        <div class="toggle-setting">
+          <div>
+            <div style="font-weight: 700;">🌙 Dark Mode</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Switch between light and dark themes</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleDarkMode()" id="darkModeToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🌍 Language</div>
+        <div class="form-group">
+          <label>Select Language</label>
+          <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="English">🇬🇧 English</option>
+            <option value="Spanish">🇪🇸 Spanish</option>
+            <option value="French">🇫🇷 French</option>
+            <option value="German">🇩🇪 German</option>
+            <option value="Japanese">🇯🇵 Japanese</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🔔 Notifications</div>
+        <div class="toggle-setting">
+          <div>
+            <div style="font-weight: 700;">📧 Email Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Receive updates via email</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('email')" id="emailNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div id="emailVerifSection" style="margin-top: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="sendVerificationEmail()" style="width: 100%;">✉️ Send Verification Email</button>
+          <div class="verification-status unverified" id="emailVerifStatus">
+            <span>❌</span>
+            <span>Email not verified</span>
+          </div>
+        </div>
+
+        <div class="toggle-setting" style="margin-top: 12px;">
+          <div>
+            <div style="font-weight: 700;">🔊 Push Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Browser push notifications</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('push')" id="pushNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+
+        <div class="toggle-setting" style="margin-top: 12px;">
+          <div>
+            <div style="font-weight: 700;">📱 SMS Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Text message alerts</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('phone')" id="phoneNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div id="phoneVerifSection" style="margin-top: 12px;">
+          <button class="btn btn-secondary btn-small" onclick="sendVerificationSMS()" style="width: 100%;">📲 Send Verification SMS</button>
+          <div class="verification-status unverified" id="phoneVerifStatus">
+            <span>❌</span>
+            <span>Phone not verified</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">💾 Data Management</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="exportData()">📥 Export Data</button>
+          <button class="btn btn-danger" onclick="resetSettings()">🔄 Reset Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="genreModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🎵 Select Music Genre</h2><button class="close-btn" onclick="closeGenreModal()">✕</button></div>
+    <div id="genreCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeGenreModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addGenre()" style="flex: 1;">✓ Select</button></div>
+  </div>
+</div>
+
+<div id="skillModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="skillModalTitle">Select Skills</h2><button class="close-btn" onclick="closeSkillModal()">✕</button></div>
+    <input type="hidden" id="editingPersonaIdx" value="" />
+    <div style="background: #4caf50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">✨ Click MULTIPLE skills (including "Any" skills), then click "Add Skills" to save them all with the same date and pricing!</div>
+    <div class="form-group"><label>📅 Start Date *</label><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><select id="skillMo"></select><select id="skillDay"></select><select id="skillYr"></select></div></div>
+    <div class="form-group"><label>💰 Price Per Work ($)</label><input type="number" id="skillPricePerWork" min="0" step="0.01" placeholder="e.g., 50" /></div>
+    <div class="form-group"><label>⏰ Price Per Hour ($)</label><input type="number" id="skillPricePerHour" min="0" step="0.01" placeholder="e.g., 25" /></div>
+    <div id="skillCats" style="max-height: 280px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeSkillModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addSkills()" style="flex: 1;" id="skillSubmitBtn">✓ Add Skills</button></div>
+  </div>
+</div>
+
+<div id="editSkillModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>✏️ Edit Skill</h2><button class="close-btn" onclick="closeEditSkillModal()">✕</button></div>
+    <input type="hidden" id="editingPersonaIdxForSkill" value="" />
+    <input type="hidden" id="editingSkillIdx" value="" />
+    <div class="form-group"><label>🎵 Skill Name</label><input type="text" id="editSkillName" placeholder="Skill name" disabled style="background: var(--bg); color: var(--text-light);" /></div>
+    <div class="form-group"><label>📅 Start Date *</label><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><select id="editSkillMo"></select><select id="editSkillDay"></select><select id="editSkillYr"></select></div></div>
+    <div class="form-group"><label>💰 Price Per Work ($)</label><input type="number" id="editSkillPricePerWork" min="0" step="0.01" placeholder="e.g., 50" /></div>
+    <div class="form-group"><label>⏰ Price Per Hour ($)</label><input type="number" id="editSkillPricePerHour" min="0" step="0.01" placeholder="e.g., 25" /></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeEditSkillModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="updatePersonaSkill()" style="flex: 1;">✓ Save Changes</button></div>
+  </div>
+</div>
+
+<div id="skillsUsedModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🎯 Choose Skills Used on This Example</h2><button class="close-btn" onclick="closeSkillsUsedModal()">✕</button></div>
+    <div style="background: var(--accent); color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">ℹ️ Click skills to select them. Click "Any" to see specific options. Selected skills update in real-time at the top!</div>
+    <div id="skillsUsedCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-success" onclick="closeSkillsUsedModal()" style="flex: 1;">✓ Done</button></div>
+  </div>
+</div>
+
+
+  <div id="mediaPlayerModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header"><h2 id="mediaPlayerTitle"> Play Work</h2><button class="close-btn" onclick="closeMediaPlayer()"></button></div>
+      <div id="mediaPlayerContainer" style="background: var(--bg); padding: 16px; border-radius: 8px; margin-bottom: 12px; text-align: center;">
+        <audio id="audioPlayer" style="width: 100%; margin-bottom: 12px;" controls></audio>
+        <video id="videoPlayer" style="width: 100%; max-height: 400px; margin-bottom: 12px; border-radius: 6px; display: none;"></video>
+        <div id="mediaMetadata" style="text-align: left; font-size: 11px; color: var(--text-light);"></div>
+      </div>
+    </div>
+  </div>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places"></script>
+  <script>
+  function playMedia(idx) {
+    const example = appState.examples[idx];
+    if (!example || !example.media) { alert('❌ No media found for this work'); return; }
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const mediaTitle = document.getElementById('mediaPlayerTitle');
+    const mediaMetadata = document.getElementById('mediaMetadata');
+    
+    mediaTitle.textContent = ' ' + example.title;
+    mediaMetadata.innerHTML = `<strong>Genre:</strong> ${example.genre || 'N/A'}<br><strong>Skills:</strong> ${(example.skills || []).join(', ') || 'N/A'}<br><strong>Uploaded by:</strong> ${example.userName || 'Unknown'} (${example.userLocation || 'Unknown'})`;
+    
+    // Determine if audio or video
+    const isAudio = example.mediaType.startsWith('audio/');
+    
+    // Show loading state
+    const container = document.getElementById('mediaPlayerContainer');
+    const originalHTML = container.innerHTML;
+    if (isAudio) {
+      audioPlayer.style.display = 'block';
+      videoPlayer.style.display = 'none';
+    } else {
+      videoPlayer.style.display = 'block';
+      audioPlayer.style.display = 'none';
+    }
+    
+    // Open modal first
+    document.getElementById('mediaPlayerModal').classList.add('active');
+    
+    // Convert base64 data URL to Blob asynchronously to avoid freezing
+    setTimeout(() => {
+      try {
+        const arr = example.media.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1] || example.mediaType;
+        const bstr = atob(arr[1]);
+        const n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        for (let i = 0; i < n; i++) { u8arr[i] = bstr.charCodeAt(i); }
+        const blob = new Blob([u8arr], { type: mime });
+        const url = URL.createObjectURL(blob);
+        
+        if (isAudio) {
+          audioPlayer.src = url;
+        } else {
+          videoPlayer.src = url;
+        }
+      } catch (e) {
+        console.error('Error processing media:', e);
+        alert('❌ Error loading media file. It may be corrupted or too large.');
+      }
+    }, 100);
+  }
+  
+  function closeMediaPlayer() {
+    document.getElementById('audioPlayer').pause();
+    document.getElementById('audioPlayer').src = '';
+    document.getElementById('videoPlayer').pause();
+    document.getElementById('videoPlayer').src = '';
+    document.getElementById('mediaPlayerModal').classList.remove('active');
+  }
+const instrumentDatabase = {
+  'indie-artist': {
+    'String Instruments': {'Any String': 'Any String 🎸','Acoustic Guitar': 'Acoustic Guitar 🎸','Electric Guitar': 'Electric Guitar 🎸','Bass Guitar': 'Bass Guitar 🎸','Ukulele': 'Ukulele 🎸','Banjo': 'Banjo 🎸','Mandolin': 'Mandolin 🎸','Violin': 'Violin 🎻','Viola': 'Viola 🎻','Cello': 'Cello 🎻','Double Bass': 'Double Bass 🎻','Harp': 'Harp 🎵'},
+    'Keyboard Instruments': {'Any Keyboard': 'Any Keyboard 🎹','Acoustic Piano': 'Acoustic Piano 🎹','Digital Piano': 'Digital Piano 🎹','Synthesizer': 'Synthesizer 🎹','Organ': 'Organ 🎹','Harpsichord': 'Harpsichord 🎹','Accordion': 'Accordion 🎹'},
+    'Percussion Instruments': {'Any Percussion': 'Any Percussion 🥁','Drums (Snare)': 'Drums (Snare) 🥁','Drums (Bass)': 'Drums (Bass) 🥁','Drums (Bongo)': 'Drums (Bongo) 🥁','Cymbals': 'Cymbals 🥁'},
+    'Rapping': {'Any Rapping': 'Any Rapping 🎤','Alternative Rap': 'Alternative Rap 🎸','Boom Bap': 'Boom Bap 🥁','Chopper': 'Chopper 🚁','Cloud Rap': 'Cloud Rap ☁️','Conscious Rap': 'Conscious Rap 🧠','Crunk': 'Crunk 🔥','Drill': 'Drill ⚔️','Emo Rap': 'Emo Rap 🖤','G-Funk': 'G-Funk 🌴','Gangsta Rap': 'Gangsta Rap ⛓️','Hardcore Hip Hop': 'Hardcore Hip Hop 🎤','Jazz Rap': 'Jazz Rap 🎷','Mumble Rap': 'Mumble Rap 💤','Old School': 'Old School 📻','Snap': 'Snap 🫰','Trap': 'Trap 🏚️'},
+    'Singing': {'Any Singing': 'Any Singing 🎶','Bass': 'Bass 🧔‍♂️','Baritone': 'Baritone 🎙️','Tenor': 'Tenor 🎤','Countertenor': 'Countertenor 🕊️','Contralto': 'Contralto 🎻','Alto': 'Alto 🎶','Mezzo-Soprano': 'Mezzo-Soprano 🌊','Soprano': 'Soprano ☀️'}
+  },
+  'beat-producer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Production Techniques': {'Any Production': 'Any Production 🎚️','Beat Making': 'Beat Making 🎚️','Sampling': 'Sampling 🎵','Sound Design': 'Sound Design 🎛️','Arrangement': 'Arrangement 🎼','Synthesis': 'Synthesis 🎹'}
+  },
+  'mix-engineer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Engineering Skills': {'Any Engineering': 'Any Engineering 🎛️','Mixing': 'Mixing 🎛️','Mastering': 'Mastering 🎙️','EQ': 'EQ 📊','Compression': 'Compression 🔧','Reverb/Effects': 'Reverb/Effects ✨'}
+  },
+  'designer': {
+    'Design Software': {'Any Design Software': 'Any Design Software 🎨','Photoshop': 'Adobe Photoshop 🎨','Illustrator': 'Adobe Illustrator 🖌️','Figma': 'Figma 🎯','Canva': 'Canva 🌈','Affinity Designer': 'Affinity Designer ✨','CorelDRAW': 'CorelDRAW 🎨','Sketch': 'Sketch 📐','InDesign': 'Adobe InDesign 📄'},
+    'Design Skills': {'Any Design Skill': 'Any Design Skill 🎨','UI/UX Design': 'UI/UX Design 🎯','Graphic Design': 'Graphic Design 🖌️','Branding': 'Branding 🏷️','Layout Design': 'Layout Design 📐','Typography': 'Typography 🔤','Color Theory': 'Color Theory 🌈','Icon Design': 'Icon Design 🎭'}
+  },
+  'videographer': {
+    'Video Software': {'Any Video Software': 'Any Video Software 🎬','Adobe Premiere': 'Adobe Premiere 🎬','DaVinci Resolve': 'DaVinci Resolve 🎞️','Final Cut Pro': 'Final Cut Pro 🎥','Sony Vegas': 'Sony Vegas 📹','Filmora': 'Filmora 🎬','After Effects': 'After Effects ✨','OBS': 'OBS Studio 🔴'},
+    'Video Skills': {'Any Video Skill': 'Any Video Skill 🎬','Editing': 'Editing 🎬','Color Grading': 'Color Grading 🎨','Motion Graphics': 'Motion Graphics ✨','Cinematography': 'Cinematography 🎥','Drone Footage': 'Drone Footage 🚁','Lighting': 'Lighting 💡','Sound Design': 'Sound Design 🎙️'}
+  }
+};
+
+let appState = {
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null},
+  personas: [],
+  examples: [],
+  collabs: [],
+  skillsUsed: [],
+  selectedGenre: '',
+  selectedSkillsInModal: new Set(),
+  wallet: {balance: 0, earned: 0},
+  examplePrivacy: 'private',
+  currentTab: 'setup',
+  filteredCollabs: [],
+  map: null,
+  userMarkers: [],
+  settings: {
+    theme: 'blue',
+    darkMode: false,
+    language: 'English',
+    emailNotifications: true,
+    pushNotifications: true,
+    phoneNotifications: false,
+    emailVerified: false,
+    phoneVerified: false
+  }
+};
+
+function saveAppState() {
+  const stateToSave = JSON.parse(JSON.stringify(appState));
+  stateToSave.selectedSkillsInModal = Array.from(appState.selectedSkillsInModal);
+  localStorage.setItem('musicConnectZState', JSON.stringify(stateToSave));
+}
+
+function loadAppState() {
+  const saved = localStorage.getItem('musicConnectZState');
+  if (saved) {
+    const loaded = JSON.parse(saved);
+    appState = {
+      user: loaded.user || appState.user,
+      personas: loaded.personas || [],
+      examples: loaded.examples || [],
+      collabs: loaded.collabs || [],
+      skillsUsed: loaded.skillsUsed || [],
+      selectedGenre: loaded.selectedGenre || '',
+      selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
+      wallet: loaded.wallet || {balance: 0, earned: 0},
+      examplePrivacy: loaded.examplePrivacy || 'private',
+      currentTab: loaded.currentTab || 'setup',
+      filteredCollabs: loaded.filteredCollabs || [],
+      map: null,
+      userMarkers: [],
+      settings: loaded.settings || {
+        theme: 'blue',
+        darkMode: false,
+        language: 'English',
+        emailNotifications: true,
+        pushNotifications: true,
+        phoneNotifications: false,
+        emailVerified: false,
+        phoneVerified: false
+      }
+    };
+  }
+  if (appState.user.rating === undefined) { appState.user.rating = null; }
+  if (appState.settings.darkMode) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  updateAllDisplays();
+}
+
+function switchTab(tabName) {
+  try {
+    const tabEl = document.getElementById(tabName);
+    if (!tabEl) { console.warn('Tab not found:', tabName); return; }
+    
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    
+    tabEl.classList.add('active');
+    
+    const allButtons = document.querySelectorAll('.tab-btn');
+    const tabNames = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+    const tabIdx = tabNames.indexOf(tabName);
+    if (tabIdx >= 0 && tabIdx < allButtons.length) {
+      allButtons[tabIdx].classList.add('active');
+    }
+    
+    appState.currentTab = tabName;
+    saveAppState();
+    
+    if (tabName === 'collaborate') { 
+      updateCollabPersonaOptions(); 
+      renderCollabFeed();
+      setTimeout(() => initMap(), 300);
+    }
+    if (tabName === 'profile') { updateProfileDisplay(); }
+  } catch (e) { console.error('switchTab error:', e); }
+}
+
+function prevTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = currentIdx === 0 ? tabs.length - 1 : currentIdx - 1;
+  switchTab(tabs[newIdx]);
+}
+
+function nextTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = (currentIdx + 1) % tabs.length;
+  switchTab(tabs[newIdx]);
+}
+
+function saveProfile() {
+  const usernameInput = (document.getElementById('username').value || '').trim();
+  const emailInput = (document.getElementById('email').value || '').trim();
+  const phoneInput = (document.getElementById('phone').value || '').trim();
+  const bioInput = (document.getElementById('bio').value || '').trim();
+  const locationInput = (document.getElementById('location').value || '').trim();
+  
+  if (!usernameInput) {
+    alert('⚠️ Please enter a username!');
+    return;
+  }
+  
+  appState.user.name = usernameInput;
+  appState.user.email = emailInput;
+  appState.user.phone = phoneInput;
+  appState.user.birthday = document.getElementById('birthday').value;
+  appState.user.gender = document.getElementById('gender').value;
+  appState.user.location = locationInput;
+  appState.user.bio = bioInput;
+  
+  saveAppState();
+  updateProfileDisplay();
+  alert('✓ Profile saved!\n\nUsername: ' + usernameInput + '\nEmail: ' + emailInput + '\nLocation: ' + locationInput);
+}
+
+function loadProfilePic(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => { appState.user.profilePic = e.target.result; document.getElementById('headerPic').innerHTML = `<img src="${e.target.result}" />`; saveAppState(); updateProfileDisplay(); };
+    reader.readAsDataURL(file);
+  }
+}
+
+function reverseGeocode(lat, lng, callback) {
+  const geocoder = new google.maps.Geocoder();
+  const latlng = { lat: lat, lng: lng };
+  geocoder.geocode({ location: latlng }, (results, status) => {
+    if (status === 'OK' && results[0]) {
+      const components = {};
+      results[0].address_components.forEach(comp => {
+        if (comp.types.includes('locality')) components.city = comp.long_name;
+        if (comp.types.includes('administrative_area_level_1')) components.state = comp.short_name;
+        if (comp.types.includes('country')) components.country = comp.short_name;
+      });
+      const cityStateCountry = `${components.city || 'Unknown'}, ${components.state || 'Unknown'}, ${components.country || 'Unknown'}`;
+      callback(cityStateCountry);
+    } else {
+      callback('Unknown Location');
+    }
+  });
+}
+
+function calculateExperienceYears(startDateStr) {
+  const parsed = new Date(startDateStr);
+  if (isNaN(parsed.getTime())) return 'Unknown exp';
+  const diffMs = Date.now() - parsed.getTime();
+  const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  if (years < 0) return '0 yrs';
+  return `${years.toFixed(1)} yrs`;
+}
+
+function reverseGeocodeFallback(lat, lng, callback) {
+  // Fallback using OpenStreetMap Nominatim when Google Maps is unavailable
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+    headers: { 'Accept': 'application/json' },
+    signal: controller.signal
+  }).then(res => res.ok ? res.json() : Promise.reject(new Error('reverse geocode failed')))
+    .then(data => {
+      clearTimeout(timeoutId);
+      const addr = data.address || {};
+      const city = addr.city || addr.town || addr.village || addr.hamlet;
+      const state = addr.state || addr.region || addr.county;
+      const country = addr.country_code ? addr.country_code.toUpperCase() : (addr.country || '');
+      const loc = [city, state, country].filter(Boolean).join(', ') || data.display_name || `${lat}, ${lng}`;
+      callback(loc);
+    })
+    .catch(() => { clearTimeout(timeoutId); callback(null); });
+}
+
+function computeUserRating() {
+  const username = appState.user.name || 'Anonymous';
+  const allRatings = appState.collabs
+    .filter(c => (c.userName || 'Anonymous') === username)
+    .flatMap(c => c.ratings || [])
+    .filter(n => typeof n === 'number' && !isNaN(n));
+  if (allRatings.length === 0) return null;
+  const avg = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+  const clamped = Math.min(10, Math.max(0, avg));
+  return parseFloat(clamped.toFixed(1));
+}
+
+function requestGPS() {
+  const status = document.getElementById('gpsStatus');
+  if (!status) return;
+  status.classList.add('active');
+  status.textContent = 'Requesting location...';
+
+  // Quick diagnostics so the user knows why the browser may not prompt
+  const secure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!secure) {
+    status.textContent = '✗ GPS needs HTTPS or localhost (use a local dev server)';
+    alert('GPS is blocked on insecure origins. Please run this file via https:// or http://localhost/.');
+    return;
+  }
+
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then((p) => {
+      status.textContent = `Geolocation permission: ${p.state}`;
+      if (p.state === 'denied') {
+        status.textContent = '✗ GPS permission denied (check browser site settings)';
+      }
+    }).catch(() => {});
+  }
+
+  if (!navigator.geolocation) {
+    status.textContent = '✗ Geolocation not supported by this browser';
+    return;
+  }
+
+  const handleError = (err) => {
+    let msg = '✗ GPS denied or unavailable';
+    if (err) {
+      if (err.code === err.PERMISSION_DENIED) msg = '✗ GPS permission denied';
+      else if (err.code === err.POSITION_UNAVAILABLE) msg = '✗ GPS unavailable';
+      else if (err.code === err.TIMEOUT) msg = '✗ GPS timed out';
+    }
+    status.textContent = msg;
+  };
+
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const lat = pos.coords.latitude.toFixed(4);
+    const lng = pos.coords.longitude.toFixed(4);
+    appState.user.lat = parseFloat(lat);
+    appState.user.lng = parseFloat(lng);
+    status.textContent = '✓ Getting location...';
+
+    const hasGeocoder = typeof google !== 'undefined' && google.maps && google.maps.Geocoder;
+    const finish = (text, msg) => {
+      document.getElementById('location').value = text;
+      appState.user.location = text;
+      status.textContent = msg || `✓ GPS: ${text}`;
+    };
+
+    const tryFallback = () => {
+      reverseGeocodeFallback(parseFloat(lat), parseFloat(lng), (loc) => {
+        if (loc && loc.trim()) { 
+          finish(loc, `✓ GPS: ${loc}`); 
+        }
+        else { 
+          finish('Location set (coords saved)', '✓ GPS: Please enter city/state manually for better results');
+        }
+      });
+    };
+
+    if (hasGeocoder) {
+      let finished = false;
+      const timeoutId = setTimeout(() => {
+        if (finished) return;
+        finished = true;
+        tryFallback();
+      }, 5000);
+
+      try {
+        reverseGeocode(parseFloat(lat), parseFloat(lng), (location) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timeoutId);
+          if (location) { finish(location, `✓ GPS: ${location}`); }
+          else { tryFallback(); }
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        tryFallback();
+      }
+    } else {
+      tryFallback();
+    }
+  }, handleError, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+function updateProfileDisplay() {
+  const user = appState.user;
+  document.getElementById('pubUsername').textContent = user.name || 'Not Set';
+  document.getElementById('pubInfo').innerHTML = `📧 ${user.email || 'No email'}<br>📱 ${user.phone || 'No phone'}<br>📍 ${user.location || 'No location'}`;
+  document.getElementById('pubBio').textContent = user.bio || 'No bio';
+  document.getElementById('pubEmailText').textContent = user.email || 'No email';
+  if (user.email) { document.getElementById('copyEmailBtn').style.display = 'block'; } else { document.getElementById('copyEmailBtn').style.display = 'none'; }
+  if (user.profilePic) { document.getElementById('pubPic').innerHTML = `<img src="${user.profilePic}" />`; document.getElementById('headerPic').innerHTML = `<img src="${user.profilePic}" />`; }
+  const avgRating = computeUserRating();
+  document.getElementById('pubRatingBadge').textContent = avgRating !== null ? `⭐ ${avgRating}` : '⭐ N/A';
+  const skillsList = appState.personas.map(p => p.skills.map(s => ({ name: s.name, startDate: s.startDate })) ).flat();
+  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag">${s.name} • ${calculateExperienceYears(s.startDate)}</span>`).join('') : 'No skills';
+}
+
+function openSkillModal(personaKey, personaName) {
+  document.getElementById('skillModalTitle').textContent = `Add Skills - ${personaName}`;
+  document.getElementById('editingPersonaIdx').value = personaKey;
+  appState.selectedSkillsInModal = new Set();
+  renderSkillModal(personaKey);
+  populateDateSelects();
+  document.getElementById('skillModal').classList.add('active');
+}
+
+function populateDateSelects() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const moSelect = document.getElementById('skillMo');
+  moSelect.innerHTML = '';
+  months.forEach((m, i) => moSelect.innerHTML += `<option value="${i+1}">${m}</option>`);
+  const daySelect = document.getElementById('skillDay');
+  daySelect.innerHTML = '';
+  for (let i = 1; i <= 31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+  const yrSelect = document.getElementById('skillYr');
+  yrSelect.innerHTML = '';
+  const currentYear = new Date().getFullYear();
+  for (let i = currentYear; i >= 2000; i--) yrSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function renderSkillModal(personaKey) {
+  const skillCats = document.getElementById('skillCats');
+  skillCats.innerHTML = '';
+  const categories = instrumentDatabase[personaKey];
+  if (!categories) {
+    skillCats.innerHTML = '<div style="color: red; padding: 10px;">❌ Error: Skills database not found for this persona. Please refresh the page.</div>';
+    return;
+  }
+  for (const [catName, skills] of Object.entries(categories)) {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${catName}</div><div class="skill-grid"></div>`;
+    for (const [skillKey, skillName] of Object.entries(skills)) {
+      const isAny = skillKey.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''}`;
+      btn.textContent = skillName;
+      btn.onclick = (e) => { e.preventDefault(); btn.classList.toggle('sel'); if (btn.classList.contains('sel')) { appState.selectedSkillsInModal.add(skillName); } else { appState.selectedSkillsInModal.delete(skillName); } };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    }
+    skillCats.appendChild(catDiv);
+  }
+}
+
+function addSkills() {
+  const personaKey = document.getElementById('editingPersonaIdx').value;
+  if (appState.selectedSkillsInModal.size === 0) { alert('❌ Please select at least one skill'); return; }
+  const mo = document.getElementById('skillMo').value;
+  const day = document.getElementById('skillDay').value;
+  const yr = document.getElementById('skillYr').value;
+  const startDate = `${mo}/${day}/${yr}`;
+  const pricePerWork = parseFloat(document.getElementById('skillPricePerWork').value) || null;
+  const pricePerHour = parseFloat(document.getElementById('skillPricePerHour').value) || null;
+  const personaNames = { 'indie-artist': '🎤 Indie Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Designer', 'videographer': '🎬 Videographer' };
+  let persona = appState.personas.find(p => p.key === personaKey);
+  if (!persona) { persona = {key: personaKey, name: personaNames[personaKey], skills: []}; appState.personas.push(persona); }
+  const skillCount = appState.selectedSkillsInModal.size;
+  appState.selectedSkillsInModal.forEach(skillName => { persona.skills.push({name: skillName, startDate: startDate, pricePerWork: pricePerWork, pricePerHour: pricePerHour}); });
+  appState.selectedSkillsInModal.clear();
+  document.getElementById('skillPricePerWork').value = '';
+  document.getElementById('skillPricePerHour').value = '';
+  renderPersonasDisplay();
+  closeSkillModal();
+  saveAppState();
+  const priceInfo = [];
+  if (pricePerWork) priceInfo.push(`$${pricePerWork}/work`);
+  if (pricePerHour) priceInfo.push(`$${pricePerHour}/hr`);
+  const priceMsg = priceInfo.length > 0 ? ` (${priceInfo.join(', ')})` : '';
+  alert(`✓ Added ${skillCount} skill${skillCount !== 1 ? 's' : ''} with start date ${startDate}${priceMsg}`);
+}
+
+function renderPersonasDisplay() {
+  const display = document.getElementById('personasDisplay');
+  if (appState.personas.length === 0) { display.innerHTML = 'No personas yet'; return; }
+  display.innerHTML = '';
+  appState.personas.forEach((persona, idx) => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.innerHTML = `<div class="persona-header"><div class="persona-name">${persona.name}</div><button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button></div><div style="font-size: 11px;"><div style="font-weight: 600; margin-bottom: 6px;">Skills:</div><div id="personaSkills${idx}"></div></div>`;
+    display.appendChild(card);
+    const skillsDiv = document.getElementById(`personaSkills${idx}`);
+    persona.skills.forEach((skill, sIdx) => {
+      const skillItem = document.createElement('div');
+      skillItem.className = 'skill-item';
+      const priceInfo = [];
+      if (skill.pricePerWork) priceInfo.push(`$${skill.pricePerWork}/work`);
+      if (skill.pricePerHour) priceInfo.push(`$${skill.pricePerHour}/hr`);
+      const priceDisplay = priceInfo.length > 0 ? ` • ${priceInfo.join(', ')}` : '';
+      skillItem.innerHTML = `<span class="skill-item-name">${skill.name}</span><span class="skill-item-exp">${skill.startDate}${priceDisplay}</span><div class="skill-item-actions"><button class="btn btn-primary btn-small" onclick="openEditSkillModal(${idx}, ${sIdx})" style="font-size: 10px;">✏️</button><button class="btn btn-danger btn-small" onclick="removePersonaSkill(${idx}, ${sIdx})">✕</button></div>`;
+      skillsDiv.appendChild(skillItem);
+    });
+  });
+  updateProfileDisplay();
+}
+
+function removePersona(idx) { if (confirm('Remove this persona and all its skills?')) { appState.personas.splice(idx, 1); renderPersonasDisplay(); saveAppState(); } }
+
+function removePersonaSkill(personaIdx, skillIdx) { appState.personas[personaIdx].skills.splice(skillIdx, 1); renderPersonasDisplay(); saveAppState(); }
+
+function openEditSkillModal(personaIdx, skillIdx) {
+  const skill = appState.personas[personaIdx].skills[skillIdx];
+  const [month, day, year] = skill.startDate.split('/');
+  
+  document.getElementById('editingPersonaIdxForSkill').value = personaIdx;
+  document.getElementById('editingSkillIdx').value = skillIdx;
+  document.getElementById('editSkillName').value = skill.name;
+  document.getElementById('editSkillMo').value = month;
+  document.getElementById('editSkillDay').value = day;
+  document.getElementById('editSkillYr').value = year;
+  document.getElementById('editSkillPricePerWork').value = skill.pricePerWork || '';
+  document.getElementById('editSkillPricePerHour').value = skill.pricePerHour || '';
+  
+  // Populate date select options
+  populateEditDateSelects();
+  document.getElementById('editSkillModal').classList.add('active');
+}
+
+function populateEditDateSelects() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const moSelect = document.getElementById('editSkillMo');
+  moSelect.innerHTML = '';
+  months.forEach((m, i) => moSelect.innerHTML += `<option value="${i+1}">${m}</option>`);
+  const daySelect = document.getElementById('editSkillDay');
+  daySelect.innerHTML = '';
+  for (let i = 1; i <= 31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+  const yrSelect = document.getElementById('editSkillYr');
+  yrSelect.innerHTML = '';
+  const currentYear = new Date().getFullYear();
+  for (let i = currentYear; i >= 2000; i--) yrSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function updatePersonaSkill() {
+  const personaIdx = parseInt(document.getElementById('editingPersonaIdxForSkill').value);
+  const skillIdx = parseInt(document.getElementById('editingSkillIdx').value);
+  const skill = appState.personas[personaIdx].skills[skillIdx];
+  
+  const mo = document.getElementById('editSkillMo').value;
+  const day = document.getElementById('editSkillDay').value;
+  const yr = document.getElementById('editSkillYr').value;
+  
+  skill.startDate = `${mo}/${day}/${yr}`;
+  skill.pricePerWork = parseFloat(document.getElementById('editSkillPricePerWork').value) || null;
+  skill.pricePerHour = parseFloat(document.getElementById('editSkillPricePerHour').value) || null;
+  
+  renderPersonasDisplay();
+  closeEditSkillModal();
+  saveAppState();
+  alert('✓ Skill updated successfully!');
+}
+
+function closeEditSkillModal() { document.getElementById('editSkillModal').classList.remove('active'); }
+
+function closeSkillModal() { document.getElementById('skillModal').classList.remove('active'); }
+
+function openGenreModal() {
+  const genreCats = document.getElementById('genreCats');
+  genreCats.innerHTML = '';
+  const genres = ['Blues', 'Brass & Military', 'Children\'s', 'Classical', 'Country', 'Electronic', 'Folk', 'Funk / Soul', 'Hip-Hop', 'House', 'International', 'Jazz', 'Latin', 'Newage', 'Non-Music', 'Pop', 'Pop/Rock', 'R&B', 'Reggae', 'Religious', 'Rock', 'Rap', 'Soul', 'Soundtrack', 'Techno', 'Traditional', 'World'];
+  genres.forEach(genre => {
+    const btn = document.createElement('button');
+    btn.className = `genre-btn ${appState.selectedGenre === genre ? 'sel' : ''}`;
+    btn.textContent = genre;
+    btn.onclick = () => { document.querySelectorAll('#genreCats .genre-btn').forEach(b => b.classList.remove('sel')); btn.classList.add('sel'); appState.selectedGenre = genre; };
+    genreCats.appendChild(btn);
+  });
+  document.getElementById('genreModal').classList.add('active');
+}
+
+function closeGenreModal() { document.getElementById('genreModal').classList.remove('active'); }
+
+function addGenre() { if (!appState.selectedGenre) { alert('❌ Please select a genre'); return; } document.getElementById('exampleGenreDisplay').textContent = appState.selectedGenre; closeGenreModal(); }
+
+function findCategoryForSkill(personaKey, skillName) {
+  const personaDb = instrumentDatabase[personaKey];
+  if (!personaDb) return null;
+  for (const [catName, skillsObj] of Object.entries(personaDb)) {
+    for (const val of Object.values(skillsObj)) { if (val === skillName) return catName; }
+  }
+  return null;
+}
+
+function openSpecificSkillsFromAny(personaKey, anySkillName) {
+  const categoryName = findCategoryForSkill(personaKey, anySkillName);
+  if (!categoryName) { alert('❌ Could not find specific skills for this category.'); return; }
+  const personaDb = instrumentDatabase[personaKey];
+  const skillsObj = personaDb[categoryName];
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  
+    // Re-add the realtime selected skills display
+    const selectedDisplay = document.createElement('div');
+    selectedDisplay.id = 'realtimeSkillsDisplay';
+    selectedDisplay.style.cssText = 'background: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;';
+    selectedDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">✕</button></span>`).join('') : '✨ Select skills below...';
+    skillsUsedCats.appendChild(selectedDisplay);
+  
+  const catDiv = document.createElement('div');
+  catDiv.style.marginBottom = '14px';
+  catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">✨ ${categoryName} – select specific skill</div><div class="skill-grid"></div><div style="margin-top: 8px;"><button class="btn btn-secondary" onclick="openSkillsUsedModal()" style="width: 100%;">← Back to Categories</button></div>`;
+  Object.entries(skillsObj).forEach(([skillKey, skillLabel]) => {
+    if (skillKey.toLowerCase().includes('any')) return;
+    const btn = document.createElement('button');
+    btn.className = `skill-btn ${appState.skillsUsed.includes(skillLabel) ? 'sel' : ''}`;
+    btn.textContent = skillLabel;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      if (!appState.skillsUsed.includes(skillLabel)) {
+        appState.skillsUsed.push(skillLabel);
+        btn.classList.add('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      } else {
+        appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillLabel);
+        btn.classList.remove('sel');
+        updateRealtimeSkillsDisplay();
+        saveAppState();
+      }
+    };
+    catDiv.querySelector('.skill-grid').appendChild(btn);
+  });
+  skillsUsedCats.appendChild(catDiv);
+}
+
+function openSkillsUsedModal() {
+  if (appState.personas.length === 0) { alert('❌ You need to add personas and skills first!\n\nSteps:\n1. Go to PERSONAS tab\n2. Click a persona (🎤 Indie, 🎚️ Producer, etc.)\n3. Select skills and set a start date\n4. Click "✓ Add Skills"\n\nThen come back here.'); return; }
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  
+  // Add real-time selected skills display
+  const selectedDisplay = document.createElement('div');
+  selectedDisplay.id = 'realtimeSkillsDisplay';
+  selectedDisplay.style.cssText = 'background: var(--success); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600; min-height: 40px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;';
+  selectedDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">✕</button></span>`).join('') : '✨ Select skills below...';
+  skillsUsedCats.appendChild(selectedDisplay);
+  
+  appState.personas.forEach(persona => {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${persona.name}</div><div class="skill-grid"></div>`;
+    persona.skills.forEach(skill => {
+      const isAny = skill.name.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''} ${appState.skillsUsed.includes(skill.name) ? 'sel' : ''}`;
+      btn.textContent = skill.name;
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (isAny) { openSpecificSkillsFromAny(persona.key, skill.name); } else {
+          if (!appState.skillsUsed.includes(skill.name)) {
+            appState.skillsUsed.push(skill.name);
+            btn.classList.add('sel');
+          } else {
+            appState.skillsUsed = appState.skillsUsed.filter(s => s !== skill.name);
+            btn.classList.remove('sel');
+          }
+          updateRealtimeSkillsDisplay();
+          saveAppState();
+        }
+      };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    });
+    skillsUsedCats.appendChild(catDiv);
+  });
+  document.getElementById('skillsUsedModal').classList.add('active');
+}
+
+function updateSkillsUsedDisplay() {
+  const display = document.getElementById('skillsUsedDisplay');
+  if (appState.skillsUsed.length === 0) { display.textContent = 'Click to select skills used'; } else { display.innerHTML = appState.skillsUsed.map(s => `<span class="tag">${s}</span>`).join(''); }
+}
+
+function updateRealtimeSkillsDisplay() {
+  const realtimeDisplay = document.getElementById('realtimeSkillsDisplay');
+  if (realtimeDisplay) {
+    realtimeDisplay.innerHTML = appState.skillsUsed.length > 0 ? appState.skillsUsed.map(s => `<span style="background: rgba(255,255,255,0.3); padding: 4px 8px; border-radius: 4px;">${s} <button onclick="removeSkillFromUsed('${s.replace(/'/g, "\\'")}'); return false;" style="background: none; border: none; color: white; cursor: pointer; margin-left: 4px; font-weight: bold;">✕</button></span>`).join('') : '✨ Select skills below...';
+  }
+  updateSkillsUsedDisplay();
+}
+
+function removeSkillFromUsed(skillName) {
+  appState.skillsUsed = appState.skillsUsed.filter(s => s !== skillName);
+  updateRealtimeSkillsDisplay();
+  saveAppState();
+  // Update button states in the modal
+  document.querySelectorAll('#skillsUsedCats .skill-btn').forEach(btn => {
+    if (btn.textContent.trim() === skillName.trim()) btn.classList.remove('sel');
+  });
+}
+
+function closeSkillsUsedModal() { 
+  updateSkillsUsedDisplay(); 
+  saveAppState(); 
+  document.getElementById('skillsUsedModal').classList.remove('active'); 
+}
+
+function setExamplePrivacy(privacy) {
+  appState.examplePrivacy = privacy;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`button[onclick="setExamplePrivacy('${privacy}')"]`).classList.add('active');
+}
+
+function uploadExample() {
+  const title = document.getElementById('exampleTitle').value.trim();
+  const desc = document.getElementById('exampleDesc').value.trim();
+  const mediaFile = document.getElementById('exampleMedia').files[0];
+  if (!title || !desc || !appState.selectedGenre || !mediaFile || appState.skillsUsed.length === 0) { 
+    let msg = '❌ VALIDATION ERROR: Fill all required fields:\n';
+    if (!title) msg += '- Title\n';
+    if (!desc) msg += '- Description\n';
+    if (!appState.selectedGenre) msg += '- Genre\n';
+    if (!mediaFile) msg += '- Media File\n';
+    if (appState.skillsUsed.length === 0) msg += '- At least one skill (click "📋 Select Skills Used" button)\n\nDid you add personas and skills in the PERSONAS tab?';
+    alert(msg);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
+    const imageFile = document.getElementById('exampleImage').files[0];
+    if (imageFile) {
+      const imgReader = new FileReader();
+      imgReader.onload = (imgE) => { example.image = imgE.target.result; finalizeExample(example); };
+      imgReader.readAsDataURL(imageFile);
+    } else {
+      finalizeExample(example);
+    }
+  };
+  reader.readAsDataURL(mediaFile);
+}
+
+function finalizeExample(example) {
+  const editIdx = document.getElementById('editingExampleIdx').value;
+  if (editIdx) { appState.examples[parseInt(editIdx)] = example; alert('✓ Example updated!'); } else { appState.examples.push(example); alert('✓ Example uploaded!'); }
+  appState.skillsUsed = [];
+  appState.selectedGenre = '';
+  document.getElementById('exampleTitle').value = '';
+  document.getElementById('exampleDesc').value = '';
+  document.getElementById('exampleMedia').value = '';
+  document.getElementById('exampleImage').value = '';
+  document.getElementById('exampleGenreDisplay').textContent = 'Click "Select Genre"';
+  updateSkillsUsedDisplay();
+  cancelEditExample();
+  renderExamplesDisplay();
+  saveAppState();
+}
+
+function renderExamplesDisplay() {
+  const display = document.getElementById('examplesDisplay');
+  if (appState.examples.length === 0) { display.innerHTML = 'No examples yet'; return; }
+  display.innerHTML = '';
+  appState.examples.forEach((example, idx) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    display.appendChild(card);
+  });
+}
+
+function editExample(idx) {
+  const example = appState.examples[idx];
+  document.getElementById('exampleTitle').value = example.title;
+  document.getElementById('exampleDesc').value = example.desc;
+  document.getElementById('exampleGenreDisplay').textContent = example.genre;
+  appState.selectedGenre = example.genre;
+  appState.skillsUsed = [...example.skills];
+  updateSkillsUsedDisplay();
+  setExamplePrivacy(example.privacy);
+  document.getElementById('editingExampleIdx').value = idx;
+  document.getElementById('exampleSubmitBtn').textContent = '✏️ Update';
+  document.getElementById('exampleCancelBtn').style.display = 'block';
+  document.getElementById('currentMediaDisplay').textContent = `Current: ${example.mediaName}`;
+  document.getElementById('exampleMedia').value = '';
+  switchTab('examples');
+}
+
+function cancelEditExample() {
+  document.getElementById('editingExampleIdx').value = '';
+  document.getElementById('exampleSubmitBtn').textContent = '📤 Upload';
+  document.getElementById('exampleCancelBtn').style.display = 'none';
+  document.getElementById('currentMediaDisplay').textContent = '';
+  appState.examplePrivacy = 'private';
+  setExamplePrivacy('private');
+}
+
+function removeExample(idx) { if (confirm('Delete this example?')) { appState.examples.splice(idx, 1); renderExamplesDisplay(); saveAppState(); } }
+
+function updateCollabPersonaOptions() {
+  const select = document.getElementById('collabPersona');
+  select.innerHTML = '<option value="">Choose persona</option>';
+  appState.personas.forEach((persona, idx) => { select.innerHTML += `<option value="${idx}">${persona.name}</option>`; });
+}
+
+function updateCollabExampleOptions() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleSelect = document.getElementById('collabPublicExample');
+  exampleSelect.innerHTML = '<option value="">Choose example</option>';
+  if (personaIdx !== '') {
+    const personaKey = appState.personas[parseInt(personaIdx)].key;
+    const publicExamples = appState.examples.filter(ex => ex.privacy === 'public' && ex.skills.some(s => {
+      const skillPersona = Object.keys(instrumentDatabase).find(key => { const cats = instrumentDatabase[key]; return Object.values(cats).some(cat => Object.values(cat).includes(s)); });
+      return skillPersona === personaKey;
+    }));
+    publicExamples.forEach((ex, idx) => { exampleSelect.innerHTML += `<option value="${idx}">${ex.title}</option>`; });
+  }
+}
+
+function postCollabRequest() {
+  const personaIdx = document.getElementById('collabPersona').value;
+  const exampleIdx = document.getElementById('collabPublicExample').value;
+  const desc = document.getElementById('collabPostDesc').value.trim();
+  if (!personaIdx || !exampleIdx || !desc) { alert('❌ Please fill all fields'); return; }
+  const minAge = parseInt(document.getElementById('collabMinAge').value) || 13;
+  const maxAge = parseInt(document.getElementById('collabMaxAge').value) || 120;
+  const maxDist = parseFloat(document.getElementById('collabMaxDistance').value) || null;
+  const budgetMinRaw = document.getElementById('collabBudgetMin').value;
+  const budgetMaxRaw = document.getElementById('collabBudgetMax').value;
+  const budgetMin = budgetMinRaw === '' ? null : parseFloat(budgetMinRaw);
+  const budgetMax = budgetMaxRaw === '' ? null : parseFloat(budgetMaxRaw);
+  const minExp = parseFloat(document.getElementById('collabMinExp').value) || 0;
+  const minProfileRating = parseFloat(document.getElementById('collabMinProfileRating').value) || 0;
+  const minPictureRating = parseFloat(document.getElementById('collabMinPictureRating').value) || 0;
+  const prefGender = document.getElementById('collabPreferredGender').value || '';
+  if (minAge > maxAge) { alert('❌ Minimum age cannot be greater than maximum age'); return; }
+  if (budgetMin !== null && budgetMax !== null && budgetMin > budgetMax) { alert('❌ Budget min cannot exceed budget max'); return; }
+  const budgetRange = (budgetMin !== null || budgetMax !== null) ? { min: budgetMin, max: budgetMax } : null;
+  const collab = { id: Date.now(), personaIdx: parseInt(personaIdx), personaName: appState.personas[parseInt(personaIdx)].name, exampleTitle: appState.examples[parseInt(exampleIdx)].title, description: desc, userName: appState.user.name || 'Anonymous', userLocation: appState.user.location || 'Unknown', userPic: appState.user.profilePic || null, userLat: appState.user.lat || null, userLng: appState.user.lng || null, timestamp: new Date().toLocaleString(), requirements: { ageRange: {min: minAge, max: maxAge}, maxDistance: maxDist, budgetRange: budgetRange, minExperience: minExp, minProfileRating: minProfileRating, minPictureRating: minPictureRating, preferredGender: prefGender }, ratings: [], comments: [] };
+  const editIdx = document.getElementById('editingCollabIdx').value;
+  if (editIdx) { appState.collabs[parseInt(editIdx)] = collab; alert('✓ Collab request updated!'); } else { appState.collabs.push(collab); alert('✓ Collab request posted!'); }
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  document.getElementById('collabMinAge').value = '';
+  document.getElementById('collabMaxAge').value = '';
+  document.getElementById('collabMaxDistance').value = '';
+  document.getElementById('collabBudgetMin').value = '';
+  document.getElementById('collabBudgetMax').value = '';
+  document.getElementById('collabMinExp').value = '';
+  document.getElementById('collabMinProfileRating').value = '';
+  document.getElementById('collabMinPictureRating').value = '';
+  document.getElementById('collabPreferredGender').value = '';
+  cancelEditCollab();
+  renderCollabFeed();
+  saveAppState();
+}
+
+function formatBudgetRange(budgetRange) {
+  // Support old single-number budgets for backward compatibility
+  if (budgetRange === null || budgetRange === undefined) return 'Any';
+  if (typeof budgetRange === 'number') return `$${budgetRange.toLocaleString()}`;
+  const min = budgetRange.min;
+  const max = budgetRange.max;
+  const hasMin = Number.isFinite(min);
+  const hasMax = Number.isFinite(max);
+  if (hasMin && hasMax) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+  if (hasMin) return `$${min.toLocaleString()}+`;
+  if (hasMax) return `Up to $${max.toLocaleString()}`;
+  return 'Any';
+}
+
+function renderCollabFeed() {
+  const feed = document.getElementById('collabFeed');
+  appState.filteredCollabs = [...appState.collabs];
+  applyFilters();
+  const filterPersona = document.getElementById('filterPersona').value;
+  const filterLocation = document.getElementById('filterLocation').value;
+  if (filterPersona) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.personaName === filterPersona);
+  if (filterLocation) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.userLocation.toLowerCase().includes(filterLocation.toLowerCase()));
+  document.getElementById('feedCount').textContent = appState.filteredCollabs.length;
+  if (appState.filteredCollabs.length === 0) { feed.innerHTML = 'No collaboration requests matching your filters'; return; }
+  feed.innerHTML = '';
+  appState.filteredCollabs.forEach((collab, idx) => {
+    const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button></div>`;
+    feed.appendChild(card);
+  });
+}
+
+function editCollab(idx) {
+  const collab = appState.collabs[idx];
+  document.getElementById('collabPersona').value = appState.personas.findIndex(p => p.name === collab.personaName);
+  updateCollabExampleOptions();
+  document.getElementById('collabPublicExample').value = appState.examples.findIndex(ex => ex.title === collab.exampleTitle);
+  document.getElementById('collabPostDesc').value = collab.description;
+  const req = collab.requirements || {};
+  const br = req.budgetRange || null;
+  const legacyBudget = typeof req.budget === 'number' ? req.budget : null;
+  document.getElementById('collabBudgetMin').value = br && br.min !== null && br.min !== undefined ? br.min : (legacyBudget !== null ? legacyBudget : '');
+  document.getElementById('collabBudgetMax').value = br && br.max !== null && br.max !== undefined ? br.max : '';
+  document.getElementById('editingCollabIdx').value = idx;
+  document.getElementById('collabSubmitBtn').textContent = '✏️ Update';
+  document.getElementById('collabCancelBtn').style.display = 'block';
+  switchTab('collaborate');
+}
+
+function cancelEditCollab() {
+  document.getElementById('editingCollabIdx').value = '';
+  document.getElementById('collabSubmitBtn').textContent = '📤 Post';
+  document.getElementById('collabCancelBtn').style.display = 'none';
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  document.getElementById('collabBudgetMin').value = '';
+  document.getElementById('collabBudgetMax').value = '';
+}
+
+function removeCollab(idx) { if (confirm('Delete this collaboration request?')) { appState.collabs.splice(idx, 1); renderCollabFeed(); saveAppState(); } }
+
+function applyFilters() { renderCollabFeed(); }
+
+function resetFilters() {
+  document.getElementById('filterPersona').value = '';
+  document.getElementById('filterLocation').value = '';
+  renderCollabFeed();
+}
+
+function addIncome() {
+  const amt = parseFloat(document.getElementById('incomeAmt').value);
+  const taxRate = parseFloat(document.getElementById('incomeTaxRate').value) || 5;
+  if (!amt || amt <= 0) { alert('❌ Please enter a valid amount'); return; }
+  const taxAmount = amt * (taxRate / 100);
+  const afterTax = amt - taxAmount;
+  appState.wallet.balance += afterTax;
+  appState.wallet.earned += amt;
+  if (!appState.wallet.taxCollected) appState.wallet.taxCollected = 0;
+  appState.wallet.taxCollected += taxAmount;
+  document.getElementById('incomeAmt').value = '';
+  updateWalletDisplay();
+  saveAppState();
+  alert(`✓ Added $${amt.toFixed(2)} (tax: $${taxAmount.toFixed(2)}, net: $${afterTax.toFixed(2)})`);
+}
+
+function updateWalletDisplay() {
+  document.getElementById('walletBalance').textContent = appState.wallet.balance.toFixed(2);
+  document.getElementById('walletEarned').textContent = appState.wallet.earned.toFixed(2);
+  document.getElementById('balanceAmount').textContent = appState.wallet.balance.toFixed(2);
+  
+  // Update tax summary
+  const taxCollected = appState.wallet.taxCollected || 0;
+  const netIncome = appState.wallet.balance || 0;
+  if (document.getElementById('totalTaxCollected')) {
+    document.getElementById('totalTaxCollected').textContent = '$' + taxCollected.toFixed(2);
+  }
+  if (document.getElementById('netIncome')) {
+    document.getElementById('netIncome').textContent = '$' + netIncome.toFixed(2);
+  }
+}
+
+function updateAllDisplays() {
+  updateWalletDisplay();
+  renderPersonasDisplay();
+  renderExamplesDisplay();
+  updateCollabPersonaOptions();
+  renderCollabFeed();
+  updateProfileDisplay();
+  document.getElementById('username').value = appState.user.name;
+  document.getElementById('email').value = appState.user.email;
+  document.getElementById('phone').value = appState.user.phone;
+  document.getElementById('birthday').value = appState.user.birthday;
+  document.getElementById('gender').value = appState.user.gender;
+  document.getElementById('location').value = appState.user.location;
+  document.getElementById('bio').value = appState.user.bio;
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeButton(newTheme);
+}
+
+function updateThemeButton(theme) {
+  const btn = document.querySelector('.theme-toggle');
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function copyEmail() {
+  const email = appState.user.email;
+  if (!email) { alert('❌ No email to copy'); return; }
+  navigator.clipboard.writeText(email).then(() => { alert(`✓ Email copied: ${email}`); }).catch(() => { alert('❌ Could not copy email'); });
+}
+
+function initMap() {
+  const mapContainer = document.getElementById('collabMap');
+  if (!mapContainer) return;
+  const userLat = appState.user.lat || 40.7128;
+  const userLng = appState.user.lng || -74.0060;
+  const mapOptions = { zoom: 12, center: { lat: userLat, lng: userLng }, mapTypeControl: false };
+  
+  appState.map = new google.maps.Map(mapContainer, mapOptions);
+  
+  // Add user's location marker
+  new google.maps.Marker({
+    position: { lat: userLat, lng: userLng },
+    map: appState.map,
+    title: appState.user.name || 'Your Location',
+    icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+  });
+  
+  renderMapUsers();
+}
+
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 3959; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function renderMapUsers() {
+  const mapUsersList = document.getElementById('mapUsersList');
+  if (!mapUsersList) return;
+  mapUsersList.innerHTML = '';
+  
+  appState.userMarkers.forEach(marker => marker.setMap(null));
+  appState.userMarkers = [];
+  
+  if (!appState.map) return;
+  
+  const userLat = appState.user.lat || 40.7128;
+  const userLng = appState.user.lng || -74.0060;
+  
+  appState.filteredCollabs.forEach((collab, idx) => {
+    const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    if (!collab.userLat || !collab.userLng) return;
+    
+    const distance = calculateDistance(userLat, userLng, collab.userLat, collab.userLng);
+    const avgRating = collab.ratings && collab.ratings.length > 0 ? (collab.ratings.reduce((a, b) => a + b, 0) / collab.ratings.length).toFixed(1) : 'N/A';
+    const req = collab.requirements || {};
+    
+    // Add map marker
+    const marker = new google.maps.Marker({
+      position: { lat: collab.userLat, lng: collab.userLng },
+      map: appState.map,
+      title: collab.userName
+    });
+    
+    // Build info window content
+    const infoContent = `<div style="font-size: 11px; max-width: 250px;"><div style="font-weight: 700; margin-bottom: 4px;">${collab.userName}</div><div style="color: #FFD700; margin-bottom: 4px;">⭐ ${avgRating}</div><div style="font-size: 10px; margin-bottom: 6px;">📍 ${distance.toFixed(1)} miles away</div><div style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #ddd;"><div style="font-weight: 600; margin-bottom: 2px;">🎯 Seeking:</div>${req.ageRange ? `<div>👥 Age: ${req.ageRange.min}-${req.ageRange.max}</div>` : ''}<div>💵 Budget: ${formatBudgetRange(req.budgetRange ?? req.budget)}</div><div>📊 Min Exp: ${req.minExperience || 0} yrs</div></div></div>`;
+    
+    const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+    marker.addListener('click', () => infoWindow.open(appState.map, marker));
+    appState.userMarkers.push(marker);
+    
+    // Add to list
+    const card = document.createElement('div');
+    card.className = 'user-card-on-map';
+    card.innerHTML = `<div class="user-card-header"><div class="user-card-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="user-card-title"><div class="user-name">${collab.userName}</div><div class="user-rating">⭐ ${avgRating} • 📍 ${distance.toFixed(1)}mi</div></div></div><div class="user-card-content"><div><strong>👤 Persona:</strong> ${collab.personaName}</div><div><strong>🎵 Work:</strong> ${collab.exampleTitle}</div>${req.minExperience ? `<div><strong>📊 Min Exp:</strong> ${req.minExperience} years</div>` : ''}<div><strong>💰 Budget:</strong> ${formatBudgetRange(req.budgetRange ?? req.budget)}</div><div><strong>📏 Distance:</strong> ${distance.toFixed(1)} miles max ${req.maxDistance ? `(Requested: ${req.maxDistance}mi)` : ''}</div>${req.ageRange ? `<div><strong>👥 Age Range:</strong> ${req.ageRange.min}-${req.ageRange.max} years</div>` : ''}<div><strong>⚧️ Gender:</strong> ${req.preferredGender || 'Any'}</div></div>`;
+    mapUsersList.appendChild(card);
+  });
+}
+
+
+// Settings Functions
+function applyTheme(themeName, primaryColor, primaryDark) {
+  document.documentElement.style.setProperty('--primary', primaryColor);
+  document.documentElement.style.setProperty('--primary-dark', primaryDark);
+  appState.settings.theme = themeName;
+  saveAppState();
+  document.querySelectorAll('.theme-color-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.closest('.theme-color-btn').classList.add('active');
+}
+
+function toggleDarkMode() {
+  const html = document.documentElement;
+  const isDark = appState.settings.darkMode;
+  appState.settings.darkMode = !isDark;
+  html.setAttribute('data-theme', !isDark ? 'dark' : 'light');
+  updateThemeButton(!isDark ? 'dark' : 'light');
+  const toggle = document.getElementById('darkModeToggle');
+  toggle.classList.toggle('on');
+  saveAppState();
+}
+
+function toggleNotification(type) {
+  if (type === 'email') {
+    if (!appState.settings.emailVerified) { alert('Verify your email before enabling email notifications.'); return; }
+    appState.settings.emailNotifications = !appState.settings.emailNotifications;
+    document.getElementById('emailNotifToggle').classList.toggle('on', appState.settings.emailNotifications);
+  } else if (type === 'push') {
+    appState.settings.pushNotifications = !appState.settings.pushNotifications;
+    document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
+  } else if (type === 'phone') {
+    if (!appState.settings.phoneVerified) { alert('Verify your phone number before enabling SMS notifications.'); return; }
+    appState.settings.phoneNotifications = !appState.settings.phoneNotifications;
+    document.getElementById('phoneNotifToggle').classList.toggle('on', appState.settings.phoneNotifications);
+  }
+  saveAppState();
+}
+
+function changeLanguage(lang) {
+  appState.settings.language = lang;
+  saveAppState();
+  alert(`Language changed to ${lang}`);
+}
+
+function sendVerificationEmail() {
+  const email = appState.user.email;
+  if (!email) { alert('Please set an email in your profile first'); return; }
+  alert(`✅ Verification email sent to ${email}. Check your inbox!`);
+  appState.settings.emailVerified = true;
+  updateVerificationStatus('email', true);
+  refreshNotificationToggles();
+  saveAppState();
+}
+
+function sendVerificationSMS() {
+  const phone = appState.user.phone;
+  if (!phone) { alert('Please set a phone number in your profile first'); return; }
+  alert(`✅ Verification SMS sent to ${phone}. Check your messages!`);
+  appState.settings.phoneVerified = true;
+  updateVerificationStatus('phone', true);
+  refreshNotificationToggles();
+  saveAppState();
+}
+
+function updateVerificationStatus(type, verified) {
+  const statusEl = document.getElementById(type === 'email' ? 'emailVerifStatus' : 'phoneVerifStatus');
+  if (verified) {
+    statusEl.classList.remove('unverified');
+    statusEl.classList.add('verified');
+    statusEl.innerHTML = '<span>✅</span><span>' + (type === 'email' ? 'Email' : 'Phone') + ' verified</span>';
+  } else {
+    statusEl.classList.remove('verified');
+    statusEl.classList.add('unverified');
+    statusEl.innerHTML = '<span>❌</span><span>' + (type === 'email' ? 'Email' : 'Phone') + ' not verified</span>';
+  }
+}
+
+function refreshNotificationToggles() {
+  // Force-off and disable toggles that require verification
+  if (!appState.settings.emailVerified) {
+    appState.settings.emailNotifications = false;
+    document.getElementById('emailNotifToggle').classList.remove('on');
+    document.getElementById('emailNotifToggle').classList.add('disabled');
+    document.getElementById('emailNotifToggle').setAttribute('title', 'Verify email to enable');
+  } else {
+    document.getElementById('emailNotifToggle').classList.remove('disabled');
+    document.getElementById('emailNotifToggle').removeAttribute('title');
+  }
+
+  if (!appState.settings.phoneVerified) {
+    appState.settings.phoneNotifications = false;
+    document.getElementById('phoneNotifToggle').classList.remove('on');
+    document.getElementById('phoneNotifToggle').classList.add('disabled');
+    document.getElementById('phoneNotifToggle').setAttribute('title', 'Verify phone to enable');
+  } else {
+    document.getElementById('phoneNotifToggle').classList.remove('disabled');
+    document.getElementById('phoneNotifToggle').removeAttribute('title');
+  }
+
+  // Push notifications do not require verification
+  document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
+}
+
+// Stripe Integration
+let stripe = null;
+let stripePublishableKey = 'pk_test_YOUR_PUBLISHABLE_KEY'; // Replace with your Stripe publishable key
+
+try {
+  stripe = Stripe(stripePublishableKey);
+} catch (e) {
+  console.warn('Stripe not initialized. Set your publishable key.');
+}
+
+function createStripeCheckout() {
+  const amount = document.getElementById('serviceAmount').value;
+  const description = document.getElementById('serviceDesc').value;
+  const taxMode = document.getElementById('taxMode').value;
+  const email = appState.user.email || '';
+
+  if (!amount || amount <= 0) {
+    alert('Please enter a valid service amount');
+    return;
+  }
+
+  if (!description) {
+    alert('Please enter a service description');
+    return;
+  }
+
+  // Show loading state
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Creating payment...';
+
+  // Call backend to create checkout session
+  fetch('http://localhost:3000/api/create-checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: parseFloat(amount),
+      description: description,
+      taxMode: taxMode,
+      customerEmail: email,
+    }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    btn.disabled = false;
+    btn.textContent = originalText;
+
+    if (!data.url) {
+      throw new Error(data.error || 'Failed to create checkout session');
+    }
+
+    // Show payment link
+    document.getElementById('paymentLink').href = data.url;
+    document.getElementById('paymentLink').textContent = '✓ Open Stripe Checkout';
+    document.getElementById('paymentLinkDisplay').style.display = 'block';
+
+    console.log('✅ Checkout session created:', data.sessionId);
+  })
+  .catch(error => {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    console.error('Error:', error);
+    alert('❌ Error: ' + error.message);
+  });
+}
+
+function updateTaxMode() {
+  const taxMode = document.getElementById('taxMode').value;
+  document.getElementById('manualTaxDiv').style.display = taxMode === 'manual' ? 'block' : 'none';
+}
+
+// Initialize tax mode change listener
+setInterval(() => {
+  const taxSelect = document.getElementById('taxMode');
+  if (taxSelect && !taxSelect.hasAttribute('data-listener')) {
+    taxSelect.setAttribute('data-listener', 'true');
+    taxSelect.addEventListener('change', updateTaxMode);
+  }
+}, 500);
+
+function exportData() {
+  const dataStr = JSON.stringify(appState, (key, value) => value instanceof Set ? Array.from(value) : value);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'MusicConnectZ_backup_' + new Date().toISOString() + '.json';
+  a.click();
+  alert('✅ Data exported successfully!');
+}
+
+function resetSettings() {
+  if (!confirm('Are you sure? This will reset all settings to default.')) return;
+  appState.settings = {
+    theme: 'blue',
+    darkMode: false,
+    language: 'English',
+    emailNotifications: true,
+    pushNotifications: true,
+    phoneNotifications: false,
+    emailVerified: false,
+    phoneVerified: false
+  };
+  saveAppState();
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.documentElement.style.setProperty('--primary', '#2196F3');
+  document.documentElement.style.setProperty('--primary-dark', '#1565C0');
+  alert('✅ Settings reset to default!');
+  location.reload();
+}
+
+function initializeSettings() {
+  document.getElementById('languageSelect').value = appState.settings.language;
+  if (appState.settings.darkMode) {
+    document.getElementById('darkModeToggle').classList.add('on');
+  }
+  // Enforce verification gating before applying toggle states
+  refreshNotificationToggles();
+  document.getElementById('emailNotifToggle').classList.toggle('on', appState.settings.emailNotifications && appState.settings.emailVerified);
+  document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
+  document.getElementById('phoneNotifToggle').classList.toggle('on', appState.settings.phoneNotifications && appState.settings.phoneVerified);
+  updateVerificationStatus('email', appState.settings.emailVerified);
+  updateVerificationStatus('phone', appState.settings.phoneVerified);
+  document.querySelectorAll('.theme-color-btn').forEach((btn, idx) => {
+    if ((idx === 0 && appState.settings.theme === 'blue') || (idx === 1 && appState.settings.theme === 'orange') || (idx === 2 && appState.settings.theme === 'purple') || (idx === 3 && appState.settings.theme === 'red') || (idx === 4 && appState.settings.theme === 'cyan') || (idx === 5 && appState.settings.theme === 'pink') || (idx === 6 && appState.settings.theme === 'green') || (idx === 7 && appState.settings.theme === 'amber') || (idx === 8 && appState.settings.theme === 'deep-purple')) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('beforeunload', () => { saveAppState(); });
+window.addEventListener('load', () => { 
+  loadAppState();
+  updateAllDisplays();
+  setTimeout(initializeSettings, 100);
+  switchTab(appState.currentTab || 'setup');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevTab(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); nextTab(); }
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+  }
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
