@@ -247,6 +247,13 @@
         <div class="card-header">👤 Your Profile</div>
         <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Your name" /></div>
         <div class="grid-2"><div class="form-group"><label>📧 Email *</label><input type="email" id="email" /></div><div class="form-group"><label>📱 Phone *</label><input type="tel" id="phone" /></div></div>
+        <div class="grid-2">
+          <div class="form-group"><label>🔒 Password *</label><input type="password" id="password" minlength="8" placeholder="Minimum 8 characters" /></div>
+          <div class="form-group"><label>🔒 Confirm Password *</label><input type="password" id="passwordConfirm" minlength="8" placeholder="Re-enter password" /></div>
+        </div>
+        <div style="font-size: 10px; color: var(--text-light); margin: -4px 0 10px;">
+          Passwords are only used for validation here and are not stored without a backend.
+        </div>
         <div class="grid-2"><div class="form-group"><label>🎂 Birthday *</label><input type="date" id="birthday" /></div><div class="form-group"><label>⚧️ Gender *</label><select id="gender"><option value="">Select</option><option value="Male">🚹 Male ♂️</option><option value="Female">🚺 Female ♀️</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div>
         <div class="form-group">
           <label>📍 Location *</label>
@@ -259,6 +266,17 @@
         <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
         <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
         <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
+        <div style="margin-top: 12px;">
+          <div style="font-weight: 700; font-size: 12px; margin-bottom: 6px; color: var(--primary);">🔗 Connect Social Accounts</div>
+          <div class="grid-3">
+            <button class="btn btn-secondary btn-small" onclick="connectSocial('Google')">Connect Google</button>
+            <button class="btn btn-secondary btn-small" onclick="connectSocial('Facebook')">Connect Facebook</button>
+            <button class="btn btn-secondary btn-small" onclick="connectSocial('Instagram')">Connect Instagram</button>
+          </div>
+          <div style="font-size: 10px; color: var(--text-light); margin-top: 6px;">
+            Social login requires OAuth on the backend.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -798,9 +816,21 @@ function saveProfile() {
   const phoneInput = (document.getElementById('phone').value || '').trim();
   const bioInput = (document.getElementById('bio').value || '').trim();
   const locationInput = (document.getElementById('location').value || '').trim();
+  const passwordInput = (document.getElementById('password').value || '');
+  const passwordConfirmInput = (document.getElementById('passwordConfirm').value || '');
   
   if (!usernameInput) {
     alert('⚠️ Please enter a username!');
+    return;
+  }
+
+  if (!passwordInput || passwordInput.length < 8) {
+    alert('⚠️ Password must be at least 8 characters.');
+    return;
+  }
+
+  if (passwordInput !== passwordConfirmInput) {
+    alert('⚠️ Passwords do not match.');
     return;
   }
   
@@ -814,7 +844,13 @@ function saveProfile() {
   
   saveAppState();
   updateProfileDisplay();
+  document.getElementById('password').value = '';
+  document.getElementById('passwordConfirm').value = '';
   alert('✓ Profile saved!\n\nUsername: ' + usernameInput + '\nEmail: ' + emailInput + '\nLocation: ' + locationInput);
+}
+
+function connectSocial(provider) {
+  alert(`${provider} connect requires backend OAuth setup.`);
 }
 
 function loadProfilePic(event) {
