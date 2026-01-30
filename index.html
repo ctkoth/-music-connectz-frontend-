@@ -1746,21 +1746,71 @@ function changeLanguage(lang) {
 function sendVerificationEmail() {
   const email = appState.user.email;
   if (!email) { alert('Please set an email in your profile first'); return; }
-  alert(`✅ Verification email sent to ${email}. Check your inbox!`);
-  appState.settings.emailVerified = true;
-  updateVerificationStatus('email', true);
-  refreshNotificationToggles();
-  saveAppState();
+  const apiBase = (typeof backendUrl !== 'undefined' && backendUrl) ? backendUrl : 'http://localhost:3000';
+
+  fetch(`${apiBase}/api/verify/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  })
+  .then(res => res.json().then(data => ({ ok: res.ok, data })))
+  .then(({ ok, data }) => {
+    if (!ok) throw new Error(data.error || 'Failed to send email code');
+    const code = prompt(`Verification code sent to ${email}. Enter the 6-digit code:`);
+    if (!code) return;
+    return fetch(`${apiBase}/api/verify/email/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    }).then(res => res.json().then(data => ({ ok: res.ok, data })));
+  })
+  .then((result) => {
+    if (!result) return;
+    if (!result.ok) throw new Error(result.data.error || 'Invalid code');
+    appState.settings.emailVerified = true;
+    updateVerificationStatus('email', true);
+    refreshNotificationToggles();
+    saveAppState();
+    alert('✅ Email verified!');
+  })
+  .catch(err => {
+    alert(`❌ ${err.message}`);
+  });
 }
 
 function sendVerificationSMS() {
   const phone = appState.user.phone;
   if (!phone) { alert('Please set a phone number in your profile first'); return; }
-  alert(`✅ Verification SMS sent to ${phone}. Check your messages!`);
-  appState.settings.phoneVerified = true;
-  updateVerificationStatus('phone', true);
-  refreshNotificationToggles();
-  saveAppState();
+  const apiBase = (typeof backendUrl !== 'undefined' && backendUrl) ? backendUrl : 'http://localhost:3000';
+
+  fetch(`${apiBase}/api/verify/sms/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  })
+  .then(res => res.json().then(data => ({ ok: res.ok, data })))
+  .then(({ ok, data }) => {
+    if (!ok) throw new Error(data.error || 'Failed to send SMS code');
+    const code = prompt(`Verification code sent to ${phone}. Enter the 6-digit code:`);
+    if (!code) return;
+    return fetch(`${apiBase}/api/verify/sms/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code })
+    }).then(res => res.json().then(data => ({ ok: res.ok, data })));
+  })
+  .then((result) => {
+    if (!result) return;
+    if (!result.ok) throw new Error(result.data.error || 'Invalid code');
+    appState.settings.phoneVerified = true;
+    updateVerificationStatus('phone', true);
+    refreshNotificationToggles();
+    saveAppState();
+    alert('✅ Phone verified!');
+  })
+  .catch(err => {
+    alert(`❌ ${err.message}`);
+  });
 }
 
 function updateVerificationStatus(type, verified) {
