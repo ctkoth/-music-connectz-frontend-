@@ -874,6 +874,27 @@ function reverseGeocodeFallback(lat, lng, callback) {
     .catch(() => { clearTimeout(timeoutId); callback(null); });
 }
 
+function ipLocationFallback(callback) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  fetch('https://ipapi.co/json/', {
+    headers: { 'Accept': 'application/json' },
+    signal: controller.signal
+  })
+    .then(res => res.ok ? res.json() : Promise.reject(new Error('ip geolocation failed')))
+    .then(data => {
+      clearTimeout(timeoutId);
+      const city = data.city || data.region || data.region_code;
+      const state = data.region || data.region_code;
+      const country = data.country_code || data.country_name;
+      const loc = [city, state, country].filter(Boolean).join(', ') || data.country_name || null;
+      const lat = typeof data.latitude === 'number' ? data.latitude : parseFloat(data.latitude);
+      const lng = typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
+      callback({ loc, lat: isNaN(lat) ? null : lat, lng: isNaN(lng) ? null : lng });
+    })
+    .catch(() => { clearTimeout(timeoutId); callback(null); });
+}
+
 function computeUserRating() {
   const username = appState.user.name || 'Anonymous';
   const allRatings = appState.collabs
@@ -895,7 +916,18 @@ function requestGPS() {
   // Quick diagnostics so the user knows why the browser may not prompt
   const secure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   if (!secure) {
-    status.textContent = '✗ GPS needs HTTPS or localhost (use a local dev server)';
+    status.textContent = '⚠️ GPS needs HTTPS or localhost. Trying approximate location…';
+    ipLocationFallback((data) => {
+      if (data && data.loc) {
+        appState.user.lat = data.lat;
+        appState.user.lng = data.lng;
+        document.getElementById('location').value = data.loc;
+        appState.user.location = data.loc;
+        status.textContent = '✓ Approx location set (IP-based). Use HTTPS for precise GPS.';
+      } else {
+        status.textContent = '✗ GPS needs HTTPS or localhost (use a local dev server)';
+      }
+    });
     alert('GPS is blocked on insecure origins. Please run this file via https:// or http://localhost/.');
     return;
   }
@@ -921,7 +953,18 @@ function requestGPS() {
       else if (err.code === err.POSITION_UNAVAILABLE) msg = '✗ GPS unavailable';
       else if (err.code === err.TIMEOUT) msg = '✗ GPS timed out';
     }
-    status.textContent = msg;
+    status.textContent = msg + ' — trying approximate location…';
+    ipLocationFallback((data) => {
+      if (data && data.loc) {
+        appState.user.lat = data.lat;
+        appState.user.lng = data.lng;
+        document.getElementById('location').value = data.loc;
+        appState.user.location = data.loc;
+        status.textContent = '✓ Approx location set (IP-based). Enable GPS for precision.';
+      } else {
+        status.textContent = msg;
+      }
+    });
   };
 
   navigator.geolocation.getCurrentPosition((pos) => {
@@ -1579,6 +1622,10 @@ function copyEmail() {
 function initMap() {
   const mapContainer = document.getElementById('collabMap');
   if (!mapContainer) return;
+  if (!(window.google && google.maps)) {
+    mapContainer.innerHTML = '<div style="padding: 14px; font-size: 12px; color: var(--text-light);">Map unavailable (Google Maps failed to load). Check your Maps API key or network.</div>';
+    return;
+  }
   const userLat = appState.user.lat || 40.7128;
   const userLng = appState.user.lng || -74.0060;
   const mapOptions = { zoom: 12, center: { lat: userLat, lng: userLng }, mapTypeControl: false };
