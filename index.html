@@ -232,13 +232,13 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
-    <button class="tab-btn" onclick="switchTab('personas')">🎭 Personas</button>
-    <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
-    <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
-    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
-    <button class="tab-btn" onclick="switchTab('money')">💰 Money</button>
-    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+    <button class="tab-btn active" data-tab="setup" onclick="switchTab('setup')">⚙️ Setup</button>
+    <button class="tab-btn" data-tab="personas" onclick="switchTab('personas')">🎭 Personas</button>
+    <button class="tab-btn" data-tab="examples" onclick="switchTab('examples')">🎵 Work</button>
+    <button class="tab-btn" data-tab="collaborate" onclick="switchTab('collaborate')">🤝 Collab</button>
+    <button class="tab-btn" data-tab="profile" onclick="switchTab('profile')">👤 Profile</button>
+    <button class="tab-btn" data-tab="money" onclick="switchTab('money')">💰 Money</button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
   <div class="content">
@@ -1937,6 +1937,15 @@ window.addEventListener('load', () => {
   updateAllDisplays();
   setTimeout(initializeSettings, 100);
   switchTab(appState.currentTab || 'setup');
+  const tabs = document.querySelector('.tabs');
+  if (tabs) {
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      const tab = btn.getAttribute('data-tab');
+      if (tab) { switchTab(tab); }
+    });
+  }
 });
 
 document.addEventListener('keydown', (e) => {
