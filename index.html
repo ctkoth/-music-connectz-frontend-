@@ -1798,15 +1798,7 @@ function refreshNotificationToggles() {
   document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
 }
 
-// Stripe Integration
-let stripe = null;
-let stripePublishableKey = 'pk_test_YOUR_PUBLISHABLE_KEY'; // Replace with your Stripe publishable key
-
-try {
-  stripe = Stripe(stripePublishableKey);
-} catch (e) {
-  console.warn('Stripe not initialized. Set your publishable key.');
-}
+// Stripe Integration is handled by stripe-config.js (already loaded)
 
 function createStripeCheckout() {
   const amount = document.getElementById('serviceAmount').value;
