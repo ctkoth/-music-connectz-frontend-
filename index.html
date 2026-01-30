@@ -1496,7 +1496,6 @@ function formatBudgetRange(budgetRange) {
 function renderCollabFeed() {
   const feed = document.getElementById('collabFeed');
   appState.filteredCollabs = [...appState.collabs];
-  applyFilters();
   const filterPersona = document.getElementById('filterPersona').value;
   const filterLocation = document.getElementById('filterLocation').value;
   if (filterPersona) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.personaName === filterPersona);
