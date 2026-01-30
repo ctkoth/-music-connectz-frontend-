@@ -985,9 +985,14 @@ function requestGPS() {
       reverseGeocodeFallback(parseFloat(lat), parseFloat(lng), (loc) => {
         if (loc && loc.trim()) { 
           finish(loc, `✓ GPS: ${loc}`); 
-        }
-        else { 
-          finish('Location set (coords saved)', '✓ GPS: Please enter city/state manually for better results');
+        } else {
+          ipLocationFallback((ipLoc) => {
+            if (ipLoc && ipLoc.loc) {
+              finish(ipLoc.loc, `✓ GPS: ${ipLoc.loc} (approx)`);
+            } else {
+              finish('Location set (coords saved)', '✓ GPS: Please enter city/state manually for better results');
+            }
+          });
         }
       });
     };
