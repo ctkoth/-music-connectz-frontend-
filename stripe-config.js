@@ -1,8 +1,8 @@
 // Stripe Payment Handler for MusicConnectZ
-// Uses your local backend at http://localhost:3000
+// Uses Vercel deployed backend
 
 let stripePublishableKey = 'pk_test_51StwuULBPTJnpDqUFJ723wsOuOhbWtGMSSavjPDBZsBVRKUCoQuExkx0BzD9mn55J7hB8lmNyiPobHQe9GP7ch8O0082YqeIHv';
-let backendUrl = 'http://localhost:3000';
+let backendUrl = 'https://music-connectz-backend.vercel.app';
 
 // Initialize Stripe
 let stripe = null;
