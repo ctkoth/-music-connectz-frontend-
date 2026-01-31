@@ -821,7 +821,8 @@ function loadAppState() {
 
 function switchTab(tabName) {
   try {
-    if (!appState.auth?.isAuthenticated) {
+    const hasUser = Boolean(getAuthUserId());
+    if (!appState.auth?.isAuthenticated && (hasUser || tabName !== 'setup')) {
       showLoginModal();
       return;
     }
