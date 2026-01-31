@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v6 bi K-Oth</title>
+  <title>Music ConnectZ v6.2 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="https://js.stripe.com/v3/"></script>
   <script src="stripe-config.js"></script>
@@ -227,7 +227,7 @@
 <div class="container">
   <div class="header">
     <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button></div>
-    <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.1 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/24/2026</div></div>
+      <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/30/2026</div></div>
     <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
@@ -617,6 +617,18 @@
   </div>
 </div>
 
+<div id="loginModal" class="modal">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header"><h2>🔐 Login Required</h2></div>
+    <div class="form-group"><label>Account</label><input type="text" id="loginUserId" disabled /></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password" /></div>
+    <button class="btn btn-success" onclick="loginWithPassword()" style="width: 100%;">🔓 Login</button>
+    <div style="font-size: 10px; color: var(--text-light); margin-top: 8px;">
+      Passwords are required to access your account.
+    </div>
+  </div>
+</div>
+
 
   <div id="mediaPlayerModal" class="modal">
     <div class="modal-content" style="max-width: 600px;">
@@ -717,6 +729,7 @@ const instrumentDatabase = {
 
 let appState = {
   user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null},
+  auth: { isAuthenticated: false },
   personas: [],
   examples: [],
   collabs: [],
@@ -732,6 +745,7 @@ let appState = {
   settings: {
     theme: 'blue',
     darkMode: false,
+    darkModeMode: 'manual',
     language: 'English',
     emailNotifications: true,
     pushNotifications: true,
@@ -744,6 +758,7 @@ let appState = {
 function saveAppState() {
   const stateToSave = JSON.parse(JSON.stringify(appState));
   stateToSave.selectedSkillsInModal = Array.from(appState.selectedSkillsInModal);
+  delete stateToSave.auth;
   localStorage.setItem('musicConnectZState', JSON.stringify(stateToSave));
 }
 
@@ -753,6 +768,7 @@ function loadAppState() {
     const loaded = JSON.parse(saved);
     appState = {
       user: loaded.user || appState.user,
+      auth: { isAuthenticated: false },
       personas: loaded.personas || [],
       examples: loaded.examples || [],
       collabs: loaded.collabs || [],
@@ -768,6 +784,7 @@ function loadAppState() {
       settings: loaded.settings || {
         theme: 'blue',
         darkMode: false,
+        darkModeMode: 'manual',
         language: 'English',
         emailNotifications: true,
         pushNotifications: true,
@@ -777,15 +794,37 @@ function loadAppState() {
       }
     };
   }
+  if (!appState.auth) { appState.auth = { isAuthenticated: false }; }
+  if (!appState.settings.darkModeMode) { appState.settings.darkModeMode = 'manual'; }
   if (appState.user.rating === undefined) { appState.user.rating = null; }
-  if (appState.settings.darkMode) {
+  
+  // Apply dark mode based on settings
+  let themeMode = appState.settings.darkModeMode || 'manual';
+  if (themeMode === 'system') {
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+  } else if (appState.settings.darkMode) {
     document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
   }
+  
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if ((appState.settings.darkModeMode || 'manual') === 'system') {
+      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+    }
+  });
+  
   updateAllDisplays();
 }
 
 function switchTab(tabName) {
   try {
+    if (!appState.auth?.isAuthenticated) {
+      showLoginModal();
+      return;
+    }
     const tabEl = document.getElementById(tabName);
     if (!tabEl) { console.warn('Tab not found:', tabName); return; }
     
@@ -827,7 +866,7 @@ function nextTab() {
   switchTab(tabs[newIdx]);
 }
 
-function saveProfile() {
+async function saveProfile() {
   const usernameInput = (document.getElementById('username').value || '').trim();
   const emailInput = (document.getElementById('email').value || '').trim();
   const phoneInput = (document.getElementById('phone').value || '').trim();
@@ -850,6 +889,14 @@ function saveProfile() {
     alert('⚠️ Passwords do not match.');
     return;
   }
+
+  const userId = emailInput || usernameInput;
+  const passwordSet = await setPasswordOnBackend(userId, passwordInput);
+  if (!passwordSet) {
+    alert('❌ Could not set password. Please try again.');
+    return;
+  }
+  appState.auth.isAuthenticated = true;
   
   appState.user.name = usernameInput;
   appState.user.email = emailInput;
@@ -864,6 +911,92 @@ function saveProfile() {
   document.getElementById('password').value = '';
   document.getElementById('passwordConfirm').value = '';
   alert('✓ Profile saved!\n\nUsername: ' + usernameInput + '\nEmail: ' + emailInput + '\nLocation: ' + locationInput);
+}
+
+function getAuthUserId() {
+  return (appState.user.email || appState.user.name || '').trim();
+}
+
+async function setPasswordOnBackend(userId, password) {
+  if (!userId) {
+    alert('⚠️ Please enter an email or username first.');
+    return false;
+  }
+  if (typeof backendUrl === 'undefined' || !backendUrl) {
+    alert('❌ Backend URL not configured.');
+    return false;
+  }
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/set-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, password })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Failed to set password');
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Set password error:', error);
+    alert('❌ Could not reach backend to set password.');
+    return false;
+  }
+}
+
+async function loginWithPassword() {
+  const password = (document.getElementById('loginPassword').value || '').trim();
+  const userId = getAuthUserId();
+  if (!userId) {
+    alert('⚠️ No user found. Please create a profile first.');
+    return;
+  }
+  if (!password) {
+    alert('⚠️ Please enter your password.');
+    return;
+  }
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/verify-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, password })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Invalid password');
+      return;
+    }
+    appState.auth.isAuthenticated = true;
+    document.getElementById('loginPassword').value = '';
+    hideLoginModal();
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('❌ Could not reach backend to verify password.');
+  }
+}
+
+function showLoginModal() {
+  const userId = getAuthUserId();
+  if (!userId) return;
+  const modal = document.getElementById('loginModal');
+  if (!modal) return;
+  const userField = document.getElementById('loginUserId');
+  if (userField) userField.value = userId;
+  modal.classList.add('active');
+}
+
+function hideLoginModal() {
+  const modal = document.getElementById('loginModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+}
+
+function requireLoginIfNeeded() {
+  const userId = getAuthUserId();
+  if (userId && !appState.auth.isAuthenticated) {
+    showLoginModal();
+  }
 }
 
 function connectSocial(provider) {
@@ -1659,15 +1792,38 @@ function updateAllDisplays() {
 function toggleTheme() {
   const html = document.documentElement;
   const currentTheme = html.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  let newTheme;
+  
+  if (currentTheme === 'system') {
+    // If on system mode, switch to opposite of system preference
+    const systemPref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    newTheme = systemPref === 'dark' ? 'light' : 'dark';
+  } else {
+    // If on manual mode, switch between light/dark, or go back to system
+    newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  }
+  
   html.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
   updateThemeButton(newTheme);
 }
 
+function setSystemTheme() {
+  const html = document.documentElement;
+  if (html.getAttribute('data-theme') === 'system') {
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    html.setAttribute('data-theme', systemTheme);
+    updateThemeButton('system');
+  }
+}
+
 function updateThemeButton(theme) {
   const btn = document.querySelector('.theme-toggle');
-  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  if (theme === 'system') {
+    btn.textContent = window.matchMedia('(prefers-color-scheme: dark)').matches ? '🌙 (System)' : '☀️ (System)';
+  } else {
+    btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  }
 }
 
 function copyEmail() {
@@ -1765,12 +1921,40 @@ function applyTheme(themeName, primaryColor, primaryDark) {
 
 function toggleDarkMode() {
   const html = document.documentElement;
-  const isDark = appState.settings.darkMode;
-  appState.settings.darkMode = !isDark;
-  html.setAttribute('data-theme', !isDark ? 'dark' : 'light');
-  updateThemeButton(!isDark ? 'dark' : 'light');
+  const modes = ['light', 'dark', 'system'];
+  const currentMode = appState.settings.darkModeMode || 'manual';
+  let nextMode = 'light';
+  
+  // Cycle through modes: light -> dark -> system -> light
+  if (currentMode === 'manual' || currentMode === 'light') {
+    nextMode = 'dark';
+  } else if (currentMode === 'dark') {
+    nextMode = 'system';
+  }
+  
+  appState.settings.darkModeMode = nextMode;
+  
+  // Apply theme
+  if (nextMode === 'system') {
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    html.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+  } else {
+    html.setAttribute('data-theme', nextMode);
+    appState.settings.darkMode = nextMode === 'dark';
+  }
+  
+  updateThemeButton(nextMode);
   const toggle = document.getElementById('darkModeToggle');
-  toggle.classList.toggle('on');
+  if (nextMode === 'system') {
+    toggle.classList.add('system-mode');
+  } else {
+    toggle.classList.remove('system-mode');
+    if (nextMode === 'dark') {
+      toggle.classList.add('on');
+    } else {
+      toggle.classList.remove('on');
+    }
+  }
   saveAppState();
 }
 
@@ -2036,6 +2220,7 @@ window.addEventListener('load', () => {
   updateAllDisplays();
   setTimeout(initializeSettings, 100);
   switchTab(appState.currentTab || 'setup');
+  requireLoginIfNeeded();
   const tabs = document.querySelector('.tabs');
   if (tabs) {
     tabs.addEventListener('click', (e) => {
@@ -2053,6 +2238,10 @@ document.addEventListener('keydown', (e) => {
     else if (e.key === 'ArrowRight') { e.preventDefault(); nextTab(); }
   }
   if (e.key === 'Escape') {
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal && loginModal.classList.contains('active') && !appState.auth?.isAuthenticated) {
+      return;
+    }
     document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
   }
 });

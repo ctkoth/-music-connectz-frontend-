@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import Stripe from 'stripe';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
+import bcrypt from 'bcrypt';
 
 // Load environment variables
 dotenv.config();
@@ -238,6 +239,87 @@ app.post('/api/verify/sms/check', (req, res) => {
   const result = verifyCode(phoneCodes, phone, code);
   if (!result.ok) return res.status(400).json({ error: result.error });
   res.json({ ok: true });
+});
+
+// Password validation and storage (for validation only, not persisted without backend database)
+// Simple in-memory store for demonstration
+const userPasswords = new Map();
+
+// Validate password strength
+function validatePasswordStrength(password) {
+  if (!password || password.length < 8) {
+    return { ok: false, error: 'Password must be at least 8 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { ok: false, error: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { ok: false, error: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { ok: false, error: 'Password must contain at least one number' };
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return { ok: false, error: 'Password must contain at least one special character (!@#$%^&*)' };
+  }
+  return { ok: true };
+}
+
+// Set password for user
+app.post('/api/auth/set-password', async (req, res) => {
+  try {
+    const { userId, password } = req.body || {};
+    
+    if (!userId || !password) {
+      return res.status(400).json({ error: 'User ID and password required' });
+    }
+
+    // Validate password strength
+    const validation = validatePasswordStrength(password);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    // Hash password with bcrypt
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Store in memory (NOTE: This is not persisted without a database)
+    userPasswords.set(userId, hashedPassword);
+
+    res.json({ ok: true, message: 'Password set successfully (in-memory storage)' });
+  } catch (error) {
+    console.error('Password set error:', error);
+    res.status(500).json({ error: 'Failed to set password' });
+  }
+});
+
+// Verify password for user
+app.post('/api/auth/verify-password', async (req, res) => {
+  try {
+    const { userId, password } = req.body || {};
+    
+    if (!userId || !password) {
+      return res.status(400).json({ error: 'User ID and password required' });
+    }
+
+    const hashedPassword = userPasswords.get(userId);
+    if (!hashedPassword) {
+      return res.status(404).json({ error: 'User or password not found' });
+    }
+
+    // Compare password with hashed version
+    const isValid = await bcrypt.compare(password, hashedPassword);
+    
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    res.json({ ok: true, message: 'Password verified successfully' });
+  } catch (error) {
+    console.error('Password verification error:', error);
+    res.status(500).json({ error: 'Failed to verify password' });
+  }
 });
 
 app.listen(port, () => {
