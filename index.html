@@ -698,8 +698,12 @@
       </div>
     </div>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places&loading=async&callback=initMapsCallback"></script>
   <script>
+  window.initMapsCallback = function() {
+    if (appState.user.location) initMap();
+  };
+  
   function playMedia(idx) {
     const example = appState.examples[idx];
     if (!example || !example.media) { alert('❌ No media found for this work'); return; }
