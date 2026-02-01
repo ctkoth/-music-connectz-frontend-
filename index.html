@@ -2522,14 +2522,31 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Load Google Maps after everything else
-const script = document.createElement('script');
-script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
-script.async = true;
-script.onload = function() {
-  window.initMapsCallback();
-};
-document.head.appendChild(script);
+// Load Google Maps after everything else is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+      const script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
+      script.async = true;
+      script.onload = function() {
+        if (window.initMapsCallback) window.initMapsCallback();
+      };
+      document.head.appendChild(script);
+    }, 500);
+  });
+} else {
+  // DOM is already loaded
+  setTimeout(() => {
+    const script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
+    script.async = true;
+    script.onload = function() {
+      if (window.initMapsCallback) window.initMapsCallback();
+    };
+    document.head.appendChild(script);
+  }, 500);
+}
 </script>
 </body>
 </html>
