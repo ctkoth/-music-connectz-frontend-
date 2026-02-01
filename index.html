@@ -265,6 +265,15 @@
         </div>
         <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
         <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <div class="form-group">
+          <label>🚭 Substance Use (Select all that apply)</label>
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;"><input type="checkbox" id="substanceMJ" style="width: 16px; height: 16px; cursor: pointer; margin-right: 8px;" /><label for="substanceMJ" style="cursor: pointer; flex: 1; margin: 0;">🌿 Marijuana</label></div>
+            <div style="display: flex; align-items: center; margin-bottom: 8px;"><input type="checkbox" id="substanceAlc" style="width: 16px; height: 16px; cursor: pointer; margin-right: 8px;" /><label for="substanceAlc" style="cursor: pointer; flex: 1; margin: 0;">🍺 Alcohol</label></div>
+            <div style="display: flex; align-items: center; margin-bottom: 8px;"><input type="checkbox" id="substanceCaff" style="width: 16px; height: 16px; cursor: pointer; margin-right: 8px;" /><label for="substanceCaff" style="cursor: pointer; flex: 1; margin: 0;">☕ Caffeine</label></div>
+            <div style="display: flex; align-items: center;"><input type="checkbox" id="substanceCig" style="width: 16px; height: 16px; cursor: pointer; margin-right: 8px;" /><label for="substanceCig" style="cursor: pointer; flex: 1; margin: 0;">🚬 Cigarettes</label></div>
+          </div>
+        </div>
         <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
         <div style="margin-top: 12px;">
           <div style="font-weight: 700; font-size: 12px; margin-bottom: 6px; color: var(--primary);">🔗 Connect Social Accounts</div>
@@ -321,6 +330,7 @@
         <div class="form-group"><label>🎯 Title *</label><input type="text" id="exampleTitle" placeholder="e.g., My Latest Beat" /></div>
         <div class="form-group"><label>📝 Description *</label><textarea id="exampleDesc" placeholder="Tell us about this work..." style="height: 50px;"></textarea></div>
         <div class="form-group"><label>🎵 Genre/Style *</label><button class="btn" onclick="openGenreModal()" style="width: 100%; margin-bottom: 8px;">🎵 Select Genre</button><div id="exampleGenreDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Genre"</div></div>
+        <div class="form-group"><label>😊 Mood *</label><button class="btn" onclick="openMoodModal()" style="width: 100%; margin-bottom: 8px;">😊 Select Mood</button><div id="exampleMoodDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Mood"</div></div>
         <div class="form-group"><label>🎧 Audio/Video File *</label><input type="file" id="exampleMedia" accept="audio/*,video/*" /><div id="currentMediaDisplay" style="margin-top: 6px; font-size: 10px; color: var(--text-light);"></div></div>
         <div class="form-group"><label>🖼️ Thumbnail Image</label><input type="file" id="exampleImage" accept="image/*" /></div>
         <div class="form-group">
@@ -374,6 +384,15 @@
           <div class="filter-row">
             <label style="font-weight: 600; font-size: 11px; min-width: 80px;">📍 Location:</label>
             <input type="text" id="filterLocation" placeholder="City/State" oninput="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;" />
+          </div>
+          <div class="filter-row" style="flex-wrap: wrap; gap: 10px;">
+            <label style="font-weight: 600; font-size: 11px; width: 100%; margin-bottom: 6px;">🚭 Substance Use (Match):</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%;">
+              <label style="display: flex; align-items: center; font-size: 10px; cursor: pointer;"><input type="checkbox" id="filterSubstanceMJ" onchange="applyFilters()" style="margin-right: 4px; cursor: pointer;" /> 🌿 MJ</label>
+              <label style="display: flex; align-items: center; font-size: 10px; cursor: pointer;"><input type="checkbox" id="filterSubstanceAlc" onchange="applyFilters()" style="margin-right: 4px; cursor: pointer;" /> 🍺 Alc</label>
+              <label style="display: flex; align-items: center; font-size: 10px; cursor: pointer;"><input type="checkbox" id="filterSubstanceCaff" onchange="applyFilters()" style="margin-right: 4px; cursor: pointer;" /> ☕ Caff</label>
+              <label style="display: flex; align-items: center; font-size: 10px; cursor: pointer;"><input type="checkbox" id="filterSubstanceCig" onchange="applyFilters()" style="margin-right: 4px; cursor: pointer;" /> 🚬 Cig</label>
+            </div>
           </div>
         </div>
       </div>
@@ -582,6 +601,14 @@
   </div>
 </div>
 
+<div id="moodModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>😊 Select Mood (Spotify)</h2><button class="close-btn" onclick="closeMoodModal()">✕</button></div>
+    <div id="moodCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
+    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeMoodModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addMood()" style="flex: 1;">✓ Select</button></div>
+  </div>
+</div>
+
 <div id="skillModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2 id="skillModalTitle">Select Skills</h2><button class="close-btn" onclick="closeSkillModal()">✕</button></div>
@@ -728,13 +755,14 @@ const instrumentDatabase = {
 };
 
 let appState = {
-  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null},
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null, substances: {mj: false, alc: false, caff: false, cig: false}},
   auth: { isAuthenticated: false },
   personas: [],
   examples: [],
   collabs: [],
   skillsUsed: [],
   selectedGenre: '',
+  selectedMood: '',
   selectedSkillsInModal: new Set(),
   wallet: {balance: 0, earned: 0},
   examplePrivacy: 'private',
@@ -774,6 +802,7 @@ function loadAppState() {
       collabs: loaded.collabs || [],
       skillsUsed: loaded.skillsUsed || [],
       selectedGenre: loaded.selectedGenre || '',
+      selectedMood: loaded.selectedMood || '',
       selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
       wallet: loaded.wallet || {balance: 0, earned: 0},
       examplePrivacy: loaded.examplePrivacy || 'private',
@@ -793,6 +822,10 @@ function loadAppState() {
         phoneVerified: false
       }
     };
+    // Ensure substances object exists
+    if (!appState.user.substances) {
+      appState.user.substances = {mj: false, alc: false, caff: false, cig: false};
+    }
   }
   if (!appState.auth) { appState.auth = { isAuthenticated: false }; }
   if (!appState.settings.darkModeMode) { appState.settings.darkModeMode = 'manual'; }
@@ -906,6 +939,12 @@ async function saveProfile() {
   appState.user.gender = document.getElementById('gender').value;
   appState.user.location = locationInput;
   appState.user.bio = bioInput;
+  appState.user.substances = {
+    mj: document.getElementById('substanceMJ').checked,
+    alc: document.getElementById('substanceAlc').checked,
+    caff: document.getElementById('substanceCaff').checked,
+    cig: document.getElementById('substanceCig').checked
+  };
   
   saveAppState();
   updateProfileDisplay();
@@ -1222,6 +1261,17 @@ function updateProfileDisplay() {
   document.getElementById('pubRatingBadge').textContent = avgRating !== null ? `⭐ ${avgRating}` : '⭐ N/A';
   const skillsList = appState.personas.map(p => p.skills.map(s => ({ name: s.name, startDate: s.startDate })) ).flat();
   document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag">${s.name} • ${calculateExperienceYears(s.startDate)}</span>`).join('') : 'No skills';
+  // Display substance use
+  if (!user.substances) { user.substances = {mj: false, alc: false, caff: false, cig: false}; }
+  const substancesList = [];
+  if (user.substances.mj) substancesList.push('🌿 Marijuana');
+  if (user.substances.alc) substancesList.push('🍺 Alcohol');
+  if (user.substances.caff) substancesList.push('☕ Caffeine');
+  if (user.substances.cig) substancesList.push('🚬 Cigarettes');
+  const pubSubstances = document.querySelector('[style*="Substances"]') || document.createElement('div');
+  if (pubSubstances.parentNode) {
+    pubSubstances.innerHTML = substancesList.length > 0 ? substancesList.join(' • ') : 'None';
+  }
 }
 
 function openSkillModal(personaKey, personaName) {
@@ -1399,6 +1449,24 @@ function closeGenreModal() { document.getElementById('genreModal').classList.rem
 
 function addGenre() { if (!appState.selectedGenre) { alert('❌ Please select a genre'); return; } document.getElementById('exampleGenreDisplay').textContent = appState.selectedGenre; closeGenreModal(); }
 
+function openMoodModal() {
+  const moodCats = document.getElementById('moodCats');
+  moodCats.innerHTML = '';
+  const moods = ['Peaceful', 'Energetic', 'Happy', 'Sad', 'Angry', 'Romantic', 'Relaxed', 'Uplifting', 'Dark', 'Playful', 'Melancholic', 'Aggressive', 'Calm', 'Intense', 'Dreamy', 'Motivational', 'Chill', 'Euphoric', 'Suspenseful', 'Nostalgic', 'Epic', 'Groovy', 'Gentle', 'Powerful', 'Mystical'];
+  moods.forEach(mood => {
+    const btn = document.createElement('button');
+    btn.className = `genre-btn ${appState.selectedMood === mood ? 'sel' : ''}`;
+    btn.textContent = mood;
+    btn.onclick = () => { document.querySelectorAll('#moodCats .genre-btn').forEach(b => b.classList.remove('sel')); btn.classList.add('sel'); appState.selectedMood = mood; };
+    moodCats.appendChild(btn);
+  });
+  document.getElementById('moodModal').classList.add('active');
+}
+
+function closeMoodModal() { document.getElementById('moodModal').classList.remove('active'); }
+
+function addMood() { if (!appState.selectedMood) { alert('❌ Please select a mood'); return; } document.getElementById('exampleMoodDisplay').textContent = appState.selectedMood; closeMoodModal(); }
+
 function findCategoryForSkill(personaKey, skillName) {
   const personaDb = instrumentDatabase[personaKey];
   if (!personaDb) return null;
@@ -1531,11 +1599,12 @@ function uploadExample() {
   const title = document.getElementById('exampleTitle').value.trim();
   const desc = document.getElementById('exampleDesc').value.trim();
   const mediaFile = document.getElementById('exampleMedia').files[0];
-  if (!title || !desc || !appState.selectedGenre || !mediaFile || appState.skillsUsed.length === 0) { 
+  if (!title || !desc || !appState.selectedGenre || !appState.selectedMood || !mediaFile || appState.skillsUsed.length === 0) { 
     let msg = '❌ VALIDATION ERROR: Fill all required fields:\n';
     if (!title) msg += '- Title\n';
     if (!desc) msg += '- Description\n';
     if (!appState.selectedGenre) msg += '- Genre\n';
+    if (!appState.selectedMood) msg += '- Mood\n';
     if (!mediaFile) msg += '- Media File\n';
     if (appState.skillsUsed.length === 0) msg += '- At least one skill (click "📋 Select Skills Used" button)\n\nDid you add personas and skills in the PERSONAS tab?';
     alert(msg);
@@ -1543,7 +1612,7 @@ function uploadExample() {
   }
   const reader = new FileReader();
   reader.onload = (e) => {
-    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
+    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, mood: appState.selectedMood, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
     const imageFile = document.getElementById('exampleImage').files[0];
     if (imageFile) {
       const imgReader = new FileReader();
@@ -1561,11 +1630,13 @@ function finalizeExample(example) {
   if (editIdx) { appState.examples[parseInt(editIdx)] = example; alert('✓ Example updated!'); } else { appState.examples.push(example); alert('✓ Example uploaded!'); }
   appState.skillsUsed = [];
   appState.selectedGenre = '';
+  appState.selectedMood = '';
   document.getElementById('exampleTitle').value = '';
   document.getElementById('exampleDesc').value = '';
   document.getElementById('exampleMedia').value = '';
   document.getElementById('exampleImage').value = '';
   document.getElementById('exampleGenreDisplay').textContent = 'Click "Select Genre"';
+  document.getElementById('exampleMoodDisplay').textContent = 'Click "Select Mood"';
   updateSkillsUsedDisplay();
   cancelEditExample();
   renderExamplesDisplay();
@@ -1579,7 +1650,7 @@ function renderExamplesDisplay() {
   appState.examples.forEach((example, idx) => {
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
     display.appendChild(card);
   });
 }
@@ -1589,7 +1660,9 @@ function editExample(idx) {
   document.getElementById('exampleTitle').value = example.title;
   document.getElementById('exampleDesc').value = example.desc;
   document.getElementById('exampleGenreDisplay').textContent = example.genre;
+  document.getElementById('exampleMoodDisplay').textContent = example.mood || 'Click "Select Mood"';
   appState.selectedGenre = example.genre;
+  appState.selectedMood = example.mood || '';
   appState.skillsUsed = [...example.skills];
   updateSkillsUsedDisplay();
   setExamplePrivacy(example.privacy);
@@ -1607,6 +1680,7 @@ function cancelEditExample() {
   document.getElementById('exampleCancelBtn').style.display = 'none';
   document.getElementById('currentMediaDisplay').textContent = '';
   appState.examplePrivacy = 'private';
+  appState.selectedMood = '';
   setExamplePrivacy('private');
 }
 
@@ -1651,7 +1725,7 @@ function postCollabRequest() {
   if (minAge > maxAge) { alert('❌ Minimum age cannot be greater than maximum age'); return; }
   if (budgetMin !== null && budgetMax !== null && budgetMin > budgetMax) { alert('❌ Budget min cannot exceed budget max'); return; }
   const budgetRange = (budgetMin !== null || budgetMax !== null) ? { min: budgetMin, max: budgetMax } : null;
-  const collab = { id: Date.now(), personaIdx: parseInt(personaIdx), personaName: appState.personas[parseInt(personaIdx)].name, exampleTitle: appState.examples[parseInt(exampleIdx)].title, description: desc, userName: appState.user.name || 'Anonymous', userLocation: appState.user.location || 'Unknown', userPic: appState.user.profilePic || null, userLat: appState.user.lat || null, userLng: appState.user.lng || null, timestamp: new Date().toLocaleString(), requirements: { ageRange: {min: minAge, max: maxAge}, maxDistance: maxDist, budgetRange: budgetRange, minExperience: minExp, minProfileRating: minProfileRating, minPictureRating: minPictureRating, preferredGender: prefGender }, ratings: [], comments: [] };
+  const collab = { id: Date.now(), personaIdx: parseInt(personaIdx), personaName: appState.personas[parseInt(personaIdx)].name, exampleTitle: appState.examples[parseInt(exampleIdx)].title, description: desc, userName: appState.user.name || 'Anonymous', userLocation: appState.user.location || 'Unknown', userPic: appState.user.profilePic || null, userSubstances: appState.user.substances || {mj: false, alc: false, caff: false, cig: false}, userLat: appState.user.lat || null, userLng: appState.user.lng || null, timestamp: new Date().toLocaleString(), requirements: { ageRange: {min: minAge, max: maxAge}, maxDistance: maxDist, budgetRange: budgetRange, minExperience: minExp, minProfileRating: minProfileRating, minPictureRating: minPictureRating, preferredGender: prefGender }, ratings: [], comments: [] };
   const editIdx = document.getElementById('editingCollabIdx').value;
   if (editIdx) { appState.collabs[parseInt(editIdx)] = collab; alert('✓ Collab request updated!'); } else { appState.collabs.push(collab); alert('✓ Collab request posted!'); }
   document.getElementById('collabPersona').value = '';
@@ -1690,18 +1764,58 @@ function renderCollabFeed() {
   appState.filteredCollabs = [...appState.collabs];
   const filterPersona = document.getElementById('filterPersona').value;
   const filterLocation = document.getElementById('filterLocation').value;
+  const filterMJ = document.getElementById('filterSubstanceMJ').checked;
+  const filterAlc = document.getElementById('filterSubstanceAlc').checked;
+  const filterCaff = document.getElementById('filterSubstanceCaff').checked;
+  const filterCig = document.getElementById('filterSubstanceCig').checked;
+  
   if (filterPersona) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.personaName === filterPersona);
   if (filterLocation) appState.filteredCollabs = appState.filteredCollabs.filter(c => c.userLocation.toLowerCase().includes(filterLocation.toLowerCase()));
+  
+  // Filter by substance match - check if collaborator matches selected filters
+  const selectedSubstances = [filterMJ, filterAlc, filterCaff, filterCig];
+  if (selectedSubstances.some(x => x)) {
+    appState.filteredCollabs = appState.filteredCollabs.filter(c => {
+      if (!c.userSubstances) return false;
+      const mjMatch = !filterMJ || c.userSubstances.mj;
+      const alcMatch = !filterAlc || c.userSubstances.alc;
+      const caffMatch = !filterCaff || c.userSubstances.caff;
+      const cigMatch = !filterCig || c.userSubstances.cig;
+      return mjMatch && alcMatch && caffMatch && cigMatch;
+    });
+  }
+  
   document.getElementById('feedCount').textContent = appState.filteredCollabs.length;
   if (appState.filteredCollabs.length === 0) { feed.innerHTML = 'No collaboration requests matching your filters'; return; }
   feed.innerHTML = '';
   appState.filteredCollabs.forEach((collab, idx) => {
     const originalIdx = appState.collabs.findIndex(c => c.id === collab.id);
+    const substanceTags = collab.userSubstances ? [
+      collab.userSubstances.mj ? '🌿' : '',
+      collab.userSubstances.alc ? '🍺' : '',
+      collab.userSubstances.caff ? '☕' : '',
+      collab.userSubstances.cig ? '🚬' : ''
+    ].filter(x => x).join(' ') : '';
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button></div>`;
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation} ${substanceTags ? '• ' + substanceTags : ''}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button></div>`;
     feed.appendChild(card);
   });
+}
+
+function applyFilters() {
+  renderCollabFeed();
+  renderMapUsers();
+}
+
+function resetFilters() {
+  document.getElementById('filterPersona').value = '';
+  document.getElementById('filterLocation').value = '';
+  document.getElementById('filterSubstanceMJ').checked = false;
+  document.getElementById('filterSubstanceAlc').checked = false;
+  document.getElementById('filterSubstanceCaff').checked = false;
+  document.getElementById('filterSubstanceCig').checked = false;
+  applyFilters();
 }
 
 function editCollab(idx) {
@@ -1788,6 +1902,12 @@ function updateAllDisplays() {
   document.getElementById('gender').value = appState.user.gender;
   document.getElementById('location').value = appState.user.location;
   document.getElementById('bio').value = appState.user.bio;
+  // Load substance checkboxes
+  if (!appState.user.substances) { appState.user.substances = {mj: false, alc: false, caff: false, cig: false}; }
+  document.getElementById('substanceMJ').checked = appState.user.substances.mj || false;
+  document.getElementById('substanceAlc').checked = appState.user.substances.alc || false;
+  document.getElementById('substanceCaff').checked = appState.user.substances.caff || false;
+  document.getElementById('substanceCig').checked = appState.user.substances.cig || false;
 }
 
 function toggleTheme() {
