@@ -226,7 +226,7 @@
 <body>
 <div class="container">
   <div class="header">
-    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button></div>
+    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button><button class="nav-btn" onclick="document.getElementById('loginModal').classList.add('active')">🔐 Login</button></div>
       <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/30/2026</div></div>
     <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
@@ -606,6 +606,37 @@
     <div class="modal-header"><h2>😊 Select Mood (Spotify)</h2><button class="close-btn" onclick="closeMoodModal()">✕</button></div>
     <div id="moodCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
     <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeMoodModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addMood()" style="flex: 1;">✓ Select</button></div>
+  </div>
+</div>
+
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🔐 Sign In</h2><button class="close-btn" onclick="closeLoginModal()">✕</button></div>
+    <div id="loginTab" style="display: block;">
+      <div class="form-group"><label>📧 Email</label><input type="email" id="loginEmail" placeholder="your@email.com" /></div>
+      <div class="form-group"><label>🔒 Password</label><input type="password" id="loginPassword" placeholder="Password" /></div>
+      <button class="btn btn-success" onclick="handleLogin()" style="width: 100%; margin-bottom: 10px;">✓ Sign In</button>
+      <button class="btn btn-secondary" onclick="switchToForgotPassword()" style="width: 100%; margin-bottom: 10px;">Forgot Password?</button>
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+        <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 11px; font-weight: 600;">OR SIGN IN WITH</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <button class="social-btn" onclick="socialLogin('google')" style="background: #DB4437; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Google"><span style="font-size: 14px;">🔴</span><br>Google</button>
+          <button class="social-btn" onclick="socialLogin('facebook')" style="background: #1877F2; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Facebook"><span style="font-size: 14px;">🔵</span><br>Facebook</button>
+          <button class="social-btn" onclick="socialLogin('apple')" style="background: #000000; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Apple"><span style="font-size: 14px;">🍎</span><br>Apple</button>
+          <button class="social-btn" onclick="socialLogin('github')" style="background: #24292E; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="GitHub"><span style="font-size: 14px;">⬛</span><br>GitHub</button>
+          <button class="social-btn" onclick="socialLogin('microsoft')" style="background: #0078D4; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Microsoft"><span style="font-size: 14px;">🟦</span><br>Microsoft</button>
+          <button class="social-btn" onclick="socialLogin('twitter')" style="background: #1DA1F2; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Twitter"><span style="font-size: 14px;">🐦</span><br>Twitter</button>
+        </div>
+      </div>
+    </div>
+    <div id="forgotPasswordTab" style="display: none;">
+      <div style="background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; color: var(--text-light);">
+        <strong>📧 Password Recovery</strong><br>Enter your email address and we'll send you a link to reset your password.
+      </div>
+      <div class="form-group"><label>📧 Your Email</label><input type="email" id="forgotEmail" placeholder="your@email.com" /></div>
+      <button class="btn btn-success" onclick="handleForgotPassword()" style="width: 100%; margin-bottom: 10px;">Send Reset Link</button>
+      <button class="btn btn-secondary" onclick="switchToLogin()" style="width: 100%;">← Back to Sign In</button>
+    </div>
   </div>
 </div>
 
@@ -1466,6 +1497,92 @@ function openMoodModal() {
 function closeMoodModal() { document.getElementById('moodModal').classList.remove('active'); }
 
 function addMood() { if (!appState.selectedMood) { alert('❌ Please select a mood'); return; } document.getElementById('exampleMoodDisplay').textContent = appState.selectedMood; closeMoodModal(); }
+
+function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
+
+function switchToForgotPassword() { document.getElementById('loginTab').style.display = 'none'; document.getElementById('forgotPasswordTab').style.display = 'block'; }
+
+function switchToLogin() { document.getElementById('loginTab').style.display = 'block'; document.getElementById('forgotPasswordTab').style.display = 'none'; }
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  
+  if (!email || !password) { alert('❌ Please enter email and password'); return; }
+  
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('userId', data.userId);
+      alert('✓ Login successful!');
+      closeLoginModal();
+      location.reload();
+    } else {
+      alert('❌ ' + (data.message || 'Login failed'));
+    }
+  } catch (e) {
+    alert('❌ Connection error. Trying local auth...');
+    // Fallback to local storage for demo
+    if (appState.user && appState.user.email === email && appState.user.password === password) {
+      alert('✓ Local login successful!');
+      closeLoginModal();
+    } else {
+      alert('❌ Invalid credentials');
+    }
+  }
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { alert('❌ Please enter your email'); return; }
+  
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      alert('✓ Password reset link sent to your email!');
+      switchToLogin();
+    } else {
+      alert('❌ ' + (data.message || 'Email not found'));
+    }
+  } catch (e) {
+    alert('❌ Error: ' + e.message + '. Check your email or contact support.');
+  }
+}
+
+async function socialLogin(provider) {
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/social/${provider}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    if (data.authUrl) {
+      window.location.href = data.authUrl;
+    } else if (data.success) {
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('userId', data.userId);
+      alert('✓ Login successful!');
+      closeLoginModal();
+      location.reload();
+    }
+  } catch (e) {
+    alert(`❌ ${provider} login failed: ` + e.message);
+  }
+}
 
 function findCategoryForSkill(personaKey, skillName) {
   const personaDb = instrumentDatabase[personaKey];
