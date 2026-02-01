@@ -889,11 +889,7 @@ function loadAppState() {
 
 function switchTab(tabName) {
   try {
-    const hasUser = Boolean(getAuthUserId());
-    if (!appState.auth?.isAuthenticated && (hasUser || tabName !== 'setup')) {
-      showLoginModal();
-      return;
-    }
+    // Just switch the tab without forcing authentication
     const tabEl = document.getElementById(tabName);
     if (!tabEl) { console.warn('Tab not found:', tabName); return; }
     
