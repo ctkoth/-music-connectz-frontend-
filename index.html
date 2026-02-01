@@ -226,7 +226,7 @@
 <body>
 <div class="container">
   <div class="header">
-    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button><button class="nav-btn" onclick="document.getElementById('loginModal').classList.add('active')">🔐 Login</button></div>
+    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button><button class="nav-btn" id="authBtn" onclick="toggleAuthModal()">🔐 Login</button><button class="nav-btn" id="logoutBtn" onclick="handleLogout()" style="display: none; background: #F44336;">🚪 Logout</button></div>
       <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/30/2026</div></div>
     <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
@@ -1504,6 +1504,39 @@ function addMood() { if (!appState.selectedMood) { alert('❌ Please select a mo
 
 function closeLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
 
+function toggleAuthModal() { 
+  const loginModal = document.getElementById('loginModal');
+  if (appState.auth?.isAuthenticated) {
+    handleLogout();
+  } else {
+    loginModal.classList.add('active');
+  }
+}
+
+function handleLogout() {
+  if (confirm('Are you sure you want to logout?')) {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    appState.auth = { isAuthenticated: false };
+    updateAuthUI();
+    closeLoginModal();
+    alert('✓ Logged out successfully!');
+  }
+}
+
+function updateAuthUI() {
+  const authBtn = document.getElementById('authBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
+  if (appState.auth?.isAuthenticated) {
+    authBtn.style.display = 'none';
+    logoutBtn.style.display = 'block';
+  } else {
+    authBtn.style.display = 'block';
+    logoutBtn.style.display = 'none';
+  }
+}
+
 function switchToForgotPassword() { document.getElementById('loginTab').style.display = 'none'; document.getElementById('forgotPasswordTab').style.display = 'block'; }
 
 function switchToLogin() { document.getElementById('loginTab').style.display = 'block'; document.getElementById('forgotPasswordTab').style.display = 'none'; }
@@ -1525,9 +1558,10 @@ async function handleLogin() {
     if (data.success) {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('userId', data.userId);
+      appState.auth = { isAuthenticated: true };
       alert('✓ Login successful!');
+      updateAuthUI();
       closeLoginModal();
-      location.reload();
     } else {
       alert('❌ ' + (data.message || 'Login failed'));
     }
@@ -1535,7 +1569,9 @@ async function handleLogin() {
     alert('❌ Connection error. Trying local auth...');
     // Fallback to local storage for demo
     if (appState.user && appState.user.email === email && appState.user.password === password) {
+      appState.auth = { isAuthenticated: true };
       alert('✓ Local login successful!');
+      updateAuthUI();
       closeLoginModal();
     } else {
       alert('❌ Invalid credentials');
@@ -2016,6 +2052,7 @@ function updateAllDisplays() {
   updateCollabPersonaOptions();
   renderCollabFeed();
   updateProfileDisplay();
+  updateAuthUI();
   document.getElementById('username').value = appState.user.name;
   document.getElementById('email').value = appState.user.email;
   document.getElementById('phone').value = appState.user.phone;
