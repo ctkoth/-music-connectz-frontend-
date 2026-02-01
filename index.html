@@ -2484,7 +2484,6 @@ window.addEventListener('load', () => {
   updateAllDisplays();
   setTimeout(initializeSettings, 100);
   switchTab(appState.currentTab || 'setup');
-  requireLoginIfNeeded();
   const tabs = document.querySelector('.tabs');
   if (tabs) {
     tabs.addEventListener('click', (e) => {
