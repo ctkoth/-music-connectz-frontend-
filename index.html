@@ -698,10 +698,11 @@
       </div>
     </div>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places&loading=async&callback=initMapsCallback"></script>
   <script>
   window.initMapsCallback = function() {
-    if (appState.user.location) initMap();
+    if (appState && appState.user && appState.user.location) {
+      setTimeout(() => initMap(), 100);
+    }
   };
   
   function playMedia(idx) {
@@ -2520,6 +2521,15 @@ document.addEventListener('keydown', (e) => {
     document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
   }
 });
+
+// Load Google Maps after everything else
+const script = document.createElement('script');
+script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
+script.async = true;
+script.onload = function() {
+  window.initMapsCallback();
+};
+document.head.appendChild(script);
 </script>
 </body>
 </html>
