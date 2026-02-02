@@ -1355,10 +1355,22 @@ function ipLocationFallback(callback) {
 
 function computeUserRating() {
   const username = appState.user.name || 'Anonymous';
-  const allRatings = appState.collabs
+  
+  // Get ratings from collabs
+  const collabRatings = appState.collabs
     .filter(c => (c.userName || 'Anonymous') === username)
     .flatMap(c => c.ratings || [])
     .filter(n => typeof n === 'number' && !isNaN(n));
+  
+  // Get ratings from work examples
+  const exampleRatings = appState.examples
+    .filter(ex => (ex.userName || 'Anonymous') === username)
+    .flatMap(ex => ex.ratings || [])
+    .filter(n => typeof n === 'number' && !isNaN(n));
+  
+  // Combine all ratings
+  const allRatings = [...collabRatings, ...exampleRatings];
+  
   if (allRatings.length === 0) return null;
   const avg = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
   const clamped = Math.min(10, Math.max(0, avg));
@@ -2064,7 +2076,29 @@ function renderExamplesDisplay() {
     }
     statsHtml += `</div></div>`;
     
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${statsHtml}${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    // Add comments section
+    const comments = example.comments || [];
+    let commentsHtml = `<div style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 6px;">
+      <div style="font-size: 11px; font-weight: 600; margin-bottom: 6px;">💬 Comments (${comments.length}):</div>`;
+    
+    if (comments.length > 0) {
+      commentsHtml += `<div style="max-height: 150px; overflow-y: auto; margin-bottom: 6px;">`;
+      comments.forEach((comment, cIdx) => {
+        commentsHtml += `<div style="background: var(--surface); padding: 6px; border-radius: 4px; margin-bottom: 4px; font-size: 10px;">
+          <div style="font-weight: 600; color: var(--primary);">${comment.userName}</div>
+          <div style="color: var(--text);">${comment.text}</div>
+          <div style="color: var(--text-light); font-size: 9px;">${comment.timestamp}</div>
+        </div>`;
+      });
+      commentsHtml += `</div>`;
+    }
+    
+    commentsHtml += `<div style="display: flex; gap: 4px;">
+      <input type="text" id="commentInput${idx}" placeholder="Add a comment..." style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 10px; background: var(--surface); color: var(--text);">
+      <button class="btn btn-primary btn-small" onclick="addComment('example', ${idx})">Post</button>
+    </div></div>`;
+    
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${statsHtml}${commentsHtml}${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button><button class="btn btn-secondary btn-small" onclick="sharePost('example', ${idx})">📤 Share</button></div>`;
     display.appendChild(card);
   });
 }
@@ -2106,8 +2140,86 @@ function rateExample(idx, rating) {
   appState.examples[idx].ratings.push(rating);
   const avgRating = appState.examples[idx].ratings.reduce((sum, r) => sum + r, 0) / appState.examples[idx].ratings.length;
   appState.examples[idx].averageRating = avgRating;
-  alert(`✓ You rated this work ${rating}/10!\nNew average: ${avgRating.toFixed(1)}/10`);
+  
+  // Update profile rating badge
+  const profileRating = computeUserRating();
+  document.getElementById('pubRatingBadge').textContent = profileRating !== null ? `⭐ ${profileRating}` : '⭐ N/A';
+  
+  alert(`✓ You rated this work ${rating}/10!\nNew average: ${avgRating.toFixed(1)}/10\n\nProfile rating updated to: ${profileRating !== null ? profileRating + '/10' : 'N/A'}`);
   renderExamplesDisplay();
+  saveAppState();
+}
+
+function addComment(type, idx) {
+  const inputId = `commentInput${idx}`;
+  const commentText = document.getElementById(inputId)?.value.trim();
+  
+  if (!commentText) {
+    alert('❌ Please enter a comment');
+    return;
+  }
+  
+  const comment = {
+    userName: appState.user.name || 'Anonymous',
+    userPic: appState.user.profilePic || null,
+    text: commentText,
+    timestamp: new Date().toLocaleString()
+  };
+  
+  if (type === 'example') {
+    if (!appState.examples[idx]) return;
+    if (!appState.examples[idx].comments) appState.examples[idx].comments = [];
+    appState.examples[idx].comments.push(comment);
+    renderExamplesDisplay();
+  } else if (type === 'collab') {
+    if (!appState.collabs[idx]) return;
+    if (!appState.collabs[idx].comments) appState.collabs[idx].comments = [];
+    appState.collabs[idx].comments.push(comment);
+    renderCollabsDisplay();
+  }
+  
+  saveAppState();
+}
+
+function sharePost(type, idx) {
+  let shareText = '';
+  
+  if (type === 'example' && appState.examples[idx]) {
+    const ex = appState.examples[idx];
+    shareText = `Check out "${ex.title}" by ${ex.userName}!\n🎵 ${ex.genre} • 😊 ${ex.mood}\n⭐ Rating: ${ex.averageRating || 'N/A'}/10`;
+  } else if (type === 'collab' && appState.collabs[idx]) {
+    const col = appState.collabs[idx];
+    shareText = `${col.userName} is looking for collaborators!\n👤 ${col.personaName}\n🎵 Work: ${col.exampleTitle}\n📍 ${col.userLocation}`;
+  }
+  
+  if (navigator.share) {
+    navigator.share({
+      title: 'Music ConnectZ',
+      text: shareText,
+      url: window.location.href
+    }).catch(() => {});
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(shareText + '\n' + window.location.href).then(() => {
+      alert('✓ Share link copied to clipboard!');
+    }).catch(() => {
+      alert('Share text:\n\n' + shareText);
+    });
+  }
+}
+
+function rateCollab(idx, rating) {
+  if (!appState.collabs[idx]) return;
+  if (!appState.collabs[idx].ratings) appState.collabs[idx].ratings = [];
+  appState.collabs[idx].ratings.push(rating);
+  const avgRating = appState.collabs[idx].ratings.reduce((sum, r) => sum + r, 0) / appState.collabs[idx].ratings.length;
+  
+  // Update profile rating badge
+  const profileRating = computeUserRating();
+  document.getElementById('pubRatingBadge').textContent = profileRating !== null ? `⭐ ${profileRating}` : '⭐ N/A';
+  
+  alert(`✓ You rated this collab request ${rating}/10!\nNew average: ${avgRating.toFixed(1)}/10\n\nProfile rating updated to: ${profileRating !== null ? profileRating + '/10' : 'N/A'}`);
+  renderCollabFeed();
   saveAppState();
 }
 
@@ -2221,9 +2333,47 @@ function renderCollabFeed() {
       collab.userSubstances.caff ? '☕' : '',
       collab.userSubstances.cig ? '🚬' : ''
     ].filter(x => x).join(' ') : '';
+    
+    // Add rating and comment sections
+    const ratings = collab.ratings || [];
+    const comments = collab.comments || [];
+    const avgRating = ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1) : 'N/A';
+    
+    let interactionHtml = `<div style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 6px;">
+      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 11px;">⭐ <strong>${avgRating}</strong> (${ratings.length} votes)</div>
+        <div style="font-size: 11px;">💬 <strong>${comments.length}</strong> comments</div>
+      </div>
+      <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">Rate (0-10):</div>
+      <div style="display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 8px;">`;
+    
+    for (let i = 0; i <= 10; i++) {
+      interactionHtml += `<button class="btn btn-secondary btn-small" onclick="rateCollab(${originalIdx}, ${i})" style="padding: 3px 7px; min-width: 28px; font-size: 10px;">${i}</button>`;
+    }
+    
+    interactionHtml += `</div>`;
+    
+    // Comments section
+    if (comments.length > 0) {
+      interactionHtml += `<div style="max-height: 120px; overflow-y: auto; margin-bottom: 6px;">`;
+      comments.forEach((comment) => {
+        interactionHtml += `<div style="background: var(--surface); padding: 5px; border-radius: 4px; margin-bottom: 3px; font-size: 10px;">
+          <div style="font-weight: 600; color: var(--primary);">${comment.userName}</div>
+          <div style="color: var(--text);">${comment.text}</div>
+          <div style="color: var(--text-light); font-size: 9px;">${comment.timestamp}</div>
+        </div>`;
+      });
+      interactionHtml += `</div>`;
+    }
+    
+    interactionHtml += `<div style="display: flex; gap: 4px;">
+      <input type="text" id="commentInput${originalIdx}" placeholder="Add comment..." style="flex: 1; padding: 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10px; background: var(--surface); color: var(--text);">
+      <button class="btn btn-primary btn-small" onclick="addComment('collab', ${originalIdx})" style="padding: 5px 8px; font-size: 10px;">Post</button>
+    </div></div>`;
+    
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation} ${substanceTags ? '• ' + substanceTags : ''}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button></div>`;
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation} ${substanceTags ? '• ' + substanceTags : ''}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;"><div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div>${interactionHtml}<div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})">✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})">🗑️ Delete</button><button class="btn btn-secondary btn-small" onclick="sharePost('collab', ${originalIdx})">📤 Share</button></div>`;
     feed.appendChild(card);
   });
 }
