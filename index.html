@@ -1984,7 +1984,9 @@ function uploadExample() {
       userLocation: appState.user.location || 'Unknown',
       views: 0,
       totalWatchTime: 0,
-      earnings: 0
+      earnings: 0,
+      ratings: [],
+      averageRating: 0
     };
     const imageFile = document.getElementById('exampleImage').files[0];
     if (imageFile) {
@@ -2024,23 +2026,45 @@ function renderExamplesDisplay() {
     const card = document.createElement('div');
     card.className = 'post-card';
     
-    // Build earnings stats if premium is enabled
-    let earningsHtml = '';
+    // Build stats display
+    const views = example.views || 0;
+    const ratings = example.ratings || [];
+    const avgRating = ratings.length > 0 ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1) : 'N/A';
+    const mood = example.mood || 'Not set';
+    const skillsList = (example.skills || []).join(', ') || 'None';
+    
+    let statsHtml = `<div style="background: linear-gradient(135deg, #4CAF50 0%, #2196F3 100%); color: white; padding: 10px; border-radius: 6px; margin: 8px 0; font-size: 10px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">👁️ ${views}</div><div style="opacity: 0.9;">Views</div></div>
+        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">⭐ ${avgRating}</div><div style="opacity: 0.9;">Rating (${ratings.length} votes)</div></div>
+      </div>
+      <div style="font-size: 11px; padding: 6px; background: rgba(255,255,255,0.2); border-radius: 4px; margin-bottom: 4px;"><strong>😊 Mood:</strong> ${mood}</div>
+      <div style="font-size: 11px; padding: 6px; background: rgba(255,255,255,0.2); border-radius: 4px;"><strong>🛠️ Skills:</strong> ${skillsList}</div>
+    </div>`;
+    
+    // Add earnings stats if premium is enabled
     if (appState.premium.enabled) {
-      const views = example.views || 0;
       const watchTime = example.totalWatchTime || 0;
       const earnings = example.earnings || 0;
       const watchMinutes = Math.floor(watchTime / 60);
       const watchSeconds = watchTime % 60;
       
-      earningsHtml = `<div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #333; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">👁️ ${views}</div><div style="opacity: 0.8;">Views</div></div>
+      statsHtml += `<div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #333; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">⏱️ ${watchMinutes}:${watchSeconds.toString().padStart(2, '0')}</div><div style="opacity: 0.8;">Watch Time</div></div>
         <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">💰 $${earnings.toFixed(2)}</div><div style="opacity: 0.8;">Earned</div></div>
       </div>`;
     }
     
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${earningsHtml}${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    // Add rating controls
+    statsHtml += `<div style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 6px;">
+      <div style="font-size: 11px; font-weight: 600; margin-bottom: 6px;">Rate this work (0-10):</div>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap;">`;
+    for (let i = 0; i <= 10; i++) {
+      statsHtml += `<button class="btn btn-secondary btn-small" onclick="rateExample(${idx}, ${i})" style="padding: 4px 8px; min-width: 32px;">${i}</button>`;
+    }
+    statsHtml += `</div></div>`;
+    
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${statsHtml}${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
     display.appendChild(card);
   });
 }
@@ -2075,6 +2099,17 @@ function cancelEditExample() {
 }
 
 function removeExample(idx) { if (confirm('Delete this example?')) { appState.examples.splice(idx, 1); renderExamplesDisplay(); saveAppState(); } }
+
+function rateExample(idx, rating) {
+  if (!appState.examples[idx]) return;
+  if (!appState.examples[idx].ratings) appState.examples[idx].ratings = [];
+  appState.examples[idx].ratings.push(rating);
+  const avgRating = appState.examples[idx].ratings.reduce((sum, r) => sum + r, 0) / appState.examples[idx].ratings.length;
+  appState.examples[idx].averageRating = avgRating;
+  alert(`✓ You rated this work ${rating}/10!\nNew average: ${avgRating.toFixed(1)}/10`);
+  renderExamplesDisplay();
+  saveAppState();
+}
 
 function updateCollabPersonaOptions() {
   const select = document.getElementById('collabPersona');
