@@ -4,3 +4,10 @@ node_modules/
 *.log
 .DS_Store
 .vercel
+package-lock.json
+*.bak
+MusicConnectZ_v59.html
+MusicConnectZ_Fixed_original.html
+MusicConnectZ_Fixed.html.bak
+fix_emojis.ps1
+update_play_button.ps1

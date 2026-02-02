@@ -443,6 +443,72 @@
         </div>
       </div>
       <div class="card">
+        <div class="card-header">🏦 Account: Best-ROI Spend</div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; font-size: 11px; line-height: 1.5;">
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--primary);">Top money flows</div>
+          <ul style="padding-left: 16px; margin: 0 0 10px;">
+            <li>Freemium → Pro subscription (boosted visibility, limits removed)</li>
+            <li>In-app boosts (featured profile, pinned projects, DM credits)</li>
+            <li>Marketplace fees on services hired inside the app</li>
+            <li>Sponsorship/affiliate (plugins, sample packs, gear)</li>
+          </ul>
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--primary);">$10/mo starter spend</div>
+          <ul style="padding-left: 16px; margin: 0 0 10px;">
+            <li>Improve the offer: clearer Pro value, trial, and scarcity</li>
+            <li>Short-form content engine (Reels/Shorts/TikTok)</li>
+            <li>Onboarding that pushes profile → project → premium trial</li>
+          </ul>
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--primary);">When spending more helps</div>
+          <ul style="padding-left: 16px; margin: 0;">
+            <li>Always‑on backend (no 15‑minute spin‑down)</li>
+            <li>Faster UX for paying users</li>
+            <li>Small paid ads once conversion is proven</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🌐 Hosting musicconnectz.com ($10/mo)</div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; font-size: 11px; line-height: 1.5;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-weight: 700; margin-bottom: 4px;">Frontend</div>
+              <div>Cloudflare Pages or Vercel (free)</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 4px;">Backend API</div>
+              <div>Render free tier (sleeps after 15 min)</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 4px;">Database</div>
+              <div>Supabase free (500 MB, auto‑pause)</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 4px;">Domain</div>
+              <div>Namecheap (~$9/yr)</div>
+            </div>
+          </div>
+          <div style="margin-top: 8px; color: var(--text-light);">Upgrade when you have consistent daily users or paying customers.</div>
+        </div>
+      </div>
+      <div class="card" id="premiumEarningsCard" style="display: none;">
+        <div class="card-header">💎 Premium Viewing Earnings</div>
+        <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #333; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="text-align: center;">
+              <div style="font-size: 11px; opacity: 0.8;">Per-Second Earnings</div>
+              <div style="font-size: 18px; font-weight: 700;" id="premiumTotalEarnings">$0.00</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 11px; opacity: 0.8;">Current Rate</div>
+              <div style="font-size: 14px; font-weight: 700;">$<span id="premiumCurrentRate">0.01</span>/sec</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: var(--text-light); text-align: center; margin-top: 8px;">
+          💡 Enable premium in Settings to earn per second of viewing time
+        </div>
+      </div>
+      <div class="card">
         <div class="card-header">💳 Accept Payments with Stripe (Tax Included)</div>
         <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;">
           <strong>🔒 Secure Payments:</strong> Stripe automatically calculates and collects taxes based on customer location
@@ -536,7 +602,40 @@
       </div>
 
       <div class="card">
-        <div class="card-header">🔔 Notifications</div>
+        <div class="card-header">� Premium Features - Per-Second Earnings</div>
+        <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #333; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">
+          ⭐ Enable premium to earn money every second your content is being viewed!
+        </div>
+        <div class="toggle-setting">
+          <div>
+            <div style="font-weight: 700;">💎 Premium Earnings Enabled</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Earn per second of viewing time</div>
+          </div>
+          <div class="toggle-switch" onclick="togglePremium()" id="premiumToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 12px;">
+          <label>💵 Rate Per Second (USD)</label>
+          <input type="number" id="premiumRate" step="0.0001" min="0.0001" max="1" value="0.01" onchange="updatePremiumRate(this.value)" placeholder="e.g., 0.01" />
+          <div style="font-size: 10px; color: var(--text-light); margin-top: 4px;">
+            Current: $<span id="premiumRateDisplay">0.01</span>/sec = $<span id="premiumRateMinute">0.60</span>/min = $<span id="premiumRateHour">36.00</span>/hr
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top: 12px;">
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light);">Total Premium Earnings</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--success);" id="premiumEarningsTotal">$0.00</div>
+          </div>
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light);">Status</div>
+            <div style="font-size: 14px; font-weight: 700;" id="premiumStatus">🔒 Disabled</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">�🔔 Notifications</div>
         <div class="toggle-setting">
           <div>
             <div style="font-weight: 700;">📧 Email Notifications</div>
@@ -695,13 +794,34 @@
   function playMedia(idx) {
     const example = appState.examples[idx];
     if (!example || !example.media) { alert('❌ No media found for this work'); return; }
+    
+    // Start viewing session for premium users
+    if (appState.premium.enabled) {
+      appState.viewingSession = {
+        exampleId: example.id,
+        exampleIdx: idx,
+        startTime: Date.now(),
+        totalSeconds: 0
+      };
+    }
+    
     const audioPlayer = document.getElementById('audioPlayer');
     const videoPlayer = document.getElementById('videoPlayer');
     const mediaTitle = document.getElementById('mediaPlayerTitle');
     const mediaMetadata = document.getElementById('mediaMetadata');
     
+    // Increment view count
+    example.views = (example.views || 0) + 1;
+    
     mediaTitle.textContent = ' ' + example.title;
-    mediaMetadata.innerHTML = `<strong>Genre:</strong> ${example.genre || 'N/A'}<br><strong>Skills:</strong> ${(example.skills || []).join(', ') || 'N/A'}<br><strong>Uploaded by:</strong> ${example.userName || 'Unknown'} (${example.userLocation || 'Unknown'})`;
+    
+    // Add premium earnings info to metadata if enabled
+    let earningsInfo = '';
+    if (appState.premium.enabled) {
+      earningsInfo = `<br><strong>💰 Premium:</strong> Earning $${appState.premium.ratePerSecond.toFixed(4)}/sec | Total earned: $${(example.earnings || 0).toFixed(2)}`;
+    }
+    
+    mediaMetadata.innerHTML = `<strong>Genre:</strong> ${example.genre || 'N/A'}<br><strong>Skills:</strong> ${(example.skills || []).join(', ') || 'N/A'}<br><strong>Uploaded by:</strong> ${example.userName || 'Unknown'} (${example.userLocation || 'Unknown'})<br><strong>Views:</strong> ${example.views}${earningsInfo}`;
     
     // Determine if audio or video
     const isAudio = example.mediaType.startsWith('audio/');
@@ -719,6 +839,61 @@
     
     // Open modal first
     document.getElementById('mediaPlayerModal').classList.add('active');
+    
+    // Set up time tracking for premium users
+    const mediaElement = isAudio ? audioPlayer : videoPlayer;
+    let trackingInterval = null;
+    
+    if (appState.premium.enabled) {
+      // Update earnings every second while playing
+      mediaElement.addEventListener('play', () => {
+        if (trackingInterval) clearInterval(trackingInterval);
+        trackingInterval = setInterval(() => {
+          if (!mediaElement.paused) {
+            appState.viewingSession.totalSeconds++;
+            const earnings = appState.premium.ratePerSecond;
+            
+            // Creator always earns
+            appState.examples[idx].earnings = (appState.examples[idx].earnings || 0) + earnings;
+            appState.examples[idx].totalWatchTime = (appState.examples[idx].totalWatchTime || 0) + 1;
+            
+            // Free viewing only for ctkoth@gmail.com
+            const viewerEmail = (appState.user.email || '').toLowerCase().trim();
+            const isFreeUser = viewerEmail === 'ctkoth@gmail.com';
+            
+            if (!isFreeUser) {
+              // Everyone else pays - deduct from their wallet
+              appState.wallet.balance -= earnings;
+            }
+            
+            // Creator earnings always increase
+            appState.wallet.earned += earnings;
+            appState.premium.totalEarnings += earnings;
+            
+            // Update displays
+            updateWalletDisplay();
+            const freeNote = isFreeUser ? '<br><span style="color: #4CAF50; font-weight: 700;">✨ Free viewing for ctkoth@gmail.com</span>' : '';
+            mediaMetadata.innerHTML = `<strong>Genre:</strong> ${example.genre || 'N/A'}<br><strong>Skills:</strong> ${(example.skills || []).join(', ') || 'N/A'}<br><strong>Uploaded by:</strong> ${example.userName || 'Unknown'} (${example.userLocation || 'Unknown'})<br><strong>Views:</strong> ${example.views}<br><strong>💰 Premium:</strong> Earning $${appState.premium.ratePerSecond.toFixed(4)}/sec | Total earned: $${appState.examples[idx].earnings.toFixed(2)}${freeNote}`;
+            
+            saveAppState();
+          }
+        }, 1000);
+      });
+      
+      mediaElement.addEventListener('pause', () => {
+        if (trackingInterval) {
+          clearInterval(trackingInterval);
+          trackingInterval = null;
+        }
+      });
+      
+      mediaElement.addEventListener('ended', () => {
+        if (trackingInterval) {
+          clearInterval(trackingInterval);
+          trackingInterval = null;
+        }
+      });
+    }
     
     // Convert base64 data URL to Blob asynchronously to avoid freezing
     setTimeout(() => {
@@ -745,10 +920,24 @@
   }
   
   function closeMediaPlayer() {
-    document.getElementById('audioPlayer').pause();
-    document.getElementById('audioPlayer').src = '';
-    document.getElementById('videoPlayer').pause();
-    document.getElementById('videoPlayer').src = '';
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    videoPlayer.pause();
+    videoPlayer.src = '';
+    
+    // Reset viewing session
+    if (appState.premium.enabled && appState.viewingSession.exampleId) {
+      appState.viewingSession = {
+        exampleId: null,
+        exampleIdx: null,
+        startTime: null,
+        totalSeconds: 0
+      };
+      saveAppState();
+    }
+    
     document.getElementById('mediaPlayerModal').classList.remove('active');
   }
 const instrumentDatabase = {
@@ -778,7 +967,7 @@ const instrumentDatabase = {
 };
 
 let appState = {
-  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null, substances: {mj: false, alc: false, caff: false, cig: false}},
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null, substances: {mj: false, alc: false, caff: false, cig: false}, tier: 'Free'},
   auth: { isAuthenticated: false },
   personas: [],
   examples: [],
@@ -788,6 +977,17 @@ let appState = {
   selectedMood: '',
   selectedSkillsInModal: new Set(),
   wallet: {balance: 0, earned: 0},
+  premium: {
+    enabled: false,
+    ratePerSecond: 0.01,  // $0.01 per second = $0.60 per minute
+    totalEarnings: 0
+  },
+  viewingSession: {
+    exampleId: null,
+    exampleIdx: null,
+    startTime: null,
+    totalSeconds: 0
+  },
   examplePrivacy: 'private',
   currentTab: 'setup',
   filteredCollabs: [],
@@ -828,6 +1028,8 @@ function loadAppState() {
       selectedMood: loaded.selectedMood || '',
       selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
       wallet: loaded.wallet || {balance: 0, earned: 0},
+      premium: loaded.premium || {enabled: false, ratePerSecond: 0.01, totalEarnings: 0},
+      viewingSession: {exampleId: null, startTime: null, totalSeconds: 0},
       examplePrivacy: loaded.examplePrivacy || 'private',
       currentTab: loaded.currentTab || 'setup',
       filteredCollabs: loaded.filteredCollabs || [],
@@ -849,6 +1051,16 @@ function loadAppState() {
     if (!appState.user.substances) {
       appState.user.substances = {mj: false, alc: false, caff: false, cig: false};
     }
+    // Ensure user tier exists (default to Free)
+    if (!appState.user.tier) {
+      appState.user.tier = 'Free';
+    }
+    // Ensure existing examples have viewing metrics
+    appState.examples.forEach(ex => {
+      if (ex.views === undefined) ex.views = 0;
+      if (ex.totalWatchTime === undefined) ex.totalWatchTime = 0;
+      if (ex.earnings === undefined) ex.earnings = 0;
+    });
   }
   if (!appState.auth) { appState.auth = { isAuthenticated: false }; }
   if (!appState.settings.darkModeMode) { appState.settings.darkModeMode = 'manual'; }
@@ -1754,7 +1966,26 @@ function uploadExample() {
   }
   const reader = new FileReader();
   reader.onload = (e) => {
-    const example = { id: Date.now(), title: title, desc: desc, genre: appState.selectedGenre, mood: appState.selectedMood, media: e.target.result, mediaName: mediaFile.name, mediaType: mediaFile.type, skills: [...appState.skillsUsed], privacy: appState.examplePrivacy, image: null, timestamp: new Date().toLocaleString(), userName: appState.user.name || 'Anonymous', userPic: appState.user.profilePic || null, userLocation: appState.user.location || 'Unknown' };
+    const example = { 
+      id: Date.now(), 
+      title: title, 
+      desc: desc, 
+      genre: appState.selectedGenre, 
+      mood: appState.selectedMood, 
+      media: e.target.result, 
+      mediaName: mediaFile.name, 
+      mediaType: mediaFile.type, 
+      skills: [...appState.skillsUsed], 
+      privacy: appState.examplePrivacy, 
+      image: null, 
+      timestamp: new Date().toLocaleString(), 
+      userName: appState.user.name || 'Anonymous', 
+      userPic: appState.user.profilePic || null, 
+      userLocation: appState.user.location || 'Unknown',
+      views: 0,
+      totalWatchTime: 0,
+      earnings: 0
+    };
     const imageFile = document.getElementById('exampleImage').files[0];
     if (imageFile) {
       const imgReader = new FileReader();
@@ -1792,7 +2023,24 @@ function renderExamplesDisplay() {
   appState.examples.forEach((example, idx) => {
     const card = document.createElement('div');
     card.className = 'post-card';
-    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+    
+    // Build earnings stats if premium is enabled
+    let earningsHtml = '';
+    if (appState.premium.enabled) {
+      const views = example.views || 0;
+      const watchTime = example.totalWatchTime || 0;
+      const earnings = example.earnings || 0;
+      const watchMinutes = Math.floor(watchTime / 60);
+      const watchSeconds = watchTime % 60;
+      
+      earningsHtml = `<div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #333; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">👁️ ${views}</div><div style="opacity: 0.8;">Views</div></div>
+        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">⏱️ ${watchMinutes}:${watchSeconds.toString().padStart(2, '0')}</div><div style="opacity: 0.8;">Watch Time</div></div>
+        <div style="text-align: center;"><div style="font-weight: 700; font-size: 12px;">💰 $${earnings.toFixed(2)}</div><div style="opacity: 0.8;">Earned</div></div>
+      </div>`;
+    }
+    
+    card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${example.mood ? `<span style="background: #FF9800; color: white; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">😊 ${example.mood}</span>` : ''} ${example.skills.map(s => `<span style="background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; margin-right: 2px; display: inline-block;">${s}</span>`).join('')}</div>${earningsHtml}${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/><button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button></div>` : `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>`}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
     display.appendChild(card);
   });
 }
@@ -2018,6 +2266,18 @@ function updateWalletDisplay() {
   document.getElementById('walletBalance').textContent = appState.wallet.balance.toFixed(2);
   document.getElementById('walletEarned').textContent = appState.wallet.earned.toFixed(2);
   document.getElementById('balanceAmount').textContent = appState.wallet.balance.toFixed(2);
+  
+  // Update premium earnings display
+  const premiumCard = document.getElementById('premiumEarningsCard');
+  if (premiumCard) {
+    premiumCard.style.display = appState.premium.enabled ? 'block' : 'none';
+  }
+  if (document.getElementById('premiumTotalEarnings')) {
+    document.getElementById('premiumTotalEarnings').textContent = '$' + (appState.premium.totalEarnings || 0).toFixed(2);
+  }
+  if (document.getElementById('premiumCurrentRate')) {
+    document.getElementById('premiumCurrentRate').textContent = (appState.premium.ratePerSecond || 0.01).toFixed(4);
+  }
   
   // Update tax summary
   const taxCollected = appState.wallet.taxCollected || 0;
@@ -2459,6 +2719,69 @@ function resetSettings() {
   location.reload();
 }
 
+// Premium Functions
+function togglePremium() {
+  appState.premium.enabled = !appState.premium.enabled;
+  const toggle = document.getElementById('premiumToggle');
+  const status = document.getElementById('premiumStatus');
+  
+  toggle.classList.toggle('on', appState.premium.enabled);
+  
+  if (appState.premium.enabled) {
+    status.textContent = '✅ Enabled';
+    status.style.color = 'var(--success)';
+    alert('💎 Premium earnings enabled! You will now earn $' + appState.premium.ratePerSecond.toFixed(4) + ' per second when viewers watch your content.');
+  } else {
+    status.textContent = '🔒 Disabled';
+    status.style.color = 'var(--text-light)';
+  }
+  
+  saveAppState();
+}
+
+function updatePremiumRate(rate) {
+  const rateNum = parseFloat(rate);
+  if (isNaN(rateNum) || rateNum < 0.0001 || rateNum > 1) {
+    alert('Please enter a rate between $0.0001 and $1.00');
+    document.getElementById('premiumRate').value = appState.premium.ratePerSecond;
+    return;
+  }
+  
+  appState.premium.ratePerSecond = rateNum;
+  
+  // Update display
+  document.getElementById('premiumRateDisplay').textContent = rateNum.toFixed(4);
+  document.getElementById('premiumRateMinute').textContent = (rateNum * 60).toFixed(2);
+  document.getElementById('premiumRateHour').textContent = (rateNum * 3600).toFixed(2);
+  
+  saveAppState();
+}
+
+function updatePremiumDisplay() {
+  const toggle = document.getElementById('premiumToggle');
+  const status = document.getElementById('premiumStatus');
+  const earningsTotal = document.getElementById('premiumEarningsTotal');
+  const rateInput = document.getElementById('premiumRate');
+  
+  if (toggle) toggle.classList.toggle('on', appState.premium.enabled);
+  
+  if (status) {
+    status.textContent = appState.premium.enabled ? '✅ Enabled' : '🔒 Disabled';
+    status.style.color = appState.premium.enabled ? 'var(--success)' : 'var(--text-light)';
+  }
+  
+  if (earningsTotal) {
+    earningsTotal.textContent = '$' + (appState.premium.totalEarnings || 0).toFixed(2);
+  }
+  
+  if (rateInput) {
+    rateInput.value = appState.premium.ratePerSecond;
+    document.getElementById('premiumRateDisplay').textContent = appState.premium.ratePerSecond.toFixed(4);
+    document.getElementById('premiumRateMinute').textContent = (appState.premium.ratePerSecond * 60).toFixed(2);
+    document.getElementById('premiumRateHour').textContent = (appState.premium.ratePerSecond * 3600).toFixed(2);
+  }
+}
+
 function initializeSettings() {
   document.getElementById('languageSelect').value = appState.settings.language;
   if (appState.settings.darkMode) {
@@ -2483,6 +2806,7 @@ window.addEventListener('load', () => {
   loadAppState();
   updateAllDisplays();
   setTimeout(initializeSettings, 100);
+  setTimeout(updatePremiumDisplay, 100);
   switchTab(appState.currentTab || 'setup');
   const tabs = document.querySelector('.tabs');
   if (tabs) {
