@@ -322,6 +322,12 @@ app.post('/api/auth/verify-password', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`✅ Server running at ${domain}`);
-});
+// Export the Express app for Vercel serverless
+export default app;
+
+// Only listen if not in serverless environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`✅ Server running at ${domain}`);
+  });
+}
