@@ -225,6 +225,12 @@
 </head>
 <body>
 <div class="container">
+  <script>
+    // Configure backend API URL based on environment
+    const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3000'
+      : 'https://music-connectz-backend.vercel.app';
+  </script>
   <div class="header">
     <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button><button class="nav-btn" id="authBtn" onclick="toggleAuthModal()">🔐 Login</button><button class="nav-btn" id="logoutBtn" onclick="handleLogout()" style="display: none; background: #F44336;">🚪 Logout</button></div>
       <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/30/2026</div></div>
