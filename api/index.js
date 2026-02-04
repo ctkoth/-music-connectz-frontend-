@@ -401,6 +401,25 @@ app.get('/api/auth/users', (req, res) => {
 });
 
 // ============================================
+// STATIC FILES & ROOT ROUTE
+// ============================================
+
+const path = require('path');
+
+// Serve static files from parent directory
+app.use(express.static(path.join(__dirname, '..')));
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// Catch-all for SPA routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// ============================================
 // ERROR HANDLING
 // ============================================
 
