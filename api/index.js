@@ -401,36 +401,7 @@ app.get('/api/auth/users', (req, res) => {
 });
 
 // ============================================
-// STATIC FILES & ROOT ROUTE
-// ============================================
-
-const path = require('path');
-const fs = require('fs');
-
-// Root route - serve index.html
-app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, '..', 'index.html');
-  try {
-    if (fs.existsSync(indexPath)) {
-      return res.sendFile(indexPath);
-    }
-  } catch (e) {
-    console.error('Error serving index.html:', e);
-  }
-  res.status(404).json({ error: 'index.html not found' });
-});
-
-// SPA routes - serve index.html for client-side routing
-app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/personas', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/examples', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/collaborate', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/money', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/settings', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-
-// ============================================
-// ERROR HANDLING
+// ERROR HANDLING - API ONLY
 // ============================================
 
 // Error handler
@@ -438,8 +409,7 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
     success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'production' ? undefined : err.message
+    message: 'Internal server error'
   });
 });
 
