@@ -4,8 +4,13 @@
   <meta charset="UTF-8" />
   <title>Music ConnectZ v6.2 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <!-- Stripe -->
   <script src="https://js.stripe.com/v3/"></script>
   <script src="stripe-config.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <style>
     :root {
       --primary: #2196F3;
@@ -725,12 +730,10 @@
       <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
         <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 11px; font-weight: 600;">OR SIGN IN WITH</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-          <button class="social-btn" onclick="socialLogin('google')" style="background: #DB4437; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Google"><span style="font-size: 14px;">🔴</span><br>Google</button>
-          <button class="social-btn" onclick="socialLogin('facebook')" style="background: #1877F2; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Facebook"><span style="font-size: 14px;">🔵</span><br>Facebook</button>
-          <button class="social-btn" onclick="socialLogin('apple')" style="background: #000000; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Apple"><span style="font-size: 14px;">🍎</span><br>Apple</button>
-          <button class="social-btn" onclick="socialLogin('github')" style="background: #24292E; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="GitHub"><span style="font-size: 14px;">⬛</span><br>GitHub</button>
-          <button class="social-btn" onclick="socialLogin('microsoft')" style="background: #0078D4; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Microsoft"><span style="font-size: 14px;">🟦</span><br>Microsoft</button>
-          <button class="social-btn" onclick="socialLogin('twitter')" style="background: #1DA1F2; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Twitter"><span style="font-size: 14px;">🐦</span><br>Twitter</button>
+          <button class="social-btn" onclick="signInWithGoogle()" style="background: #DB4437; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Google"><span style="font-size: 14px;">🔴</span><br>Google</button>
+          <button class="social-btn" onclick="signInWithFacebook()" style="background: #1877F2; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Facebook"><span style="font-size: 14px;">🔵</span><br>Facebook</button>
+          <button class="social-btn" onclick="signInWithApple()" style="background: #000000; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="Apple"><span style="font-size: 14px;">🍎</span><br>Apple</button>
+          <button class="social-btn" onclick="signInWithGitHub()" style="background: #24292E; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="GitHub"><span style="font-size: 14px;">⬛</span><br>GitHub</button>
         </div>
       </div>
     </div>
@@ -1733,6 +1736,9 @@ function handleLogout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     appState.auth = { isAuthenticated: false };
+    if (typeof firebaseSignOut === 'function') {
+      firebaseSignOut();
+    }
     updateAuthUI();
     closeLoginModal();
     alert('✓ Logged out successfully!');
@@ -3050,6 +3056,13 @@ if (document.readyState === 'loading') {
     };
     document.head.appendChild(script);
   }, 500);
+}
+
+// Initialize Firebase when the page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeFirebase);
+} else {
+  initializeFirebase();
 }
 </script>
 </body>
