@@ -1768,6 +1768,17 @@ async function handleLogin() {
   
   if (!email || !password) { alert('❌ Please enter email and password'); return; }
   
+  // Try Firebase authentication
+  if (typeof signInWithEmail === 'function') {
+    const user = await signInWithEmail(email, password);
+    if (user) {
+      // Firebase will trigger onAuthStateChanged which handles the rest
+      closeLoginModal();
+    }
+    return;
+  }
+  
+  // Fallback to backend API
   try {
     const response = await fetch(`${backendUrl}/api/auth/login`, {
       method: 'POST',
@@ -1804,6 +1815,16 @@ async function handleForgotPassword() {
   const email = document.getElementById('forgotEmail').value.trim();
   if (!email) { alert('❌ Please enter your email'); return; }
   
+  // Try Firebase password reset
+  if (typeof sendPasswordReset === 'function') {
+    const success = await sendPasswordReset(email);
+    if (success) {
+      switchToLogin();
+    }
+    return;
+  }
+  
+  // Fallback to backend API
   try {
     const response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
       method: 'POST',

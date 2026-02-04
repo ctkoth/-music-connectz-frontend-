@@ -15,6 +15,11 @@
 3. Go to **Sign-in method** tab
 4. Enable these providers:
 
+### Email/Password (Required for Login)
+- Click **Email/Password** → **Enable** → **Save**
+- This allows users to create accounts with email/password
+- Password reset emails are sent automatically by Firebase
+
 ### Google
 - Click **Google** → **Enable** → **Save**
 

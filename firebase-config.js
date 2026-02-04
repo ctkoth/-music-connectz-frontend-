@@ -149,6 +149,71 @@ function handleFirebaseLogin(user) {
   console.log('Firebase user:', user);
 }
 
+// Email/Password Sign-Up
+async function signUpWithEmail(email, password) {
+  if (!auth) {
+    alert('⏳ Firebase is loading, please try again in a moment');
+    return;
+  }
+  
+  try {
+    const result = await auth.createUserWithEmailAndPassword(email, password);
+    alert('✓ Account created successfully!');
+    return result.user;
+  } catch (error) {
+    console.error('Sign-up error:', error);
+    if (error.code === 'auth/email-already-in-use') {
+      alert('❌ Email already registered. Try logging in instead.');
+    } else if (error.code === 'auth/weak-password') {
+      alert('❌ Password should be at least 6 characters.');
+    } else {
+      alert('❌ Sign-up failed: ' + error.message);
+    }
+  }
+}
+
+// Email/Password Sign-In
+async function signInWithEmail(email, password) {
+  if (!auth) {
+    alert('⏳ Firebase is loading, please try again in a moment');
+    return;
+  }
+  
+  try {
+    const result = await auth.signInWithEmailAndPassword(email, password);
+    return result.user;
+  } catch (error) {
+    console.error('Sign-in error:', error);
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      alert('❌ Invalid email or password.');
+    } else {
+      alert('❌ Sign-in failed: ' + error.message);
+    }
+  }
+}
+
+// Password Reset
+async function sendPasswordReset(email) {
+  if (!auth) {
+    alert('⏳ Firebase is loading, please try again in a moment');
+    return;
+  }
+  
+  try {
+    await auth.sendPasswordResetEmail(email);
+    alert('✓ Password reset email sent! Check your inbox.');
+    return true;
+  } catch (error) {
+    console.error('Password reset error:', error);
+    if (error.code === 'auth/user-not-found') {
+      alert('❌ No account found with that email.');
+    } else {
+      alert('❌ Password reset failed: ' + error.message);
+    }
+    return false;
+  }
+}
+
 // Sign out
 async function firebaseSignOut() {
   if (auth && currentUser) {
