@@ -16,8 +16,8 @@ app.use(cors({
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8080',
     'https://music-connectz-frontend.vercel.app',
-    'https://music-connectz-frontend-owrd89mfy-corey-knaps-projects.vercel.app',
-    'https://music-connectz-frontend-lrncg3d0u-corey-knaps-projects.vercel.app'
+    'https://musicconnectz.net',
+    'https://*.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
