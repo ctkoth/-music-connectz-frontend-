@@ -407,54 +407,40 @@ app.get('/api/auth/users', (req, res) => {
 const path = require('path');
 const fs = require('fs');
 
-// Middleware to serve static files
-app.use((req, res, next) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return next();
+// Root route - serve index.html
+app.get('/', (req, res) => {
+  const indexPath = path.join(__dirname, '..', 'index.html');
+  try {
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+  } catch (e) {
+    console.error('Error serving index.html:', e);
   }
-  
-  // Try to serve static files
-  const filePath = path.join(__dirname, '..', req.path);
-  
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    return res.sendFile(filePath);
-  }
-  
-  next();
+  res.status(404).json({ error: 'index.html not found' });
 });
 
-// Serve index.html for root and SPA routes
-app.get(['/', '/setup', '/personas', '/examples', '/collaborate', '/profile', '/money', '/settings'], (req, res) => {
-  const indexPath = path.join(__dirname, '..', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
-  }
-  res.status(404).json({ success: false, message: 'index.html not found' });
-});
+// SPA routes - serve index.html for client-side routing
+app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/personas', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/examples', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/collaborate', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/money', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
+app.get('/settings', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
 
 // ============================================
 // ERROR HANDLING
 // ============================================
 
-// For any non-API route, serve index.html (SPA)
-app.use((req, res, next) => {
-  // If it's an API request, return JSON
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({
-      success: false,
-      message: 'API endpoint not found',
-      path: req.path
-    });
-  }
-  
-  // Otherwise serve index.html for SPA routing
-  const indexPath = path.join(__dirname, '..', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    return res.sendFile(indexPath);
-  }
-  
-  res.status(404).json({ success: false, message: 'Not found' });
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'production' ? undefined : err.message
+  });
 });
 
 // Error handler
