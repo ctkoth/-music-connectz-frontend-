@@ -15,9 +15,13 @@ app.use(cors({
     'http://localhost:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8080',
-    'https://music-connectz.vercel.app'
+    'https://music-connectz-frontend.vercel.app',
+    'https://music-connectz-frontend-owrd89mfy-corey-knaps-projects.vercel.app',
+    'https://music-connectz-frontend-lrncg3d0u-corey-knaps-projects.vercel.app'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // In-memory storage (replace with database in production)
@@ -423,8 +427,10 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ============================================
 
-app.listen(PORT, () => {
-  console.log(`
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════╗
 ║   🎵 MusicConnectZ Backend Server 🎵   ║
 ╠════════════════════════════════════════╣
@@ -437,6 +443,8 @@ app.listen(PORT, () => {
 ║ Health check: GET /api/health          ║
 ╚════════════════════════════════════════╝
   `);
-});
+  });
+}
 
+// Export for Vercel serverless
 module.exports = app;

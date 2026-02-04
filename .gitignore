@@ -11,3 +11,4 @@ MusicConnectZ_Fixed_original.html
 MusicConnectZ_Fixed.html.bak
 fix_emojis.ps1
 update_play_button.ps1
+.env*.local
