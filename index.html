@@ -736,6 +736,17 @@
           <button class="social-btn" onclick="signInWithGitHub()" style="background: #24292E; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;" title="GitHub"><span style="font-size: 14px;">⬛</span><br>GitHub</button>
         </div>
       </div>
+      <div style="text-align: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 11px;">
+        Don't have an account? <button class="btn btn-secondary" onclick="switchToRegister()" style="padding: 4px 8px; font-size: 11px;">Create One</button>
+      </div>
+    </div>
+    <div id="registerTab" style="display: none;">
+      <div class="form-group"><label>👤 Username</label><input type="text" id="registerUsername" placeholder="Choose a username" /></div>
+      <div class="form-group"><label>📧 Email</label><input type="email" id="registerEmail" placeholder="your@email.com" /></div>
+      <div class="form-group"><label>🔒 Password</label><input type="password" id="registerPassword" placeholder="At least 8 characters" /></div>
+      <div class="form-group"><label>🔒 Confirm Password</label><input type="password" id="registerPasswordConfirm" placeholder="Confirm password" /></div>
+      <button class="btn btn-success" onclick="handleRegister()" style="width: 100%; margin-bottom: 10px;">✓ Create Account</button>
+      <button class="btn btn-secondary" onclick="switchToLogin()" style="width: 100%;">← Back to Sign In</button>
     </div>
     <div id="forgotPasswordTab" style="display: none;">
       <div style="background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; color: var(--text-light);">
@@ -1758,9 +1769,58 @@ function updateAuthUI() {
   }
 }
 
-function switchToForgotPassword() { document.getElementById('loginTab').style.display = 'none'; document.getElementById('forgotPasswordTab').style.display = 'block'; }
+function switchToForgotPassword() { document.getElementById('loginTab').style.display = 'none'; document.getElementById('registerTab').style.display = 'none'; document.getElementById('forgotPasswordTab').style.display = 'block'; }
 
-function switchToLogin() { document.getElementById('loginTab').style.display = 'block'; document.getElementById('forgotPasswordTab').style.display = 'none'; }
+function switchToLogin() { document.getElementById('loginTab').style.display = 'block'; document.getElementById('registerTab').style.display = 'none'; document.getElementById('forgotPasswordTab').style.display = 'none'; }
+
+function switchToRegister() { document.getElementById('loginTab').style.display = 'none'; document.getElementById('registerTab').style.display = 'block'; document.getElementById('forgotPasswordTab').style.display = 'none'; }
+
+async function handleRegister() {
+  const username = document.getElementById('registerUsername').value.trim();
+  const email = document.getElementById('registerEmail').value.trim();
+  const password = document.getElementById('registerPassword').value.trim();
+  const passwordConfirm = document.getElementById('registerPasswordConfirm').value.trim();
+  
+  if (!username || !email || !password || !passwordConfirm) {
+    alert('❌ All fields are required');
+    return;
+  }
+  
+  if (password !== passwordConfirm) {
+    alert('❌ Passwords do not match');
+    return;
+  }
+  
+  if (password.length < 8) {
+    alert('❌ Password must be at least 8 characters');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${backendUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      alert('✓ Account created successfully! Please sign in.');
+      // Clear form
+      document.getElementById('registerUsername').value = '';
+      document.getElementById('registerEmail').value = '';
+      document.getElementById('registerPassword').value = '';
+      document.getElementById('registerPasswordConfirm').value = '';
+      // Switch back to login
+      switchToLogin();
+    } else {
+      alert('❌ ' + (data.message || 'Registration failed'));
+    }
+  } catch (e) {
+    console.error('Register error:', e);
+    alert('❌ Cannot connect to backend. Make sure your server is running on ' + backendUrl);
+  }
+}
 
 async function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -1768,17 +1828,7 @@ async function handleLogin() {
   
   if (!email || !password) { alert('❌ Please enter email and password'); return; }
   
-  // Try Firebase authentication
-  if (typeof signInWithEmail === 'function') {
-    const user = await signInWithEmail(email, password);
-    if (user) {
-      // Firebase will trigger onAuthStateChanged which handles the rest
-      closeLoginModal();
-    }
-    return;
-  }
-  
-  // Fallback to backend API
+  // Use backend API for email/password authentication
   try {
     const response = await fetch(`${backendUrl}/api/auth/login`, {
       method: 'POST',
@@ -1790,24 +1840,22 @@ async function handleLogin() {
     if (data.success) {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('userId', data.userId);
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('username', data.username);
       appState.auth = { isAuthenticated: true };
+      appState.user = { email, username: data.username };
       alert('✓ Login successful!');
       updateAuthUI();
       closeLoginModal();
+      // Clear form
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
     } else {
       alert('❌ ' + (data.message || 'Login failed'));
     }
   } catch (e) {
-    alert('❌ Connection error. Trying local auth...');
-    // Fallback to local storage for demo
-    if (appState.user && appState.user.email === email && appState.user.password === password) {
-      appState.auth = { isAuthenticated: true };
-      alert('✓ Local login successful!');
-      updateAuthUI();
-      closeLoginModal();
-    } else {
-      alert('❌ Invalid credentials');
-    }
+    console.error('Login error:', e);
+    alert('❌ Cannot connect to backend. Make sure your server is running on ' + backendUrl);
   }
 }
 
