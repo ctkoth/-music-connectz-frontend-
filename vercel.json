@@ -1,7 +1,14 @@
 {
-  "buildCommand": "echo 'Static site'",
-  "outputDirectory": ".",
+  "version": 2,
+  "public": true,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
