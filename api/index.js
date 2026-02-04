@@ -409,27 +409,27 @@ const path = require('path');
 // Serve static files from parent directory
 app.use(express.static(path.join(__dirname, '..')));
 
-// Serve index.html for root path
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
-
-// Catch-all for SPA routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
-
 // ============================================
 // ERROR HANDLING
 // ============================================
 
-// 404 handler
+// For any non-API route, serve index.html (SPA)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// 404 handler for API
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Endpoint not found',
-    path: req.path
-  });
+  // If it's an API request, return JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({
+      success: false,
+      message: 'API endpoint not found',
+      path: req.path
+    });
+  }
+  // Otherwise serve index.html for SPA routing
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Error handler
