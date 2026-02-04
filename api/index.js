@@ -405,21 +405,40 @@ app.get('/api/auth/users', (req, res) => {
 // ============================================
 
 const path = require('path');
+const fs = require('fs');
 
-// Serve static files from parent directory
-app.use(express.static(path.join(__dirname, '..')));
+// Middleware to serve static files
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  
+  // Try to serve static files
+  const filePath = path.join(__dirname, '..', req.path);
+  
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+  
+  next();
+});
+
+// Serve index.html for root and SPA routes
+app.get(['/', '/setup', '/personas', '/examples', '/collaborate', '/profile', '/money', '/settings'], (req, res) => {
+  const indexPath = path.join(__dirname, '..', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  res.status(404).json({ success: false, message: 'index.html not found' });
+});
 
 // ============================================
 // ERROR HANDLING
 // ============================================
 
 // For any non-API route, serve index.html (SPA)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
-
-// 404 handler for API
-app.use((req, res) => {
+app.use((req, res, next) => {
   // If it's an API request, return JSON
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
@@ -428,8 +447,14 @@ app.use((req, res) => {
       path: req.path
     });
   }
+  
   // Otherwise serve index.html for SPA routing
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  const indexPath = path.join(__dirname, '..', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  
+  res.status(404).json({ success: false, message: 'Not found' });
 });
 
 // Error handler
