@@ -1,0 +1,17 @@
+// Runtime config for Music ConnectZ (DO NOT COMMIT)
+// Copy this file to `config.js` and set your keys.
+
+// Google Maps JS API key (restrict by HTTP referrer in Google Cloud Console):
+// window.GOOGLE_MAPS_API_KEY = 'REPLACE_WITH_YOUR_KEY';
+
+// If you want to add other runtime values, set them on the window object here.
+// Example:
+// window.API_BASE_URL = 'https://api.example.com';
+
+/*
+  Usage:
+  1) Copy to config.js
+     cp config.js.example config.js
+  2) Edit config.js and replace placeholders.
+  3) Deploy. `config.js` is gitignored so your secrets won't be committed.
+*/

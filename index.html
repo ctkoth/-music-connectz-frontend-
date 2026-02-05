@@ -11,6 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
+  <!-- Optional runtime config: provide a `config.js` or set `GOOGLE_MAPS_API_KEY` as a Vercel env var -->
   <style>
     :root {
       --primary: #2196F3;
@@ -232,13 +233,14 @@
 <div class="container">
   <script>
     // Configure backend API URL based on environment
+    // Development: localhost -> local backend; Production: use separate backend service
     const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000'
-      : window.location.origin;
+      : 'https://music-connectz-backend.vercel.app';
   </script>
   <div class="header">
     <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button><button class="nav-btn" id="authBtn" onclick="toggleAuthModal()">🔐 Login</button><button class="nav-btn" id="logoutBtn" onclick="handleLogout()" style="display: none; background: #F44336;">🚪 Logout</button></div>
-      <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 1/30/2026</div></div>
+      <div class="header-center"><div class="header-title">🎵 Music ConnectZ v6.2 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 2/05/2026 (deployed)</div></div>
     <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
@@ -3102,29 +3104,38 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Load Google Maps after everything else is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-      const script = document.createElement('script');
-      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
-      script.async = true;
-      script.onload = function() {
-        if (window.initMapsCallback) window.initMapsCallback();
-      };
-      document.head.appendChild(script);
-    }, 500);
-  });
-} else {
-  // DOM is already loaded
-  setTimeout(() => {
+function loadConfigThenMaps() {
+  // Try to load an optional /config.js (not committed) that sets window.GOOGLE_MAPS_API_KEY
+  const cfg = document.createElement('script');
+  cfg.src = '/config.js';
+  cfg.async = true;
+  const proceed = () => {
+    try { detectInjectedTelemetry(); } catch (e) { console.warn('detectInjectedTelemetry error', e); }
+    const mapsKey = window.GOOGLE_MAPS_API_KEY || '';
     const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places';
-    script.async = true;
-    script.onload = function() {
-      if (window.initMapsCallback) window.initMapsCallback();
-    };
-    document.head.appendChild(script);
-  }, 500);
+    if (mapsKey && !/dummy/i.test(mapsKey)) {
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(mapsKey) + '&libraries=places';
+      script.async = true;
+      script.onload = function() { if (window.initMapsCallback) window.initMapsCallback(); };
+      document.head.appendChild(script);
+    } else {
+      console.info('Google Maps API key not provided or is placeholder; skipping Maps load.');
+      const mapContainer = document.getElementById('collabMap');
+      if (mapContainer) mapContainer.innerHTML = '<div style="padding:14px;color:var(--text-light)">Map not loaded — set window.GOOGLE_MAPS_API_KEY to a valid key to enable maps.</div>';
+    }
+  };
+  cfg.onload = proceed;
+  cfg.onerror = proceed;
+  // Insert before proceeding; it's safe if the file doesn't exist (onerror will call proceed)
+  document.head.appendChild(cfg);
+  // Fallback: if config doesn't load quickly, still proceed after 800ms
+  setTimeout(proceed, 800);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(loadConfigThenMaps, 500); });
+} else {
+  setTimeout(loadConfigThenMaps, 500);
 }
 
 // Initialize Firebase when the page loads
@@ -3132,6 +3143,35 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeFirebase);
 } else {
   initializeFirebase();
+}
+
+// Lightweight detector for browser-extension injected telemetry (non-repo)
+function detectInjectedTelemetry() {
+  try {
+    const suspicious = [];
+    for (const k in window) {
+      try {
+        const v = window[k];
+        if (typeof v === 'string' && (v.includes('couponbind') || v.toLowerCase().includes('sentry') || v.includes('couponbind.com'))) {
+          suspicious.push({k, v});
+        }
+        if (v && typeof v === 'object') {
+          try {
+            const s = JSON.stringify(v).toLowerCase();
+            if (s.includes('couponbind') || s.includes('sentry')) suspicious.push({k, v: s.slice(0, 200)});
+          } catch (e) {}
+        }
+      } catch (e) {}
+    }
+    if (suspicious.length) {
+      console.warn('Detected possible extension-injected telemetry or scripts:', suspicious);
+      const note = document.createElement('div');
+      note.style = 'position:fixed;right:12px;top:72px;background:#fff8c6;color:#333;padding:8px;border:1px solid #f0e68c;border-radius:6px;z-index:99999;font-size:12px;max-width:320px;';
+      note.innerHTML = 'Notice: Your browser has extensions injecting third-party scripts (couponbind/Sentry). These often cause console errors — try disabling extensions or open an Incognito window.';
+      document.body.appendChild(note);
+      setTimeout(() => note.remove(), 15000);
+    }
+  } catch (e) {}
 }
 </script>
 </body>

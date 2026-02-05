@@ -2,12 +2,13 @@
 // Replace these with your actual Firebase project credentials
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC2qicyO0AH-rcQLtmcl3XPLgheLnrRHtk",
+  authDomain: "music-connectz-6b173.firebaseapp.com",
+  projectId: "music-connectz-6b173",
+  storageBucket: "music-connectz-6b173.appspot.com",
+  messagingSenderId: "819478392361",
+  appId: "1:819478392361:web:d3a0e30c30c9b964a23638",
+  measurementId: "G-956LLBDQYQ"
 };
 
 // Initialize Firebase
@@ -22,7 +23,13 @@ function initializeFirebase() {
   }
   
   try {
-    firebase.initializeApp(firebaseConfig);
+    // Avoid double-initialization when the script is loaded/executed multiple times
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      console.log('✓ Firebase initialized (new app)');
+    } else {
+      console.log('✓ Firebase already initialized, using existing app');
+    }
     auth = firebase.auth();
     
     // Listen for auth state changes
@@ -42,6 +49,20 @@ function initializeFirebase() {
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
+}
+
+// Expose auth and helpers for other inline scripts that reference them
+if (typeof window !== 'undefined') {
+  window.firebaseConfig = firebaseConfig;
+  window.initializeFirebase = initializeFirebase;
+  window.signInWithGoogle = signInWithGoogle;
+  window.signInWithFacebook = signInWithFacebook;
+  window.signInWithApple = signInWithApple;
+  window.signInWithGitHub = signInWithGitHub;
+  window.signUpWithEmail = signUpWithEmail;
+  window.signInWithEmail = signInWithEmail;
+  window.sendPasswordReset = sendPasswordReset;
+  window.firebaseSignOut = firebaseSignOut;
 }
 
 // Google Sign-In
