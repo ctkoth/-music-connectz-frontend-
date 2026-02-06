@@ -233,10 +233,10 @@
 <div class="container">
   <script>
     // Configure backend API URL based on environment
-    // Development: localhost -> local backend; Production: use separate backend service
+    // Development: localhost -> local backend; Production: use same-origin /api routes
     const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000'
-      : 'https://music-connectz-backend.vercel.app';
+      : window.location.origin;
   </script>
   <div class="header">
     <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">?</button><button class="nav-btn" onclick="nextTab()">?</button><button class="theme-toggle" onclick="toggleTheme()">??</button><button class="nav-btn" id="authBtn" onclick="toggleAuthModal()">?? Login</button><button class="nav-btn" id="logoutBtn" onclick="handleLogout()" style="display: none; background: #F44336;">?? Logout</button></div>
