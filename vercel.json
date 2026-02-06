@@ -7,9 +7,9 @@
     { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/stripe-config.js", "dest": "/stripe-config.js" },
-    { "src": "/firebase-config.js", "dest": "/firebase-config.js" },
-    { "src": "/config.js", "dest": "/config.js" },
+    { "src": "/stripe-config.js", "dest": "/public/stripe-config.js" },
+    { "src": "/firebase-config.js", "dest": "/public/firebase-config.js" },
+    { "src": "/config.js", "dest": "/public/config.js" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
