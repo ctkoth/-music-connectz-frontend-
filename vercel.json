@@ -1,11 +1,6 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/stripe-config.js", "dest": "/stripe-config.js" },
-    { "src": "/firebase-config.js", "dest": "/firebase-config.js" },
-    { "src": "/config.js", "dest": "/api/config.js" },
-    { "src": "/.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json|woff|woff2|ttf|eot)", "dest": "/$0" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/config.js", "destination": "/api/config.js" }
   ]
 }
