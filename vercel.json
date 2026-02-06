@@ -3,11 +3,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
+    { "src": "stripe-config.js", "use": "@vercel/static" },
+    { "src": "firebase-config.js", "use": "@vercel/static" },
     { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/config.js", "dest": "/api/config.js" },
+    { "src": "/stripe-config.js", "dest": "/stripe-config.js" },
+    { "src": "/firebase-config.js", "dest": "/firebase-config.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
