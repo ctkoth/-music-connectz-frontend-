@@ -3106,30 +3106,73 @@ document.addEventListener('keydown', (e) => {
 // Load Google Maps after everything else is ready
 function loadConfigThenMaps() {
   // Try to load an optional /config.js (not committed) that sets window.GOOGLE_MAPS_API_KEY
-  const cfg = document.createElement('script');
-  cfg.src = '/config.js';
-  cfg.async = true;
+  // Use fetch so we can detect 404/HTML responses and avoid executing them as script
+  let configProcessed = false;
+  let configTimeout = null;
+
   const proceed = () => {
+    if (configProcessed) return;
+    configProcessed = true;
     try { detectInjectedTelemetry(); } catch (e) { console.warn('detectInjectedTelemetry error', e); }
     const mapsKey = window.GOOGLE_MAPS_API_KEY || '';
-    const script = document.createElement('script');
+
+    // Avoid adding the Maps script if it's already on the page
+    if (window._mapsScriptAdded) return;
+    // Detect any existing Maps script (covers scripts added by other code or previous runs)
+    const existingMapsScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingMapsScript) {
+      window._mapsScriptAdded = true;
+      // If the existing script has already loaded, try to init maps
+      if (window.google && window.google.maps) {
+        if (window.initMapsCallback) window.initMapsCallback();
+      }
+      return;
+    }
+    window._mapsScriptAdded = true;
+
     if (mapsKey && !/dummy/i.test(mapsKey)) {
-      script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(mapsKey) + '&libraries=places';
-      script.async = true;
-      script.onload = function() { if (window.initMapsCallback) window.initMapsCallback(); };
-      document.head.appendChild(script);
+      // Always append a single Maps script tag with recommended attributes
+      if (!window._googleMapsScriptAdded) {
+        window._googleMapsScriptAdded = true;
+        const s = document.createElement('script');
+        s.id = 'gMapsScript';
+        // include loading=async to satisfy the Maps best-practices warning
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(mapsKey) + '&libraries=places&loading=async';
+        s.async = true;
+        s.defer = true;
+        s.onload = function() { if (window.initMapsCallback) window.initMapsCallback(); };
+        s.onerror = function(e) { console.error('Failed to load Google Maps script', e); };
+        document.head.appendChild(s);
+      }
     } else {
       console.info('Google Maps API key not provided or is placeholder; skipping Maps load.');
       const mapContainer = document.getElementById('collabMap');
       if (mapContainer) mapContainer.innerHTML = '<div style="padding:14px;color:var(--text-light)">Map not loaded — set window.GOOGLE_MAPS_API_KEY to a valid key to enable maps.</div>';
     }
   };
-  cfg.onload = proceed;
-  cfg.onerror = proceed;
-  // Insert before proceeding; it's safe if the file doesn't exist (onerror will call proceed)
-  document.head.appendChild(cfg);
-  // Fallback: if config doesn't load quickly, still proceed after 800ms
-  setTimeout(proceed, 800);
+
+  // Fetch optional config.js so we can detect non-JS (HTML 404 pages) and avoid executing them
+  (async function() {
+    try {
+      const resp = await fetch('/config.js', { cache: 'no-store' });
+      if (resp.ok) {
+        const text = await resp.text();
+        // Only execute if it explicitly defines the Maps key (avoid executing HTML error pages)
+        if (/window\.GOOGLE_MAPS_API_KEY\s*=/.test(text) || /GOOGLE_MAPS_API_KEY\s*=/.test(text)) {
+          const s = document.createElement('script');
+          s.text = text;
+          document.head.appendChild(s);
+        }
+      }
+    } catch (e) {
+      // ignore fetch/network errors
+    } finally {
+      if (!configProcessed) { clearTimeout(configTimeout); proceed(); }
+    }
+  })();
+
+  // Fallback: if config doesn't load quickly, still proceed after 800ms (only once)
+  configTimeout = setTimeout(() => { if (!configProcessed) { proceed(); } }, 800);
 }
 
 if (document.readyState === 'loading') {
@@ -3138,11 +3181,28 @@ if (document.readyState === 'loading') {
   setTimeout(loadConfigThenMaps, 500);
 }
 
-// Initialize Firebase when the page loads
+// Initialize Firebase when the page loads (guarded)
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeFirebase);
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof initializeFirebase === 'function') { initializeFirebase(); return; }
+    // Retry briefly for cases where firebase-config.js executes slightly later
+    let tries = 0;
+    const t = setInterval(() => {
+      tries += 1;
+      if (typeof initializeFirebase === 'function') { clearInterval(t); initializeFirebase(); }
+      else if (tries > 50) { clearInterval(t); console.warn('initializeFirebase not available after retries'); }
+    }, 100);
+  });
 } else {
-  initializeFirebase();
+  if (typeof initializeFirebase === 'function') initializeFirebase();
+  else {
+    let tries = 0;
+    const t = setInterval(() => {
+      tries += 1;
+      if (typeof initializeFirebase === 'function') { clearInterval(t); initializeFirebase(); }
+      else if (tries > 50) { clearInterval(t); console.warn('initializeFirebase not available after retries'); }
+    }, 100);
+  }
 }
 
 // Lightweight detector for browser-extension injected telemetry (non-repo)
