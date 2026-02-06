@@ -12,6 +12,7 @@
     { "src": "/firebase-config.js", "dest": "/public/firebase-config.js" },
     { "src": "/config.js", "dest": "/public/config.js" },
     { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/public/(.*)", "dest": "/public/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
