@@ -38,7 +38,7 @@ function generateToken() {
 // ============================================
 
 // POST /api/auth/register
-app.post('/api/auth/register', async (req, res) => {
+app.post('/auth/register', async (req, res) => {
   try {
     const { email, password, username } = req.body;
 
@@ -97,7 +97,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -149,7 +149,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // POST /api/auth/forgot-password
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -195,7 +195,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // POST /api/auth/reset-password
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/auth/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
@@ -262,7 +262,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 });
 
 // POST /api/auth/set-password - Set password for existing user
-app.post('/api/auth/set-password', async (req, res) => {
+app.post('/auth/set-password', async (req, res) => {
   try {
     const { userId, password } = req.body;
 
@@ -317,7 +317,7 @@ app.post('/api/auth/set-password', async (req, res) => {
 });
 
 // POST /api/auth/verify-password - Verify user password
-app.post('/api/auth/verify-password', async (req, res) => {
+app.post('/auth/verify-password', async (req, res) => {
   try {
     const { userId, password } = req.body;
 
@@ -377,7 +377,7 @@ app.post('/api/auth/verify-password', async (req, res) => {
 // ============================================
 
 // GET /api/health
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     message: 'Server is running',
@@ -386,7 +386,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // GET /api/auth/users - DEMO ONLY (remove in production)
-app.get('/api/auth/users', (req, res) => {
+app.get('/auth/users', (req, res) => {
   const userList = Array.from(users.values()).map(u => ({
     userId: u.userId,
     email: u.email,
