@@ -1,8 +1,14 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/config.js", "destination": "/api/config.js" },
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/((?!api/|.*\\..*).*)", "destination": "/index.html" }
+  "version": 2,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/config.js", "dest": "/api/config.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
