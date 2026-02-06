@@ -3,11 +3,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/index.js", "use": "@vercel/node" }
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/config.js", "dest": "/api/config.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
