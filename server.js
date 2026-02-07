@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+app.use(express.static(path.join(__dirname)));
 app.use(cors({
   origin: [
     'http://localhost:3000',
@@ -427,10 +429,9 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ============================================
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`
+// Always start server (for both local and production/Azure)
+app.listen(PORT, () => {
+  console.log(`
 ╔════════════════════════════════════════╗
 ║   🎵 MusicConnectZ Backend Server 🎵   ║
 ╠════════════════════════════════════════╣
@@ -443,8 +444,7 @@ if (process.env.NODE_ENV !== 'production') {
 ║ Health check: GET /api/health          ║
 ╚════════════════════════════════════════╝
   `);
-  });
-}
+});
 
 // Export for Vercel serverless
 module.exports = app;
