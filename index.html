@@ -236,7 +236,7 @@
     // Development: localhost -> local backend; Production: use Azure backend
     const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:3000'
-      : 'https://musicconnectzbackend-g8e5badpbefuf0cj.centralus-01.azurewebsites.net';
+      : 'https://music-connectz-backend-a3a4cvgeb4e7ezfe.centralus-01.azurewebsites.net';
   </script>
   <div class="header">
     <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">?</button><button class="nav-btn" onclick="nextTab()">?</button><button class="theme-toggle" onclick="toggleTheme()">??</button><button class="nav-btn" id="authBtn" onclick="toggleAuthModal()">?? Login</button><button class="nav-btn" id="logoutBtn" onclick="handleLogout()" style="display: none; background: #F44336;">?? Logout</button></div>
