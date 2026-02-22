@@ -6,7 +6,53 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="https://js.stripe.com/v3/"></script>
   <script src="stripe-config.js"></script>
+  <script src="firebase-config.js"></script>
+  <!-- Firebase App (core) SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <!-- Firebase Analytics SDK (optional) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics.js"></script>
+  <!-- Firebase Auth SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="firebase-auth.js"></script>
+  <script src="firebase-init.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <style>
+    .auth-form { max-width: 350px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .auth-form h2 { margin-bottom: 18px; text-align: center; }
+    .auth-form input { width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+    .auth-form button { width: 100%; padding: 10px; background: #2196F3; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    .auth-form button:hover { background: #1565C0; }
+    .auth-form .switch { background: none; color: #2196F3; border: none; margin-top: 8px; cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="auth-form" id="authForm">
+    <h2 id="formTitle">Sign Up</h2>
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button onclick="handleAuth()" id="authBtn">Sign Up</button>
+    <button class="switch" onclick="switchAuth()" id="switchBtn">Already have an account? Sign In</button>
+    <button onclick="signOut()" style="margin-top:10px; background:#F44336;">Sign Out</button>
+  </div>
+  <script>
+    let isSignUp = true;
+    function handleAuth() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      if (isSignUp) {
+        signUp(email, password);
+      } else {
+        signIn(email, password);
+      }
+    }
+    function switchAuth() {
+      isSignUp = !isSignUp;
+      document.getElementById('formTitle').innerText = isSignUp ? 'Sign Up' : 'Sign In';
+      document.getElementById('authBtn').innerText = isSignUp ? 'Sign Up' : 'Sign In';
+      document.getElementById('switchBtn').innerText = isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up";
+    }
+  </script>
   <style>
     :root {
       --primary: #2196F3;
