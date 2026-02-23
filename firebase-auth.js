@@ -2,45 +2,51 @@
 // Add Firebase Authentication to your app
 // Requires firebase-app.js, firebase-auth.js, firebase-config.js, and firebase-init.js to be loaded first
 
-const auth = firebase.auth();
 
-// Example: Simple email/password sign up
-function signUp(email, password) {
-  return auth.createUserWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      // Signed up
-      const user = userCredential.user;
+const BACKEND_URL = 'https://music-connectz-backend-2.onrender.com';
+
+// Sign up using backend
+function signUp(email, password, name) {
+  return fetch(`${BACKEND_URL}/auth/signup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password, name }),
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Sign up failed');
+        throw new Error(error.error || 'Sign up failed');
+      }
       alert('Sign up successful!');
-      return user;
-    })
-    .catch((error) => {
-      alert(error.message);
-      throw error;
+      return response.json();
     });
 }
 
-// Example: Simple email/password sign in
+// Sign in using backend
 function signIn(email, password) {
-  return auth.signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      // Signed in
-      const user = userCredential.user;
+  return fetch(`${BACKEND_URL}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Sign in failed');
+        throw new Error(error.error || 'Sign in failed');
+      }
       alert('Sign in successful!');
-      return user;
-    })
-    .catch((error) => {
-      alert(error.message);
-      throw error;
+      return response.json();
     });
 }
 
-// Example: Sign out
+// Sign out (client-side only, since backend is stateless)
 function signOut() {
-  return auth.signOut()
-    .then(() => {
-      alert('Signed out!');
-    })
-    .catch((error) => {
-      alert(error.message);
-    });
+  // If you use tokens/cookies, clear them here
+  alert('Signed out!');
 }
