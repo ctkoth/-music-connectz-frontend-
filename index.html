@@ -65,9 +65,9 @@
       --border: #e0e0e0;
       --success: #4CAF50;
       --danger: #F44336;
-    }
-    [data-theme="dark"] {
-      --bg: #1a1a1a;
+        const apiBase = (() => {
+          return 'http://127.0.0.1:5000';
+        })();
       --surface: #2d2d2d;
       --text: #e0e0e0;
       --text-light: #b0b0b0;
@@ -1122,7 +1122,7 @@
       </div>
     </div>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummy123456&libraries=places"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrMy3b5x32jJflhmvLDjgFScV0Lweyel8&libraries=places"></script>
   <script>
   function playMedia(idx) {
     const example = appState.examples[idx];
@@ -1319,7 +1319,7 @@ let appState = {
 
 const apiBase = (() => {
   // Always use Render backend URL for API calls
-  return 'https://music-connectz-backend.onrender.com';
+  return 'https://music-connectz-backend-2.onrender.com';
 })();
 
 // Storage helpers to avoid crashes when storage is blocked
