@@ -2624,7 +2624,11 @@ function addIncome() {
   const taxAmount = amt * (levelTaxRate / 100);
   const afterTax = amt - taxAmount;
   appState.wallet.balance += afterTax;
-  appState.wallet.earned += amt;
+  if (isPremiumUser()) {
+    appState.wallet.earned += amt * 0.5;
+  } else {
+    appState.wallet.earned += amt;
+  }
   if (!appState.wallet.taxCollected) appState.wallet.taxCollected = 0;
   appState.wallet.taxCollected += taxAmount;
   document.getElementById('incomeAmt').value = '';
@@ -2755,7 +2759,11 @@ function checkMembershipLimit(action) {
 
 function updateWalletDisplay() {
   safeSetText('walletBalance', appState.wallet.balance.toFixed(2));
-  safeSetText('walletEarned', appState.wallet.earned.toFixed(2));
+  if (isPremiumUser()) {
+    safeSetText('walletEarned', (appState.wallet.earned * 0.5).toFixed(2));
+  } else {
+    safeSetText('walletEarned', appState.wallet.earned.toFixed(2));
+  }
   safeSetText('balanceAmount', appState.wallet.balance.toFixed(2));
   
   // Update user level
