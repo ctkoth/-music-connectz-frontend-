@@ -21,7 +21,12 @@
   <div class="auth-form" id="authForm">
     <h2 id="formTitle">Sign Up</h2>
     <input type="email" id="email" placeholder="Email" required />
-    <input type="password" id="password" placeholder="Password" required />
+    <div style="position:relative;">
+      <input type="password" id="password" placeholder="Password" required style="padding-right:32px;" />
+      <button type="button" onclick="togglePassword('password')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+        <span id="passwordEye">👁️</span>
+      </button>
+    </div>
     <button onclick="handleAuth()" id="authBtn">Sign Up</button>
     <button class="switch" onclick="switchAuth()" id="switchBtn">Already have an account? Sign In</button>
     <button onclick="signOut()" style="margin-top:10px; background:#F44336;">Sign Out</button>
@@ -367,7 +372,23 @@
       <div class="form-group"><label>Username</label><input type="text" id="authOverlayUsername" placeholder="Optional display name" /></div>
       <div class="form-group"><label>Email *</label><input type="email" id="authOverlayEmail" placeholder="you@email.com" /></div>
       <div class="form-group"><label>Phone</label><input type="tel" id="authOverlayPhone" placeholder="+1234567890 (optional)" /></div>
-      <div class="form-group"><label>Password *</label><input type="password" id="authOverlayPassword" placeholder="At least 8 characters" /></div>
+      <div class="form-group"><label>Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="authOverlayPassword" placeholder="At least 8 characters" style="padding-right:32px;" />
+          <button type="button" onclick="togglePassword('authOverlayPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+            <span id="authOverlayPasswordEye">👁️</span>
+          </button>
+        </div>
+      </div>
+      <div class="form-group"><label>Confirm Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="authOverlayConfirmPassword" placeholder="Re-enter password" style="padding-right:32px;" />
+          <button type="button" onclick="togglePassword('authOverlayConfirmPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+            <span id="authOverlayConfirmPasswordEye">👁️</span>
+          </button>
+        </div>
+      </div>
+      </div>
       <div class="auth-actions">
         <button class="btn btn-success" onclick="registerUser(true)">📝 Register</button>
         <button class="btn" onclick="loginUser(true)">🔓 Login</button>
@@ -383,7 +404,14 @@
       <div class="auth-title">📱 Phone Login</div>
       <div class="auth-subtitle">Sign in with your phone number.</div>
       <div class="form-group"><label>Phone *</label><input type="tel" id="authPhoneNumber" placeholder="+1234567890" /></div>
-      <div class="form-group"><label>Password *</label><input type="password" id="authPhonePassword" placeholder="Password" /></div>
+      <div class="form-group"><label>Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="authPhonePassword" placeholder="Password" style="padding-right:32px;" />
+          <button type="button" onclick="togglePassword('authPhonePassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+            <span id="authPhonePasswordEye">👁️</span>
+          </button>
+        </div>
+      </div>
       <div class="auth-actions">
         <button class="btn btn-success" onclick="loginWithPhone()">🔓 Login with Phone</button>
         <button class="btn btn-secondary" onclick="backToMainAuth()">⬅️ Back</button>
@@ -404,7 +432,14 @@
       <div class="auth-title">🔐 Enter Reset Code</div>
       <div class="auth-subtitle">Check your email for the 6-digit code.</div>
       <div class="form-group"><label>6-Digit Code *</label><input type="text" id="authResetCode" placeholder="123456" maxlength="6" /></div>
-      <div class="form-group"><label>New Password *</label><input type="password" id="authResetPassword" placeholder="At least 8 characters" /></div>
+      <div class="form-group"><label>New Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="authResetPassword" placeholder="At least 8 characters" style="padding-right:32px;" />
+          <button type="button" onclick="togglePassword('authResetPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+            <span id="authResetPasswordEye">👁️</span>
+          </button>
+        </div>
+      </div>
       <div class="auth-actions">
         <button class="btn btn-success" onclick="completePasswordReset()">✅ Reset Password</button>
         <button class="btn btn-secondary" onclick="backToMainAuth()">⬅️ Back</button>
@@ -912,7 +947,37 @@
         <div class="card-header">🔐 Account (Password Login)</div>
         <div class="form-group"><label>Username</label><input type="text" id="authUsername" placeholder="Optional display name" /></div>
         <div class="form-group"><label>Email *</label><input type="email" id="authEmail" placeholder="you@email.com" /></div>
-        <div class="form-group"><label>Password *</label><input type="password" id="authPassword" placeholder="At least 8 characters" /></div>
+        <div class="form-group"><label>Password *</label>
+          <div style="position:relative;">
+            <input type="password" id="authPassword" placeholder="At least 8 characters" style="padding-right:32px;" />
+            <button type="button" onclick="togglePassword('authPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+              <span id="authPasswordEye">👁️</span>
+            </button>
+          </div>
+        </div>
+        <script>
+        function togglePassword(id) {
+          // Only allow toggling for user's own password fields
+          const allowedIds = [
+            'password',
+            'authOverlayPassword',
+            'authPhonePassword',
+            'authResetPassword',
+            'authPassword'
+          ];
+          if (!allowedIds.includes(id)) return;
+          const input = document.getElementById(id);
+          const eye = document.getElementById(id + 'Eye');
+          if (!input || !eye) return;
+          if (input.type === 'password') {
+            input.type = 'text';
+            eye.textContent = '🙈';
+          } else {
+            input.type = 'password';
+            eye.textContent = '👁️';
+          }
+        }
+        </script>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button class="btn btn-success" onclick="registerUser()" id="registerBtn">📝 Register</button>
           <button class="btn" onclick="loginUser()" id="loginBtn">🔓 Login</button>
@@ -2965,11 +3030,13 @@ function setAuthStatus(message, isError = false) {
 async function registerUser(fromOverlay = false) {
   const email = (document.getElementById(fromOverlay ? 'authOverlayEmail' : 'authEmail').value || '').trim();
   const password = (document.getElementById(fromOverlay ? 'authOverlayPassword' : 'authPassword').value || '').trim();
+  const confirmPassword = fromOverlay ? (document.getElementById('authOverlayConfirmPassword').value || '').trim() : '';
   const username = (document.getElementById(fromOverlay ? 'authOverlayUsername' : 'authUsername').value || '').trim();
   const phone = fromOverlay ? (document.getElementById('authOverlayPhone').value || '').trim() : '';
 
   if (!email || !password) { setAuthStatus('Email and password required.', true); return; }
   if (password.length < 8) { setAuthStatus('Password must be at least 8 characters.', true); return; }
+  if (fromOverlay && password !== confirmPassword) { setAuthStatus('Passwords do not match.', true); return; }
 
   try {
     setAuthStatus('Registering...');
