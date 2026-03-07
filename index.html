@@ -3255,13 +3255,13 @@ function socialLogin(provider) {
   }
   
   // Check availability for Google, Facebook, and GitHub
-  const checkUrl = provider === 'google' ? `${apiBase}/api/auth/google/available` : null;
+  const checkUrl = provider === 'google' ? `${apiBase}/accounts/google/login/` : null;
   
   if (checkUrl) {
-    fetch(checkUrl)
-      .then(res => res.json().catch(() => ({})))
-      .then(data => {
-        if (!data.enabled) {
+    // Instead of fetch, just check if the endpoint exists (HEAD request)
+    fetch(checkUrl, { method: 'HEAD' })
+      .then(res => {
+        if (!res.ok) {
           setAuthStatus(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured on the server.`, true);
           return;
         }
@@ -3282,8 +3282,12 @@ function _openSocialLoginPopup(provider) {
   const left = (window.screen.width - width) / 2;
   const top = (window.screen.height - height) / 2;
   
+  // Use Django Allauth's login URL for Google
+  const loginUrl = provider === 'google'
+    ? `${apiBase}/accounts/google/login/`
+    : `${apiBase}/api/auth/${provider}`;
   const popup = window.open(
-    `${apiBase}/api/auth/${provider}`,
+    loginUrl,
     `${provider}Login`,
     `width=${width},height=${height},left=${left},top=${top}`
   );
