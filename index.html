@@ -72,9 +72,35 @@
         e.preventDefault();
       } else {
         document.getElementById('signup-error').innerText = '';
-        // TODO: Submit to backend or handle registration here
         e.preventDefault();
-        alert('Sign-up form validated! (Implement backend call here)');
+        // Submit to Django backend registration API
+        fetch('https://musicconnectz.net/api/auth/register/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: email.split('@')[0],
+            email: email,
+            password1: pw1,
+            password2: pw2
+          })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(({ status, body }) => {
+          if (status === 201) {
+            document.getElementById('signup-error').style.color = 'green';
+            document.getElementById('signup-error').innerText = 'Registration successful! You can now log in.';
+            document.getElementById('signupForm').reset();
+          } else {
+            document.getElementById('signup-error').style.color = 'red';
+            document.getElementById('signup-error').innerText = body.email || body.password || body.non_field_errors || 'Registration failed.';
+          }
+        })
+        .catch(() => {
+          document.getElementById('signup-error').style.color = 'red';
+          document.getElementById('signup-error').innerText = 'Registration failed. Server error.';
+        });
       }
     };
   </script>
