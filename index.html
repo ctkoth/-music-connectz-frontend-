@@ -9,7 +9,17 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
   <style>
-    .auth-form { max-width: 350px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .auth-form { max-width: 350px; width: 95vw; margin: 40px auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        @media (max-width: 480px) {
+          .auth-form {
+            max-width: 99vw;
+            padding: 10px;
+          }
+          .auth-form input, .auth-form button {
+            font-size: 16px;
+            padding: 12px 8px;
+          }
+        }
     .auth-form h2 { margin-bottom: 18px; text-align: center; }
     .auth-form input { width: 100%; margin-bottom: 12px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
     .auth-form button { width: 100%; padding: 10px; background: #2196F3; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
