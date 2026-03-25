@@ -3,11 +3,16 @@
 <head>
     <link rel="icon" type="image/png" href="/music-connectz-logo.png" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v8.4 bi K-Oth</title>
+  <title>Music ConnectZ v8.5 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <script src="/app-config.js"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <script src="/stripe-config.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    window.MCZ_CONFIG = window.MCZ_CONFIG || {};
+    window.MCZ_CONFIG.backendUrl = (window.MCZ_CONFIG.backendUrl || 'https://music-connectz-backend-2.onrender.com').replace(/\/+$/, '');
+  </script>
 
   <style>
     .auth-form { max-width: 350px; width: 95vw; margin: 40px auto; padding: 24px; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -93,7 +98,7 @@
         </div>
       </div>
       </div>
-      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.4</span>
+      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.5</span>
       <span id="header-date" style="font-size:0.95em; color:#888; margin-left:8px;"></span>
     </div>
     <h2>Sign Up</h2>
@@ -114,11 +119,14 @@
       <div id="signup-error" style="color:red; margin-top:10px;"></div>
     </form>
     <p style="margin-top:18px;">
-      <a href="http://127.0.0.1:8000/accounts/login/">Login or Register with Email or Social Account</a>
+      <a id="auth-entry-link" href="#">Login or Register with Email or Social Account</a>
+    </p>
+    <p style="margin-top:10px;">
+      <a id="secure-auth-link" href="#" style="display:inline-block; background:#1565C0; color:#fff; padding:10px 14px; border-radius:8px; text-decoration:none; font-weight:600;">Continue Auth on Secure Server</a>
     </p>
     <p id="edit-date" style="font-size:13px; color:#888; margin-top:18px;"></p>
     <div id="brief-updates" style="background:#f7f7e6; border-left:4px solid #ffa726; margin:24px 0 0 0; padding:14px 18px 10px 18px; border-radius:8px; max-width:420px;">
-      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v8.4 Updates – <span id="release-date"></span></div>
+      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v8.5 Updates – <span id="release-date"></span></div>
       <ul style="margin:0 0 0 18px; padding:0; color:#444; font-size:0.97em;">
         <li>Business Manager persona and skills section added</li>
         <li>Persona icons now labeled and aligned</li>
@@ -168,7 +176,7 @@
         designer: '/designer.png',
         engineer: '/engineer.png',
         ghostwriter: '/ghostwriter.png',
-        manager: '/manager.png',
+        manager: '/business-manager.png',
         producer: '/producer.png',
         videographer: '/videographer.png'
       };
@@ -181,6 +189,16 @@
           });
         }
       });
+
+      const authEntryLink = document.getElementById('auth-entry-link');
+      const secureAuthLink = document.getElementById('secure-auth-link');
+      const googleLoginUrl = `${window.MCZ_CONFIG.backendUrl}/accounts/google/login/?process=login&next=${encodeURIComponent(location.href)}`;
+      if (authEntryLink) {
+        authEntryLink.href = googleLoginUrl;
+      }
+      if (secureAuthLink) {
+        secureAuthLink.href = googleLoginUrl;
+      }
     });
 
     function showPersonaDetails(key) {
@@ -233,8 +251,17 @@
       } else {
         document.getElementById('signup-error').innerText = '';
         e.preventDefault();
+        if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+          document.getElementById('signup-error').style.color = '#1565C0';
+          document.getElementById('signup-error').innerText = 'Redirecting to secure server registration...';
+          setTimeout(() => {
+            const nextUrl = encodeURIComponent(location.href);
+            window.location.href = `${window.MCZ_CONFIG.backendUrl}/accounts/google/login/?process=login&next=${nextUrl}`;
+          }, 300);
+          return;
+        }
         // Submit to Django backend registration API
-        fetch('https://music-connectz-backend-2.onrender.com/api/auth/register/', {
+        fetch(`${window.MCZ_CONFIG.backendUrl}/api/auth/register/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -257,9 +284,19 @@
             document.getElementById('signup-error').innerText = body.email || body.password || body.non_field_errors || 'Registration failed.';
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          const msg = String((err && err.message) || err || '').toLowerCase();
+          const likelyCors = msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network error');
           document.getElementById('signup-error').style.color = 'red';
-          document.getElementById('signup-error').innerText = 'Registration failed. Server error.';
+          document.getElementById('signup-error').innerText = likelyCors
+            ? `Registration blocked by server CORS policy. Redirecting to backend auth...`
+            : 'Registration failed. Server error.';
+          if (likelyCors) {
+            setTimeout(() => {
+              const nextUrl = encodeURIComponent(location.href);
+              window.location.href = `${window.MCZ_CONFIG.backendUrl}/accounts/login/?next=${nextUrl}`;
+            }, 600);
+          }
         });
       }
     };
@@ -278,13 +315,6 @@
       --border: #e0e0e0;
       --success: #4CAF50;
       --danger: #F44336;
-        const apiBase = (() => {
-          return 'http://127.0.0.1:5000';
-        })();
-      --surface: #2d2d2d;
-      --text: #e0e0e0;
-      --text-light: #b0b0b0;
-      --border: #404040;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); }
@@ -614,6 +644,7 @@
         <button class="btn btn-secondary" onclick="showPhoneLogin()" style="flex: 1;">📱 Phone Login</button>
         <button class="btn btn-secondary" onclick="showForgotPassword()" style="flex: 1;">🔑 Forgot Password</button>
       </div>
+      <button class="btn" onclick="openBackendAuthPage()" style="width: 100%; margin-top: 10px; background:#1565C0;">🌐 Continue Auth on Secure Server</button>
       <button class="btn btn-secondary" onclick="continueAsGuest()" style="width: 100%; margin-top: 10px;">👀 Continue as Guest</button>
     </div>
     
@@ -1403,7 +1434,7 @@
       </div>
     </div>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrMy3b5x32jJflhmvLDjgFScV0Lweyel8&libraries=places" async defer></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrMy3b5x32jJflhmvLDjgFScV0Lweyel8&libraries=places&loading=async" async defer></script>
   <script>
   function playMedia(idx) {
     const example = appState.examples[idx];
@@ -1598,10 +1629,7 @@ let appState = {
   }
 };
 
-const apiBase = (() => {
-  // Always use Render backend URL for API calls
-  return 'https://music-connectz-backend-2.onrender.com';
-})();
+const apiBase = window.MCZ_CONFIG.backendUrl;
 
 // Storage helpers to avoid crashes when storage is blocked
 const _memoryStorage = {};
@@ -1844,8 +1872,8 @@ function requestGPS() {
   // Quick diagnostics so the user knows why the browser may not prompt
   const secure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   if (!secure) {
-    status.textContent = `⚠️ GPS may be blocked on insecure origins (${location.protocol}//${location.hostname}). Use http://localhost:8000.`;
-    alert('GPS can be blocked on non-HTTPS origins. Please use http://localhost:8000 for local testing.');
+    status.textContent = `⚠️ GPS may be blocked on insecure origins (${location.protocol}//${location.hostname}). Use HTTPS or localhost.`;
+    alert('GPS can be blocked on non-HTTPS origins. Please use HTTPS (or localhost for local testing).');
   }
 
   if (navigator.permissions && navigator.permissions.query) {
@@ -3252,6 +3280,24 @@ function setAuthStatus(message, isError = false) {
   }
 }
 
+function isLikelyCorsNetworkError(err) {
+  const msg = String((err && err.message) || err || '').toLowerCase();
+  return msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network error');
+}
+
+function corsBlockedMessage(actionLabel) {
+  return `${actionLabel} blocked by server CORS policy. Allow origin: ${location.origin}`;
+}
+
+function getGoogleLoginUrl() {
+  const nextUrl = encodeURIComponent(location.href);
+  return `${apiBase}/accounts/google/login/?process=login&next=${nextUrl}`;
+}
+
+function openBackendAuthPage() {
+  window.location.href = getGoogleLoginUrl();
+}
+
 async function registerUser(fromOverlay = false) {
   const email = (document.getElementById(fromOverlay ? 'authOverlayEmail' : 'authEmail').value || '').trim();
   const password = (document.getElementById(fromOverlay ? 'authOverlayPassword' : 'authPassword').value || '').trim();
@@ -3262,10 +3308,15 @@ async function registerUser(fromOverlay = false) {
   if (!email || !password) { setAuthStatus('Email and password required.', true); return; }
   if (password.length < 8) { setAuthStatus('Password must be at least 8 characters.', true); return; }
   if (fromOverlay && password !== confirmPassword) { setAuthStatus('Passwords do not match.', true); return; }
+  if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+    setAuthStatus('Redirecting to secure server registration...');
+    openBackendAuthPage();
+    return;
+  }
 
   try {
     setAuthStatus('Registering...');
-    const res = await fetch('https://music-connectz-backend-2.onrender.com/api/auth/register/', {
+    const res = await fetch(`${apiBase}/api/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3287,7 +3338,16 @@ async function registerUser(fromOverlay = false) {
     }
   } catch (e) {
     console.error('registerUser error:', e);
-    setAuthStatus('Registration error. Check server.', true);
+    const likelyCors = isLikelyCorsNetworkError(e);
+    setAuthStatus(
+      likelyCors
+        ? `${corsBlockedMessage('Registration')} Redirecting to backend auth...`
+        : 'Registration error. Check server.',
+      true
+    );
+    if (likelyCors) {
+      setTimeout(openBackendAuthPage, 600);
+    }
   }
 }
 
@@ -3296,6 +3356,11 @@ async function loginUser(fromOverlay = false) {
   const password = (document.getElementById(fromOverlay ? 'authOverlayPassword' : 'authPassword').value || '').trim();
 
   if (!email || !password) { setAuthStatus('Email and password required.', true); return; }
+  if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+    setAuthStatus('Redirecting to secure server login...');
+    openBackendAuthPage();
+    return;
+  }
 
   try {
     setAuthStatus('Logging in...');
@@ -3317,7 +3382,14 @@ async function loginUser(fromOverlay = false) {
     setAuthStatus(`Logged in as ${data.user.email}`);
   } catch (e) {
     console.error('loginUser error:', e);
-    setAuthStatus('Login error. Check server.', true);
+    const likelyCors = isLikelyCorsNetworkError(e);
+    setAuthStatus(
+      likelyCors ? `${corsBlockedMessage('Login')} Redirecting to backend auth...` : 'Login error. Check server.',
+      true
+    );
+    if (likelyCors) {
+      setTimeout(openBackendAuthPage, 600);
+    }
   }
 }
 
@@ -3373,6 +3445,11 @@ async function loginWithPhone() {
   const password = (document.getElementById('authPhonePassword').value || '').trim();
 
   if (!phone || !password) { setAuthStatus('Phone and password required.', true); return; }
+  if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+    setAuthStatus('Redirecting to secure server login...');
+    openBackendAuthPage();
+    return;
+  }
 
   try {
     setAuthStatus('Logging in...');
@@ -3395,7 +3472,14 @@ async function loginWithPhone() {
     backToMainAuth();
   } catch (e) {
     console.error('loginWithPhone error:', e);
-    setAuthStatus('Login error. Check server.', true);
+    const likelyCors = isLikelyCorsNetworkError(e);
+    setAuthStatus(
+      likelyCors ? `${corsBlockedMessage('Phone login')} Redirecting to backend auth...` : 'Login error. Check server.',
+      true
+    );
+    if (likelyCors) {
+      setTimeout(openBackendAuthPage, 600);
+    }
   }
 }
 
@@ -3403,6 +3487,11 @@ async function requestPasswordReset() {
   const email = (document.getElementById('authForgotEmail').value || '').trim();
 
   if (!email) { setAuthStatus('Email required.', true); return; }
+  if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+    setAuthStatus('Redirecting to secure server password reset...');
+    openBackendAuthPage();
+    return;
+  }
 
   try {
     setAuthStatus('Sending reset code...');
@@ -3433,7 +3522,14 @@ async function requestPasswordReset() {
     document.getElementById('authResetView').style.display = 'block';
   } catch (e) {
     console.error('requestPasswordReset error:', e);
-    setAuthStatus('Reset request error. Check server.', true);
+    const likelyCors = isLikelyCorsNetworkError(e);
+    setAuthStatus(
+      likelyCors ? `${corsBlockedMessage('Password reset request')} Redirecting to backend auth...` : 'Reset request error. Check server.',
+      true
+    );
+    if (likelyCors) {
+      setTimeout(openBackendAuthPage, 600);
+    }
   }
 }
 
@@ -3449,6 +3545,11 @@ async function completePasswordReset() {
   if (newPassword.length < 8) { 
     setAuthStatus('Password must be at least 8 characters.', true); 
     return; 
+  }
+  if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
+    setAuthStatus('Redirecting to secure server password reset...');
+    openBackendAuthPage();
+    return;
   }
 
   try {
@@ -3477,17 +3578,30 @@ async function completePasswordReset() {
     }, 2000);
   } catch (e) {
     console.error('completePasswordReset error:', e);
-    setAuthStatus('Reset error. Check server.', true);
+    const likelyCors = isLikelyCorsNetworkError(e);
+    setAuthStatus(
+      likelyCors ? `${corsBlockedMessage('Password reset')} Redirecting to backend auth...` : 'Reset error. Check server.',
+      true
+    );
+    if (likelyCors) {
+      setTimeout(openBackendAuthPage, 600);
+    }
   }
 }
 
 function socialLogin(provider) {
+  if ((window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) && provider === 'google') {
+    setAuthStatus('Redirecting to Google sign in...');
+    window.location.href = getGoogleLoginUrl();
+    return;
+  }
+
   // List of supported providers
   const supportedProviders = ['google', 'facebook', 'github'];
   
   // Check if provider is supported
   if (!supportedProviders.includes(provider)) {
-    setAuthStatus(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not yet configured on this server.`, true);
+    setAuthStatus(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login is not configured. Please use Google sign in.`, true);
     return;
   }
   
@@ -3505,7 +3619,12 @@ function socialLogin(provider) {
         _openSocialLoginPopup(provider);
       })
       .catch(e => {
-        setAuthStatus(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login check failed. Check server.`, true);
+        setAuthStatus(
+          isLikelyCorsNetworkError(e)
+            ? corsBlockedMessage(`${provider.charAt(0).toUpperCase() + provider.slice(1)} login`)
+            : `${provider.charAt(0).toUpperCase() + provider.slice(1)} login check failed. Check server.`,
+          true
+        );
       });
   } else {
     _openSocialLoginPopup(provider);

@@ -16,11 +16,12 @@ Location-based music collaboration platform with integrated Stripe payments and 
 ## 📁 Files
 
 - `index.html` - Main application (single-page HTML app)
+- `app-config.js` - Runtime backend API URL configuration
 - `stripe-config.js` - Stripe payment integration configuration
 
 ## 🚀 Live Demo
 
-**Live Site:** https://music-connectz-backend.vercel.app/
+**Live Site:** https://music-connectz-backend-2.onrender.com/
 
 ## 💻 Run Locally
 
@@ -32,7 +33,7 @@ Location-based music collaboration platform with integrated Stripe payments and 
 
 This frontend connects to the Music ConnectZ Stripe backend for payment processing:
 
-**Backend:** https://music-connectz-backend.vercel.app
+**Backend:** https://music-connectz-backend-2.onrender.com
 
 ### Test Payments
 Use Stripe test card:
@@ -42,12 +43,23 @@ Use Stripe test card:
 
 ## 🔧 Configuration
 
-The backend URL is configured in `stripe-config.js`:
+The backend URL is configured in `public/app-config.js`:
 ```javascript
-let backendUrl = 'https://music-connectz-backend.vercel.app';
+window.MCZ_CONFIG.backendUrl = 'https://music-connectz-backend-2.onrender.com';
 ```
 
 To use a different backend, update this URL.
+
+## ✅ Operability Checklist
+
+To make the frontend fully operational in production:
+
+1. Set `public/app-config.js` to the correct backend origin.
+2. Configure backend CORS to allow your frontend origins.
+3. Ensure backend responds to `OPTIONS` preflight for auth routes.
+4. Allow headers: `Content-Type`, `Authorization`.
+5. Allow methods: `GET, POST, PUT, PATCH, DELETE, OPTIONS`.
+6. If using cookies/session auth, enable credentials and avoid wildcard origin.
 
 ## 💎 Premium Per-Second Earnings
 
@@ -77,11 +89,11 @@ Enable premium mode to monetize your content by earning money for every second v
 
 ## 📦 Deployment
 
-### Vercel (Current)
+### Render (Current Backend)
 
-1. Deployed on Vercel at https://music-connectz-backend.vercel.app/
-2. Automatic deployments on push to main
-3. No build settings needed
+1. Backend deployed on Render at https://music-connectz-backend-2.onrender.com/
+2. Frontend can be deployed as static files on Vercel, Netlify, or GitHub Pages
+3. Keep frontend and backend origins allowed in backend CORS settings
 
 ### Alternative: GitHub Pages
 
@@ -102,7 +114,7 @@ Enable premium mode to monetize your content by earning money for every second v
 - **Payments:** Stripe Checkout API
 - **Maps:** Leaflet.js + OpenStreetMap
 - **Hosting:** Vercel
-- **Backend:** Node.js/Express on Vercel
+- **Backend:** API hosted on Render
 
 ## 📱 Browser Support
 
