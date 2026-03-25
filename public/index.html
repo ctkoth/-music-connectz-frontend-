@@ -3,7 +3,7 @@
 <head>
     <link rel="icon" type="image/png" href="/music-connectz-logo.png" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v8.5 bi K-Oth</title>
+  <title>Music ConnectZ v8.6 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="/app-config.js"></script>
   <script src="https://js.stripe.com/v3/"></script>
@@ -98,7 +98,7 @@
         </div>
       </div>
       </div>
-      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.5</span>
+      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.6</span>
       <span id="header-date" style="font-size:0.95em; color:#888; margin-left:8px;"></span>
     </div>
     <h2>Sign Up</h2>
@@ -126,7 +126,7 @@
     </p>
     <p id="edit-date" style="font-size:13px; color:#888; margin-top:18px;"></p>
     <div id="brief-updates" style="background:#f7f7e6; border-left:4px solid #ffa726; margin:24px 0 0 0; padding:14px 18px 10px 18px; border-radius:8px; max-width:420px;">
-      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v8.5 Updates – <span id="release-date"></span></div>
+      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v8.6 Updates – <span id="release-date"></span></div>
       <ul style="margin:0 0 0 18px; padding:0; color:#444; font-size:0.97em;">
         <li>Business Manager persona and skills section added</li>
         <li>Persona icons now labeled and aligned</li>
@@ -141,31 +141,88 @@
     const personaDetails = {
       artist: {
         title: "Artist",
-        text: "Creates and performs original music. Brings creative vision to life through vocals, instruments, and stage presence."
+        text: "Creates and performs original music, shaping the creative direction and identity of a project.",
+        skills: [
+          "Songwriting & Composition",
+          "Vocal or Instrument Performance",
+          "Stage Presence",
+          "Creative Direction",
+          "Audience Engagement",
+          "Collaboration with Producers"
+        ]
       },
       designer: {
         title: "Designer",
-        text: "Crafts the visual identity for music projects, including album covers, logos, and promotional materials."
+        text: "Builds the visual identity of music brands and releases across digital and print media.",
+        skills: [
+          "Album Cover Design",
+          "Brand Identity",
+          "Logo & Typography",
+          "Social Media Assets",
+          "Creative Direction",
+          "Visual Storytelling"
+        ]
       },
       engineer: {
         title: "Engineer",
-        text: "Handles the technical side of music production, including recording, mixing, and mastering tracks for professional sound."
+        text: "Delivers technical audio quality through recording, mixing, editing, and mastering.",
+        skills: [
+          "Recording Techniques",
+          "Mixing & Mastering",
+          "Signal Flow",
+          "Audio Editing",
+          "DAW Optimization",
+          "Session Management"
+        ]
       },
       ghostwriter: {
         title: "Ghostwriter",
-        text: "Writes lyrics or music for others, often anonymously, helping artists and producers develop new material."
+        text: "Creates lyrics, hooks, and concepts for artists while remaining behind the scenes.",
+        skills: [
+          "Lyric Writing",
+          "Hook Development",
+          "Storytelling",
+          "Genre Adaptation",
+          "Confidential Collaboration",
+          "Topline Writing"
+        ]
       },
       manager: {
-        title: "Manager",
-        text: "Oversees the business and career aspects of artists, including bookings, contracts, and strategic planning."
+        title: "Business Manager",
+        text: "Leads career operations, partnerships, and long-term strategy for artists and teams.",
+        skills: [
+          "Team Leadership & Coordination",
+          "Financial Planning & Budgeting",
+          "Contract Negotiation",
+          "Marketing & Promotion",
+          "Networking & Partnerships",
+          "Project Management",
+          "Strategic Decision Making"
+        ]
       },
       producer: {
         title: "Producer",
-        text: "Guides the overall sound and direction of a music project, coordinating between artists, engineers, and songwriters."
+        text: "Shapes the sound, arrangement, and creative execution of tracks from idea to release.",
+        skills: [
+          "Beat Production",
+          "Arrangement & Structure",
+          "Artist Coaching",
+          "Sound Selection",
+          "Session Direction",
+          "Project Delivery"
+        ]
       },
       videographer: {
         title: "Videographer",
-        text: "Creates music videos and visual content to promote artists and their work, handling filming and editing."
+        text: "Produces video content that strengthens artist branding, storytelling, and promotion.",
+        skills: [
+          "Music Video Production",
+          "Cinematography",
+          "Lighting & Composition",
+          "Video Editing",
+          "Color Grading",
+          "Content Delivery for Social Platforms"
+        ]
       }
     };
 
@@ -205,7 +262,13 @@
       const details = personaDetails[key];
       const detailsDiv = document.getElementById('persona-details');
       if (details) {
-        detailsDiv.innerHTML = `<div style='font-size:1.1em;font-weight:bold;color:#2196F3;margin-bottom:4px;'>${details.title}</div><div style='font-size:1em;color:#444;'>${details.text}</div>`;
+        const skillItems = (details.skills || []).map(skill => `<li>${skill}</li>`).join('');
+        detailsDiv.innerHTML = `
+          <div style='font-size:1.4em;font-weight:700;color:#e65100;margin-bottom:6px;text-align:center;'>${details.title}</div>
+          <div style='font-size:0.98em;color:#444;text-align:center;margin-bottom:10px;'>${details.text}</div>
+          <div style='font-size:1.8em;color:#444;text-align:center;line-height:1;margin-bottom:4px;'>Key Skills:</div>
+          <ul style='margin:8px 0 0 22px;padding:0;color:#444;font-size:0.98em;line-height:1.35;'>${skillItems}</ul>
+        `;
         detailsDiv.style.display = 'block';
       }
     }
