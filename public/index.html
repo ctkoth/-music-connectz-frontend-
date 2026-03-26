@@ -612,13 +612,13 @@
       <div class="social-login-section" style="margin-bottom: 15px;">
         <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 10px;">Continue with:</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <button class="btn-social btn-apple" onclick="socialLogin('apple')" title="Login with Apple">
+          <button class="btn-social btn-apple" data-provider="apple" onclick="socialLogin('apple')" title="Login with Apple">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#000000" d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with Apple</span>
           </button>
-          <button class="btn-social btn-microsoft" onclick="socialLogin('microsoft')" title="Login with Microsoft">
+          <button class="btn-social btn-microsoft" data-provider="microsoft" onclick="socialLogin('microsoft')" title="Login with Microsoft">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#F25022" d="M11.4 11.4H2V2h9.4v9.4z"/>
               <path fill="#00A4EF" d="M22 11.4h-9.4V2H22v9.4z"/>
@@ -627,31 +627,31 @@
             </svg>
             <span style="flex: 1; text-align: left;">Continue with Microsoft</span>
           </button>
-          <button class="btn-social btn-facebook" onclick="socialLogin('facebook')" title="Login with Facebook">
+          <button class="btn-social btn-facebook" data-provider="facebook" onclick="socialLogin('facebook')" title="Login with Facebook">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with Facebook</span>
           </button>
-          <button class="btn-social btn-twitter" onclick="socialLogin('twitter')" title="Login with X (Twitter)">
+          <button class="btn-social btn-twitter" data-provider="twitter" onclick="socialLogin('twitter')" title="Login with X (Twitter)">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#000000" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with X</span>
           </button>
-          <button class="btn-social btn-linkedin" onclick="socialLogin('linkedin')" title="Login with LinkedIn">
+          <button class="btn-social btn-linkedin" data-provider="linkedin" onclick="socialLogin('linkedin')" title="Login with LinkedIn">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#0A66C2" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with LinkedIn</span>
           </button>
-          <button class="btn-social btn-github" onclick="socialLogin('github')" title="Login with GitHub">
+          <button class="btn-social btn-github" data-provider="github" onclick="socialLogin('github')" title="Login with GitHub">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#181717" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with GitHub</span>
           </button>
-          <button class="btn-social btn-google" onclick="socialLogin('google')" title="Login with Google">
+          <button class="btn-social btn-google" data-provider="google" onclick="socialLogin('google')" title="Login with Google">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -660,13 +660,13 @@
             </svg>
             <span style="flex: 1; text-align: left;">Continue with Google</span>
           </button>
-          <button class="btn-social btn-spotify" onclick="socialLogin('spotify')" title="Login with Spotify">
+          <button class="btn-social btn-spotify" data-provider="spotify" onclick="socialLogin('spotify')" title="Login with Spotify">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#1DB954" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.506 17.316a.748.748 0 0 1-1.03.247c-2.82-1.724-6.368-2.114-10.543-1.16a.748.748 0 1 1-.332-1.458c4.57-1.045 8.497-.6 11.657 1.33.353.216.465.677.248 1.04zm1.47-3.272a.936.936 0 0 1-1.29.31c-3.227-1.984-8.146-2.56-11.964-1.401a.936.936 0 1 1-.543-1.792c4.367-1.323 9.792-.684 13.484 1.588.44.272.58.848.313 1.295zm.126-3.412c-3.87-2.298-10.26-2.51-13.954-1.41a1.123 1.123 0 1 1-.642-2.153c4.24-1.266 11.284-1.022 15.744 1.625a1.123 1.123 0 0 1-1.148 1.938z"/>
             </svg>
             <span style="flex: 1; text-align: left;">Continue with Spotify</span>
           </button>
-          <button class="btn-social btn-soundcloud" onclick="socialLogin('soundcloud')" title="Login with SoundCloud">
+          <button class="btn-social btn-soundcloud" data-provider="soundcloud" onclick="socialLogin('soundcloud')" title="Login with SoundCloud">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#FF5500" d="M8.5 8.2c-.3 0-.6.2-.7.5L7.2 20c0 .2.1.4.2.5.1.1.3.2.5.2h.1c.4 0 .7-.3.7-.7l.6-11.1c0-.4-.3-.7-.8-.7zm2.5-1.3c-.4 0-.7.3-.7.7l-.2 12.5c0 .4.3.7.7.7s.7-.3.7-.7L11.7 7.6c0-.4-.3-.7-.7-.7zm2.5.8c-.4 0-.7.3-.7.7l-.2 11.7c0 .4.3.7.7.7s.7-.3.7-.7l.2-11.7c0-.4-.3-.7-.7-.7zm2.5 1.5c-.4 0-.7.3-.7.7l-.2 10.2c0 .4.3.7.7.7s.7-.3.7-.7l.2-10.2c0-.4-.3-.7-.7-.7zm4.4 3.2c-.2-1.8-1.7-3.1-3.5-3.1-.4 0-.8.1-1.2.2v10.2h4.4c2.1 0 3.9-1.6 3.9-3.7 0-1.9-1.5-3.4-3.6-3.6z"/>
             </svg>
@@ -780,7 +780,7 @@
       <span>🔓 You’re in guest mode. Log in to access all features.</span>
       <div style="display: flex; gap: 6px; flex-wrap: wrap;">
         <button class="btn btn-small" onclick="openLoginOverlay()">Login</button>
-        <button class="btn-social btn-google" onclick="socialLogin('google')" title="Login with Google" style="padding: 6px 10px;">
+        <button class="btn-social btn-google" data-provider="google" onclick="socialLogin('google')" title="Login with Google" style="padding: 6px 10px;">
           <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1304,7 +1304,7 @@
         </div>
         <div id="authStatus" style="margin-top: 10px; font-size: 11px; color: var(--text-light);">Not logged in</div>
         <div style="margin-top: 12px;">
-          <button class="btn-social btn-google" onclick="socialLogin('google')" title="Login with Google" style="width: 100%;">
+          <button class="btn-social btn-google" data-provider="google" onclick="socialLogin('google')" title="Login with Google" style="width: 100%;">
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.6l6.86-6.86C35.9 2.44 30.47 0 24 0 14.64 0 6.55 5.38 2.57 13.22l7.98 6.19C12.43 13 17.77 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.1 24.5c0-1.64-.15-3.22-.43-4.75H24v9h12.45c-.54 2.9-2.18 5.36-4.62 7.04l7.07 5.49C42.78 37.4 46.1 31.47 46.1 24.5z"/>
@@ -3675,6 +3675,26 @@ function socialLogin(provider) {
   _openSocialLogin(providerConfig);
 }
 
+async function updateOAuthButtonVisibility() {
+  try {
+    const res = await fetch(`${apiBase}/api/auth/providers/status/`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const statusMap = data && data.providers ? data.providers : {};
+    const providerButtons = document.querySelectorAll('[data-provider]');
+
+    providerButtons.forEach((btn) => {
+      const provider = btn.getAttribute('data-provider');
+      if (!provider) return;
+      const isEnabled = !!statusMap[provider];
+      btn.style.display = isEnabled ? '' : 'none';
+    });
+  } catch (e) {
+    console.warn('OAuth provider status unavailable; leaving all buttons visible.', e);
+  }
+}
+
 function _openSocialLogin(providerConfig) {
   const loginUrl = `${apiBase}/accounts/${providerConfig.id}/login/`;
   const mobileBrowser = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent);
@@ -3708,6 +3728,7 @@ function _openSocialLogin(providerConfig) {
 
 // Listen for social login callback
 window.addEventListener('load', () => {
+  updateOAuthButtonVisibility();
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('social_login') === 'success') {
     try {
