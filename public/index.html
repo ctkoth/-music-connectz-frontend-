@@ -270,11 +270,9 @@
       }
     }
 
-    // Set the header date to today
-    const headerDate = new Date();
+    // Show the date the live commit was created (March 27, 2026)
     const headerOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    // Show date and time in header
-    document.getElementById('header-date').innerText = headerDate.toLocaleDateString(undefined, headerOptions) + ' ' + headerDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('header-date').innerText = new Date('2026-03-27').toLocaleDateString(undefined, headerOptions);
 
     // Set the 'Edited on' date to today (keep for footer)
 
