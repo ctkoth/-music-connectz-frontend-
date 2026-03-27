@@ -3,9 +3,11 @@
 <head>
     <link rel="icon" type="image/png" href="/music-connectz-logo.png" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v8.6 bi K-Oth</title>
+  <title>Music ConnectZ v9 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="/app-config.js"></script>
+  <script src="/i18n-config.js"></script>
+  <script src="/tutorials-config.js"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <script src="/stripe-config.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -39,6 +41,13 @@
     .auth-form button { width: 100%; padding: 10px; background: #2196F3; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .auth-form button:hover { background: #1565C0; }
     .auth-form .switch { background: none; color: #2196F3; border: none; margin-top: 8px; cursor: pointer; text-decoration: underline; }
+    .lang-selector-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; margin: 0 4px; }
+    .lang-selector-btn:hover { background: rgba(255,255,255,0.5); }
+    .lang-selector-dropdown { display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 160px; }
+    .lang-selector-dropdown.active { display: block; }
+    .lang-selector-option { padding: 8px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #eee; color: #333; }
+    .lang-selector-option:hover { background: #f5f5f5; }
+    .lang-selector-option:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -80,7 +89,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.6</span>
+      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v8.9</span>
       <span id="header-date" style="font-size:0.95em; color:#888; margin-left:8px;"></span>
     </div>
     <h2>Sign Up</h2>
@@ -108,11 +117,13 @@
     </p>
     <p id="edit-date" style="font-size:13px; color:#888; margin-top:18px;"></p>
     <div id="brief-updates" style="background:#f7f7e6; border-left:4px solid #ffa726; margin:24px 0 0 0; padding:14px 18px 10px 18px; border-radius:8px; max-width:420px;">
-      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v8.6 Updates – <span id="release-date"></span></div>
+      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v9 Updates – <span id="release-date"></span></div>
       <ul style="margin:0 0 0 18px; padding:0; color:#444; font-size:0.97em;">
-        <li>Persona details now update from the selected persona (fixed always-Business Manager display)</li>
-        <li>Persona icons now labeled and aligned</li>
-        <li>UI polish and improved layout for top section</li>
+        <li>🌐 Complete internationalization: 10 languages with geo-relevant genres & skills (US, UK, Brazil, Portugal, Korea, China, Japan, Arabia, India)</li>
+        <li>🎁 Tiered referral rewards system: Invite friends to unlock credits, premium access, and exclusive benefits</li>
+        <li>💰 Referral tiers: Bronze ($5), Silver ($5+1mo), Gold ($25+3mo), Platinum ($50+6mo+support)</li>
+        <li>🌍 Geo-optimized onboarding with localized music genres and role recommendations</li>
+        <li>🔗 Language selector in header with persistent user preference storage</li>
         <li>Version and release date auto-updated</li>
       </ul>
     </div>
@@ -607,7 +618,7 @@
   <div class="auth-card">
     <div id="authMainView">
       <div class="auth-title">🔐 Login Required</div>
-      <div class="auth-subtitle">Create an account or sign in to use Music ConnectZ.</div>
+      <div class="auth-subtitle">Sign in fast with verified social accounts and start matching with local collaborators.</div>
       
       <div class="social-login-section" style="margin-bottom: 15px;">
         <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 10px;">Continue with:</div>
@@ -770,14 +781,22 @@
 </div>
 <div class="container">
   <div class="header">
-    <div class="nav-wrapper"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleTheme()">🌙</button></div>
-    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v8 bi K-Oth</div><div class="header-subtitle">Location-Based Collaboration • 2/1/2026</div></div>
+    <div class="nav-wrapper">
+      <button class="nav-btn" onclick="prevTab()">←</button>
+      <button class="nav-btn" onclick="nextTab()">→</button>
+      <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+      <div style="position: relative; display: inline-block;">
+        <button class="lang-selector-btn" onclick="toggleLangSelector()" id="langSelectorBtn">🌐 EN</button>
+        <div class="lang-selector-dropdown" id="langSelectorDropdown"></div>
+      </div>
+    </div>
+    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v9 bi K-Oth</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
     <div class="header-right"><button class="btn btn-small" id="headerLoginBtn" onclick="openLoginOverlay()">🔓 Login</button><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
   <div id="guestLoginBanner" style="display: none; background: #fff3cd; color: #856404; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ffc107; font-size: 11px;">
     <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-      <span>🔓 You’re in guest mode. Log in to access all features.</span>
+      <span>🔓 You’re in guest mode. Log in to unlock matching, messaging, and verified collaborations.</span>
       <div style="display: flex; gap: 6px; flex-wrap: wrap;">
         <button class="btn btn-small" onclick="openLoginOverlay()">Login</button>
         <button class="btn-social btn-google" data-provider="google" onclick="socialLogin('google')" title="Login with Google" style="padding: 6px 10px;">
@@ -799,6 +818,7 @@
     <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
     <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
     <button class="tab-btn" onclick="switchTab('messages')">💬 Messages</button>
+    <button class="tab-btn" onclick="switchTab('boards')">📌 Boards</button>
     <button class="tab-btn" onclick="switchTab('membership')">⭐ Membership</button>
     <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
     <button class="tab-btn" onclick="switchTab('money')">💰 Money</button>
@@ -822,6 +842,11 @@
         </div>
         <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
         <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <div class="grid-3">
+          <div class="form-group"><label>🎓 Schools</label><textarea id="expSchools" placeholder="One school per line" style="height: 70px;"></textarea></div>
+          <div class="form-group"><label>🎛️ Apps/Tools</label><textarea id="expApps" placeholder="One app/tool per line" style="height: 70px;"></textarea></div>
+          <div class="form-group"><label>👩‍🏫 Teachers/Mentors</label><textarea id="expTeachers" placeholder="One teacher per line" style="height: 70px;"></textarea></div>
+        </div>
         <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
       </div>
     </div>
@@ -1008,6 +1033,23 @@
       </div>
     </div>
 
+    <div id="boards" class="tab">
+      <div class="card">
+        <div class="card-header">📌 Message Boards</div>
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 10px; color: var(--text-light);">
+          Free: <strong>2 posts/day</strong> • Premium: <strong>unlimited + boost placement</strong>
+        </div>
+        <div class="form-group"><label>Title *</label><input type="text" id="boardTitle" maxlength="80" placeholder="Post title" /></div>
+        <div class="form-group"><label>Category</label><input type="text" id="boardTag" maxlength="32" placeholder="e.g. Production, Collab, Events" /></div>
+        <div class="form-group"><label>Message *</label><textarea id="boardBody" maxlength="500" placeholder="Share your update, question, or opportunity..." style="height: 90px;"></textarea></div>
+        <button class="btn btn-success" onclick="createMessageBoardPost()" style="width: 100%;">📤 Post to Board</button>
+      </div>
+      <div class="card">
+        <div class="card-header">🧵 Board Feed</div>
+        <div id="boardPosts">No board posts yet</div>
+      </div>
+    </div>
+
     <div id="profile" class="tab">
       <div class="card">
         <div class="card-header">👤 Your Public Profile</div>
@@ -1024,6 +1066,102 @@
         <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📝 Bio:</div><div id="pubBio">No bio</div></div>
         <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📧 Email:</div><div id="pubEmail" style="display: flex; gap: 6px; align-items: center;"><span id="pubEmailText">No email</span><button class="btn btn-small btn-secondary" onclick="copyEmail()" id="copyEmailBtn">📋 Copy</button></div></div>
         <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">🎯 Skills (with experience):</div><div id="pubSkills">No skills</div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📚 Experience Sources</div><div id="pubExperienceSources">No experience sources added</div></div>
+      </div>
+
+      <!-- Connected Accounts Card -->
+      <div class="card" id="connectedAccountsCard" style="display:none;">
+        <div class="card-header">🔗 Connected Accounts</div>
+        <div id="connectedAccountsList" style="display:flex; flex-direction:column; gap:8px; padding-top:4px;"></div>
+        <div style="margin-top:10px; font-size:11px; color:var(--text-light);">
+          Link multiple providers so you can sign in your way and recover access faster.
+        </div>
+      </div>
+
+      <!-- Referral Incentives Card -->
+      <div class="card" id="referralCard">
+        <div class="card-header">🎁 Earn Rewards - Share & Refer</div>
+        
+        <div style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 14px; border-radius: 8px; margin-bottom: 14px; text-align: center;">
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">🚀 Invite Friends & Earn Rewards</div>
+          <div style="font-size: 12px; margin-bottom: 12px;">Get credits, premium access, and more when they join</div>
+          
+          <!-- Referral Link -->
+          <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+            <div style="font-size: 10px; margin-bottom: 4px; opacity: 0.9;">Your Unique Referral Link:</div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="referralLink" readonly value="https://musicconnectz.net/?ref=USER123" style="flex: 1; padding: 6px; border: none; border-radius: 4px; font-size: 10px; color: #333;"/>
+              <button class="btn btn-small" onclick="copyReferralLink()" style="background: white; color: #F57C00; border: none; font-weight: 700;">📋 Copy</button>
+            </div>
+          </div>
+          
+          <!-- Social Share Buttons -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-small" style="background: #1DA1F2; color: white; flex: 1; min-width: 100px;" onclick="shareReferral('twitter')">𝕏 Twitter</button>
+            <button class="btn btn-small" style="background: #25D366; color: white; flex: 1; min-width: 100px;" onclick="shareReferral('whatsapp')">💬 WhatsApp</button>
+          </div>
+        </div>
+        
+        <!-- Referral Stats -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">👥 Invited</div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--primary);" id="referralInvited">0</div>
+          </div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">✅ Joined</div>
+            <div style="font-size: 16px; font-weight: 800; color: #4CAF50;" id="referralJoined">0</div>
+          </div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">💰 Earned</div>
+            <div style="font-size: 16px; font-weight: 800; color: #FFD700;" id="referralEarned">$0</div>
+          </div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">🏆 Tier</div>
+            <div style="font-size: 14px; font-weight: 800;" id="referralTierBadge">🥉 Bronze</div>
+          </div>
+        </div>
+        
+        <!-- Tier Info -->
+        <div style="background: #fff3cd; border-left: 3px solid #ffc107; padding: 12px; border-radius: 6px; margin-bottom: 14px;">
+          <div style="font-size: 11px; font-weight: 600; color: #856404; margin-bottom: 8px;">📊 Current Tier Details</div>
+          <div id="referralTierInfo" style="font-size: 10px; color: #7a5b00; line-height: 1.6;"></div>
+        </div>
+        
+        <!-- Rewards Table -->
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; font-size: 10px; border-collapse: collapse;">
+            <thead>
+              <tr style="background: var(--bg); border-bottom: 1px solid var(--border);">
+                <th style="padding: 8px; text-align: left; font-weight: 700;">Tier</th>
+                <th style="padding: 8px; text-align: center; font-weight: 700;">Referrals</th>
+                <th style="padding: 8px; text-align: left; font-weight: 700;">Rewards</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 8px;">🥉 Bronze</td>
+                <td style="padding: 8px; text-align: center;">0-2</td>
+                <td style="padding: 8px;">$5 credit</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 8px;">🥈 Silver</td>
+                <td style="padding: 8px; text-align: center;">3-5</td>
+                <td style="padding: 8px;">$5 credit + 1 mo premium</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 8px;">🥇 Gold</td>
+                <td style="padding: 8px; text-align: center;">6-10</td>
+                <td style="padding: 8px;">$25 credit + 3 mo premium</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px;">💎 Platinum</td>
+                <td style="padding: 8px; text-align: center;">10+</td>
+                <td style="padding: 8px;">$50 credit + 6 mo premium + priority support</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Membership Upgrade Card -->
@@ -1045,6 +1183,27 @@
             <div id="subscriptionInfo"></div>
           </div>
           <div id="activePurchases"></div>
+        </div>
+      </div>
+
+      <div class="card" id="limitedDealsCard" style="border: 2px solid #ff9800; background: linear-gradient(135deg, rgba(255,152,0,0.08) 0%, rgba(255,193,7,0.08) 100%);">
+        <div class="card-header" style="background: linear-gradient(135deg, #ff9800 0%, #ffb300 100%); color: #222; margin: -16px -16px 12px; padding: 12px 16px; border-radius: 8px 8px 0 0; font-weight: 800;">
+          ⏰ Limited-Time Deals
+        </div>
+        <div id="dealsCountdown" style="font-size: 11px; margin-bottom: 10px; color: var(--text-light);">Checking deal timer...</div>
+        <div class="card" style="margin-bottom: 10px; background: var(--bg);">
+          <div style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">🚀 Profile Boost (7 days)</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div><span style="font-size: 10px; text-decoration: line-through; color: var(--text-light);">$2.99</span> <strong style="font-size: 14px; color: var(--primary);">$1.99</strong></div>
+            <button class="btn btn-small" id="dealProfileBoostBtn" onclick="purchaseLimitedDeal('profileBoost')">Buy Deal</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom: 2px; background: var(--bg);">
+          <div style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">🔓 Extra Collab Slot</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div><span style="font-size: 10px; text-decoration: line-through; color: var(--text-light);">$0.99</span> <strong style="font-size: 14px; color: var(--primary);">$0.49</strong></div>
+            <button class="btn btn-small" id="dealCollabUnlockBtn" onclick="purchaseLimitedDeal('collabUnlock')">Buy Deal</button>
+          </div>
         </div>
       </div>
 
@@ -1588,7 +1747,7 @@ const instrumentDatabase = {
 };
 
 let appState = {
-  user: {id: null, name: '', username: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null, membershipTier: 'free', featuredArtistStatus: false, premiumBadge: false, profileBoostExpiry: null, customTheme: null},
+  user: {id: null, name: '', username: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null, lat: null, lng: null, rating: null, membershipTier: 'free', featuredArtistStatus: false, premiumBadge: false, profileBoostExpiry: null, customTheme: null, experienceSources: {schools: [], apps: [], teachers: []}},
   auth: {loggedIn: false, user: null, guest: true},
   personas: [
     {
@@ -1660,6 +1819,7 @@ let appState = {
   ],
   examples: [],
   collabs: [],
+  boards: [],
   skillsUsed: [],
   selectedGenre: '',
   selectedSkillsInModal: new Set(),
@@ -1680,6 +1840,7 @@ let appState = {
     profileViews: 0,
     engagement: 0
   },
+  pendingBoardBoostPostId: null,
   settings: {
     theme: 'blue',
     darkMode: false,
@@ -1728,6 +1889,7 @@ function loadAppState() {
       personas: loaded.personas || [],
       examples: loaded.examples || [],
       collabs: loaded.collabs || [],
+      boards: loaded.boards || [],
       skillsUsed: loaded.skillsUsed || [],
       selectedGenre: loaded.selectedGenre || '',
       selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
@@ -1740,6 +1902,7 @@ function loadAppState() {
       membership: loaded.membership || appState.membership,
       skillIcons: loaded.skillIcons || appState.skillIcons,
       analytics: loaded.analytics || appState.analytics,
+      pendingBoardBoostPostId: loaded.pendingBoardBoostPostId || null,
       settings: loaded.settings || {
         theme: 'blue',
         darkMode: false,
@@ -1757,6 +1920,15 @@ function loadAppState() {
   if (appState.user.membershipTier === undefined) { appState.user.membershipTier = 'free'; }
   if (appState.user.featuredArtistStatus === undefined) { appState.user.featuredArtistStatus = false; }
   if (appState.user.premiumBadge === undefined) { appState.user.premiumBadge = false; }
+  if (!appState.user.experienceSources || typeof appState.user.experienceSources !== 'object') {
+    appState.user.experienceSources = { schools: [], apps: [], teachers: [] };
+  }
+  ['schools', 'apps', 'teachers'].forEach((k) => {
+    const raw = appState.user.experienceSources[k];
+    appState.user.experienceSources[k] = Array.isArray(raw)
+      ? raw.map(v => String(v || '').trim()).filter(Boolean).slice(0, 20)
+      : [];
+  });
   
   // Initialize user level based on current earnings
   appState.user.level = getUserLevel();
@@ -1767,6 +1939,9 @@ function loadAppState() {
   } else if (appState.settings.darkMode) {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  
+  // Initialize language selector
+  initLanguageSelector();
   
   updateAllDisplays();
 }
@@ -1783,7 +1958,7 @@ function switchTab(tabName) {
     tabEl.classList.add('active');
     
     const allButtons = document.querySelectorAll('.tab-btn');
-    const tabNames = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+    const tabNames = ['setup', 'personas', 'examples', 'collaborate', 'messages', 'boards', 'membership', 'profile', 'money', 'settings'];
     const tabIdx = tabNames.indexOf(tabName);
     if (tabIdx >= 0 && tabIdx < allButtons.length) {
       allButtons[tabIdx].classList.add('active');
@@ -1798,7 +1973,8 @@ function switchTab(tabName) {
         renderCollabFeed();
         setTimeout(() => initMap(), 300);
       }
-      if (tabName === 'profile') { updateProfileDisplay(); }
+      if (tabName === 'boards') { renderMessageBoards(); }
+      if (tabName === 'profile') { updateProfileDisplay(); loadConnectedAccounts(); }
     } catch (e) {
       console.error('Tab render error:', e);
     }
@@ -1807,17 +1983,226 @@ function switchTab(tabName) {
 }
 
 function prevTab() {
-  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'messages', 'membership', 'profile', 'money', 'settings'];
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'messages', 'boards', 'membership', 'profile', 'money', 'settings'];
   const currentIdx = tabs.indexOf(appState.currentTab);
   const newIdx = currentIdx === 0 ? tabs.length - 1 : currentIdx - 1;
   switchTab(tabs[newIdx]);
 }
 
 function nextTab() {
-  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'messages', 'membership', 'profile', 'money', 'settings'];
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'messages', 'boards', 'membership', 'profile', 'money', 'settings'];
   const currentIdx = tabs.indexOf(appState.currentTab);
   const newIdx = (currentIdx + 1) % tabs.length;
   switchTab(tabs[newIdx]);
+}
+
+function formatBoardTime(isoLike) {
+  const d = new Date(isoLike);
+  if (Number.isNaN(d.getTime())) return 'just now';
+  return d.toLocaleString();
+}
+
+const FREE_BOARD_POST_LIMIT_PER_DAY = 2;
+const BOARD_BOOST_HOURS = 24;
+
+function getCurrentBoardAuthor() {
+  return appState.user.name || 'Anonymous';
+}
+
+function getBoardPostsInLast24HoursByAuthor(authorName) {
+  const now = Date.now();
+  return (appState.boards || []).filter((p) => {
+    if ((p.author || 'Anonymous') !== authorName) return false;
+    const created = new Date(p.createdAt).getTime();
+    if (Number.isNaN(created)) return false;
+    return (now - created) <= 24 * 60 * 60 * 1000;
+  }).length;
+}
+
+function isPostBoosted(post) {
+  if (!post || !post.boostedUntil) return false;
+  const until = new Date(post.boostedUntil).getTime();
+  return !Number.isNaN(until) && until > Date.now();
+}
+
+function boostBoardPost(postId) {
+  if (!isPremiumUser()) {
+    alert('⭐ Premium required: Boosting board posts is a premium feature.');
+    switchTab('membership');
+    return;
+  }
+  const post = (appState.boards || []).find(p => p.id === postId);
+  if (!post) return;
+  const currentAuthor = getCurrentBoardAuthor();
+  if ((post.author || 'Anonymous') !== currentAuthor) {
+    alert('❌ You can only boost your own posts.');
+    return;
+  }
+  post.boostedUntil = new Date(Date.now() + BOARD_BOOST_HOURS * 60 * 60 * 1000).toISOString();
+  post.boostedBy = currentAuthor;
+  saveAppState();
+  renderMessageBoards();
+  alert(`✅ Post boosted for ${BOARD_BOOST_HOURS} hours.`);
+}
+
+function purchaseBoardBoost(postId) {
+  const post = (appState.boards || []).find(p => p.id === postId);
+  if (!post) {
+    alert('❌ Post not found.');
+    return;
+  }
+  const currentAuthor = getCurrentBoardAuthor();
+  if ((post.author || 'Anonymous') !== currentAuthor) {
+    alert('❌ You can only buy boosts for your own posts.');
+    return;
+  }
+  if (isPostBoosted(post)) {
+    alert('ℹ️ This post is already boosted.');
+    return;
+  }
+
+  appState.pendingBoardBoostPostId = postId;
+  saveAppState();
+  purchaseItem('board-boost', 0.99, 'Board Post Boost - 24 Hours');
+}
+
+function createMessageBoardPost() {
+  const titleEl = document.getElementById('boardTitle');
+  const bodyEl = document.getElementById('boardBody');
+  const tagEl = document.getElementById('boardTag');
+  if (!titleEl || !bodyEl || !tagEl) return;
+
+  const title = (titleEl.value || '').trim();
+  const body = (bodyEl.value || '').trim();
+  const tag = (tagEl.value || '').trim();
+
+  if (!title || !body) {
+    alert('❌ Please add both a title and message.');
+    return;
+  }
+
+  const authorName = getCurrentBoardAuthor();
+  if (!isPremiumUser()) {
+    const recentCount = getBoardPostsInLast24HoursByAuthor(authorName);
+    if (recentCount >= FREE_BOARD_POST_LIMIT_PER_DAY) {
+      alert(`⚠️ Free board limit reached (${FREE_BOARD_POST_LIMIT_PER_DAY} posts per 24h). Upgrade to Premium for unlimited posting and boost placement.`);
+      switchTab('membership');
+      return;
+    }
+  }
+
+  if (!appState.boards) appState.boards = [];
+  appState.boards.unshift({
+    id: Date.now().toString(),
+    title,
+    body,
+    tag,
+    author: authorName,
+    createdAt: new Date().toISOString(),
+    boostedUntil: null,
+    boostedBy: null,
+    comments: []
+  });
+
+  titleEl.value = '';
+  bodyEl.value = '';
+  tagEl.value = '';
+  saveAppState();
+  renderMessageBoards();
+}
+
+function addBoardComment(postId) {
+  const comment = prompt('Add a comment (max 240 chars):');
+  if (!comment) return;
+  const clean = comment.trim();
+  if (!clean) return;
+
+  const post = (appState.boards || []).find(p => p.id === postId);
+  if (!post) return;
+  if (!post.comments) post.comments = [];
+  post.comments.push({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    text: clean.slice(0, 240),
+    author: appState.user.name || 'Anonymous',
+    createdAt: new Date().toISOString()
+  });
+  saveAppState();
+  renderMessageBoards();
+}
+
+function renderMessageBoards() {
+  const feed = document.getElementById('boardPosts');
+  if (!feed) return;
+  const posts = Array.isArray(appState.boards) ? appState.boards : [];
+  const currentAuthor = getCurrentBoardAuthor();
+  const postsSorted = [...posts].sort((a, b) => {
+    const aBoost = isPostBoosted(a) ? 1 : 0;
+    const bBoost = isPostBoosted(b) ? 1 : 0;
+    if (aBoost !== bBoost) return bBoost - aBoost;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const postingMeta = !isPremiumUser()
+    ? `<div style="font-size: 10px; color: var(--text-light); margin-bottom: 10px;">Posts used in last 24h: <strong>${getBoardPostsInLast24HoursByAuthor(currentAuthor)}/${FREE_BOARD_POST_LIMIT_PER_DAY}</strong></div>`
+    : '<div style="font-size: 10px; color: var(--text-light); margin-bottom: 10px;">⭐ Premium active: unlimited posting + boost placement</div>';
+
+  if (posts.length === 0) {
+    feed.innerHTML = `${postingMeta}<div style="color: var(--text-light); text-align: center; padding: 20px;">No board posts yet</div>`;
+    return;
+  }
+
+  feed.innerHTML = postingMeta + postsSorted.map((post) => {
+    const comments = (post.comments || []).slice(-3).map((c) =>
+      `<div style="padding: 6px 8px; background: var(--bg); border-radius: 6px; margin-top: 6px; font-size: 10px;"><strong>${escapeHtml(c.author || 'Anonymous')}:</strong> ${escapeHtml(c.text || '')}<div style="opacity: 0.7; margin-top: 2px;">${formatBoardTime(c.createdAt)}</div></div>`
+    ).join('');
+    const boosted = isPostBoosted(post);
+    const isOwner = (post.author || 'Anonymous') === currentAuthor;
+    const boostedBadge = boosted ? '<span style="background:#fff3cd; color:#856404; border:1px solid #ffe69c; border-radius:10px; font-size:9px; padding:2px 6px; margin-left:6px;">🚀 Boosted</span>' : '';
+    const boostBtn = (isOwner && isPremiumUser() && !boosted)
+      ? `<button class="btn btn-small" onclick="boostBoardPost('${post.id}')" style="margin-left: 6px;">🚀 Boost 24h</button>`
+      : '';
+    const paidBoostBtn = (isOwner && !isPremiumUser() && !boosted)
+      ? `<button class="btn btn-small" onclick="purchaseBoardBoost('${post.id}')" style="margin-left: 6px;">💳 Buy Boost $0.99</button>`
+      : '';
+    return `
+      <div style="border: 1px solid ${boosted ? '#ffe69c' : 'var(--border)'}; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: ${boosted ? '#fffdf3' : 'var(--surface)'};">
+        <div style="display:flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px;">
+          <strong style="font-size: 12px;">${escapeHtml(post.title || '')}${boostedBadge}</strong>
+          <span style="font-size: 9px; color: var(--text-light);">${formatBoardTime(post.createdAt)}</span>
+        </div>
+        <div style="font-size: 10px; color: var(--text-light); margin-bottom: 6px;">by ${escapeHtml(post.author || 'Anonymous')}${post.tag ? ` • #${escapeHtml(post.tag)}` : ''}</div>
+        <div style="font-size: 11px; margin-bottom: 8px; white-space: pre-wrap;">${escapeHtml(post.body || '')}</div>
+        <button class="btn btn-small btn-secondary" onclick="addBoardComment('${post.id}')">💬 Comment</button>
+        ${boostBtn}
+        ${paidBoostBtn}
+        ${comments}
+      </div>
+    `;
+  }).join('');
+}
+
+function parseExperienceSourceLines(raw, maxItems = 20) {
+  const input = String(raw || '');
+  const lines = input.split(/\r?\n|,/).map(v => v.trim()).filter(Boolean);
+  const unique = [];
+  const seen = new Set();
+  lines.forEach((line) => {
+    const key = line.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(line);
+    }
+  });
+  return unique.slice(0, maxItems);
+}
+
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function saveProfile() {
@@ -1826,6 +2211,9 @@ function saveProfile() {
   const phoneInput = (document.getElementById('phone').value || '').trim();
   const bioInput = (document.getElementById('bio').value || '').trim();
   const locationInput = (document.getElementById('location').value || '').trim();
+  const schoolsInput = document.getElementById('expSchools');
+  const appsInput = document.getElementById('expApps');
+  const teachersInput = document.getElementById('expTeachers');
   
   if (!usernameInput) {
     alert('⚠️ Please enter a username!');
@@ -1839,6 +2227,11 @@ function saveProfile() {
   appState.user.gender = document.getElementById('gender').value;
   appState.user.location = locationInput;
   appState.user.bio = bioInput;
+  appState.user.experienceSources = {
+    schools: parseExperienceSourceLines(schoolsInput ? schoolsInput.value : ''),
+    apps: parseExperienceSourceLines(appsInput ? appsInput.value : ''),
+    teachers: parseExperienceSourceLines(teachersInput ? teachersInput.value : '')
+  };
   
   saveAppState();
   updateProfileDisplay();
@@ -2026,6 +2419,24 @@ function updateProfileDisplay() {
   document.getElementById('pubRatingBadge').textContent = avgRating !== null ? `⭐ ${avgRating}` : '⭐ N/A';
   const skillsList = appState.personas.map(p => p.skills.map(s => ({ name: s.name, startDate: s.startDate })) ).flat();
   document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag skill-tag"><img class="skill-icon" src="${getSkillIconDataUrl(s.name)}" alt="" /><span>${s.name} • ${calculateExperienceYears(s.startDate)}</span></span>`).join('') : 'No skills';
+
+  const sources = user.experienceSources || { schools: [], apps: [], teachers: [] };
+  const sourceRows = [];
+  if (sources.schools && sources.schools.length) {
+    sourceRows.push(`<div><strong>🎓 Schools:</strong> ${sources.schools.map(escapeHtml).join(', ')}</div>`);
+  }
+  if (sources.apps && sources.apps.length) {
+    sourceRows.push(`<div><strong>🎛️ Apps:</strong> ${sources.apps.map(escapeHtml).join(', ')}</div>`);
+  }
+  if (sources.teachers && sources.teachers.length) {
+    sourceRows.push(`<div><strong>👩‍🏫 Teachers:</strong> ${sources.teachers.map(escapeHtml).join(', ')}</div>`);
+  }
+  const sourceEl = document.getElementById('pubExperienceSources');
+  if (sourceEl) {
+    sourceEl.innerHTML = sourceRows.length
+      ? sourceRows.join('<div style="height: 6px;"></div>')
+      : 'No experience sources added';
+  }
 }
 
 function getSkillIconDataUrl(skillName) {
@@ -3204,7 +3615,9 @@ function updateAllDisplays() {
   renderExamplesDisplay();
   updateCollabPersonaOptions();
   renderCollabFeed();
+  renderMessageBoards();
   updateProfileDisplay();
+  updateReferralDisplay();
   safeSetValue('username', appState.user.name);
   safeSetValue('email', appState.user.email);
   safeSetValue('phone', appState.user.phone);
@@ -3212,6 +3625,9 @@ function updateAllDisplays() {
   safeSetValue('gender', appState.user.gender);
   safeSetValue('location', appState.user.location);
   safeSetValue('bio', appState.user.bio);
+  safeSetValue('expSchools', (appState.user.experienceSources && appState.user.experienceSources.schools ? appState.user.experienceSources.schools : []).join('\n'));
+  safeSetValue('expApps', (appState.user.experienceSources && appState.user.experienceSources.apps ? appState.user.experienceSources.apps : []).join('\n'));
+  safeSetValue('expTeachers', (appState.user.experienceSources && appState.user.experienceSources.teachers ? appState.user.experienceSources.teachers : []).join('\n'));
   updateAuthDisplay();
   
   // Update theme toggles
@@ -3473,10 +3889,125 @@ function continueAsGuest() {
   setAuthStatus('Guest mode enabled.');
 }
 
+// i18n Language Selector Functions
+function initLanguageSelector() {
+  if (!window.I18N_CONFIG || !window.I18N_CONFIG.languages) return;
+  
+  const dropdown = document.getElementById('langSelectorDropdown');
+  if (!dropdown) return;
+  
+  dropdown.innerHTML = '';
+  Object.entries(window.I18N_CONFIG.languages).forEach(([langCode, { name }]) => {
+    const option = document.createElement('div');
+    option.className = 'lang-selector-option';
+    option.textContent = name;
+    option.onclick = () => {
+      window.I18N_CONFIG.setLanguage(langCode);
+    };
+    dropdown.appendChild(option);
+  });
+  
+  updateLangButton();
+}
+
+function toggleLangSelector() {
+  const dropdown = document.getElementById('langSelectorDropdown');
+  if (dropdown) {
+    dropdown.classList.toggle('active');
+  }
+}
+
+function updateLangButton() {
+  const btn = document.getElementById('langSelectorBtn');
+  if (!btn || !window.I18N_CONFIG) return;
+  
+  const currentLang = window.I18N_CONFIG.currentLang;
+  const langInfo = window.I18N_CONFIG.languages[currentLang];
+  if (langInfo) {
+    const emoji = langInfo.name.split(' ')[0];
+    const code = currentLang.split('-')[0].toUpperCase();
+    btn.textContent = `${emoji} ${code}`;
+  }
+}
+
+// Referral System Functions
+function generateUserReferralCode() {
+  if (!appState.user.referralCode) {
+    const code = 'REF' + Math.random().toString(36).substring(2, 11).toUpperCase();
+    appState.user.referralCode = code;
+    saveAppState();
+  }
+  return appState.user.referralCode;
+}
+
+function updateReferralDisplay() {
+  // Initialize referral data if not exists
+  if (!appState.user.referralStats) {
+    appState.user.referralStats = { invited: 0, joined: 0, earned: 0 };
+  }
+  
+  const referralCode = generateUserReferralCode();
+  const referralLink = `${window.location.origin}/?ref=${referralCode}`;
+  
+  const linkInput = document.getElementById('referralLink');
+  if (linkInput) {
+    linkInput.value = referralLink;
+  }
+  
+  const stats = appState.user.referralStats;
+  const tier = window.I18N_CONFIG.getReferralTier(stats.joined);
+  
+  // Update stats display
+  safeSetText('referralInvited', stats.invited || 0);
+  safeSetText('referralJoined', stats.joined || 0);
+  safeSetText('referralEarned', '$' + (stats.earned || 0).toFixed(2));
+  safeSetText('referralTierBadge', tier.name === 'bronze' ? '🥉 Bronze' : tier.name === 'silver' ? '🥈 Silver' : tier.name === 'gold' ? '🥇 Gold' : '💎 Platinum');
+  
+  // Update tier info
+  const tierInfo = document.getElementById('referralTierInfo');
+  if (tierInfo) {
+    const tierName = tier.name.charAt(0).toUpperCase() + tier.name.slice(1);
+    const nextTier = window.I18N_CONFIG.referralTiers.find(t => t.minReferrals > stats.joined);
+    let tierMsg = `${tier.name === 'bronze' ? '🥉' : tier.name === 'silver' ? '🥈' : tier.name === 'gold' ? '🥇' : '💎'} ${tierName} - ${tier.minReferrals}-${tier.maxReferrals} referrals<br>💰 Reward: $${tier.rewardUSD}${tier.rewardMonths > 0 ? ` + ${tier.rewardMonths} month${tier.rewardMonths > 1 ? 's' : ''} premium` : ''}`;
+    if (nextTier) {
+      tierMsg += `<br><br>📈 Next to upgrade: Invite ${nextTier.minReferrals - stats.joined} more friend${nextTier.minReferrals - stats.joined !== 1 ? 's' : ''}`;
+    }
+    tierInfo.innerHTML = tierMsg;
+  }
+}
+
+function copyReferralLink() {
+  const linkInput = document.getElementById('referralLink');
+  if (linkInput) {
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+      alert('✅ Referral link copied! Share it with friends to earn rewards.');
+    }).catch(() => {
+      alert('❌ Could not copy link');
+    });
+  }
+}
+
+function shareReferral(platform) {
+  const linkInput = document.getElementById('referralLink');
+  if (!linkInput) return;
+  
+  const referralLink = linkInput.value;
+  const message = '🎶 Join me on Music ConnectZ! Connect with local collaborators, share your work, and collaborate on music. 🎵';
+  
+  if (platform === 'twitter') {
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message + '\n' + referralLink)}`;
+    window.open(twitterUrl, '_blank', 'width=550,height=420');
+  } else if (platform === 'whatsapp') {
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message + ' ' + referralLink)}`;
+    window.open(whatsappUrl, '_blank');
+  }
+}
+
 function openLoginOverlay() {
   appState.auth = { loggedIn: false, user: null, guest: false };
   saveAppState();
   updateAuthDisplay();
+  updateOAuthButtonVisibility();
   setAuthStatus('Enter your email and password to login.');
 }
 
@@ -3676,13 +4207,18 @@ function socialLogin(provider) {
 }
 
 async function updateOAuthButtonVisibility() {
+  const providerButtons = document.querySelectorAll('[data-provider]');
+  // Fail-closed: hide all providers until backend status confirms they are enabled.
+  providerButtons.forEach((btn) => {
+    btn.style.display = 'none';
+  });
+
   try {
     const res = await fetch(`${apiBase}/api/auth/providers/status/`);
     if (!res.ok) return;
 
     const data = await res.json();
     const statusMap = data && data.providers ? data.providers : {};
-    const providerButtons = document.querySelectorAll('[data-provider]');
 
     providerButtons.forEach((btn) => {
       const provider = btn.getAttribute('data-provider');
@@ -3693,6 +4229,72 @@ async function updateOAuthButtonVisibility() {
   } catch (e) {
     console.warn('OAuth provider status unavailable; leaving all buttons visible.', e);
   }
+}
+
+const PROVIDER_META = [
+  { key: 'google',      id: 'google',          label: 'Google',    emoji: '🇬' },
+  { key: 'github',      id: 'github',           label: 'GitHub',    emoji: '🐙' },
+  { key: 'microsoft',   id: 'microsoft',        label: 'Microsoft', emoji: '🪟' },
+  { key: 'facebook',    id: 'facebook',         label: 'Facebook',  emoji: '📘' },
+  { key: 'twitter',     id: 'twitter_oauth2',   label: 'X (Twitter)', emoji: '🐦' },
+  { key: 'linkedin',    id: 'linkedin_oauth2',  label: 'LinkedIn',  emoji: '💼' },
+  { key: 'spotify',     id: 'spotify',          label: 'Spotify',   emoji: '🎵' },
+  { key: 'soundcloud',  id: 'soundcloud',       label: 'SoundCloud',emoji: '☁️' },
+  { key: 'apple',       id: 'apple',            label: 'Apple',     emoji: '🍎' },
+];
+
+async function loadConnectedAccounts() {
+  const card = document.getElementById('connectedAccountsCard');
+  const list = document.getElementById('connectedAccountsList');
+  if (!card || !list) return;
+
+  // Only show if logged in
+  if (!appState.auth || !appState.auth.loggedIn) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  // Fetch provider status (which are configured) and connected accounts
+  let enabledProviders = {};
+  let connectedProviders = [];
+  try {
+    const [statusRes, connRes] = await Promise.all([
+      fetch(`${apiBase}/api/auth/providers/status/`),
+      fetch(`${apiBase}/api/auth/connected-accounts/`, { credentials: 'include' })
+    ]);
+    if (statusRes.ok) {
+      const d = await statusRes.json();
+      enabledProviders = (d && d.providers) ? d.providers : {};
+    }
+    if (connRes.ok) {
+      const d = await connRes.json();
+      connectedProviders = Array.isArray(d.connected) ? d.connected : [];
+    }
+  } catch (e) { /* silent — show connect buttons only */ }
+
+  const returnUrl = encodeURIComponent(window.location.href);
+  list.innerHTML = '';
+  PROVIDER_META.forEach(p => {
+    if (!enabledProviders[p.id] && !enabledProviders[p.key]) return; // skip unconfigured
+    const isConnected = connectedProviders.includes(p.id) || connectedProviders.includes(p.key);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:13px;';
+    if (isConnected) {
+      row.innerHTML = `
+        <span>${p.emoji} ${p.label}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="color:#4caf50;font-weight:600;">✓ Connected</span>
+          <a href="${apiBase}/accounts/social/connections/" style="font-size:11px;color:#999;text-decoration:underline;" target="_blank">Manage</a>
+        </span>`;
+    } else {
+      row.innerHTML = `
+        <span>${p.emoji} ${p.label}</span>
+        <button class="btn btn-small btn-secondary" onclick="connectProvider('${p.id}','${returnUrl}')">+ Connect</button>`;
+    }
+    list.appendChild(row);
+  });
+}
+
+function connectProvider(providerId, returnUrl) {
+  window.location.href = `${apiBase}/accounts/${providerId}/login/?process=connect&next=${returnUrl}`;
 }
 
 function _openSocialLogin(providerConfig) {
@@ -4075,6 +4677,20 @@ document.addEventListener('keydown', (e) => {
 let socket = null;
 let currentChatUser = null;
 let conversations = {};
+const MESSAGE_EDIT_WINDOW_MINUTES = 15;
+
+function getMessageSentDate(msg) {
+  const raw = msg && (msg.timestamp || msg.createdAt || msg.sentAt);
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function canEditMessage(msg) {
+  if (!msg || msg.senderId !== appState.user.id) return false;
+  const sentTime = getMessageSentDate(msg);
+  const minutesPassed = (Date.now() - sentTime.getTime()) / 1000 / 60;
+  return minutesPassed <= MESSAGE_EDIT_WINDOW_MINUTES;
+}ur
 
 function initSocket() {
   if (socket) return;
@@ -4183,11 +4799,12 @@ function displayMessages() {
     const div = document.createElement('div');
     div.className = `chat-message ${msg.senderId === appState.user.id ? 'sent' : 'received'}`;
     
-    // Check if message can be edited (within 15 minutes and sender is current user)
-    const now = new Date();
-    const sentTime = new Date(msg.timestamp);
-    const minutesPassed = (now - sentTime) / 1000 / 60;
-    const canEdit = msg.senderId === appState.user.id && minutesPassed < 15;
+    const sentTime = getMessageSentDate(msg);
+    const canEdit = canEditMessage(msg);
+    const isSentByCurrentUser = msg.senderId === appState.user.id;
+    const readStatus = isSentByCurrentUser
+      ? (msg.read ? '✅ Read' : '🕓 Unread')
+      : (!msg.read ? '🆕 New' : '');
     
     let content = `<div class="sender-name">${msg.senderName}</div><div id="msg-text-${msg.id}">${msg.text}</div>`;
     
@@ -4203,7 +4820,7 @@ function displayMessages() {
     }
     
     content += `<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-      <span style="font-size: 9px; opacity: 0.7;">${sentTime.toLocaleTimeString()}</span>`;
+      <span style="font-size: 9px; opacity: 0.7;">${sentTime.toLocaleTimeString()}${readStatus ? ` • ${readStatus}` : ''}</span>`;
     
     if (canEdit) {
       content += `<div style="display: flex; gap: 4px;">
@@ -4228,6 +4845,14 @@ function editMessage(messageId) {
   const messages = conversations[currentChatUser] || [];
   const msg = messages.find(m => m.id === messageId);
   if (!msg) return;
+  if (msg.senderId !== appState.user.id) {
+    alert('❌ You can only edit your own messages.');
+    return;
+  }
+  if (!canEditMessage(msg)) {
+    alert(`❌ You can only edit messages within ${MESSAGE_EDIT_WINDOW_MINUTES} minutes after sending.`);
+    return;
+  }
   
   const newText = prompt('Edit message:', msg.text);
   if (newText && newText.trim()) {
@@ -4346,6 +4971,7 @@ switchTab = function(tabName) {
     loadMembershipStatus();
   }
   applyPremiumGates();
+  if (tabName === 'membership') updateLimitedDealsUI();
 };
 
 // ==================== MEMBERSHIP FUNCTIONS ====================
@@ -4364,6 +4990,67 @@ function isPremiumUser() {
 
 function hasCustomTheme() {
   return !!(appState.user && appState.user.customTheme);
+}
+
+const LIMITED_DEALS = {
+  endsAt: '2026-04-30T23:59:59Z',
+  items: {
+    profileBoost: {
+      purchaseType: 'profile-boost',
+      amount: 1.99,
+      description: 'Limited Deal - Boost Profile Visibility (7 Days)'
+    },
+    collabUnlock: {
+      purchaseType: 'collab-unlock',
+      amount: 0.49,
+      description: 'Limited Deal - Unlock Collaboration Slot'
+    }
+  }
+};
+
+function isLimitedDealActive() {
+  const endTs = new Date(LIMITED_DEALS.endsAt).getTime();
+  return !Number.isNaN(endTs) && Date.now() < endTs;
+}
+
+function getLimitedDealCountdownText() {
+  const endTs = new Date(LIMITED_DEALS.endsAt).getTime();
+  if (Number.isNaN(endTs)) return 'Deal timer unavailable';
+  const diffMs = endTs - Date.now();
+  if (diffMs <= 0) return 'This limited-time offer has ended.';
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  return `Ends in ${days}d ${hours}h ${mins}m`;
+}
+
+function updateLimitedDealsUI() {
+  const countdown = document.getElementById('dealsCountdown');
+  const card = document.getElementById('limitedDealsCard');
+  const profileBtn = document.getElementById('dealProfileBoostBtn');
+  const collabBtn = document.getElementById('dealCollabUnlockBtn');
+  if (!countdown || !card || !profileBtn || !collabBtn) return;
+
+  const active = isLimitedDealActive();
+  countdown.textContent = getLimitedDealCountdownText();
+  profileBtn.disabled = !active;
+  collabBtn.disabled = !active;
+  card.style.opacity = active ? '1' : '0.72';
+}
+
+function purchaseLimitedDeal(dealKey) {
+  if (!isLimitedDealActive()) {
+    alert('⏰ This deal has expired.');
+    updateLimitedDealsUI();
+    return;
+  }
+  const deal = LIMITED_DEALS.items[dealKey];
+  if (!deal) {
+    alert('❌ Deal unavailable.');
+    return;
+  }
+  purchaseItem(deal.purchaseType, deal.amount, deal.description);
 }
 
 function applyPremiumGates() {
@@ -4635,9 +5322,21 @@ window.addEventListener('load', () => {
     switchTab('membership');
   } else if (urlParams.get('purchase') === 'success') {
     const purchaseType = urlParams.get('type');
-    alert('✓ Purchase successful! Your ' + purchaseType + ' is now active.');
+    if (purchaseType === 'board-boost') {
+      const postId = appState.pendingBoardBoostPostId;
+      const post = (appState.boards || []).find(p => p.id === postId);
+      if (post) {
+        post.boostedUntil = new Date(Date.now() + BOARD_BOOST_HOURS * 60 * 60 * 1000).toISOString();
+        post.boostedBy = appState.user.name || 'Anonymous';
+      }
+      appState.pendingBoardBoostPostId = null;
+      saveAppState();
+      alert('✅ Purchase successful! Your board post has been boosted for 24 hours.');
+    } else {
+      alert('✓ Purchase successful! Your ' + purchaseType + ' is now active.');
+    }
     window.history.replaceState({}, document.title, window.location.pathname);
-    switchTab('membership');
+    switchTab(purchaseType === 'board-boost' ? 'boards' : 'membership');
   }
 
   applyPremiumGates();
