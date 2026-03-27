@@ -4417,6 +4417,36 @@ function _openSocialLogin(providerConfig) {
   }
 
   setAuthStatus(`Connecting to ${providerConfig.label}...`);
+
+  const popupPoll = window.setInterval(async () => {
+    if (!popup || popup.closed) {
+      window.clearInterval(popupPoll);
+      await syncAuthFromBackendSession();
+      return;
+    }
+
+    try {
+      const popupUrl = popup.location.href;
+      if (!popupUrl) return;
+
+      const popupOrigin = popup.location.origin;
+      if (popupOrigin !== window.location.origin) return;
+
+      const popupParams = new URL(popupUrl).searchParams;
+      if (popupParams.get('login_error') === '1') {
+        window.clearInterval(popupPoll);
+        popup.close();
+        setAuthStatus(`${providerConfig.label} login failed.`, true);
+        return;
+      }
+
+      window.clearInterval(popupPoll);
+      popup.close();
+      await syncAuthFromBackendSession();
+    } catch (e) {
+      // Ignore cross-origin access errors until the popup returns to the frontend.
+    }
+  }, 700);
 }
 
 // Listen for social login callback
