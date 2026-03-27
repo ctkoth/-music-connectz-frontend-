@@ -13,7 +13,10 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     window.MCZ_CONFIG = window.MCZ_CONFIG || {};
-    window.MCZ_CONFIG.backendUrl = (window.MCZ_CONFIG.backendUrl || 'https://music-connectz-backend-2.onrender.com').replace(/\/+$/, '');
+    const MCZ_BACKEND_PROD = 'https://music-connectz-backend-2.onrender.com';
+    const configuredBackend = window.MCZ_CONFIG.backendUrl || '';
+    const shouldForceProdBackend = location.hostname === 'musicconnectz.net' || location.hostname === 'www.musicconnectz.net';
+    window.MCZ_CONFIG.backendUrl = (shouldForceProdBackend ? MCZ_BACKEND_PROD : (configuredBackend || MCZ_BACKEND_PROD)).replace(/\/+$/, '');
   </script>
 
   <style>
