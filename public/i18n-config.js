@@ -206,6 +206,14 @@ window.I18N_CONFIG = {
       referral_silver_reward: 'R$25 de crédito + 1 mês premium',
       referral_gold_reward: 'R$100 de crédito + 3 meses premium',
       referral_platinum_reward: 'R$200 de crédito + 6 meses premium + suporte prioritário',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Welcome to Music ConnectZ!', content: 'Find collaborators, grow your network, and unlock rewards. Let’s get started!' },
+        { title: '🔍 Discover Talent', content: 'Browse verified profiles by skill, genre, and location. Tap a card to view details.' },
+        { title: '🤝 Match & Message', content: 'Send invites or messages to connect instantly. Use filters for best results.' },
+        { title: '🎁 Earn Rewards', content: 'Invite friends with your referral link to unlock credits and premium features.' },
+        { title: '🌐 Go Global', content: 'Switch languages anytime for a local experience. Enjoy music collaboration worldwide!' }
+      ],
       
       sign_up: 'Cadastro',
       password_help: 'Senha deve ter no mínimo 8 caracteres, contendo número, letra minúscula e maiúscula.',
@@ -216,13 +224,77 @@ window.I18N_CONFIG = {
       persona_artist: 'Artista',
       persona_designer: 'Designer',
       persona_engineer: 'Engenheiro de Som',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Bem-vindo ao Music ConnectZ!', content: 'Encontre colaboradores, expanda sua rede e ganhe recompensas. Vamos começar!' },
+        { title: '🔍 Descubra Talentos', content: 'Explore perfis verificados por habilidade, gênero e localização. Toque para ver detalhes.' },
+        { title: '🤝 Combine & Converse', content: 'Envie convites ou mensagens para se conectar. Use filtros para melhores resultados.' },
+        { title: '🎁 Ganhe Recompensas', content: 'Convide amigos com seu link para desbloquear créditos e recursos premium.' },
+        { title: '🌐 Experiência Global', content: 'Altere o idioma a qualquer momento para uma experiência local. Colabore com músicos do mundo todo!' }
+      ],
       persona_ghostwriter: 'Compositor Contratado',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Bem-vindo ao Music ConnectZ!', content: 'Encontre colaboradores, expanda sua rede e ganhe prémios. Vamos começar!' },
+        { title: '🔍 Descubra Talentos', content: 'Explore perfis verificados por competência, género e localização. Toque para ver detalhes.' },
+        { title: '🤝 Combine & Converse', content: 'Envie convites ou mensagens para se ligar. Use filtros para melhores resultados.' },
+        { title: '🎁 Ganhe Prémios', content: 'Convide amigos com sua ligação para desbloquear créditos e recursos premium.' },
+        { title: '🌐 Experiência Global', content: 'Altere o idioma a qualquer momento para uma experiência local. Colabore com músicos do mundo inteiro!' }
+      ],
       persona_manager: 'Gerente de Negócios',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Music ConnectZ에 오신 것을 환영합니다!', content: '협력자를 찾고, 네트워크를 확장하고, 보상을 받으세요. 시작해볼까요?' },
+        { title: '🔍 인재 발견', content: '기술, 장르, 위치별로 검증된 프로필을 탐색하세요. 카드를 눌러 세부 정보를 확인하세요.' },
+        { title: '🤝 매칭 & 메시지', content: '즉시 연결하려면 초대 또는 메시지를 보내세요. 필터를 사용해 최적의 결과를 얻으세요.' },
+        { title: '🎁 보상 받기', content: '추천 링크로 친구를 초대해 크레딧과 프리미엄 기능을 잠금 해제하세요.' },
+        { title: '🌐 글로벌 경험', content: '언어를 언제든지 변경해 현지화된 경험을 즐기세요. 전 세계 음악 협업을 경험하세요!' }
+      ],
       persona_producer: 'Produtor',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 欢迎来到 Music ConnectZ！', content: '寻找合作者，拓展人脉，赢取奖励。让我们开始吧！' },
+        { title: '🔍 发现人才', content: '按技能、流派和位置浏览已验证的个人资料。点击卡片查看详情。' },
+        { title: '🤝 匹配与消息', content: '发送邀请或消息即可即时联系。使用筛选器获得最佳结果。' },
+        { title: '🎁 获得奖励', content: '用您的推荐链接邀请朋友，解锁积分和高级功能。' },
+        { title: '🌐 全球体验', content: '随时切换语言，享受本地化体验。畅享全球音乐协作！' }
+      ],
       persona_videographer: 'Videógrafo',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 歡迎來到 Music ConnectZ！', content: '尋找合作者，拓展人脈，贏取獎勵。讓我們開始吧！' },
+        { title: '🔍 發現人才', content: '按技能、類型和地點瀏覽已驗證的個人資料。點擊卡片查看詳情。' },
+        { title: '🤝 配對與訊息', content: '發送邀請或訊息即可即時聯繫。使用篩選器獲得最佳結果。' },
+        { title: '🎁 獲得獎勵', content: '用您的推薦連結邀請朋友，解鎖積點和高級功能。' },
+        { title: '🌐 全球體驗', content: '隨時切換語言，享受本地化體驗。暢享全球音樂協作！' }
+      ],
       
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Music ConnectZへようこそ！', content: 'コラボ相手を見つけ、ネットワークを広げ、報酬を獲得しましょう。さあ始めましょう！' },
+        { title: '🔍 タレントを発見', content: 'スキル、ジャンル、場所で認証済みプロフィールを閲覧。カードをタップして詳細を確認。' },
+        { title: '🤝 マッチ＆メッセージ', content: '招待やメッセージで即座に繋がろう。フィルターで最適な相手を見つけよう。' },
+        { title: '🎁 報酬を獲得', content: '紹介リンクで友人を招待し、クレジットやプレミアム機能をアンロック。' },
+        { title: '🌐 グローバル体験', content: 'いつでも言語を切り替えてローカル体験。世界中の音楽コラボを楽しもう！' }
+      ],
       persona_artist_desc: 'Cria e performatiza música original, moldando a direção criativa e identidade do projeto.',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 مرحبًا بك في Music ConnectZ!', content: 'ابحث عن متعاونين، نمِّ شبكتك، واكسب المكافآت. لنبدأ!' },
+        { title: '🔍 اكتشف المواهب', content: 'تصفح الملفات الموثقة حسب المهارة والنوع والموقع. اضغط لعرض التفاصيل.' },
+        { title: '🤝 طابق وأرسل رسالة', content: 'أرسل دعوات أو رسائل للاتصال الفوري. استخدم الفلاتر لأفضل النتائج.' },
+        { title: '🎁 اكسب مكافآت', content: 'ادعُ أصدقاءك برابط الإحالة لفتح الرصيد والمزايا المميزة.' },
+        { title: '🌐 تجربة عالمية', content: 'بدّل اللغة في أي وقت لتجربة محلية. استمتع بالتعاون الموسيقي حول العالم!' }
+      ],
       persona_designer_desc: 'Constrói a identidade visual de marcas musicais e lançamentos em mídia digital e impressa.',
+      // Onboarding Tour Steps
+      onboarding_tour_steps: [
+        { title: '👋 Music ConnectZ में आपका स्वागत है!', content: 'सहयोगी खोजें, नेटवर्क बढ़ाएँ, और पुरस्कार अर्जित करें। चलिए शुरू करें!' },
+        { title: '🔍 प्रतिभा खोजें', content: 'कौशल, शैली और स्थान के अनुसार सत्यापित प्रोफाइल ब्राउज़ करें। विवरण देखने के लिए टैप करें।' },
+        { title: '🤝 मैच और संदेश', content: 'कनेक्ट करने के लिए आमंत्रण या संदेश भेजें। सर्वोत्तम परिणामों के लिए फ़िल्टर का उपयोग करें।' },
+        { title: '🎁 पुरस्कार अर्जित करें', content: 'अपने रेफरल लिंक से दोस्तों को आमंत्रित करें और क्रेडिट व प्रीमियम फीचर्स अनलॉक करें।' },
+        { title: '🌐 वैश्विक अनुभव', content: 'कभी भी भाषा बदलें और स्थानीय अनुभव पाएं। विश्वभर के संगीत सहयोग का आनंद लें!' }
+      ],
       persona_engineer_desc: 'Entrega qualidade técnica de áudio através de gravação, mixagem, edição e masterização.',
       persona_ghostwriter_desc: 'Cria letras, ganchos e conceitos para artistas enquanto permanece nos bastidores.',
       persona_manager_desc: 'Lidera operações de carreira, parcerias e estratégia de longo prazo para artistas e equipes.',

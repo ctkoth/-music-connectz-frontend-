@@ -1,9 +1,73 @@
+  <!-- Floating Royalties Agreement Button -->
+  <button id="royaltiesBtn" style="position:fixed;bottom:24px;right:24px;z-index:1000;background:#2196F3;color:#fff;border:none;border-radius:50%;width:56px;height:56px;box-shadow:0 2px 8px rgba(33,150,243,0.18);font-size:2em;cursor:pointer;display:flex;align-items:center;justify-content:center;">💰</button>
+
+  <!-- Royalties Agreement Modal -->
+  <div id="royaltiesModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;max-width:95vw;width:400px;margin:auto;box-shadow:0 4px 24px rgba(0,0,0,0.18);padding:32px 24px 24px 24px;position:relative;">
+      <div style="font-size:1.3em;font-weight:700;margin-bottom:10px;">Royalties Agreements</div>
+      <div id="royaltiesContent" style="font-size:1em;color:#444;margin-bottom:18px;max-height:50vh;overflow-y:auto;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <button id="closeRoyaltiesModal" style="background:#fff;color:#2196F3;border:1px solid #2196F3;border-radius:6px;padding:6px 18px;font-weight:600;">Close</button>
+        <button id="refreshRoyalties" style="background:#2196F3;color:#fff;border:none;border-radius:6px;padding:6px 18px;font-weight:600;">Refresh</button>
+        <button id="newAgreementBtn" style="background:#43a047;color:#fff;border:none;border-radius:6px;padding:6px 18px;font-weight:600;">New Agreement</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Royalties Agreement Modal Logic
+    const royaltiesBtn = document.getElementById('royaltiesBtn');
+    const royaltiesModal = document.getElementById('royaltiesModal');
+    const closeRoyaltiesModal = document.getElementById('closeRoyaltiesModal');
+    const refreshRoyalties = document.getElementById('refreshRoyalties');
+    const royaltiesContent = document.getElementById('royaltiesContent');
+    const newAgreementBtn = document.getElementById('newAgreementBtn');
+
+    royaltiesBtn.onclick = () => { royaltiesModal.style.display = 'flex'; fetchAndShowRoyalties(); };
+    closeRoyaltiesModal.onclick = () => { royaltiesModal.style.display = 'none'; };
+    refreshRoyalties.onclick = fetchAndShowRoyalties;
+
+    // Fetch and display agreements (basic list, can be expanded)
+    function fetchAndShowRoyalties() {
+      royaltiesContent.innerHTML = 'Loading...';
+      fetch(`${window.MCZ_CONFIG.backendUrl}/api/royalty-agreement/1/export/json/`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          let html = `<div><b>Title:</b> ${data.title || ''}</div>`;
+          html += `<div><b>Description:</b> ${data.description || ''}</div>`;
+          html += `<div><b>Version:</b> ${data.version || 1}</div>`;
+          html += `<div><b>Finalized:</b> ${data.is_finalized ? 'Yes' : 'No'}</div>`;
+          html += `<div style='margin:10px 0;'><b>Agreement Text:</b><br><pre style='background:#f7f7f7;padding:8px;border-radius:6px;'>${data.agreement_text || ''}</pre></div>`;
+          html += `<button onclick="downloadAgreementPDF(${data.id})" style='background:#1565C0;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;margin-right:6px;'>Download PDF</button>`;
+          html += `<button onclick="downloadAgreementCSV(${data.id})" style='background:#1565C0;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;margin-right:6px;'>Export CSV</button>`;
+          html += `<button onclick="sendAgreementReminder(${data.id})" style='background:#ffa726;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;'>Send Reminder</button>`;
+          royaltiesContent.innerHTML = html;
+        })
+        .catch(() => { royaltiesContent.innerHTML = 'Failed to load agreement.'; });
+    }
+
+    function downloadAgreementPDF(id) {
+      window.open(`${window.MCZ_CONFIG.backendUrl}/api/royalty-agreement/${id}/download/`, '_blank');
+    }
+    function downloadAgreementCSV(id) {
+      window.open(`${window.MCZ_CONFIG.backendUrl}/api/royalty-agreement/${id}/export/csv/`, '_blank');
+    }
+    function sendAgreementReminder(id) {
+      fetch(`${window.MCZ_CONFIG.backendUrl}/api/royalty-agreement/${id}/reminder/`, { method: 'POST', credentials: 'include' })
+        .then(res => res.json())
+        .then(data => { alert(data.success || 'Reminder sent.'); })
+        .catch(() => { alert('Failed to send reminder.'); });
+    }
+
+    newAgreementBtn.onclick = function() {
+      alert('New agreement creation coming soon!');
+    };
+  </script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <link rel="icon" type="image/png" href="/music-connectz-logo.png" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v9.2 bi K-Oth</title>
+  <title>Music ConnectZ v9.4 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="/app-config.js"></script>
   <script src="/i18n-config.js"></script>
@@ -54,7 +118,59 @@
   </style>
 </head>
 <body>
+  <!-- Onboarding Tour Modal -->
+  <div id="onboardingTourModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.45); z-index:9999; align-items:center; justify-content:center;">
+    <div id="onboardingTourContent" style="background:#fff; border-radius:16px; max-width:95vw; width:360px; margin:auto; box-shadow:0 4px 24px rgba(0,0,0,0.18); padding:32px 24px 24px 24px; position:relative; text-align:center;">
+      <div id="onboardingTourStepTitle" style="font-size:1.3em; font-weight:700; margin-bottom:10px;"></div>
+      <div id="onboardingTourStepContent" style="font-size:1.05em; color:#444; margin-bottom:18px;"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button id="onboardingTourPrev" class="btn btn-small" style="flex:1; margin-right:8px; background:#eee; color:#333; border:none;">◀</button>
+        <button id="onboardingTourNext" class="btn btn-small" style="flex:1; margin-left:8px; background:#2196F3; color:#fff; border:none;">Next ▶</button>
+      </div>
+      <button id="onboardingTourClose" class="btn btn-small" style="margin-top:18px; background:#fff; color:#2196F3; border:1px solid #2196F3;">Close</button>
+      <div id="onboardingTourProgress" style="margin-top:10px; font-size:12px; color:#888;"></div>
+    </div>
+  </div>
+  <button onclick="showOnboardingTour(0)" style="position:fixed; top:18px; right:18px; z-index:100; background:#fff; color:#2196F3; border:1px solid #2196F3; border-radius:6px; font-size:13px; padding:6px 14px; font-weight:600; box-shadow:0 2px 8px rgba(33,150,243,0.08); cursor:pointer;">❓ Tour</button>
   <div style="text-align:center; margin-top:24px;">
+
+    // Onboarding Tour Logic
+    let onboardingSteps = (window.I18N_CONFIG.translations[window.I18N_CONFIG.currentLang].onboarding_tour_steps || window.I18N_CONFIG.translations['en-US'].onboarding_tour_steps);
+    let onboardingStepIdx = 0;
+    function showOnboardingTour(startIdx=0) {
+      onboardingSteps = (window.I18N_CONFIG.translations[window.I18N_CONFIG.currentLang].onboarding_tour_steps || window.I18N_CONFIG.translations['en-US'].onboarding_tour_steps);
+      onboardingStepIdx = startIdx;
+      document.getElementById('onboardingTourModal').style.display = 'flex';
+      renderOnboardingStep();
+    }
+    function hideOnboardingTour() {
+      document.getElementById('onboardingTourModal').style.display = 'none';
+      localStorage.setItem('mcz_onboarding_complete', '1');
+    }
+    function renderOnboardingStep() {
+      const step = onboardingSteps[onboardingStepIdx];
+      document.getElementById('onboardingTourStepTitle').innerText = step.title;
+      document.getElementById('onboardingTourStepContent').innerText = step.content;
+      document.getElementById('onboardingTourPrev').disabled = onboardingStepIdx === 0;
+      document.getElementById('onboardingTourNext').innerText = (onboardingStepIdx === onboardingSteps.length-1) ? 'Finish' : 'Next ▶';
+      document.getElementById('onboardingTourProgress').innerText = `Step ${onboardingStepIdx+1} of ${onboardingSteps.length}`;
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      // Show onboarding for new users
+      if (!localStorage.getItem('mcz_onboarding_complete')) {
+        setTimeout(()=>showOnboardingTour(0), 600);
+      }
+      document.getElementById('onboardingTourPrev').onclick = function() {
+        if (onboardingStepIdx > 0) { onboardingStepIdx--; renderOnboardingStep(); }
+      };
+      document.getElementById('onboardingTourNext').onclick = function() {
+        if (onboardingStepIdx < onboardingSteps.length-1) { onboardingStepIdx++; renderOnboardingStep(); }
+        else { hideOnboardingTour(); }
+      };
+      document.getElementById('onboardingTourClose').onclick = function() { hideOnboardingTour(); };
+    });
+    // Add a button to re-launch onboarding tour
+    window.showOnboardingTour = showOnboardingTour;
     <img src="/music-connectz-logo.png" alt="Music ConnectZ Logo" style="width:140px; max-width:95vw; height:auto; border-radius:28px; box-shadow:0 2px 16px rgba(0,0,0,0.15); background:#fff; margin-bottom:16px;" />
   </div>
   <div class="auth-form" id="authForm">
@@ -92,13 +208,14 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v9.2 bi K-Oth</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span style="font-weight:bold; font-size:1.2em;">Music ConnectZ v9.4 bi K-Oth</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
     </div>
     <h2>Sign Up</h2>
     <form id="signupForm">
       <input type="email" id="signupEmail" placeholder="Email" required />
       <input type="password" id="signupPassword1" placeholder="Password" required />
       <input type="password" id="signupPassword2" placeholder="Confirm Password" required />
+      <input type="text" id="signupReferralCode" placeholder="Referral Code (optional)" style="margin-bottom:10px;" />
       <div style="margin-bottom:10px;">
         <small id="password-help" style="color: #555;">
           Password must be at least 8 characters, contain a number, a lowercase and an uppercase letter.
@@ -119,7 +236,7 @@
     </p>
     <p id="edit-date" style="font-size:13px; color:#888; margin-top:18px;"></p>
     <div id="brief-updates" style="background:#f7f7e6; border-left:4px solid #ffa726; margin:24px 0 0 0; padding:14px 18px 10px 18px; border-radius:8px; max-width:420px;">
-      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v9.2 Updates – <span id="release-date"></span></div>
+      <div style="font-weight:bold; color:#e65100; margin-bottom:4px;">v9.4 Updates – <span id="release-date"></span></div>
       <ul style="margin:0 0 0 18px; padding:0; color:#444; font-size:0.97em;">
         <li>🌐 Complete internationalization: 10 languages with geo-relevant genres & skills (US, UK, Brazil, Portugal, Korea, China, Japan, Arabia, India)</li>
         <li>🎁 Tiered referral rewards system: Invite friends to unlock credits, premium access, and exclusive benefits</li>
@@ -321,8 +438,9 @@
           }, 300);
           return;
         }
-        // Submit to Django backend registration API
-        fetch(`${window.MCZ_CONFIG.backendUrl}/api/auth/register/`, {
+        // Submit to Django backend registration API with referral support
+        const referralCode = document.getElementById('signupReferralCode').value.trim();
+        fetch(`${window.MCZ_CONFIG.backendUrl}/api/auth/register-with-referral/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -331,7 +449,8 @@
             username: email.split('@')[0],
             email: email,
             password1: pw1,
-            password2: pw2
+            password2: pw2,
+            referral_code: referralCode || undefined
           })
         })
         .then(res => res.json().then(data => ({ status: res.status, body: data })))
@@ -359,6 +478,57 @@
             }, 600);
           }
         });
+
+          // --- Referral Stats UI ---
+          function fetchAndShowReferralStats() {
+            fetch(`${window.MCZ_CONFIG.backendUrl}/api/referral/stats/`, {
+              credentials: 'include',
+              headers: { 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+              let html = `<div style='background:#e3f2fd; border-radius:10px; padding:16px; margin:18px 0;'>`;
+              html += `<div style='font-weight:bold; color:#1565C0; font-size:1.1em;'>Your Referral Code:</div>`;
+              html += `<div style='font-size:1.3em; font-weight:700; color:#2196F3; margin:8px 0 12px 0; letter-spacing:1px;'>${data.referral_code || ''}</div>`;
+              html += `<button onclick="navigator.clipboard.writeText('${data.referral_code || ''}')" style='background:#2196F3; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-weight:600; cursor:pointer;'>Copy Code</button>`;
+              // Share buttons
+              const shareMsg = encodeURIComponent(`Join me on Music ConnectZ! Use my referral code: ${data.referral_code || ''} to unlock rewards: https://musicconnectz.net/`);
+              html += `<div style='margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;'>`;
+              html += `<a href='mailto:?subject=Join%20me%20on%20Music%20ConnectZ!&body=${shareMsg}' target='_blank' style='text-decoration:none;'><button style='background:#1565C0; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;'>Email</button></a>`;
+              html += `<a href='https://wa.me/?text=${shareMsg}' target='_blank' style='text-decoration:none;'><button style='background:#25D366; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;'>WhatsApp</button></a>`;
+              html += `<a href='https://www.facebook.com/sharer/sharer.php?u=https://musicconnectz.net/&quote=${shareMsg}' target='_blank' style='text-decoration:none;'><button style='background:#4267B2; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;'>Messenger</button></a>`;
+              html += `<a href='https://twitter.com/intent/tweet?text=${shareMsg}' target='_blank' style='text-decoration:none;'><button style='background:#1DA1F2; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;'>X</button></a>`;
+              html += `</div>`;
+              html += `<div style='margin-top:14px;'>Referrals: <b>${data.referral_count || 0}</b></div>`;
+              if (data.referrals && data.referrals.length) {
+                html += `<ul style='margin:10px 0 0 0; padding:0; list-style:none;'>`;
+                data.referrals.forEach(r => {
+                  html += `<li style='margin-bottom:6px; color:#444;'>${r.referred} <span style='color:#888;'>(${r.created_at.split('T')[0]})</span> ${r.reward_granted ? '🎁' : ''}</li>`;
+                });
+                html += `</ul>`;
+              }
+              html += `</div>`;
+              let statsDiv = document.getElementById('referral-stats');
+              if (!statsDiv) {
+                statsDiv = document.createElement('div');
+                statsDiv.id = 'referral-stats';
+                document.querySelector('.auth-form').appendChild(statsDiv);
+              }
+              statsDiv.innerHTML = html;
+            })
+            .catch(() => {});
+          }
+          // Auto-invoke referral stats after login if user is authenticated
+          document.addEventListener('DOMContentLoaded', function() {
+            fetch(`${window.MCZ_CONFIG.backendUrl}/api/auth/me/`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => {
+                if (data && data.authenticated) {
+                  fetchAndShowReferralStats();
+                }
+              })
+              .catch(() => {});
+          });
       }
     };
   </script>
@@ -696,7 +866,7 @@
           </button>
         </div>
       </div>
-      <div class="form-group"><label>Confirm Password *</label>
+      <div class="form-group" id="authOverlayConfirmPasswordGroup" style="display:none;"><label>Confirm Password *</label>
         <div style="position:relative;">
           <input type="password" id="authOverlayConfirmPassword" placeholder="Re-enter password" style="padding-right:32px;" />
           <button type="button" onclick="togglePassword('authOverlayConfirmPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
@@ -706,9 +876,21 @@
       </div>
       </div>
       <div class="auth-actions">
-        <button class="btn btn-success" onclick="registerUser(true)">📝 Register</button>
-        <button class="btn" onclick="loginUser(true)">🔓 Login</button>
+        <button class="btn btn-success" id="registerBtn" onclick="showRegisterFields();registerUser(true);return false;">📝 Register</button>
+        <button class="btn" id="loginBtn" onclick="showLoginFields();loginUser(true);return false;">🔓 Login</button>
       </div>
+      <script>
+      function showRegisterFields() {
+        document.getElementById('authOverlayConfirmPasswordGroup').style.display = '';
+      }
+      function showLoginFields() {
+        document.getElementById('authOverlayConfirmPasswordGroup').style.display = 'none';
+      }
+      // On load, default to login (hide confirm password)
+      document.addEventListener('DOMContentLoaded', function() {
+        showLoginFields();
+      });
+      </script>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
         <button class="btn btn-secondary" onclick="showPhoneLogin()" style="flex: 1;">📱 Phone Login</button>
         <button class="btn btn-secondary" onclick="showForgotPassword()" style="flex: 1;">🔑 Forgot Password</button>
