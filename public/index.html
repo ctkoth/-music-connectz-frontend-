@@ -194,33 +194,7 @@
   </div>
   <button onclick="showOnboardingTour(0)" style="position:fixed; top:18px; right:18px; z-index:100; background:#fff; color:#2196F3; border:1px solid #2196F3; border-radius:6px; font-size:13px; padding:6px 14px; font-weight:600; box-shadow:0 2px 8px rgba(33,150,243,0.08); cursor:pointer;">❓ Tour</button>
   <div style="text-align:center; margin-top:24px;">
-
-    // Onboarding Tour Header translations with emoji
-    const onboardingTourHeaders = {
-      'en-US': '🎓 Welcome Tour',
-      'es-ES': '🎓 Tour de Bienvenida',
-      'pt-BR': '🎓 Tour de Boas-vindas',
-      'fr-FR': '🎓 Visite de bienvenue',
-      'de-DE': '🎓 Willkommens-Tour',
-      'it-IT': '🎓 Tour di Benvenuto',
-      'ja-JP': '🎓 ウェルカムツアー',
-      'zh-CN': '🎓 欢迎之旅',
-      'ko-KR': '🎓 환영 투어',
-      'ru-RU': '🎓 Приветственный тур',
-      'ar-SA': '🎓 جولة الترحيب',
-      'hi-IN': '🎓 स्वागत टूर',
-      'tr-TR': '🎓 Hoşgeldiniz Turu',
-      'default': '🎓 Welcome Tour'
-    };
-    function setOnboardingTourHeader() {
-      const lang = (window.I18N_CONFIG && window.I18N_CONFIG.currentLang) || 'en-US';
-      document.getElementById('onboardingTourHeader').innerText = onboardingTourHeaders[lang] || onboardingTourHeaders['default'];
-    }
-    // Call this when showing the tour
-    function showOnboardingTour(startIdx=0) {
-      setOnboardingTourHeader();
-      // ...existing code...
-    }
+    <!-- Removed code fragment that was being displayed to users -->
     <img src="/music-connectz-logo.png" alt="Music ConnectZ Logo" style="width:140px; max-width:95vw; height:auto; border-radius:28px; box-shadow:0 2px 16px rgba(0,0,0,0.15); background:#fff; margin-bottom:16px;" />
   </div>
   <div class="auth-form" id="authForm">
