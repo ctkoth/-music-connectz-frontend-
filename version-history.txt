@@ -56,3 +56,8 @@ v9.7 - Unified Social Paradigm
 - Download PDF, export CSV, send reminders
 - All data powered by v9.8 backend
 
+v9.9 - Unified Registration/Login
+- Users can register with either username or email (only one required)
+- Login accepts either username or email
+- Registration: 2 password fields, Login: 1 password field
+
