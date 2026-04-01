@@ -132,7 +132,7 @@ window.I18N_CONFIG = {
       continue_auth: 'Continue Auth on Secure Server',
       
       // Personas (US/English focus on commercial music)
-      persona_artist: 'Artist',
+      persona_artist: 'Independent Artist',
       persona_designer: 'Designer',
       persona_engineer: 'Engineer',
       persona_ghostwriter: 'Ghostwriter',
@@ -209,7 +209,7 @@ window.I18N_CONFIG = {
       login_register: 'Login or Register with Email or Social Account',
       continue_auth: 'Continue Auth on Secure Server',
       
-      persona_artist: 'Artist',
+      persona_artist: 'Independent Artist',
       persona_designer: 'Designer',
       persona_engineer: 'Engineer',
       persona_ghostwriter: 'Ghostwriter',
@@ -292,7 +292,7 @@ window.I18N_CONFIG = {
       login_register: 'Login ou Cadastro com Email ou Rede Social',
       continue_auth: 'Continuar Autenticação no Servidor Seguro',
       
-      persona_artist: 'Artista',
+      persona_artist: 'Artista Independente',
       persona_designer: 'Designer',
       persona_engineer: 'Engenheiro de Som',
       // Onboarding Tour Steps
@@ -431,7 +431,7 @@ window.I18N_CONFIG = {
       login_register: 'Iniciar Sessão ou Registar com Email ou Rede Social',
       continue_auth: 'Continuar Autenticação no Servidor Seguro',
       
-      persona_artist: 'Artista',
+      persona_artist: 'Artista Independente',
       persona_designer: 'Designer',
       persona_engineer: 'Engenheiro de Som',
       persona_ghostwriter: 'Compositor Fantasma',
@@ -506,7 +506,7 @@ window.I18N_CONFIG = {
       login_register: '이메일 또는 소셜 계정으로 로그인 또는 가입',
       continue_auth: '보안 서버에서 인증 계속',
       
-      persona_artist: '아티스트',
+      persona_artist: '독립 아티스트',
       persona_designer: '디자이너',
       persona_engineer: '사운드 엔지니어',
       persona_ghostwriter: '유령 작곡가',
@@ -581,7 +581,7 @@ window.I18N_CONFIG = {
       login_register: '使用电子邮件或社交账户登录或注册',
       continue_auth: '在安全服务器上继续身份验证',
       
-      persona_artist: '艺术家',
+      persona_artist: '独立音乐人',
       persona_designer: '设计师',
       persona_engineer: '音频工程师',
       persona_ghostwriter: '幽灵写手',
@@ -656,7 +656,7 @@ window.I18N_CONFIG = {
       login_register: '使用電子郵件或社交帳戶登入或註冊',
       continue_auth: '在安全伺服器上繼續身份驗證',
       
-      persona_artist: '藝術家',
+      persona_artist: '獨立音樂人',
       persona_designer: '設計師',
       persona_engineer: '音訊工程師',
       persona_ghostwriter: '幽靈寫手',
@@ -731,7 +731,7 @@ window.I18N_CONFIG = {
       login_register: 'メールまたはソーシャルアカウントでログインまたは登録',
       continue_auth: 'セキュアサーバーで認証を続行',
       
-      persona_artist: 'アーティスト',
+      persona_artist: 'インディーアーティスト',
       persona_designer: 'デザイナー',
       persona_engineer: 'サウンドエンジニア',
       persona_ghostwriter: 'ゴーストライター',
@@ -806,7 +806,7 @@ window.I18N_CONFIG = {
       login_register: 'تسجيل الدخول أو التسجيل باستخدام البريد الإلكتروني أو حساب اجتماعي',
       continue_auth: 'متابعة المصادقة على الخادم الآمن',
       
-      persona_artist: 'فنان',
+      persona_artist: 'فنان مستقل',
       persona_designer: 'مصمم',
       persona_engineer: 'مهندس صوت',
       persona_ghostwriter: 'كاتب شبح',
@@ -881,7 +881,7 @@ window.I18N_CONFIG = {
       login_register: 'ईमेल या सोशल खाते के साथ लॉगिन या पंजीकरण करें',
       continue_auth: 'सुरक्षित सर्वर पर प्रमाणीकरण जारी रखें',
       
-      persona_artist: 'कलाकार',
+      persona_artist: 'स्वतंत्र कलाकार',
       persona_designer: 'डिजाइनर',
       persona_engineer: 'ध्वनि इंजीनियर',
       persona_ghostwriter: 'गोस्ट राइटर',

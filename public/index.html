@@ -201,8 +201,8 @@
     <div style="text-align:center; margin-bottom:10px;">
       <div style="display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
         <div style="display:flex; flex-direction:column; align-items:center; width:64px;">
-          <img src="/artist.png" alt="Artist" title="Artist" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
-          <span style="font-size:13px; margin-top:4px; color:#333;">Artist</span>
+          <img src="/artist.png" alt="Independent Artist" title="Independent Artist" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
+          <span style="font-size:13px; margin-top:4px; color:#333;">Independent Artist</span>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; width:64px;">
           <img src="/designer.png" alt="Visual Designer" title="Visual Designer" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
@@ -415,7 +415,7 @@
     // Persona details data
     const personaDetails = {
       artist: {
-        title: "🎤 Indie Artist",
+        title: "🎤 Independent Artist",
         text: "🎤 Creates and performs original music 🎵, shaping the creative direction and identity of a project.",
         skills: [
           "Songwriting & Composition",
@@ -1204,7 +1204,7 @@
       <div class="card">
         <div class="card-header">🎭 Select Your Personas & Add Skills</div>
         <div class="grid-3">
-          <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Indie Artist')">🎤 Indie</button>
+          <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Independent Artist')">🎤 Independent Artist</button>
           <button class="persona-btn" onclick="openSkillModal('beat-producer','🎚️ Beat Producer')">🎚️ Producer</button>
           <button class="persona-btn" onclick="openSkillModal('mix-engineer','🎛️ Mix Engineer')">🎛️ Engineer</button>
           <button class="persona-btn" onclick="openSkillModal('designer','🎨 Visual Designer')">🎨 Visual Designer</button>
@@ -1285,7 +1285,7 @@
             <label style="font-weight: 600; font-size: 11px; min-width: 80px;">🎭 Persona:</label>
             <select id="filterPersona" onchange="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;">
               <option value="">All Personas</option>
-              <option value="🎤 Indie Artist">🎤 Indie Artist</option>
+              <option value="🎤 Independent Artist">🎤 Independent Artist</option>
               <option value="🎚️ Beat Producer">🎚️ Beat Producer</option>
               <option value="🎛️ Mix Engineer">🎛️ Mix Engineer</option>
               <option value="🎨 Visual Designer">🎨 Visual Designer</option>
@@ -2183,7 +2183,7 @@ let appState = {
     },
     {
       key: 'artist',
-      name: '🎤 Indie Artist',
+      name: '🎤 Independent Artist',
       avatar: 'artist.png',
       skills: []
     },
@@ -2931,7 +2931,7 @@ function addSkills() {
   const startDate = `${mo}/${day}/${yr}`;
   const pricePerWork = parseFloat(document.getElementById('skillPricePerWork').value) || null;
   const pricePerHour = parseFloat(document.getElementById('skillPricePerHour').value) || null;
-  const personaNames = { 'indie-artist': '🎤 Indie Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Visual Designer', 'videographer': '🎬 Videographer' };
+  const personaNames = { 'indie-artist': '🎤 Independent Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Visual Designer', 'videographer': '🎬 Videographer' };
   let persona = appState.personas.find(p => p.key === personaKey);
   if (!persona) { persona = {key: personaKey, name: personaNames[personaKey], skills: []}; appState.personas.push(persona); }
   const skillCount = appState.selectedSkillsInModal.size;
@@ -3209,7 +3209,7 @@ function openSpecificSkillsFromAny(personaKey, anySkillName) {
 }
 
 function openSkillsUsedModal() {
-  if (appState.personas.length === 0) { alert('❌ You need to add personas and skills first!\n\nSteps:\n1. Go to PERSONAS tab\n2. Click a persona (🎤 Indie, 🎚️ Producer, etc.)\n3. Select skills and set a start date\n4. Click "✓ Add Skills"\n\nThen come back here.'); return; }
+  if (appState.personas.length === 0) { alert('❌ You need to add personas and skills first!\n\nSteps:\n1. Go to PERSONAS tab\n2. Click a persona (🎤 Independent Artist, 🎚️ Producer, etc.)\n3. Select skills and set a start date\n4. Click "✓ Add Skills"\n\nThen come back here.'); return; }
   const skillsUsedCats = document.getElementById('skillsUsedCats');
   skillsUsedCats.innerHTML = '';
   
