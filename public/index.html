@@ -205,8 +205,8 @@
           <span style="font-size:13px; margin-top:4px; color:#333;">Artist</span>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; width:64px;">
-          <img src="/designer.png" alt="Designer" title="Designer" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
-          <span style="font-size:13px; margin-top:4px; color:#333;">Designer</span>
+          <img src="/designer.png" alt="Visual Designer" title="Visual Designer" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
+          <span style="font-size:13px; margin-top:4px; color:#333;">Visual Designer</span>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; width:64px;">
           <img src="/engineer.png" alt="Mix Engineer" title="Mix Engineer" style="width:48px; height:48px; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.08);" />
@@ -427,7 +427,7 @@
         ]
       },
       designer: {
-        title: "Designer",
+        title: "Visual Designer",
         text: "Builds the visual identity of music brands and releases across digital and print media.",
         skills: [
           "Album Cover Design",
@@ -1207,7 +1207,7 @@
           <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Indie Artist')">🎤 Indie</button>
           <button class="persona-btn" onclick="openSkillModal('beat-producer','🎚️ Beat Producer')">🎚️ Producer</button>
           <button class="persona-btn" onclick="openSkillModal('mix-engineer','🎛️ Mix Engineer')">🎛️ Engineer</button>
-          <button class="persona-btn" onclick="openSkillModal('designer','🎨 Designer')">🎨 Designer</button>
+          <button class="persona-btn" onclick="openSkillModal('designer','🎨 Visual Designer')">🎨 Visual Designer</button>
           <button class="persona-btn" onclick="openSkillModal('videographer','🎬 Videographer')">🎬 Video</button>
         </div>
       </div>
@@ -1288,7 +1288,7 @@
               <option value="🎤 Indie Artist">🎤 Indie Artist</option>
               <option value="🎚️ Beat Producer">🎚️ Beat Producer</option>
               <option value="🎛️ Mix Engineer">🎛️ Mix Engineer</option>
-              <option value="🎨 Designer">🎨 Designer</option>
+              <option value="🎨 Visual Designer">🎨 Visual Designer</option>
               <option value="🎬 Videographer">🎬 Videographer</option>
             </select>
           </div>
@@ -2165,7 +2165,7 @@ let appState = {
     },
     {
       key: 'designer',
-      name: '🎨 Designer',
+      name: '🎨 Visual Designer',
       avatar: 'designer.png',
       skills: []
     },
@@ -2931,7 +2931,7 @@ function addSkills() {
   const startDate = `${mo}/${day}/${yr}`;
   const pricePerWork = parseFloat(document.getElementById('skillPricePerWork').value) || null;
   const pricePerHour = parseFloat(document.getElementById('skillPricePerHour').value) || null;
-  const personaNames = { 'indie-artist': '🎤 Indie Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Designer', 'videographer': '🎬 Videographer' };
+  const personaNames = { 'indie-artist': '🎤 Indie Artist', 'beat-producer': '🎚️ Beat Producer', 'mix-engineer': '🎛️ Mix Engineer', 'designer': '🎨 Visual Designer', 'videographer': '🎬 Videographer' };
   let persona = appState.personas.find(p => p.key === personaKey);
   if (!persona) { persona = {key: personaKey, name: personaNames[personaKey], skills: []}; appState.personas.push(persona); }
   const skillCount = appState.selectedSkillsInModal.size;
@@ -2954,15 +2954,21 @@ function renderPersonasDisplay() {
     const display = document.getElementById('personasDisplay');
     if (!display) return;
     if (appState.personas.length === 0) { display.innerHTML = 'No personas yet'; return; }
+    const shortPersonaNames = {
+      '🎚️ Beat Producer': '🎚️ Producer',
+      '🎛️ Mix Engineer': '🎛️ Engineer',
+      '🎨 Visual Designer': '🎨 Designer'
+    };
     display.innerHTML = '';
     appState.personas.forEach((persona, idx) => {
       try {
         const card = document.createElement('div');
         card.className = 'persona-card';
+        const cardPersonaName = shortPersonaNames[persona.name] || persona.name;
         card.innerHTML = `<div class="persona-header">
           <div style="display: flex; align-items: center; gap: 10px;">
-            ${persona.avatar ? `<img src="${persona.avatar}" alt="${persona.name} avatar" style="width:48px;height:48px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.10);">` : ''}
-            <div class="persona-name">${persona.name}</div>
+            ${persona.avatar ? `<img src="${persona.avatar}" alt="${cardPersonaName} avatar" style="width:48px;height:48px;border-radius:10px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.10);">` : ''}
+            <div class="persona-name">${cardPersonaName}</div>
           </div>
           <button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button>
         </div>
