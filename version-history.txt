@@ -75,3 +75,10 @@ v10.3 - 🤖 GenAI Logic Upgrade
 - ✍️ Voice skill added: GenAI can respond in user's personal writing style
 - 💬 Concise but complete: responses cut follow-up questions before they happen
 
+v10.4 - 🚀 OAuth-First Registration & Flexible Auth
+- 🔑 OAuth prioritized: 8 providers (Google, Facebook, Microsoft, LinkedIn, GitHub, X, Spotify, SoundCloud) shown first
+- 📧 Traditional auth: Email/username registration with 2 password fields, login with 1 password field
+- 📱 Phone registration support (backend-ready with phone field visible)
+- ✅ Post-OAuth profile completion: Users can complete username/phone/email after OAuth signup
+- 🎯 Streamlined onboarding: OAuth for speed, traditional auth as fallback
+

@@ -22,6 +22,15 @@
     const royaltiesContent = document.getElementById('royaltiesContent');
     const newAgreementBtn = document.getElementById('newAgreementBtn');
 
+    function safeText(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     royaltiesBtn.onclick = () => { royaltiesModal.style.display = 'flex'; fetchAndShowRoyalties(); };
     closeRoyaltiesModal.onclick = () => { royaltiesModal.style.display = 'none'; };
     refreshRoyalties.onclick = fetchAndShowRoyalties;
@@ -32,11 +41,11 @@
       fetch(`${window.MCZ_CONFIG.backendUrl}/api/royalty-agreement/1/export/json/`, { credentials: 'include' })
         .then(res => res.json())
         .then(data => {
-          let html = `<div><b>Title:</b> ${data.title || ''}</div>`;
-          html += `<div><b>Description:</b> ${data.description || ''}</div>`;
+          let html = `<div><b>Title:</b> ${safeText(data.title || '')}</div>`;
+          html += `<div><b>Description:</b> ${safeText(data.description || '')}</div>`;
           html += `<div><b>Version:</b> ${data.version || 1}</div>`;
           html += `<div><b>Finalized:</b> ${data.is_finalized ? 'Yes' : 'No'}</div>`;
-            html += `<div style='margin:10px 0;'><b>Agreement Text:</b><br><span style='background:#f7f7f7;padding:8px;border-radius:6px;display:inline-block;'>${data.agreement_text || ''}</span></div>`;
+            html += `<div style='margin:10px 0;'><b>Agreement Text:</b><br><span style='background:#f7f7f7;padding:8px;border-radius:6px;display:inline-block;'>${safeText(data.agreement_text || '')}</span></div>`;
           html += `<button onclick="downloadAgreementPDF(${data.id})" style='background:#1565C0;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;margin-right:6px;'>Download PDF</button>`;
           html += `<button onclick="downloadAgreementCSV(${data.id})" style='background:#1565C0;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;margin-right:6px;'>Export CSV</button>`;
           html += `<button onclick="sendAgreementReminder(${data.id})" style='background:#ffa726;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-weight:600;'>Send Reminder</button>`;
@@ -67,8 +76,8 @@
 <head>
     <link rel="icon" type="image/png" href="/music-connectz-logo.png" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v10.3 bi K-Oth</title>
-  <meta name="description" content="Music ConnectZ v10.3 - Safe, secure, and ad-free music collaboration platform. No popups, no misleading ads, privacy-first.">
+  <title>Music ConnectZ v10.4 bi K-Oth</title>
+  <meta name="description" content="Music ConnectZ v10.4 - OAuth-first authentication with post-login profile completion, plus safe, secure, and ad-free collaboration.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
@@ -232,7 +241,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline;">🎵 Music ConnectZ v10.3 bi K-Oth</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline;">🎵 Music ConnectZ v10.4 bi K-Oth</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
       <div id="member-count" style="margin-top:8px; font-size:1.05em; color:#2196F3; font-weight:600;"></div>
         <script>
           // Fetch and display live member count
@@ -270,6 +279,7 @@
 
         // Version history data (descending order, with emojis)
         const versionHistory = [
+          { v: 'v10.4', text: 'OAuth-first auth flow, non-OAuth register with 2 passwords, login with 1 password, and post-OAuth profile completion', emoji: '🚀' },
           { v: 'v9.6', text: 'bi K-Oth on (March 30, 2026)@09:55', emoji: '🚀' },
           { v: 'v9.5', text: 'bi K-Oth on (March 29, 2026)@14:45', emoji: '🚀' },
           { v: 'v9.5', text: 'bi K-Oth', emoji: '👤' },
@@ -952,7 +962,7 @@
   <div class="auth-card">
     <div id="authMainView">
       <div class="auth-title">🔐 Login Required</div>
-      <div class="auth-subtitle">Sign in fast with verified social accounts and start matching with local collaborators.</div>
+      <div class="auth-subtitle">Start with OAuth first for fastest access. You can complete username, email, and phone right after signing in.</div>
       
       <div class="social-login-section" style="margin-bottom: 15px;">
               <script>
@@ -964,7 +974,7 @@
                 window.location.href = backendUrl + path;
               }
               </script>
-        <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 10px;">Continue with:</div>
+        <div style="text-align: center; margin-bottom: 10px; color: var(--text-light); font-size: 10px;">Recommended: Continue with OAuth</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <button class="btn-social btn-microsoft" data-provider="microsoft" onclick="socialLogin('microsoft')" title="Login with Microsoft">
             <svg width="20" height="20" viewBox="0 0 24 24">
@@ -1026,6 +1036,12 @@
           <div style="height: 1px; background: var(--border); margin-top: -10px;"></div>
         </div>
       </div>
+
+      <div id="oauthProfileCompletion" style="display:none; border:1px solid var(--border); border-radius:10px; padding:10px; margin: 10px 0 12px 0; background: var(--background);">
+        <div style="font-weight:600; margin-bottom:8px;">Complete your profile after OAuth</div>
+        <div style="font-size:12px; color: var(--text-light); margin-bottom:8px;">Add username, email, and phone to finish registration.</div>
+        <button class="btn btn-success" style="width:100%;" onclick="completeOAuthProfile()">✅ Save Profile Details</button>
+      </div>
       
       <div class="form-group"><label>Username</label><input type="text" id="authOverlayUsername" placeholder="Optional display name" /></div>
       <div class="form-group"><label>Email *</label><input type="email" id="authOverlayEmail" placeholder="you@email.com" /></div>
@@ -1053,10 +1069,16 @@
       </div>
       <script>
       function showRegisterFields() {
-        document.getElementById('authOverlayConfirmPasswordGroup').style.display = '';
+        const overlayConfirm = document.getElementById('authOverlayConfirmPasswordGroup');
+        const settingsConfirm = document.getElementById('authConfirmPasswordGroup');
+        if (overlayConfirm) overlayConfirm.style.display = '';
+        if (settingsConfirm) settingsConfirm.style.display = '';
       }
       function showLoginFields() {
-        document.getElementById('authOverlayConfirmPasswordGroup').style.display = 'none';
+        const overlayConfirm = document.getElementById('authOverlayConfirmPasswordGroup');
+        const settingsConfirm = document.getElementById('authConfirmPasswordGroup');
+        if (overlayConfirm) overlayConfirm.style.display = 'none';
+        if (settingsConfirm) settingsConfirm.style.display = 'none';
       }
       // On load, default to login (hide confirm password)
       document.addEventListener('DOMContentLoaded', function() {
@@ -1139,7 +1161,7 @@
         <div class="lang-selector-dropdown" id="langSelectorDropdown"></div>
       </div>
     </div>
-    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v10.3 bi K-Oth</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
+    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v10.4 bi K-Oth</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
     <div class="header-right"><button class="btn btn-small" id="headerLoginBtn" onclick="openLoginOverlay()">🔓 Login</button><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
@@ -1782,15 +1804,26 @@
             </button>
           </div>
         </div>
+        <div class="form-group" id="authConfirmPasswordGroup" style="display:none;"><label>Confirm Password *</label>
+          <div style="position:relative;">
+            <input type="password" id="authConfirmPassword" placeholder="Re-enter password" style="padding-right:32px;" />
+            <button type="button" onclick="togglePassword('authConfirmPassword')" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:18px; color:#888;">
+              <span id="authConfirmPasswordEye">👁️</span>
+            </button>
+          </div>
+        </div>
         <script>
         function togglePassword(id) {
           // Only allow toggling for user's own password fields
           const allowedIds = [
             'password',
             'authOverlayPassword',
+            'authOverlayConfirmPassword',
             'authPhonePassword',
+            'authPhoneConfirmPassword',
             'authResetPassword',
-            'authPassword'
+            'authPassword',
+            'authConfirmPassword'
           ];
           if (!allowedIds.includes(id)) return;
           const input = document.getElementById(id);
@@ -1806,8 +1839,8 @@
         }
         </script>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="btn btn-success" onclick="registerUser()" id="registerBtn">📝 Register</button>
-          <button class="btn" onclick="loginUser()" id="loginBtn">🔓 Login</button>
+          <button class="btn btn-success" onclick="showRegisterFields();registerUser();" id="registerBtn">📝 Register</button>
+          <button class="btn" onclick="showLoginFields();loginUser();" id="loginBtn">🔓 Login</button>
           <button class="btn btn-secondary" onclick="logoutUser()" id="logoutBtn">🚪 Logout</button>
         </div>
         <div id="authStatus" style="margin-top: 10px; font-size: 11px; color: var(--text-light);">Not logged in</div>
@@ -2051,7 +2084,20 @@
       </div>
     </div>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCrMy3b5x32jJflhmvLDjgFScV0Lweyel8&libraries=places&loading=async" async defer></script>
+  <script>
+  (function loadGoogleMaps() {
+    const key = (window.MCZ_CONFIG && window.MCZ_CONFIG.googleMapsApiKey) || '';
+    if (!key) {
+      console.warn('Google Maps key missing: set window.MCZ_CONFIG.googleMapsApiKey in app-config.js');
+      return;
+    }
+    const mapsScript = document.createElement('script');
+    mapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&loading=async`;
+    mapsScript.async = true;
+    mapsScript.defer = true;
+    document.head.appendChild(mapsScript);
+  })();
+  </script>
   <script>
   function playMedia(idx) {
     const example = appState.examples[idx];
@@ -2063,9 +2109,9 @@
     
     mediaTitle.textContent = ' ' + example.title;
     const skillsHtml = (example.skills || []).length > 0
-      ? (example.skills || []).map(s => `<span class="tag skill-tag" style="margin-right: 4px;"><img class="skill-icon" src="${getSkillIconDataUrl(s)}" alt="" /><span>${s}</span></span>`).join('')
+      ? (example.skills || []).map(s => `<span class="tag skill-tag" style="margin-right: 4px;"><img class="skill-icon" src="${getSkillIconDataUrl(s)}" alt="" /><span>${escapeHtml(s)}</span></span>`).join('')
       : 'N/A';
-    mediaMetadata.innerHTML = `<strong>Genre:</strong> ${example.genre || 'N/A'}<br><strong>Skills:</strong> ${skillsHtml}<br><strong>Uploaded by:</strong> ${example.userName || 'Unknown'} (${example.userLocation || 'Unknown'})`;
+    mediaMetadata.innerHTML = `<strong>Genre:</strong> ${escapeHtml(example.genre || 'N/A')}<br><strong>Skills:</strong> ${skillsHtml}<br><strong>Uploaded by:</strong> ${escapeHtml(example.userName || 'Unknown')} (${escapeHtml(example.userLocation || 'Unknown')})`;
     
     // Determine if audio or video
     const isAudio = example.mediaType.startsWith('audio/');
@@ -2663,9 +2709,33 @@ function loadProfilePic(event) {
   const file = event.target.files[0];
   if (file) {
     const reader = new FileReader();
-    reader.onload = (e) => { appState.user.profilePic = e.target.result; document.getElementById('headerPic').innerHTML = `<img src="${e.target.result}" />`; saveAppState(); updateProfileDisplay(); };
+    reader.onload = (e) => {
+      const imageData = String(e.target.result || '');
+      if (!imageData.startsWith('data:image/')) {
+        alert('Only image uploads are allowed.');
+        return;
+      }
+      appState.user.profilePic = imageData;
+      setProfileImage('headerPic', imageData);
+      saveAppState();
+      updateProfileDisplay();
+    };
     reader.readAsDataURL(file);
   }
+}
+
+function setProfileImage(containerId, imageSrc) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const src = String(imageSrc || '');
+  const isAllowed = src.startsWith('data:image/') || src.startsWith('https://') || src.startsWith('http://') || src.startsWith('/');
+  if (!isAllowed) return;
+  container.innerHTML = '';
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.referrerPolicy = 'no-referrer';
+  img.src = src;
+  container.appendChild(img);
 }
 
 function reverseGeocode(lat, lng, callback) {
@@ -2831,15 +2901,15 @@ function requestGPS() {
 function updateProfileDisplay() {
   const user = appState.user;
   document.getElementById('pubUsername').textContent = user.name || 'Not Set';
-  document.getElementById('pubInfo').innerHTML = `📧 ${user.email || 'No email'}<br>📱 ${user.phone || 'No phone'}<br>📍 ${user.location || 'No location'}`;
+  document.getElementById('pubInfo').innerHTML = `📧 ${escapeHtml(user.email || 'No email')}<br>📱 ${escapeHtml(user.phone || 'No phone')}<br>📍 ${escapeHtml(user.location || 'No location')}`;
   document.getElementById('pubBio').textContent = user.bio || 'No bio';
   document.getElementById('pubEmailText').textContent = user.email || 'No email';
   if (user.email) { document.getElementById('copyEmailBtn').style.display = 'block'; } else { document.getElementById('copyEmailBtn').style.display = 'none'; }
-  if (user.profilePic) { document.getElementById('pubPic').innerHTML = `<img src="${user.profilePic}" />`; document.getElementById('headerPic').innerHTML = `<img src="${user.profilePic}" />`; }
+  if (user.profilePic) { setProfileImage('pubPic', user.profilePic); setProfileImage('headerPic', user.profilePic); }
   const avgRating = computeUserRating();
   document.getElementById('pubRatingBadge').textContent = avgRating !== null ? `⭐ ${avgRating}` : '⭐ N/A';
   const skillsList = appState.personas.map(p => p.skills.map(s => ({ name: s.name, startDate: s.startDate })) ).flat();
-  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag skill-tag"><img class="skill-icon" src="${getSkillIconDataUrl(s.name)}" alt="" /><span>${s.name} • ${calculateExperienceYears(s.startDate)}</span></span>`).join('') : 'No skills';
+  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag skill-tag"><img class="skill-icon" src="${getSkillIconDataUrl(s.name)}" alt="" /><span>${escapeHtml(s.name)} • ${calculateExperienceYears(s.startDate)}</span></span>`).join('') : 'No skills';
 
   const sources = user.experienceSources || { schools: [], apps: [], teachers: [] };
   const sourceRows = [];
@@ -4229,6 +4299,7 @@ async function syncAuthFromBackendSession() {
     appState.auth = { loggedIn: true, user: data.user, guest: false };
     saveAppState();
     updateAuthDisplay();
+    updateOAuthProfileCompletionState(data.user);
     if (data.user.email) {
       setAuthStatus(`Logged in as ${data.user.email}`);
     }
@@ -4238,16 +4309,75 @@ async function syncAuthFromBackendSession() {
   }
 }
 
+function updateOAuthProfileCompletionState(user) {
+  const panel = document.getElementById('oauthProfileCompletion');
+  if (!panel) return;
+
+  const usernameInput = document.getElementById('authOverlayUsername');
+  const emailInput = document.getElementById('authOverlayEmail');
+  const phoneInput = document.getElementById('authOverlayPhone');
+
+  if (usernameInput && user && user.username) usernameInput.value = user.username;
+  if (emailInput && user && user.email) emailInput.value = user.email;
+  if (phoneInput && user && user.phone_number) phoneInput.value = user.phone_number;
+
+  const hasUsername = !!(user && user.username && user.username.trim());
+  const hasEmail = !!(user && user.email && user.email.trim());
+  const hasPhone = !!(user && user.phone_number && user.phone_number.trim());
+  const needsCompletion = !!(user && (!hasUsername || !hasEmail || !hasPhone));
+
+  panel.style.display = needsCompletion ? '' : 'none';
+}
+
+async function completeOAuthProfile() {
+  const username = (document.getElementById('authOverlayUsername').value || '').trim();
+  const email = (document.getElementById('authOverlayEmail').value || '').trim();
+  const phone = (document.getElementById('authOverlayPhone').value || '').trim();
+
+  if (!username || !email || !phone) {
+    setAuthStatus('Please enter username, email, and phone to complete profile.', true);
+    return;
+  }
+
+  try {
+    setAuthStatus('Saving profile details...');
+    const res = await fetch(`${apiBase}/api/auth/complete-profile/`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, phone_number: phone })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setAuthStatus(data.error || 'Could not complete profile.', true);
+      return;
+    }
+
+    appState.auth = { loggedIn: true, user: data.user || { username, email, phone_number: phone }, guest: false };
+    saveAppState();
+    updateAuthDisplay();
+    updateOAuthProfileCompletionState(appState.auth.user);
+    setAuthStatus('Profile completed successfully.');
+  } catch (e) {
+    console.error('completeOAuthProfile error:', e);
+    setAuthStatus('Profile completion failed. Please try again.', true);
+  }
+}
+
 async function registerUser(fromOverlay = false) {
   const email = (document.getElementById(fromOverlay ? 'authOverlayEmail' : 'authEmail').value || '').trim();
   const password = (document.getElementById(fromOverlay ? 'authOverlayPassword' : 'authPassword').value || '').trim();
-  const confirmPassword = fromOverlay ? (document.getElementById('authOverlayConfirmPassword').value || '').trim() : '';
+  const confirmPassword = fromOverlay
+    ? (document.getElementById('authOverlayConfirmPassword').value || '').trim()
+    : (document.getElementById('authConfirmPassword').value || '').trim();
   const username = (document.getElementById(fromOverlay ? 'authOverlayUsername' : 'authUsername').value || '').trim();
   const phone = fromOverlay ? (document.getElementById('authOverlayPhone').value || '').trim() : '';
 
   if (!email || !password) { setAuthStatus('Email and password required.', true); return; }
   if (password.length < 8) { setAuthStatus('Password must be at least 8 characters.', true); return; }
-  if (fromOverlay && password !== confirmPassword) { setAuthStatus('Passwords do not match.', true); return; }
+  if (!confirmPassword) { setAuthStatus('Confirm password is required for registration.', true); return; }
+  if (password !== confirmPassword) { setAuthStatus('Passwords do not match.', true); return; }
   if (window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth) {
     setAuthStatus('Redirecting to secure server registration...');
     openBackendAuthPage();
@@ -4260,10 +4390,11 @@ async function registerUser(fromOverlay = false) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: email.split('@')[0],
+        username: username || email.split('@')[0],
         email: email,
         password1: password,
-        password2: fromOverlay ? confirmPassword : password
+        password2: confirmPassword,
+        phone_number: phone,
       })
     });
 
@@ -4843,9 +4974,11 @@ function updateAuthDisplay() {
   const overlayEmail = document.getElementById('authOverlayEmail');
   const overlayPassword = document.getElementById('authOverlayPassword');
   const overlayUsername = document.getElementById('authOverlayUsername');
+  const overlayPhone = document.getElementById('authOverlayPhone');
   const emailInput = document.getElementById('authEmail');
   const passwordInput = document.getElementById('authPassword');
   const usernameInput = document.getElementById('authUsername');
+  const authConfirmPassword = document.getElementById('authConfirmPassword');
   const registerBtn = document.getElementById('registerBtn');
   const loginBtn = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -4873,13 +5006,17 @@ function updateAuthDisplay() {
   if (user && user.username) { usernameInput.value = user.username; }
   if (overlayEmail && user && user.email) { overlayEmail.value = user.email; }
   if (overlayUsername && user && user.username) { overlayUsername.value = user.username; }
+  if (overlayPhone && user && user.phone_number) { overlayPhone.value = user.phone_number; }
 
   emailInput.disabled = loggedIn;
   passwordInput.disabled = loggedIn;
+  if (authConfirmPassword) { authConfirmPassword.disabled = loggedIn; }
   usernameInput.disabled = loggedIn;
 
   if (loggedIn) { passwordInput.value = ''; }
   if (overlayPassword && loggedIn) { overlayPassword.value = ''; }
+
+  updateOAuthProfileCompletionState(user || {});
 
   registerBtn.style.display = loggedIn ? 'none' : 'inline-flex';
   loginBtn.style.display = loggedIn ? 'none' : 'inline-flex';
