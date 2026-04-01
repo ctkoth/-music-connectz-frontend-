@@ -3,5 +3,7 @@
 window.MCZ_CONFIG = window.MCZ_CONFIG || {};
 window.MCZ_CONFIG.backendUrl = 'https://music-connectz-backend-2.onrender.com';
 window.MCZ_CONFIG.authEntryPath = '/accounts/login/';
+// Browser key is public by design; restrict it by domain in Google Cloud Console.
+window.MCZ_CONFIG.googleMapsApiKey = window.MCZ_CONFIG.googleMapsApiKey || '';
 // Emergency mode: route auth to backend-hosted pages until CORS is fully configured.
 window.MCZ_CONFIG.forceBackendAuth = true;
