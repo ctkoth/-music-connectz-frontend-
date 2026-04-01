@@ -61,3 +61,6 @@ v9.9 - Unified Registration/Login
 - Login accepts either username or email
 - Registration: 2 password fields, Login: 1 password field
 
+v10.1 - Version Label Update
+- Updated frontend version labels to v10.1 across title, header, and metadata
+
