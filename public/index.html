@@ -2955,9 +2955,12 @@ function renderPersonasDisplay() {
     if (!display) return;
     if (appState.personas.length === 0) { display.innerHTML = 'No personas yet'; return; }
     const shortPersonaNames = {
-      '🎚️ Beat Producer': '🎚️ Producer',
-      '🎛️ Mix Engineer': '🎛️ Engineer',
-      '🎨 Visual Designer': '🎨 Designer'
+      '🎚️ Beat Producer': 'Producer',
+      '🎛️ Mix Engineer': 'Engineer',
+      '🎨 Visual Designer': '🎨 Designer',
+      'Ghostwriter': 'Writer',
+      '👻 Ghostwriter': '👻 Writer',
+      '🎬 Videographer': '🎬 Video'
     };
     display.innerHTML = '';
     appState.personas.forEach((persona, idx) => {
