@@ -45,6 +45,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/favicon.ico", "destination": "/music-connectz-logo.png" },
     { "source": "/api/(.*)", "destination": "https://music-connectz-backend-2.onrender.com/api/$1" }
   ]
 }

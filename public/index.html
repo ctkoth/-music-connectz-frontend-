@@ -74,13 +74,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/music-connectz-logo.png?v=10.5-20260401" />
+    <link rel="icon" type="image/png" href="/music-connectz-logo.png?v=10.5-20260402" />
+    <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.5-20260402" />
+    <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.5-20260402" />
   <meta charset="UTF-8" />
   <title>Music ConnectZ v10.4 bi K-Oth</title>
   <meta name="description" content="Music ConnectZ v10.4 - OAuth-first authentication with post-login profile completion, plus safe, secure, and ad-free collaboration.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="DENY">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <script src="/app-config.js"></script>
@@ -5332,7 +5333,7 @@ function canEditMessage(msg) {
   const sentTime = getMessageSentDate(msg);
   const minutesPassed = (Date.now() - sentTime.getTime()) / 1000 / 60;
   return minutesPassed <= MESSAGE_EDIT_WINDOW_MINUTES;
-}ur
+}
 
 function initSocket() {
   if (socket) return;
