@@ -74,12 +74,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="/music-connectz-logo.png?v=10.6-20260402c" />
-    <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.6-20260402c" />
-    <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.6-20260402c" />
+    <link rel="icon" type="image/png" href="/music-connectz-logo.png?v=10.7-20260402d" />
+    <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.7-20260402d" />
+    <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.7-20260402d" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v10.6 bi K-Oth (Deployed 2026-04-02 19:35)</title>
-  <meta name="description" content="Music ConnectZ v10.6 - OAuth-first authentication with post-login profile completion, plus safe, secure, and ad-free collaboration.">
+  <title>Music ConnectZ v10.7 bi K-Oth (Deployed 2026-04-02 20:20)</title>
+  <meta name="description" content="Music ConnectZ v10.7 - OAuth-first authentication with post-login profile completion, plus safe, secure, and ad-free collaboration.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -261,7 +261,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v10.6 bi K-Oth (Deployed 2026-04-02 19:35)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v10.7 bi K-Oth (Deployed 2026-04-02 20:20)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
       <div id="member-count" style="margin-top:8px; font-size:1.05em; color:#2196F3; font-weight:600;"></div>
         <script>
           // Fetch and display live member count
@@ -1243,7 +1243,7 @@
     <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
     <button class="tab-btn" onclick="switchTab('personas')">🎭 Personas</button>
     <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
-    <button class="tab-btn" onclick="switchTab('daw')">🎛️ DAW</button>
+    <button class="tab-btn premium-only" data-premium-only="true" onclick="switchTab('daw')">🎛️ Premium DAW</button>
     <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
     <button class="tab-btn" onclick="switchTab('messages')">💬 Messages</button>
     <button class="tab-btn" onclick="switchTab('boards')">📌 Boards</button>
@@ -1330,10 +1330,14 @@
     <div id="daw" class="tab">
       <div class="card">
         <div class="card-header">🎛️ DAW Studio</div>
-        <div style="font-size:11px; color:var(--text-light); margin-bottom:10px;">Two workflows: Pro Tools-style multitrack timeline and FL-style beat sequencer.</div>
+        <div id="dawPremiumGate" class="premium-lock" style="display:none;">
+          <div><strong>Premium Feature:</strong> DAW Studio (Pro Arsenal + Fruity Cycles) is Premium-only.</div>
+          <button class="btn btn-small" onclick="switchTab('membership')">Upgrade</button>
+        </div>
+        <div style="font-size:11px; color:var(--text-light); margin-bottom:10px;">Two workflows: Pro Tools: Pro Arsenal and FL Studio: Fruity Cycles.</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-          <button id="dawModeProBtn" class="btn" onclick="setDawMode('protools')">🎚️ Pro Tools Style</button>
-          <button id="dawModeFlBtn" class="btn btn-secondary" onclick="setDawMode('fl')">🥁 FL Style</button>
+          <button id="dawModeProBtn" class="btn" onclick="setDawMode('protools')">🎚️ Pro Tools: Pro Arsenal</button>
+          <button id="dawModeFlBtn" class="btn btn-secondary" onclick="setDawMode('fl')">🥁 FL Studio: Fruity Cycles</button>
           <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
             <span style="font-size:11px; color:var(--text-light);">BPM</span>
             <input id="dawBpmInput" type="number" min="60" max="220" value="120" style="width:80px;" onchange="setDawBpm(this.value)" />
@@ -1344,10 +1348,13 @@
           <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
             <button class="btn btn-secondary btn-small" onclick="addDawTrack()">➕ Add Track</button>
             <button class="btn btn-secondary btn-small" onclick="addClipToSelectedTrack()">🧩 Add Clip</button>
+            <label class="btn btn-secondary btn-small" style="cursor:pointer;">🎵 Import Audio<input id="dawAudioImport" type="file" accept="audio/*" style="display:none;" onchange="importDawAudioFile(event)" /></label>
+            <button class="btn btn-secondary btn-small" onclick="editSelectedClip()">✂️ Edit Selected Clip</button>
             <button class="btn btn-secondary btn-small" onclick="toggleDawPlayhead()" id="dawTransportBtn">▶️ Play</button>
             <button class="btn btn-secondary btn-small" onclick="stopDawPlayhead()">⏹ Stop</button>
             <label style="font-size:11px; color:var(--text-light); display:flex; align-items:center; gap:6px;">Zoom <input type="range" min="0.6" max="2.2" step="0.1" value="1" onchange="setDawZoom(this.value)" /></label>
           </div>
+          <div id="dawSelectedClipInfo" style="font-size:11px; color:var(--text-light); margin-bottom:8px;">No clip selected.</div>
           <div id="dawTrackList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
@@ -1357,8 +1364,18 @@
             <button class="btn btn-secondary btn-small" onclick="stopStepSequencer()">⏹ Stop</button>
             <button class="btn btn-secondary btn-small" onclick="clearStepPattern()">🧹 Clear</button>
             <button class="btn btn-secondary btn-small" onclick="randomizeStepPattern()">🎲 Randomize</button>
+            <label style="font-size:11px; color:var(--text-light); display:flex; align-items:center; gap:6px;">Synth
+              <select id="flSynthWave" onchange="setFlSynthWave(this.value)">
+                <option value="sawtooth">Saw</option>
+                <option value="square">Square</option>
+                <option value="triangle">Triangle</option>
+                <option value="sine">Sine</option>
+              </select>
+            </label>
           </div>
           <div id="stepSequencerGrid" style="overflow-x:auto;"></div>
+          <div style="font-size:11px; color:var(--text-light); margin:8px 0 6px;">🎹 Piano Roll</div>
+          <div id="pianoRollGrid" style="overflow-x:auto;"></div>
           <div style="margin-top:10px; font-size:11px; color:var(--text-light);">Tip: click cells to build kicks, snares, hats, and claps. This mimics a classic FL channel rack workflow.</div>
         </div>
       </div>
@@ -2236,6 +2253,38 @@
       </div>
     </div>
   </div>
+
+  <div id="videoEditorModal" class="modal">
+    <div class="modal-content" style="max-width: 860px;">
+      <div class="modal-header"><h2>🎬 Video Editor (Sony Vegas Style)</h2><button class="close-btn" onclick="closeVideoEditor()">✕</button></div>
+      <div class="premium-lock" style="margin-bottom:10px;"><div><strong>Premium Feature:</strong> Advanced video post editing.</div><button class="btn btn-small" onclick="switchTab('membership')">Upgrade</button></div>
+      <video id="videoEditPreview" controls style="width:100%; max-height:360px; border-radius:8px; background:#000; margin-bottom:10px;"></video>
+      <div class="grid-2">
+        <div class="form-group"><label>Trim Start (sec)</label><input id="videoFxStart" type="number" min="0" step="0.1" value="0" oninput="updateVideoEditPreview()" /></div>
+        <div class="form-group"><label>Trim End (sec, 0=full)</label><input id="videoFxEnd" type="number" min="0" step="0.1" value="0" oninput="updateVideoEditPreview()" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Speed</label><input id="videoFxSpeed" type="range" min="0.5" max="2" step="0.05" value="1" oninput="updateVideoEditPreview()" /></div>
+        <div class="form-group"><label>Volume</label><input id="videoFxVolume" type="range" min="0" max="1" step="0.01" value="1" oninput="updateVideoEditPreview()" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Brightness</label><input id="videoFxBrightness" type="range" min="0" max="200" step="1" value="100" oninput="updateVideoEditPreview()" /></div>
+        <div class="form-group"><label>Contrast</label><input id="videoFxContrast" type="range" min="0" max="200" step="1" value="100" oninput="updateVideoEditPreview()" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Saturation</label><input id="videoFxSaturation" type="range" min="0" max="200" step="1" value="100" oninput="updateVideoEditPreview()" /></div>
+        <div class="form-group"><label>Hue Rotate</label><input id="videoFxHue" type="range" min="0" max="360" step="1" value="0" oninput="updateVideoEditPreview()" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>Blur</label><input id="videoFxBlur" type="range" min="0" max="10" step="0.1" value="0" oninput="updateVideoEditPreview()" /></div>
+        <div class="form-group"><label><input id="videoFxMute" type="checkbox" onchange="updateVideoEditPreview()" /> Mute</label></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-success" onclick="saveVideoEdits()" style="flex:1;">💾 Save Video Edits</button>
+        <button class="btn btn-secondary" onclick="resetVideoEdits()" style="flex:1;">↺ Reset</button>
+      </div>
+    </div>
+  </div>
   <script>
   (function loadGoogleMaps() {
     const key = (window.MCZ_CONFIG && window.MCZ_CONFIG.googleMapsApiKey) || '';
@@ -2251,6 +2300,41 @@
   })();
   </script>
   <script>
+  const MEDIA_PLAYER_RUNTIME = {
+    playerVideoMetaHandler: null,
+    playerVideoTimeHandler: null,
+    editorVideoTimeHandler: null,
+    currentExampleIndex: null,
+  };
+
+  function _decodeDataUrlToBlobUrl(dataUrl, fallbackType) {
+    const arr = String(dataUrl || '').split(',');
+    const mime = (arr[0] && arr[0].match(/:(.*?);/) && arr[0].match(/:(.*?);/)[1]) || fallbackType || 'application/octet-stream';
+    const bstr = atob(arr[1] || '');
+    const n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    for (let i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
+    return URL.createObjectURL(new Blob([u8arr], { type: mime }));
+  }
+
+  function _filterStringFromVideoFx(vfx) {
+    if (!vfx) return '';
+    const brightness = Number.isFinite(vfx.brightness) ? vfx.brightness : 100;
+    const contrast = Number.isFinite(vfx.contrast) ? vfx.contrast : 100;
+    const saturation = Number.isFinite(vfx.saturation) ? vfx.saturation : 100;
+    const hue = Number.isFinite(vfx.hue) ? vfx.hue : 0;
+    const blur = Number.isFinite(vfx.blur) ? vfx.blur : 0;
+    return `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg) blur(${blur}px)`;
+  }
+
+  function _applyVideoFxToPlayer(videoEl, vfx) {
+    if (!videoEl || !vfx) return;
+    videoEl.playbackRate = Number.isFinite(vfx.speed) ? vfx.speed : 1;
+    videoEl.volume = Number.isFinite(vfx.volume) ? vfx.volume : 1;
+    videoEl.muted = !!vfx.mute;
+    videoEl.style.filter = _filterStringFromVideoFx(vfx);
+  }
+
   function playMedia(idx) {
     const example = appState.examples[idx];
     if (!example || !example.media) { alert('❌ No media found for this work'); return; }
@@ -2269,8 +2353,6 @@
     const isAudio = example.mediaType.startsWith('audio/');
     
     // Show loading state
-    const container = document.getElementById('mediaPlayerContainer');
-    const originalHTML = container.innerHTML;
     if (isAudio) {
       audioPlayer.style.display = 'block';
       videoPlayer.style.display = 'none';
@@ -2285,19 +2367,28 @@
     // Convert base64 data URL to Blob asynchronously to avoid freezing
     setTimeout(() => {
       try {
-        const arr = example.media.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1] || example.mediaType;
-        const bstr = atob(arr[1]);
-        const n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        for (let i = 0; i < n; i++) { u8arr[i] = bstr.charCodeAt(i); }
-        const blob = new Blob([u8arr], { type: mime });
-        const url = URL.createObjectURL(blob);
+        const url = _decodeDataUrlToBlobUrl(example.media, example.mediaType);
         
         if (isAudio) {
           audioPlayer.src = url;
         } else {
+          if (MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler) videoPlayer.removeEventListener('loadedmetadata', MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler);
+          if (MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler) videoPlayer.removeEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler);
           videoPlayer.src = url;
+          const vfx = example.videoFx || null;
+          MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler = () => {
+            _applyVideoFxToPlayer(videoPlayer, vfx);
+            const start = vfx && Number.isFinite(vfx.start) ? Math.max(0, vfx.start) : 0;
+            const end = vfx && Number.isFinite(vfx.end) ? vfx.end : 0;
+            if (start > 0 && start < videoPlayer.duration) videoPlayer.currentTime = start;
+            MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler = () => {
+              if (end > 0 && videoPlayer.currentTime >= end) {
+                videoPlayer.pause();
+              }
+            };
+            videoPlayer.addEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler);
+          };
+          videoPlayer.addEventListener('loadedmetadata', MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler);
         }
       } catch (e) {
         console.error('Error processing media:', e);
@@ -2307,11 +2398,260 @@
   }
   
   function closeMediaPlayer() {
-    document.getElementById('audioPlayer').pause();
-    document.getElementById('audioPlayer').src = '';
-    document.getElementById('videoPlayer').pause();
-    document.getElementById('videoPlayer').src = '';
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    if (MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler) videoPlayer.removeEventListener('loadedmetadata', MEDIA_PLAYER_RUNTIME.playerVideoMetaHandler);
+    if (MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler) videoPlayer.removeEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.playerVideoTimeHandler);
+    videoPlayer.pause();
+    videoPlayer.src = '';
+    videoPlayer.style.filter = '';
+    videoPlayer.playbackRate = 1;
+    videoPlayer.volume = 1;
+    videoPlayer.muted = false;
     document.getElementById('mediaPlayerModal').classList.remove('active');
+  }
+
+  function openVideoEditor(idx) {
+    if (!isPremiumUser()) {
+      alert('⭐ Premium required: Sony Vegas-level video editing is premium.');
+      switchTab('membership');
+      return;
+    }
+    const example = appState.examples[idx];
+    if (!example || !example.media || !(example.mediaType || '').startsWith('video/')) {
+      alert('This post does not contain a video file.');
+      return;
+    }
+    MEDIA_PLAYER_RUNTIME.currentExampleIndex = idx;
+    const vfx = example.videoFx || {
+      start: 0, end: 0, speed: 1, volume: 1,
+      brightness: 100, contrast: 100, saturation: 100,
+      hue: 0, blur: 0, mute: false,
+    };
+    document.getElementById('videoFxStart').value = String(vfx.start || 0);
+    document.getElementById('videoFxEnd').value = String(vfx.end || 0);
+    document.getElementById('videoFxSpeed').value = String(vfx.speed || 1);
+    document.getElementById('videoFxVolume').value = String(vfx.volume ?? 1);
+    document.getElementById('videoFxBrightness').value = String(vfx.brightness ?? 100);
+    document.getElementById('videoFxContrast').value = String(vfx.contrast ?? 100);
+    document.getElementById('videoFxSaturation').value = String(vfx.saturation ?? 100);
+    document.getElementById('videoFxHue').value = String(vfx.hue ?? 0);
+    document.getElementById('videoFxBlur').value = String(vfx.blur ?? 0);
+    document.getElementById('videoFxMute').checked = !!vfx.mute;
+
+    const preview = document.getElementById('videoEditPreview');
+    if (MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler) preview.removeEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler);
+    preview.src = _decodeDataUrlToBlobUrl(example.media, example.mediaType);
+    document.getElementById('videoEditorModal').classList.add('active');
+    preview.onloadedmetadata = () => {
+      updateVideoEditPreview();
+      preview.currentTime = Math.max(0, parseFloat(document.getElementById('videoFxStart').value || '0') || 0);
+    };
+  }
+
+  function updateVideoEditPreview() {
+    const preview = document.getElementById('videoEditPreview');
+    const vfx = {
+      start: parseFloat(document.getElementById('videoFxStart').value || '0') || 0,
+      end: parseFloat(document.getElementById('videoFxEnd').value || '0') || 0,
+      speed: parseFloat(document.getElementById('videoFxSpeed').value || '1') || 1,
+      volume: parseFloat(document.getElementById('videoFxVolume').value || '1') || 1,
+      brightness: parseFloat(document.getElementById('videoFxBrightness').value || '100') || 100,
+      contrast: parseFloat(document.getElementById('videoFxContrast').value || '100') || 100,
+      saturation: parseFloat(document.getElementById('videoFxSaturation').value || '100') || 100,
+      hue: parseFloat(document.getElementById('videoFxHue').value || '0') || 0,
+      blur: parseFloat(document.getElementById('videoFxBlur').value || '0') || 0,
+      mute: !!document.getElementById('videoFxMute').checked,
+    };
+    _applyVideoFxToPlayer(preview, vfx);
+    if (MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler) preview.removeEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler);
+    MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler = () => {
+      if (vfx.end > 0 && preview.currentTime >= vfx.end) preview.pause();
+    };
+    preview.addEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler);
+  }
+
+  function resetVideoEdits() {
+    document.getElementById('videoFxStart').value = '0';
+    document.getElementById('videoFxEnd').value = '0';
+    document.getElementById('videoFxSpeed').value = '1';
+    document.getElementById('videoFxVolume').value = '1';
+    document.getElementById('videoFxBrightness').value = '100';
+    document.getElementById('videoFxContrast').value = '100';
+    document.getElementById('videoFxSaturation').value = '100';
+    document.getElementById('videoFxHue').value = '0';
+    document.getElementById('videoFxBlur').value = '0';
+    document.getElementById('videoFxMute').checked = false;
+    updateVideoEditPreview();
+  }
+
+  function saveVideoEdits() {
+    const idx = MEDIA_PLAYER_RUNTIME.currentExampleIndex;
+    const example = typeof idx === 'number' ? appState.examples[idx] : null;
+    if (!example) return;
+    example.videoFx = {
+      start: parseFloat(document.getElementById('videoFxStart').value || '0') || 0,
+      end: parseFloat(document.getElementById('videoFxEnd').value || '0') || 0,
+      speed: parseFloat(document.getElementById('videoFxSpeed').value || '1') || 1,
+      volume: parseFloat(document.getElementById('videoFxVolume').value || '1') || 1,
+      brightness: parseFloat(document.getElementById('videoFxBrightness').value || '100') || 100,
+      contrast: parseFloat(document.getElementById('videoFxContrast').value || '100') || 100,
+      saturation: parseFloat(document.getElementById('videoFxSaturation').value || '100') || 100,
+      hue: parseFloat(document.getElementById('videoFxHue').value || '0') || 0,
+      blur: parseFloat(document.getElementById('videoFxBlur').value || '0') || 0,
+      mute: !!document.getElementById('videoFxMute').checked,
+    };
+    saveAppState();
+    renderExamplesDisplay();
+    alert('✓ Video edits saved.');
+    closeVideoEditor();
+  }
+
+  function closeVideoEditor() {
+    const preview = document.getElementById('videoEditPreview');
+    if (MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler) preview.removeEventListener('timeupdate', MEDIA_PLAYER_RUNTIME.editorVideoTimeHandler);
+    preview.pause();
+    preview.src = '';
+    preview.style.filter = '';
+    preview.playbackRate = 1;
+    preview.volume = 1;
+    preview.muted = false;
+    MEDIA_PLAYER_RUNTIME.currentExampleIndex = null;
+    document.getElementById('videoEditorModal').classList.remove('active');
+  }
+
+  function _extFromMime(mime, fallback) {
+    const m = String(mime || '').toLowerCase();
+    const map = {
+      'audio/mpeg': 'mp3',
+      'audio/wav': 'wav',
+      'audio/x-wav': 'wav',
+      'audio/ogg': 'ogg',
+      'audio/mp4': 'm4a',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/ogg': 'ogv',
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/webp': 'webp',
+      'text/plain': 'txt',
+      'text/markdown': 'md',
+      'application/pdf': 'pdf',
+    };
+    return map[m] || fallback || 'bin';
+  }
+
+  function _downloadUrl(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function _safeBaseName(name, fallback) {
+    const raw = String(name || fallback || 'download').trim();
+    const stripped = raw.replace(/[\\/:*?"<>|]+/g, '_');
+    return stripped || 'download';
+  }
+
+  function _dataUrlToText(dataUrl) {
+    try {
+      const s = String(dataUrl || '');
+      if (!s.startsWith('data:')) return '';
+      const comma = s.indexOf(',');
+      if (comma < 0) return '';
+      const head = s.slice(0, comma);
+      const body = s.slice(comma + 1);
+      if (head.includes(';base64')) {
+        return decodeURIComponent(escape(atob(body)));
+      }
+      return decodeURIComponent(body);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function _convertImageDataUrl(dataUrl, targetMime, quality, cb) {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        if (!blob) { cb(null); return; }
+        cb(URL.createObjectURL(blob));
+      }, targetMime, quality);
+    };
+    img.onerror = () => cb(null);
+    img.src = dataUrl;
+  }
+
+  function exportExampleAsset(idx) {
+    const ex = appState.examples && appState.examples[idx];
+    if (!ex) return;
+    const choices = [];
+    if (ex.media) choices.push('1=Save audio/video (original format)');
+    if (ex.image && String(ex.image).startsWith('data:image/')) {
+      choices.push('2=Save image as PNG');
+      choices.push('3=Save image as JPG');
+      choices.push('4=Save image as WEBP');
+    }
+    const textDocs = (ex.documents || []).filter((d) => {
+      const n = String(d.name || '').toLowerCase();
+      const t = String(d.type || '').toLowerCase();
+      return t.startsWith('text/') || n.endsWith('.txt') || n.endsWith('.md');
+    });
+    if (textDocs.length) {
+      choices.push('5=Save text docs as TXT');
+      choices.push('6=Save text docs as MD');
+    }
+    if (!choices.length) {
+      alert('No exportable assets found in this post.');
+      return;
+    }
+
+    const pick = prompt(`Save As options for "${ex.title}":\n${choices.join('\n')}\n\nEnter option number:`);
+    if (!pick) return;
+    const option = String(pick).trim();
+
+    if (option === '1' && ex.media) {
+      const ext = _extFromMime(ex.mediaType, 'bin');
+      const base = _safeBaseName(ex.mediaName || ex.title || 'media', 'media').replace(/\.[^.]+$/, '');
+      const url = _decodeDataUrlToBlobUrl(ex.media, ex.mediaType);
+      _downloadUrl(url, `${base}.${ext}`);
+      return;
+    }
+
+    if ((option === '2' || option === '3' || option === '4') && ex.image) {
+      const target = option === '2' ? 'image/png' : option === '3' ? 'image/jpeg' : 'image/webp';
+      const ext = option === '2' ? 'png' : option === '3' ? 'jpg' : 'webp';
+      const base = _safeBaseName(ex.title || 'image', 'image');
+      _convertImageDataUrl(ex.image, target, 0.92, (url) => {
+        if (!url) { alert('Could not convert image.'); return; }
+        _downloadUrl(url, `${base}.${ext}`);
+      });
+      return;
+    }
+
+    if ((option === '5' || option === '6') && textDocs.length) {
+      const ext = option === '5' ? 'txt' : 'md';
+      textDocs.forEach((d, i) => {
+        const text = _dataUrlToText(d.data || '');
+        const blob = new Blob([text], { type: option === '5' ? 'text/plain' : 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const base = _safeBaseName((d.name || `doc-${i + 1}`).replace(/\.[^.]+$/, ''), `doc-${i + 1}`);
+        _downloadUrl(url, `${base}.${ext}`);
+      });
+      return;
+    }
+
+    alert('That option is not available for this post.');
   }
 const instrumentDatabase = {
   'indie-artist': {
@@ -2472,11 +2812,22 @@ let appState = {
     sequencer: {
       steps: 16,
       currentStep: -1,
+      synthWave: 'sawtooth',
       patterns: {
         kick: [true,false,false,false,true,false,false,false,true,false,false,false,true,false,false,false],
         snare: [false,false,true,false,false,false,true,false,false,false,true,false,false,false,true,false],
         hat: [true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true],
         clap: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false]
+      },
+      pianoRoll: {
+        C5: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        B4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        A4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        G4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        F4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        E4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        D4: [false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
+        C4: [true,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false]
       }
     }
   }
@@ -2615,6 +2966,10 @@ function loadAppState() {
 function switchTab(tabName) {
   try {
     console.log('switchTab called:', tabName);
+    if (tabName === 'daw' && !isPremiumUser()) {
+      alert('⭐ Premium required: DAW Studio is a premium feature.');
+      tabName = 'membership';
+    }
     const tabEl = document.getElementById(tabName);
     if (!tabEl) { console.warn('Tab not found:', tabName); return; }
     
@@ -2919,6 +3274,10 @@ function saveProfile() {
     apps: parseExperienceSourceLines(appsInput ? appsInput.value : ''),
     teachers: parseExperienceSourceLines(teachersInput ? teachersInput.value : '')
   };
+
+  applyCtkothPremiumGrant();
+  applyPremiumGates();
+  updateMembershipDisplay();
   
   saveAppState();
   updateProfileDisplay();
@@ -3603,10 +3962,49 @@ function closeSkillsUsedModal() {
   document.getElementById('skillsUsedModal').classList.remove('active'); 
 }
 
+function hasAcceptedCollabBetween(ownerName, collaboratorName) {
+  const owner = String(ownerName || '').trim();
+  const collaborator = String(collaboratorName || '').trim();
+  if (!owner || !collaborator || owner === collaborator) return false;
+  return (appState.collabs || []).some((collab) => {
+    if (!collab || !Array.isArray(collab.acceptedBy)) return false;
+    const acceptedNames = collab.acceptedBy.map((a) => (a && a.userName ? String(a.userName).trim() : '')).filter(Boolean);
+    if (!acceptedNames.length) return false;
+    const ownerPosted = String(collab.userName || '').trim() === owner && acceptedNames.includes(collaborator);
+    const collaboratorPosted = String(collab.userName || '').trim() === collaborator && acceptedNames.includes(owner);
+    return ownerPosted || collaboratorPosted;
+  });
+}
+
+function canEditExampleVisibility(example) {
+  if (!example) return false;
+  const current = String(appState.user && appState.user.name ? appState.user.name : '').trim();
+  const owner = String(example.userName || '').trim();
+  if (!current || !owner) return false;
+  if (current === owner) return true;
+  return isPremiumUser() && hasAcceptedCollabBetween(owner, current);
+}
+
+function updateExamplePrivacyFromCollab(exampleIdx, privacy) {
+  const example = appState.examples && appState.examples[exampleIdx];
+  if (!example) return;
+  if (!['public', 'restricted', 'private'].includes(privacy)) return;
+  if (!canEditExampleVisibility(example)) {
+    alert('Only the owner or premium accepted collaborators can change this file visibility.');
+    return;
+  }
+  example.privacy = privacy;
+  saveAppState();
+  renderExamplesDisplay();
+  alert(`Visibility updated to ${privacy}.`);
+}
+
 function setExamplePrivacy(privacy) {
+  if (!['public', 'restricted', 'private'].includes(privacy)) return;
   appState.examplePrivacy = privacy;
-  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`button[onclick="setExamplePrivacy('${privacy}')"]`).classList.add('active');
+  document.querySelectorAll('.example-privacy-toggle').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`button[onclick="setExamplePrivacy('${privacy}')"]`);
+  if (btn) btn.classList.add('active');
 }
 
 function uploadExample() {
@@ -3729,7 +4127,15 @@ function renderExamplesDisplay() {
         const skillsHtml = (example.skills || []).map(s => `<span class="tag skill-tag" style="background: var(--accent); color: white; margin-right: 2px;"><img class="skill-icon" src="${getSkillIconDataUrl(s)}" alt="" /><span>${s}</span></span>`).join('');
         const docsHtml = (example.documents && example.documents.length) ? `<div style="margin:6px 0; display:flex; flex-wrap:wrap; gap:4px;">${example.documents.map((d,di) => { const icon = d.type && d.type.includes('pdf') ? '📕' : d.name.endsWith('.txt') || d.name.endsWith('.md') ? '📃' : '📄'; return `<a href="${d.data}" download="${escapeHtml(d.name)}" style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; background:var(--bg); border:1px solid var(--border); border-radius:12px; font-size:10px; text-decoration:none; color:var(--text);">${icon} ${escapeHtml(d.name)}</a>`; }).join('')}</div>` : '';
         const attachedHtml = (example.attachedPostIds && example.attachedPostIds.length) ? `<div style="margin:6px 0;"><div style="font-size:10px; color:var(--text-light); margin-bottom:3px;">🔗 Attached:</div><div style="display:flex; flex-wrap:wrap; gap:4px;">${example.attachedPostIds.map(pid => { const ap = (appState.examples||[]).find(x=>x.id===pid); if(!ap) return ''; const apType = {work:'🎵',testimonial:'💬',discussion:'🗣️',announcement:'📢',other:'🔹'}[ap.post_type||'work']||'🔹'; return `<span style="padding:2px 8px; background:var(--bg); border:1px solid var(--border); border-radius:12px; font-size:10px; cursor:pointer;" onclick="editExample(${(appState.examples||[]).indexOf(ap)})">${apType} ${escapeHtml(ap.title)}</span>`; }).join('')}</div></div>` : '';
-        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${example.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${skillsHtml}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/>${example.media ? `<button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button>` : ''}</div>` : example.media ? `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>` : ''}${docsHtml}${attachedHtml}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button></div>`;
+        const isVideoPost = !!(example.media && (example.mediaType || '').startsWith('video/'));
+        const privacyLabel = example.privacy === 'public' ? '🌐 Public' : example.privacy === 'restricted' ? '🧩 Restricted' : '🔒 Private';
+        const canEditVisibility = canEditExampleVisibility(example);
+        const videoEditBtn = isVideoPost ? `<button class="btn btn-small" onclick="openVideoEditor(${idx})">🎬 Vegas Edit</button>` : '';
+        const saveAsBtn = `<button class="btn btn-small btn-secondary" onclick="exportExampleAsset(${idx})">💾 Save As</button>`;
+        const visibilityBtns = canEditVisibility
+          ? `<button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'public')">🌐 Public</button><button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'restricted')">🧩 Restricted</button><button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'private')">🔒 Private</button>`
+          : '';
+        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${privacyLabel}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${skillsHtml}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/>${example.media ? `<button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button>` : ''}</div>` : example.media ? `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>` : ''}${docsHtml}${attachedHtml}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button>${videoEditBtn}${saveAsBtn}${visibilityBtns}</div>`;
         display.appendChild(card);
       } catch (e) {
         console.error('Error rendering example:', e);
@@ -3780,7 +4186,15 @@ function updateCollabExampleOptions() {
   exampleSelect.innerHTML = '<option value="">Choose example</option>';
   if (personaIdx !== '') {
     const personaKey = appState.personas[parseInt(personaIdx)].key;
-    const publicExamples = appState.examples.filter(ex => ex.privacy === 'public' && ex.skills.some(s => {
+    const publicExamples = appState.examples.filter(ex => {
+      const owner = String(ex.userName || '').trim();
+      const current = String(appState.user && appState.user.name ? appState.user.name : '').trim();
+      const privacy = String(ex.privacy || 'private');
+      if (owner === current) return true;
+      if (privacy === 'public') return true;
+      if (privacy === 'restricted' && hasAcceptedCollabBetween(owner, current)) return true;
+      return false;
+    }).filter(ex => ex.skills.some(s => {
       const skillPersona = Object.keys(instrumentDatabase).find(key => { const cats = instrumentDatabase[key]; return Object.values(cats).some(cat => Object.values(cat).includes(s)); });
       return skillPersona === personaKey;
     }));
@@ -4027,6 +4441,67 @@ function acceptCollab(collabIdx) {
   }
 }
 
+function downloadStartedCollabAssets(collabIdx) {
+  try {
+    const collab = appState.collabs[collabIdx];
+    if (!collab) {
+      alert('❌ Collaboration not found.');
+      return;
+    }
+    const currentUser = String(appState.user && appState.user.name ? appState.user.name : '').trim();
+    const ownerUser = String(collab.userName || '').trim();
+    const acceptedNames = Array.isArray(collab.acceptedBy)
+      ? collab.acceptedBy.map((a) => String((a && a.userName) || '').trim()).filter(Boolean)
+      : [];
+    const canDownload = currentUser && (currentUser === ownerUser || acceptedNames.includes(currentUser));
+    if (!canDownload) {
+      alert('Only the collaboration starter or accepted collaborators can download these files.');
+      return;
+    }
+
+    const matchedExample = (appState.examples || []).find((ex) =>
+      String(ex.title || '').trim() === String(collab.exampleTitle || '').trim() &&
+      String(ex.userName || '').trim() === ownerUser
+    );
+    if (!matchedExample) {
+      alert('No matching work file found for this collaboration.');
+      return;
+    }
+
+    const assets = [];
+    if (matchedExample.media) assets.push('media');
+    if (matchedExample.image) assets.push('image');
+    if (Array.isArray(matchedExample.documents) && matchedExample.documents.length) assets.push('documents');
+    if (!assets.length) {
+      alert('No downloadable assets are attached to this collaboration work yet.');
+      return;
+    }
+
+    const base = _safeBaseName(matchedExample.title || 'collab-file', 'collab-file');
+    if (matchedExample.media) {
+      const mediaExt = _extFromMime(matchedExample.mediaType, 'bin');
+      const mediaUrl = _decodeDataUrlToBlobUrl(matchedExample.media, matchedExample.mediaType);
+      _downloadUrl(mediaUrl, `${base}-media.${mediaExt}`);
+    }
+    if (matchedExample.image) {
+      const imageExt = _extFromMime('image/png', 'png');
+      const imageUrl = _decodeDataUrlToBlobUrl(matchedExample.image, 'image/png');
+      _downloadUrl(imageUrl, `${base}-cover.${imageExt}`);
+    }
+    (matchedExample.documents || []).forEach((doc, i) => {
+      if (!doc || !doc.data) return;
+      const docExt = _extFromMime(doc.type, String(doc.name || '').split('.').pop() || 'txt');
+      const docBase = _safeBaseName((doc.name || `doc-${i + 1}`).replace(/\.[^.]+$/, ''), `doc-${i + 1}`);
+      const docUrl = String(doc.data || '').startsWith('data:') ? doc.data : '';
+      if (!docUrl) return;
+      _downloadUrl(docUrl, `${base}-${docBase}.${docExt}`);
+    });
+  } catch (e) {
+    console.error('downloadStartedCollabAssets error:', e);
+    alert('❌ Failed to download collaboration assets.');
+  }
+}
+
 function renderCollabFeed() {
   try {
     const feed = document.getElementById('collabFeed');
@@ -4116,7 +4591,15 @@ function renderCollabFeed() {
         
         const featuredBadge = collab.featuredArtist ? '<span class="premium-badge">⭐ Featured</span>' : '';
         const boostBadge = collab.boosted ? '<span class="premium-badge">🚀 Boosted</span>' : '';
-        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName} ${featuredBadge} ${boostBadge}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;">${rateInfo}${royaltyInfo}${skillRatesDisplay}${acceptanceInfo}${alreadyAcceptedMsg}<div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">${acceptBtn}<button class="btn btn-small" onclick="sharePostStandard('collab','${collab.id}')">📤 Share</button><button class="btn btn-secondary btn-small" onclick="addPostToList('collab','${collab.id}')">🗂️ Add to List</button><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>🗑️ Delete</button></div>`;
+        const currentUserName = String(appState.user && appState.user.name ? appState.user.name : '').trim();
+        const acceptedNames = Array.isArray(collab.acceptedBy)
+          ? collab.acceptedBy.map((a) => String((a && a.userName) || '').trim()).filter(Boolean)
+          : [];
+        const canDownloadFiles = currentUserName && (isMyCollab || acceptedNames.includes(currentUserName));
+        const starterDownloadBtn = canDownloadFiles
+          ? `<button class="btn btn-small btn-secondary" onclick="downloadStartedCollabAssets(${originalIdx})">⬇️ Download Files</button>`
+          : '';
+        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName} ${featuredBadge} ${boostBadge}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;">${rateInfo}${royaltyInfo}${skillRatesDisplay}${acceptanceInfo}${alreadyAcceptedMsg}<div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">${acceptBtn}<button class="btn btn-small" onclick="sharePostStandard('collab','${collab.id}')">📤 Share</button><button class="btn btn-secondary btn-small" onclick="addPostToList('collab','${collab.id}')">🗂️ Add to List</button>${starterDownloadBtn}<button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>🗑️ Delete</button></div>`;
         feed.appendChild(card);
       } catch (e) {
         console.error('Error rendering collab card:', e);
@@ -4236,6 +4719,9 @@ function getUserLevel() {
 }
 
 function getTaxRateByLevel() {
+  if (typeof isCtkothPremiumAccount === 'function' && isCtkothPremiumAccount()) {
+    return 0;
+  }
   const level = appState.user.level || getUserLevel();
   if (level.name === 'Platinum') return 4.2;
   if (level.name === 'Gold') return 4.5;
@@ -4247,11 +4733,14 @@ function updateUserLevel() {
   const level = getUserLevel();
   const taxRate = getTaxRateByLevel();
   const earned = appState.wallet.earned || 0;
+  const taxExempt = taxRate === 0;
 
   const levelDisplay = document.getElementById('userLevelDisplay');
   if (levelDisplay) {
     let progressMsg = '';
-    if (level.name === 'Bronze') {
+    if (taxExempt) {
+      progressMsg = 'Tax Exempt Account • Tax Rate: 0%';
+    } else if (level.name === 'Bronze') {
       progressMsg = `Earn $${(50 - earned).toFixed(2)} more for Silver • Tax Rate: 4.8%`;
     } else if (level.name === 'Silver') {
       progressMsg = `Earn $${(100 - earned).toFixed(2)} more for Gold • Tax Rate: 4.5%`;
@@ -4265,12 +4754,15 @@ function updateUserLevel() {
 
   const walletLevelDisplay = document.getElementById('walletLevelDisplay');
   if (walletLevelDisplay) {
-    walletLevelDisplay.innerHTML = `<div style="margin-bottom: 8px;">${level.icon} <strong>${level.name}</strong> Member</div><div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">Total Earned: $${earned.toFixed(2)}</div><div style="font-size: 10px; background: rgba(0,0,0,0.05); padding: 6px 8px; border-radius: 4px; color: var(--primary); font-weight: 600;">Tax Rate: ${taxRate}%</div>`;
+    const taxInfo = taxExempt ? 'Tax Rate: 0% (Exempt)' : `Tax Rate: ${taxRate}%`;
+    walletLevelDisplay.innerHTML = `<div style="margin-bottom: 8px;">${level.icon} <strong>${level.name}</strong> Member</div><div style="font-size: 10px; color: var(--text-light); margin-bottom: 4px;">Total Earned: $${earned.toFixed(2)}</div><div style="font-size: 10px; background: rgba(0,0,0,0.05); padding: 6px 8px; border-radius: 4px; color: var(--primary); font-weight: 600;">${taxInfo}</div>`;
   }
 
   const levelTaxRateInfo = document.getElementById('levelTaxRateInfo');
   if (levelTaxRateInfo) {
-    levelTaxRateInfo.innerHTML = `Your Tax Rate: <strong>${taxRate}%</strong> (${level.name} Member)`;
+    levelTaxRateInfo.innerHTML = taxExempt
+      ? 'Your Tax Rate: <strong>0%</strong> (Tax Exempt Account)'
+      : `Your Tax Rate: <strong>${taxRate}%</strong> (${level.name} Member)`;
   }
 
   updateMembershipDisplay();
@@ -5195,6 +5687,7 @@ const DAW_RUNTIME = {
   proTimer: null,
   proTick: 0,
   selectedTrackId: null,
+  selectedClip: null,
 };
 
 function ensureDawState() {
@@ -5207,7 +5700,9 @@ function ensureDawState() {
       sequencer: {
         steps: 16,
         currentStep: -1,
-        patterns: { kick: [], snare: [], hat: [], clap: [] }
+        synthWave: 'sawtooth',
+        patterns: { kick: [], snare: [], hat: [], clap: [] },
+        pianoRoll: { C5: [], B4: [], A4: [], G4: [], F4: [], E4: [], D4: [], C4: [] }
       }
     };
   }
@@ -5216,13 +5711,24 @@ function ensureDawState() {
     appState.daw.sequencer = {
       steps: 16,
       currentStep: -1,
-      patterns: { kick: [], snare: [], hat: [], clap: [] }
+      synthWave: 'sawtooth',
+      patterns: { kick: [], snare: [], hat: [], clap: [] },
+      pianoRoll: { C5: [], B4: [], A4: [], G4: [], F4: [], E4: [], D4: [], C4: [] }
     };
   }
   const steps = appState.daw.sequencer.steps || 16;
   ['kick', 'snare', 'hat', 'clap'].forEach((k) => {
     if (!Array.isArray(appState.daw.sequencer.patterns[k]) || appState.daw.sequencer.patterns[k].length !== steps) {
       appState.daw.sequencer.patterns[k] = Array.from({ length: steps }, () => false);
+    }
+  });
+  if (!appState.daw.sequencer.synthWave) appState.daw.sequencer.synthWave = 'sawtooth';
+  if (!appState.daw.sequencer.pianoRoll) {
+    appState.daw.sequencer.pianoRoll = { C5: [], B4: [], A4: [], G4: [], F4: [], E4: [], D4: [], C4: [] };
+  }
+  ['C5','B4','A4','G4','F4','E4','D4','C4'].forEach((note) => {
+    if (!Array.isArray(appState.daw.sequencer.pianoRoll[note]) || appState.daw.sequencer.pianoRoll[note].length !== steps) {
+      appState.daw.sequencer.pianoRoll[note] = Array.from({ length: steps }, () => false);
     }
   });
   if (!DAW_RUNTIME.selectedTrackId && appState.daw.tracks[0]) {
@@ -5247,13 +5753,25 @@ function getDawAudioContext() {
 
 function initDawStudio() {
   ensureDawState();
+  const gate = document.getElementById('dawPremiumGate');
+  if (gate) gate.style.display = isPremiumUser() ? 'none' : '';
+  if (!isPremiumUser()) {
+    const panel1 = document.getElementById('dawProToolsPanel');
+    const panel2 = document.getElementById('dawFlPanel');
+    if (panel1) panel1.style.display = 'none';
+    if (panel2) panel2.style.display = 'none';
+    return;
+  }
   const bpmInput = document.getElementById('dawBpmInput');
   if (bpmInput) bpmInput.value = String(appState.daw.bpm || 120);
   const zoomSlider = document.querySelector('#dawProToolsPanel input[type="range"]');
   if (zoomSlider) zoomSlider.value = String(appState.daw.zoom || 1);
+  const synthSel = document.getElementById('flSynthWave');
+  if (synthSel) synthSel.value = appState.daw.sequencer.synthWave || 'sawtooth';
   setDawMode(appState.daw.mode || 'protools');
   renderDawTrackLanes();
   renderStepSequencer();
+  renderPianoRoll();
 }
 
 function setDawMode(mode) {
@@ -5282,6 +5800,101 @@ function setDawZoom(raw) {
   appState.daw.zoom = Math.max(0.6, Math.min(2.2, parseFloat(raw) || 1));
   renderDawTrackLanes();
   saveAppState();
+}
+
+function setFlSynthWave(wave) {
+  ensureDawState();
+  appState.daw.sequencer.synthWave = wave || 'sawtooth';
+  saveAppState();
+}
+
+function selectClip(trackId, clipIndex) {
+  DAW_RUNTIME.selectedClip = { trackId, clipIndex };
+  const track = (appState.daw.tracks || []).find((t) => t.id === trackId);
+  const clip = track && track.clips ? track.clips[clipIndex] : null;
+  const info = document.getElementById('dawSelectedClipInfo');
+  if (info) {
+    info.textContent = clip
+      ? `Selected: ${clip.name} | start ${clip.start.toFixed(2)} | len ${clip.len.toFixed(2)}`
+      : 'No clip selected.';
+  }
+  renderDawTrackLanes();
+}
+
+function editSelectedClip() {
+  const selected = DAW_RUNTIME.selectedClip;
+  if (!selected) {
+    alert('Select a clip first.');
+    return;
+  }
+  const track = (appState.daw.tracks || []).find((t) => t.id === selected.trackId);
+  const clip = track && track.clips ? track.clips[selected.clipIndex] : null;
+  if (!clip) {
+    alert('Selected clip no longer exists.');
+    return;
+  }
+  const name = (prompt('Clip name:', clip.name) || '').trim();
+  if (!name) return;
+  const start = parseFloat(prompt('Start beat:', String(clip.start)));
+  const len = parseFloat(prompt('Length in beats:', String(clip.len)));
+  clip.name = name;
+  clip.start = Number.isFinite(start) ? Math.max(0, start) : clip.start;
+  clip.len = Number.isFinite(len) ? Math.max(0.25, len) : clip.len;
+  selectClip(selected.trackId, selected.clipIndex);
+  saveAppState();
+}
+
+async function importDawAudioFile(event) {
+  ensureDawState();
+  const file = event && event.target && event.target.files ? event.target.files[0] : null;
+  if (!file) return;
+  const track = (appState.daw.tracks || []).find((t) => t.id === DAW_RUNTIME.selectedTrackId) || appState.daw.tracks[0];
+  if (!track) {
+    alert('Add/select a track first.');
+    return;
+  }
+  const ctx = getDawAudioContext();
+  if (!ctx) return;
+
+  try {
+    const arr = await file.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(arr.slice(0));
+    const durationSec = decoded.duration || 1;
+    const beats = Math.max(0.5, durationSec * (appState.daw.bpm || 120) / 60);
+    const chan = decoded.getChannelData(0);
+    const samples = 40;
+    const chunk = Math.max(1, Math.floor(chan.length / samples));
+    const waveform = [];
+    for (let i = 0; i < samples; i += 1) {
+      const start = i * chunk;
+      const end = Math.min(chan.length, start + chunk);
+      let peak = 0;
+      for (let j = start; j < end; j += 1) {
+        const v = Math.abs(chan[j]);
+        if (v > peak) peak = v;
+      }
+      waveform.push(peak);
+    }
+    const palette = ['#0ea5e9', '#22c55e', '#f59e0b', '#f43f5e', '#8b5cf6', '#14b8a6'];
+    const clip = {
+      name: file.name,
+      start: 0,
+      len: beats,
+      color: palette[Math.floor(Math.random() * palette.length)],
+      waveform,
+      audioSrc: URL.createObjectURL(file)
+    };
+    track.clips.push(clip);
+    const idx = track.clips.length - 1;
+    selectClip(track.id, idx);
+    renderDawTrackLanes();
+    saveAppState();
+  } catch (e) {
+    console.error('importDawAudioFile failed:', e);
+    alert('Could not decode this audio file. Try MP3/WAV/M4A.');
+  } finally {
+    if (event && event.target) event.target.value = '';
+  }
 }
 
 function addDawTrack() {
@@ -5340,6 +5953,11 @@ function removeClip(trackId, clipIndex) {
   const track = (appState.daw.tracks || []).find((t) => t.id === trackId);
   if (!track) return;
   track.clips.splice(clipIndex, 1);
+  if (DAW_RUNTIME.selectedClip && DAW_RUNTIME.selectedClip.trackId === trackId && DAW_RUNTIME.selectedClip.clipIndex === clipIndex) {
+    DAW_RUNTIME.selectedClip = null;
+    const info = document.getElementById('dawSelectedClipInfo');
+    if (info) info.textContent = 'No clip selected.';
+  }
   renderDawTrackLanes();
   saveAppState();
 }
@@ -5362,7 +5980,11 @@ function renderDawTrackLanes() {
     const clips = (track.clips || []).map((clip, clipIndex) => {
       const left = clip.start * beatPx;
       const width = Math.max(24, clip.len * beatPx);
-      return `<div title="${escapeHtml(clip.name)}" style="position:absolute; left:${left}px; top:6px; width:${width}px; height:30px; border-radius:6px; background:${clip.color}; color:white; padding:4px 6px; font-size:10px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; box-shadow:0 2px 6px rgba(0,0,0,.18);">${escapeHtml(clip.name)} <button style="float:right; border:none; background:transparent; color:white; cursor:pointer;" onclick="removeClip(${track.id}, ${clipIndex})">✕</button></div>`;
+      const isSelected = !!(DAW_RUNTIME.selectedClip && DAW_RUNTIME.selectedClip.trackId === track.id && DAW_RUNTIME.selectedClip.clipIndex === clipIndex);
+      const waveBars = Array.isArray(clip.waveform)
+        ? `<div style="display:flex; gap:1px; align-items:flex-end; height:10px; margin-top:2px; opacity:.9;">${clip.waveform.slice(0, 18).map(v => `<span style="display:block; width:2px; height:${Math.max(2, Math.round(v * 10))}px; background:rgba(255,255,255,.85);"></span>`).join('')}</div>`
+        : '';
+      return `<div title="${escapeHtml(clip.name)}" onclick="selectClip(${track.id}, ${clipIndex})" style="position:absolute; left:${left}px; top:6px; width:${width}px; height:30px; border-radius:6px; background:${clip.color}; color:white; padding:4px 6px; font-size:10px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; box-shadow:${isSelected ? '0 0 0 2px #111827 inset, 0 3px 10px rgba(0,0,0,.22)' : '0 2px 6px rgba(0,0,0,.18)'}; cursor:pointer;">${escapeHtml(clip.name)} <button style="float:right; border:none; background:transparent; color:white; cursor:pointer;" onclick="event.stopPropagation(); removeClip(${track.id}, ${clipIndex})">✕</button>${waveBars}</div>`;
     }).join('');
 
     return `<div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; background:${selected ? '#f8fbff' : 'white'};">
@@ -5462,6 +6084,72 @@ function renderStepSequencer() {
   host.innerHTML = html;
 }
 
+function renderPianoRoll() {
+  ensureDawState();
+  const host = document.getElementById('pianoRollGrid');
+  if (!host) return;
+  const seq = appState.daw.sequencer;
+  const notes = ['C5','B4','A4','G4','F4','E4','D4','C4'];
+  const rows = notes.map((note) => {
+    const cells = Array.from({ length: seq.steps }, (_, step) => {
+      const on = !!seq.pianoRoll[note][step];
+      const active = seq.currentStep === step;
+      const strong = step % 4 === 0;
+      return `<button onclick="togglePianoRollNote('${note}', ${step})" style="width:22px; height:22px; border-radius:4px; border:1px solid ${active ? '#ef4444' : strong ? '#94a3b8' : '#cbd5e1'}; background:${on ? '#3b82f6' : '#f8fafc'}; cursor:pointer;"></button>`;
+    }).join('');
+    return `<div style="display:grid; grid-template-columns:46px repeat(${seq.steps}, 22px); gap:3px; align-items:center; margin-bottom:4px;"><div style="font-size:10px; color:var(--text-light);">${note}</div>${cells}</div>`;
+  }).join('');
+  host.innerHTML = rows;
+}
+
+function togglePianoRollNote(note, step) {
+  ensureDawState();
+  appState.daw.sequencer.pianoRoll[note][step] = !appState.daw.sequencer.pianoRoll[note][step];
+  renderPianoRoll();
+  saveAppState();
+}
+
+function _noteFrequency(note) {
+  const map = {
+    C4: 261.63,
+    D4: 293.66,
+    E4: 329.63,
+    F4: 349.23,
+    G4: 392.0,
+    A4: 440.0,
+    B4: 493.88,
+    C5: 523.25,
+  };
+  return map[note] || 440;
+}
+
+function playSynthNote(freq, durSec) {
+  const ctx = getDawAudioContext();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const wave = (appState.daw && appState.daw.sequencer && appState.daw.sequencer.synthWave) || 'sawtooth';
+  osc.type = wave;
+  osc.frequency.value = freq;
+  const t = ctx.currentTime;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.05, durSec));
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + Math.max(0.06, durSec + 0.01));
+}
+
+function playPianoStep(step) {
+  const seq = appState.daw.sequencer;
+  const stepDur = 60000 / (appState.daw.bpm || 120) / 1000 / 4;
+  ['C5','B4','A4','G4','F4','E4','D4','C4'].forEach((note) => {
+    if (seq.pianoRoll[note] && seq.pianoRoll[note][step]) {
+      playSynthNote(_noteFrequency(note), stepDur * 0.95);
+    }
+  });
+}
+
 function toggleSequencerStep(row, step) {
   ensureDawState();
   appState.daw.sequencer.patterns[row][step] = !appState.daw.sequencer.patterns[row][step];
@@ -5483,7 +6171,9 @@ function playStepSequencer() {
     if (seq.patterns.snare[step]) playSnare();
     if (seq.patterns.hat[step]) playHat();
     if (seq.patterns.clap[step]) playClap();
+    playPianoStep(step);
     renderStepSequencer();
+    renderPianoRoll();
     step = (step + 1) % seq.steps;
   }, stepMs);
 }
@@ -5495,6 +6185,7 @@ function stopStepSequencer() {
     appState.daw.sequencer.currentStep = -1;
   }
   renderStepSequencer();
+  renderPianoRoll();
 }
 
 function clearStepPattern() {
@@ -5502,7 +6193,11 @@ function clearStepPattern() {
   ['kick', 'snare', 'hat', 'clap'].forEach((r) => {
     appState.daw.sequencer.patterns[r] = Array.from({ length: appState.daw.sequencer.steps }, () => false);
   });
+  ['C5','B4','A4','G4','F4','E4','D4','C4'].forEach((note) => {
+    appState.daw.sequencer.pianoRoll[note] = Array.from({ length: appState.daw.sequencer.steps }, () => false);
+  });
   renderStepSequencer();
+  renderPianoRoll();
   saveAppState();
 }
 
@@ -5513,7 +6208,14 @@ function randomizeStepPattern() {
   appState.daw.sequencer.patterns.snare = Array.from({ length: steps }, (_, i) => i % 8 === 4 || Math.random() < 0.05);
   appState.daw.sequencer.patterns.hat = Array.from({ length: steps }, () => Math.random() < 0.65);
   appState.daw.sequencer.patterns.clap = Array.from({ length: steps }, (_, i) => i % 8 === 4 ? Math.random() < 0.5 : Math.random() < 0.06);
+  appState.daw.sequencer.pianoRoll.C4 = Array.from({ length: steps }, (_, i) => i % 4 === 0 && Math.random() < 0.8);
+  appState.daw.sequencer.pianoRoll.G4 = Array.from({ length: steps }, (_, i) => i % 8 === 2 && Math.random() < 0.7);
+  appState.daw.sequencer.pianoRoll.A4 = Array.from({ length: steps }, (_, i) => i % 8 === 6 && Math.random() < 0.7);
+  ['C5','B4','F4','E4','D4'].forEach((note) => {
+    appState.daw.sequencer.pianoRoll[note] = Array.from({ length: steps }, () => Math.random() < 0.1);
+  });
   renderStepSequencer();
+  renderPianoRoll();
   saveAppState();
 }
 
@@ -5829,6 +6531,8 @@ function updateAuthDisplay() {
       appState.membership.tier = user.membershipTier;
     }
   }
+
+  applyCtkothPremiumGrant();
 
   if (user && user.email) { emailInput.value = user.email; }
   if (user && user.username) { usernameInput.value = user.username; }
@@ -6870,7 +7574,24 @@ function getCurrentUserId() {
   return (appState.user && appState.user.id) || (appState.auth && appState.auth.user && appState.auth.user.id) || null;
 }
 
+function isCtkothPremiumAccount() {
+  const emailA = String(appState && appState.user && appState.user.email ? appState.user.email : '').trim().toLowerCase();
+  const emailB = String(appState && appState.auth && appState.auth.user && appState.auth.user.email ? appState.auth.user.email : '').trim().toLowerCase();
+  return emailA === 'ctkoth@gmail.com' || emailB === 'ctkoth@gmail.com';
+}
+
+function applyCtkothPremiumGrant() {
+  if (!isCtkothPremiumAccount()) return false;
+  if (!appState.user) appState.user = {};
+  if (!appState.membership) appState.membership = {};
+  appState.user.membershipTier = 'premium';
+  appState.membership.tier = 'premium';
+  appState.membership.collabLimit = 999999;
+  return true;
+}
+
 function getMembershipTier() {
+  if (applyCtkothPremiumGrant()) return 'premium';
   return (appState.user && appState.user.membershipTier) || (appState.membership && appState.membership.tier) || 'free';
 }
 
@@ -7135,15 +7856,17 @@ async function loadMembershipStatus() {
     appState.user.featuredArtistStatus = !!data.featuredArtistStatus;
     appState.user.premiumBadge = !!data.premiumBadge;
     appState.user.customTheme = data.customTheme || null;
+    applyCtkothPremiumGrant();
+    const effectiveTier = getMembershipTier();
     
     // Update UI
-    document.getElementById('tierName').textContent = data.tier === 'premium' ? '⭐ PREMIUM TIER' : '🆓 FREE TIER';
+    document.getElementById('tierName').textContent = effectiveTier === 'premium' ? '⭐ PREMIUM TIER' : '🆓 FREE TIER';
     document.getElementById('collabUsed').textContent = data.collaborationRequestsUsed || 0;
-    document.getElementById('collabLimit').textContent = data.tier === 'premium' ? '∞' : data.collaborationRequestsLimit || 3;
+    document.getElementById('collabLimit').textContent = effectiveTier === 'premium' ? '∞' : data.collaborationRequestsLimit || 3;
     
     // Show subscription info
     const subInfo = document.getElementById('subscriptionInfo');
-    if (data.tier === 'premium' && data.subscriptionStatus === 'active') {
+    if (effectiveTier === 'premium' && (data.subscriptionStatus === 'active' || isCtkothPremiumAccount())) {
       subInfo.innerHTML = '<div style="color: var(--success); font-weight: 600;">✓ Active Premium Subscription</div>';
       document.getElementById('premiumCancel').style.display = 'block';
     } else {
