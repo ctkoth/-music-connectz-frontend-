@@ -953,9 +953,13 @@
       .toggle-slider { width: 14px; height: 14px; }
       .toggle-switch.on .toggle-slider { left: 19px; }
     }
-    .auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 6000; display: none; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .auth-overlay.active { display: flex; }
-    .auth-card { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 380px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.35); border: 1px solid var(--border); }
+    .auth-card { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 380px; width: 100%; max-height: calc(100vh - 40px); overflow-y: auto; margin: auto 0; box-shadow: 0 10px 40px rgba(0,0,0,0.35); border: 1px solid var(--border); }
+    @media (max-height: 760px) {
+      .auth-overlay { padding: 10px; }
+      .auth-card { max-height: calc(100vh - 20px); }
+    }
     .auth-title { font-size: 16px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
     .auth-subtitle { font-size: 11px; color: var(--text-light); margin-bottom: 14px; }
     .auth-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -4787,11 +4791,13 @@ function shareReferral(platform) {
 
 function openLoginOverlay() {
   const overlay = document.getElementById('authOverlay');
+  const card = document.querySelector('#authOverlay .auth-card');
   const mainView = document.getElementById('authMainView');
   const phoneView = document.getElementById('authPhoneView');
   const forgotView = document.getElementById('authForgotView');
   const resetView = document.getElementById('authResetView');
   if (overlay) overlay.classList.add('active');
+  if (card) card.scrollTop = 0;
   if (mainView) mainView.style.display = 'block';
   if (phoneView) phoneView.style.display = 'none';
   if (forgotView) forgotView.style.display = 'none';
