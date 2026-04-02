@@ -640,11 +640,14 @@
         .catch((err) => {
           const msg = String((err && err.message) || err || '').toLowerCase();
           const likelyCors = msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network error');
+          const shouldRedirectToBackendAuth = !!(window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth);
           document.getElementById('signup-error').style.color = 'red';
           document.getElementById('signup-error').innerText = likelyCors
-            ? `Registration blocked by server CORS policy. Redirecting to backend auth...`
+            ? (shouldRedirectToBackendAuth
+              ? 'Registration blocked by server CORS policy. Redirecting to backend auth...'
+              : 'Registration blocked by server CORS policy. Please try again in a moment.')
             : 'Registration failed. Server error.';
-          if (likelyCors) {
+          if (likelyCors && shouldRedirectToBackendAuth) {
             setTimeout(() => {
               const nextUrl = encodeURIComponent(location.href);
               window.location.href = `${window.MCZ_CONFIG.backendUrl}/accounts/login/?next=${nextUrl}`;
@@ -4418,13 +4421,16 @@ async function registerUser(fromOverlay = false) {
   } catch (e) {
     console.error('registerUser error:', e);
     const likelyCors = isLikelyCorsNetworkError(e);
+    const shouldRedirectToBackendAuth = !!(window.MCZ_CONFIG && window.MCZ_CONFIG.forceBackendAuth);
     setAuthStatus(
       likelyCors
-        ? `${corsBlockedMessage('Registration')} Redirecting to backend auth...`
+        ? (shouldRedirectToBackendAuth
+          ? `${corsBlockedMessage('Registration')} Redirecting to backend auth...`
+          : `${corsBlockedMessage('Registration')} Please retry shortly.`)
         : 'Registration error. Check server.',
       true
     );
-    if (likelyCors) {
+    if (likelyCors && shouldRedirectToBackendAuth) {
       setTimeout(openBackendAuthPage, 600);
     }
   }
