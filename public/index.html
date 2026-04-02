@@ -2191,7 +2191,7 @@
   (function loadGoogleMaps() {
     const key = (window.MCZ_CONFIG && window.MCZ_CONFIG.googleMapsApiKey) || '';
     if (!key) {
-      console.warn('Google Maps key missing: set window.MCZ_CONFIG.googleMapsApiKey in app-config.js');
+      console.info('Google Maps disabled: no API key configured.');
       return;
     }
     const mapsScript = document.createElement('script');
