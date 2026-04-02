@@ -390,6 +390,9 @@
       <input type="password" id="signupPassword1" placeholder="Password" required />
       <input type="password" id="signupPassword2" placeholder="Confirm Password" required />
       <input type="text" id="signupReferralCode" placeholder="Referral Code (optional)" style="margin-bottom:10px;" />
+      <div style="margin-bottom:10px; font-size:12px; color:#555;">
+        Non-OAuth auth: use one identifier field (email, username, or phone). Register uses 2 password fields, login uses 1.
+      </div>
       <div style="margin-bottom:10px;">
         <small id="password-help" style="color: #555;">
           Password must be at least 8 characters, contain a number, a lowercase and an uppercase letter.
@@ -403,7 +406,7 @@
       <div id="signup-error" style="color:red; margin-top:10px;"></div>
     </form>
     <p style="margin-top:18px;">
-      <a id="auth-entry-link" href="#">Login or Register with Email or Social Account</a>
+      <a id="auth-entry-link" href="#">Login or Register with Email, Username, Phone, or Social Account</a>
     </p>
     <p style="margin-top:10px;">
       <a id="secure-auth-link" href="#" style="display:inline-block; background:#1565C0; color:#fff; padding:10px 14px; border-radius:8px; text-decoration:none; font-weight:600;">Continue Auth on Secure Server</a>
@@ -1051,7 +1054,7 @@
           </button>
         </div>
         <div style="text-align: center; margin: 15px 0; color: var(--text-light); font-size: 14px;">
-          <span style="background: var(--background); padding: 0 10px; position: relative; z-index: 1;">or use email</span>
+          <span style="background: var(--background); padding: 0 10px; position: relative; z-index: 1;">or use non-OAuth login</span>
           <div style="height: 1px; background: var(--border); margin-top: -10px;"></div>
         </div>
       </div>
@@ -1059,10 +1062,11 @@
       <div id="oauthProfileCompletion" style="display:none; border:1px solid var(--border); border-radius:10px; padding:10px; margin: 10px 0 12px 0; background: var(--background);">
         <div style="font-weight:600; margin-bottom:8px;">Complete your profile after OAuth</div>
         <div style="font-size:12px; color: var(--text-light); margin-bottom:8px;">Add username, email, and phone to finish registration.</div>
+        <div class="form-group"><label>Phone *</label><input type="tel" id="authOverlayPhone" placeholder="+1234567890" /></div>
         <button class="btn btn-success" style="width:100%;" onclick="completeOAuthProfile()">✅ Save Profile Details</button>
       </div>
       
-      <div class="form-group"><label>Email, Username, or Phone *</label><input type="text" id="authOverlayEmail" placeholder="Email, username, or phone" autocomplete="username" /></div>
+      <div class="form-group"><label>Identifier (Email, Username, or Phone) *</label><input type="text" id="authOverlayEmail" placeholder="Email, username, or phone" autocomplete="username" /></div>
       <div class="form-group" id="authOverlayUsernameGroup" style="display:none;"><label>Display Name (optional)</label><input type="text" id="authOverlayUsername" placeholder="Optional display name" /></div>
       <div class="form-group"><label>Password *</label>
         <div style="position:relative;">
@@ -1080,6 +1084,7 @@
           </button>
         </div>
       </div>
+      <div style="font-size:12px; color: var(--text-light); margin-top:6px;">Register: identifier + password + confirm password. Login: identifier + password only.</div>
       </div>
       <div class="auth-actions">
         <button class="btn btn-success" id="registerBtn" onclick="showRegisterFields();registerUser(true);return false;">📝 Register</button>
@@ -1450,6 +1455,7 @@
     <div id="profile" class="tab">
       <div class="card">
         <div class="card-header">👤 Your Public Profile</div>
+        <div id="profilePreviewCard" style="max-width: 380px; margin: 0 auto 12px; border: 1px solid #d8dde3; border-radius: 16px; background: linear-gradient(160deg,#ffffff,#f7fbff); padding: 16px; box-shadow: 0 10px 24px rgba(0,0,0,.08);"></div>
         <div style="text-align: center; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px;">
           <div class="avatar-wrapper" style="margin: 0 auto 8px;">
             <div id="pubPic" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden;">👤</div>
@@ -1820,7 +1826,7 @@
     <div id="settings" class="tab">
       <div class="card">
         <div class="card-header">🔐 Account (Password Login)</div>
-        <div class="form-group"><label>Email, Username, or Phone *</label><input type="text" id="authEmail" placeholder="Email, username, or phone" autocomplete="username" /></div>
+        <div class="form-group"><label>Identifier (Email, Username, or Phone) *</label><input type="text" id="authEmail" placeholder="Email, username, or phone" autocomplete="username" /></div>
         <div class="form-group" id="authUsernameGroup" style="display:none;"><label>Display Name (optional)</label><input type="text" id="authUsername" placeholder="Optional display name" /></div>
         <div class="form-group"><label>Password *</label>
           <div style="position:relative;">
@@ -1838,6 +1844,7 @@
             </button>
           </div>
         </div>
+        <div style="font-size:12px; color: var(--text-light); margin-top:6px;">Register: identifier + password + confirm password. Login: identifier + password only.</div>
         <script>
         function togglePassword(id) {
           // Only allow toggling for user's own password fields
@@ -1951,6 +1958,10 @@
         </div>
         <div id="emailVerifSection" style="margin-top: 12px;">
           <button class="btn btn-secondary btn-small" onclick="sendVerificationEmail()" style="width: 100%;">✉️ Send Verification Email</button>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="emailVerifCodeInput" placeholder="Enter 6-digit code" style="flex:1;" />
+            <button class="btn btn-small" onclick="verifyEmailCode()">Verify</button>
+          </div>
           <div class="verification-status unverified" id="emailVerifStatus">
             <span>❌</span>
             <span>Email not verified</span>
@@ -1978,11 +1989,52 @@
         </div>
         <div id="phoneVerifSection" style="margin-top: 12px;">
           <button class="btn btn-secondary btn-small" onclick="sendVerificationSMS()" style="width: 100%;">📲 Send Verification SMS</button>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="phoneVerifCodeInput" placeholder="Enter 6-digit code" style="flex:1;" />
+            <button class="btn btn-small" onclick="verifyPhoneCode()">Verify</button>
+          </div>
           <div class="verification-status unverified" id="phoneVerifStatus">
             <span>❌</span>
             <span>Phone not verified</span>
           </div>
         </div>
+
+        <div class="toggle-setting" style="margin-top: 12px;">
+          <div>
+            <div style="font-weight: 700;">📣 Marketing Notifications</div>
+            <div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Promotions and limited-time offers</div>
+          </div>
+          <div class="toggle-switch" onclick="toggleNotification('marketing')" id="marketingNotifToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🗂️ Post Lists & Categories</div>
+        <div style="font-size: 11px; color: var(--text-light); margin-bottom: 10px;">Organize posts into category lists with independent list privacy (public/private), regardless of each post's own privacy.</div>
+        <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap: wrap;">
+          <input type="text" id="newListName" placeholder="List name (e.g., Album Ideas)" style="flex: 1; min-width: 180px;" />
+          <input type="text" id="newListCategory" placeholder="Category (Wishlist, Promo, Inspiration...)" style="flex: 1; min-width: 180px;" />
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <select id="newListVisibility" style="max-width: 180px;">
+            <option value="private">🔒 Private list</option>
+            <option value="public">🌍 Public list</option>
+          </select>
+          <button class="btn btn-secondary btn-small" onclick="createPostListFromSettings()">➕ Create List</button>
+        </div>
+        <div id="postListsContainer" style="font-size: 11px; color: var(--text-light);">No lists yet.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🎫 AI to Human Support</div>
+        <div style="font-size: 11px; color: var(--text-light); margin-bottom: 10px;">Describe your issue. GenAI drafts a clean summary and creates a ticket for a real support person to follow up.</div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <textarea id="supportIssueInput" rows="3" placeholder="Example: I cannot publish a collab post and my payment status is stuck pending."></textarea>
+        </div>
+        <button class="btn btn-success" onclick="createSupportTicketFromAI()" style="width: 100%;">🤖 Create Human Support Ticket</button>
+        <div id="supportTicketsContainer" style="margin-top: 10px; font-size: 11px; color: var(--text-light);">No tickets yet.</div>
       </div>
 
       <div class="card" id="parentalControlsCard">
@@ -2287,6 +2339,8 @@ let appState = {
   examples: [],
   collabs: [],
   boards: [],
+  postLists: [],
+  supportTickets: [],
   skillsUsed: [],
   selectedGenre: '',
   selectedSkillsInModal: new Set(),
@@ -2316,7 +2370,9 @@ let appState = {
     pushNotifications: true,
     phoneNotifications: false,
     emailVerified: false,
-    phoneVerified: false
+    phoneVerified: false,
+    marketingNotifications: false,
+    lastWeeklyPromoAt: ''
   },
   parentalControls: {
     enabled: false,
@@ -2376,6 +2432,8 @@ function loadAppState() {
       examples: loaded.examples || [],
       collabs: loaded.collabs || [],
       boards: loaded.boards || [],
+      postLists: loaded.postLists || [],
+      supportTickets: loaded.supportTickets || [],
       skillsUsed: loaded.skillsUsed || [],
       selectedGenre: loaded.selectedGenre || '',
       selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
@@ -2398,10 +2456,33 @@ function loadAppState() {
         pushNotifications: true,
         phoneNotifications: false,
         emailVerified: false,
-        phoneVerified: false
+        phoneVerified: false,
+        marketingNotifications: false,
+        lastWeeklyPromoAt: ''
       },
       parentalControls: loaded.parentalControls || appState.parentalControls
     };
+  }
+  if (typeof appState.settings.marketingNotifications !== 'boolean') {
+    appState.settings.marketingNotifications = false;
+  }
+  if (typeof appState.settings.lastWeeklyPromoAt !== 'string') {
+    appState.settings.lastWeeklyPromoAt = '';
+  }
+  if (!Array.isArray(appState.postLists)) {
+    appState.postLists = [];
+  }
+  appState.postLists = appState.postLists.map((list) => {
+    const safe = list && typeof list === 'object' ? list : {};
+    if (!Array.isArray(safe.items)) safe.items = [];
+    if (!Array.isArray(safe.comments)) safe.comments = [];
+    if (!safe.ratings || typeof safe.ratings !== 'object') safe.ratings = {};
+    if (!safe.visibility) safe.visibility = 'private';
+    if (!safe.category) safe.category = 'General';
+    return safe;
+  });
+  if (!Array.isArray(appState.supportTickets)) {
+    appState.supportTickets = [];
   }
   if (appState.user.rating === undefined) { appState.user.rating = null; }
   if (appState.user.membershipTier === undefined) { appState.user.membershipTier = 'free'; }
@@ -2463,6 +2544,11 @@ function switchTab(tabName) {
       }
       if (tabName === 'boards') { renderMessageBoards(); }
       if (tabName === 'profile') { updateProfileDisplay(); loadConnectedAccounts(); }
+      if (tabName === 'settings') {
+        initializeSettings();
+        renderPostLists();
+        renderSupportTickets();
+      }
     } catch (e) {
       console.error('Tab render error:', e);
     }
@@ -2664,6 +2750,8 @@ function renderMessageBoards() {
         <div style="font-size: 10px; color: var(--text-light); margin-bottom: 6px;">by ${escapeHtml(post.author || 'Anonymous')}${post.tag ? ` • #${escapeHtml(post.tag)}` : ''}</div>
         <div style="font-size: 11px; margin-bottom: 8px; white-space: pre-wrap;">${escapeHtml(post.body || '')}</div>
         <button class="btn btn-small btn-secondary" onclick="addBoardComment('${post.id}')">💬 Comment</button>
+        <button class="btn btn-small" onclick="sharePostStandard('board','${post.id}')">📤 Share</button>
+        <button class="btn btn-small btn-secondary" onclick="addPostToList('board','${post.id}')">🗂️ Add to List</button>
         ${boostBtn}
         ${paidBoostBtn}
         ${comments}
@@ -2960,6 +3048,38 @@ function updateProfileDisplay() {
     sourceEl.innerHTML = sourceRows.length
       ? sourceRows.join('<div style="height: 6px;"></div>')
       : 'No experience sources added';
+  }
+
+  const preview = document.getElementById('profilePreviewCard');
+  if (preview) {
+    const avg = computeUserRating();
+    const myCollabs = (appState.collabs || []).filter((c) => (c.userName || '') === (user.name || '')).length;
+    const myLists = Array.isArray(appState.postLists) ? appState.postLists.length : 0;
+    const personaText = (appState.personas || []).slice(0, 3).map((p) => (p.name || '').replace(/^[^\w]+\s*/, '')).filter(Boolean).join(' • ') || 'Artist';
+    const initials = (user.name || 'U').trim().slice(0, 2).toUpperCase();
+    preview.innerHTML = `
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+        <div style="width:64px; height:64px; border-radius:50%; background:#1565C0; color:white; display:flex; align-items:center; justify-content:center; font-size:24px; overflow:hidden;">${user.profilePic ? `<img src="${user.profilePic}" alt="" style="width:100%;height:100%;object-fit:cover;"/>` : escapeHtml(initials)}</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:800; font-size:18px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(user.name || 'Your Name')}</div>
+          <div style="font-size:12px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(personaText)}</div>
+          <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:10px; padding:2px 8px; border-radius:999px; background:${appState.settings.emailVerified ? '#e8f5e9' : '#f3f4f6'}; color:${appState.settings.emailVerified ? '#1e7a34' : '#445'};">${appState.settings.emailVerified ? '✅ Verified' : '🕒 Unverified'}</span>
+            <span style="font-size:10px; padding:2px 8px; border-radius:999px; background:#fff3cd; color:#856404;">⭐ ${isPremiumUser() ? 'Premium' : 'Free'}</span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px; color:#334155; margin-bottom:10px;">${escapeHtml(user.bio || 'Add a short bio in Setup to show your style and collaboration goals.')}</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px; text-align:center;"><div style="font-weight:800; font-size:14px;">${avg !== null ? avg : 'N/A'}</div><div style="font-size:10px; color:#64748b;">Rating</div></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px; text-align:center;"><div style="font-weight:800; font-size:14px;">${myCollabs}</div><div style="font-size:10px; color:#64748b;">Collabs</div></div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px; text-align:center;"><div style="font-weight:800; font-size:14px;">${myLists}</div><div style="font-size:10px; color:#64748b;">Lists</div></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" style="flex:1; border-radius:10px; background:#1565C0; color:white; font-weight:700;" onclick="switchTab('collaborate')">🤝 Invite</button>
+        <button class="btn btn-secondary" style="flex:1; border-radius:10px; font-weight:700;" onclick="switchTab('messages')">💬 Message</button>
+      </div>
+    `;
   }
 }
 
@@ -3865,7 +3985,7 @@ function renderCollabFeed() {
         
         const featuredBadge = collab.featuredArtist ? '<span class="premium-badge">⭐ Featured</span>' : '';
         const boostBadge = collab.boosted ? '<span class="premium-badge">🚀 Boosted</span>' : '';
-        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName} ${featuredBadge} ${boostBadge}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;">${rateInfo}${royaltyInfo}${skillRatesDisplay}${acceptanceInfo}${alreadyAcceptedMsg}<div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">${acceptBtn}<button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>🗑️ Delete</button></div>`;
+        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${collab.userPic ? `style="background-image: url('${collab.userPic}'); background-size: cover; background-position: center;"` : ''}>${!collab.userPic ? '🎤' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${collab.personaName} ${featuredBadge} ${boostBadge}</div><div class="post-meta">by ${collab.userName}</div><div class="post-meta">📍 ${collab.userLocation}</div><div class="post-meta">${collab.timestamp}</div></div></div><div style="margin-bottom: 10px;">${rateInfo}${royaltyInfo}${skillRatesDisplay}${acceptanceInfo}${alreadyAcceptedMsg}<div style="font-size: 11px; margin-bottom: 6px; font-weight: 600;">Work: ${collab.exampleTitle}</div><div style="font-size: 12px;">${collab.description}</div></div><div class="post-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">${acceptBtn}<button class="btn btn-small" onclick="sharePostStandard('collab','${collab.id}')">📤 Share</button><button class="btn btn-secondary btn-small" onclick="addPostToList('collab','${collab.id}')">🗂️ Add to List</button><button class="btn btn-secondary btn-small" onclick="editCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>✏️ Edit</button><button class="btn btn-danger btn-small" onclick="removeCollab(${originalIdx})" ${!isMyCollab ? 'style="display:none;"' : ''}>🗑️ Delete</button></div>`;
         feed.appendChild(card);
       } catch (e) {
         console.error('Error rendering collab card:', e);
@@ -5084,6 +5204,380 @@ function updateAuthDisplay() {
 
 
 // Settings Functions
+function getPostReference(postType, postId) {
+  if (postType === 'collab') {
+    const collab = (appState.collabs || []).find((c) => String(c.id) === String(postId));
+    if (!collab) return null;
+    return {
+      id: String(postId),
+      postType: 'collab',
+      title: collab.exampleTitle || collab.personaName || 'Collaboration Post',
+      subtitle: collab.userName || 'Artist',
+      body: collab.description || '',
+      createdAt: collab.createdAt || collab.timestamp || new Date().toISOString()
+    };
+  }
+
+  if (postType === 'board') {
+    const board = (appState.boards || []).find((b) => String(b.id) === String(postId));
+    if (!board) return null;
+    return {
+      id: String(postId),
+      postType: 'board',
+      title: board.title || 'Board Post',
+      subtitle: board.author || 'Anonymous',
+      body: board.body || '',
+      createdAt: board.createdAt || new Date().toISOString()
+    };
+  }
+
+  return null;
+}
+
+async function sharePostStandard(postType, postId) {
+  const post = getPostReference(postType, postId);
+  if (!post) {
+    alert('Post not found.');
+    return;
+  }
+
+  const shareTitle = `Music ConnectZ • ${post.title}`;
+  const snippet = (post.body || '').slice(0, 160);
+  const shareText = `${shareTitle}\nby ${post.subtitle}${snippet ? `\n\n${snippet}` : ''}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}#${postType}-${encodeURIComponent(post.id)}`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+    alert('✅ Post details copied. You can paste and share anywhere.');
+  } catch (e) {
+    const fallback = window.prompt('Copy and share this post:', `${shareText}\n${shareUrl}`);
+    if (fallback !== null) alert('✅ Ready to share.');
+  }
+}
+
+function createOrGetPostList(name, category, visibility) {
+  if (!Array.isArray(appState.postLists)) appState.postLists = [];
+  const cleanName = String(name || '').trim();
+  const cleanCategory = String(category || '').trim() || 'General';
+  const cleanVisibility = visibility === 'public' ? 'public' : 'private';
+  if (!cleanName) return null;
+
+  const existing = appState.postLists.find((list) =>
+    String(list.name || '').toLowerCase() === cleanName.toLowerCase()
+  );
+  if (existing) {
+    existing.category = cleanCategory;
+    existing.visibility = cleanVisibility;
+    if (!Array.isArray(existing.items)) existing.items = [];
+    if (!Array.isArray(existing.comments)) existing.comments = [];
+    if (!existing.ratings || typeof existing.ratings !== 'object') existing.ratings = {};
+    return existing;
+  }
+
+  const created = {
+    id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name: cleanName,
+    category: cleanCategory,
+    visibility: cleanVisibility,
+    createdAt: new Date().toISOString(),
+    items: [],
+    comments: [],
+    ratings: {}
+  };
+  appState.postLists.unshift(created);
+  return created;
+}
+
+function normalizePostLists() {
+  if (!Array.isArray(appState.postLists)) {
+    appState.postLists = [];
+    return;
+  }
+  appState.postLists = appState.postLists.map((list) => {
+    const safe = list && typeof list === 'object' ? list : {};
+    if (!Array.isArray(safe.items)) safe.items = [];
+    if (!Array.isArray(safe.comments)) safe.comments = [];
+    if (!safe.ratings || typeof safe.ratings !== 'object') safe.ratings = {};
+    if (!safe.visibility) safe.visibility = 'private';
+    if (!safe.category) safe.category = 'General';
+    if (!safe.id) safe.id = `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return safe;
+  });
+}
+
+function getListActorKey() {
+  if (appState && appState.user && appState.user.name) return String(appState.user.name);
+  return 'Guest User';
+}
+
+function getListAverageRating(list) {
+  const values = Object.values((list && list.ratings) || {}).map((v) => Number(v)).filter((v) => v >= 1 && v <= 5);
+  if (!values.length) return { avg: 0, count: 0 };
+  const total = values.reduce((sum, v) => sum + v, 0);
+  return { avg: total / values.length, count: values.length };
+}
+
+async function sharePostList(listId) {
+  const list = (appState.postLists || []).find((entry) => String(entry.id) === String(listId));
+  if (!list) {
+    alert('List not found.');
+    return;
+  }
+  if (list.visibility !== 'public') {
+    const proceed = confirm('This list is private. Share anyway?');
+    if (!proceed) return;
+  }
+
+  const { avg, count } = getListAverageRating(list);
+  const text = `Music ConnectZ List: ${list.name}\nCategory: ${list.category}\nVisibility: ${list.visibility}\nItems: ${(list.items || []).length}\nRating: ${count ? avg.toFixed(1) : 'No ratings yet'}`;
+  const url = `${window.location.origin}${window.location.pathname}#list-${encodeURIComponent(list.id)}`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: `List • ${list.name}`, text, url });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    alert('✅ List link copied and ready to share.');
+  } catch (e) {
+    const fallback = window.prompt('Copy and share this list:', `${text}\n${url}`);
+    if (fallback !== null) alert('✅ Ready to share.');
+  }
+}
+
+function commentOnPostList(listId) {
+  const list = (appState.postLists || []).find((entry) => String(entry.id) === String(listId));
+  if (!list) return;
+  const text = (window.prompt('Add a comment to this list:') || '').trim();
+  if (!text) return;
+  if (!Array.isArray(list.comments)) list.comments = [];
+  list.comments.unshift({
+    id: `list_comment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    author: getListActorKey(),
+    text: text.slice(0, 240),
+    createdAt: new Date().toISOString()
+  });
+  saveAppState();
+  renderPostLists();
+}
+
+function ratePostList(listId) {
+  const list = (appState.postLists || []).find((entry) => String(entry.id) === String(listId));
+  if (!list) return;
+  const raw = window.prompt('Rate this list from 1 to 5:', '5');
+  if (raw === null) return;
+  const rating = Number(raw);
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    alert('Enter a number from 1 to 5.');
+    return;
+  }
+  if (!list.ratings || typeof list.ratings !== 'object') list.ratings = {};
+  list.ratings[getListActorKey()] = Math.round(rating);
+  saveAppState();
+  renderPostLists();
+}
+
+function createPostListFromSettings() {
+  const nameInput = document.getElementById('newListName');
+  const categoryInput = document.getElementById('newListCategory');
+  const visibilityInput = document.getElementById('newListVisibility');
+  const list = createOrGetPostList(
+    nameInput ? nameInput.value : '',
+    categoryInput ? categoryInput.value : '',
+    visibilityInput ? visibilityInput.value : 'private'
+  );
+  if (!list) {
+    alert('Enter a list name first.');
+    return;
+  }
+  if (nameInput) nameInput.value = '';
+  if (categoryInput) categoryInput.value = '';
+  saveAppState();
+  renderPostLists();
+  alert(`✅ List ready: ${list.name}`);
+}
+
+function addPostToList(postType, postId) {
+  const post = getPostReference(postType, postId);
+  if (!post) {
+    alert('Post not found.');
+    return;
+  }
+
+  const listName = window.prompt('Add to which list?', 'Wishlist');
+  if (!listName) return;
+  const category = window.prompt('List category (Album, Wishlist, Promo, Inspiration, Demos, Releases):', 'Wishlist');
+  const visibility = window.confirm('Make this list public? OK = Public, Cancel = Private') ? 'public' : 'private';
+  const list = createOrGetPostList(listName, category, visibility);
+  if (!list) return;
+
+  const exists = (list.items || []).some((item) => item.postType === post.postType && String(item.postId) === String(post.id));
+  if (exists) {
+    alert('This post is already in that list.');
+    return;
+  }
+
+  list.items.unshift({
+    id: `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    postId: post.id,
+    postType: post.postType,
+    title: post.title,
+    subtitle: post.subtitle,
+    snippet: (post.body || '').slice(0, 140),
+    addedAt: new Date().toISOString()
+  });
+
+  saveAppState();
+  renderPostLists();
+  alert(`✅ Added to ${list.name}`);
+}
+
+function removePostListItem(listId, itemId) {
+  const list = (appState.postLists || []).find((entry) => String(entry.id) === String(listId));
+  if (!list || !Array.isArray(list.items)) return;
+  list.items = list.items.filter((item) => String(item.id) !== String(itemId));
+  saveAppState();
+  renderPostLists();
+}
+
+function renderPostLists() {
+  normalizePostLists();
+  const container = document.getElementById('postListsContainer');
+  const tabContainer = document.getElementById('postListsTabContainer');
+  if (!container && !tabContainer) return;
+  const lists = Array.isArray(appState.postLists) ? appState.postLists : [];
+  const emptyText = 'No lists yet. Use "Add to List" from any post or create one above.';
+  if (lists.length === 0) {
+    if (container) container.innerHTML = emptyText;
+    if (tabContainer) tabContainer.innerHTML = emptyText;
+    return;
+  }
+
+  const html = lists.map((list) => {
+    const visibilityChip = list.visibility === 'public'
+      ? '<span style="background:#e6f4ea; color:#1e7a34; border:1px solid #bfe3c8; border-radius: 999px; padding:2px 8px; font-size:10px;">🌍 Public</span>'
+      : '<span style="background:#f3f4f6; color:#445; border:1px solid #d8dde3; border-radius: 999px; padding:2px 8px; font-size:10px;">🔒 Private</span>';
+    const categoryChip = `<span style="background:#eef3ff; color:#24479a; border:1px solid #cdd8ff; border-radius: 999px; padding:2px 8px; font-size:10px;">🏷️ ${escapeHtml(list.category || 'General')}</span>`;
+    const items = Array.isArray(list.items) ? list.items : [];
+    const comments = Array.isArray(list.comments) ? list.comments : [];
+    const ratingInfo = getListAverageRating(list);
+    const commentsHtml = comments.length === 0
+      ? '<div style="font-size:10px; color: var(--text-light); margin-top: 8px;">No comments yet.</div>'
+      : comments.slice(0, 3).map((comment) => `
+          <div style="margin-top: 6px; font-size: 10px; color: var(--text-light); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;">
+            <strong style="color: var(--text);">${escapeHtml(comment.author || 'User')}</strong>: ${escapeHtml(comment.text || '')}
+          </div>
+        `).join('');
+    const itemsHtml = items.length === 0
+      ? '<div style="font-size:10px; color: var(--text-light); margin-top: 8px;">No posts in this list yet.</div>'
+      : items.slice(0, 8).map((item) => `
+          <div style="margin-top: 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); display:flex; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="font-weight:600;">${escapeHtml(item.title || 'Post')}</div>
+              <div style="font-size:10px; color: var(--text-light);">${escapeHtml(item.postType || 'post')} • ${escapeHtml(item.subtitle || '')}</div>
+            </div>
+            <button class="btn btn-small btn-danger" onclick="removePostListItem('${list.id}','${item.id}')">Remove</button>
+          </div>
+        `).join('');
+
+    return `
+      <div style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--surface);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <strong>${escapeHtml(list.name || 'List')}</strong>
+          <div style="display:flex; gap:6px; align-items:center;">${categoryChip}${visibilityChip}</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px; color: var(--text-light);">⭐ ${ratingInfo.count ? ratingInfo.avg.toFixed(1) : '0.0'} (${ratingInfo.count} rating${ratingInfo.count === 1 ? '' : 's'}) • 💬 ${comments.length} comment${comments.length === 1 ? '' : 's'}</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+          <button class="btn btn-small" onclick="sharePostList('${list.id}')">📤 Share List</button>
+          <button class="btn btn-small btn-secondary" onclick="commentOnPostList('${list.id}')">💬 Comment</button>
+          <button class="btn btn-small btn-secondary" onclick="ratePostList('${list.id}')">⭐ Rate</button>
+        </div>
+        ${itemsHtml}
+        ${commentsHtml}
+      </div>
+    `;
+  }).join('');
+
+  if (container) container.innerHTML = html;
+  if (tabContainer) tabContainer.innerHTML = html;
+}
+
+async function createSupportTicketFromAI() {
+  const issueInput = document.getElementById('supportIssueInput');
+  const rawIssue = (issueInput && issueInput.value ? issueInput.value : '').trim();
+  if (!rawIssue) {
+    alert('Please describe the issue first.');
+    return;
+  }
+
+  let summary = rawIssue.slice(0, 220);
+  try {
+    const response = await fetch(`${apiBase}/api/openai-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Create a concise support ticket summary (max 160 chars) for a human agent based on this issue:\n${rawIssue}`
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data && (data.reply || data.message)) {
+      summary = String(data.reply || data.message || summary).trim().slice(0, 220);
+    }
+  } catch (e) {
+    console.warn('AI summary failed, using raw issue summary.');
+  }
+
+  if (!Array.isArray(appState.supportTickets)) appState.supportTickets = [];
+  const ticket = {
+    id: `ticket_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    status: 'open',
+    source: 'genai',
+    summary,
+    details: rawIssue,
+    createdAt: new Date().toISOString()
+  };
+  appState.supportTickets.unshift(ticket);
+  saveAppState();
+
+  if (issueInput) issueInput.value = '';
+  renderSupportTickets();
+  alert('✅ Ticket created and queued for human support follow-up.');
+}
+
+function renderSupportTickets() {
+  const container = document.getElementById('supportTicketsContainer');
+  if (!container) return;
+  const tickets = Array.isArray(appState.supportTickets) ? appState.supportTickets : [];
+  if (tickets.length === 0) {
+    container.innerHTML = 'No tickets yet.';
+    return;
+  }
+
+  container.innerHTML = tickets.slice(0, 8).map((ticket) => `
+    <div style="margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg);">
+      <div style="display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:4px;">
+        <strong>${escapeHtml(ticket.summary || 'Support Ticket')}</strong>
+        <span style="font-size:10px; background:#fff3cd; border:1px solid #ffe69c; color:#856404; border-radius:999px; padding:2px 8px;">${escapeHtml(ticket.status || 'open')}</span>
+      </div>
+      <div style="font-size:10px; color: var(--text-light);">${new Date(ticket.createdAt).toLocaleString()} • routed to human support</div>
+    </div>
+  `).join('');
+}
+
 function applyTheme(themeName, primaryColor, primaryDark) {
   document.documentElement.style.setProperty('--primary', primaryColor);
   document.documentElement.style.setProperty('--primary-dark', primaryDark);
@@ -5152,12 +5646,52 @@ function toggleNotification(type) {
   } else if (type === 'push') {
     appState.settings.pushNotifications = !appState.settings.pushNotifications;
     document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
+    if (appState.settings.pushNotifications && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
   } else if (type === 'phone') {
     if (!appState.settings.phoneVerified) { alert('Verify your phone number before enabling SMS notifications.'); return; }
     appState.settings.phoneNotifications = !appState.settings.phoneNotifications;
     document.getElementById('phoneNotifToggle').classList.toggle('on', appState.settings.phoneNotifications);
+  } else if (type === 'marketing') {
+    appState.settings.marketingNotifications = !appState.settings.marketingNotifications;
+    document.getElementById('marketingNotifToggle').classList.toggle('on', appState.settings.marketingNotifications);
   }
   saveAppState();
+}
+
+function shouldShowWeeklyPromoReminder() {
+  const lastRaw = appState.settings.lastWeeklyPromoAt || '';
+  if (!lastRaw) return true;
+  const last = new Date(lastRaw);
+  if (Number.isNaN(last.getTime())) return true;
+  return (Date.now() - last.getTime()) >= (7 * 24 * 60 * 60 * 1000);
+}
+
+function maybeSendPromoNotification() {
+  if (!appState.settings.pushNotifications || !appState.settings.marketingNotifications) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const note = new Notification('Music ConnectZ Weekly Promo', {
+    body: 'Premium feature: run limited-time promotions weekly to boost visibility and collaborations.',
+    icon: '/music-connectz-logo.png'
+  });
+  note.onclick = () => {
+    try { window.focus(); } catch (e) {}
+    switchTab('membership');
+  };
+}
+
+function maybeShowWeeklyPromoPopup() {
+  if (!appState || !appState.auth || !appState.auth.loggedIn) return;
+  if (isPremiumUser()) return;
+  if (!shouldShowWeeklyPromoReminder()) return;
+
+  appState.settings.lastWeeklyPromoAt = new Date().toISOString();
+  saveAppState();
+
+  maybeSendPromoNotification();
+  const openMembership = window.confirm('Weekly reminder: Premium users can run limited-time promo campaigns and customize theme colors. Open Membership now?');
+  if (openMembership) switchTab('membership');
 }
 
 function changeLanguage(lang) {
@@ -5223,6 +5757,8 @@ function refreshNotificationToggles() {
 
   // Push notifications do not require verification
   document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
+  const marketingToggle = document.getElementById('marketingNotifToggle');
+  if (marketingToggle) marketingToggle.classList.toggle('on', !!appState.settings.marketingNotifications);
 }
 
 // Surface runtime errors on-screen to diagnose unresponsive UI
@@ -5267,7 +5803,9 @@ function resetSettings() {
     pushNotifications: true,
     phoneNotifications: false,
     emailVerified: false,
-    phoneVerified: false
+    phoneVerified: false,
+    marketingNotifications: false,
+    lastWeeklyPromoAt: ''
   };
   saveAppState();
   document.documentElement.setAttribute('data-theme', 'light');
@@ -5287,6 +5825,8 @@ function initializeSettings() {
   document.getElementById('emailNotifToggle').classList.toggle('on', appState.settings.emailNotifications && appState.settings.emailVerified);
   document.getElementById('pushNotifToggle').classList.toggle('on', appState.settings.pushNotifications);
   document.getElementById('phoneNotifToggle').classList.toggle('on', appState.settings.phoneNotifications && appState.settings.phoneVerified);
+  const marketingToggle = document.getElementById('marketingNotifToggle');
+  if (marketingToggle) marketingToggle.classList.toggle('on', !!appState.settings.marketingNotifications);
   updateVerificationStatus('email', appState.settings.emailVerified);
   updateVerificationStatus('phone', appState.settings.phoneVerified);
   document.querySelectorAll('.theme-color-btn').forEach((btn, idx) => {
@@ -5310,6 +5850,7 @@ setTimeout(() => {
     // Only update auth display, skip heavy renders
     updateAuthDisplay();
     console.log('updateAuthDisplay complete');
+    maybeShowWeeklyPromoPopup();
     
     // Show the setup tab by default
     const setupTab = document.getElementById('setup');
