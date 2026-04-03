@@ -3976,13 +3976,37 @@ function hasAcceptedCollabBetween(ownerName, collaboratorName) {
   });
 }
 
+function isExampleOwner(example) {
+  if (!example) return false;
+  const current = String(appState.user && appState.user.name ? appState.user.name : '').trim();
+  const owner = String(example.userName || '').trim();
+  return !!current && !!owner && current === owner;
+}
+
+function allowsPremiumEditors(example) {
+  return !!(example && example.allowPremiumEditors === true);
+}
+
 function canEditExampleVisibility(example) {
   if (!example) return false;
   const current = String(appState.user && appState.user.name ? appState.user.name : '').trim();
   const owner = String(example.userName || '').trim();
   if (!current || !owner) return false;
   if (current === owner) return true;
-  return isPremiumUser() && hasAcceptedCollabBetween(owner, current);
+  return isPremiumUser() && hasAcceptedCollabBetween(owner, current) && allowsPremiumEditors(example);
+}
+
+function togglePremiumEditorsForExample(exampleIdx) {
+  const example = appState.examples && appState.examples[exampleIdx];
+  if (!example) return;
+  if (!isExampleOwner(example)) {
+    alert('Only the file owner can change premium editor permission.');
+    return;
+  }
+  example.allowPremiumEditors = !allowsPremiumEditors(example);
+  saveAppState();
+  renderExamplesDisplay();
+  alert(`Premium collaborator editing is now ${example.allowPremiumEditors ? 'enabled' : 'disabled'} for this file.`);
 }
 
 function updateExamplePrivacyFromCollab(exampleIdx, privacy) {
@@ -4053,6 +4077,7 @@ function uploadExample() {
     skillPrices: skillPrices,
     privacy: appState.examplePrivacy,
     post_type: (document.getElementById('examplePostType') ? document.getElementById('examplePostType').value : 'work'),
+    allowPremiumEditors: false,
     image: null,
     documents: [],
     attachedPostIds: attachedPostIds,
@@ -4130,12 +4155,17 @@ function renderExamplesDisplay() {
         const isVideoPost = !!(example.media && (example.mediaType || '').startsWith('video/'));
         const privacyLabel = example.privacy === 'public' ? '🌐 Public' : example.privacy === 'restricted' ? '🧩 Restricted' : '🔒 Private';
         const canEditVisibility = canEditExampleVisibility(example);
+        const isOwner = isExampleOwner(example);
+        const premiumEditorsOn = allowsPremiumEditors(example);
         const videoEditBtn = isVideoPost ? `<button class="btn btn-small" onclick="openVideoEditor(${idx})">🎬 Vegas Edit</button>` : '';
         const saveAsBtn = `<button class="btn btn-small btn-secondary" onclick="exportExampleAsset(${idx})">💾 Save As</button>`;
         const visibilityBtns = canEditVisibility
           ? `<button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'public')">🌐 Public</button><button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'restricted')">🧩 Restricted</button><button class="btn btn-small btn-secondary" onclick="updateExamplePrivacyFromCollab(${idx}, 'private')">🔒 Private</button>`
           : '';
-        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${privacyLabel}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${skillsHtml}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/>${example.media ? `<button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button>` : ''}</div>` : example.media ? `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>` : ''}${docsHtml}${attachedHtml}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button>${videoEditBtn}${saveAsBtn}${visibilityBtns}</div>`;
+        const ownerDecisionBtn = isOwner
+          ? `<button class="btn btn-small btn-secondary" onclick="togglePremiumEditorsForExample(${idx})">${premiumEditorsOn ? '👑 Premium Editors: On' : '👑 Premium Editors: Off'}</button>`
+          : '';
+        card.innerHTML = `<div class="post-header"><div class="post-avatar" ${example.userPic ? `style="background-image: url('${example.userPic}'); background-size: cover; background-position: center;"` : ''}>${!example.userPic ? '🎵' : ''}</div><div class="post-info" style="flex: 1;"><div class="post-user">${example.userName}</div><div class="post-meta">${example.timestamp} • ${privacyLabel}</div><div class="post-meta">📍 ${example.userLocation}</div></div><button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button></div><div style="margin-bottom: 8px;"><div style="font-weight: 700; font-size: 12px; margin-bottom: 4px;">🎯 ${example.title}</div><div style="font-size: 11px; color: var(--text-light); margin-bottom: 6px;">${example.desc}</div><div style="font-size: 10px; margin-bottom: 6px;"><span style="background: var(--bg); padding: 2px 6px; border-radius: 4px; margin-right: 4px;">🎵 ${example.genre}</span>${skillsHtml}</div>${example.image ? `<div style="margin: 8px 0; position: relative; display: inline-block; width: 100%;"><img src="${example.image}" style="max-width: 100%; height: auto; border-radius: 6px;"/>${example.media ? `<button class="btn btn-success" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; padding: 12px 16px; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; background: rgba(76, 175, 80, 0.9);" onclick="playMedia(${idx})" title="Play">▶️</button>` : ''}</div>` : example.media ? `<div style="background: var(--bg); padding: 20px; border-radius: 6px; text-align: center; margin: 8px 0;"><button class="btn btn-success" onclick="playMedia(${idx})" style="font-size: 24px;">▶️ Play Media</button></div>` : ''}${docsHtml}${attachedHtml}</div><div class="post-actions"><button class="btn btn-secondary btn-small" onclick="editExample(${idx})">✏️ Edit</button>${videoEditBtn}${saveAsBtn}${visibilityBtns}${ownerDecisionBtn}</div>`;
         display.appendChild(card);
       } catch (e) {
         console.error('Error rendering example:', e);
@@ -5048,6 +5078,18 @@ function corsBlockedMessage(actionLabel) {
   return `${actionLabel} blocked by server CORS policy. Allow origin: ${location.origin}`;
 }
 
+async function parseJsonResponseSafely(res) {
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('application/json')) {
+    return null;
+  }
+  try {
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 function getBackendAuthUrl() {
   // Always redirect to dashboard, not login page
   let nextUrl = window.location.origin + window.location.pathname;
@@ -5069,7 +5111,7 @@ async function syncAuthFromBackendSession() {
       credentials: 'include'
     });
     if (!res.ok) return;
-    const data = await res.json().catch(() => null);
+    const data = await parseJsonResponseSafely(res);
     if (!data || !data.authenticated || !data.user) return;
 
     appState.auth = { loggedIn: true, user: data.user, guest: false };
@@ -5137,13 +5179,13 @@ async function completeOAuthProfile() {
       body: JSON.stringify({ username, email, phone_number: phone })
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await parseJsonResponseSafely(res);
     if (!res.ok) {
-      setAuthStatus(data.error || 'Could not complete profile.', true);
+      setAuthStatus((data && data.error) || 'Could not complete profile.', true);
       return;
     }
 
-    appState.auth = { loggedIn: true, user: data.user || { username, email, phone_number: phone }, guest: false };
+    appState.auth = { loggedIn: true, user: (data && data.user) || { username, email, phone_number: phone }, guest: false };
     saveAppState();
     updateAuthDisplay();
     updateOAuthProfileCompletionState(appState.auth.user);
@@ -5188,15 +5230,18 @@ async function registerUser(fromOverlay = false) {
       }))
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await parseJsonResponseSafely(res);
     if (res.status === 201) {
-      appState.auth = { loggedIn: true, user: data.user || { email: idPayload.email || identifier } };
+      appState.auth = { loggedIn: true, user: (data && data.user) || { email: idPayload.email || identifier } };
       saveAppState();
       updateAuthDisplay();
       setAuthStatus('Registered! You can now log in.');
       routeToProfileAfterAuth();
     } else {
-      setAuthStatus(data.identifier || data.email || data.username || data.phone_number || data.password1 || data.password2 || data.non_field_errors || 'Registration failed.', true);
+      const message = data
+        ? (data.identifier || data.email || data.username || data.phone_number || data.password1 || data.password2 || data.non_field_errors)
+        : null;
+      setAuthStatus(message || `Registration failed (${res.status}).`, true);
     }
   } catch (e) {
     console.error('registerUser error:', e);
@@ -5236,9 +5281,14 @@ async function loginUser(fromOverlay = false) {
       body: JSON.stringify({ identifier, password })
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await parseJsonResponseSafely(res);
     if (!res.ok) {
-      setAuthStatus(data.error || 'Login failed.', true);
+      setAuthStatus((data && data.error) || `Login failed (${res.status}).`, true);
+      return;
+    }
+
+    if (!data || !data.user) {
+      setAuthStatus('Login succeeded but server response was invalid.', true);
       return;
     }
 
@@ -6379,11 +6429,11 @@ async function loadConnectedAccounts() {
       fetch(`${apiBase}/api/auth/connected-accounts/`, { credentials: 'include' })
     ]);
     if (statusRes.ok) {
-      const d = await statusRes.json();
+      const d = await parseJsonResponseSafely(statusRes);
       enabledProviders = (d && d.providers) ? d.providers : {};
     }
     if (connRes.ok) {
-      const d = await connRes.json();
+      const d = await parseJsonResponseSafely(connRes);
       connectedProviders = Array.isArray(d.connected) ? d.connected : [];
     }
   } catch (e) { /* silent — show connect buttons only */ }
