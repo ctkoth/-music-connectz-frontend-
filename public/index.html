@@ -78,8 +78,8 @@
     <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.7-20260402d" />
     <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.7-20260402d" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</title>
-  <meta name="description" content="Music ConnectZ v11.3 - Ditto webhook-ready distribution flow with editable submission metadata and geo-language genre options.">
+  <title>Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</title>
+  <meta name="description" content="Music ConnectZ v11.4 - Signup conversion hotfixes, OAuth fail-safe routing, and improved registration completion flow.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -261,7 +261,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
       <div id="member-count" style="margin-top:8px; font-size:1.05em; color:#2196F3; font-weight:600;"></div>
         <script>
           // Fetch and display live member count
@@ -299,6 +299,7 @@
 
         // Version history data (descending order, with emojis)
         const versionHistory = [
+          { v: 'v11.4', text: 'Signup conversion release: auto-login after registration, lower-friction password gate, and OAuth fail-safe redirect for all providers.', emoji: '🚀' },
           { v: 'v11.3', text: 'Ditto webhook strategy support, editable submission fields, and geo-language genre options added on top of major genres.', emoji: '🌍' },
           { v: 'v11.0', text: 'Premium pricing update: yearly plan is now $99.99 with savings-focused checkout messaging to improve conversions.', emoji: '💸' },
           { v: 'v10.9', text: 'Added Amazon OAuth login (Amazon account support for Amazon Music users).', emoji: '🛒' },
@@ -417,7 +418,7 @@
       </div>
       <div style="margin-bottom:10px;">
         <small id="password-help" style="color: #555;">
-          Password must be at least 8 characters, contain a number, a lowercase and an uppercase letter.
+          Password must be at least 8 characters.
         </small>
       </div>
       <div>
@@ -627,8 +628,8 @@
         errorMsg = 'Email, username, or phone number is required.';
       } else if (pw1 !== pw2) {
         errorMsg = 'Passwords do not match.';
-      } else if (!/^.*(?=.{8,})(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*$/.test(pw1)) {
-        errorMsg = 'Password does not meet requirements.';
+      } else if (pw1.length < 8) {
+        errorMsg = 'Password must be at least 8 characters.';
       }
       if (errorMsg) {
         document.getElementById('signup-error').innerText = errorMsg;
@@ -1238,7 +1239,7 @@
         <div class="lang-selector-dropdown" id="langSelectorDropdown"></div>
       </div>
     </div>
-    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
+    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
     <div class="header-right"><button class="btn btn-small" id="headerLoginBtn" onclick="openLoginOverlay()">🔓 Login</button><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
