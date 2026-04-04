@@ -78,8 +78,8 @@
     <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.7-20260402d" />
     <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.7-20260402d" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v11.0 bi K-Oth (Deployed 2026-04-03)</title>
-  <meta name="description" content="Music ConnectZ v11.0 - Premium annual plan at $99.99 with clear savings, plus safe, secure, and ad-free collaboration.">
+  <title>Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</title>
+  <meta name="description" content="Music ConnectZ v11.3 - Ditto webhook-ready distribution flow with editable submission metadata and geo-language genre options.">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -261,7 +261,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v11.0 bi K-Oth (Deployed 2026-04-03)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
       <div id="member-count" style="margin-top:8px; font-size:1.05em; color:#2196F3; font-weight:600;"></div>
         <script>
           // Fetch and display live member count
@@ -299,6 +299,7 @@
 
         // Version history data (descending order, with emojis)
         const versionHistory = [
+          { v: 'v11.3', text: 'Ditto webhook strategy support, editable submission fields, and geo-language genre options added on top of major genres.', emoji: '🌍' },
           { v: 'v11.0', text: 'Premium pricing update: yearly plan is now $99.99 with savings-focused checkout messaging to improve conversions.', emoji: '💸' },
           { v: 'v10.9', text: 'Added Amazon OAuth login (Amazon account support for Amazon Music users).', emoji: '🛒' },
           { v: 'v10.4', text: 'OAuth-first auth flow, non-OAuth register with 2 passwords, login with 1 password, and post-OAuth profile completion', emoji: '🚀' },
@@ -1237,7 +1238,7 @@
         <div class="lang-selector-dropdown" id="langSelectorDropdown"></div>
       </div>
     </div>
-    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v10.9 bi K-Oth (Deployed 2026-04-03)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
+    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v11.3 bi K-Oth (Deployed 2026-04-04)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
     <div class="header-right"><button class="btn btn-small" id="headerLoginBtn" onclick="openLoginOverlay()">🔓 Login</button><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
@@ -3893,10 +3894,47 @@ function closeEditSkillModal() { document.getElementById('editSkillModal').class
 
 function closeSkillModal() { document.getElementById('skillModal').classList.remove('active'); }
 
+const MAJOR_SUBMISSION_GENRES = [
+  'Blues', 'Brass & Military', 'Children\'s', 'Classical', 'Country', 'Electronic', 'Folk',
+  'Funk / Soul', 'Hip-Hop', 'House', 'International', 'Jazz', 'Latin', 'Newage', 'Non-Music',
+  'Pop', 'Pop/Rock', 'R&B', 'Reggae', 'Religious', 'Rock', 'Rap', 'Soul', 'Soundtrack',
+  'Techno', 'Traditional', 'World'
+];
+
+const GEO_SUBMISSION_GENRES_BY_LANG = {
+  en: ['Afrobeats', 'Alt-Pop', 'Drill', 'Lo-fi', 'Singer-Songwriter'],
+  es: ['Corridos', 'Flamenco', 'Latin Trap', 'Regional Mexicano'],
+  pt: ['Bossa Nova', 'Funk Carioca', 'MPB', 'Sertanejo'],
+  fr: ['Afro-Fusion', 'Chanson', 'RaI'],
+  de: ['Deutschrap', 'Neue Deutsche Welle'],
+  it: ['Cantautore', 'Italo Disco'],
+  ja: ['City Pop', 'J-Pop', 'J-Rock'],
+  ko: ['K-ballad', 'K-hiphop', 'K-pop'],
+  zh: ['C-pop', 'Mandopop'],
+  ar: ['Khaleeji', 'Mahraganat'],
+  hi: ['Bollywood', 'Desi Hip Hop'],
+  tr: ['Anatolian Rock'],
+  ru: ['Russian Pop'],
+};
+
+function getSubmissionGenresForCurrentLanguage() {
+  const langCode = ((window.I18N_CONFIG && window.I18N_CONFIG.currentLang) || 'en-US').toLowerCase();
+  const langRoot = langCode.split('-')[0];
+  const translations = (window.I18N_CONFIG && window.I18N_CONFIG.translations && window.I18N_CONFIG.translations[window.I18N_CONFIG.currentLang]) || {};
+
+  const translatedGenres = Object.keys(translations)
+    .filter(k => k.startsWith('genres_'))
+    .map(k => String(translations[k] || '').trim())
+    .filter(Boolean);
+
+  const geoGenres = GEO_SUBMISSION_GENRES_BY_LANG[langRoot] || [];
+  return [...new Set([...MAJOR_SUBMISSION_GENRES, ...translatedGenres, ...geoGenres])];
+}
+
 function openGenreModal() {
   const genreCats = document.getElementById('genreCats');
   genreCats.innerHTML = '';
-  const genres = ['Blues', 'Brass & Military', 'Children\'s', 'Classical', 'Country', 'Electronic', 'Folk', 'Funk / Soul', 'Hip-Hop', 'House', 'International', 'Jazz', 'Latin', 'Newage', 'Non-Music', 'Pop', 'Pop/Rock', 'R&B', 'Reggae', 'Religious', 'Rock', 'Rap', 'Soul', 'Soundtrack', 'Techno', 'Traditional', 'World'];
+  const genres = getSubmissionGenresForCurrentLanguage();
   genres.forEach(genre => {
     const btn = document.createElement('button');
     btn.className = `genre-btn ${appState.selectedGenre === genre ? 'sel' : ''}`;
