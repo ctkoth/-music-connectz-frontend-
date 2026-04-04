@@ -1721,11 +1721,11 @@
         </div>
       </div>
 
-      <!-- Analytics Dashboard (Premium) -->
+      <!-- Stats ConnectZ (Premium/Add-on) -->
       <div class="card">
-        <div class="card-header">📈 Analytics Dashboard (Premium)</div>
+        <div class="card-header">📊 Stats ConnectZ</div>
         <div id="analyticsPremiumGate" class="premium-lock" style="display: none;">
-          <div><strong>Premium Feature:</strong> View profile analytics and engagement.</div>
+          <div><strong>Premium/Add-on Feature:</strong> View profile analytics and engagement.</div>
           <button class="btn btn-small" onclick="switchTab('membership')">Upgrade</button>
         </div>
         <div id="analyticsDashboard" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -1784,17 +1784,26 @@
             <span style="position: absolute; left: 0;">✓</span> "Featured Artist" status in searches
           </div>
           <div style="font-size: 12px; font-weight: 700; margin-bottom: 12px; padding-left: 18px; position: relative; color: var(--primary);">
-            <span style="position: absolute; left: 0;">✓</span> Analytics dashboard (profile views, engagement)
+            <span style="position: absolute; left: 0;">✓</span> 📊 Stats ConnectZ (profile views, engagement)
           </div>
         </div>
         <div style="text-align: center; margin-bottom: 12px;">
-          <div style="font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 4px;">$9.99/month</div>
-          <div style="font-size: 12px; color: var(--text-light);">Best value: $99.99/year (save $19.89, about 17%)</div>
-          <div style="font-size: 11px; color: #2e7d32; font-weight: 700; margin-top: 4px;">Pay yearly and keep almost 2 months free vs monthly.</div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 4px;">Premium: $9.99/month</div>
+          <div style="font-size: 12px; color: var(--text-light);">Stats ConnectZ add-on: $4.99/month</div>
+          <div style="font-size: 12px; color: var(--text-light);">Bundle (Premium + Stats): $12.99/month</div>
+          <div style="font-size: 11px; color: #2e7d32; font-weight: 700; margin-top: 4px;">Yearly: Premium $79.99 • Stats $39.99 • Bundle $99.99</div>
+        </div>
+        <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+          <button class="btn btn-success" onclick="subscribePremium('monthly', 'premium')" style="width: 100%;">Premium Monthly - $9.99</button>
+          <button class="btn btn-success" onclick="subscribePremium('yearly', 'premium')" style="width: 100%;">Premium Yearly - $79.99</button>
+        </div>
+        <div class="grid-2" style="gap: 8px; margin-bottom: 8px;">
+          <button class="btn btn-secondary" onclick="subscribePremium('monthly', 'stats')" style="width: 100%;">Stats Monthly - $4.99</button>
+          <button class="btn btn-secondary" onclick="subscribePremium('yearly', 'stats')" style="width: 100%;">Stats Yearly - $39.99</button>
         </div>
         <div class="grid-2" style="gap: 8px;">
-          <button class="btn btn-success" onclick="subscribePremium('monthly')" style="width: 100%;">Monthly - $9.99</button>
-          <button class="btn btn-success" onclick="subscribePremium('yearly')" style="width: 100%;">Yearly - $99.99 (Best Deal)</button>
+          <button class="btn" onclick="subscribePremium('monthly', 'bundle')" style="width: 100%;">Bundle Monthly - $12.99</button>
+          <button class="btn" onclick="subscribePremium('yearly', 'bundle')" style="width: 100%;">Bundle Yearly - $99.99</button>
         </div>
         <div id="premiumCancel" style="text-align: center; margin-top: 12px; display: none;">
           <button class="btn btn-danger btn-small" onclick="cancelSubscription()">Cancel Subscription</button>
@@ -2880,6 +2889,49 @@ function safeStorageGet(key) {
   } catch (e) {
     return _memoryStorage[key] || null;
   }
+}
+
+const _TOUR_STEPS = [
+  { title: '👋 Welcome!', content: 'Music ConnectZ connects musicians, producers, and creators locally and globally. This quick tour covers the key features.' },
+  { title: '⚙️ Setup', content: 'Start here — add your profile photo, bio, genres, and skills so collaborators can find and trust you.' },
+  { title: '🎭 Personas', content: 'Create multiple personas (e.g. Producer, Vocalist, Engineer) with different skill sets and hourly rates.' },
+  { title: '🎵 Work', content: 'Upload demos, beats, or tracks. Each post shows your skills and can be set private or public.' },
+  { title: '🎛️ Audible Arsenal', content: 'Premium DAW tool. Use Audible Arsenal Pro (clip-based) or Fruity Mobius (step sequencer) to make music directly in the app.' },
+  { title: '✏️ Editors', content: 'Premium editors: Sentence ConnectZ for lyrics/text and Picture ConnectZ for image posts. Edit existing posts from your Work tab.' },
+  { title: '🤝 Collab', content: 'Post collaboration requests and browse a live map of nearby musicians. Filter by genre, skill, and distance.' },
+  { title: '💬 Messages', content: 'Direct message any collaborator. Premium unlocks unlimited messaging.' },
+  { title: '📌 Boards', content: 'Post on public message boards. Boost posts to the top for 7 days with a one-time purchase.' },
+  { title: '⭐ Membership', content: 'Premium: $9.99/mo. Add Stats ConnectZ for $4.99/mo. Bundle both for $12.99/mo. Yearly plans save over 30%.' },
+  { title: '🌍 Distribution ConnectZ', content: 'Distribute your releases to Spotify, Apple Music, and 100+ platforms — included with Premium.' },
+  { title: '📊 Stats ConnectZ', content: 'Track profile views, engagement, stream counts, and contributor earnings. Available as a $4.99/mo add-on.' },
+];
+
+function showOnboardingTour(stepIndex) {
+  const modal = document.getElementById('onboardingTourModal');
+  if (!modal) return;
+  const steps = _TOUR_STEPS;
+  let current = Math.max(0, Math.min(stepIndex || 0, steps.length - 1));
+
+  function renderStep(i) {
+    current = Math.max(0, Math.min(i, steps.length - 1));
+    document.getElementById('onboardingTourHeader').textContent = '🎵 Music ConnectZ Tour';
+    document.getElementById('onboardingTourStepTitle').textContent = steps[current].title;
+    document.getElementById('onboardingTourStepContent').textContent = steps[current].content;
+    document.getElementById('onboardingTourProgress').textContent = `Step ${current + 1} of ${steps.length}`;
+    document.getElementById('onboardingTourPrev').style.visibility = current === 0 ? 'hidden' : 'visible';
+    const nextBtn = document.getElementById('onboardingTourNext');
+    nextBtn.textContent = current === steps.length - 1 ? '✓ Done' : 'Next ▶';
+  }
+
+  modal.style.display = 'flex';
+  renderStep(current);
+
+  document.getElementById('onboardingTourNext').onclick = () => {
+    if (current >= steps.length - 1) { modal.style.display = 'none'; }
+    else { renderStep(current + 1); }
+  };
+  document.getElementById('onboardingTourPrev').onclick = () => renderStep(current - 1);
+  document.getElementById('onboardingTourClose').onclick = () => { modal.style.display = 'none'; };
 }
 
 function saveAppState() {
@@ -4849,9 +4901,9 @@ function updateMembershipDisplay() {
           ✅ Direct messaging<br>
           ✅ Portfolio audio uploads<br>
           ✅ Featured artist placement<br>
-          ✅ Analytics dashboard
+          ✅ 📊 Stats ConnectZ
         </div>
-        <button class="btn btn-success" onclick="switchTab('membership')" style="width: 100%;">Upgrade to Premium</button>
+        <button class="btn btn-success" onclick="switchTab('membership')" style="width: 100%;">Choose Premium, Stats, or Bundle</button>
       </div>
     `;
   }
@@ -7885,11 +7937,11 @@ function updateAnalyticsDisplay() {
 
 function getVisitorKey() {
   const storageKey = 'mczVisitorKey';
-  let visitorKey = localStorage.getItem(storageKey);
+  let visitorKey = safeStorageGet(storageKey);
   if (visitorKey) return visitorKey;
 
   visitorKey = `visitor_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
-  localStorage.setItem(storageKey, visitorKey);
+  safeStorageSet(storageKey, visitorKey);
   return visitorKey;
 }
 
@@ -7978,7 +8030,7 @@ async function loadMembershipStatus() {
   }
 }
 
-async function subscribePremium(billingPeriod) {
+async function subscribePremium(billingPeriod, planType = 'premium') {
   const userId = getCurrentUserId();
   if (!userId) {
     alert('Please log in first');
@@ -7991,11 +8043,24 @@ async function subscribePremium(billingPeriod) {
   
   // In production, use actual Stripe Price IDs
   const priceIds = {
-    monthly: 'price_premium_monthly', // Replace with actual Stripe Price ID
-    yearly: 'price_premium_yearly'    // Replace with actual Stripe Price ID
+    premium: {
+      monthly: 'price_premium_monthly', // Replace with actual Stripe Price ID
+      yearly: 'price_premium_yearly'    // Replace with actual Stripe Price ID
+    },
+    stats: {
+      monthly: 'price_stats_monthly',   // Replace with actual Stripe Price ID
+      yearly: 'price_stats_yearly'      // Replace with actual Stripe Price ID
+    },
+    bundle: {
+      monthly: 'price_bundle_monthly',  // Replace with actual Stripe Price ID
+      yearly: 'price_bundle_yearly'     // Replace with actual Stripe Price ID
+    }
   };
-  
-  const priceId = priceIds[billingPeriod];
+
+  const selectedPlan = priceIds[planType] ? planType : 'premium';
+  const priceId = (priceIds[selectedPlan] || {}).hasOwnProperty(billingPeriod)
+    ? priceIds[selectedPlan][billingPeriod]
+    : priceIds.premium.monthly;
   
   try {
     const response = await fetch(`${apiBase}/api/create-subscription-checkout`, {
@@ -8004,7 +8069,8 @@ async function subscribePremium(billingPeriod) {
       body: JSON.stringify({
         userId: userId,
         priceId: priceId,
-        billingPeriod: billingPeriod
+        billingPeriod: billingPeriod,
+        planType: selectedPlan
       })
     });
     

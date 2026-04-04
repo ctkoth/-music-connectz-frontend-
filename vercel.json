@@ -39,7 +39,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.socket.io https://maps.googleapis.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://admin.musicconnectz.net https://musicconnectz.com https://www.musicconnectz.com https://api.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com wss://*.socket.io; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.socket.io https://maps.googleapis.com https://maps.gstatic.com https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://admin.musicconnectz.net https://musicconnectz.com https://www.musicconnectz.com https://api.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com wss://*.socket.io https://vercel.live; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://vercel.live; upgrade-insecure-requests"
         }
       ]
     }
