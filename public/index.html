@@ -225,6 +225,10 @@
   <div style="text-align:center; margin-top:24px;">
     <!-- Removed code fragment that was being displayed to users -->
     <img src="/music-connectz-logo.png" alt="Music ConnectZ Logo" style="width:140px; max-width:95vw; height:auto; border-radius:28px; box-shadow:0 2px 16px rgba(0,0,0,0.15); background:#fff; margin-bottom:16px;" />
+    <div style="margin:10px 0 0 0;">
+      <span style="display:inline-block; background:#7b1fa2; color:#fff; font-size:1.5em; font-weight:900; border-radius:12px; padding:8px 22px 8px 22px; box-shadow:0 2px 8px rgba(123,31,162,0.10); letter-spacing:1.5px;">ePiffaNieZ RPG</span>
+      <span style="display:inline-block; background:#ffd600; color:#7b1fa2; font-size:0.95em; font-weight:700; border-radius:8px; padding:4px 14px; margin-left:10px; vertical-align:middle;">v12.6</span>
+    </div>
   </div>
   <div class="auth-form" id="authForm">
     <div style="text-align:center; margin-bottom:10px;">
@@ -299,6 +303,10 @@
 
         // Version history data (descending order, Corey-voice summaries)
         const versionHistory = [
+          {
+            version: 'v12.6',
+            summary: '🌿 ePiffaNieZ RPG Launch\nA new tactical RPG experience based on my bio: because I smoked piff, made piff music, and play on epiphany.\n\n- 🚀 New: ePiffaNieZ RPG branding and homepage badge\n- 🧬 Story, characters, and battles inspired by my real life and music journey\n- 🎵 Tactical RPG style, with music, lyrics, and metadata always visible\n- 💜 For the culture, for the vibes, for the piff.'
+          },
                     {
                       version: 'v11.6',
                       summary: '📌 Board Categories & Corey-Voice Everywhere!\nMessage Boards just leveled up—pick a category that fits your vibe, from Production to Promo to Random, each with a playful Corey-voice description and emoji. Posting is now way easier (and way more fun). Plus, every last bit of site text is now pure Corey—no more boring forms or generic help.\n\n- 🗂️ New: Board categories with emoji and real talk, so your posts land in the right spot.\n- 😎 All forms, errors, and help text now talk like Corey—direct, fun, and loaded with attitude.\n- 🛠️ More polish, more personality, and more reasons to show off your music journey.\n- 🚀 Next up: limited-time sampling for Premium Apps and smarter upgrade prompts!'
@@ -2982,18 +2990,30 @@ function safeStorageGet(key) {
 }
 
 const _TOUR_STEPS = [
-  { title: '👋 Welcome!', content: 'Music ConnectZ connects musicians, producers, and creators locally and globally. This quick tour covers the key features.' },
-  { title: '⚙️ Setup', content: 'Start here — add your profile photo, bio, genres, and skills so collaborators can find and trust you.' },
-  { title: '🎭 Personas', content: 'Create multiple personas (e.g. Producer, Vocalist, Engineer) with different skill sets and hourly rates.' },
-  { title: '🎵 Work', content: 'Upload demos, beats, or tracks. Each post shows your skills and can be set private or public.' },
-  { title: '🎛️ Audible Arsenal', content: 'Premium DAW tool. Use Audible Arsenal Pro (clip-based) or Fruity Mobius (step sequencer) to make music directly in the app.' },
-  { title: '✏️ Editors', content: 'Premium editors: Sentence ConnectZ for lyrics/text and Picture ConnectZ for image posts. Edit existing posts from your Work tab.' },
-  { title: '🤝 Collab', content: 'Post collaboration requests and browse a live map of nearby musicians. Filter by genre, skill, and distance.' },
-  { title: '💬 Messages', content: 'Direct message any collaborator. Premium unlocks unlimited messaging.' },
-  { title: '📌 Boards', content: 'Post on public message boards. Boost posts to the top for 7 days with a one-time purchase.' },
-  { title: '⭐ Membership', content: 'Premium: $9.99/mo. Add Stats ConnectZ for $4.99/mo. Bundle both for $12.99/mo. Yearly plans save over 30%.' },
-  { title: '🌍 Distribution ConnectZ', content: 'Distribute your releases to Spotify, Apple Music, and 100+ platforms — included with Premium.' },
-  { title: '📊 Stats ConnectZ', content: 'Track profile views, engagement, stream counts, and contributor earnings. Available as a $4.99/mo add-on.' },
+  { title: '👋 Welcome!', content: 'So here’s the thing: Music ConnectZ is where musicians, producers, and creators actually connect—no fake vibes, no gatekeeping. This tour? It’s the real rundown, in my voice, so you know what’s up.' },
+  { title: '⚙️ Setup', content: 'First things first—set up your profile. Drop a photo, flex your bio, pick your genres and skills. The more you show, the more collabs you’ll land. Don’t be shy—this is your stage.' },
+  { title: '🎭 Personas', content: 'You’re not just one thing. Make a persona for every side of you—producer, vocalist, engineer, whatever. Each one gets its own skills and rates. Switch it up, get booked for anything.' },
+  { title: '🎵 Work', content: 'Upload your best stuff—beats, demos, full tracks. Show off your skills, set posts to public or private, and let your work speak for itself. Want feedback? Just ask.' },
+  { title: '💎 Premium Apps', content: 'Ready to level up? The Premium Apps tab is your playground. Sample wild DAW knockoffs, each with its own emoji and attitude. Try before you buy, then upgrade for the full arsenal. Pure fun, no copyright drama.' },
+  { title: '🎛️ ClipFlow', content: 'Drop loops, launch clips, and warp audio like a pro. Ableton vibes, wallet-friendly. If you know, you know.' },
+  { title: '🍊 Fruity Mobius', content: 'Lay down fire beats in a channel rack that’s all kicks, claps, and pure fun. Fruity flavor, infinite flow. No dongle required.' },
+  { title: '🧠 Intelligent Design', content: 'Arrange, mix, and master with pure creative logic—no Mac required. Slick, smooth, and Mac-inspired.' },
+  { title: '🎹 ShedKeys', content: 'Plug in, play, and record. The easiest way to jam, even if you’re just starting out. No excuses.' },
+  { title: '🏆 Right Side Arsenal', content: 'Industry-standard mixing and editing, now for the bedroom producer. Big studio energy, tiny price.' },
+  { title: '🧱 Rubiks Brick', content: 'Compose, score, and produce with classic workflow—no dongle drama, just creative blocks to play with.' },
+  { title: '🤔 Intuition', content: 'Virtual rack of synths, samplers, and drum machines. Patch cables, twist knobs, go wild.' },
+  { title: '🏢 Public Housing', content: 'Drag, drop, and create. Fast, modern, and ready for your next hit—no gatekeeping here.' },
+  { title: '🤵 Trump Toupée', content: 'Modular, experimental, and perfect for sound designers. Push boundaries, break rules, and style your sound.' },
+  { title: '🦇 Azrael', content: 'Lightweight, powerful, and endlessly customizable. The DAW for tinkerers and pros alike.' },
+  { title: '☁️ CloudJam', content: 'Collaborate online, make music anywhere. Cloud-powered jams for the modern musician.' },
+  { title: '💃🏾 Liliths', content: 'Unleash your wild side. Liliths is for the creators who move different—bold, intuitive, and always in their own rhythm. Goddess mode, activated.' },
+  { title: '🔥 Infeno', content: 'Swipe, match, and spark something wild. Infeno is the Corey-voice remix of Tinder—where the heat is real, the vibes are bold, and every match could be your next collab, crush, or creative partner.' },
+  { title: '🤝 Collab', content: 'Post collab requests, browse a live map of musicians, and filter by genre, skill, and distance. Find your crew, shoot your shot.' },
+  { title: '💬 Messages', content: 'DM anyone, anytime. Premium unlocks unlimited messaging. Slide in, keep it real.' },
+  { title: '📌 Boards', content: 'Pin your ideas, get feedback, and keep projects moving. Boost posts to the top for 7 days if you want to flex.' },
+  { title: '⭐ Membership', content: 'Premium: $9.99/mo. Add Stats ConnectZ for $4.99/mo. Bundle both for $12.99/mo. Yearly plans save over 30%. Only upgrade if you want the real perks.' },
+  { title: '🌍 Distribution ConnectZ', content: 'Distribute your releases to Spotify, Apple Music, and 100+ platforms—no label needed. Included with Premium.' },
+  { title: '📊 Stats ConnectZ', content: 'Track profile views, engagement, stream counts, and contributor earnings. Know your worth, see your growth.' },
 ];
 
 function showOnboardingTour(stepIndex) {
@@ -3004,7 +3024,7 @@ function showOnboardingTour(stepIndex) {
 
   function renderStep(i) {
     current = Math.max(0, Math.min(i, steps.length - 1));
-    document.getElementById('onboardingTourHeader').textContent = '🎵 Music ConnectZ Tour';
+    document.getElementById('onboardingrTourHeader').textContent = '🎵 Music ConnectZ Tour';
     document.getElementById('onboardingTourStepTitle').textContent = steps[current].title;
     document.getElementById('onboardingTourStepContent').textContent = steps[current].content;
     document.getElementById('onboardingTourProgress').textContent = `Step ${current + 1} of ${steps.length}`;

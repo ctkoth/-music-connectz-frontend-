@@ -1,3 +1,30 @@
+# All version history entries and site copy (except user-controlled Corey-voice ConnectZ) now use playful Corey-voice style with emoji, as the new default.
+# User preferences in Corey-voice ConnectZ always override this default.
+
+v13.9 - 🛡️ Credibility & Reporting Upgrade!
+- Users can now rate each other on credibility—helping everyone spot honest, reliable profiles (especially for age/gender).
+- Added reporting: flag suspicious or dishonest info directly from user profiles.
+- Reports are private: only the user who made the report and moderators can see who reported, not the reported user.
+- Credibility ratings and report counts now show on user profiles (with privacy respected).
+- More tools for a safer, more trustworthy Music ConnectZ community!
+
+v13.8 - 🎚️ Spina DJ Points & Share Rewards!
+- Introducing Spina: earn DJ points for every restricted share that brings new signups or engagement.
+- Unlock badges, premium features, and profile boosts as you rack up Spina.
+- Spina balances now show on your profile—flex your DJ cred!
+- All UGC and in-app content now supports visibility settings (public, restricted, private) and sharing options.
+- Public and restricted content can be rated, commented, and shared—help the community grow and get rewarded for it!
+- Lilith and all apps can now create, assign, and track tasks with full post paradigm support.
+- Next up: more ways to earn, share, and shine on Music ConnectZ!
+
+v13.2 - 🎛️ Corey-Voice Customizer Unleashed!
+- You asked for control, we delivered: now you can toggle Corey-voice (vernacular), emojis, and explicit language—mix and match to fit your vibe or keep it pro.
+- Professional Mode: keep it clean for school, business, or legal docs—no emojis, no Corey-isms, no explicit language (unless you say so).
+- Corey-voice ConnectZ: always follows your settings, so you get the exact flavor you want, every time.
+- Everywhere else: pure Corey-voice energy with emoji, by default!
+- UI and release notes now talk like you—fun, bold, and loaded with personality.
+- Next up: even more ways to flex your style and own your creative journey!
+
 v12.2 - 🔊 Sound ConnectZ & Pro Messaging
 - Launched Sound ConnectZ: find pro partners by persona, gender, age, price, distance, experience, genre, or language
 - Rate user personas (out of 10) to help others find the best collaborators
