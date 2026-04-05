@@ -1,3 +1,9 @@
+v12.2 - 🔊 Sound ConnectZ & Pro Messaging
+- Launched Sound ConnectZ: find pro partners by persona, gender, age, price, distance, experience, genre, or language
+- Rate user personas (out of 10) to help others find the best collaborators
+- Pro WhatsApp-style messaging: chat, attach docs, pics, video, audio, camera, or call—build real partnerships
+- Unlimited message edits with full edit log—transparency and trust for every collab
+- Advanced search filters for lasting, professional relationships
 Music ConnectZ Version History
 =============================
 
@@ -86,4 +92,40 @@ v11.0 - 💸 Yearly Premium Conversion Upgrade
 - Yearly Premium plan set to $99.99
 - Membership pricing copy now highlights explicit savings vs monthly
 - Added stronger yearly CTA text to improve conversion intent
+
+v11.6 - 📌 Board Categories & Corey-Voice Everywhere!
+- Message Boards now have categories with emoji and playful Corey-voice descriptions
+- All forms, errors, and help text rewritten in Corey’s style
+- More polish, more personality, and more fun for every user
+- Next up: limited-time Premium App sampling and smarter upgrade prompts!
+
+v11.7 - 💃🏾 Liliths App & Goddess Mode
+- Added Liliths 💃🏾 to Premium Apps grid: mystical, intuitive, and bold—goddess mode for creators who move different
+- All Premium Apps now have even more Corey-voice, intuition, and playful energy
+- More polish, more personality, and more reasons to flex your creative power
+- (Backend plan and frontend grid both updated)
+- Next up: limited-time sampling for non-premium users, upgrade prompts after sample time expires
+
+v11.8 - 🔥 Infeno App & Swipe Heat
+- Added Infeno 🔥 to Premium Apps grid: Corey-voice Tinder knockoff for swiping, matching, and sparking collabs or crushes
+- Every match could be your next creative partner, collab, or just a vibe—no games, just flames
+- More playful, bold, and direct energy in the grid
+- (Backend plan and frontend grid both updated)
+- Next up: limited-time sampling for non-premium users, upgrade prompts after sample time expires
+
+v11.9 - 🌐 UGC Sharing for All Apps
+- All user-generated content (UGC) from every app is now shareable on musicconnectz.net and online
+- Drop your beats, scores, collabs, and even ScoreZ ratings for the world to see—no gatekeeping, just pure expression
+- Go viral, get feedback, and flex your creativity everywhere
+- (Backend plan and frontend grid both updated)
+- Next up: more social features, discoverability, and creative freedom
+
+v12.0 - ✝️ Easter Backup App
+v12.0 - ✝️ Easter Backup App (created Easter Sunday, March 29, 2026)
+- Added Easter ✝️ to Premium Apps grid: resurrect your files, never lose a vibe—auto-save, one-click restore, and cloud peace of mind
+- Launched on Easter Sunday to honor the resurrection of Jesus—let your music and memories rise again, too
+- Keep your tracks, projects, and collabs safe, share with your crew, or keep ‘em locked down
+- More Corey-voice protection, more peace of mind, more reasons to create without fear
+- (Backend plan and frontend grid both updated)
+- Next up: smarter backup scheduling, file versioning, and flex-your-stash features
 

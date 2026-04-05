@@ -78,8 +78,8 @@
     <link rel="shortcut icon" type="image/png" href="/music-connectz-logo.png?v=10.7-20260402d" />
     <link rel="apple-touch-icon" href="/music-connectz-logo.png?v=10.7-20260402d" />
   <meta charset="UTF-8" />
-  <title>Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</title>
-  <meta name="description" content="Music ConnectZ v11.4 - Signup conversion hotfixes, OAuth fail-safe routing, and improved registration completion flow.">
+  <title>Music ConnectZ v12.0 bi K-Oth (Deployed 2026-04-05)</title>
+  <meta name="description" content="Music ConnectZ v12.0 - Easter backup app, resurrection for your files, and more Corey-voice protection!">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -261,7 +261,7 @@
         <!-- Persona Details Area -->
         <div id="persona-details" style="margin: 18px auto 0 auto; max-width: 400px; background: #f7f7f7; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 20px 14px 20px; border: 1.5px solid #bbb; display: none;"></div>
       </div>
-      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
+      <span id="mcz-title" style="font-weight:bold; font-size:1.2em; cursor:pointer; text-decoration:underline; white-space:nowrap; display:inline-block;">🎵 Music ConnectZ v12.0 bi K-Oth (Deployed 2026-04-05)</span><span id="header-date" style="font-size:0.95em; color:#888; margin-left:6px;"></span>
       <div id="member-count" style="margin-top:8px; font-size:1.05em; color:#2196F3; font-weight:600;"></div>
         <script>
           // Fetch and display live member count
@@ -297,7 +297,94 @@
         const versionLogContent = document.getElementById('version-log-content');
         const closeVersionLog = document.getElementById('close-version-log');
 
-        // Version history data (descending order, with emojis)
+        // Version history data (descending order, Corey-voice summaries)
+        const versionHistory = [
+                    {
+                      version: 'v11.6',
+                      summary: '📌 Board Categories & Corey-Voice Everywhere!\nMessage Boards just leveled up—pick a category that fits your vibe, from Production to Promo to Random, each with a playful Corey-voice description and emoji. Posting is now way easier (and way more fun). Plus, every last bit of site text is now pure Corey—no more boring forms or generic help.\n\n- 🗂️ New: Board categories with emoji and real talk, so your posts land in the right spot.\n- 😎 All forms, errors, and help text now talk like Corey—direct, fun, and loaded with attitude.\n- 🛠️ More polish, more personality, and more reasons to show off your music journey.\n- 🚀 Next up: limited-time sampling for Premium Apps and smarter upgrade prompts!'
+                    },
+          {
+            version: 'v11.5',
+            summary: '💎 Premium Apps Drop!\nWhoa! The new Premium Apps tab is here for everyone—sample wild DAW knockoffs, each with their own emoji and attitude. Try before you buy, then upgrade for the full arsenal. This is the most fun you’ll have making music without breaking the bank! 🚀\n\nHow we got here (Corey-voice):\n- 🚨 Started with backend chaos: merge conflicts, missing imports, and deployment fails. Fixed every bug, line by line, until the server was smooth as butter.\n- 🛡️ Got real about copyright and trademarks—learned when to protect the brand, how much it costs, and why “Music ConnectZ” is worth it.\n- 📝 Shifted gears to product: listed every persona, premium feature, and onboarding step. Rewrote all the in-app text in Corey’s voice, loaded with emojis and attitude.\n- 🧑‍💻 Dug into the frontend: found all the tabs, menus, and tour steps. Made sure every tab had a Corey-voice, emoji-rich summary so users know exactly what’s up.\n- 🎛️ Dreamed up the “Premium Apps” tab: replaced the old DAW with a grid of wild, knockoff DAWs—each with a custom name, emoji, and Corey-voice description. No copyright drama, just pure fun.\n- 🆓 Made Premium Apps visible to all: everyone can sample, but only the real ones upgrade for full access. Upgrade prompts are ready to nudge users at just the right time.\n- 📝 Version history got a glow-up: now, when you click the version, you get a Corey-voice summary of what’s new, what’s changed, and why it matters.\n- 🏁 Every step, every feature, every fix—documented, explained, and made user-friendly. The app is now more “you” than ever.'
+          },
+          {
+            version: 'v11.4',
+            summary: '🔥 Conversion Hotfixes\nWe squashed bugs, made signups smoother, and made sure you never get stuck on OAuth. Registration is now a breeze—just the way Corey likes it.'
+          },
+          {
+            version: 'v11.0',
+            summary: '💸 Yearly Premium Conversion Upgrade\nYearly Premium is now $99.99—save big, flex hard. Membership pricing is crystal clear, and the yearly plan is front and center for all you power users.'
+          },
+          {
+            version: 'v10.4',
+            summary: '🚀 OAuth-First Registration & Flexible Auth\nSign up with Google, Facebook, or six other providers—OAuth is now the main event. Prefer old school? Email and username are still here. Phone registration is ready for the future.'
+          },
+          {
+            version: 'v10.3',
+            summary: '🤖 GenAI Logic Upgrade\nThe AI got a brain boost! Now it answers like a real pro, explains the “what” and “why,” and can even talk in your style. No more surface-level stuff—Corey’s got depth.'
+          },
+          {
+            version: 'v10.2',
+            summary: '🎭 Emoji Personas & Short Names\nEvery persona got an emoji, and names are snappier. Your profile’s never looked this good.'
+          },
+          {
+            version: 'v10.1',
+            summary: 'Version Label Update\nJust keeping it real—everywhere you look, the version matches. No more “wait, what version is this?”'
+          },
+          {
+            version: 'v9.7',
+            summary: '📝 Royalties & Social Paradigm\nRoyalties agreements, floating 💰 button, and a new way to handle your music business. Export, remind, and keep it all organized.'
+          },
+          {
+            version: 'v9.6',
+            summary: '💎 Premium Upsell & Weekly Sales\nPremium perks are clearer, banners are randomized, and the upsell is smoother than ever. Get those deals!'
+          },
+          {
+            version: 'v9.0',
+            summary: '📱 Mobile-First UI Overhaul\nThe whole app got a facelift—now it’s slick on your phone and desktop. Social account linking is a breeze.'
+          },
+          {
+            version: 'v7.0',
+            summary: '💳 Payments & Referrals\nStripe and PayPal are in, and you can earn rewards for bringing your friends. Get paid, get perks.'
+          },
+          {
+            version: 'v6.0',
+            summary: '🌎 Internationalization\nNow in your language! Multi-language support and geo-location onboarding for a global collab experience.'
+          },
+          {
+            version: 'v5.0',
+            summary: '🎤 Portfolio & Premium\nUpload your best work, show off your skills, and unlock premium features for the real ones.'
+          },
+          {
+            version: 'v4.0',
+            summary: '🎸 Skill-Based Matching\nFind the right collab by skill and genre. No more random matches—get what you need.'
+          },
+          {
+            version: 'v3.0',
+            summary: '💬 Messaging & Collab Requests\nChat, send requests, and upload your best profile pic. It’s all about connection.'
+          },
+          {
+            version: 'v2.0',
+            summary: '🔗 Social Login\nSign up with Google or Facebook, and onboarding is smoother than a fresh beat.'
+          },
+          {
+            version: 'v1.0',
+            summary: '🚀 Launch\nThe OG drop: registration, login, and your first profile. The journey begins!\n\nTabs at launch:\n- Setup: Create your profile and set your vibe.\n- Personas: Pick your music role—artist, producer, engineer, and more.\n- Work: Upload your best tracks and show off.\n- Collab: Find collaborators and post requests.\n- Messages: Chat with your crew.\n- Boards: Pin ideas and keep projects moving.\n- Membership: See what premium gets you.\n- Profile: Edit your info and flex your stats.\n- Money: Track your wallet and earnings.\n- Settings: Tweak your experience.'
+          }
+        ];
+
+        // Show Corey-voice summary for current version
+        mczTitle.onclick = function() {
+          const currentVersion = 'v11.5';
+          const entry = versionHistory.find(v => v.version === currentVersion);
+          if (entry) {
+            versionLogContent.innerHTML = `<div style='font-size:1.1em; font-weight:700; margin-bottom:8px;'>${entry.version}</div><div>${entry.summary.replace(/\n/g, '<br>')}</div>`;
+          } else {
+            versionLogContent.innerHTML = 'No summary found for this version.';
+          }
+          versionLogModal.style.display = 'flex';
+        };
+        closeVersionLog.onclick = function() { versionLogModal.style.display = 'none'; };
         const versionHistory = [
           { v: 'v11.4', text: 'Signup conversion release: auto-login after registration, lower-friction password gate, and OAuth fail-safe redirect for all providers.', emoji: '🚀' },
           { v: 'v11.3', text: 'Ditto webhook strategy support, editable submission fields, and geo-language genre options added on top of major genres.', emoji: '🌍' },
@@ -410,15 +497,15 @@
     <h2>Sign Up</h2>
     <form id="signupForm">
       <input type="text" id="signupEmail" placeholder="Email, Username, or Phone" required autocomplete="username" />
-      <input type="password" id="signupPassword1" placeholder="Password" required />
-      <input type="password" id="signupPassword2" placeholder="Confirm Password" required />
-      <input type="text" id="signupReferralCode" placeholder="Referral Code (optional)" style="margin-bottom:10px;" />
+      <input type="password" id="signupPassword1" placeholder="Create a password (8+ chars) 🔒" required />
+      <input type="password" id="signupPassword2" placeholder="Type it again—no typos!" required />
+      <input type="text" id="signupReferralCode" placeholder="Got a code? Drop it here! 🎁" style="margin-bottom:10px;" />
       <div style="margin-bottom:10px; font-size:12px; color:#555;">
-        Non-OAuth auth: use one identifier field (email, username, or phone). Register uses 2 password fields, login uses 1.
+        🛡️ Not a fan of OAuth? No worries—just drop your email, username, or phone below. Register = 2 passwords, Login = 1. Keep it simple, keep it secure!
       </div>
       <div style="margin-bottom:10px;">
         <small id="password-help" style="color: #555;">
-          Password must be at least 8 characters.
+          🔒 Passwords gotta be 8+ characters. Make it strong, make it yours!
         </small>
       </div>
       <div>
@@ -625,11 +712,11 @@
       const pw2 = document.getElementById('signupPassword2').value;
       let errorMsg = '';
       if (!identifier) {
-        errorMsg = 'Email, username, or phone number is required.';
+        errorMsg = '🚨 Whoops! You gotta enter your email, username, or phone.';
       } else if (pw1 !== pw2) {
-        errorMsg = 'Passwords do not match.';
+        errorMsg = '😬 Passwords don’t match. Double-check and try again!';
       } else if (pw1.length < 8) {
-        errorMsg = 'Password must be at least 8 characters.';
+        errorMsg = '🔒 Password’s too short! Make it at least 8 characters.';
       }
       if (errorMsg) {
         document.getElementById('signup-error').innerText = errorMsg;
@@ -664,11 +751,11 @@
         .then(({ status, body }) => {
           if (status === 201) {
             document.getElementById('signup-error').style.color = 'green';
-            document.getElementById('signup-error').innerText = 'Registration successful! You can now log in.';
+            document.getElementById('signup-error').innerText = '🎉 You’re in! Registration successful—go ahead and log in.';
             document.getElementById('signupForm').reset();
           } else {
             document.getElementById('signup-error').style.color = 'red';
-            document.getElementById('signup-error').innerText = body.identifier || body.email || body.username || body.phone_number || body.password || body.non_field_errors || 'Registration failed.';
+            document.getElementById('signup-error').innerText = body.identifier || body.email || body.username || body.phone_number || body.password || body.non_field_errors || '😔 Registration failed. Try again or hit us up for help.';
           }
         })
         .catch((err) => {
@@ -678,9 +765,9 @@
           document.getElementById('signup-error').style.color = 'red';
           document.getElementById('signup-error').innerText = likelyCors
             ? (shouldRedirectToBackendAuth
-              ? 'Registration blocked by server CORS policy. Redirecting to backend auth...'
-              : 'Registration blocked by server CORS policy. Please try again in a moment.')
-            : 'Registration failed. Server error.';
+              ? '🚧 Registration blocked by server. Redirecting you to the secure backend...'
+              : '🚧 Registration blocked by server. Try again in a sec!')
+            : '😔 Registration failed. Server error—try again soon!';
           if (likelyCors && shouldRedirectToBackendAuth) {
             setTimeout(() => {
               const nextUrl = encodeURIComponent(location.href);
@@ -1239,7 +1326,7 @@
         <div class="lang-selector-dropdown" id="langSelectorDropdown"></div>
       </div>
     </div>
-    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v11.4 bi K-Oth (Deployed 2026-04-04)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
+    <div class="header-center"><div class="header-title">🎶 Music ConnectZ v11.5 bi K-Oth (Deployed 2026-04-05)</div><div class="header-subtitle" id="headerSubtitle">Find Local Collaborators Fast • Verified Profiles • Skill-Based Matching</div></div>
     <div class="header-right"><button class="btn btn-small" id="headerLoginBtn" onclick="openLoginOverlay()">🔓 Login</button><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
   </div>
 
@@ -1261,16 +1348,47 @@
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
-    <button class="tab-btn" onclick="switchTab('personas')">🎭 Personas</button>
-    <button class="tab-btn" onclick="switchTab('examples')">🎵 Work</button>
-    <button class="tab-btn premium-only" data-premium-only="true" onclick="switchTab('daw')">🎛️ Premium DAW</button>
-    <button class="tab-btn" onclick="switchTab('collaborate')">🤝 Collab</button>
-    <button class="tab-btn" onclick="switchTab('messages')">💬 Messages</button>
-    <button class="tab-btn" onclick="switchTab('boards')">📌 Boards</button>
-    <button class="tab-btn" onclick="switchTab('membership')">⭐ Membership</button>
-    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button>
+      <div class="card">
+        <div class="card-header">📌 Message Boards</div>
+        <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 10px; color: var(--text-light);">
+          Free: <strong>2 posts/day</strong> • Premium: <strong>unlimited + boost placement</strong>
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="boardCategory" style="width:100%; font-size:12px; padding:8px; border-radius:6px; margin-bottom:8px;">
+            <option value="">Pick a category that fits your vibe</option>
+            <option value="production">🎛️ Production – Drop tips, tricks, or gear talk. If it makes noise, it belongs here!</option>
+            <option value="collab">🤝 Collab – Looking for a partner in crime? Post your collab requests and find your crew.</option>
+            <option value="vocalist">🎤 Vocalist – Singers, rappers, and hook-masters—show off, get feedback, or find a track to bless.</option>
+            <option value="events">🎫 Events – Promote your next show, livestream, or open mic. If it’s happening, it’s here!</option>
+            <option value="feedback">🧐 Feedback – Want real talk on your latest track? Drop it here and get honest, helpful feedback.</option>
+            <option value="promo">🚀 Promo – Got a new release, video, or merch? Plug it here and let the world know!</option>
+            <option value="opportunity">💼 Opportunity – Jobs, gigs, contests, or anything that helps the squad level up.</option>
+            <option value="random">🎲 Random – Anything goes! Memes, questions, or just say what’s on your mind.</option>
+          </select>
+          <div id="boardCategoryDesc" style="font-size:11px; color:#e65100; margin-bottom:8px;"></div>
+        </div>
+        <div class="form-group"><label>Title *</label><input type="text" id="boardTitle" maxlength="80" placeholder="Give your post a headline that pops! ✨" /></div>
+        <div class="form-group"><label>Message *</label><textarea id="boardBody" maxlength="500" placeholder="Drop your update, question, or opportunity—don’t hold back! 🚀" style="height: 90px;"></textarea></div>
+        <button class="btn btn-success" onclick="createMessageBoardPost()" style="width: 100%;">📤 Post to Board</button>
+      </div>
+      <script>
+        // Corey-voice category descriptions
+        const boardCategoryDescriptions = {
+          production: "🎛️ Got a hot take on plugins, mixing, or gear? This is where the nerds unite!",
+          collab: "🤝 Find your next partner, bandmate, or creative soulmate. Don’t be shy—shoot your shot!",
+          vocalist: "🎤 Flex those pipes or find a voice for your next banger. All styles welcome!",
+          events: "🎫 Promote your show, livestream, or anything with a stage. If you’re performing, we wanna know!",
+          feedback: "🧐 Drop your track and get real, no-fluff feedback from the squad.",
+          promo: "🚀 Hype your new drop, video, or merch. If you’re proud of it, plug it here!",
+          opportunity: "💼 Share jobs, gigs, contests, or anything that helps the crew level up.",
+          random: "🎲 Anything goes—memes, rants, or just say what’s on your mind!"
+        };
+        document.getElementById('boardCategory').addEventListener('change', function() {
+          const val = this.value;
+          document.getElementById('boardCategoryDesc').innerText = boardCategoryDescriptions[val] || '';
+        });
+      </script>
     <button class="tab-btn" onclick="switchTab('money')">💰 Money</button>
     <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
@@ -1280,22 +1398,24 @@
       <div class="card">
         <div class="card-header">👤 Your Profile</div>
         <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Your name" /></div>
+          <div class="form-group"><label>Username *</label><input type="text" id="username" placeholder="Pick a name that slaps!" /></div>
         <div class="grid-2"><div class="form-group"><label>📧 Email *</label><input type="email" id="email" /></div><div class="form-group"><label>📱 Phone *</label><input type="tel" id="phone" /></div></div>
         <div class="grid-2"><div class="form-group"><label>🎂 Birthday *</label><input type="date" id="birthday" /></div><div class="form-group"><label>⚧️ Gender *</label><select id="gender"><option value="">Select</option><option value="Male">🚹 Male ♂️</option><option value="Female">🚺 Female ♀️</option><option value="Non-Binary">⚧️ Non-Binary</option></select></div></div>
         <div class="form-group">
           <label>📍 Location *</label>
           <div style="display: flex; gap: 8px; margin-bottom: 8px;">
             <input type="text" id="location" placeholder="City, State or Zip" style="flex: 1;" />
+                        <input type="text" id="location" placeholder="Where you at? (City, State, or Zip) 📍" style="flex: 1;" />
             <button class="btn btn-secondary btn-small" onclick="requestGPS()" id="gpsBtn">📍 GPS</button>
           </div>
           <div class="gps-status" id="gpsStatus">Requesting location...</div>
         </div>
         <div class="form-group"><label>📸 Profile Picture</label><input type="file" id="profilePicFile" accept="image/*" onchange="loadProfilePic(event)" /></div>
-        <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="About you..." style="height: 60px;"></textarea></div>
+        <div class="form-group"><label>📝 Bio</label><textarea id="bio" placeholder="Drop your story, flex your vibe!" style="height: 60px;"></textarea></div>
         <div class="grid-3">
           <div class="form-group"><label>🎓 Schools</label><textarea id="expSchools" placeholder="One school per line" style="height: 70px;"></textarea></div>
-          <div class="form-group"><label>🎛️ Apps/Tools</label><textarea id="expApps" placeholder="One app/tool per line" style="height: 70px;"></textarea></div>
-          <div class="form-group"><label>👩‍🏫 Teachers/Mentors</label><textarea id="expTeachers" placeholder="One teacher per line" style="height: 70px;"></textarea></div>
+          <div class="form-group"><label>🎛️ Apps/Tools</label><textarea id="expApps" placeholder="DAWs, plugins, gear—flex your setup! (One per line)" style="height: 70px;"></textarea></div>
+          <div class="form-group"><label>👩‍🏫 Teachers/Mentors</label><textarea id="expTeachers" placeholder="Who schooled you? (One per line)" style="height: 70px;"></textarea></div>
         </div>
         <button class="btn btn-success" onclick="saveProfile()" style="width: 100%;">💾 Save Profile</button>
       </div>
@@ -1349,57 +1469,25 @@
       </div>
     </div>
 
-    <div id="daw" class="tab">
+    <div id="premiumapps" class="tab">
       <div class="card">
-        <div class="card-header">🎛️ DAW Studio</div>
-        <div id="dawPremiumGate" class="premium-lock" style="display:none;">
-          <div><strong>Premium Feature:</strong> DAW Studio (Pro Arsenal + Fruity Cycles) is Premium-only.</div>
-          <button class="btn btn-small" onclick="switchTab('membership')">Upgrade</button>
+        <div class="card-header">💎 Premium Apps</div>
+        <div class="premium-apps-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 18px;">
+          <div class="premium-app-card"><div style="font-size:2em;">🎛️</div><div style="font-weight:600; margin:6px 0 2px;">ClipFlow</div><div style="font-size:12px; color:var(--text-light);">Drop loops, launch clips, and warp audio like a pro. Ableton vibes, wallet-friendly! 🚀</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🍊</div><div style="font-weight:600; margin:6px 0 2px;">Fruity Mobius</div><div style="font-size:12px; color:var(--text-light);">Lay down fire beats in a channel rack that’s all kicks, claps, and pure fun. Fruity flavor, infinite flow!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🧠</div><div style="font-weight:600; margin:6px 0 2px;">Intelligent Design</div><div style="font-size:12px; color:var(--text-light);">Slick, smooth, and Mac-inspired. Arrange, mix, and master with pure creative logic—no Mac required!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🎹</div><div style="font-weight:600; margin:6px 0 2px;">ShedKeys</div><div style="font-size:12px; color:var(--text-light);">Plug in, play, and record. The easiest way to jam, even if you’re just starting out!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🏆</div><div style="font-weight:600; margin:6px 0 2px;">Right Side Arsenal</div><div style="font-size:12px; color:var(--text-light);">Industry-standard mixing and editing, now for the bedroom producer. Big studio energy, tiny price!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🧱</div><div style="font-weight:600; margin:6px 0 2px;">Rubiks Brick</div><div style="font-size:12px; color:var(--text-light);">Compose, score, and produce with classic workflow—no dongle drama, just creative blocks to play with!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🤔</div><div style="font-weight:600; margin:6px 0 2px;">Intuition</div><div style="font-size:12px; color:var(--text-light);">Virtual rack of synths, samplers, and drum machines. Patch cables, twist knobs, go wild!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🏢</div><div style="font-weight:600; margin:6px 0 2px;">Public Housing</div><div style="font-size:12px; color:var(--text-light);">Drag, drop, and create. Fast, modern, and ready for your next hit—no gatekeeping here!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🤵</div><div style="font-weight:600; margin:6px 0 2px;">Trump Toupée</div><div style="font-size:12px; color:var(--text-light);">Modular, experimental, and perfect for sound designers. Push boundaries, break rules, and style your sound!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🦇</div><div style="font-weight:600; margin:6px 0 2px;">Azrael</div><div style="font-size:12px; color:var(--text-light);">Lightweight, powerful, and endlessly customizable. The DAW for tinkerers and pros alike!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">☁️</div><div style="font-weight:600; margin:6px 0 2px;">CloudJam</div><div style="font-size:12px; color:var(--text-light);">Collaborate online, make music anywhere. Cloud-powered jams for the modern musician!</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">💃🏾</div><div style="font-weight:600; margin:6px 0 2px;">Liliths</div><div style="font-size:12px; color:var(--text-light);">Unleash your wild side. Liliths is for the creators who move different—bold, intuitive, and always in their own rhythm. Drop your ideas, remix your reality, and dance like nobody’s watching. This is goddess mode, activated.</div></div>
+          <div class="premium-app-card"><div style="font-size:2em;">🔥</div><div style="font-weight:600; margin:6px 0 2px;">Infeno</div><div style="font-size:12px; color:var(--text-light);">Swipe, match, and spark something wild. Infeno is the Corey-voice remix of Tinder—where the heat is real, the vibes are bold, and every match could be your next collab, crush, or creative partner. Shoot your shot, drop a beat, or just set the chat on fire. No games, just flames.</div></div>
         </div>
-        <div style="font-size:11px; color:var(--text-light); margin-bottom:10px;">Two workflows: Pro Tools: Pro Arsenal and FL Studio: Fruity Cycles.</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-          <button id="dawModeProBtn" class="btn" onclick="setDawMode('protools')">🎚️ Pro Tools: Pro Arsenal</button>
-          <button id="dawModeFlBtn" class="btn btn-secondary" onclick="setDawMode('fl')">🥁 FL Studio: Fruity Cycles</button>
-          <div style="display:flex; align-items:center; gap:6px; margin-left:auto;">
-            <span style="font-size:11px; color:var(--text-light);">BPM</span>
-            <input id="dawBpmInput" type="number" min="60" max="220" value="120" style="width:80px;" onchange="setDawBpm(this.value)" />
-          </div>
-        </div>
-
-        <div id="dawProToolsPanel" style="display:block;">
-          <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-small" onclick="addDawTrack()">➕ Add Track</button>
-            <button class="btn btn-secondary btn-small" onclick="addClipToSelectedTrack()">🧩 Add Clip</button>
-            <label class="btn btn-secondary btn-small" style="cursor:pointer;">🎵 Import Audio<input id="dawAudioImport" type="file" accept="audio/*" style="display:none;" onchange="importDawAudioFile(event)" /></label>
-            <button class="btn btn-secondary btn-small" onclick="editSelectedClip()">✂️ Edit Selected Clip</button>
-            <button class="btn btn-secondary btn-small" onclick="toggleDawPlayhead()" id="dawTransportBtn">▶️ Play</button>
-            <button class="btn btn-secondary btn-small" onclick="stopDawPlayhead()">⏹ Stop</button>
-            <label style="font-size:11px; color:var(--text-light); display:flex; align-items:center; gap:6px;">Zoom <input type="range" min="0.6" max="2.2" step="0.1" value="1" onchange="setDawZoom(this.value)" /></label>
-          </div>
-          <div id="dawSelectedClipInfo" style="font-size:11px; color:var(--text-light); margin-bottom:8px;">No clip selected.</div>
-          <div id="dawTrackList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-
-        <div id="dawFlPanel" style="display:none;">
-          <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
-            <button class="btn btn-secondary btn-small" onclick="playStepSequencer()">▶️ Play Pattern</button>
-            <button class="btn btn-secondary btn-small" onclick="stopStepSequencer()">⏹ Stop</button>
-            <button class="btn btn-secondary btn-small" onclick="clearStepPattern()">🧹 Clear</button>
-            <button class="btn btn-secondary btn-small" onclick="randomizeStepPattern()">🎲 Randomize</button>
-            <label style="font-size:11px; color:var(--text-light); display:flex; align-items:center; gap:6px;">Synth
-              <select id="flSynthWave" onchange="setFlSynthWave(this.value)">
-                <option value="sawtooth">Saw</option>
-                <option value="square">Square</option>
-                <option value="triangle">Triangle</option>
-                <option value="sine">Sine</option>
-              </select>
-            </label>
-          </div>
-          <div id="stepSequencerGrid" style="overflow-x:auto;"></div>
-          <div style="font-size:11px; color:var(--text-light); margin:8px 0 6px;">🎹 Piano Roll</div>
-          <div id="pianoRollGrid" style="overflow-x:auto;"></div>
-          <div style="margin-top:10px; font-size:11px; color:var(--text-light);">Tip: click cells to build kicks, snares, hats, and claps. This mimics a classic FL channel rack workflow.</div>
-        </div>
+        <div style="margin-top:24px; font-size:13px; color:#bfa700; text-align:center;">Sample each app for a limited time. Upgrade to unlock full access!</div>
       </div>
     </div>
 
@@ -1547,8 +1635,8 @@
           Free: <strong>2 posts/day</strong> • Premium: <strong>unlimited + boost placement</strong>
         </div>
         <div class="form-group"><label>Title *</label><input type="text" id="boardTitle" maxlength="80" placeholder="Headline your post ✨" /></div>
-        <div class="form-group"><label>Subject</label><input type="text" id="boardTag" maxlength="32" placeholder="🎛️ Production, 🤝 Collab, 🎤 Vocalist, 🎫 Events" /></div>
-        <div class="form-group"><label>Message *</label><textarea id="boardBody" maxlength="500" placeholder="Drop your update, question, or opportunity 🚀" style="height: 90px;"></textarea></div>
+        <div class="form-group"><label>Subject</label><input type="text" id="boardTag" maxlength="32" placeholder="🎛️ Production, 🤝 Collab, 🎤 Vocalist, 🎫 Events—what’s this about?" /></div>
+        <div class="form-group"><label>Message *</label><textarea id="boardBody" maxlength="500" placeholder="Drop your update, question, or opportunity—don’t hold back! 🚀" style="height: 90px;"></textarea></div>
         <button class="btn btn-success" onclick="createMessageBoardPost()" style="width: 100%;">📤 Post to Board</button>
       </div>
       <div class="card">
