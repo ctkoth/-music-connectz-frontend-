@@ -1,3 +1,22 @@
+// Corey-voice SpinaZ notification (global)
+function notifySpinaZ(amount, reason) {
+  const msg = `⭐ You just earned ${amount} SpinaZ! ${reason ? reason : "Keep stacking those points—Corey style."}`;
+  if (window.Notification && Notification.permission === 'granted') {
+    new Notification('SpinaZ Reward', {
+      body: msg,
+      icon: '/music-connectz-logo.png'
+    });
+  } else if (window.Notification && Notification.permission !== 'denied') {
+    Notification.requestPermission().then(function(permission) {
+      if (permission === 'granted') {
+        new Notification('SpinaZ Reward', {
+          body: msg,
+          icon: '/music-connectz-logo.png'
+        });
+      }
+    });
+  }
+}
 // Corey-Voice Toggles: Emoji and Vernacular (User Autonomy)
 // Add this to your main app JS (vanilla or React)
 

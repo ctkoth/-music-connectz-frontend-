@@ -91,6 +91,44 @@
   <script src="/stripe-config.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
+  // Listen for all Socket.IO events and notify user (Corey-voice style)
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.io) {
+      const socket = io(window.MCZ_CONFIG.backendUrl, { transports: ['websocket', 'polling'] });
+      // Listen for all events
+      socket.onAny((event, ...args) => {
+        let msg = '';
+        // Try to make the message Corey-voice and relevant
+        if (event === 'user_active' && args[0] && args[0].username) {
+          msg = `🎵 ${args[0].username} just got active on MC!`;
+        } else if (event === 'user_login' && args[0] && args[0].username) {
+          msg = `🔓 ${args[0].username} just logged in!`;
+        } else if (event === 'spina_reward' && args[0] && args[0].amount) {
+          msg = `⭐ Someone just earned ${args[0].amount} SpinaZ!`;
+        } else {
+          msg = `👀 New activity: ${event}`;
+        }
+        // Browser notification
+        if (window.Notification && Notification.permission === 'granted') {
+          new Notification('Music ConnectZ', {
+            body: msg,
+            icon: '/music-connectz-logo.png'
+          });
+        } else if (window.Notification && Notification.permission !== 'denied') {
+          Notification.requestPermission().then(function(permission) {
+            if (permission === 'granted') {
+              new Notification('Music ConnectZ', {
+                body: msg,
+                icon: '/music-connectz-logo.png'
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+  </script>
+  <script>
     // --- Money Emoji by Language/Region ---
     function getMoneyEmojiByLang(lang) {
       // Map language/region to currency emoji
@@ -198,6 +236,24 @@
         <button id="onboardingTourPrev" class="btn btn-small" style="flex:1; margin-right:8px; background:#eee; color:#333; border:none;">◀</button>
         <button id="onboardingTourNext" class="btn btn-small" style="flex:1; margin-left:8px; background:#2196F3; color:#fff; border:none;">Next ▶</button>
       </div>
+      <script>
+      // Add a summary step to the onboarding tour
+      window.MCZ_ONBOARDING_TOUR = window.MCZ_ONBOARDING_TOUR || [];
+      window.MCZ_ONBOARDING_TOUR.unshift({
+        title: '🎵 Welcome to Music ConnectZ!',
+        content: `Here’s your all-access pass to every feature:<br><br>
+<b>• Profile & Persona:</b> Show off your vibe, pick your music role, and flex your stats.<br>
+<b>• Collab & Boards:</b> Find collaborators, post requests, and pin ideas—no more missed connections.<br>
+<b>• Ratings & Feedback:</b> Get real feedback, earn SpinaZ, and level up your skills.<br>
+<b>• Corey-Voice:</b> Every message, error, and help text is pure Corey—fun, flirty, and never boring.<br>
+<b>• Premium & SpinaZ:</b> Unlock premium features, gift friends, and stack SpinaZ for rewards.<br>
+<b>• Royalties & Money:</b> Track your wallet, manage agreements, and get paid for your work.<br>
+<b>• Social Login & Security:</b> Sign up fast, link accounts, and keep your data safe.<br>
+<b>• AI & Tools:</b> Analyze your music, auto-mix/master, and get AI-powered feedback.<br>
+<b>• International:</b> Use MC in your language, match by genre, and connect worldwide.<br><br>
+Ready to make some noise? Let’s go!`
+      });
+      </script>
       <button id="onboardingTourClose" class="btn btn-small" style="margin-top:18px; background:#fff; color:#2196F3; border:1px solid #2196F3;">Close</button>
       <div id="onboardingTourProgress" style="margin-top:10px; font-size:12px; color:#888;"></div>
     </div>
@@ -308,10 +364,10 @@
             summary: '🌿 ePiffaNieZ RPG Launch\nA new tactical RPG experience based on my bio: because I smoked piff, made piff music, and play on epiphany.\n\n- 🚀 New: ePiffaNieZ RPG branding and homepage badge\n- 🧬 Story, characters, and battles inspired by my real life and music journey\n- 🎵 Tactical RPG style, with music, lyrics, and metadata always visible\n- 💜 For the culture, for the vibes, for the piff.'
           },
                     {
-                      version: 'v11.6',
+                  3    version: 'v11.6',uired
                       summary: '📌 Board Categories & Corey-Voice Everywhere!\nMessage Boards just leveled up—pick a category that fits your vibe, from Production to Promo to Random, each with a playful Corey-voice description and emoji. Posting is now way easier (and way more fun). Plus, every last bit of site text is now pure Corey—no more boring forms or generic help.\n\n- 🗂️ New: Board categories with emoji and real talk, so your posts land in the right spot.\n- 😎 All forms, errors, and help text now talk like Corey—direct, fun, and loaded with attitude.\n- 🛠️ More polish, more personality, and more reasons to show off your music journey.\n- 🚀 Next up: limited-time sampling for Premium Apps and smarter upgrade prompts!'
                     },
-          {
+          {25
             version: 'v11.5',
             summary: '💎 Premium Apps Drop!\nWhoa! The new Premium Apps tab is here for everyone—sample wild DAW knockoffs, each with their own emoji and attitude. Try before you buy, then upgrade for the full arsenal. This is the most fun you’ll have making music without breaking the bank! 🚀\n\nHow we got here (Corey-voice):\n- 🚨 Started with backend chaos: merge conflicts, missing imports, and deployment fails. Fixed every bug, line by line, until the server was smooth as butter.\n- 🛡️ Got real about copyright and trademarks—learned when to protect the brand, how much it costs, and why “Music ConnectZ” is worth it.\n- 📝 Shifted gears to product: listed every persona, premium feature, and onboarding step. Rewrote all the in-app text in Corey’s voice, loaded with emojis and attitude.\n- 🧑‍💻 Dug into the frontend: found all the tabs, menus, and tour steps. Made sure every tab had a Corey-voice, emoji-rich summary so users know exactly what’s up.\n- 🎛️ Dreamed up the “Premium Apps” tab: replaced the old DAW with a grid of wild, knockoff DAWs—each with a custom name, emoji, and Corey-voice description. No copyright drama, just pure fun.\n- 🆓 Made Premium Apps visible to all: everyone can sample, but only the real ones upgrade for full access. Upgrade prompts are ready to nudge users at just the right time.\n- 📝 Version history got a glow-up: now, when you click the version, you get a Corey-voice summary of what’s new, what’s changed, and why it matters.\n- 🏁 Every step, every feature, every fix—documented, explained, and made user-friendly. The app is now more “you” than ever.'
           },
@@ -759,8 +815,28 @@
         .then(({ status, body }) => {
           if (status === 201) {
             document.getElementById('signup-error').style.color = 'green';
-            document.getElementById('signup-error').innerText = '🎉 You’re in! Registration successful—go ahead and log in.';
-            document.getElementById('signupForm').reset();
+            // Corey-voice greeting and 1s delay before login prompt
+            document.getElementById('signup-error').innerText = '🎉 You’re in! Welcome to the ConnectZ fam—Corey style. Go flex your new account!';
+            // Browser notification (if allowed)
+            if (window.Notification && Notification.permission === 'granted') {
+              new Notification('Music ConnectZ', {
+                body: '🎉 New registration! Welcome to the fam—Corey style.',
+                icon: '/music-connectz-logo.png'
+              });
+            } else if (window.Notification && Notification.permission !== 'denied') {
+              Notification.requestPermission().then(function(permission) {
+                if (permission === 'granted') {
+                  new Notification('Music ConnectZ', {
+                    body: '🎉 New registration! Welcome to the fam—Corey style.',
+                    icon: '/music-connectz-logo.png'
+                  });
+                }
+              });
+            }
+            setTimeout(() => {
+              document.getElementById('signup-error').innerText = 'Registration successful—go ahead and log in.';
+              document.getElementById('signupForm').reset();
+            }, 1000);
           } else {
             document.getElementById('signup-error').style.color = 'red';
             document.getElementById('signup-error').innerText = body.identifier || body.email || body.username || body.phone_number || body.password || body.non_field_errors || '😔 Registration failed. Try again or hit us up for help.';

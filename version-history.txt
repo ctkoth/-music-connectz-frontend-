@@ -1,7 +1,72 @@
-- Corey suggests: “Be as inclusive as you’re comfortable with, and as exclusive as practical for your vision. The more open your collab, the more talent and ideas you’ll attract! 🌈✨”
-+ Corey suggests: “Be as inclusive as you’re comfortable with, and as exclusive as practical for your vision. The more open your collab, the more talent and ideas you’ll attract! 🌈✨”
+v15.0 - 🚀 All-Features Tour & Premium Trial Workflow
+- Onboarding tour now starts with a Corey-voice summary of every major feature—so new users get the full MC experience from the jump.
+- Automatic 1-month premium trial for all new users, with opt-in, Corey-voice reminders, and special promo offers before trial ends.
+- Real-time Corey-voice notifications for user activity, SpinaZ rewards, premium trials, and more (Socket.IO powered).
+- All notifications, reminders, and upsells are positive, optional, and never naggy—Corey style.
+- Bug fixes, polish, and more Corey everywhere.
+#
+v15.6 (April 5, 2026)
+- Beat ConnectZ workflow clarified: Users create beats/instrumentals in any pre-app DAW (Fruity Mobius, etc.) using any pro VSTi/instruments they own.
+- After making music in their DAW, users link and distribute it exclusively on Music ConnectZ (mc) via Beat ConnectZ.
+- Beat ConnectZ is not a VSTi plugin; it connects your DAW creations to mc for exclusive distribution.
+- Playful Corey-voice UI/UX copy added to help section and landing page.
 
-Corey-voice: Flirty/playful feedback and guidance now live for users with avg rating ≥5. All new features and logs use Corey’s signature style.
+v15.5 - 🥁 AI Beat Producer: Custom Beats, Corey-Style!
+- Instantly generate beats by picking your genre, BPM, instruments, and key—AI does the rest!
+- Corey Knap is credited as the official producer for all AI-generated beats.
+- Beats can only be distributed or shared on music-connectz (mc), never downloaded—keeping your sound exclusive.
+- Preview, tweak, and use your beats in any mc pre-app or collab.
+- Corey-voice tips and encouragement at every step—your creative partner in every groove!
+#
+- Premium users can import their song files into a pre-app DAW and let Sound Reasoning ConnectZ (SRC) auto-mix their tracks with AI magic.
+- Preview, tweak, and export your AI-mixed song—right inside music-connectz.
+- If you release a track mixed this way, you must transparently share a small, fair percentage of your royalties with the platform (details always clear and upfront—this is a required part of the service).
+- After mixing, you can also have your song AI-mastered to industry standard for that final pro polish—one click, all in the app.
+- Only songs mixed with this service can be distributed or shared on the app—they can’t be downloaded, keeping your music safe and exclusive.
+- Corey keeps it real: “You get pro-level mixes, we keep the lights on, and everyone wins!”
+- Full transparency, no hidden fees, and you always control your music and your money.
+#
+v15.3 - 🎧 Sound Reasoning ConnectZ: AI Music Analysis!
+- Drop your tracks and get instant, AI-powered feedback on key, genre, mood, and mix quality—vocals too low, bass too muddy, or drums just right? Corey’s got you!
+- Get per-track analysis for every sound: vocals, instruments, effects, and more.
+- Visualize your music with waveforms, spectrograms, and loudness meters.
+- Corey-voice tips and suggestions help you level up your sound, always positive and actionable.
+- Share your results as posts or keep them private—your music, your journey, your call.
+#
+v15.2 - 🪞 Good LookZ: AI & Community Aesthetic Ratings!
+- Introducing Good LookZ, your new pre-app for playful, optional aesthetic ratings—powered by AI (if you want) and the community.
+- Rate your own pics, get feedback from Corey, friends, or the AI (with full consent and privacy controls).
+- All scores are 1–10, but Corey always keeps it positive, supportive, and in your voice.
+- Mirror emoji means it’s all about self-reflection, confidence, and fun—never judgment.
+- You’re always in control: opt in, opt out, or just enjoy the vibes!
++ You must upload at least 1 pic or video to get a rating—more pics or videos give you a more accurate, well-rounded result.
++ Corey says: “Want a more accurate vibe check? Add a few more pics or videos—let’s see your style from every angle!”
++ You always control which media is used for ratings and who can see each upload.
+- Introducing Good LookZ, your new pre-app for playful, optional aesthetic ratings—powered by AI (if you want) and the community.
+- Rate your own pics, get feedback from Corey, friends, or the AI (with full consent and privacy controls).
+- All scores are 1–10, but Corey always keeps it positive, supportive, and in your voice.
+- Mirror emoji means it’s all about self-reflection, confidence, and fun—never judgment.
+- You’re always in control: opt in, opt out, or just enjoy the vibes!
+#
+v15.0 - 🔄 Universal Tasks, Everywhere!
+- Now you can create a todo in any pre-app (like Lilith) and use, update, or finish it in any other app—seamless, synced, and always at your fingertips.
+- All your tasks live in one universal list, so your workflow moves with you, not against you.
+- This is the new paradigm: every feature should work across all apps, so you can mix, match, and move however you want.
+- More features will follow this model—if you can do it in one app, you can do it in any app. That’s the vibe.
+
+#
+v14.9 - 💖 Filters for Every Vibe & Vibe ConnectZ!
+
+#
+v14.8 - 🗓️ SONDAY: Tag, Plan, and Sync!
+- Plan, track, and crush your weightlifting or fitness goals with Body ConnectZ—your new premium routine planner.
+- Build custom routines, log sets/reps/weights, and smash your personal bests. Share your progress or keep it private—your grind, your rules.
+- Every workout can be a universal task, so your fitness journey fits right into your creative workflow.
+
+ Log full body measurements: weight, height, hip, waist, arm, forearm, thigh, calf, shoulder, neck.
+ BMI is auto-calculated from height and weight.
+ Muscle mass is estimated based on your logged routines—get smarter insights as you train.
+ Visualize your progress with charts for every stat, and control what’s private or public.
 #
 v14.7 - 🎹 Universal VST Support for Pre-App DAWs!
 - All pre-app DAWs on music-connectz now support VST plugins—load your favorite synths and effects right inside your workflow.
@@ -208,4 +273,10 @@ v12.0 - ✝️ Easter Backup App (created Easter Sunday, March 29, 2026)
 - More Corey-voice protection, more peace of mind, more reasons to create without fear
 - (Backend plan and frontend grid both updated)
 - Next up: smarter backup scheduling, file versioning, and flex-your-stash features
+
+v15.7 (planned)
+- Type ConnectZ: New MBTI-style personality quiz (Corey-voice, 16 types, 4 dichotomies)
+- Results saved to profile, shown on onboarding and profile (with privacy controls)
+- Filter/match users by type in collab search and other pre-apps
+- Playful, original questions and results—no copyright drama, just pure fun!
 
