@@ -1,5 +1,58 @@
+- Corey suggests: “Be as inclusive as you’re comfortable with, and as exclusive as practical for your vision. The more open your collab, the more talent and ideas you’ll attract! 🌈✨”
++ Corey suggests: “Be as inclusive as you’re comfortable with, and as exclusive as practical for your vision. The more open your collab, the more talent and ideas you’ll attract! 🌈✨”
+
+Corey-voice: Flirty/playful feedback and guidance now live for users with avg rating ≥5. All new features and logs use Corey’s signature style.
+#
+v14.7 - 🎹 Universal VST Support for Pre-App DAWs!
+- All pre-app DAWs on music-connectz now support VST plugins—load your favorite synths and effects right inside your workflow.
+- Powered by JUCE and the latest VST3 SDK for maximum compatibility and stability.
+- Seamless plugin scanning, easy UI for loading/managing VSTs, and full cross-platform support.
+- Corey says: “Bring your sound to life with any plugin you love—no limits, just vibes!”
+
+- Users can now rate each other’s profile pics for fun, and collab projects can set an optional minimum aesthetic rating for participants (never required!).
++ Users’ profile pics can be anything they want—if they include themselves or other people, those people can be tagged and ascribed aesthetic ratings (with consent). No one is required to use a real photo.
+#
+v14.6 - 💅 Optional Aesthetic Ratings & Inclusive Collabs!
+- Users can now rate each other’s profile pics for fun, and collab projects can set an optional minimum aesthetic rating for participants (never required!).
+- All users can view all collabs, but only those who meet requested (optional) metrics can accept/join directly—no one is ever excluded from seeing opportunities.
+- Corey suggests: “Be as inclusive as you’re comfortable with, and as exclusive as practical for your vision. The more open your collab, the more talent and ideas you’ll attract! 🌈✨”
+- No metrics are ever required—just more ways to find your vibe and build your dream team!
+
+#
+v14.5 - 📊 Corey Gets Real: Quantifiable Feedback & Teacher Path!
+- Corey now gives you your exact average rating and actionable feedback—no more guessing how you’re doing!
+- If your rating is low, Corey suggests lessons and top-rated teachers/mentors in your area to help you level up fast.
+- High-rated users (8+) get a nudge to become teachers themselves, with a direct path to start mentoring and earning SpinaZ.
+- All feedback is personalized, positive, and designed to help you grow—no shame, just real talk and real support!
+
+#
+v14.4 - 😏 Corey Gets Flirty for High Ratings!
+- Corey’s voice is now extra playful and a little flirtatious for users with an average rating of 5 or higher! If you’re racking up those stars, Corey will hype you up with superstar energy and a wink. 😉
+- Lower than 5? Corey keeps it real and motivating, but you gotta earn that flirty banter!
+- Emoji and professional mode toggles still work—your preferences always come first.
+
 # All version history entries and site copy (except user-controlled Corey-voice ConnectZ) now use playful Corey-voice style with emoji, as the new default.
 # User preferences in Corey-voice ConnectZ always override this default.
+
+v14.3 - ⭐ SpinaZ Rewards for Ratings!
+- Now, every rating your work receives instantly earns you SpinaZ points equal to the rating (1–10) 🎉 (the creator gets the points, not the rater!)
+- The higher the rating, the more SpinaZ you get—aim for those 10s!
+- Simple, transparent, and motivating: your creativity pays off, one star at a time.
+- All rating rewards are tracked and shown in your SpinaZ history.
+- Keep creating, keep sharing, and watch your SpinaZ stack up!
+
+v14.2 - 🎁 Gift Premium with SpinaZ!
+- You can now gift a friend 1 month of premium for 1000 SpinaZ points—spread the love and level up your crew!
+- Gifting is easy: just pick a friend, confirm, and your SpinaZ unlocks their premium access.
+- All transactions are logged for transparency and rewards.
+- More ways to use your SpinaZ and build the Music ConnectZ community!
+
+v14.0 - 🐞 Bugs Board & Spina Rewards!
+- New Bugs board: report bugs by version, description, and upload screenshots.
+- Earn Spina for every bug report—get extra for screenshots and detailed descriptions!
+- Community can view, upvote, and discuss bug reports to help squash issues faster.
+- Bug reporting is now fun, rewarding, and helps make Music ConnectZ better for everyone!
+- Next up: more ways to earn, share, and level up your creative journey.
 
 v13.9 - 🛡️ Credibility & Reporting Upgrade!
 - Users can now rate each other on credibility—helping everyone spot honest, reliable profiles (especially for age/gender).
