@@ -1,4 +1,5 @@
 import React from 'react';
+import SocialFeed from './src/SocialFeed';
 
 const OAUTH_PROVIDERS = [
   'google',
@@ -12,10 +13,38 @@ const OAUTH_PROVIDERS = [
   'twitter',
 ];
 
+// Simple icon mapping (replace with actual SVGs or images in production)
+const PROVIDER_ICONS = {
+  google: '🔵',
+  facebook: '📘',
+  github: '🐙',
+  linkedin: '💼',
+  microsoft: '🪟',
+  soundcloud: '☁️',
+  spotify: '🎵',
+  tiktok: '🎶',
+  twitter: '🐦',
+};
+
 function OAuthProviderButton({ provider }) {
-  // Placeholder: Replace with actual icon and logic
   return (
-    <button style={{ margin: 8, minWidth: 120, minHeight: 48 }}>
+    <button style={{
+      margin: 8,
+      minWidth: 120,
+      minHeight: 48,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 18,
+      fontWeight: 500,
+      gap: 8,
+      border: '1px solid #ddd',
+      borderRadius: 6,
+      background: '#fafbfc',
+      cursor: 'pointer',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+    }}>
+      <span style={{fontSize: 22}}>{PROVIDER_ICONS[provider]}</span>
       Sign in with {provider.charAt(0).toUpperCase() + provider.slice(1)}
     </button>
   );
@@ -47,8 +76,9 @@ export default function AuthScreen({ isSignup = false }) {
       background: '#fff',
       padding: 24,
     }}>
+      <SocialFeed />
       <h1 style={{ marginBottom: 12, fontWeight: 700, fontSize: 28 }}>
-          MusicConnectZ Web App <span style={{fontSize:18, fontWeight:400, color:'#888'}}>(Web v15.9 | Mobile v15.8)</span>
+        MusicConnectZ Web App <span style={{fontSize:18, fontWeight:400, color:'#888'}}>(Web v16.0 | Mobile v1.0)</span>
       </h1>
       <div style={{
         marginBottom: 24,
@@ -64,16 +94,28 @@ export default function AuthScreen({ isSignup = false }) {
         <span role="img" aria-label="Corey">🤖</span> Corey tip: Just tell me what you want to get done—one thing at a time or a whole list. I’ll remember, organize, and keep you on track. Ask for help anytime by clicking the <b>?</b>!
       </div>
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 12,
-        maxWidth: 600,
         width: '100%',
+        maxWidth: 600,
+        marginBottom: 8,
       }}>
-        {OAUTH_PROVIDERS.map((provider) => (
-          <OAuthProviderButton key={provider} provider={provider} />
-        ))}
+        <div style={{
+          fontWeight: 600,
+          fontSize: 20,
+          marginBottom: 8,
+          textAlign: 'center',
+        }}>
+          <span role="img" aria-label="Corey">🤖</span> I recommend signing in with one of these providers for the fastest, most secure experience:
+        </div>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 12,
+        }}>
+          {OAUTH_PROVIDERS.map((provider) => (
+            <OAuthProviderButton key={provider} provider={provider} />
+          ))}
+        </div>
       </div>
       <TraditionalAuthFields isSignup={isSignup} />
     </div>
