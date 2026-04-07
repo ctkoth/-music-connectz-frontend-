@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/web",
+    "packages/mobile/MusicConnectZ",
+    "packages/shared"
+  ],
+  "dependencies": {
+    "expo-auth-session": "^55.0.12",
+    "firebase": "^12.11.0"
+  }
+}
