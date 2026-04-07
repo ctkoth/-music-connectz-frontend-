@@ -1,7 +1,11 @@
 {
   "name": "music-connectz-web",
-  "version": "15.8",
+  "version": "15.9",
+    "version": "15.9",
   "private": true,
   "description": "MusicConnectZ Web App",
-  "main": "index.js"
+  "main": "index.js",
+  "scripts": {
+    "build": "react-scripts build"
+  }
 }

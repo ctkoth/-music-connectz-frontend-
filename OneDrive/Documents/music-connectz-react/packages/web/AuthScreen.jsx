@@ -48,7 +48,7 @@ export default function AuthScreen({ isSignup = false }) {
       padding: 24,
     }}>
       <h1 style={{ marginBottom: 12, fontWeight: 700, fontSize: 28 }}>
-        MusicConnectZ Web App <span style={{fontSize:18, fontWeight:400, color:'#888'}}>(v15.8)</span>
+          MusicConnectZ Web App <span style={{fontSize:18, fontWeight:400, color:'#888'}}>(Web v15.9 | Mobile v15.8)</span>
       </h1>
       <div style={{
         marginBottom: 24,
