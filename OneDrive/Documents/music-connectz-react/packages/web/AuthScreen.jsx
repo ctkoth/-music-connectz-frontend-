@@ -61,7 +61,7 @@ export default function AuthScreen({ isSignup = false }) {
         fontStyle: 'italic',
         boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
       }}>
-        <span role="img" aria-label="Corey">🤖</span> Corey says: "You can tell me your tasks in order—just list what you want done, and I’ll manage and track them for you!"
+        <span role="img" aria-label="Corey">🤖</span> Corey tip: Just tell me what you want to get done—one thing at a time or a whole list. I’ll remember, organize, and keep you on track. Ask for help anytime by clicking the <b>?</b>!
       </div>
       <div style={{
         display: 'flex',
