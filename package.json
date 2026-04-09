@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/web",
+    "packages/mobile/MusicConnectZ",
+    "packages/shared"
+  ],
+  "dependencies": {
+    "@react-native/gradle-plugin": "^0.85.0",
+    "dotenv": "^17.4.1",
+    "expo-auth-session": "^55.0.12",
+    "express": "^5.2.1",
+    "firebase": "^12.11.0",
+    "react-native": "^0.85.0",
+    "stripe": "^22.0.0"
+  },
+  "devDependencies": {
+    "@react-native/metro-config": "^0.84.1"
+  }
+}
