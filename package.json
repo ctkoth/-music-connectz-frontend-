@@ -1,10 +1,18 @@
 {
+  "name": "music-connectz-frontend",
   "private": true,
+  "version": "1.1.0",
+  "description": "Frontend for Music Connectz",
+  "main": "firebase-auth.js",
   "workspaces": [
     "packages/web",
     "packages/mobile/MusicConnectZ",
     "packages/shared"
   ],
+  "scripts": {
+    "test": "jest",
+    "build": "echo 'No build step needed for static site'"
+  },
   "dependencies": {
     "@react-native/gradle-plugin": "^0.85.0",
     "dotenv": "^17.4.1",
@@ -15,6 +23,7 @@
     "stripe": "^22.0.0"
   },
   "devDependencies": {
-    "@react-native/metro-config": "^0.84.1"
+    "@react-native/metro-config": "^0.84.1",
+    "jest": "^29.0.0"
   }
 }
