@@ -1,9 +1,14 @@
+
 import React, { useState } from 'react';
+import { RAP_SUBGENRES } from '../../models/rapSubgenres';
 
 const genres = ['Rap', 'Pop', 'Rock', 'Country', 'EDM', 'Other'];
 
+
 export default function MusicWriterConnectZ() {
   const [genre, setGenre] = useState('Rap');
+  const [subgenre, setSubgenre] = useState('Any Rapping');
+  const [syllableScheme, setSyllableScheme] = useState('1');
   const [rp, setRp] = useState(false);
   const [slang, setSlang] = useState(false);
   const [emoji, setEmoji] = useState(false);
@@ -12,7 +17,7 @@ export default function MusicWriterConnectZ() {
 
   const handleGenerate = async () => {
     // TODO: Integrate with Corey GPT backend
-    setLyrics(`(AI lyrics for ${genre}, RP: ${rp}, Slang: ${slang}, Emoji: ${emoji}, Royalty: ${royalty}%)\n\n15% of royalties go to Corey Knap as visual designer if distributed with MC.`);
+    setLyrics(`(AI lyrics for ${genre} - ${RAP_SUBGENRES[subgenre] || subgenre}, Syllable Rhyme Scheme: ${syllableScheme}, RP: ${rp}, Slang: ${slang}, Emoji: ${emoji}, Royalty: ${royalty}%)\n\n15% of royalties go to Corey Knap as visual designer if distributed with MC.`);
   };
 
   return (
@@ -30,6 +35,26 @@ export default function MusicWriterConnectZ() {
         <label>Genre:
           <select value={genre} onChange={e => setGenre(e.target.value)}>{genres.map(g => <option key={g}>{g}</option>)}</select>
         </label>
+        {genre === 'Rap' && (
+          <>
+            <label>Rap Skill/Subgenre:
+              <select value={subgenre} onChange={e => setSubgenre(e.target.value)}>
+                {Object.keys(RAP_SUBGENRES).map((sg) => (
+                  <option key={sg} value={sg}>{RAP_SUBGENRES[sg]}</option>
+                ))}
+              </select>
+            </label>
+            <label>Syllable Rhyme Scheme:
+              <select value={syllableScheme} onChange={e => setSyllableScheme(e.target.value)}>
+                <option value="1">1 (lowest)</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4 (most complex)</option>
+                <option value="1-4">1-4 (varied)</option>
+              </select>
+            </label>
+          </>
+        )}
         <label>RP <input type="checkbox" checked={rp} onChange={e => setRp(e.target.checked)} /></label>
         <label>Slang <input type="checkbox" checked={slang} onChange={e => setSlang(e.target.checked)} /></label>
         <label>Emoji <input type="checkbox" checked={emoji} onChange={e => setEmoji(e.target.checked)} /></label>
