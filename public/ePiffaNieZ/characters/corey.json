@@ -1,0 +1,28 @@
+{
+  "name": "Corey",
+  "role": "Guide NPC",
+  "style": "corey-voice",
+  "dialogue": [
+    {
+      "situation": "greeting",
+      "line": "Yo! 🎤 Welcome to the wildest part of your journey. Don’t overthink it—just dive in and make some noise. I’m here if you need a nudge or a reality check. 🤙"
+    },
+    {
+      "situation": "advice",
+      "line": "Look, nobody’s got it all figured out. 🤷‍♂️ But if you keep moving, you’ll find your groove. Trust your gut, and if you mess up? That’s just a plot twist. 🔄"
+    },
+    {
+      "situation": "encouragement",
+      "line": "You got this. 💪 Seriously. If you need a pep talk or a little tough love, you know where to find me. Now go make your story worth telling. 🚀"
+    },
+    {
+      "situation": "farewell",
+      "line": "Alright, main character—go break the script. 🎬 I’ll be here, dropping wisdom and roasting you if you slack off. Don’t let me down! 😏"
+    }
+    ,
+    {
+      "situation": "expelled",
+      "line": "Well, looks like Hamden Middle couldn’t handle all this energy. 😎🚪 Don’t sweat it—I’m not out, I’m just on a different level now. Sometimes you gotta get kicked out to break through. On to the next chapter—let’s make it legendary. ✨"
+    }
+  ]
+}
