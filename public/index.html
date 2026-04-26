@@ -249,6 +249,138 @@
       alert('DawZ modal coming soon!');
     }
     </script>
+    // === Tab & Modal Structure (Step 1) ===
+    const tabZ = [
+      {
+        key: 'collabz', emoji: '🤝', name: 'CollabZ', desc: 'Collaborate with other users, manage collab projects',
+        modals: [
+          { key: 'coverz', emoji: '🫴🏼', name: 'CoverZ', desc: 'Covers of songs/redraw existing art' },
+          { key: 'remixez', emoji: '🔄', name: 'RemixeZ', desc: 'Remixing posts/songz' },
+        ]
+      },
+      { key: 'battlez', emoji: '🪖', name: 'BattleZ', desc: '1 post vs another post, contestants verified 18+ can bet money on themselves others can bet spinaz' },
+      {
+        key: 'socialconnectz', emoji: '💓', name: 'Social ConnectZ', desc: '',
+        modals: [
+          { key: 'vibez', emoji: '♥️', name: 'VibeZ', desc: 'Plenty of fish style dating/collab app w clear indications what users looking for, Romance, or collab for a partnership' },
+          { key: 'inferno', emoji: '❤️‍🔥', name: 'Inferno', desc: 'Tinder style dating/collab app w clear indications what users lokking for, Romance, or quick collab' },
+          { key: 'boardz', emoji: '🪧', name: 'BoardZ', desc: 'Message boards' },
+        ]
+      },
+      {
+        key: 'msssagez', emoji: '📨', name: 'MsssageZ', desc: '',
+        modals: [
+          { key: 'inbox', emoji: '📥', name: 'Inbox', desc: '' },
+          { key: 'outbox', emoji: '📤', name: 'Outbox', desc: '' },
+        ]
+      },
+      {
+        key: 'callz', emoji: '📞', name: 'CallZ', desc: 'Available to StatZ requires cash balance to call, attempts to use spunaz say "coming soon" with prompt to add to balance with stripe/paypal+ developers tax logic',
+        modals: [
+          { key: 'ai', emoji: '🤖', name: 'AI', desc: 'Costs ai model choice' },
+          { key: 'user', emoji: '🗣️', name: 'User', desc: 'Costs other users skill per hour' },
+        ]
+      },
+      {
+        key: 'bugz', emoji: '🐞', name: 'BugZ', desc: 'Submit bug as a post only admin can change status to these:',
+        modals: [
+          { key: 'inprogress', emoji: '💭', name: 'In progress', desc: 'working on' },
+          { key: 'squashed', emoji: '🪦', name: 'Squashed', desc: 'rewards poster 200 spinaz' },
+        ]
+      },
+      {
+        key: 'distributez', emoji: '🎶', name: 'DistributeZ', desc: 'Distribution submission by posts to fill metadata by media type, audio becomes the track, image becomes the cover, text becomes lyrics. Album posts populate as album submissions, then editable. Free users get 1 submission monthly, any attempts for more prompt upgrade. Premium, and StatZ get unlimited, StatZ can submit for licensing.'
+      },
+      { key: 'royaltiez', emoji: '👑', name: 'RoyaltieZ', desc: 'Current balance/logz, (source of royalties timestamped)' },
+      { key: 'groupz', emoji: '👥', name: 'GroupZ', desc: 'Posts that combine other users to editable groups local to user making groups like Friends, Fans, Partners, Blocked, Custom' },
+      { key: 'labelz', emoji: '🏷️', name: 'LabelZ', desc: 'Public groups that give advances with terms, apply record label logic with esigned contracts' },
+      {
+        key: 'toolz', emoji: '💡', name: 'ToolZ', desc: '',
+        modals: [
+          { key: 'keyconnectz', emoji: '⌨️', name: 'Key ConnectZ', desc: 'System keyboard on mobile, floating keyboard on desktop ctrlshiftK opens, allows custom background image, transcriptions with microphone speech to text and translate user language to desired output.' },
+          { key: 'sentencez', emoji: '📃', name: 'SentenceZ', desc: 'Microsoft word knockoff, all text media opens in this app' },
+          { key: 'imagez', emoji: '🖼️', name: 'ImageZ', desc: 'Photoshop knockoff, all image media open in this app modal' },
+          { key: 'videoz', emoji: '📹', name: 'VideoZ', desc: 'Sony vegas knockoff, all video media open in this app' },
+          { key: 'lilith', emoji: '💃🏽', name: 'Lilith', desc: 'Apple things knockoff gamified task management' },
+          { key: 'bodiez', emoji: '💪🏽', name: 'BodieZ', desc: 'Jefit exercise tracker knockoff' },
+          { key: 'parcelprimate', emoji: '🐵', name: 'Parcel Primate', desc: 'Mailchimp knockoff' },
+          { key: 'builder', emoji: '🏗️', name: 'Builder', desc: 'Buffer knockoff post management' },
+          { key: 'sonday', emoji: '🌞', name: 'Sonday', desc: 'Monday knockoff' },
+          { key: 'cleanconnectz', emoji: '🧹', name: 'Clean ConnectZ', desc: 'Device cleaner' },
+        ]
+      },
+      {
+        key: 'intelligence', emoji: '🧠', name: 'Intelligence', desc: '',
+        modals: [
+          { key: 'imageconnectz', emoji: '👨🏽‍🎨', name: 'Image ConnectZ', desc: '' },
+          { key: 'instrumentalconnectz', emoji: '🎹', name: 'Instrumental ConnectZ', desc: '' },
+          { key: 'mixconnectz', emoji: '🎚️', name: 'Mix ConnectZ', desc: '' },
+          { key: 'videoconnectz', emoji: '📺', name: 'Video ConnectZ', desc: '' },
+          { key: 'ocularcodeconnectz', emoji: '👁️‍🗨️', name: 'Ocular Code ConnectZ', desc: 'Visual studio knockoff' },
+          { key: 'rateconnectz', emoji: '📨🤔', name: 'Rate ConnectZ', desc: 'Rates images by artistic value/aesthetic, text by wit, audio by mix/performance quality, video by performance/artist quality.' },
+        ]
+      },
+      { key: 'venuez', emoji: '🏛️', name: 'VenueZ', desc: 'Host or join events (Collaborative, Performance)' },
+      {
+        key: 'dawz', emoji: '🎛️', name: 'DawZ', desc: '',
+        modals: [
+          { key: 'fruitymobius', emoji: '🍑', name: 'Fruity Möbius', desc: 'FL studio knockoff' },
+          { key: 'arsenal', emoji: '⚔️', name: 'Arsenal', desc: 'Avid Pro tools knockoff' },
+          { key: 'witchcraft', emoji: '🔮', name: 'Witchcraft', desc: 'Acoustica Mixcraft knockoff' },
+        ]
+      },
+      { key: 'gamez', emoji: '👾', name: 'GameZ', desc: 'User made on occ, sorted by genres and subgenres' },
+      { key: 'spinaz', emoji: '🍥', name: 'SpinaZ', desc: 'Logz of how earned/spent (ability to buy at 80% of desired amount ie 100 cost $80)' },
+      { key: 'energy', emoji: '⚡', name: 'Energy', desc: 'Logz of how earned/spent (ability to buy at 80% of desired amount ie 100 cost $80)' },
+      { key: 'facez', emoji: '🙄', name: 'FaceZ', desc: 'Faces available for use in ai generated images/videos: taggable by user profile' },
+      { key: 'pickconnectz', emoji: '📌', name: 'Pick ConnectZ', desc: 'Footer customization, pin favorite features. Free:2 selections, rest populated by ai. Premium, statz: unlimited selections' },
+      { key: 'filez', emoji: '📁', name: 'FileZ', desc: 'File management and uploads' },
+      { key: 'analytics', emoji: '📈', name: 'Analytics', desc: 'Deep dive into usage and performance' },
+      { key: 'onboarding', emoji: '🛂', name: 'Onboarding/Verification', desc: 'Account setup and verification' },
+      {
+        key: 'profile', emoji: '👤', name: 'Profile', desc: '',
+        modals: [
+          { key: 'socialz', emoji: '🌐', name: 'SocialZ', desc: 'Linked oauth and distribution platform accounts Google, Apple, Spotify, etc.' },
+        ]
+      },
+      { key: 'personaz', emoji: '🎭', name: 'PersonaZ', desc: 'Users creative personas that indicate possed skills by start datez' },
+      { key: 'codez', emoji: '🧩', name: 'CodeZ', desc: 'Acronyms, typos, slang users type that mean something else (with talliez next to them of #of timez used, can be in ascending/descending order)' },
+      { key: 'pathz', emoji: '🛤️', name: 'PathZ', desc: 'User paths on devices' },
+      { key: 'mistakez', emoji: '😢', name: 'MistakeZ', desc: 'Errors cgpt made -to remember not to make again' },
+      { key: 'habitz', emoji: '🫠', name: 'HabitZ', desc: 'Something the user repeats- to take note of its significance to the user (detected by ai)' },
+      {
+        key: 'settings', emoji: '⚙️', name: 'Settings', desc: 'User profile and preferences',
+        modals: [
+          { key: 'defaultlanguage', emoji: '🗺️', name: 'Default Language', desc: 'Transcreates whole site+posts, apps to users language divided by region with emoji/flag for everything.' },
+          { key: 'incognito', emoji: '🕵️‍♂️', name: 'Incognito', desc: 'Privacy and anonymous mode toggleable by post>tab>global' },
+          { key: 'theme', emoji: '', name: 'Theme', desc: 'Theme color/emoji editable by premium & StatZ' },
+          { key: 'security', emoji: '🔒', name: '2FA/Security', desc: 'Two-factor authentication and security settings' },
+        ]
+      },
+      {
+        key: 'tellz', emoji: '🗣️', name: 'TellZ', desc: 'Logs of what users prompted/posted (provided for selection of any/all tabs available on the tab itself and thistab references any/all)',
+        displayOptions: [
+          { key: 'detailed', emoji: '🖇️', name: 'Detailed', desc: 'Word for word log of what was said/happened' },
+          { key: 'summary', emoji: '📎', name: 'Summary', desc: 'Summarized in cgpt with emoji' },
+        ],
+        modals: [
+          { key: 'keep', emoji: '👍🏼', name: 'Keep', desc: 'Ask if user wants to act the habitz and repeat' },
+          { key: 'mistake', emoji: '👎🏼', name: 'Mistake', desc: 'Put selection in mistakez, act on users input allowed in character limit logic + attached media' },
+        ]
+      },
+      {
+        key: 'logz', emoji: '🪵', name: 'LogZ', desc: 'Logs of what was done by day, week, month, or custom range. (provided for selection of any/all tabs available on the tab itself and thistab references any/all)',
+        displayOptions: [
+          { key: 'detailed', emoji: '🖇️', name: 'Detailed', desc: 'Word for word log of what was said/happened' },
+          { key: 'summary', emoji: '📎', name: 'Summary', desc: 'Summarized in cgpt with emoji' },
+        ],
+        modals: [
+          { key: 'keep', emoji: '👍🏼', name: 'Keep', desc: 'Ask if user wants to act the habitz and repeat' },
+          { key: 'mistake', emoji: '👎🏼', name: 'Mistake', desc: 'Put selection in mistakez, act on users input allowed in character limit logic + attached media' },
+        ]
+      },
+      { key: 'moodz', emoji: '😅', name: 'MoodZ', desc: 'Mood of user when posting' },
+    ];
     <button class="tab-btn" onclick="switchTab('venuez')">🏛️ VenueZ</button><!-- 🏛️ VenueZ: Host or join events, collabs, and performances. IRL or virtual, we got you. -->
     <button class="tab-btn" onclick="openDawzModal()">🎛️ DawZ</button><!-- 🎛️ DawZ: All the DAWs you wish you could afford, now in your browser. Premium = modal magic. -->
     <button class="tab-btn" onclick="switchTab('gamez')">👾 GameZ</button><!-- 👾 GameZ: User-made games, all genres. Play, create, and flex your dev skills. -->
@@ -268,6 +400,31 @@
             <div class="card-header occ-header">🦾 OCC: Ocular Code ConnectZ</div>
             <div class="occ-body">
               <p><strong>OCC</strong> is your creator-first, branded, and modular code platform. Formerly OPHC, OCC is the evolution of your vision for a next-gen, competency-based coding and creative suite.</p>
+      // === OCC Tab Structure ===
+      const occTabZ = [
+        { key: 'codeeditor', emoji: '👁️‍🗨️', name: 'Code Editor', desc: 'Code editor' },
+        { key: 'taskz', emoji: '📑', name: 'TaskZ', desc: 'Defined tasks to be(already)done by occ, with realtime updates on each task/eta to finish, ability to undo within users edit window' },
+        { key: 'codez', emoji: '🧩', name: 'CodeZ', desc: 'Acronyms, typos, slang users type that mean something else (with talliez next to them of #of timez used, can be in ascending/descending order)' },
+        { key: 'pathz', emoji: '🛤️', name: 'PathZ', desc: 'User paths on devices' },
+        { key: 'mistakez', emoji: '😢', name: 'MistakeZ', desc: 'Errors cgpt made -to remember not to make again' },
+        { key: 'habitz', emoji: '🫠', name: 'HabitZ', desc: 'Something the user repeats- to take note of its significance to the user (detected by ai)' },
+        {
+          key: 'settings', emoji: '⚙️', name: 'Settings', desc: 'Prominent toggles',
+          modals: [
+            { key: 'automated', emoji: '🤖', name: 'Automated', desc: 'Performs taskz without any required user confirmation, just updates users live in logz' },
+            { key: 'suggestionz', emoji: '💭', name: 'SuggestionZ', desc: 'Adds taskz explaining what, why and how to user' },
+          ]
+        },
+        { key: 'output', emoji: '🖥️', name: 'Output/Console', desc: '' },
+        { key: 'callz', emoji: '📞', name: 'CallZ', desc: '' },
+        { key: 'search', emoji: '🔍', name: 'Search', desc: '' },
+        { key: 'tellz', emoji: '🗣️', name: 'TellZ', desc: 'Logs of what u tab sprompted/posted (provided for selection of any/all tabs available on the tab itself and thistab references any/all)' },
+        { key: 'logz', emoji: '🪵', name: 'LogZ', desc: 'Logs of what was done by day, week, month, or custom range. (provided for selection of any/all tabs available on the tab itself and thistab references any/all)' },
+        { key: 'pickconnectz', emoji: '📌', name: 'Pick ConnectZ', desc: 'Footer customization, pin favorite features. Free:2 selections, rest populated by ai. Premium, statz: unlimited selections' },
+        { key: 'filez', emoji: '📁', name: 'FileZ', desc: 'File management and uploads' },
+        { key: 'welcome', emoji: '👋', name: 'Welcome', desc: '' },
+      ];
+      // ...existing code...
               <ul class="occ-list">
                 <li>🧠 Competency tracking and skill validation</li>
                 <li>🎨 Modular UI for code, design, and media</li>
