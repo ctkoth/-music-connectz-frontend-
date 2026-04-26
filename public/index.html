@@ -198,6 +198,7 @@
   </style>
 </head>
 <body>
+  <div id="personasDisplay">No personas yet</div>
 <div class="container">
   <div class="header">
     <div style="display: flex; gap: 8px;"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleLightDark()">🌙</button></div>
@@ -1347,6 +1348,7 @@ function addSkills() {
 
 function renderPersonasDisplay() {
   const display = document.getElementById('personasDisplay');
+  if (!display) return; // Prevent error if element is missing
   if (appState.personas.length === 0) {
     display.innerHTML = 'No personas yet';
     return;
