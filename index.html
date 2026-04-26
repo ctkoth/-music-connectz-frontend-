@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <title>Music ConnectZ v5.7 bi K-Oth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <style>
+    :root {
+      --primary: #2196F3;
+      --primary-dark: #1565C0;
+      --accent: #FF9800;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --text: #333333;
+      --text-light: #666666;
+      --border: #e0e0e0;
+      --success: #4CAF50;
+      --danger: #F44336;
+    }
+    [data-theme="dark"] {
+      --bg: #1a1a1a;
+      --surface: #2d2d2d;
+      --text: #e0e0e0;
+      --text-light: #b0b0b0;
+      --border: #404040;
+    }
+    [data-theme="theme-purple"] {
+      --primary: #9C27B0;
+      --primary-dark: #7B1FA2;
+    }
+    [data-theme="theme-red"] {
+      --primary: #F44336;
+      --primary-dark: #D32F2F;
+    }
+    [data-theme="theme-green"] {
+      --primary: #4CAF50;
+      --primary-dark: #388E3C;
+    }
+    [data-theme="theme-orange"] {
+      --primary: #FF9800;
+      --primary-dark: #F57C00;
+    }
+    [data-theme="theme-pink"] {
+      --primary: #E91E63;
+      --primary-dark: #C2185B;
+    }
+    [data-theme="theme-teal"] {
+      --primary: #00BCD4;
+      --primary-dark: #0097A7;
+    }
+    [data-theme="theme-indigo"] {
+      --primary: #3F51B5;
+      --primary-dark: #303F9F;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+    .container { display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .theme-toggle { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.5); }
+    .header-center { text-align: center; flex: 1; }
+    .header-title { font-size: 16px; font-weight: 700; }
+    .header-subtitle { font-size: 9px; opacity: 0.9; margin-top: 2px; }
+    .nav-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; }
+    .nav-btn:hover { background: rgba(255,255,255,0.5); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .balance { background: rgba(255,255,255,0.25); padding: 6px 10px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; transition: background 0.2s; }
+    .balance:hover { background: rgba(255,255,255,0.35); }
+    .profile-pic { width: 36px; height: 36px; border-radius: 50%; border: 2px solid white; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.2); cursor: pointer; }
+    .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+    .tabs { display: flex; background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab-btn { flex: 1; padding: 11px 12px; border: none; background: transparent; cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-light); border-bottom: 3px solid transparent; white-space: nowrap; min-width: 70px; transition: color 0.2s; }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: box-shadow 0.2s; }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .card-header { font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 8px rgba(33, 150, 243, 0.2); }
+    .btn { padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s, transform 0.1s; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn:active { transform: scale(0.98); }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #45a049; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #da190b; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-small { padding: 5px 10px; font-size: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .modal { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+    .modal.active { display: flex !important; }
+    .modal-content { background: var(--surface); border-radius: 12px; padding: 20px; max-width: 550px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header h2 { font-size: 14px; color: var(--primary); }
+    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); transition: color 0.2s; }
+    .close-btn:hover { color: var(--danger); }
+    .tag { display: inline-block; background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; }
+    .persona-card { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .persona-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .persona-name { font-size: 16px; font-weight: 700; }
+    .persona-btn { background: var(--bg); padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border); text-align: center; font-weight: 700; font-size: 12px; color: var(--text); transition: border-color 0.2s; }
+    .persona-btn:hover { border-color: var(--primary); }
+    .post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; transition: box-shadow 0.2s; }
+    .post-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .post-header { display: flex; gap: 8px; margin-bottom: 10px; }
+    .post-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0; }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .post-info { flex: 1; }
+    .post-user { font-weight: 700; font-size: 12px; }
+    .post-meta { font-size: 10px; color: var(--text-light); }
+    .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+    .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* OCC custom design (moved from body) */
+    .occ-card {
+      background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+      color: #fff;
+      border: 2px solid #2196F3;
+      box-shadow: 0 4px 24px rgba(33,150,243,0.18);
+      margin-top: 24px;
+    }
+    .occ-header {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      border-bottom: 2px solid #fff;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
+      border-radius: 8px 8px 0 0;
+    }
+    .occ-body {
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 10px 0 0 0;
+    }
+    .occ-list {
+      margin: 18px 0 18px 18px;
+      padding: 0;
+      list-style: none;
+    }
+    .occ-list li {
+      margin-bottom: 8px;
+      padding-left: 0;
+      position: relative;
+      font-size: 13px;
+    }
+    .occ-footer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #bbdefb;
+      text-align: right;
+      font-style: italic;
+    }
+    .skill-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; transition: all 0.2s; }
+    .skill-btn:hover { border-color: var(--primary); }
+    .skill-btn.sel { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important; color: white !important; border: 3px solid #1565C0 !important; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6) !important; transform: scale(1.08) !important; font-weight: 700 !important; }
+    .skill-btn.any-skill { background: var(--accent); color: white; border-color: var(--accent); }
+    .skill-btn.any-skill::after { content: '🔄'; position: absolute; top: 2px; right: 4px; font-size: 9px; }
+    .skill-btn.any-skill.sel { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%) !important; border: 3px solid #E65100 !important; box-shadow: 0 0 12px rgba(255, 152, 0, 0.6) !important; transform: scale(1.08) !important; }
+    .skill-item { background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+    .skill-item-name { font-weight: 600; flex: 1; }
+    .skill-item-exp { color: var(--text-light); font-size: 10px; margin-right: 8px; }
+    .skill-item-actions { display: flex; gap: 4px; }
+    .toggle-btn { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); cursor: pointer; font-weight: 600; font-size: 11px; margin: 4px; transition: all 0.2s; }
+    .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .filter-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter-badge { background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 6px; }
+    .gps-status { font-size: 11px; color: var(--text-light); margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; display: none; }
+    .gps-status.active { display: block; }
+    .genre-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; margin: 4px; display: inline-block; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .genre-btn:hover { border-color: var(--primary); }
+    .genre-btn.sel { background: var(--primary); color: white; border-color: var(--primary); }
+    .stripe-section { background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%); border: 2px solid var(--primary); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .stripe-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .balance-info { background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; }
+    .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .theme-option { padding: 12px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; text-align: center; font-weight: 600; font-size: 12px; transition: all 0.2s; }
+    .theme-option:hover { transform: scale(1.05); }
+    .theme-option.active { border-color: white; box-shadow: 0 0 12px rgba(255, 255, 255, 0.6); }
+    .settings-toggle { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
+    .settings-toggle label { flex: 1; font-weight: 600; font-size: 12px; margin: 0; }
+    .toggle-switch { width: 40px; height: 24px; background: var(--border); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s; }
+    .toggle-switch.active { background: var(--success); }
+    .toggle-switch::after { content: ''; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s; }
+    .toggle-switch.active::after { left: 18px; }
+    @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .skill-grid { grid-template-columns: 1fr; } .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div id="personasDisplay">No personas yet</div>
+<div class="container">
+  <div class="header">
+    <div style="display: flex; gap: 8px;"><button class="nav-btn" onclick="prevTab()">←</button><button class="nav-btn" onclick="nextTab()">→</button><button class="theme-toggle" onclick="toggleLightDark()">🌙</button></div>
+    <div class="header-center"><div class="header-title">🎵 Music ConnectZ v5.7 bi K-Oth</div><div class="header-subtitle">1/23/2026</div></div>
+    <div class="header-right"><div class="balance" onclick="switchTab('money')">💰 $<span id="balanceAmount">0.00</span></div><div class="profile-pic" onclick="switchTab('profile')" id="headerPic">👤</div></div>
+  </div>
+
+  <div class="tabs">
+      <button class="tab-btn" id="occModalBtn" onclick="openOccModal()">🦾 OCC</button>
+    <button class="tab-btn active" onclick="switchTab('home')">🏠 Home</button>
+    <button class="tab-btn" onclick="switchTab('media')">🎵 Media</button>
+    <button class="tab-btn" onclick="switchTab('collabz')">🤝 CollabZ</button><!-- 🤝 CollabZ: Team up, collab, and cook up 🔥 with other creators. Find your next partner-in-rhyme or design! -->
+    <button class="tab-btn" onclick="switchTab('battlez')">🪖 BattleZ</button><!-- 🪖 BattleZ: 1v1 post battles, flex your skills, bet Spinaz, and let the crowd decide who’s king. Only the bold survive! -->
+    <button class="tab-btn" onclick="switchTab('socialconnectz')">💓 Social ConnectZ</button><!-- 💓 Social ConnectZ: Where the vibes and the tribe meet. Find collabs, romance, or just chill with the fam. -->
+    <button class="tab-btn" onclick="openMessagesModal()">📨 MsssageZ</button><!-- 📨 MsssageZ: Slide in, chat up, and keep your DMs poppin’. Inbox/outbox, all in one spot. -->
+    <button class="tab-btn" onclick="switchTab('callz')">📞 CallZ</button><!-- 📞 CallZ: StatZ-only! Call your crew, pay with cash, or get that “coming soon” if you’re broke. -->
+    <button class="tab-btn" onclick="switchTab('bugz')">🐞 BugZ</button><!-- 🐞 BugZ: Found a bug? Drop it here. Only admin can squash ‘em and you get 200 Spinaz if they do! -->
+    <button class="tab-btn" onclick="switchTab('distributez')">🎶 DistributeZ</button><!-- 🎶 DistributeZ: Drop your tracks, covers, lyrics, and art. Free gets 1/month, premium gets unlimited. -->
+    <button class="tab-btn" onclick="switchTab('royaltiez')">👑 RoyaltieZ</button><!-- 👑 RoyaltieZ: Track your royalty bag, see where your 💰 comes from, and flex your stats. -->
+    <button class="tab-btn" onclick="switchTab('groupz')">👥 GroupZ</button><!-- 👥 GroupZ: Squad up! Make groups for friends, fans, partners, or block the haters. -->
+    <button class="tab-btn" onclick="switchTab('labelz')">🏷️ LabelZ</button><!-- 🏷️ LabelZ: Public groups with real contracts and advances. Get signed, get paid, get serious. -->
+    <button class="tab-btn" disabled style="opacity:0.5;cursor:not-allowed;">💡 ToolZ</button><!-- 💡 ToolZ: All your creative power tools in one spot. Premium apps pop as modals—no cap. -->
+      <button class="tab-btn" onclick="switchTab('intelligence')">🧠 Intelligence</button><!-- 🧠 Intelligence: Smartest AI in the game. Image, audio, video, and more—let Corey cook. -->
+      <!-- Add missing tab containers for all referenced tabs -->
+      <div id="media" class="tab"><div class="card"><div class="card-header">🎵 Media</div><div>Media content here.</div></div></div>
+      <div id="collabz" class="tab"><div class="card"><div class="card-header">🤝 CollabZ</div><div>CollabZ content here.</div></div></div>
+      <div id="battlez" class="tab"><div class="card"><div class="card-header">🪖 BattleZ</div><div>BattleZ content here.</div></div></div>
+      <div id="socialconnectz" class="tab"><div class="card"><div class="card-header">💓 Social ConnectZ</div><div>Social ConnectZ content here.</div></div></div>
+      <div id="callz" class="tab"><div class="card"><div class="card-header">📞 CallZ</div><div>CallZ content here.</div></div></div>
+      <div id="bugz" class="tab"><div class="card"><div class="card-header">🐞 BugZ</div><div>BugZ content here.</div></div></div>
+      <div id="distributez" class="tab"><div class="card"><div class="card-header">🎶 DistributeZ</div><div>DistributeZ content here.</div></div></div>
+      <div id="royaltiez" class="tab"><div class="card"><div class="card-header">👑 RoyaltieZ</div><div>RoyaltieZ content here.</div></div></div>
+      <div id="groupz" class="tab"><div class="card"><div class="card-header">👥 GroupZ</div><div>GroupZ content here.</div></div></div>
+      <div id="labelz" class="tab"><div class="card"><div class="card-header">🏷️ LabelZ</div><div>LabelZ content here.</div></div></div>
+      <div id="toolz" class="tab"><div class="card"><div class="card-header">💡 ToolZ</div><div>All your creative power tools in one spot.</div></div></div>
+      <div id="intelligence" class="tab"><div class="card"><div class="card-header">🧠 Intelligence</div><div>AI features and smart tools.</div></div></div>
+      <div id="venuez" class="tab"><div class="card"><div class="card-header">🏛️ VenueZ</div><div>VenueZ content here.</div></div></div>
+      <div id="gamez" class="tab"><div class="card"><div class="card-header">👾 GameZ</div><div>GameZ content here.</div></div></div>
+      <div id="spinaz" class="tab"><div class="card"><div class="card-header">🍥 SpinaZ</div><div>SpinaZ content here.</div></div></div>
+      <div id="energy" class="tab"><div class="card"><div class="card-header">⚡ Energy</div><div>Energy content here.</div></div></div>
+      <div id="facez" class="tab"><div class="card"><div class="card-header">🙄 FaceZ</div><div>FaceZ content here.</div></div></div>
+      <div id="filez" class="tab"><div class="card"><div class="card-header">📁 FileZ</div><div>FileZ content here.</div></div></div>
+      <div id="analytics" class="tab"><div class="card"><div class="card-header">📈 Analytics</div><div>Analytics content here.</div></div></div>
+      <div id="onboarding" class="tab"><div class="card"><div class="card-header">🛂 Onboarding/Verification</div><div>Onboarding content here.</div></div></div>
+      <div id="profile" class="tab"><div class="card"><div class="card-header">👤 Profile</div><div>Profile content here.</div></div></div>
+    <script>
+    // Add openDawzModal stub to prevent JS error
+    function openDawzModal() {
+      alert('DawZ modal coming soon!');
+    }
+    </script>
+    // === Tab & Modal Structure (Step 1) ===
+    const tabZ = [
+      {
+        key: 'collabz', emoji: '🤝', name: 'CollabZ', desc: 'Collaborate with other users, manage collab projects',
+        modals: [
+          { key: 'coverz', emoji: '🫴🏼', name: 'CoverZ', desc: 'Covers of songs/redraw existing art' },
+          { key: 'remixez', emoji: '🔄', name: 'RemixeZ', desc: 'Remixing posts/songz' },
+        ]
+      },
+      { key: 'battlez', emoji: '🪖', name: 'BattleZ', desc: '1 post vs another post, contestants verified 18+ can bet money on themselves others can bet spinaz' },
+      {
+        key: 'socialconnectz', emoji: '💓', name: 'Social ConnectZ', desc: '',
+        modals: [
+          { key: 'vibez', emoji: '♥️', name: 'VibeZ', desc: 'Plenty of fish style dating/collab app w clear indications what users looking for, Romance, or collab for a partnership' },
+          { key: 'inferno', emoji: '❤️‍🔥', name: 'Inferno', desc: 'Tinder style dating/collab app w clear indications what users lokking for, Romance, or quick collab' },
+          { key: 'boardz', emoji: '🪧', name: 'BoardZ', desc: 'Message boards' },
+        ]
+      },
+      {
+        key: 'msssagez', emoji: '📨', name: 'MsssageZ', desc: '',
+        modals: [
+          { key: 'inbox', emoji: '📥', name: 'Inbox', desc: '' },
+          { key: 'outbox', emoji: '📤', name: 'Outbox', desc: '' },
+        ]
+      },
+      {
+        key: 'callz', emoji: '📞', name: 'CallZ', desc: 'Available to StatZ requires cash balance to call, attempts to use spunaz say "coming soon" with prompt to add to balance with stripe/paypal+ developers tax logic',
+        modals: [
+          { key: 'ai', emoji: '🤖', name: 'AI', desc: 'Costs ai model choice' },
+          { key: 'user', emoji: '🗣️', name: 'User', desc: 'Costs other users skill per hour' },
+        ]
+      },
+      {
+        key: 'bugz', emoji: '🐞', name: 'BugZ', desc: 'Submit bug as a post only admin can change status to these:',
+        modals: [
+          { key: 'inprogress', emoji: '💭', name: 'In progress', desc: 'working on' },
+          { key: 'squashed', emoji: '🪦', name: 'Squashed', desc: 'rewards poster 200 spinaz' },
+        ]
+      },
+      {
+        key: 'distributez', emoji: '🎶', name: 'DistributeZ', desc: 'Distribution submission by posts to fill metadata by media type, audio becomes the track, image becomes the cover, text becomes lyrics. Album posts populate as album submissions, then editable. Free users get 1 submission monthly, any attempts for more prompt upgrade. Premium, and StatZ get unlimited, StatZ can submit for licensing.'
+      },
+      { key: 'royaltiez', emoji: '👑', name: 'RoyaltieZ', desc: 'Current balance/logz, (source of royalties timestamped)' },
+      { key: 'groupz', emoji: '👥', name: 'GroupZ', desc: 'Posts that combine other users to editable groups local to user making groups like Friends, Fans, Partners, Blocked, Custom' },
+      { key: 'labelz', emoji: '🏷️', name: 'LabelZ', desc: 'Public groups that give advances with terms, apply record label logic with esigned contracts' },
+      {
+        key: 'toolz', emoji: '💡', name: 'ToolZ', desc: '',
+        modals: [
+          { key: 'keyconnectz', emoji: '⌨️', name: 'Key ConnectZ', desc: 'System keyboard on mobile, floating keyboard on desktop ctrlshiftK opens, allows custom background image, transcriptions with microphone speech to text and translate user language to desired output.' },
+          { key: 'sentencez', emoji: '📃', name: 'SentenceZ', desc: 'Microsoft word knockoff, all text media opens in this app' },
+          { key: 'imagez', emoji: '🖼️', name: 'ImageZ', desc: 'Photoshop knockoff, all image media open in this app modal' },
+          { key: 'videoz', emoji: '📹', name: 'VideoZ', desc: 'Sony vegas knockoff, all video media open in this app' },
+          { key: 'lilith', emoji: '💃🏽', name: 'Lilith', desc: 'Apple things knockoff gamified task management' },
+          { key: 'bodiez', emoji: '💪🏽', name: 'BodieZ', desc: 'Jefit exercise tracker knockoff' },
+          { key: 'parcelprimate', emoji: '🐵', name: 'Parcel Primate', desc: 'Mailchimp knockoff' },
+          { key: 'builder', emoji: '🏗️', name: 'Builder', desc: 'Buffer knockoff post management' },
+          { key: 'sonday', emoji: '🌞', name: 'Sonday', desc: 'Monday knockoff' },
+          { key: 'cleanconnectz', emoji: '🧹', name: 'Clean ConnectZ', desc: 'Device cleaner' },
+        ]
+      },
+      {
+        key: 'intelligence', emoji: '🧠', name: 'Intelligence', desc: '',
+        modals: [
+          { key: 'imageconnectz', emoji: '👨🏽‍🎨', name: 'Image ConnectZ', desc: '' },
+          { key: 'instrumentalconnectz', emoji: '🎹', name: 'Instrumental ConnectZ', desc: '' },
+          { key: 'mixconnectz', emoji: '🎚️', name: 'Mix ConnectZ', desc: '' },
+          { key: 'videoconnectz', emoji: '📺', name: 'Video ConnectZ', desc: '' },
+          { key: 'ocularcodeconnectz', emoji: '👁️‍🗨️', name: 'Ocular Code ConnectZ', desc: 'Visual studio knockoff' },
+          { key: 'rateconnectz', emoji: '📨🤔', name: 'Rate ConnectZ', desc: 'Rates images by artistic value/aesthetic, text by wit, audio by mix/performance quality, video by performance/artist quality.' },
+        ]
+      },
+      { key: 'venuez', emoji: '🏛️', name: 'VenueZ', desc: 'Host or join events (Collaborative, Performance)' },
+      {
+        key: 'dawz', emoji: '🎛️', name: 'DawZ', desc: '',
+        modals: [
+          { key: 'fruitymobius', emoji: '🍑', name: 'Fruity Möbius', desc: 'FL studio knockoff' },
+          { key: 'arsenal', emoji: '⚔️', name: 'Arsenal', desc: 'Avid Pro tools knockoff' },
+          { key: 'witchcraft', emoji: '🔮', name: 'Witchcraft', desc: 'Acoustica Mixcraft knockoff' },
+        ]
+      },
+      { key: 'gamez', emoji: '👾', name: 'GameZ', desc: 'User made on occ, sorted by genres and subgenres' },
+      { key: 'spinaz', emoji: '🍥', name: 'SpinaZ', desc: 'Logz of how earned/spent (ability to buy at 80% of desired amount ie 100 cost $80)' },
+      { key: 'energy', emoji: '⚡', name: 'Energy', desc: 'Logz of how earned/spent (ability to buy at 80% of desired amount ie 100 cost $80)' },
+      { key: 'facez', emoji: '🙄', name: 'FaceZ', desc: 'Faces available for use in ai generated images/videos: taggable by user profile' },
+      { key: 'pickconnectz', emoji: '📌', name: 'Pick ConnectZ', desc: 'Footer customization, pin favorite features. Free:2 selections, rest populated by ai. Premium, statz: unlimited selections' },
+      { key: 'filez', emoji: '📁', name: 'FileZ', desc: 'File management and uploads' },
+      { key: 'analytics', emoji: '📈', name: 'Analytics', desc: 'Deep dive into usage and performance' },
+      { key: 'onboarding', emoji: '🛂', name: 'Onboarding/Verification', desc: 'Account setup and verification' },
+      {
+        key: 'profile', emoji: '👤', name: 'Profile', desc: '',
+        modals: [
+          { key: 'socialz', emoji: '🌐', name: 'SocialZ', desc: 'Linked oauth and distribution platform accounts Google, Apple, Spotify, etc.' },
+        ]
+      },
+      { key: 'personaz', emoji: '🎭', name: 'PersonaZ', desc: 'Users creative personas that indicate possed skills by start datez' },
+      { key: 'codez', emoji: '🧩', name: 'CodeZ', desc: 'Acronyms, typos, slang users type that mean something else (with talliez next to them of #of timez used, can be in ascending/descending order)' },
+      { key: 'pathz', emoji: '🛤️', name: 'PathZ', desc: 'User paths on devices' },
+      { key: 'mistakez', emoji: '😢', name: 'MistakeZ', desc: 'Errors cgpt made -to remember not to make again' },
+      { key: 'habitz', emoji: '🫠', name: 'HabitZ', desc: 'Something the user repeats- to take note of its significance to the user (detected by ai)' },
+      {
+        key: 'settings', emoji: '⚙️', name: 'Settings', desc: 'User profile and preferences',
+        modals: [
+          { key: 'defaultlanguage', emoji: '🗺️', name: 'Default Language', desc: 'Transcreates whole site+posts, apps to users language divided by region with emoji/flag for everything.' },
+          { key: 'incognito', emoji: '🕵️‍♂️', name: 'Incognito', desc: 'Privacy and anonymous mode toggleable by post>tab>global' },
+          { key: 'theme', emoji: '', name: 'Theme', desc: 'Theme color/emoji editable by premium & StatZ' },
+          { key: 'security', emoji: '🔒', name: '2FA/Security', desc: 'Two-factor authentication and security settings' },
+        ]
+      },
+      {
+        key: 'tellz', emoji: '🗣️', name: 'TellZ', desc: 'Logs of what users prompted/posted (provided for selection of any/all tabs available on the tab itself and thistab references any/all)',
+        displayOptions: [
+          { key: 'detailed', emoji: '🖇️', name: 'Detailed', desc: 'Word for word log of what was said/happened' },
+          { key: 'summary', emoji: '📎', name: 'Summary', desc: 'Summarized in cgpt with emoji' },
+        ],
+        modals: [
+          { key: 'keep', emoji: '👍🏼', name: 'Keep', desc: 'Ask if user wants to act the habitz and repeat' },
+          { key: 'mistake', emoji: '👎🏼', name: 'Mistake', desc: 'Put selection in mistakez, act on users input allowed in character limit logic + attached media' },
+        ]
+      },
+      {
+        key: 'logz', emoji: '🪵', name: 'LogZ', desc: 'Logs of what was done by day, week, month, or custom range. (provided for selection of any/all tabs available on the tab itself and thistab references any/all)',
+        displayOptions: [
+          { key: 'detailed', emoji: '🖇️', name: 'Detailed', desc: 'Word for word log of what was said/happened' },
+          { key: 'summary', emoji: '📎', name: 'Summary', desc: 'Summarized in cgpt with emoji' },
+        ],
+        modals: [
+          { key: 'keep', emoji: '👍🏼', name: 'Keep', desc: 'Ask if user wants to act the habitz and repeat' },
+          { key: 'mistake', emoji: '👎🏼', name: 'Mistake', desc: 'Put selection in mistakez, act on users input allowed in character limit logic + attached media' },
+        ]
+      },
+      { key: 'moodz', emoji: '😅', name: 'MoodZ', desc: 'Mood of user when posting' },
+    ];
+    <button class="tab-btn" onclick="switchTab('venuez')">🏛️ VenueZ</button><!-- 🏛️ VenueZ: Host or join events, collabs, and performances. IRL or virtual, we got you. -->
+    <button class="tab-btn" onclick="openDawzModal()">🎛️ DawZ</button><!-- 🎛️ DawZ: All the DAWs you wish you could afford, now in your browser. Premium = modal magic. -->
+    <button class="tab-btn" onclick="switchTab('gamez')">👾 GameZ</button><!-- 👾 GameZ: User-made games, all genres. Play, create, and flex your dev skills. -->
+    <button class="tab-btn" onclick="switchTab('spinaz')">🍥 SpinaZ</button><!-- 🍥 SpinaZ: Track your Spinaz, see how you earned/spent, and cop more at a discount. -->
+    <button class="tab-btn" onclick="switchTab('energy')">⚡ Energy</button><!-- ⚡ Energy: Your creative battery. Earn, spend, and keep the grind alive. -->
+    <button class="tab-btn" onclick="switchTab('facez')">🙄 FaceZ</button><!-- 🙄 FaceZ: All the faces for your AI art/videos. Tag, flex, and remix your look. -->
+    <button class="tab-btn" onclick="switchTab('filez')">📁 FileZ</button><!-- 📁 FileZ: Upload, manage, and share your files. Simple, secure, and always handy. -->
+    <button class="tab-btn" onclick="switchTab('analytics')">📈 Analytics</button><!-- 📈 Analytics: Deep dive into your stats, growth, and what’s really working. -->
+    <button class="tab-btn" onclick="switchTab('onboarding')">🛂 Onboarding/Verification</button><!-- 🛂 Onboarding: Get verified, unlock features, and flex your legit status. -->
+    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button><!-- 👤 Profile: Your home base. Edit, customize, and show off your ConnectZ presence. -->
+    <button class="tab-btn" id="messagesModalBtn" onclick="openMessagesModal()">💬 Messages</button>
+  </div>
+
+  <div class="content">
+        <div id="occ" class="tab">
+          <div class="card occ-card">
+            <div class="card-header occ-header">🦾 OCC: Ocular Code ConnectZ</div>
+            <div class="occ-body">
+              <p><strong>OCC</strong> is your creator-first, branded, and modular code platform. Formerly OPHC, OCC is the evolution of your vision for a next-gen, competency-based coding and creative suite.</p>
+      // === OCC Tab Structure ===
+      const occTabZ = [
+        { key: 'codeeditor', emoji: '👁️‍🗨️', name: 'Code Editor', desc: 'Code editor' },
+        { key: 'taskz', emoji: '📑', name: 'TaskZ', desc: 'Defined tasks to be(already)done by occ, with realtime updates on each task/eta to finish, ability to undo within users edit window' },
+        { key: 'codez', emoji: '🧩', name: 'CodeZ', desc: 'Acronyms, typos, slang users type that mean something else (with talliez next to them of #of timez used, can be in ascending/descending order)' },
+        { key: 'pathz', emoji: '🛤️', name: 'PathZ', desc: 'User paths on devices' },
+        { key: 'mistakez', emoji: '😢', name: 'MistakeZ', desc: 'Errors cgpt made -to remember not to make again' },
+        { key: 'habitz', emoji: '🫠', name: 'HabitZ', desc: 'Something the user repeats- to take note of its significance to the user (detected by ai)' },
+        {
+          key: 'settings', emoji: '⚙️', name: 'Settings', desc: 'Prominent toggles',
+          modals: [
+            { key: 'automated', emoji: '🤖', name: 'Automated', desc: 'Performs taskz without any required user confirmation, just updates users live in logz' },
+            { key: 'suggestionz', emoji: '💭', name: 'SuggestionZ', desc: 'Adds taskz explaining what, why and how to user' },
+          ]
+        },
+        { key: 'output', emoji: '🖥️', name: 'Output/Console', desc: '' },
+        { key: 'callz', emoji: '📞', name: 'CallZ', desc: '' },
+        { key: 'search', emoji: '🔍', name: 'Search', desc: '' },
+        { key: 'tellz', emoji: '🗣️', name: 'TellZ', desc: 'Logs of what u tab sprompted/posted (provided for selection of any/all tabs available on the tab itself and thistab references any/all)' },
+        { key: 'logz', emoji: '🪵', name: 'LogZ', desc: 'Logs of what was done by day, week, month, or custom range. (provided for selection of any/all tabs available on the tab itself and thistab references any/all)' },
+        { key: 'pickconnectz', emoji: '📌', name: 'Pick ConnectZ', desc: 'Footer customization, pin favorite features. Free:2 selections, rest populated by ai. Premium, statz: unlimited selections' },
+        { key: 'filez', emoji: '📁', name: 'FileZ', desc: 'File management and uploads' },
+        { key: 'welcome', emoji: '👋', name: 'Welcome', desc: '' },
+      ];
+      // ...existing code...
+              <ul class="occ-list">
+                <li>🧠 Competency tracking and skill validation</li>
+                <li>🎨 Modular UI for code, design, and media</li>
+                <li>🔒 Secure, privacy-first architecture</li>
+                <li>🌐 Community-driven extensions</li>
+                <li>🚀 Built for Music ConnectZ and beyond</li>
+              </ul>
+              <div class="occ-footer">v1.0 OCC &copy; K-Oth</div>
+            </div>
+          </div>
+        </div>
+
+    <div id="home" class="tab active"><div class="card"><div class="card-header">🏠 Home</div><div>Welcome to Music ConnectZ! This is your main dashboard and activity feed.</div></div></div>
+    <div id="media" class="tab"><div class="card"><div class="card-header">🎵 Media</div><div>Upload, view, and manage Text, Code, Image, Audio, Video.</div></div></div>
+    <div id="collabz" class="tab"><div class="card"><div class="card-header">🤝 CollabZ</div><div>Collaborate with other users, manage collab projects.</div></div></div>
+    <div id="venuez" class="tab"><div class="card"><div class="card-header">🏛️ VenueZ</div><div>Host or join events (Collaborative, Performance).</div></div></div>
+    <div id="dawz" class="tab"><div class="card"><div class="card-header">🎚️ DAWZ</div><div>Digital Audio Workstations for music creation.</div></div></div>
+    <div id="vibez" class="tab"><div class="card"><div class="card-header">🔥 VibeZ</div><div>Social/collab vibes, trending content.</div></div></div>
+    <div id="arsenal" class="tab"><div class="card"><div class="card-header">🛡️ Arsenal</div><div>Tools and resources for creators.</div></div></div>
+    <div id="witchcraft" class="tab"><div class="card"><div class="card-header">🧙‍♂️ Witchcraft</div><div>Advanced creative tools/effects.</div></div></div>
+    <div id="lilith" class="tab"><div class="card"><div class="card-header">💃🏽 Lilith</div><div>Creative suite for design/media.</div></div></div>
+    <div id="bodiez" class="tab"><div class="card"><div class="card-header">💪 BodieZ</div><div>Fitness tracker and wellness features.</div></div></div>
+    <div id="giftz" class="tab"><div class="card"><div class="card-header">🎁 GiftZ</div><div>Send/receive gifts and rewards.</div></div></div>
+    <div id="eventz" class="tab"><div class="card"><div class="card-header">🎫 EventZ</div><div>Event management and participation.</div></div></div>
+    <div id="statz" class="tab"><div class="card"><div class="card-header">📊 StatZ</div><div>Analytics and metrics dashboard.</div></div></div>
+    <div id="pickconnectz" class="tab"><div class="card"><div class="card-header">📌 Pick ConnectZ</div><div>Footer customization, pin favorite features.</div></div></div>
+    <div id="incognito" class="tab"><div class="card"><div class="card-header">🕵️‍♂️ Incognito</div><div>Privacy and anonymous mode.</div></div></div>
+    <div id="filez" class="tab"><div class="card"><div class="card-header">📁 FileZ</div><div>File management and uploads.</div></div></div>
+    <div id="analytics" class="tab"><div class="card"><div class="card-header">📈 Analytics</div><div>Deep dive into usage and performance.</div></div></div>
+    <div id="security" class="tab"><div class="card"><div class="card-header">🔒 2FA/Security</div><div>Two-factor authentication and security settings.</div></div></div>
+    <div id="onboarding" class="tab"><div class="card"><div class="card-header">🛂 Onboarding/Verification</div><div>Account setup and verification.</div></div></div>
+    <div id="sociallogin" class="tab"><div class="card"><div class="card-header">🌐 Social Login</div><div>Google, Apple, Spotify, etc.</div></div></div>
+    <div id="profile" class="tab"><div class="card"><div class="card-header">👤 Profile/Settings</div><div>User profile and preferences.</div></div></div>
+
+    <div id="personas" class="tab">
+      <div class="card">
+    </div>
+        <input type="hidden" id="editingCollabIdx" value="" />
+        <div class="form-group"><label>🎭 Select Persona *</label><select id="collabPersona" onchange="updateCollabExampleOptions()"><option value="">Choose persona</option></select></div>
+        <div class="form-group"><label>🎵 Select Public Example *</label><select id="collabPublicExample"><option value="">Choose example</option></select></div>
+        <div class="form-group"><label>📝 Description (200 chars) *</label><textarea id="collabPostDesc" placeholder="What collaboration are you looking for?" style="height: 60px;" maxlength="200"></textarea></div>
+        <button class="btn btn-success" onclick="postCollabRequest()" style="width: 100%;" id="collabSubmitBtn">📤 Post</button>
+        <button class="btn btn-secondary" onclick="cancelEditCollab()" style="width: 100%; margin-top: 8px; display: none;" id="collabCancelBtn">❌ Cancel Edit</button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">🔍 Filter Requests</span>
+        <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span>💼 Collaboration Feed</span>
+          <span class="filter-badge" id="feedCount">0</span>
+        </div>
+        <div id="collabFeed">No posts yet</div>
+      </div>
+    </div>
+
+    <div id="profile" class="tab">
+      <div class="card">
+        <div class="card-header">👤 Your Public Profile</div>
+        <div style="text-align: center; padding: 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px;"><div id="pubPic" style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary); color: white; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 28px; overflow: hidden;">👤</div><div id="pubUsername" style="font-weight: 700; font-size: 14px;">Not Set</div><div id="pubInfo" style="font-size: 11px; color: var(--text-light);"></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📝 Bio:</div><div id="pubBio">No bio</div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">📧 Email:</div><div id="pubEmail" style="display: flex; gap: 6px; align-items: center;"><span id="pubEmailText">No email</span><button class="btn btn-small btn-secondary" onclick="copyEmail()" id="copyEmailBtn">📋 Copy</button></div></div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;"><div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">🎯 Skills:</div><div id="pubSkills">No skills</div></div>
+      </div>
+    </div>
+
+    <div id="settings" class="tab">
+      <div class="card">
+        <div class="card-header">🎨 8 Color Themes</div>
+        <div class="theme-grid">
+          <div class="theme-option active" onclick="applyTheme('theme-blue')" style="background: #2196F3; color: white;" id="theme-blue">🔵 Blue</div>
+          <div class="theme-option" onclick="applyTheme('theme-purple')" style="background: #9C27B0; color: white;" id="theme-purple">🟣 Purple</div>
+          <div class="theme-option" onclick="applyTheme('theme-red')" style="background: #F44336; color: white;" id="theme-red">🔴 Red</div>
+          <div class="theme-option" onclick="applyTheme('theme-green')" style="background: #4CAF50; color: white;" id="theme-green">🟢 Green</div>
+          <div class="theme-option" onclick="applyTheme('theme-orange')" style="background: #FF9800; color: white;" id="theme-orange">🟠 Orange</div>
+          <div class="theme-option" onclick="applyTheme('theme-pink')" style="background: #E91E63; color: white;" id="theme-pink">🌸 Pink</div>
+          <div class="theme-option" onclick="applyTheme('theme-teal')" style="background: #00BCD4; color: white;" id="theme-teal">🔷 Teal</div>
+          <div class="theme-option" onclick="applyTheme('theme-indigo')" style="background: #3F51B5; color: white;" id="theme-indigo">💙 Indigo</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🔔 Notification Settings</div>
+        <div class="settings-toggle">
+          <label>🔔 Push Notifications</label>
+          <div class="toggle-switch active" id="notificationToggle" onclick="toggleSetting('notifications')"></div>
+        </div>
+        <div class="settings-toggle">
+          <label>💬 Collaboration Alerts</label>
+          <div class="toggle-switch active" id="collabAlertToggle" onclick="toggleSetting('collabAlerts')"></div>
+        </div>
+        <div class="settings-toggle">
+          <label>💰 Payment Notifications</label>
+          <div class="toggle-switch active" id="paymentAlertToggle" onclick="toggleSetting('paymentAlerts')"></div>
+        </div>
+        <div class="settings-toggle">
+          <label>📧 Email Digests</label>
+          <div class="toggle-switch active" id="emailDigestToggle" onclick="toggleSetting('emailDigest')"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">📍 Location Settings</div>
+        <div class="settings-toggle">
+          <label>📍 Share Location</label>
+          <div class="toggle-switch active" id="shareLocationToggle" onclick="toggleSetting('shareLocation')"></div>
+        </div>
+        <div style="background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px;">
+          <div style="color: var(--text-light); margin-bottom: 4px; font-weight: 600;">Current Location:</div>
+          <div id="currentLocationDisplay">Not set</div>
+        </div>
+        <button class="btn btn-secondary" onclick="requestGPSFromSettings()" style="width: 100%; margin-bottom: 8px;">📍 Update Location</button>
+        <div class="settings-toggle">
+          <label>🔒 Private Mode</label>
+          <div class="toggle-switch" id="privateModeToggle" onclick="toggleSetting('privateMode')"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">🔊 Sound & Alerts</div>
+        <div class="settings-toggle">
+          <label>🔊 Sound Effects</label>
+          <div class="toggle-switch active" id="soundEffectsToggle" onclick="toggleSetting('soundEffects')"></div>
+        </div>
+        <div class="settings-toggle">
+          <label>🎵 Background Music</label>
+          <div class="toggle-switch" id="bgMusicToggle" onclick="toggleSetting('bgMusic')"></div>
+        </div>
+        <div class="settings-toggle">
+          <label>📳 Vibration</label>
+          <div class="toggle-switch active" id="vibrationToggle" onclick="toggleSetting('vibration')"></div>
+        </div>
+        <button class="btn btn-secondary" onclick="testSound()" style="width: 100%;">🔊 Test Sound</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">⚙️ Advanced Settings</div>
+        <div class="settings-toggle">
+          <label>🌙 Auto Dark Mode</label>
+          <div class="toggle-switch" id="autoDarkToggle" onclick="toggleSetting('autoDark')"></div>
+        </div>
+        <button class="btn btn-danger" onclick="clearAllData()" style="width: 100%; margin-top: 12px;">🗑️ Clear All Data</button>
+        <div style="font-size: 10px; color: var(--text-light); margin-top: 8px; text-align: center;">⚠️ Warning: This will delete all profiles, personas, examples, and history</div>
+      </div>
+    </div>
+
+    <div id="money" class="tab">
+      <div class="stripe-section">
+        <div class="stripe-title">💳 Stripe Payment Processing (K-Oth Platform)</div>
+        <div class="balance-info">
+          <div style="margin-bottom: 8px;"><strong>ℹ️ Payment Split Model:</strong></div>
+          <div>💰 <strong>You pay → K-Oth keeps 10% → Rest goes to collaborator account</strong></div>
+          <div style="margin-top: 8px; font-size: 10px; color: var(--text-light);">Example: $100 payment → K-Oth: $10 | Collaborator: $90</div>
+        </div>
+        <div class="form-group">
+          <label>💳 Collaborator Stripe Account ID *</label>
+          <input type="text" id="collaboratorAccountId" placeholder="e.g., acct_1Pxxxxx..." />
+          <div style="font-size: 10px; color: var(--text-light); margin-top: 4px;">Get this from collaborator's Stripe Dashboard → Account Settings → Account ID</div>
+        </div>
+        <div class="form-group">
+          <label>💵 Amount to Process ($) *</label>
+          <input type="number" id="stripeFundAmount" min="1" step="1" placeholder="Enter amount (e.g., 100)" />
+        </div>
+        <div style="background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 11px;">
+          <div style="margin-bottom: 6px;"><strong>💡 Test Card:</strong> <code>4242 4242 4242 4242</code></div>
+          <div><strong>Expiry:</strong> Any future date (e.g., 12/26)</div>
+          <div><strong>CVC:</strong> Any 3 digits (e.g., 123)</div>
+        </div>
+        <button class="btn btn-success" onclick="initializeStripePayment()" style="width: 100%;">💳 Create Checkout Session</button>
+        <div id="stripeMessage" style="margin-top: 12px; padding: 10px; border-radius: 6px; display: none;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">💰 Wallet</div>
+        <div class="grid-2">
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💵 Balance</div><div style="font-size: 16px; font-weight: 700;" id="walletBalance">$0.00</div></div>
+          <div style="background: var(--bg); padding: 12px; border-radius: 8px; text-align: center;"><div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">💸 Total Earned</div><div style="font-size: 16px; font-weight: 700;" id="walletEarned">$0.00</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">➕ Manual Income Entry (For Testing)</div>
+        <div class="grid-2">
+          <div class="form-group"><label>💵 Amount ($)</label><input type="number" id="incomeAmt" min="0" step="1" /></div>
+          <div class="form-group"><label>🧾 Tax %</label><input type="number" id="incomeTax" min="0" max="100" step="1" value="10" /></div>
+        </div>
+        <button class="btn btn-success" onclick="addIncome()" style="width: 100%;">✓ Add Income</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">📋 Payment History</div>
+        <div id="paymentHistory" style="font-size: 11px;">No payments yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OCC Modal -->
+<div id="occModal" class="modal">
+  <div class="modal-content" style="max-width:700px;width:95%;">
+    <div class="modal-header">
+      <h2>🦾 OCC: Ocular Code ConnectZ</h2>
+      <button class="close-btn" onclick="closeOccModal()">✕</button>
+    </div>
+    <div class="occ-body">
+      <p><strong>OCC</strong> is your creator-first, branded, and modular code platform. Formerly OPHC, OCC is the evolution of your vision for a next-gen, competency-based coding and creative suite.</p>
+      <ul class="occ-list">
+        <li>🧠 Competency tracking and skill validation</li>
+        <li>🎨 Modular UI for code, design, and media</li>
+        <li>🔒 Secure, privacy-first architecture</li>
+        <li>🌐 Community-driven extensions</li>
+        <li>🚀 Built for Music ConnectZ and beyond</li>
+      </ul>
+      <div class="occ-footer">v1.0 OCC &copy; K-Oth</div>
+    </div>
+  </div>
+</div>
+
+<!-- Messages Modal -->
+<div id="messagesModal" class="modal">
+  <div class="modal-content" style="max-width:600px;width:95%;">
+    <div class="modal-header">
+      <h2>📨 MsssageZ</h2>
+      <button class="close-btn" onclick="closeMessagesModal()">✕</button>
+    </div>
+        /* OCC custom design (moved from body) */
+        .occ-card {
+          background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+          color: #fff;
+          border: 2px solid #2196F3;
+          box-shadow: 0 4px 24px rgba(33,150,243,0.18);
+          margin-top: 24px;
+        }
+        .occ-header {
+          font-size: 18px;
+          font-weight: 800;
+          color: #fff;
+          border-bottom: 2px solid #fff;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+          letter-spacing: 1px;
+          background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
+          border-radius: 8px 8px 0 0;
+        }
+        .occ-body {
+          font-size: 14px;
+          line-height: 1.7;
+          padding: 10px 0 0 0;
+        }
+        .occ-list {
+          margin: 18px 0 18px 18px;
+          padding: 0;
+          list-style: none;
+        }
+        .occ-list li {
+          margin-bottom: 8px;
+          padding-left: 0;
+          position: relative;
+          font-size: 13px;
+        }
+        .occ-footer {
+          margin-top: 18px;
+          font-size: 12px;
+          color: #bbdefb;
+          text-align: right;
+          font-style: italic;
+        }
+    <div style="padding:16px;min-height:120px;">
+      <button class="btn btn-small" onclick="openInboxModal()">Inbox</button>
+      <button class="btn btn-small" onclick="openOutboxModal()">Outbox</button>
+      <div style="margin-top:16px;font-size:11px;color:var(--text-light);">Your messages will appear here.<br>(Premium and StatZ features can be shown here as well.)</div>
+    </div>
+  </div>
+</div>
+<!-- Inbox Modal -->
+<div id="inboxModal" class="modal">
+  <div class="modal-content" style="max-width:500px;width:95%;">
+    <div class="modal-header">
+      <h2>📥 Inbox</h2>
+      <button class="close-btn" onclick="closeInboxModal()">✕</button>
+    </div>
+    <div style="padding:16px;">Inbox content here.</div>
+  </div>
+</div>
+<!-- Outbox Modal -->
+<div id="outboxModal" class="modal">
+  <div class="modal-content" style="max-width:500px;width:95%;">
+    <div class="modal-header">
+      <h2>📤 Outbox</h2>
+      <button class="close-btn" onclick="closeOutboxModal()">✕</button>
+    </div>
+    <div style="padding:16px;">Outbox content here.</div>
+  </div>
+</div>
+<!-- DawZ Modal -->
+<div id="dawzModal" class="modal">
+  <div class="modal-content" style="max-width:700px;width:95%;">
+    <div class="modal-header">
+      <h2>🎛️ DawZ</h2>
+      <button class="close-btn" onclick="closeDawzModal()">✕</button>
+    </div>
+    <div style="padding:16px;">
+      <button class="btn btn-small" onclick="openModalApp('fruitymobius')">🍑 Fruity Möbius</button><!-- 🍑 Fruity Möbius: FL Studio knockoff. Make beats, drop loops, and get fruity with it. -->
+      <button class="btn btn-small" onclick="openModalApp('arsenal')">⚔️ Arsenal</button><!-- ⚔️ Arsenal: Pro Tools knockoff. All the power, none of the price. -->
+      <button class="btn btn-small" onclick="openModalApp('witchcraft')">🔮 Witchcraft</button><!-- 🔮 Witchcraft: Mixcraft knockoff. Magic for your mixes, spells for your sound. -->
+    </div>
+  </div>
+</div>
+<!-- Modal App Placeholders -->
+<div id="modalApp" class="modal">
+  <div class="modal-content" style="max-width:600px;width:95%;">
+    <div class="modal-header">
+      <h2 id="modalAppTitle">App</h2>
+      <button class="close-btn" onclick="closeModalApp()">✕</button>
+    </div>
+    <div id="modalAppContent" style="padding:16px;">App content here.</div>
+  </div>
+</div>
+<script>
+// Helper: check if current user is owner (replace with real logic as needed)
+function isOwner() {
+  // Example: check email or user id
+  return appState.user && appState.user.email && appState.user.email.endsWith('@ctkoth.com');
+}
+
+// Simulate payment to remove watermark (replace with real payment integration)
+function payToRemoveWatermark() {
+  if (confirm('Pay $10 to permanently remove the watermark from your images?')) {
+    // In production, trigger Stripe/PayPal/etc. Here, just set flag.
+    appState.user.removeWatermarkPaid = true;
+    saveAppState();
+    alert('✓ Watermark removed!');
+    // Redraw modal without watermark
+    if (window.lastImageModalSrc && window.lastImageModalTitle) {
+      showImageModal(window.lastImageModalSrc, window.lastImageModalTitle);
+    }
+  }
+}
+
+// Track last image modal for redraw
+let lastImageModalSrc = null;
+let lastImageModalTitle = null;
+
+// Export image as PNG, JPG, or ICO, with watermark unless paid
+function exportImage(imgSrc, format = 'png', filename = 'exported') {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new window.Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    // Watermark overlay unless paid
+    if (!hasPaidRemoveWatermark()) {
+      const watermark = new window.Image();
+      watermark.crossOrigin = 'anonymous';
+      watermark.onload = function() {
+        const w = Math.floor(canvas.width * 0.35);
+        const h = Math.floor(canvas.height * 0.35);
+        const x = canvas.width - w - 12;
+        const y = canvas.height - h - 12;
+        ctx.globalAlpha = 0.22;
+        ctx.drawImage(watermark, x, y, w, h);
+        ctx.globalAlpha = 1.0;
+        finish();
+      };
+      watermark.src = 'favicon.png';
+    } else {
+      finish();
+    }
+    function finish() {
+      let url;
+      if (format === 'ico') {
+        url = canvas.toDataURL('image/png');
+        downloadDataUrl(url, filename + '.ico');
+      } else if (format === 'jpg' || format === 'jpeg') {
+        url = canvas.toDataURL('image/jpeg');
+        downloadDataUrl(url, filename + '.jpg');
+      } else {
+        url = canvas.toDataURL('image/png');
+        downloadDataUrl(url, filename + '.png');
+      }
+    }
+  };
+  img.src = imgSrc;
+}
+
+// Add export button to image modal if owner, show watermark overlay unless paid
+function showImageModal(imgSrc, title = 'Image') {
+  lastImageModalSrc = imgSrc;
+  lastImageModalTitle = title;
+  const modal = document.getElementById('modalApp');
+  document.getElementById('modalAppTitle').textContent = title;
+  let exportBtns = '';
+  if (isOwner()) {
+    exportBtns = `<div style="margin-bottom:10px;">
+      <button onclick="exportImage('${imgSrc}','png','${title}')">⬇️ Export PNG</button>
+      <button onclick="exportImage('${imgSrc}','jpg','${title}')">⬇️ Export JPG</button>
+      <button onclick="exportImage('${imgSrc}','ico','${title}')">⬇️ Export ICO</button>
+    </div>`;
+  } else if (!hasPaidRemoveWatermark()) {
+    exportBtns = `<div style="margin-bottom:10px;">
+      <button onclick="payToRemoveWatermark()">💸 Remove Watermark ($10)</button>
+    </div>`;
+  }
+  const canvasId = 'imgModalCanvas';
+  document.getElementById('modalAppContent').innerHTML = exportBtns + `<canvas id="${canvasId}" style="max-width:100%;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.15);margin-bottom:8px;"></canvas>`;
+  modal.classList.add('active');
+  // Draw image + watermark on canvas
+  setTimeout(() => {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      // Watermark overlay unless paid
+      if (!hasPaidRemoveWatermark()) {
+        const watermark = new window.Image();
+        watermark.crossOrigin = 'anonymous';
+        watermark.onload = function() {
+          const w = Math.floor(canvas.width * 0.35);
+          const h = Math.floor(canvas.height * 0.35);
+          const x = canvas.width - w - 12;
+          const y = canvas.height - h - 12;
+          ctx.globalAlpha = 0.22;
+          ctx.drawImage(watermark, x, y, w, h);
+          ctx.globalAlpha = 1.0;
+        };
+        watermark.src = 'favicon.png';
+      }
+    };
+    img.src = imgSrc;
+  }, 50);
+}
+
+// For non-owners: only allow export to in-app post (stub)
+function exportToInAppPost(imgSrc) {
+  alert('This image will be added to your in-app post!');
+  // Add logic to attach image to post here
+}
+const instrumentDatabase = {
+  'developer': {
+    'Programming Languages': {
+      'Any Language': 'Any Language 👨‍💻',
+      'JavaScript': 'JavaScript 🟨',
+      'Python': 'Python 🐍',
+      'Java': 'Java ☕',
+      'C++': 'C++ 💻',
+      'C#': 'C# 🎮',
+      'TypeScript': 'TypeScript 🟦',
+      'Go': 'Go 🦫',
+      'Ruby': 'Ruby 💎',
+      'PHP': 'PHP 🐘',
+      'Swift': 'Swift 🦅',
+      'Kotlin': 'Kotlin 🟪',
+      'Rust': 'Rust 🦀',
+      'SQL': 'SQL 🗄️'
+    },
+    'Frameworks & Libraries': {
+      'React': 'React ⚛️',
+      'Vue': 'Vue 🟩',
+      'Angular': 'Angular 🅰️',
+      'Django': 'Django 🐍',
+      'Flask': 'Flask 🍶',
+      'Express': 'Express 🚂',
+      'Spring': 'Spring 🌱',
+      'Laravel': 'Laravel 🛠️',
+      'Rails': 'Rails 🚆',
+      'Next.js': 'Next.js ⏭️',
+      'Node.js': 'Node.js 🌳',
+      'jQuery': 'jQuery 💎'
+    },
+    'Dev Skills': {
+      'Frontend': 'Frontend 🎨',
+      'Backend': 'Backend 🛠️',
+      'Fullstack': 'Fullstack 🧑‍💻',
+      'APIs': 'APIs 🔗',
+      'Databases': 'Databases 🗄️',
+      'Testing': 'Testing 🧪',
+      'CI/CD': 'CI/CD 🔄',
+      'Cloud': 'Cloud ☁️',
+      'DevOps': 'DevOps ⚙️',
+      'Security': 'Security 🔒',
+      'Mobile': 'Mobile 📱',
+      'Game Dev': 'Game Dev 🎮',
+      'AI/ML': 'AI/ML 🤖',
+      'Automation': 'Automation 🤖',
+      'Scripting': 'Scripting 📜'
+    }
+  },
+  'indie-artist': {
+    'String Instruments': {'Any String': 'Any String 🎸','Acoustic Guitar': 'Acoustic Guitar 🎸','Electric Guitar': 'Electric Guitar 🎸','Bass Guitar': 'Bass Guitar 🎸','Ukulele': 'Ukulele 🎸','Banjo': 'Banjo 🎸','Mandolin': 'Mandolin 🎸','Violin': 'Violin 🎻','Viola': 'Viola 🎻','Cello': 'Cello 🎻','Double Bass': 'Double Bass 🎻','Harp': 'Harp 🎵'},
+    'Keyboard Instruments': {'Any Keyboard': 'Any Keyboard 🎹','Acoustic Piano': 'Acoustic Piano 🎹','Digital Piano': 'Digital Piano 🎹','Synthesizer': 'Synthesizer 🎹','Organ': 'Organ 🎹','Harpsichord': 'Harpsichord 🎹','Accordion': 'Accordion 🎹'},
+    'Percussion Instruments': {'Any Percussion': 'Any Percussion 🥁','Drums (Snare)': 'Drums (Snare) 🥁','Drums (Bass)': 'Drums (Bass) 🥁','Drums (Bongo)': 'Drums (Bongo) 🥁','Cymbals': 'Cymbals 🥁'},
+    'Rapping': {'Any Rapping': 'Any Rapping 🎤','Alternative Rap': 'Alternative Rap 🎸','Boom Bap': 'Boom Bap 🥁','Chopper': 'Chopper 🚁','Cloud Rap': 'Cloud Rap ☁️','Conscious Rap': 'Conscious Rap 🧠','Crunk': 'Crunk 🔥','Drill': 'Drill ⚔️','Emo Rap': 'Emo Rap 🖤','G-Funk': 'G-Funk 🌴','Gangsta Rap': 'Gangsta Rap ⛓️','Hardcore Hip Hop': 'Hardcore Hip Hop 🎤','Jazz Rap': 'Jazz Rap 🎷','Mumble Rap': 'Mumble Rap 💤','Old School': 'Old School 📻','Snap': 'Snap 🫰','Trap': 'Trap 🏚️'},
+    'Singing': {'Any Singing': 'Any Singing 🎶','Bass': 'Bass 🧔‍♂️','Baritone': 'Baritone 🎙️','Tenor': 'Tenor 🎤','Countertenor': 'Countertenor 🕊️','Contralto': 'Contralto 🎻','Alto': 'Alto 🎶','Mezzo-Soprano': 'Mezzo-Soprano 🌊','Soprano': 'Soprano ☀️'}
+  },
+  'beat-producer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Production Techniques': {'Any Production': 'Any Production 🎚️','Beat Making': 'Beat Making 🎚️','Sampling': 'Sampling 🎵','Sound Design': 'Sound Design 🎛️','Arrangement': 'Arrangement 🎼','Synthesis': 'Synthesis 🎹'}
+  },
+  'mix-engineer': {
+    'Music DAWs': {'Any DAW': 'Any DAW 🎛️','Ableton Live': 'Ableton Live 🎵','Adobe Audition': 'Adobe Audition 🎙️','Audacity': 'Audacity 🎧','Bitwig Studio': 'Bitwig Studio 🎚️','Cakewalk': 'Cakewalk 🎼','Cubase': 'Cubase 🎛️','FL Studio': 'FL Studio 🎚️','GarageBand': 'GarageBand 🎵','Logic Pro': 'Logic Pro 🎵','Luna': 'Luna ☁️','Mixcraft': 'Mixcraft 🎚️','PreSonus Studio One': 'PreSonus Studio One 🎛️','Pro Tools': 'Pro Tools 🎙️','Reason': 'Reason 🎛️','Reaper': 'Reaper 🔧','Studio One': 'Studio One 🎛️','Waveform Pro': 'Waveform Pro 📊'},
+    'Engineering Skills': {'Any Engineering': 'Any Engineering 🎛️','Mixing': 'Mixing 🎛️','Mastering': 'Mastering 🎙️','EQ': 'EQ 📊','Compression': 'Compression 🔧','Reverb/Effects': 'Reverb/Effects ✨'}
+  },
+  'designer': {
+    'Design Software': {'Any Design Software': 'Any Design Software 🎨','Photoshop': 'Adobe Photoshop 🎨','Illustrator': 'Adobe Illustrator 🖌️','Figma': 'Figma 🎯','Canva': 'Canva 🌈','Affinity Designer': 'Affinity Designer ✨','CorelDRAW': 'CorelDRAW 🎨','Sketch': 'Sketch 📐','InDesign': 'Adobe InDesign 📄'},
+    'Design Skills': {'Any Design Skill': 'Any Design Skill 🎨','UI/UX Design': 'UI/UX Design 🎯','Graphic Design': 'Graphic Design 🖌️','Branding': 'Branding 🏷️','Layout Design': 'Layout Design 📐','Typography': 'Typography 🔤','Color Theory': 'Color Theory 🌈','Icon Design': 'Icon Design 🎭'}
+  },
+  'videographer': {
+    'Video Software': {'Any Video Software': 'Any Video Software 🎬','Adobe Premiere': 'Adobe Premiere 🎬','DaVinci Resolve': 'DaVinci Resolve 🎞️','Final Cut Pro': 'Final Cut Pro 🎥','Sony Vegas': 'Sony Vegas 📹','Filmora': 'Filmora 🎬','After Effects': 'After Effects ✨','OBS': 'OBS Studio 🔴'},
+    'Video Skills': {'Any Video Skill': 'Any Video Skill 🎬','Editing': 'Editing 🎬','Color Grading': 'Color Grading 🎨','Motion Graphics': 'Motion Graphics ✨','Cinematography': 'Cinematography 🎥','Drone Footage': 'Drone Footage 🚁','Lighting': 'Lighting 💡','Sound Design': 'Sound Design 🎙️'}
+  }
+};
+
+let appState = {
+  user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null},
+  personas: [],
+  examples: [],
+  collabs: [],
+  skillsUsed: [],
+  selectedGenre: '',
+  selectedSkillsInModal: new Set(),
+  wallet: {balance: 0, earned: 0},
+  examplePrivacy: 'private',
+  currentTab: 'setup',
+  filteredCollabs: [],
+  paymentHistory: [],
+  settings: {
+    theme: 'theme-blue',
+    lightDark: 'light',
+    notifications: true,
+    collabAlerts: true,
+    paymentAlerts: true,
+    emailDigest: true,
+    shareLocation: true,
+    privateMode: false,
+    soundEffects: true,
+    bgMusic: false,
+    vibration: true,
+    autoDark: false
+  }
+};
+
+function saveAppState() {
+  const stateToSave = JSON.parse(JSON.stringify(appState));
+  stateToSave.selectedSkillsInModal = Array.from(appState.selectedSkillsInModal);
+  localStorage.setItem('musicConnectZState', JSON.stringify(stateToSave));
+}
+
+function loadAppState() {
+  const saved = localStorage.getItem('musicConnectZState');
+  if (saved) {
+    const loaded = JSON.parse(saved);
+    appState = {
+      user: loaded.user || appState.user,
+      personas: loaded.personas || [],
+      examples: loaded.examples || [],
+      collabs: loaded.collabs || [],
+      skillsUsed: loaded.skillsUsed || [],
+      selectedGenre: loaded.selectedGenre || '',
+      selectedSkillsInModal: new Set(loaded.selectedSkillsInModal || []),
+      wallet: loaded.wallet || {balance: 0, earned: 0},
+      examplePrivacy: loaded.examplePrivacy || 'private',
+      currentTab: loaded.currentTab || 'setup',
+      filteredCollabs: loaded.filteredCollabs || [],
+      paymentHistory: loaded.paymentHistory || [],
+      settings: loaded.settings || appState.settings
+    };
+  }
+  updateAllDisplays();
+  applyTheme(appState.settings.theme);
+  if (appState.settings.lightDark === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  updateSettingsToggles();
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+  appState.currentTab = tabName;
+  saveAppState();
+  
+  if (tabName === 'collaborate') {
+    updateCollabPersonaOptions();
+    renderCollabFeed();
+  }
+  if (tabName === 'profile') {
+    updateProfileDisplay();
+  }
+  if (tabName === 'money') {
+    updateWalletDisplay();
+  }
+  if (tabName === 'settings') {
+    document.getElementById('currentLocationDisplay').textContent = appState.user.location || 'Not set';
+  }
+}
+
+function prevTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = currentIdx === 0 ? tabs.length - 1 : currentIdx - 1;
+  switchTab(tabs[newIdx]);
+}
+
+function nextTab() {
+  const tabs = ['setup', 'personas', 'examples', 'collaborate', 'profile', 'money', 'settings'];
+  const currentIdx = tabs.indexOf(appState.currentTab);
+  const newIdx = (currentIdx + 1) % tabs.length;
+  switchTab(tabs[newIdx]);
+}
+
+function toggleLightDark() {
+  const current = appState.settings.lightDark;
+  appState.settings.lightDark = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', appState.settings.lightDark === 'dark' ? 'dark' : appState.settings.theme);
+  saveAppState();
+}
+
+function applyTheme(themeName) {
+  appState.settings.theme = themeName;
+  document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+  document.getElementById(themeName).classList.add('active');
+  if (appState.settings.lightDark !== 'dark') {
+    document.documentElement.setAttribute('data-theme', themeName);
+  }
+  saveAppState();
+}
+
+function toggleSetting(settingName) {
+  appState.settings[settingName] = !appState.settings[settingName];
+  const toggleId = settingName === 'notifications' ? 'notificationToggle' : 
+                   settingName === 'collabAlerts' ? 'collabAlertToggle' :
+                   settingName === 'paymentAlerts' ? 'paymentAlertToggle' :
+                   settingName === 'emailDigest' ? 'emailDigestToggle' :
+                   settingName === 'shareLocation' ? 'shareLocationToggle' :
+                   settingName === 'privateMode' ? 'privateModeToggle' :
+                   settingName === 'soundEffects' ? 'soundEffectsToggle' :
+                   settingName === 'bgMusic' ? 'bgMusicToggle' :
+                   settingName === 'vibration' ? 'vibrationToggle' :
+                   settingName === 'autoDark' ? 'autoDarkToggle' : '';
+  
+  const toggle = document.getElementById(toggleId);
+  if (appState.settings[settingName]) {
+    toggle.classList.add('active');
+  } else {
+    toggle.classList.remove('active');
+  }
+  saveAppState();
+}
+
+function updateSettingsToggles() {
+  Object.keys(appState.settings).forEach(key => {
+    if (key !== 'theme' && key !== 'lightDark') {
+      const toggleId = key === 'notifications' ? 'notificationToggle' : 
+                       key === 'collabAlerts' ? 'collabAlertToggle' :
+                       key === 'paymentAlerts' ? 'paymentAlertToggle' :
+                       key === 'emailDigest' ? 'emailDigestToggle' :
+                       key === 'shareLocation' ? 'shareLocationToggle' :
+                       key === 'privateMode' ? 'privateModeToggle' :
+                       key === 'soundEffects' ? 'soundEffectsToggle' :
+                       key === 'bgMusic' ? 'bgMusicToggle' :
+                       key === 'vibration' ? 'vibrationToggle' :
+                       key === 'autoDark' ? 'autoDarkToggle' : '';
+      
+      const toggle = document.getElementById(toggleId);
+      if (toggle) {
+        if (appState.settings[key]) {
+          toggle.classList.add('active');
+        } else {
+          toggle.classList.remove('active');
+        }
+      }
+    }
+  });
+}
+
+function testSound() {
+  if (appState.settings.soundEffects) {
+    alert('🔊 Sound test! (In production, this would play a sound)');
+  } else {
+    alert('🔇 Sound effects are disabled. Enable them first.');
+  }
+}
+
+function clearAllData() {
+  if (confirm('⚠️ Are you sure? This will DELETE ALL your data including profiles, personas, examples, collaboration posts, and payment history. This action CANNOT be undone!')) {
+    if (confirm('🚨 FINAL WARNING: All data will be permanently deleted. Continue?')) {
+      localStorage.clear();
+      appState = {
+        user: {name: '', email: '', phone: '', birthday: '', gender: '', location: '', bio: '', profilePic: null},
+        personas: [],
+        examples: [],
+        collabs: [],
+        skillsUsed: [],
+        selectedGenre: '',
+        selectedSkillsInModal: new Set(),
+        wallet: {balance: 0, earned: 0},
+        examplePrivacy: 'private',
+        currentTab: 'setup',
+        filteredCollabs: [],
+        paymentHistory: [],
+        settings: {
+          theme: 'theme-blue',
+          lightDark: 'light',
+          notifications: true,
+          collabAlerts: true,
+          paymentAlerts: true,
+          emailDigest: true,
+          shareLocation: true,
+          privateMode: false,
+          soundEffects: true,
+          bgMusic: false,
+          vibration: true,
+          autoDark: false
+        }
+      };
+      updateAllDisplays();
+      applyTheme('theme-blue');
+      switchTab('setup');
+      alert('✓ All data cleared! Starting fresh.');
+    }
+  }
+}
+
+function requestGPSFromSettings() {
+  const status = document.getElementById('gpsStatus');
+  if (status) status.classList.add('active');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude.toFixed(4);
+      const lng = pos.coords.longitude.toFixed(4);
+      appState.user.location = `${lat}, ${lng}`;
+      document.getElementById('location').value = `${lat}, ${lng}`;
+      document.getElementById('currentLocationDisplay').textContent = `${lat}, ${lng}`;
+      if (status) status.textContent = `✓ GPS: ${lat}, ${lng}`;
+      saveAppState();
+      alert('✓ Location updated!');
+    }, () => {
+      if (status) status.textContent = '✗ GPS denied or unavailable';
+      alert('✗ GPS denied or unavailable');
+    });
+  }
+}
+
+function saveProfile() {
+  appState.user = {
+    name: document.getElementById('username').value,
+    email: document.getElementById('email').value,
+    phone: document.getElementById('phone').value,
+    birthday: document.getElementById('birthday').value,
+    gender: document.getElementById('gender').value,
+    location: document.getElementById('location').value,
+    bio: document.getElementById('bio').value,
+    profilePic: appState.user.profilePic
+  };
+  saveAppState();
+  updateProfileDisplay();
+  alert('✓ Profile saved!');
+}
+
+function loadProfilePic(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      appState.user.profilePic = e.target.result;
+      document.getElementById('headerPic').innerHTML = `<img src="${e.target.result}" />`;
+      saveAppState();
+      updateProfileDisplay();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function requestGPS() {
+  const status = document.getElementById('gpsStatus');
+  status.classList.add('active');
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude.toFixed(4);
+      const lng = pos.coords.longitude.toFixed(4);
+      document.getElementById('location').value = `${lat}, ${lng}`;
+      status.textContent = `✓ GPS: ${lat}, ${lng}`;
+    }, () => {
+      status.textContent = '✗ GPS denied or unavailable';
+    });
+  }
+}
+
+function updateProfileDisplay() {
+  const user = appState.user;
+  document.getElementById('pubUsername').textContent = user.name || 'Not Set';
+  document.getElementById('pubInfo').innerHTML = `📧 ${user.email || 'No email'}<br>📱 ${user.phone || 'No phone'}<br>📍 ${user.location || 'No location'}`;
+  document.getElementById('pubBio').textContent = user.bio || 'No bio';
+  document.getElementById('pubEmailText').textContent = user.email || 'No email';
+  
+  if (user.email) {
+    document.getElementById('copyEmailBtn').style.display = 'block';
+  } else {
+    document.getElementById('copyEmailBtn').style.display = 'none';
+  }
+  
+  if (user.profilePic) {
+    document.getElementById('pubPic').innerHTML = `<img src="${user.profilePic}" />`;
+    document.getElementById('headerPic').innerHTML = `<img src="${user.profilePic}" />`;
+  }
+  
+  const skillsList = appState.personas.map(p => p.skills.map(s => s.name)).flat();
+  document.getElementById('pubSkills').innerHTML = skillsList.length > 0 ? skillsList.map(s => `<span class="tag">${s}</span>`).join('') : 'No skills';
+}
+
+function copyEmail() {
+  const email = appState.user.email;
+  if (email) {
+    navigator.clipboard.writeText(email).then(() => alert('✓ Email copied!')).catch(() => alert('✗ Copy failed'));
+  }
+}
+
+function openSkillModal(personaKey, personaName) {
+  document.getElementById('skillModalTitle').textContent = `Add Skills - ${personaName}`;
+  document.getElementById('editingPersonaIdx').value = personaKey;
+  appState.selectedSkillsInModal = new Set();
+  renderSkillModal(personaKey);
+  populateDateSelects();
+  document.getElementById('skillModal').classList.add('active');
+}
+
+function populateDateSelects() {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const moSelect = document.getElementById('skillMo');
+  moSelect.innerHTML = '';
+  months.forEach((m, i) => moSelect.innerHTML += `<option value="${i+1}">${m}</option>`);
+  
+  const daySelect = document.getElementById('skillDay');
+  daySelect.innerHTML = '';
+  for (let i = 1; i <= 31; i++) daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+  
+  const yrSelect = document.getElementById('skillYr');
+  yrSelect.innerHTML = '';
+  const currentYear = new Date().getFullYear();
+  for (let i = currentYear; i >= 2000; i--) yrSelect.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function renderSkillModal(personaKey) {
+  const skillCats = document.getElementById('skillCats');
+  skillCats.innerHTML = '';
+  const categories = instrumentDatabase[personaKey];
+  for (const [catName, skills] of Object.entries(categories)) {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${catName}</div><div class="skill-grid"></div>`;
+    for (const [skillKey, skillName] of Object.entries(skills)) {
+      const isAny = skillKey.toLowerCase().includes('any');
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${isAny ? 'any-skill' : ''}`;
+      btn.textContent = skillName;
+      btn.onclick = (e) => {
+        e.preventDefault();
+        btn.classList.toggle('sel');
+        if (btn.classList.contains('sel')) {
+          appState.selectedSkillsInModal.add(skillName);
+        } else {
+          appState.selectedSkillsInModal.delete(skillName);
+        }
+      };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    }
+    skillCats.appendChild(catDiv);
+  }
+}
+
+function addSkills() {
+  const personaKey = document.getElementById('editingPersonaIdx').value;
+  if (appState.selectedSkillsInModal.size === 0) {
+    alert('❌ Please select at least one skill');
+    return;
+  }
+  
+  const mo = document.getElementById('skillMo').value;
+  const day = document.getElementById('skillDay').value;
+  const yr = document.getElementById('skillYr').value;
+  const startDate = `${mo}/${day}/${yr}`;
+  
+  const personaNames = {
+    'indie-artist': '🎤 Indie Artist',
+    'beat-producer': '🎚️ Beat Producer',
+    'mix-engineer': '🎛️ Mix Engineer',
+    'designer': '🎨 Designer',
+    'videographer': '🎬 Videographer'
+  };
+  
+  let persona = appState.personas.find(p => p.key === personaKey);
+  if (!persona) {
+    persona = {key: personaKey, name: personaNames[personaKey], skills: []};
+    appState.personas.push(persona);
+  }
+  
+  const skillCount = appState.selectedSkillsInModal.size;
+  appState.selectedSkillsInModal.forEach(skillName => {
+    persona.skills.push({name: skillName, startDate: startDate});
+  });
+  
+  appState.selectedSkillsInModal.clear();
+  renderPersonasDisplay();
+  closeSkillModal();
+  saveAppState();
+  alert(`✓ Added ${skillCount} skill${skillCount !== 1 ? 's' : ''} with start date ${startDate}`);
+}
+
+function renderPersonasDisplay() {
+  const display = document.getElementById('personasDisplay');
+  if (!display) return; // Prevent error if element is missing
+  if (appState.personas.length === 0) {
+    display.innerHTML = 'No personas yet';
+    return;
+  }
+  display.innerHTML = '';
+  // Persona image filenames by key
+  const personaImages = {
+    'indie-artist': 'artist.png',
+    'beat-producer': 'producer.png',
+    'mix-engineer': 'engineer.png',
+    'designer': 'designer.png',
+    'videographer': 'videographer.png',
+    'manager': 'manager.png',
+    'writer': 'writer.png',
+    'developer': 'developer.png'
+  };
+  appState.personas.forEach((persona, idx) => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    // Use image if available, fallback to icon
+    const imgFile = personaImages[persona.key];
+    // Use new folder for persona images
+    const imgTag = imgFile ? `<img src="src/assets/personas/${imgFile}" alt="${persona.name}" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:8px;vertical-align:middle;box-shadow:0 2px 8px rgba(0,0,0,0.10);background:#fff;" />` : '';
+    card.innerHTML = `
+      <div class="persona-header">
+        <div class="persona-name">${imgTag}${persona.name}</div>
+        <button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button>
+      </div>
+      <div style="font-size: 11px;">
+        <div style="font-weight: 600; margin-bottom: 6px;">Skills:</div>
+        <div id="personaSkills${idx}"></div>
+      </div>
+    `;
+    display.appendChild(card);
+    const skillsDiv = document.getElementById(`personaSkills${idx}`);
+    persona.skills.forEach((skill, sIdx) => {
+      const skillItem = document.createElement('div');
+      skillItem.className = 'skill-item';
+      skillItem.innerHTML = `
+        <span class="skill-item-name">${skill.name}</span>
+        <span class="skill-item-exp">${skill.startDate}</span>
+        <div class="skill-item-actions">
+          <button class="btn btn-danger btn-small" onclick="removePersonaSkill(${idx}, ${sIdx})">✕</button>
+        </div>
+      `;
+      skillsDiv.appendChild(skillItem);
+    });
+  });
+  updateProfileDisplay();
+}
+
+function removePersona(idx) {
+  if (confirm('Remove this persona and all its skills?')) {
+    appState.personas.splice(idx, 1);
+    renderPersonasDisplay();
+    saveAppState();
+  }
+}
+
+function removePersonaSkill(personaIdx, skillIdx) {
+  appState.personas[personaIdx].skills.splice(skillIdx, 1);
+  renderPersonasDisplay();
+  saveAppState();
+}
+
+function closeSkillModal() {
+  document.getElementById('skillModal').classList.remove('active');
+}
+
+function openGenreModal() {
+  const genreCats = document.getElementById('genreCats');
+  genreCats.innerHTML = '';
+  const genres = ['Trap', 'Drill', 'Cloud Rap', 'Boom Bap', 'House', 'Techno', 'Pop', 'Hip Hop', 'R&B', 'Jazz', 'Soul', 'Indie', 'Electronic', 'Ambient', 'Lo-Fi'];
+  genres.forEach(genre => {
+    const btn = document.createElement('button');
+    btn.className = `genre-btn ${appState.selectedGenre === genre ? 'sel' : ''}`;
+    btn.textContent = genre;
+    btn.onclick = () => {
+      document.querySelectorAll('#genreCats .genre-btn').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      appState.selectedGenre = genre;
+    };
+    genreCats.appendChild(btn);
+  });
+  document.getElementById('genreModal').classList.add('active');
+}
+
+function closeGenreModal() {
+  document.getElementById('genreModal').classList.remove('active');
+}
+
+function addGenre() {
+  if (!appState.selectedGenre) {
+    alert('❌ Please select a genre');
+    return;
+  }
+  document.getElementById('exampleGenreDisplay').textContent = appState.selectedGenre;
+  closeGenreModal();
+}
+
+function uploadExample() {
+  const title = document.getElementById('exampleTitle').value.trim();
+  const desc = document.getElementById('exampleDesc').value.trim();
+  const genre = appState.selectedGenre;
+  const privacy = appState.examplePrivacy;
+  const skillsUsed = Array.from(appState.selectedSkillsInModal);
+  
+  if (!title || !desc || !genre || skillsUsed.length === 0) {
+    alert('❌ Please fill all fields: Title, Description, Genre, and Skills Used');
+    return;
+  }
+  
+  const example = {
+    id: Date.now(),
+    title,
+    desc,
+    genre,
+    privacy,
+    skillsUsed,
+    uploadDate: new Date().toLocaleDateString()
+  };
+  
+  appState.examples.push(example);
+  clearExampleForm();
+  renderExamplesDisplay();
+  saveAppState();
+  alert('✓ Example uploaded!');
+}
+
+function clearExampleForm() {
+  document.getElementById('exampleTitle').value = '';
+  document.getElementById('exampleDesc').value = '';
+  document.getElementById('exampleGenreDisplay').textContent = 'Click "Select Genre"';
+  appState.selectedGenre = '';
+  appState.selectedSkillsInModal.clear();
+  document.getElementById('skillsUsedDisplay').textContent = 'Click to select required skills';
+  setExamplePrivacy('private');
+}
+
+function setExamplePrivacy(level) {
+  appState.examplePrivacy = level;
+  document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`button[onclick="setExamplePrivacy('${level}')"]`).classList.add('active');
+}
+
+function renderExamplesDisplay() {
+  const display = document.getElementById('examplesDisplay');
+  if (appState.examples.length === 0) {
+    display.innerHTML = 'No examples yet';
+    return;
+  }
+  display.innerHTML = '';
+  appState.examples.forEach((ex, idx) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `
+      <div class="post-header">
+        <div class="post-avatar">🎵</div>
+        <div class="post-info">
+          <div class="post-user">${ex.title}</div>
+          <div class="post-meta">${ex.uploadDate} • ${ex.privacy === 'public' ? '🌐 Public' : '🔒 Private'}</div>
+        </div>
+      </div>
+      <div class="post-content">${ex.desc}</div>
+      <div style="margin: 8px 0; font-size: 10px;"><strong>Genre:</strong> ${ex.genre}</div>
+      <div style="margin: 8px 0; font-size: 10px;"><strong>Skills:</strong> ${ex.skillsUsed.join(', ')}</div>
+      <div class="post-actions">
+        <button class="btn btn-danger btn-small" onclick="removeExample(${idx})">Delete</button>
+      </div>
+    `;
+    display.appendChild(card);
+  });
+}
+
+function removeExample(idx) {
+  if (confirm('Remove this example?')) {
+    appState.examples.splice(idx, 1);
+    renderExamplesDisplay();
+    saveAppState();
+  }
+}
+
+function openSkillsUsedModal() {
+  const skillsUsedCats = document.getElementById('skillsUsedCats');
+  skillsUsedCats.innerHTML = '';
+  const categories = {};
+  appState.personas.forEach(persona => {
+    persona.skills.forEach(skill => {
+      for (const [catName, skills] of Object.entries(instrumentDatabase[persona.key])) {
+        if (!categories[catName]) categories[catName] = {};
+        if (skills[Object.keys(skills).find(k => skills[k] === skill.name)]) {
+          categories[catName][skill.name] = skill.name;
+        }
+      }
+    });
+  });
+  
+  if (Object.keys(categories).length === 0) {
+    skillsUsedCats.innerHTML = '<div style="color: var(--text-light); font-size: 11px;">Add skills from your personas first</div>';
+    document.getElementById('skillsUsedModal').classList.add('active');
+    return;
+  }
+  
+  for (const [catName, skills] of Object.entries(categories)) {
+    const catDiv = document.createElement('div');
+    catDiv.style.marginBottom = '14px';
+    catDiv.innerHTML = `<div style="font-weight: 700; font-size: 12px; margin-bottom: 8px; color: var(--primary);">${catName}</div><div class="skill-grid"></div>`;
+    for (const [skillKey, skillName] of Object.entries(skills)) {
+      const btn = document.createElement('button');
+      btn.className = `skill-btn ${appState.selectedSkillsInModal.has(skillName) ? 'sel' : ''}`;
+      btn.textContent = skillName;
+      btn.onclick = () => {
+        btn.classList.toggle('sel');
+        if (btn.classList.contains('sel')) {
+          appState.selectedSkillsInModal.add(skillName);
+        } else {
+          appState.selectedSkillsInModal.delete(skillName);
+        }
+        document.getElementById('skillsUsedDisplay').textContent = appState.selectedSkillsInModal.size > 0 ? `${appState.selectedSkillsInModal.size} skill(s) selected` : 'Click to select required skills';
+      };
+      catDiv.querySelector('.skill-grid').appendChild(btn);
+    }
+    skillsUsedCats.appendChild(catDiv);
+  }
+  document.getElementById('skillsUsedModal').classList.add('active');
+}
+
+function closeSkillsUsedModal() {
+  document.getElementById('skillsUsedModal').classList.remove('active');
+}
+
+function cancelEditExample() {
+  clearExampleForm();
+  document.getElementById('editingExampleIdx').value = '';
+  document.getElementById('exampleSubmitBtn').style.display = 'block';
+  document.getElementById('exampleCancelBtn').style.display = 'none';
+}
+
+function updateCollabPersonaOptions() {
+  const collabPersonaSelect = document.getElementById('collabPersona');
+  collabPersonaSelect.innerHTML = '<option value="">Choose persona</option>';
+  appState.personas.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    collabPersonaSelect.appendChild(opt);
+  });
+}
+
+function updateCollabExampleOptions() {
+  const personaName = document.getElementById('collabPersona').value;
+  const collabExampleSelect = document.getElementById('collabPublicExample');
+  collabExampleSelect.innerHTML = '<option value="">Choose example</option>';
+  appState.examples.filter(ex => ex.privacy === 'public').forEach(ex => {
+    const opt = document.createElement('option');
+    opt.value = ex.id;
+    opt.textContent = ex.title;
+    collabExampleSelect.appendChild(opt);
+  });
+}
+
+function postCollabRequest() {
+  const persona = document.getElementById('collabPersona').value;
+  const example = document.getElementById('collabPublicExample').value;
+  const desc = document.getElementById('collabPostDesc').value.trim();
+  
+  if (!persona || !example || !desc) {
+    alert('❌ Please fill all fields');
+    return;
+  }
+  
+  const collab = {
+    id: Date.now(),
+    persona,
+    exampleId: example,
+    desc,
+    userName: appState.user.name || 'Anonymous',
+    userLocation: appState.user.location || 'N/A',
+    postDate: new Date().toLocaleDateString(),
+    userEmail: appState.user.email
+  };
+  
+  appState.collabs.push(collab);
+  document.getElementById('collabPersona').value = '';
+  document.getElementById('collabPublicExample').value = '';
+  document.getElementById('collabPostDesc').value = '';
+  renderCollabFeed();
+  saveAppState();
+  alert('✓ Collaboration request posted!');
+}
+
+function renderCollabFeed() {
+  const feed = document.getElementById('collabFeed');
+  const filtered = appState.filteredCollabs.length > 0 ? appState.filteredCollabs : appState.collabs;
+  document.getElementById('feedCount').textContent = filtered.length;
+  
+  if (filtered.length === 0) {
+    feed.innerHTML = 'No posts';
+    return;
+  }
+  feed.innerHTML = '';
+  filtered.forEach((collab, idx) => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.innerHTML = `
+      <div class="post-header">
+        <div class="post-avatar">🎭</div>
+        <div class="post-info">
+          <div class="post-user">${collab.persona}</div>
+          <div class="post-meta">${collab.postDate} • ${collab.userLocation}</div>
+        </div>
+      </div>
+      <div class="post-content">${collab.desc}</div>
+      <div style="margin: 8px 0; font-size: 10px;"><strong>Posted by:</strong> ${collab.userName}</div>
+      <div class="post-actions">
+        <button class="btn btn-secondary btn-small" onclick="respondToCollab('${collab.userEmail}')">📧 Respond</button>
+        <button class="btn btn-danger btn-small" onclick="removeCollab(${idx})">Delete</button>
+      </div>
+    `;
+    feed.appendChild(card);
+  });
+}
+
+function respondToCollab(email) {
+  if (email) {
+    alert(`✓ Opening email client for: ${email}`);
+  } else {
+    alert('❌ No email available');
+  }
+}
+
+function removeCollab(idx) {
+  if (confirm('Remove this collaboration request?')) {
+    appState.collabs.splice(idx, 1);
+    renderCollabFeed();
+    saveAppState();
+  }
+}
+
+function cancelEditCollab() {}
+
+function applyFilters() {
+  const personaFilter = document.getElementById('filterPersona').value;
+  const locationFilter = document.getElementById('filterLocation').value.toLowerCase();
+  
+  appState.filteredCollabs = appState.collabs.filter(collab => {
+    const personaMatch = !personaFilter || collab.persona === personaFilter;
+    const locationMatch = !locationFilter || collab.userLocation.toLowerCase().includes(locationFilter);
+    return personaMatch && locationMatch;
+  });
+  
+  renderCollabFeed();
+}
+
+function resetFilters() {
+  document.getElementById('filterPersona').value = '';
+  document.getElementById('filterLocation').value = '';
+  appState.filteredCollabs = [];
+  renderCollabFeed();
+}
+
+function addIncome() {
+  const amt = parseFloat(document.getElementById('incomeAmt').value);
+  const tax = parseFloat(document.getElementById('incomeTax').value) || 0;
+  
+  if (!amt || amt <= 0) {
+    alert('❌ Enter valid amount');
+    return;
+  }
+  
+  const netAmount = amt * (1 - tax / 100);
+  appState.wallet.balance += netAmount;
+  appState.wallet.earned += amt;
+  
+  const historyEntry = {
+    date: new Date().toLocaleDateString(),
+    type: 'manual',
+    amount: amt,
+    net: netAmount,
+    tax: (amt * tax / 100).toFixed(2)
+  };
+  appState.paymentHistory.push(historyEntry);
+  
+  document.getElementById('incomeAmt').value = '';
+  updateWalletDisplay();
+  saveAppState();
+  alert(`✓ Added $${netAmount.toFixed(2)} (after ${tax}% tax)`);
+}
+
+function initializeStripePayment() {
+  const amount = parseFloat(document.getElementById('stripeFundAmount').value);
+  const collaboratorAccountId = document.getElementById('collaboratorAccountId').value.trim();
+  
+  if (!amount || amount < 1) {
+    showStripeMessage('❌ Please enter a valid amount (minimum $1)', 'error');
+    return;
+  }
+  
+  if (!collaboratorAccountId || !collaboratorAccountId.startsWith('acct_')) {
+    showStripeMessage('❌ Please enter a valid Stripe account ID (starts with acct_)', 'error');
+    return;
+  }
+  
+  if (!appState.user.email) {
+    showStripeMessage('❌ Please complete your profile with an email first', 'error');
+    return;
+  }
+  
+  showStripeMessage(`💳 Creating checkout session for $${amount.toFixed(2)}...`, 'info');
+  
+  fetch('/create-checkout-session', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      amountInCents: Math.round(amount * 100),
+      currency: 'usd',
+      collaboratorStripeAccountId: collaboratorAccountId,
+      customerEmail: appState.user.email,
+      description: `Music ConnectZ Payment - ${appState.user.name || 'Collaboration'}`
+    })
+  })
+  .then(response => response.json())
+  .then(session => {
+    if (session.error) {
+      showStripeMessage(`❌ Error: ${session.error}`, 'error');
+      return;
+    }
+    const stripe = Stripe('pk_test_YourPublicKey');
+    stripe.redirectToCheckout({ sessionId: session.id }).then(result => {
+      if (result.error) {
+        showStripeMessage(`❌ ${result.error.message}`, 'error');
+      }
+    });
+  })
+  .catch(error => {
+    showStripeMessage(`❌ Error: ${error.message}`, 'error');
+  });
+}
+
+function showStripeMessage(msg, type) {
+  const msgDiv = document.getElementById('stripeMessage');
+  msgDiv.style.display = 'block';
+  msgDiv.textContent = msg;
+  msgDiv.style.backgroundColor = type === 'success' ? '#c8e6c9' : type === 'error' ? '#ffcdd2' : '#bbdefb';
+  msgDiv.style.color = type === 'success' ? '#2e7d32' : type === 'error' ? '#c62828' : '#0d47a1';
+  msgDiv.style.borderLeft = `4px solid ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'}`;
+  
+  if (type === 'success') {
+    setTimeout(() => msgDiv.style.display = 'none', 3000);
+  }
+}
+
+function updateWalletDisplay() {
+  document.getElementById('walletBalance').textContent = `$${appState.wallet.balance.toFixed(2)}`;
+  document.getElementById('walletEarned').textContent = `$${appState.wallet.earned.toFixed(2)}`;
+  document.getElementById('balanceAmount').textContent = appState.wallet.balance.toFixed(2);
+  
+  const historyDiv = document.getElementById('paymentHistory');
+  if (appState.paymentHistory.length === 0) {
+    historyDiv.innerHTML = 'No payment history';
+    return;
+  }
+  
+  historyDiv.innerHTML = '';
+  appState.paymentHistory.slice().reverse().forEach(entry => {
+    const item = document.createElement('div');
+    item.style.backgroundColor = 'var(--bg)';
+    item.style.padding = '10px';
+    item.style.marginBottom = '8px';
+    item.style.borderRadius = '6px';
+    item.style.borderLeft = `4px solid ${entry.type === 'stripe' ? '#2196F3' : '#4CAF50'}`;
+    item.innerHTML = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <strong>${entry.type === 'stripe' ? '💳 Stripe' : '🎵 Manual'}</strong>
+        <strong>$${entry.amount.toFixed(2)}</strong>
+      </div>
+      <div style="font-size: 10px; color: var(--text-light);">
+        ${entry.date} ${entry.tax ? `• Tax: $${entry.tax}` : ''}
+      </div>
+    `;
+    historyDiv.appendChild(item);
+  });
+}
+
+function updateAllDisplays() {
+  updateWalletDisplay();
+  renderPersonasDisplay();
+  renderExamplesDisplay();
+  renderCollabFeed();
+  updateProfileDisplay();
+  // Add null checks for all DOM elements
+  const usernameEl = document.getElementById('username');
+  if (usernameEl) usernameEl.value = appState.user.name;
+  const emailEl = document.getElementById('email');
+  if (emailEl) emailEl.value = appState.user.email;
+  const phoneEl = document.getElementById('phone');
+  if (phoneEl) phoneEl.value = appState.user.phone;
+  const birthdayEl = document.getElementById('birthday');
+  if (birthdayEl) birthdayEl.value = appState.user.birthday;
+  const genderEl = document.getElementById('gender');
+  if (genderEl) genderEl.value = appState.user.gender;
+  const locationEl = document.getElementById('location');
+  if (locationEl) locationEl.value = appState.user.location;
+  const bioEl = document.getElementById('bio');
+  if (bioEl) bioEl.value = appState.user.bio;
+
+  if (appState.currentTab) {
+    switchTab(appState.currentTab);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAppState();
+});
+</script>
+</body>
+</html>
