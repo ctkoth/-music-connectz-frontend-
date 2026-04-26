@@ -251,48 +251,7 @@
             </div>
           </div>
         </div>
-        /* OCC custom design */
-        .occ-card {
-          background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
-          color: #fff;
-          border: 2px solid #2196F3;
-          box-shadow: 0 4px 24px rgba(33,150,243,0.18);
-          margin-top: 24px;
-        }
-        .occ-header {
-          font-size: 18px;
-          font-weight: 800;
-          color: #fff;
-          border-bottom: 2px solid #fff;
-          padding-bottom: 10px;
-          margin-bottom: 10px;
-          letter-spacing: 1px;
-          background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
-          border-radius: 8px 8px 0 0;
-        }
-        .occ-body {
-          font-size: 14px;
-          line-height: 1.7;
-          padding: 10px 0 0 0;
-        }
-        .occ-list {
-          margin: 18px 0 18px 18px;
-          padding: 0;
-          list-style: none;
-        }
-        .occ-list li {
-          margin-bottom: 8px;
-          padding-left: 0;
-          position: relative;
-          font-size: 13px;
-        }
-        .occ-footer {
-          margin-top: 18px;
-          font-size: 12px;
-          color: #bbdefb;
-          text-align: right;
-          font-style: italic;
-        }
+
     <div id="home" class="tab active"><div class="card"><div class="card-header">🏠 Home</div><div>Welcome to Music ConnectZ! This is your main dashboard and activity feed.</div></div></div>
     <div id="media" class="tab"><div class="card"><div class="card-header">🎵 Media</div><div>Upload, view, and manage Text, Code, Image, Audio, Video.</div></div></div>
     <div id="collabz" class="tab"><div class="card"><div class="card-header">🤝 CollabZ</div><div>Collaborate with other users, manage collab projects.</div></div></div>
@@ -509,6 +468,48 @@
       <h2>📨 MsssageZ</h2>
       <button class="close-btn" onclick="closeMessagesModal()">✕</button>
     </div>
+        /* OCC custom design (moved from body) */
+        .occ-card {
+          background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+          color: #fff;
+          border: 2px solid #2196F3;
+          box-shadow: 0 4px 24px rgba(33,150,243,0.18);
+          margin-top: 24px;
+        }
+        .occ-header {
+          font-size: 18px;
+          font-weight: 800;
+          color: #fff;
+          border-bottom: 2px solid #fff;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+          letter-spacing: 1px;
+          background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
+          border-radius: 8px 8px 0 0;
+        }
+        .occ-body {
+          font-size: 14px;
+          line-height: 1.7;
+          padding: 10px 0 0 0;
+        }
+        .occ-list {
+          margin: 18px 0 18px 18px;
+          padding: 0;
+          list-style: none;
+        }
+        .occ-list li {
+          margin-bottom: 8px;
+          padding-left: 0;
+          position: relative;
+          font-size: 13px;
+        }
+        .occ-footer {
+          margin-top: 18px;
+          font-size: 12px;
+          color: #bbdefb;
+          text-align: right;
+          font-style: italic;
+        }
     <div style="padding:16px;min-height:120px;">
       <button class="btn btn-small" onclick="openInboxModal()">Inbox</button>
       <button class="btn btn-small" onclick="openOutboxModal()">Outbox</button>
