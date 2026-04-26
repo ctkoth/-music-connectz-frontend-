@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="favicon.png" />
   <title>Music ConnectZ v5.7 bi K-Oth</title>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
   <style>
@@ -117,6 +118,49 @@
     .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
     .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
     .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* OCC custom design (moved from body) */
+    .occ-card {
+      background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+      color: #fff;
+      border: 2px solid #2196F3;
+      box-shadow: 0 4px 24px rgba(33,150,243,0.18);
+      margin-top: 24px;
+    }
+    .occ-header {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      border-bottom: 2px solid #fff;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
+      border-radius: 8px 8px 0 0;
+    }
+    .occ-body {
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 10px 0 0 0;
+    }
+    .occ-list {
+      margin: 18px 0 18px 18px;
+      padding: 0;
+      list-style: none;
+    }
+    .occ-list li {
+      margin-bottom: 8px;
+      padding-left: 0;
+      position: relative;
+      font-size: 13px;
+    }
+    .occ-footer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #bbdefb;
+      text-align: right;
+      font-style: italic;
+    }
     .skill-btn { padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; transition: all 0.2s; }
     .skill-btn:hover { border-color: var(--primary); }
     .skill-btn.sel { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important; color: white !important; border: 3px solid #1565C0 !important; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6) !important; transform: scale(1.08) !important; font-weight: 700 !important; }
@@ -162,28 +206,32 @@
   </div>
 
   <div class="tabs">
-      <button class="tab-btn" onclick="switchTab('occ')">🦾 OCC</button>
+      <button class="tab-btn" id="occModalBtn" onclick="openOccModal()">🦾 OCC</button>
     <button class="tab-btn active" onclick="switchTab('home')">🏠 Home</button>
     <button class="tab-btn" onclick="switchTab('media')">🎵 Media</button>
-    <button class="tab-btn" onclick="switchTab('collabz')">🤝 CollabZ</button>
-    <button class="tab-btn" onclick="switchTab('venuez')">🏛️ VenueZ</button>
-    <button class="tab-btn" onclick="switchTab('dawz')">🎚️ DAWZ</button>
-    <button class="tab-btn" onclick="switchTab('vibez')">🔥 VibeZ</button>
-    <button class="tab-btn" onclick="switchTab('arsenal')">🛡️ Arsenal</button>
-    <button class="tab-btn" onclick="switchTab('witchcraft')">🧙‍♂️ Witchcraft</button>
-    <button class="tab-btn" onclick="switchTab('lilith')">🦋 Lilith</button>
-    <button class="tab-btn" onclick="switchTab('bodiez')">💪 BodieZ</button>
-    <button class="tab-btn" onclick="switchTab('giftz')">🎁 GiftZ</button>
-    <button class="tab-btn" onclick="switchTab('eventz')">🎫 EventZ</button>
-    <button class="tab-btn" onclick="switchTab('statz')">📊 StatZ</button>
-    <button class="tab-btn" onclick="switchTab('pickconnectz')">📌 Pick ConnectZ</button>
-    <button class="tab-btn" onclick="switchTab('incognito')">🕵️‍♂️ Incognito</button>
-    <button class="tab-btn" onclick="switchTab('filez')">📁 FileZ</button>
-    <button class="tab-btn" onclick="switchTab('analytics')">📈 Analytics</button>
-    <button class="tab-btn" onclick="switchTab('security')">🔒 2FA/Security</button>
-    <button class="tab-btn" onclick="switchTab('onboarding')">🛂 Onboarding/Verification</button>
-    <button class="tab-btn" onclick="switchTab('sociallogin')">🌐 Social Login</button>
-    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile/Settings</button>
+    <button class="tab-btn" onclick="switchTab('collabz')">🤝 CollabZ</button><!-- 🤝 CollabZ: Team up, collab, and cook up 🔥 with other creators. Find your next partner-in-rhyme or design! -->
+    <button class="tab-btn" onclick="switchTab('battlez')">🪖 BattleZ</button><!-- 🪖 BattleZ: 1v1 post battles, flex your skills, bet Spinaz, and let the crowd decide who’s king. Only the bold survive! -->
+    <button class="tab-btn" onclick="switchTab('socialconnectz')">💓 Social ConnectZ</button><!-- 💓 Social ConnectZ: Where the vibes and the tribe meet. Find collabs, romance, or just chill with the fam. -->
+    <button class="tab-btn" onclick="openMessagesModal()">📨 MsssageZ</button><!-- 📨 MsssageZ: Slide in, chat up, and keep your DMs poppin’. Inbox/outbox, all in one spot. -->
+    <button class="tab-btn" onclick="switchTab('callz')">📞 CallZ</button><!-- 📞 CallZ: StatZ-only! Call your crew, pay with cash, or get that “coming soon” if you’re broke. -->
+    <button class="tab-btn" onclick="switchTab('bugz')">🐞 BugZ</button><!-- 🐞 BugZ: Found a bug? Drop it here. Only admin can squash ‘em and you get 200 Spinaz if they do! -->
+    <button class="tab-btn" onclick="switchTab('distributez')">🎶 DistributeZ</button><!-- 🎶 DistributeZ: Drop your tracks, covers, lyrics, and art. Free gets 1/month, premium gets unlimited. -->
+    <button class="tab-btn" onclick="switchTab('royaltiez')">👑 RoyaltieZ</button><!-- 👑 RoyaltieZ: Track your royalty bag, see where your 💰 comes from, and flex your stats. -->
+    <button class="tab-btn" onclick="switchTab('groupz')">👥 GroupZ</button><!-- 👥 GroupZ: Squad up! Make groups for friends, fans, partners, or block the haters. -->
+    <button class="tab-btn" onclick="switchTab('labelz')">🏷️ LabelZ</button><!-- 🏷️ LabelZ: Public groups with real contracts and advances. Get signed, get paid, get serious. -->
+    <button class="tab-btn" disabled style="opacity:0.5;cursor:not-allowed;">💡 ToolZ</button><!-- 💡 ToolZ: All your creative power tools in one spot. Premium apps pop as modals—no cap. -->
+    <button class="tab-btn" onclick="switchTab('intelligenceconnectz')">🧠 Intelligence ConnectZ</button><!-- 🧠 Intelligence ConnectZ: Smartest AI in the game. Image, audio, video, and more—let Corey cook. -->
+    <button class="tab-btn" onclick="switchTab('venuez')">🏛️ VenueZ</button><!-- 🏛️ VenueZ: Host or join events, collabs, and performances. IRL or virtual, we got you. -->
+    <button class="tab-btn" onclick="openDawzModal()">🎛️ DawZ</button><!-- 🎛️ DawZ: All the DAWs you wish you could afford, now in your browser. Premium = modal magic. -->
+    <button class="tab-btn" onclick="switchTab('gamez')">👾 GameZ</button><!-- 👾 GameZ: User-made games, all genres. Play, create, and flex your dev skills. -->
+    <button class="tab-btn" onclick="switchTab('spinaz')">🍥 SpinaZ</button><!-- 🍥 SpinaZ: Track your Spinaz, see how you earned/spent, and cop more at a discount. -->
+    <button class="tab-btn" onclick="switchTab('energy')">⚡ Energy</button><!-- ⚡ Energy: Your creative battery. Earn, spend, and keep the grind alive. -->
+    <button class="tab-btn" onclick="switchTab('facez')">🙄 FaceZ</button><!-- 🙄 FaceZ: All the faces for your AI art/videos. Tag, flex, and remix your look. -->
+    <button class="tab-btn" onclick="switchTab('filez')">📁 FileZ</button><!-- 📁 FileZ: Upload, manage, and share your files. Simple, secure, and always handy. -->
+    <button class="tab-btn" onclick="switchTab('analytics')">📈 Analytics</button><!-- 📈 Analytics: Deep dive into your stats, growth, and what’s really working. -->
+    <button class="tab-btn" onclick="switchTab('onboarding')">🛂 Onboarding/Verification</button><!-- 🛂 Onboarding: Get verified, unlock features, and flex your legit status. -->
+    <button class="tab-btn" onclick="switchTab('profile')">👤 Profile</button><!-- 👤 Profile: Your home base. Edit, customize, and show off your ConnectZ presence. -->
+    <button class="tab-btn" id="messagesModalBtn" onclick="openMessagesModal()">💬 Messages</button>
   </div>
 
   <div class="content">
@@ -253,7 +301,7 @@
     <div id="vibez" class="tab"><div class="card"><div class="card-header">🔥 VibeZ</div><div>Social/collab vibes, trending content.</div></div></div>
     <div id="arsenal" class="tab"><div class="card"><div class="card-header">🛡️ Arsenal</div><div>Tools and resources for creators.</div></div></div>
     <div id="witchcraft" class="tab"><div class="card"><div class="card-header">🧙‍♂️ Witchcraft</div><div>Advanced creative tools/effects.</div></div></div>
-    <div id="lilith" class="tab"><div class="card"><div class="card-header">🦋 Lilith</div><div>Creative suite for design/media.</div></div></div>
+    <div id="lilith" class="tab"><div class="card"><div class="card-header">💃🏽 Lilith</div><div>Creative suite for design/media.</div></div></div>
     <div id="bodiez" class="tab"><div class="card"><div class="card-header">💪 BodieZ</div><div>Fitness tracker and wellness features.</div></div></div>
     <div id="giftz" class="tab"><div class="card"><div class="card-header">🎁 GiftZ</div><div>Send/receive gifts and rewards.</div></div></div>
     <div id="eventz" class="tab"><div class="card"><div class="card-header">🎫 EventZ</div><div>Event management and participation.</div></div></div>
@@ -269,48 +317,7 @@
 
     <div id="personas" class="tab">
       <div class="card">
-        <div class="card-header">🎭 Select Your Personas & Add Skills</div>
-        <div class="grid-3">
-          <button class="persona-btn" onclick="openSkillModal('indie-artist','🎤 Indie Artist')">🎤 Indie</button>
-          <button class="persona-btn" onclick="openSkillModal('beat-producer','🎚️ Beat Producer')">🎚️ Producer</button>
-          <button class="persona-btn" onclick="openSkillModal('mix-engineer','🎛️ Mix Engineer')">🎛️ Engineer</button>
-          <button class="persona-btn" onclick="openSkillModal('designer','🎨 Designer')">🎨 Designer</button>
-          <button class="persona-btn" onclick="openSkillModal('videographer','🎬 Videographer')">🎬 Video</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">🎭 Your Personas</div>
-        <div id="personasDisplay">No personas yet</div>
-      </div>
     </div>
-
-    <div id="examples" class="tab">
-      <div class="card">
-        <div class="card-header">🎵 Upload Work Example</div>
-        <input type="hidden" id="editingExampleIdx" value="" />
-        <div class="form-group"><label>🎯 Title *</label><input type="text" id="exampleTitle" placeholder="e.g., My Latest Beat" /></div>
-        <div class="form-group"><label>📝 Description *</label><textarea id="exampleDesc" placeholder="Tell us about this work..." style="height: 50px;"></textarea></div>
-        <div class="form-group"><label>🎵 Genre/Style *</label><button class="btn" onclick="openGenreModal()" style="width: 100%; margin-bottom: 8px;">🎵 Select Genre</button><div id="exampleGenreDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px;">Click "Select Genre"</div></div>
-        <div class="form-group"><label>🎧 Audio/Video File *</label><input type="file" id="exampleMedia" accept="audio/*,video/*" /><div id="currentMediaDisplay" style="margin-top: 6px; font-size: 10px; color: var(--text-light);"></div></div>
-        <div class="form-group"><label>🖼️ Thumbnail Image</label><input type="file" id="exampleImage" accept="image/*" /></div>
-        <div class="form-group">
-          <label>🎯 Skills Used * (Required)</label>
-          <div id="skillsUsedDisplay" style="border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: var(--bg); font-size: 11px; max-height: 150px; overflow-y: auto; margin-bottom: 8px;" onclick="openSkillsUsedModal()">Click to select required skills</div>
-          <button class="btn" onclick="openSkillsUsedModal()" style="width: 100%;">📋 Select Required Skills</button>
-        </div>
-        <div class="form-group"><label>🔒 Privacy</label><div style="display: flex; gap: 8px; margin-top: 8px;"><button class="toggle-btn active" onclick="setExamplePrivacy('private')">🔒 Private</button><button class="toggle-btn" onclick="setExamplePrivacy('public')">🌐 Public</button></div></div>
-        <button class="btn btn-success" onclick="uploadExample()" style="width: 100%;" id="exampleSubmitBtn">📤 Upload</button>
-        <button class="btn btn-secondary" onclick="cancelEditExample()" style="width: 100%; margin-top: 8px; display: none;" id="exampleCancelBtn">❌ Cancel Edit</button>
-      </div>
-      <div class="card">
-        <div class="card-header">🎵 Your Work Examples</div>
-        <div id="examplesDisplay">No examples yet</div>
-      </div>
-    </div>
-
-    <div id="collaborate" class="tab">
-      <div class="card">
-        <div class="card-header">🤝 Post Collaboration Request</div>
         <input type="hidden" id="editingCollabIdx" value="" />
         <div class="form-group"><label>🎭 Select Persona *</label><select id="collabPersona" onchange="updateCollabExampleOptions()"><option value="">Choose persona</option></select></div>
         <div class="form-group"><label>🎵 Select Public Example *</label><select id="collabPublicExample"><option value="">Choose example</option></select></div>
@@ -320,27 +327,8 @@
       </div>
       
       <div class="card">
-        <div class="card-header">
-          <span>🔍 Filter Requests</span>
-          <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
-        </div>
-        <div class="filter-panel">
-          <div class="filter-row">
-            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">🎭 Persona:</label>
-            <select id="filterPersona" onchange="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;">
-              <option value="">All Personas</option>
-              <option value="🎤 Indie Artist">🎤 Indie Artist</option>
-              <option value="🎚️ Beat Producer">🎚️ Beat Producer</option>
-              <option value="🎛️ Mix Engineer">🎛️ Mix Engineer</option>
-              <option value="🎨 Designer">🎨 Designer</option>
-              <option value="🎬 Videographer">🎬 Videographer</option>
-            </select>
-          </div>
-          <div class="filter-row">
-            <label style="font-weight: 600; font-size: 11px; min-width: 80px;">📍 Location:</label>
-            <input type="text" id="filterLocation" placeholder="City/State" oninput="applyFilters()" style="flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); font-size: 11px;" />
-          </div>
-        </div>
+        <div class="card-header">🔍 Filter Requests</span>
+        <button class="btn btn-small btn-secondary" onclick="resetFilters()">Reset All</button>
       </div>
       
       <div class="card">
@@ -493,38 +481,261 @@
   </div>
 </div>
 
-<script src="https://js.stripe.com/v3/"></script>
-
-<div id="genreModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header"><h2>🎵 Select Music Genre</h2><button class="close-btn" onclick="closeGenreModal()">✕</button></div>
-    <div id="genreCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
-    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeGenreModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addGenre()" style="flex: 1;">✓ Select</button></div>
+<!-- OCC Modal -->
+<div id="occModal" class="modal">
+  <div class="modal-content" style="max-width:700px;width:95%;">
+    <div class="modal-header">
+      <h2>🦾 OCC: Ocular Code ConnectZ</h2>
+      <button class="close-btn" onclick="closeOccModal()">✕</button>
+    </div>
+    <div class="occ-body">
+      <p><strong>OCC</strong> is your creator-first, branded, and modular code platform. Formerly OPHC, OCC is the evolution of your vision for a next-gen, competency-based coding and creative suite.</p>
+      <ul class="occ-list">
+        <li>🧠 Competency tracking and skill validation</li>
+        <li>🎨 Modular UI for code, design, and media</li>
+        <li>🔒 Secure, privacy-first architecture</li>
+        <li>🌐 Community-driven extensions</li>
+        <li>🚀 Built for Music ConnectZ and beyond</li>
+      </ul>
+      <div class="occ-footer">v1.0 OCC &copy; K-Oth</div>
+    </div>
   </div>
 </div>
 
-<div id="skillModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header"><h2 id="skillModalTitle">Select Skills</h2><button class="close-btn" onclick="closeSkillModal()">✕</button></div>
-    <input type="hidden" id="editingPersonaIdx" value="" />
-    <div style="background: #4caf50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">✨ Click MULTIPLE skills (including "Any" skills), then click "Add Skills" to save them all with the same date!</div>
-    <div class="form-group"><label>📅 Start Date *</label><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"><select id="skillMo"></select><select id="skillDay"></select><select id="skillYr"></select></div></div>
-    <div id="skillCats" style="max-height: 350px; overflow-y: auto; margin-bottom: 12px;"></div>
-    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeSkillModal()" style="flex: 1;">Cancel</button><button class="btn btn-success" onclick="addSkills()" style="flex: 1;" id="skillSubmitBtn">✓ Add Skills</button></div>
+<!-- Messages Modal -->
+<div id="messagesModal" class="modal">
+  <div class="modal-content" style="max-width:600px;width:95%;">
+    <div class="modal-header">
+      <h2>📨 MsssageZ</h2>
+      <button class="close-btn" onclick="closeMessagesModal()">✕</button>
+    </div>
+    <div style="padding:16px;min-height:120px;">
+      <button class="btn btn-small" onclick="openInboxModal()">Inbox</button>
+      <button class="btn btn-small" onclick="openOutboxModal()">Outbox</button>
+      <div style="margin-top:16px;font-size:11px;color:var(--text-light);">Your messages will appear here.<br>(Premium and StatZ features can be shown here as well.)</div>
+    </div>
   </div>
 </div>
-
-<div id="skillsUsedModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header"><h2>🎯 Choose Skills Used on This Example</h2><button class="close-btn" onclick="closeSkillsUsedModal()">✕</button></div>
-    <div style="background: var(--accent); color: white; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 600;">ℹ️ Click "Any" skill to see SPECIFIC options from that category. Click a specific skill and close modal instantly!</div>
-    <div id="skillsUsedCats" style="max-height: 400px; overflow-y: auto; margin-bottom: 12px;"></div>
-    <div style="display: flex; gap: 10px;"><button class="btn btn-secondary" onclick="closeSkillsUsedModal()" style="flex: 1;">Cancel</button></div>
+<!-- Inbox Modal -->
+<div id="inboxModal" class="modal">
+  <div class="modal-content" style="max-width:500px;width:95%;">
+    <div class="modal-header">
+      <h2>📥 Inbox</h2>
+      <button class="close-btn" onclick="closeInboxModal()">✕</button>
+    </div>
+    <div style="padding:16px;">Inbox content here.</div>
   </div>
 </div>
-
+<!-- Outbox Modal -->
+<div id="outboxModal" class="modal">
+  <div class="modal-content" style="max-width:500px;width:95%;">
+    <div class="modal-header">
+      <h2>📤 Outbox</h2>
+      <button class="close-btn" onclick="closeOutboxModal()">✕</button>
+    </div>
+    <div style="padding:16px;">Outbox content here.</div>
+  </div>
+</div>
+<!-- DawZ Modal -->
+<div id="dawzModal" class="modal">
+  <div class="modal-content" style="max-width:700px;width:95%;">
+    <div class="modal-header">
+      <h2>🎛️ DawZ</h2>
+      <button class="close-btn" onclick="closeDawzModal()">✕</button>
+    </div>
+    <div style="padding:16px;">
+      <button class="btn btn-small" onclick="openModalApp('fruitymobius')">🍑 Fruity Möbius</button><!-- 🍑 Fruity Möbius: FL Studio knockoff. Make beats, drop loops, and get fruity with it. -->
+      <button class="btn btn-small" onclick="openModalApp('arsenal')">⚔️ Arsenal</button><!-- ⚔️ Arsenal: Pro Tools knockoff. All the power, none of the price. -->
+      <button class="btn btn-small" onclick="openModalApp('witchcraft')">🔮 Witchcraft</button><!-- 🔮 Witchcraft: Mixcraft knockoff. Magic for your mixes, spells for your sound. -->
+    </div>
+  </div>
+</div>
+<!-- Modal App Placeholders -->
+<div id="modalApp" class="modal">
+  <div class="modal-content" style="max-width:600px;width:95%;">
+    <div class="modal-header">
+      <h2 id="modalAppTitle">App</h2>
+      <button class="close-btn" onclick="closeModalApp()">✕</button>
+    </div>
+    <div id="modalAppContent" style="padding:16px;">App content here.</div>
+  </div>
+</div>
 <script>
+// Helper: check if current user is owner (replace with real logic as needed)
+function isOwner() {
+  // Example: check email or user id
+  return appState.user && appState.user.email && appState.user.email.endsWith('@ctkoth.com');
+}
+
+// Simulate payment to remove watermark (replace with real payment integration)
+function payToRemoveWatermark() {
+  if (confirm('Pay $10 to permanently remove the watermark from your images?')) {
+    // In production, trigger Stripe/PayPal/etc. Here, just set flag.
+    appState.user.removeWatermarkPaid = true;
+    saveAppState();
+    alert('✓ Watermark removed!');
+    // Redraw modal without watermark
+    if (window.lastImageModalSrc && window.lastImageModalTitle) {
+      showImageModal(window.lastImageModalSrc, window.lastImageModalTitle);
+    }
+  }
+}
+
+// Track last image modal for redraw
+let lastImageModalSrc = null;
+let lastImageModalTitle = null;
+
+// Export image as PNG, JPG, or ICO, with watermark unless paid
+function exportImage(imgSrc, format = 'png', filename = 'exported') {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const img = new window.Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    // Watermark overlay unless paid
+    if (!hasPaidRemoveWatermark()) {
+      const watermark = new window.Image();
+      watermark.crossOrigin = 'anonymous';
+      watermark.onload = function() {
+        const w = Math.floor(canvas.width * 0.35);
+        const h = Math.floor(canvas.height * 0.35);
+        const x = canvas.width - w - 12;
+        const y = canvas.height - h - 12;
+        ctx.globalAlpha = 0.22;
+        ctx.drawImage(watermark, x, y, w, h);
+        ctx.globalAlpha = 1.0;
+        finish();
+      };
+      watermark.src = 'favicon.png';
+    } else {
+      finish();
+    }
+    function finish() {
+      let url;
+      if (format === 'ico') {
+        url = canvas.toDataURL('image/png');
+        downloadDataUrl(url, filename + '.ico');
+      } else if (format === 'jpg' || format === 'jpeg') {
+        url = canvas.toDataURL('image/jpeg');
+        downloadDataUrl(url, filename + '.jpg');
+      } else {
+        url = canvas.toDataURL('image/png');
+        downloadDataUrl(url, filename + '.png');
+      }
+    }
+  };
+  img.src = imgSrc;
+}
+
+// Add export button to image modal if owner, show watermark overlay unless paid
+function showImageModal(imgSrc, title = 'Image') {
+  lastImageModalSrc = imgSrc;
+  lastImageModalTitle = title;
+  const modal = document.getElementById('modalApp');
+  document.getElementById('modalAppTitle').textContent = title;
+  let exportBtns = '';
+  if (isOwner()) {
+    exportBtns = `<div style="margin-bottom:10px;">
+      <button onclick="exportImage('${imgSrc}','png','${title}')">⬇️ Export PNG</button>
+      <button onclick="exportImage('${imgSrc}','jpg','${title}')">⬇️ Export JPG</button>
+      <button onclick="exportImage('${imgSrc}','ico','${title}')">⬇️ Export ICO</button>
+    </div>`;
+  } else if (!hasPaidRemoveWatermark()) {
+    exportBtns = `<div style="margin-bottom:10px;">
+      <button onclick="payToRemoveWatermark()">💸 Remove Watermark ($10)</button>
+    </div>`;
+  }
+  const canvasId = 'imgModalCanvas';
+  document.getElementById('modalAppContent').innerHTML = exportBtns + `<canvas id="${canvasId}" style="max-width:100%;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.15);margin-bottom:8px;"></canvas>`;
+  modal.classList.add('active');
+  // Draw image + watermark on canvas
+  setTimeout(() => {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      // Watermark overlay unless paid
+      if (!hasPaidRemoveWatermark()) {
+        const watermark = new window.Image();
+        watermark.crossOrigin = 'anonymous';
+        watermark.onload = function() {
+          const w = Math.floor(canvas.width * 0.35);
+          const h = Math.floor(canvas.height * 0.35);
+          const x = canvas.width - w - 12;
+          const y = canvas.height - h - 12;
+          ctx.globalAlpha = 0.22;
+          ctx.drawImage(watermark, x, y, w, h);
+          ctx.globalAlpha = 1.0;
+        };
+        watermark.src = 'favicon.png';
+      }
+    };
+    img.src = imgSrc;
+  }, 50);
+}
+
+// For non-owners: only allow export to in-app post (stub)
+function exportToInAppPost(imgSrc) {
+  alert('This image will be added to your in-app post!');
+  // Add logic to attach image to post here
+}
 const instrumentDatabase = {
+  'developer': {
+    'Programming Languages': {
+      'Any Language': 'Any Language 👨‍💻',
+      'JavaScript': 'JavaScript 🟨',
+      'Python': 'Python 🐍',
+      'Java': 'Java ☕',
+      'C++': 'C++ 💻',
+      'C#': 'C# 🎮',
+      'TypeScript': 'TypeScript 🟦',
+      'Go': 'Go 🦫',
+      'Ruby': 'Ruby 💎',
+      'PHP': 'PHP 🐘',
+      'Swift': 'Swift 🦅',
+      'Kotlin': 'Kotlin 🟪',
+      'Rust': 'Rust 🦀',
+      'SQL': 'SQL 🗄️'
+    },
+    'Frameworks & Libraries': {
+      'React': 'React ⚛️',
+      'Vue': 'Vue 🟩',
+      'Angular': 'Angular 🅰️',
+      'Django': 'Django 🐍',
+      'Flask': 'Flask 🍶',
+      'Express': 'Express 🚂',
+      'Spring': 'Spring 🌱',
+      'Laravel': 'Laravel 🛠️',
+      'Rails': 'Rails 🚆',
+      'Next.js': 'Next.js ⏭️',
+      'Node.js': 'Node.js 🌳',
+      'jQuery': 'jQuery 💎'
+    },
+    'Dev Skills': {
+      'Frontend': 'Frontend 🎨',
+      'Backend': 'Backend 🛠️',
+      'Fullstack': 'Fullstack 🧑‍💻',
+      'APIs': 'APIs 🔗',
+      'Databases': 'Databases 🗄️',
+      'Testing': 'Testing 🧪',
+      'CI/CD': 'CI/CD 🔄',
+      'Cloud': 'Cloud ☁️',
+      'DevOps': 'DevOps ⚙️',
+      'Security': 'Security 🔒',
+      'Mobile': 'Mobile 📱',
+      'Game Dev': 'Game Dev 🎮',
+      'AI/ML': 'AI/ML 🤖',
+      'Automation': 'Automation 🤖',
+      'Scripting': 'Scripting 📜'
+    }
+  },
   'indie-artist': {
     'String Instruments': {'Any String': 'Any String 🎸','Acoustic Guitar': 'Acoustic Guitar 🎸','Electric Guitar': 'Electric Guitar 🎸','Bass Guitar': 'Bass Guitar 🎸','Ukulele': 'Ukulele 🎸','Banjo': 'Banjo 🎸','Mandolin': 'Mandolin 🎸','Violin': 'Violin 🎻','Viola': 'Viola 🎻','Cello': 'Cello 🎻','Double Bass': 'Double Bass 🎻','Harp': 'Harp 🎵'},
     'Keyboard Instruments': {'Any Keyboard': 'Any Keyboard 🎹','Acoustic Piano': 'Acoustic Piano 🎹','Digital Piano': 'Digital Piano 🎹','Synthesizer': 'Synthesizer 🎹','Organ': 'Organ 🎹','Harpsichord': 'Harpsichord 🎹','Accordion': 'Accordion 🎹'},
@@ -955,12 +1166,27 @@ function renderPersonasDisplay() {
     return;
   }
   display.innerHTML = '';
+  // Persona image filenames by key
+  const personaImages = {
+    'indie-artist': 'artist.png',
+    'beat-producer': 'producer.png',
+    'mix-engineer': 'engineer.png',
+    'designer': 'designer.png',
+    'videographer': 'videographer.png',
+    'manager': 'manager.png',
+    'writer': 'writer.png',
+    'developer': 'developer.png'
+  };
   appState.personas.forEach((persona, idx) => {
     const card = document.createElement('div');
     card.className = 'persona-card';
+    // Use image if available, fallback to icon
+    const imgFile = personaImages[persona.key];
+    // Use new folder for persona images
+    const imgTag = imgFile ? `<img src="src/assets/personas/${imgFile}" alt="${persona.name}" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:8px;vertical-align:middle;box-shadow:0 2px 8px rgba(0,0,0,0.10);background:#fff;" />` : '';
     card.innerHTML = `
       <div class="persona-header">
-        <div class="persona-name">${persona.name}</div>
+        <div class="persona-name">${imgTag}${persona.name}</div>
         <button class="btn btn-danger btn-small" onclick="removePersona(${idx})">Remove</button>
       </div>
       <div style="font-size: 11px;">
@@ -1425,15 +1651,22 @@ function updateAllDisplays() {
   renderExamplesDisplay();
   renderCollabFeed();
   updateProfileDisplay();
-  
-  document.getElementById('username').value = appState.user.name;
-  document.getElementById('email').value = appState.user.email;
-  document.getElementById('phone').value = appState.user.phone;
-  document.getElementById('birthday').value = appState.user.birthday;
-  document.getElementById('gender').value = appState.user.gender;
-  document.getElementById('location').value = appState.user.location;
-  document.getElementById('bio').value = appState.user.bio;
-  
+  // Add null checks for all DOM elements
+  const usernameEl = document.getElementById('username');
+  if (usernameEl) usernameEl.value = appState.user.name;
+  const emailEl = document.getElementById('email');
+  if (emailEl) emailEl.value = appState.user.email;
+  const phoneEl = document.getElementById('phone');
+  if (phoneEl) phoneEl.value = appState.user.phone;
+  const birthdayEl = document.getElementById('birthday');
+  if (birthdayEl) birthdayEl.value = appState.user.birthday;
+  const genderEl = document.getElementById('gender');
+  if (genderEl) genderEl.value = appState.user.gender;
+  const locationEl = document.getElementById('location');
+  if (locationEl) locationEl.value = appState.user.location;
+  const bioEl = document.getElementById('bio');
+  if (bioEl) bioEl.value = appState.user.bio;
+
   if (appState.currentTab) {
     switchTab(appState.currentTab);
   }
