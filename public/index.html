@@ -162,6 +162,7 @@
   </div>
 
   <div class="tabs">
+      <button class="tab-btn" onclick="switchTab('occ')">🦾 OCC</button>
     <button class="tab-btn active" onclick="switchTab('home')">🏠 Home</button>
     <button class="tab-btn" onclick="switchTab('media')">🎵 Media</button>
     <button class="tab-btn" onclick="switchTab('collabz')">🤝 CollabZ</button>
@@ -186,6 +187,64 @@
   </div>
 
   <div class="content">
+        <div id="occ" class="tab">
+          <div class="card occ-card">
+            <div class="card-header occ-header">🦾 OCC: Ocular Code ConnectZ</div>
+            <div class="occ-body">
+              <p><strong>OCC</strong> is your creator-first, branded, and modular code platform. Formerly OPHC, OCC is the evolution of your vision for a next-gen, competency-based coding and creative suite.</p>
+              <ul class="occ-list">
+                <li>🧠 Competency tracking and skill validation</li>
+                <li>🎨 Modular UI for code, design, and media</li>
+                <li>🔒 Secure, privacy-first architecture</li>
+                <li>🌐 Community-driven extensions</li>
+                <li>🚀 Built for Music ConnectZ and beyond</li>
+              </ul>
+              <div class="occ-footer">v1.0 OCC &copy; K-Oth</div>
+            </div>
+          </div>
+        </div>
+        /* OCC custom design */
+        .occ-card {
+          background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+          color: #fff;
+          border: 2px solid #2196F3;
+          box-shadow: 0 4px 24px rgba(33,150,243,0.18);
+          margin-top: 24px;
+        }
+        .occ-header {
+          font-size: 18px;
+          font-weight: 800;
+          color: #fff;
+          border-bottom: 2px solid #fff;
+          padding-bottom: 10px;
+          margin-bottom: 10px;
+          letter-spacing: 1px;
+          background: linear-gradient(90deg, #2196F3 0%, #3F51B5 100%);
+          border-radius: 8px 8px 0 0;
+        }
+        .occ-body {
+          font-size: 14px;
+          line-height: 1.7;
+          padding: 10px 0 0 0;
+        }
+        .occ-list {
+          margin: 18px 0 18px 18px;
+          padding: 0;
+          list-style: none;
+        }
+        .occ-list li {
+          margin-bottom: 8px;
+          padding-left: 0;
+          position: relative;
+          font-size: 13px;
+        }
+        .occ-footer {
+          margin-top: 18px;
+          font-size: 12px;
+          color: #bbdefb;
+          text-align: right;
+          font-style: italic;
+        }
     <div id="home" class="tab active"><div class="card"><div class="card-header">🏠 Home</div><div>Welcome to Music ConnectZ! This is your main dashboard and activity feed.</div></div></div>
     <div id="media" class="tab"><div class="card"><div class="card-header">🎵 Media</div><div>Upload, view, and manage Text, Code, Image, Audio, Video.</div></div></div>
     <div id="collabz" class="tab"><div class="card"><div class="card-header">🤝 CollabZ</div><div>Collaborate with other users, manage collab projects.</div></div></div>
