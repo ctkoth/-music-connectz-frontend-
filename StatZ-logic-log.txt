@@ -1,0 +1,30 @@
+StatZ (zStatZ) Logic, Pricing, and Feature Log
+============================================
+
+Last updated: April 20, 2026
+
+---
+
+1. StatZ (zStatZ) Upgrade Pricing:
+   - Premium users pay $5/month or $40/year for StatZ.
+
+2. StatZ Features:
+   - Advanced analytics on distribution
+   - Licensing on distribution
+   - Ability to buy other users’ UGC/metric posts from PPS
+   - Extended OCC/CG call time: 4 hours per session
+
+3. User Tiers:
+   - Basic: 4 min call, 400 char limit
+   - Premium: 40 min call, 4000 char limit
+   - StatZ: 4 hr call, 4000 char limit, extra analytics/licensing/UGC
+
+4. Character Limit Logic (applies to all text fields):
+   - Basic: 400 chars (warning, lock, upgrade prompt)
+   - Premium/StatZ: 4000 chars
+
+5. All changes and updates to StatZ logic, pricing, and features will be appended here and synced across all MC apps (FE/BE).
+
+---
+
+[Add new entries below as features or rules change.]

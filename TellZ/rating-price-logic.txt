@@ -1,0 +1,9 @@
+TellZ: StatZ Rating Price Logic
+
+- Final Price = Base Price × (1 + (Median Rating of Content − 5) × 0.1)
+    - If median rating is 5, price stays the same.
+    - If median rating is 4, price is -10%.
+    - If median rating is 3, price is -20%.
+    - If median rating is 6, price is +10%.
+- This formula rewards higher-rated content and discounts lower-rated content, using the median rating for fairness.
+- All price adjustments are logged for transparency and tracked as TellZ.

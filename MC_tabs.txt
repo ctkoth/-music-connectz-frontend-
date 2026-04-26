@@ -1,0 +1,32 @@
+
+Music ConnectZ (MC) - Planned Tabs & Selections
+
+1. 🏠 Home – Main dashboard and activity feed
+2. 🎵 Media – Upload, view, and manage Text, Code, Image, Audio, Video
+3. 🤝 CollabZ – Collaborate with other users, manage collab projects
+4. 🏛️ VenueZ – Host or join events (Collaborative, Performance)
+5. 🎚️ DAWZ – Digital Audio Workstations for music creation
+6. 🔥 VibeZ – Social/collab vibes, trending content
+7. 🛡️ Arsenal – Tools and resources for creators
+8. 🧙‍♂️ Witchcraft – Advanced creative tools/effects
+9. 🦋 Lilith – Creative suite for design/media
+10. 💪 BodieZ – Fitness tracker and wellness features
+11. 🎁 GiftZ – Send/receive gifts and rewards
+12. 🎫 EventZ – Event management and participation
+13. 📊 StatZ – Analytics and metrics dashboard
+14. 📌 Pick ConnectZ – Footer customization, pin favorite features
+15. 🕵️‍♂️ Incognito – Privacy and anonymous mode
+16. 📁 FileZ – File management and uploads
+17. 📈 Analytics – Deep dive into usage and performance
+18. 🔒 2FA/Security – Two-factor authentication and security settings
+19. 🛂 Onboarding/Verification – Account setup and verification
+20. 🌐 Social Login – Google, Apple, Spotify, etc.
+21. 👤 Profile/Settings – User profile and preferences
+
+Selections (examples):
+- Media type: 1. 📝 Text 2. 💻 Code 3. 🖼️ Image 4. 🎧 Audio 5. 🎬 Video
+- CollabZ filter: persona, location, genre, skill
+- VenueZ type: 1. 🤝 Collaborative 2. 🤩 Performance
+- Event type: 1. 🎉 Party 2. 🎙️ Open Mic 3. 🏟️ Theater 4. 🎞️ Show
+- Footer: Pin up to 2 favorite apps/features (Free), unlimited for Premium/StatZ
+- Verification code style: 1. 🔢 Numeric 2. 😀 Emoji 3. 📝 Word

@@ -1,0 +1,5 @@
+TellZ: OCC Naming History
+
+- OPHC originally stood for Ocular Public Housing ConnectZ, the first name for your Visual Studio replacement.
+- The project is now called OCC: Ocular Code ConnectZ.
+- OCC is the evolution of your vision for a creator-first, branded, and modular code platform.
