@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Music ConnectZ Frontend</title>
-  <link rel="stylesheet" href="css/accessibility.css">
+  <meta charset="UTF-8" />
+  <title>Music ConnectZ v5.7 bi K-Oth</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <style>
+    ...existing code...
+  </style>
 </head>
 <body>
-  <h1 id="mc-title">Loading Music ConnectZ info...</h1>
-  <!-- Add your app's main UI and logic here -->
-  <script>
-    fetch('version.json')
-      .then(r => r.json())
-      .then(data => {
-        const d = new Date(data.commitDate);
-        const date = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-        const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        document.getElementById('mc-title').textContent = `Music ConnectZ V${data.version} bi K-Oth on ${date}@${time}`;
-      })
-      .catch(() => {
-        document.getElementById('mc-title').textContent = 'Music ConnectZ (version info unavailable)';
-      });
-  </script>
-  <script src="js/main.js"></script>
+<div class="container">
+  ...existing code...
 </body>
 </html>
