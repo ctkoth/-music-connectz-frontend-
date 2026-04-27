@@ -64,6 +64,12 @@
   ],
   "rewrites": [
     { "source": "/favicon.ico", "destination": "/music-connectz-logo.png" },
-    { "source": "/api/(.*)", "destination": "https://admin.musicconnectz.net/api/$1" }
-  ]
+    { "source": "/api/(.*)", "destination": "/api/server.js" }
+  ],
+  "functions": {
+    "api/server.js": {
+      "memory": 512,
+      "maxDuration": 10
+    }
+  }
 }
