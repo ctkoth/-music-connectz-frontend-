@@ -1,0 +1,64 @@
+{
+  "name": "music-connectz",
+  "version": "0.32.0",
+  "private": true,
+  "description": "Music ConnectZ — neon music creator platform. React + Electron + Capacitor.",
+  "main": "electron-main.cjs",
+  "homepage": "./",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "lint": "eslint src --ext .js,.jsx",
+    "electron:dev": "MCZ_USE_PROD=1 electron .",
+    "electron:dev:local": "npm run build && electron .",
+    "electron:dist": "npm run build && electron-builder --publish=never",
+    "electron:dist:win": "npm run build && electron-builder --win --publish=never",
+    "electron:dist:mac": "npm run build && electron-builder --mac --publish=never",
+    "electron:dist:linux": "npm run build && electron-builder --linux --publish=never",
+    "cap:init": "npx cap init 'Music ConnectZ' net.musicconnectz.app --web-dir=dist",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npm run build && npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "cap:build:apk": "npm run cap:sync && cd android && ./gradlew assembleDebug && cd ..",
+    "cap:build:apk-release": "npm run cap:sync && cd android && ./gradlew assembleRelease && cd .."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.439.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.9.1",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "vite": "^5.4.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/android": "^6.2.0"
+  },
+  "build": {
+    "appId": "net.musicconnectz.desktop",
+    "productName": "Music ConnectZ",
+    "copyright": "Copyright © 2026 ctkoth",
+    "asar": true,
+    "files": ["dist/**/*", "electron-main.cjs", "public/icons/**/*"],
+    "directories": { "output": "release" },
+    "win": { "target": ["nsis"], "icon": "public/icons/logo.png" },
+    "mac": { "target": ["dmg"], "icon": "public/icons/logo.png", "category": "public.app-category.music" },
+    "linux": { "target": ["AppImage"], "icon": "public/icons/logo.png", "category": "Audio" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

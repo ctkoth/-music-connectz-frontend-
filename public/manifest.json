@@ -1,0 +1,23 @@
+{
+  "name": "Music ConnectZ",
+  "short_name": "MusicConnectZ",
+  "description": "The platform for independent music creators. Connect, compete, cash out.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0118",
+  "theme_color": "#0a0118",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

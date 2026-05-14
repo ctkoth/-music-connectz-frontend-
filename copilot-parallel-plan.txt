@@ -1,0 +1,49 @@
+# Parallelized Implementation Plan: OCC PathZ, CGPT BSA, TabZ/ModalZ System
+
+## 1. OCC PathZ (Cross-Device File Management)
+- Scaffold backend API for file CRUD (Create, Read, Update, Delete) and sync
+  - Endpoints: /files (list, upload, edit, delete)
+  - User authentication and device tracking
+  - WebSocket or polling for real-time sync
+- Scaffold frontend UI for PathZ file management
+  - File browser, upload, edit, delete UI
+  - Device path visualization
+- Implement cross-device sync logic
+  - Sync files and changes between devices
+  - Conflict resolution and notifications
+- Integrate with OCC for parallelized logic
+  - OCC hooks for file events, code editing, and sync
+- Test PathZ cross-device file editing and sync
+
+## 2. CGPT BSA (Best Study Assistant)
+- Plan dashboard/workflow for study assistant
+  - Course tracking, progress visualization, personalized study plans
+- Scaffold CGPT BSA dashboard UI
+  - Course list, progress bars, recommendations
+- Implement course tracking logic
+  - Add, remove, update courses and study sessions
+- Implement progress visualization
+  - Charts, stats, and summaries
+- Implement personalized study suggestions
+  - AI-driven recommendations based on user data
+- Test CGPT BSA MVP
+
+## 3. TabZ/ModalZ Dynamic System
+- Scaffold dynamic tab/modal system (React)
+  - Read tab/modal config and render UI
+  - Support for adding/removing tabs and modals
+- Integrate all feature tabs and modal apps from spec
+  - CollabZ, BattleZ, ToolZ, etc.
+- Connect each modal to its feature logic (placeholder if not implemented)
+- Enforce global logic (edit window, logging, pricing, accessibility)
+- Add header/footer with balances (money, Energy, SpinaZ)
+- Add login/register with full OAuth provider support
+
+## 4. General
+- Parallelize all tasks for maximum speed
+- Track progress and update user on each area
+- Prioritize critical features as requested
+
+---
+
+This plan will be updated as features are scaffolded and implemented. Let me know if you want to prioritize or pause any area!
