@@ -1,0 +1,12 @@
+{
+  "appId": "net.musicconnectz.app",
+  "appName": "Music ConnectZ",
+  "webDir": "dist",
+  "server": {
+    "url": "https://musicconnectz.net",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#07060d"
+  }
+}
