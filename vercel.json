@@ -2,7 +2,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist",
-  "framework": "vite",
   "routes": [
     { "src": "/api/(.*)", "dest": "https://admin.musicconnectz.net/api/$1" },
     { "handle": "filesystem" },
