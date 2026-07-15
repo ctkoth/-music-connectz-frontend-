@@ -27,5 +27,8 @@
   },
   "author": "Corey Knap (Bi K-Oth) <ctkoth>",
   "license": "UNLICENSED",
-  "description": "Music ConnectZ — gamified music creator platform by Corey Knap"
+  "description": "Music ConnectZ — gamified music creator platform by Corey Knap",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
