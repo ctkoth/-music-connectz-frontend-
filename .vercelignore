@@ -7,3 +7,5 @@ render.yaml
 build.sh
 start.sh
 config_snippets/
+public/icons/Clean_assets.py
+**/*.py
