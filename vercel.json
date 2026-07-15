@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://admin.musicconnectz.net/api/$1" }
+    { "source": "/api/:path*", "destination": "https://admin.musicconnectz.net/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
