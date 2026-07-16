@@ -27,6 +27,7 @@ class Profile(models.Model):
                             choices=[(TIER_FREE, "Free"), (TIER_PREMIUM, "Premium"), (TIER_STATZ, "StatZ")])
     birthday = models.DateField(null=True, blank=True)
     personas = models.JSONField(default=list, blank=True)  # e.g. ["producer","ghostwriter"]
+    nationalities = models.JSONField(default=list, blank=True)  # NationalitieZ heritage
     last_refill = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -94,6 +95,23 @@ def spend_spinaz(user, amount):
         spinaz=F("spinaz") - amount)
     return bool(updated)
 
+
+# NationalitieZ — user-selected heritage/ancestry. Kept in sync with the
+# frontend list in src/apps/socialData.js; used to validate profile writes and
+# to power the Social ConnectZ heritage filter.
+ALLOWED_NATIONALITIES = [
+    "African American", "Nigerian", "Ghanaian", "Ethiopian", "South African",
+    "Kenyan", "Egyptian", "Moroccan", "American", "Canadian", "Mexican",
+    "Brazilian", "Jamaican", "Haitian", "Dominican", "Puerto Rican", "Cuban",
+    "Colombian", "Argentine", "Peruvian", "British", "Irish", "French",
+    "German", "Italian", "Spanish", "Portuguese", "Greek", "Polish",
+    "Ukrainian", "Russian", "Swedish", "Dutch", "Turkish", "Israeli",
+    "Lebanese", "Saudi", "Iranian", "Indian", "Pakistani", "Bangladeshi",
+    "Chinese", "Japanese", "Korean", "Vietnamese", "Filipino", "Thai",
+    "Indonesian", "Australian", "Māori / NZ", "Pacific Islander",
+    "Native American",
+]
+ALLOWED_NATIONALITIES_SET = set(ALLOWED_NATIONALITIES)
 
 REFILL_BY_TIER = {"free": 25, "premium": 50, "statz": 100}
 
