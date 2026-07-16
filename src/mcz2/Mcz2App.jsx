@@ -5,7 +5,31 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
 import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
+import { REGIONS } from "./heritage.js";
+import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import "./mcz2.css";
+
+// Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
+const SUBSTANCES = [
+  { key: "caffeine", name: "Caffeine", emoji: "☕" },
+  { key: "nicotine", name: "Nicotine", emoji: "🚬" },
+  { key: "alcohol", name: "Alcohol", emoji: "🍺" },
+  { key: "cannabis", name: "Cannabis", emoji: "🌿" },
+  { key: "prescriptions", name: "Prescriptions", emoji: "💊" },
+  { key: "psychedelics", name: "Psychedelics", emoji: "🍄" },
+];
+const STANCES = [
+  { id: "use", label: "Use", dot: "🟢" },
+  { id: "sometimes", label: "Sometimes", dot: "🟡" },
+  { id: "sober", label: "Sober", dot: "🔴" },
+  { id: "avoid", label: "Prefer sober", dot: "🚫" },
+];
+const PARTNER_GENDERS = [
+  { id: "male", label: "Male", emoji: "♂️" },
+  { id: "female", label: "Female", emoji: "♀️" },
+  { id: "neutral", label: "Neutral", emoji: "⚧️" },
+];
+const TRAITS = ["Honesty", "Trust", "Communication", "Energy", "Connection", "Creativity", "Ambition", "Humor"];
 
 const SETTING_TOGGLES = [
   { key: "notifications", label: "🔔 Push Notifications" },
@@ -162,6 +186,21 @@ function ProfilePage() {
       </div>
       <div className="form-group"><label>🎯 Skills</label>
         <div>{skills.length ? skills.map((s, i) => <span key={i} className="tag">{s}</span>) : "None yet"}</div>
+      </div>
+      <div className="form-group"><label>🌐 NationalitieZ (heritage)</label>
+        <div>{(u.nationalities || []).length ? u.nationalities.map((n, i) => <span key={i} className="tag">{n}</span>) : "Not set"}</div>
+      </div>
+      <div className="form-group"><label>🧠 SubstanceZ</label>
+        <div>{Object.entries(u.substances || {}).filter(([, v]) => v).length
+          ? Object.entries(u.substances).filter(([, v]) => v).map(([k, v]) => <span key={k} className="tag">{k}: {v}</span>)
+          : "Not set"}</div>
+      </div>
+      <div className="form-group"><label>💞 PreferenceZ</label>
+        <div>{u.preferences?.partnerGender
+          ? <span className="tag">Prefers: {u.preferences.partnerGender}</span>
+          : "Not set"}
+          {(u.preferences?.traits || []).map((t) => <span key={t} className="tag">{t}</span>)}
+        </div>
       </div>
     </div>
   );
@@ -339,8 +378,448 @@ function SpecZPage({ tier }) {
   );
 }
 
+function NationalitieZPage() {
+  const { state, updateUser } = useAppState();
+  const picked = state.user.nationalities || [];
+  const toggle = (v) => {
+    const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
+    updateUser({ nationalities: next });
+  };
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><span>🌐 Your Heritage</span><span className="tag">{picked.length} selected</span></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
+          Pick a whole continent/region if you don't know your specific country, or choose exact countries. Multi-select.
+        </p>
+        {REGIONS.map((r) => (
+          <div key={r.name} style={{ marginBottom: 14 }}>
+            <div className="modal-sub-title" style={{ marginBottom: 6 }}>{r.emoji} {r.name}</div>
+            <div className="chip-wrap">
+              <button className={`heritage-chip any${picked.includes(r.any) ? " sel" : ""}`} onClick={() => toggle(r.any)}>
+                {r.emoji} {r.name} (anywhere)
+              </button>
+              {r.countries.map((c) => (
+                <button key={c} className={`heritage-chip${picked.includes(c) ? " sel" : ""}`} onClick={() => toggle(c)}>{c}</button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SubstanceZPage() {
+  const { state, updateUser } = useAppState();
+  const subs = state.user.substances || {};
+  const setStance = (key, id) => updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } });
+  return (
+    <div className="card">
+      <div className="card-header">🧠 SubstanceZ — Your Stance</div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
+        Declare your relationship with each — powers sober-friendly matching and healthy spaces.
+      </p>
+      {SUBSTANCES.map((s) => (
+        <div key={s.key} className="settings-toggle" style={{ flexWrap: "wrap" }}>
+          <label style={{ minWidth: 110 }}>{s.emoji} {s.name}</label>
+          <div className="chip-wrap" style={{ justifyContent: "flex-end" }}>
+            {STANCES.map((st) => (
+              <button key={st.id} className={`heritage-chip${subs[s.key] === st.id ? " sel" : ""}`} onClick={() => setStance(s.key, st.id)}>
+                {st.dot} {st.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PreferenceZPage() {
+  const { state, updateUser } = useAppState();
+  const pref = state.user.preferences || { partnerGender: "", traits: [] };
+  const setGender = (id) => updateUser({ preferences: { ...pref, partnerGender: pref.partnerGender === id ? "" : id } });
+  const toggleTrait = (t) => {
+    const traits = pref.traits || [];
+    const next = traits.includes(t) ? traits.filter((x) => x !== t) : [...traits, t];
+    updateUser({ preferences: { ...pref, traits: next } });
+  };
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">💞 Partner Preference</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Choose your preference.</p>
+        <div className="grid-3">
+          {PARTNER_GENDERS.map((g) => (
+            <button key={g.id} className={`persona-btn${pref.partnerGender === g.id ? " sel-pref" : ""}`} onClick={() => setGender(g.id)}
+              style={pref.partnerGender === g.id ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
+              {g.emoji} {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header">✨ Traits That Matter</div>
+        <div className="chip-wrap">
+          {TRAITS.map((t) => (
+            <button key={t} className={`heritage-chip${(pref.traits || []).includes(t) ? " sel" : ""}`} onClick={() => toggleTrait(t)}>{t}</button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Demo roster so the filterable metrics are visibly working in Social ConnectZ.
+const DEMO_MEMBERS = [
+  { name: "Kaya", gender: "female", region: "Africa", country: "Nigeria", sober: true, lookingFor: "collab" },
+  { name: "Diego", gender: "male", region: "South America", country: "Colombia", sober: false, lookingFor: "romance" },
+  { name: "Mei", gender: "female", region: "Asia", country: "Japan", sober: true, lookingFor: "collab" },
+  { name: "Luka", gender: "male", region: "Europe", country: "Croatia", sober: false, lookingFor: "collab" },
+  { name: "Amara", gender: "neutral", region: "Africa", country: "Ghana", sober: true, lookingFor: "romance" },
+  { name: "Sam", gender: "male", region: "North America", country: "United States", sober: false, lookingFor: "collab" },
+];
+
+function SocialConnectZPage() {
+  const { state } = useAppState();
+  const [region, setRegion] = useState("");
+  const [gender, setGender] = useState("");
+  const [soberOnly, setSoberOnly] = useState(false);
+  const pref = state.user.preferences || {};
+
+  const filtered = DEMO_MEMBERS.filter((m) =>
+    (!region || m.region === region) &&
+    (!gender || m.gender === gender) &&
+    (!soberOnly || m.sober),
+  );
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">💓 Social ConnectZ</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)" }}>
+          Discovery filtered by your matching metrics. Your PreferenceZ:&nbsp;
+          <strong>{pref.partnerGender ? PARTNER_GENDERS.find((g) => g.id === pref.partnerGender)?.label : "not set"}</strong>.
+        </p>
+      </div>
+
+      <div className="card">
+        <div className="card-header">🔍 Filters</div>
+        <div className="form-group"><label>🌐 NationalitieZ (heritage)</label>
+          <select value={region} onChange={(e) => setRegion(e.target.value)}>
+            <option value="">All regions</option>
+            {REGIONS.map((r) => <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>)}
+          </select>
+        </div>
+        <div className="form-group"><label>💞 PreferenceZ (gender)</label>
+          <select value={gender} onChange={(e) => setGender(e.target.value)}>
+            <option value="">Any</option>
+            {PARTNER_GENDERS.map((g) => <option key={g.id} value={g.id}>{g.emoji} {g.label}</option>)}
+          </select>
+        </div>
+        <div className="settings-toggle">
+          <label>🧠 SubstanceZ — sober-friendly only</label>
+          <div role="switch" aria-checked={soberOnly} onClick={() => setSoberOnly((v) => !v)} className={`toggle-switch${soberOnly ? " active" : ""}`} />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span>💼 Matches</span><span className="filter-badge">{filtered.length}</span></div>
+        {filtered.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No members match these filters.</p>
+        ) : filtered.map((m) => (
+          <div key={m.name} className="post-card">
+            <div className="post-user">{m.name} · {PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji}</div>
+            <div className="post-meta">🌐 {m.country} · {m.sober ? "🟢 sober" : "🍺 social"} · looking for {m.lookingFor}</div>
+          </div>
+        ))}
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
+          Demo roster — the same NationalitieZ / SubstanceZ / PreferenceZ filters apply in CollabZ and BattleZ once their live feeds ship.
+        </p>
+      </div>
+    </>
+  );
+}
+
+const GROUP_BUILTIN = [
+  { name: "Friends", icon: "groupz_friendz.png", note: "Mutually beneficial" },
+  { name: "Fans", icon: "groupz_fanz.png", note: "Less beneficial" },
+  { name: "Partners", icon: "groupz.png", note: "Work with frequently" },
+  { name: "Blocked", icon: "groupz_blocked.png", note: "Cannot contact you" },
+];
+const VISIBILITIES = [
+  { id: "public", icon: "vis_public.png", label: "Public" },
+  { id: "private", icon: "vis_private.png", label: "Private" },
+  { id: "group", icon: "vis_group.png", label: "Group-only" },
+  { id: "restricted", icon: "vis_restricted.png", label: "Restricted" },
+];
+const GROUP_ICON_CHOICES = ["groupz_custom.png", "groupz_friendz.png", "groupz_fanz.png", "groupz_blocked.png", "groupz.png", "crewz.png", "personaz.png", "collabz.png", "battlez.png", "labelz.png", "spinaz.png", "witchcraft.png"];
+function groupLimitFor(tier) {
+  const t = (tier || "").toLowerCase();
+  if (t.includes("statz") || t.includes("stats")) return 20;
+  if (t.includes("premium") || t.includes("pro")) return 5;
+  return 1;
+}
+
+function GroupZPage({ tier }) {
+  const { state, addTo, removeFrom, setList } = useAppState();
+  const groups = state.groups || [];
+  const limit = groupLimitFor(tier);
+  const canCustomIcon = /premium|pro|stat[sz]/i.test(tier || "");
+  const atLimit = groups.length >= limit;
+  const update = (i, patch) => setList("groups", groups.map((g, idx) => (idx === i ? { ...g, ...patch } : g)));
+  const create = () => { if (!atLimit) addTo("groups", { id: Date.now(), name: "New Group", icon: "groupz_custom.png", visibility: "group" }); };
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">👥 Built-in Groups</div>
+        <div className="grid-2">
+          {GROUP_BUILTIN.map((g) => (
+            <div key={g.name} className="modal-sub-row">
+              <IconImg icon={g.icon} alt={g.name} />
+              <div><div className="s-name">{g.name}</div><div className="s-desc">{g.note}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <span>✏️ Your Custom Groups</span>
+          <span className="tag">{groups.length}/{limit === 20 ? "20" : limit}</span>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
+          {groupLimitFor(tier) === 20 ? "StatZ" : groupLimitFor(tier) === 5 ? "Premium" : "Free"} tier —
+          {" "}{limit} renamable custom group{limit === 1 ? "" : "s"}.
+          {!canCustomIcon && " Premium+ can also set custom group icons."}
+        </p>
+
+        {groups.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No custom groups yet.</p>}
+
+        {groups.map((g, i) => (
+          <div key={g.id} className="card" style={{ background: "var(--surface-2)" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+              <span className="grp-thumb"><IconImg icon={g.icon} alt="" /></span>
+              <input value={g.name} onChange={(e) => update(i, { name: e.target.value })} style={{ flex: 1 }} />
+              <button className="btn btn-danger btn-small" onClick={() => removeFrom("groups", i)}>✕</button>
+            </div>
+
+            <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>Visibility</label>
+            <div className="chip-wrap" style={{ marginBottom: 10 }}>
+              {VISIBILITIES.map((v) => (
+                <button key={v.id} onClick={() => update(i, { visibility: v.id })}
+                  className={`vis-btn${g.visibility === v.id ? " sel" : ""}`} title={v.label}>
+                  <IconImg icon={v.icon} alt={v.label} /> <span>{v.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>
+              Icon {canCustomIcon ? "" : "🔒 (Premium+)"}
+            </label>
+            {canCustomIcon ? (
+              <div className="pin-grid">
+                {GROUP_ICON_CHOICES.map((ic) => (
+                  <div key={ic} className={`pin-cell${g.icon === ic ? " pinned" : ""}`} onClick={() => update(i, { icon: ic })}>
+                    <IconImg icon={ic} alt="" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 11, color: "var(--text-light)" }}>Upgrade to Premium to choose a custom group icon.</p>
+            )}
+          </div>
+        ))}
+
+        <button className="btn" style={{ width: "100%", marginTop: 6 }} disabled={atLimit} onClick={create}>
+          {atLimit ? `Limit reached (${limit}) — upgrade for more` : "➕ Create custom group"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+function BodieZPage({ tier }) {
+  const { state, update } = useAppState();
+  const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [] };
+  const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
+  const isStatz = /stat[sz]/i.test(tier || "");
+  const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
+
+  const [section, setSection] = useState("routines");
+  const [muscle, setMuscle] = useState("Chest");
+  const [editingId, setEditingId] = useState(null);
+
+  const avail = availableEquipment(bodiez);
+  const routines = bodiez.routines || [];
+  const editing = routines.find((r) => r.id === editingId);
+
+  const setRoutines = (list) => setBodiez({ routines: list });
+  const patchRoutine = (id, patch) => setRoutines(routines.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const addExercise = (ex) => {
+    if (!editing) return;
+    if (editing.exercises.some((e) => e.name === ex.name)) return;
+    patchRoutine(editing.id, { exercises: [...editing.exercises, { ...ex, sets: 3, reps: 10, weight: 0, rest: 90, superset: false }] });
+  };
+  const patchEx = (i, patch) => patchRoutine(editing.id, { exercises: editing.exercises.map((e, idx) => (idx === i ? { ...e, ...patch } : e)) });
+
+  const shown = EXERCISES.filter((e) => e.muscle === muscle && isAvailable(e, avail));
+
+  const SECTIONS = [["routines", "🧩 Routines"], ["exercises", "📚 Exercises"], ["location", "📍 Location"], ["coach", "🤖 Coach"]];
+
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        {SECTIONS.map(([id, label]) => (
+          <button key={id} className={`heritage-chip${section === id ? " sel" : ""}`} onClick={() => setSection(id)}>{label}</button>
+        ))}
+      </div>
+
+      {section === "location" && (
+        <div className="card">
+          <div className="card-header"><span>📍 Training Location</span>{!isPremium && <span className="tag">🔒 Premium</span>}</div>
+          <div className="chip-wrap" style={{ marginBottom: 12 }}>
+            {Object.keys(LOCATIONS).map((loc) => (
+              <button key={loc} className={`heritage-chip${bodiez.location === loc ? " sel" : ""}`}
+                disabled={!isPremium && loc !== "Gym"}
+                style={!isPremium && loc !== "Gym" ? { opacity: 0.4 } : undefined}
+                onClick={() => isPremium || loc === "Gym" ? setBodiez({ location: loc }) : null}>{loc}</button>
+            ))}
+          </div>
+          {!isPremium && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Premium unlocks Home / Travel / Custom locations — routines adapt to whatever gear you have.</p>}
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>Available equipment{bodiez.location === "Custom" ? " (toggle)" : ` at ${bodiez.location}`}</label>
+          <div className="chip-wrap">
+            {EQUIPMENT.map((eq) => {
+              const on = avail.includes(eq);
+              const editable = bodiez.location === "Custom" && isPremium;
+              return (
+                <button key={eq} className={`heritage-chip${on ? " sel" : ""}`}
+                  style={editable ? undefined : { cursor: "default" }}
+                  onClick={() => {
+                    if (!editable) return;
+                    const ce = bodiez.customEquipment || [];
+                    setBodiez({ customEquipment: ce.includes(eq) ? ce.filter((x) => x !== eq) : [...ce, eq] });
+                  }}>{eq}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {section === "exercises" && (
+        <div className="card">
+          <div className="card-header">📚 Exercise Library</div>
+          <div className="form-group"><label>Muscle group (Jefit)</label>
+            <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+              {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Showing only exercises you can do at <strong>{bodiez.location}</strong>.</p>
+          {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No {muscle} exercises with your current equipment.</p>
+            : shown.map((ex) => (
+              <div key={ex.name} className="skill-item">
+                <span className="skill-item-name">{ex.name}</span>
+                <span className="skill-item-exp">{ex.equipment.join(", ")}</span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {section === "routines" && !editing && (
+        <div className="card">
+          <div className="card-header">🧩 Your Routines</div>
+          {routines.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No routines yet.</p>}
+          {routines.map((r) => (
+            <div key={r.id} className="skill-item">
+              <span className="skill-item-name">{r.name}</span>
+              <span className="skill-item-exp">{r.exercises.length} exercises</span>
+              <div className="skill-item-actions">
+                <button className="btn btn-small" onClick={() => setEditingId(r.id)}>Edit</button>
+                <button className="btn btn-danger btn-small" onClick={() => setRoutines(routines.filter((x) => x.id !== r.id))}>✕</button>
+              </div>
+            </div>
+          ))}
+          <button className="btn" style={{ width: "100%", marginTop: 8 }}
+            onClick={() => { const id = Date.now(); setRoutines([...routines, { id, name: "New Routine", exercises: [] }]); setEditingId(id); setSection("routines"); }}>
+            ➕ Create routine
+          </button>
+        </div>
+      )}
+
+      {section === "routines" && editing && (
+        <>
+          <div className="card">
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button className="btn btn-secondary btn-small" onClick={() => setEditingId(null)}>‹ Back</button>
+              <input value={editing.name} onChange={(e) => patchRoutine(editing.id, { name: e.target.value })} style={{ flex: 1 }} />
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header">➕ Add exercises ({muscle})</div>
+            <div className="form-group"><label>Muscle group</label>
+              <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+                {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>None available at {bodiez.location}.</p>
+              : shown.map((ex) => (
+                <div key={ex.name} className="skill-item">
+                  <span className="skill-item-name">{ex.name}</span>
+                  <button className="btn btn-small" disabled={editing.exercises.some((e) => e.name === ex.name)} onClick={() => addExercise(ex)}>Add</button>
+                </div>
+              ))}
+          </div>
+          <div className="card">
+            <div className="card-header">🏋️ {editing.name} — {editing.exercises.length} exercises</div>
+            {editing.exercises.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>Add exercises above.</p>}
+            {editing.exercises.map((ex, i) => (
+              <div key={ex.name} className="card" style={{ background: "var(--surface-2)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13 }}>{ex.name}</strong>
+                  <button className="btn btn-danger btn-small" onClick={() => patchRoutine(editing.id, { exercises: editing.exercises.filter((_, idx) => idx !== i) })}>✕</button>
+                </div>
+                <div className="grid-3">
+                  <div className="form-group" style={{ margin: 0 }}><label>Sets</label><input type="number" value={ex.sets} onChange={(e) => patchEx(i, { sets: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Reps</label><input type="number" value={ex.reps} onChange={(e) => patchEx(i, { reps: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Weight</label><input type="number" value={ex.weight} onChange={(e) => patchEx(i, { weight: +e.target.value })} /></div>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8 }}>
+                  <div className="form-group" style={{ margin: 0, flex: 1 }}><label>Rest (sec)</label><input type="number" value={ex.rest} onChange={(e) => patchEx(i, { rest: +e.target.value })} /></div>
+                  <button className={`heritage-chip${ex.superset ? " sel" : ""}`} style={{ alignSelf: "flex-end" }} onClick={() => patchEx(i, { superset: !ex.superset })}>⛓ Superset</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {section === "coach" && (
+        <div className="card">
+          <div className="card-header"><span>🤖 AI Coach</span>{!isStatz && <span className="tag">🔒 StatZ</span>}</div>
+          {isStatz ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+              StatZ personal trainer: progressive-overload suggestions, routine generation, and access to other users' routines.
+              Coach reads your logged sessions to recommend when to add weight, repeat, deload, or rest.
+            </p>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 The AI Coach — personal-trainer routine creator, progression logic, and shared user routines — is a <strong>StatZ</strong> feature.</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
+  groupz: GroupZPage,
+  bodiez: BodieZPage,
+  nationalitiez: NationalitieZPage,
+  substancez: SubstanceZPage,
+  preferencez: PreferenceZPage,
+  social_connectz: SocialConnectZPage,
   setup: SetupPage,
   personas: PersonasPage,
   examples: PostZPage,

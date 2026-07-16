@@ -24,7 +24,7 @@ export const CATALOG = [
       { key: "shotz", name: "ShotZ", emoji: "📸", icon: "shotz.png", desc: "Shooting assignments — capture photo/video work to a real brief." },
       { key: "developz", name: "DevelopZ", emoji: "👾", icon: "developz.png", desc: "Code development training — ship real builds: an arcade game, a puzzle, an API toy, an open-source PR." },
       { key: "managez", name: "ManageZ", emoji: "🕴🏼", icon: "managez.png", desc: "Management drills verified server-side: found a label, offer a contract, book a collab, build a roster, send outreach." },
-      { key: "bodiez", name: "BodieZ", emoji: "💪🏽", icon: "bodiez.png", desc: "Strength & body-transformation: routines, exercise library, live session logging, progress, BodyMap, AI coach." },
+      { key: "bodiez", name: "BodieZ", emoji: "💪🏽", icon: "bodiez.png", desc: "Strength & body-transformation: Jefit-style muscle groups, equipment/location-aware exercise library, custom routines, live session logging, and a StatZ AI coach.", fn: true },
     ],
   },
   {
@@ -32,7 +32,7 @@ export const CATALOG = [
     apps: [
       {
         key: "collabz", name: "CollabZ", emoji: "🤝", icon: "collabz.png",
-        desc: "Collaborate with other users and manage collab projects.",
+        desc: "Collaborate with other users and manage collab projects — filter collaborators by NationalitieZ heritage, SubstanceZ stance, and PreferenceZ.",
         children: [
           { name: "CoverZ", emoji: "🫴🏼", icon: "coverz.png", desc: "Covers of songs and redraws of existing art." },
           { name: "RemixeZ", emoji: "🔄", icon: "collabz_remixez.png", desc: "Remixing posts and songz." },
@@ -45,7 +45,7 @@ export const CATALOG = [
     apps: [
       {
         key: "battlez", name: "BattleZ", emoji: "🪖", icon: "battlez.png",
-        desc: "One post versus another. Contestants verified 18+ can bet money on themselves; other users bet SpinAZ. Winners decided by community rating.",
+        desc: "One post versus another. Contestants verified 18+ can bet money on themselves; other users bet SpinAZ. Winners decided by community rating. Browse and filter battles by NationalitieZ, SubstanceZ, and PreferenceZ.",
         children: [
           { name: "Freestyle", emoji: "🆓", icon: "battlez.png", desc: "Live sporadic battles." },
           { name: "1v1", emoji: "1️⃣", icon: "battlez.png", desc: "One artist versus one artist, regardless of other personas helping." },
@@ -59,7 +59,8 @@ export const CATALOG = [
     apps: [
       {
         key: "social_connectz", name: "Social ConnectZ", emoji: "💓", icon: "social_connectz.png",
-        desc: "Social matching, message boards, and personality-based discovery.",
+        desc: "Social matching, message boards, and personality-based discovery — filterable by your NationalitieZ heritage, SubstanceZ stance, and PreferenceZ partner preference.",
+        fn: true,
         children: [
           { name: "VibeZ", emoji: "♥️", icon: "socialz.png", desc: "Plenty of Fish-style dating/collab app — clear about what you're looking for: romance or a partnership collab." },
           { name: "Inferno", emoji: "❤️‍🔥", icon: "socialz.png", desc: "Tinder-style dating/collab app — romance or a quick collab." },
@@ -85,7 +86,8 @@ export const CATALOG = [
       },
       {
         key: "groupz", name: "GroupZ", emoji: "👥", icon: "groupz.png",
-        desc: "Combine other users into editable groups: Friends (mutual benefits), Fans, Partners (frequent collaborators), Blocked (cannot contact you), or Custom.",
+        desc: "Combine other users into editable groups: Friends (mutual benefits), Fans, Partners (frequent collaborators), Blocked (cannot contact you), or Custom. Create renamable custom groups (free 1 / premium 5 / statz 20) with per-group visibility.",
+        fn: true,
         children: [
           { name: "Friends", emoji: "🙂", icon: "groupz_friendz.png", desc: "Mutual benefits." },
           { name: "Fans", emoji: "👋🏽", icon: "groupz_fanz.png", desc: "Followers you have less need to manage." },
@@ -93,6 +95,14 @@ export const CATALOG = [
           { name: "Custom", emoji: "❓", icon: "groupz_custom.png", desc: "Type your own group title." },
         ],
       },
+    ],
+  },
+  {
+    label: "MetricZ",
+    apps: [
+      { key: "nationalitiez", name: "NationalitieZ", emoji: "🌐", icon: "nationalitiez.png", desc: "Your heritage — pick by continent (e.g. Africa) if you don't know the specific country, or choose exact countries. A filterable metric across Social ConnectZ, CollabZ, and BattleZ.", fn: true },
+      { key: "substancez", name: "SubstanceZ", emoji: "🧠", icon: "substancez.png", desc: "Declare your stance on caffeine, nicotine, alcohol, cannabis, prescriptions, and psychedelics — for sober-friendly matching and healthy spaces. A filterable metric across the platform.", fn: true },
+      { key: "preferencez", name: "PreferenceZ", emoji: "💞", icon: "preferencez_partner.jpg", desc: "Your partner preference — Male, Female, or Neutral — plus the traits that matter to you. Powers compatibility and is a filterable metric across matching, collabs, and battles.", fn: true },
     ],
   },
   {
