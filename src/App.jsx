@@ -304,6 +304,9 @@ function Home() {
         </button>
       </div>
 
+      {/* Community stats stay visible on the launcher and inside every app */}
+      <CommunityBar />
+
       {active ? (
         <>
           {/* App view — back bar + title, then the app itself */}
@@ -325,8 +328,6 @@ function Home() {
         </>
       ) : (
         <>
-          <CommunityBar />
-
           {/* Icon-grid launcher — grouped app tiles, phone home-screen style */}
           <div className="space-y-6">
             {TAB_GROUPS.map((group) => (
