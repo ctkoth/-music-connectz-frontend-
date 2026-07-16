@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2, LogOut } from "lucide-react";
+import { Check, ChevronLeft, Loader2, LogOut, Settings2, X } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
 import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
@@ -251,10 +251,220 @@ function CommunityBar() {
   );
 }
 
+// PickConnectZ — persistent quick-nav dock. Slots come from two sources:
+//   • AI picks: the apps this user opens most (usage counts in localStorage)
+//   • Pins: apps the user manually pins, capped by tier (free 1 / premium 5 /
+//     statz unlimited).
+const USAGE_KEY = "mcz_app_usage";
+const PINS_KEY = "mcz_pinned_apps";
+const AI_PICK_COUNT = 4;
+
+function readStore(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? null;
+  } catch {
+    return null;
+  }
+}
+function writeStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage unavailable — dock still works for the session */
+  }
+}
+
+// Map the account tier to a pin allowance. Unknown/missing tiers get the
+// free allotment so the dock never over-promises slots.
+function tierInfo(tier) {
+  const t = (tier || "").toLowerCase();
+  if (t.includes("statz") || t.includes("stats")) return { label: "StatZ", limit: Infinity };
+  if (t.includes("premium") || t.includes("pro")) return { label: "Premium", limit: 5 };
+  return { label: "Free", limit: 1 };
+}
+
+function DockIcon({ app, kind, current, onOpen }) {
+  return (
+    <button
+      onClick={() => onOpen(app.key)}
+      title={kind === "ai" ? `${app.label} · AI pick` : app.label}
+      className={`relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition ${
+        current === app.key
+          ? "border-mcz-cyan/60 shadow-neon"
+          : "border-white/10 hover:-translate-y-0.5 hover:border-white/25"
+      }`}
+    >
+      <IconImg icon={app.icon} alt={app.label} className="h-full w-full object-cover" />
+      {kind === "ai" && (
+        <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-mcz-cyan shadow-neon" />
+      )}
+    </button>
+  );
+}
+
+function PickConnectZ({ apps, usage, pins, tier, onOpen, onTogglePin, current }) {
+  const [editing, setEditing] = useState(false);
+  const { label: tierLabel, limit } = tierInfo(tier);
+
+  const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
+  const pinnedApps = pins.map((k) => byKey[k]).filter(Boolean);
+  const aiPicks = apps
+    .filter((a) => !pins.includes(a.key) && (usage[a.key] || 0) > 0)
+    .sort((a, b) => (usage[b.key] || 0) - (usage[a.key] || 0))
+    .slice(0, AI_PICK_COUNT);
+
+  const atLimit = pins.length >= limit;
+  const limitText =
+    limit === Infinity
+      ? `${tierLabel} · unlimited slots (${pins.length} pinned)`
+      : `${tierLabel} · ${pins.length}/${limit} slot${limit === 1 ? "" : "s"} used`;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40">
+      <div className="mx-auto max-w-3xl px-4 pb-3">
+        {editing && (
+          <div className="neon-frame mb-2 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-white/50">
+                Customize PickConnectZ
+              </p>
+              <button
+                onClick={() => setEditing(false)}
+                className="text-white/40 transition hover:text-white"
+                title="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="mb-3 text-xs text-white/45">
+              {limitText}
+              {limit !== Infinity && atLimit && (
+                <span className="ml-1 text-mcz-gold">— upgrade for more slots.</span>
+              )}
+            </p>
+            <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
+              {apps.map((a) => {
+                const pinned = pins.includes(a.key);
+                const disabled = !pinned && atLimit;
+                return (
+                  <button
+                    key={a.key}
+                    disabled={disabled}
+                    onClick={() => onTogglePin(a.key)}
+                    title={pinned ? `Unpin ${a.label}` : disabled ? "Slot limit reached" : `Pin ${a.label}`}
+                    className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border transition ${
+                      pinned
+                        ? "border-mcz-pink/60 shadow-neon"
+                        : disabled
+                          ? "cursor-not-allowed border-white/5 opacity-30"
+                          : "border-white/10 hover:border-white/25"
+                    }`}
+                  >
+                    <IconImg icon={a.icon} alt={a.label} className="h-full w-full object-cover" />
+                    {pinned && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/55">
+                        <Check size={16} className="text-mcz-pink" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="neon-frame flex items-center gap-2 p-2">
+          <button
+            onClick={() => onOpen("pickconz-home")}
+            title="PickConnectZ"
+            className="flex shrink-0 items-center gap-1.5"
+          >
+            <IconImg icon="pickconz.png" alt="PickConnectZ" className="h-8 w-8 rounded-lg shadow-neon" />
+            <span className="hidden font-display text-xs font-bold tracking-tight text-white/80 sm:inline">
+              PickConnectZ
+            </span>
+          </button>
+
+          <div className="h-8 w-px shrink-0 bg-white/10" />
+
+          <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
+            {aiPicks.length === 0 && pinnedApps.length === 0 ? (
+              <span className="px-1 text-xs text-white/35">
+                Open apps to build your quick nav — or pin favorites →
+              </span>
+            ) : (
+              <>
+                {aiPicks.map((a) => (
+                  <DockIcon key={a.key} app={a} kind="ai" current={current} onOpen={onOpen} />
+                ))}
+                {aiPicks.length > 0 && pinnedApps.length > 0 && (
+                  <div className="h-8 w-px shrink-0 bg-white/10" />
+                )}
+                {pinnedApps.map((a) => (
+                  <DockIcon key={a.key} app={a} kind="pin" current={current} onOpen={onOpen} />
+                ))}
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setEditing((v) => !v)}
+            title="Customize slots"
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
+              editing ? "border-mcz-pink/60 text-mcz-pink shadow-neon" : "border-white/10 text-white/60 hover:border-white/25 hover:text-white"
+            }`}
+          >
+            <Settings2 size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Home() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState(null); // null = launcher home screen
+  const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
+  const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
+  const [tier, setTier] = useState("");
   const active = TABS.find((t) => t.key === tab);
+
+  // Tier drives the pin allowance; it rarely changes, so fetch once.
+  useEffect(() => {
+    let on = true;
+    api("/api/auth/stats/")
+      .then((s) => on && setTier(s?.my_tier || ""))
+      .catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, []);
+
+  // Opening a real app records a usage hit (feeds the AI picks). The
+  // "pickconz-home" sentinel and null just navigate without counting.
+  const openTab = (key) => {
+    if (key === "pickconz-home") {
+      setTab(null);
+      return;
+    }
+    setTab(key);
+    if (key && TABS.some((t) => t.key === key)) {
+      setUsage((u) => {
+        const next = { ...u, [key]: (u[key] || 0) + 1 };
+        writeStore(USAGE_KEY, next);
+        return next;
+      });
+    }
+  };
+
+  const togglePin = (key) => {
+    setPins((p) => {
+      const next = p.includes(key) ? p.filter((k) => k !== key) : [...p, key];
+      writeStore(PINS_KEY, next);
+      return next;
+    });
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
@@ -317,7 +527,7 @@ function Home() {
                   {group.tabs.map((t) => (
                     <button
                       key={t.key}
-                      onClick={() => setTab(t.key)}
+                      onClick={() => openTab(t.key)}
                       className="group flex flex-col items-center gap-2 rounded-2xl p-1 transition"
                     >
                       <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition group-hover:-translate-y-0.5 group-hover:border-white/25 group-hover:shadow-neon">
@@ -334,6 +544,16 @@ function Home() {
           </div>
         </>
       )}
+
+      <PickConnectZ
+        apps={TABS}
+        usage={usage}
+        pins={pins}
+        tier={tier}
+        current={tab}
+        onOpen={openTab}
+        onTogglePin={togglePin}
+      />
     </div>
   );
 }
