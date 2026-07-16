@@ -71,6 +71,30 @@ class OAuthIdentity(models.Model):
         return f"{self.provider}:{self.provider_uid}"
 
 
+def grant_energy(user, amount):
+    """Additive Energy award (PostZ ratings, comment-reward job, etc.).
+    Uses an F() update so concurrent awards don't clobber each other."""
+    from django.db.models import F
+
+    if not amount:
+        return 0
+    try:
+        Profile.objects.filter(user=user).update(energy=F("energy") + amount)
+    except Exception:
+        return 0
+    return amount
+
+
+def spend_spinaz(user, amount):
+    """Atomic SpinaZ debit (SpecZ purchases). Returns True only if the balance
+    covered the cost — the WHERE spinaz>=amount makes it race-safe."""
+    from django.db.models import F
+
+    updated = Profile.objects.filter(user=user, spinaz__gte=amount).update(
+        spinaz=F("spinaz") - amount)
+    return bool(updated)
+
+
 REFILL_BY_TIER = {"free": 25, "premium": 50, "statz": 100}
 
 
