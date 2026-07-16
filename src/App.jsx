@@ -18,6 +18,7 @@ import CollabZ from "./apps/CollabZ.jsx";
 import BattleZ from "./apps/BattleZ.jsx";
 import LabelZ from "./apps/LabelZ.jsx";
 import BugZ from "./apps/BugZ.jsx";
+import Mcz2App from "./mcz2/Mcz2App.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -84,6 +85,8 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
+  "onboardz.jpg": "/icons/onboardz.jpg",
+  "specz.png": "/icons/specz.png",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
@@ -391,6 +394,15 @@ export default function App() {
         element={
           <RequireAuth>
             <Home />
+          </RequireAuth>
+        }
+      />
+      {/* code_2.2 rebuild — lives at /v2 during the phased port; / flips to it at cutover. */}
+      <Route
+        path="/v2"
+        element={
+          <RequireAuth>
+            <Mcz2App />
           </RequireAuth>
         }
       />
