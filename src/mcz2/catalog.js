@@ -103,6 +103,7 @@ export const CATALOG = [
       { key: "nationalitiez", name: "NationalitieZ", emoji: "🌐", icon: "nationalitiez.png", desc: "Your heritage — pick by continent (e.g. Africa) if you don't know the specific country, or choose exact countries. A filterable metric across Social ConnectZ, CollabZ, and BattleZ.", fn: true },
       { key: "substancez", name: "SubstanceZ", emoji: "🧠", icon: "substancez.png", desc: "Declare your stance on caffeine, nicotine, alcohol, cannabis, prescriptions, and psychedelics — for sober-friendly matching and healthy spaces. A filterable metric across the platform.", fn: true },
       { key: "preferencez", name: "PreferenceZ", emoji: "💞", icon: "preferencez_partner.jpg", desc: "Your partner preference — Male, Female, or Neutral — plus the traits that matter to you. Powers compatibility and is a filterable metric across matching, collabs, and battles.", fn: true },
+      { key: "zodiacz", name: "ZodiacZ", emoji: "♌", icon: "zodiacz.png", desc: "Your personal cosmic guide — auto-detects your sign from your birthday, with a Corey-voice read on all 12 signs. A filterable metric across matching, collabs, and battles.", fn: true },
     ],
   },
   {
