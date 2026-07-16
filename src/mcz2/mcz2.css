@@ -1,210 +1,176 @@
 /*
- * Music ConnectZ 2.2 design system — ported from Corey's code_2.2 prototype.
- * Everything is scoped under `.mcz2-root` and theme variables live on that
- * wrapper (not :root), so this Material-style system stays fully isolated from
- * the existing neon Tailwind app until the final cutover.
+ * Music ConnectZ 2.2 — NEON design system.
+ * The code_2.2 prototype's layout, reskinned to the Music ConnectZ neon brand
+ * (dark, glow, Poppins). Scoped under `.mcz2-root`; the 8 "themes" are neon
+ * accent hues that recolor the --primary glow. Everything stays isolated from
+ * the existing app.
  */
 .mcz2-root {
-  --primary: #2196f3;
-  --primary-dark: #1565c0;
-  --accent: #ff9800;
-  --bg: #f5f5f5;
-  --surface: #ffffff;
-  --text: #333333;
-  --text-light: #666666;
-  --border: #e0e0e0;
-  --success: #4caf50;
-  --danger: #f44336;
+  --bg: #07060d;
+  --surface: #0e0b1a;
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --text: #f5f3ff;
+  --text-light: rgba(245, 243, 255, 0.55);
+  --border: rgba(255, 255, 255, 0.1);
+  --primary: #22e6ff;
+  --primary-dark: #0891b2;
+  --accent: #ff2bd1;
+  --success: #4ade80;
+  --danger: #f43f5e;
+  --glow: 0 0 18px rgba(34, 230, 255, 0.45), 0 0 32px rgba(255, 43, 209, 0.2);
 }
-.mcz2-root[data-theme="dark"] {
-  --bg: #1a1a1a;
-  --surface: #2d2d2d;
-  --text: #e0e0e0;
-  --text-light: #b0b0b0;
-  --border: #404040;
-}
-.mcz2-root[data-theme="theme-purple"] { --primary: #9c27b0; --primary-dark: #7b1fa2; }
-.mcz2-root[data-theme="theme-red"]    { --primary: #f44336; --primary-dark: #d32f2f; }
-.mcz2-root[data-theme="theme-green"]  { --primary: #4caf50; --primary-dark: #388e3c; }
-.mcz2-root[data-theme="theme-orange"] { --primary: #ff9800; --primary-dark: #f57c00; }
-.mcz2-root[data-theme="theme-pink"]   { --primary: #e91e63; --primary-dark: #c2185b; }
-.mcz2-root[data-theme="theme-teal"]   { --primary: #00bcd4; --primary-dark: #0097a7; }
-.mcz2-root[data-theme="theme-indigo"] { --primary: #3f51b5; --primary-dark: #303f9f; }
+/* Neon accent themes recolor the primary + its glow. */
+.mcz2-root[data-theme="neon-cyan"]   { --primary: #22e6ff; --primary-dark: #0891b2; --glow: 0 0 18px rgba(34,230,255,0.5), 0 0 34px rgba(34,230,255,0.25); }
+.mcz2-root[data-theme="neon-pink"]   { --primary: #ff2bd1; --primary-dark: #c2185b; --glow: 0 0 18px rgba(255,43,209,0.5), 0 0 34px rgba(255,43,209,0.25); }
+.mcz2-root[data-theme="neon-purple"] { --primary: #a855f7; --primary-dark: #7b1fa2; --glow: 0 0 18px rgba(168,85,247,0.5), 0 0 34px rgba(168,85,247,0.25); }
+.mcz2-root[data-theme="neon-gold"]   { --primary: #ffcf3f; --primary-dark: #f57c00; --glow: 0 0 18px rgba(255,207,63,0.5), 0 0 34px rgba(255,207,63,0.25); }
+.mcz2-root[data-theme="neon-green"]  { --primary: #4ade80; --primary-dark: #16a34a; --glow: 0 0 18px rgba(74,222,128,0.5), 0 0 34px rgba(74,222,128,0.25); }
+.mcz2-root[data-theme="neon-orange"] { --primary: #fb923c; --primary-dark: #ea580c; --glow: 0 0 18px rgba(251,146,60,0.5), 0 0 34px rgba(251,146,60,0.25); }
+.mcz2-root[data-theme="neon-red"]    { --primary: #f43f5e; --primary-dark: #be123c; --glow: 0 0 18px rgba(244,63,94,0.5), 0 0 34px rgba(244,63,94,0.25); }
+.mcz2-root[data-theme="neon-blue"]   { --primary: #4da6ff; --primary-dark: #1d4ed8; --glow: 0 0 18px rgba(77,166,255,0.5), 0 0 34px rgba(77,166,255,0.25); }
+/* "Light" mode = a lighter panel depth; still neon/dark. */
+.mcz2-root[data-theme="light"] { --bg: #12101f; --surface: #17142a; }
 
 .mcz2-root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--bg);
+  font-family: "Poppins", system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(168, 85, 247, 0.12), transparent 70%),
+    var(--bg);
   color: var(--text);
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
 }
 .mcz2-root * { box-sizing: border-box; }
 .mcz2-root .container { display: flex; flex-direction: column; min-height: 100vh; }
 .mcz2-root .header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #fff; padding: 14px 18px; display: flex; justify-content: space-between;
+  background: linear-gradient(135deg, rgba(255, 43, 209, 0.14), rgba(34, 230, 255, 0.1));
+  border-bottom: 1px solid var(--border); backdrop-filter: blur(8px);
+  color: #fff; padding: 12px 16px; display: flex; justify-content: space-between;
   align-items: center; position: sticky; top: 0; z-index: 100;
 }
 .mcz2-root .theme-toggle, .mcz2-root .nav-btn {
-  background: rgba(255, 255, 255, 0.3); border: none; color: #fff; padding: 6px 10px;
-  border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border); color: #fff; padding: 6px 10px;
+  border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;
 }
-.mcz2-root .theme-toggle:hover, .mcz2-root .nav-btn:hover { background: rgba(255, 255, 255, 0.5); }
+.mcz2-root .theme-toggle:hover, .mcz2-root .nav-btn:hover { background: rgba(255, 255, 255, 0.16); box-shadow: var(--glow); }
 .mcz2-root .header-center { text-align: center; flex: 1; }
-.mcz2-root .header-title { font-size: 16px; font-weight: 700; }
-.mcz2-root .header-subtitle { font-size: 9px; opacity: 0.9; margin-top: 2px; }
+.mcz2-root .header-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.mcz2-root .header-subtitle { font-size: 9px; opacity: 0.7; margin-top: 2px; }
 .mcz2-root .header-right { display: flex; gap: 10px; align-items: center; }
 .mcz2-root .balance {
-  background: rgba(255, 255, 255, 0.25); padding: 6px 10px; border-radius: 6px;
-  text-align: center; font-size: 11px; cursor: pointer; transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); padding: 6px 10px; border-radius: 999px;
+  text-align: center; font-size: 11px; cursor: pointer; color: var(--gold, #ffcf3f); transition: all 0.2s;
 }
-.mcz2-root .balance:hover { background: rgba(255, 255, 255, 0.35); }
+.mcz2-root .balance:hover { box-shadow: var(--glow); }
 .mcz2-root .profile-pic {
-  width: 36px; height: 36px; border-radius: 50%; border: 2px solid #fff; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; font-size: 18px;
-  background: rgba(255, 255, 255, 0.2); cursor: pointer;
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;
+  background: rgba(255, 255, 255, 0.06); cursor: pointer; box-shadow: var(--glow);
 }
 .mcz2-root .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.mcz2-root .tabs { display: flex; background: var(--surface); border-bottom: 2px solid var(--border); overflow-x: auto; }
-.mcz2-root .tab-btn {
-  flex: 1; padding: 11px 12px; border: none; background: transparent; cursor: pointer;
-  font-size: 11px; font-weight: 600; color: var(--text-light); border-bottom: 3px solid transparent;
-  white-space: nowrap; min-width: 70px; transition: color 0.2s;
-}
-.mcz2-root .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-.mcz2-root .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; }
+.mcz2-root .content { flex: 1; overflow-y: auto; padding: 16px; max-width: 1000px; margin: 0 auto; width: 100%; padding-bottom: 96px; }
 .mcz2-root .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); transition: box-shadow 0.2s;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px; margin-bottom: 16px;
 }
-.mcz2-root .card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
 .mcz2-root .card-header {
   font-size: 14px; font-weight: 700; margin-bottom: 12px; border-bottom: 1px solid var(--border);
   padding-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; align-items: center;
 }
 .mcz2-root .form-group { margin-bottom: 12px; }
-.mcz2-root .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+.mcz2-root .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; color: var(--text-light); }
 .mcz2-root .form-group input, .mcz2-root .form-group select, .mcz2-root .form-group textarea {
-  width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--bg); color: var(--text); font-size: 12px; font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35); color: var(--text); font-size: 12px; font-family: inherit; transition: all 0.2s;
 }
 .mcz2-root .form-group input:focus, .mcz2-root .form-group select:focus, .mcz2-root .form-group textarea:focus {
-  outline: none; border-color: var(--primary); box-shadow: 0 0 8px rgba(33, 150, 243, 0.2);
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(34, 230, 255, 0.25);
 }
+.mcz2-root .form-group option { background: var(--surface); }
 .mcz2-root .btn {
-  padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;
-  background: var(--primary); color: #fff; font-size: 12px; display: inline-flex; align-items: center;
-  gap: 6px; transition: background 0.2s, transform 0.1s;
+  padding: 10px 16px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #04121a; font-size: 12px;
+  display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
 }
-.mcz2-root .btn:hover { background: var(--primary-dark); }
+.mcz2-root .btn:hover { box-shadow: var(--glow); transform: translateY(-1px); }
 .mcz2-root .btn:active { transform: scale(0.98); }
-.mcz2-root .btn-success { background: var(--success); }
-.mcz2-root .btn-danger { background: var(--danger); }
-.mcz2-root .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
-.mcz2-root .btn-secondary:hover { background: var(--border); }
-.mcz2-root .btn-small { padding: 5px 10px; font-size: 10px; }
+.mcz2-root .btn-success { background: linear-gradient(135deg, var(--success), #16a34a); }
+.mcz2-root .btn-danger { background: linear-gradient(135deg, var(--danger), #be123c); color: #fff; }
+.mcz2-root .btn-secondary { background: rgba(255, 255, 255, 0.06); color: var(--text); border: 1px solid var(--border); }
+.mcz2-root .btn-secondary:hover { background: rgba(255, 255, 255, 0.12); }
+.mcz2-root .btn-small { padding: 6px 10px; font-size: 10px; }
 .mcz2-root .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mcz2-root .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.mcz2-root .modal {
-  display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 5000;
-  align-items: center; justify-content: center; padding: 20px; overflow-y: auto;
+.mcz2-root .tag { display: inline-block; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); padding: 4px 8px; border-radius: 999px; font-size: 10px; margin: 2px; }
+
+/* App launcher — grouped icon tiles (uses the real /icons artwork). */
+.mcz2-root .launch-group { margin-bottom: 22px; }
+.mcz2-root .launch-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-light); margin-bottom: 12px; }
+.mcz2-root .launch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 8px; }
+@media (min-width: 640px) { .mcz2-root .launch-grid { grid-template-columns: repeat(6, 1fr); } }
+.mcz2-root .app-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; padding: 4px; }
+.mcz2-root .app-tile .tile-icon {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border-radius: 18px; border: 1px solid var(--border); background: var(--surface-2); transition: all 0.18s;
 }
-.mcz2-root .modal.active { display: flex; }
-.mcz2-root .modal-content {
-  background: var(--surface); border-radius: 12px; padding: 20px; max-width: 550px; width: 100%;
-  max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
-.mcz2-root .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.mcz2-root .modal-header h2 { font-size: 14px; color: var(--primary); }
-.mcz2-root .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); transition: color 0.2s; }
+.mcz2-root .app-tile .tile-icon img { width: 100%; height: 100%; object-fit: cover; }
+.mcz2-root .app-tile:hover .tile-icon { transform: translateY(-3px); border-color: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .app-tile .tile-name { font-size: 11px; font-weight: 600; color: var(--text-light); text-align: center; line-height: 1.1; }
+.mcz2-root .app-tile:hover .tile-name { color: var(--text); }
+.mcz2-root .app-tile.active .tile-icon { border-color: var(--primary); box-shadow: var(--glow); }
+
+/* Neon modal (the "click icon → Corey voice description" pattern). */
+.mcz2-root .modal { position: fixed; inset: 0; background: rgba(4, 3, 10, 0.8); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+.mcz2-root .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: var(--glow); }
+.mcz2-root .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.mcz2-root .modal-title { display: flex; align-items: center; gap: 12px; }
+.mcz2-root .modal-title img { width: 48px; height: 48px; border-radius: 14px; object-fit: cover; box-shadow: var(--glow); }
+.mcz2-root .modal-title h2 { font-size: 18px; font-weight: 800; }
+.mcz2-root .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-light); line-height: 1; }
 .mcz2-root .close-btn:hover { color: var(--danger); }
-.mcz2-root .tag { display: inline-block; background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 10px; margin: 2px; }
-.mcz2-root .persona-card {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff;
-  border-radius: 10px; padding: 16px; margin-bottom: 12px;
-}
-.mcz2-root .persona-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
-.mcz2-root .persona-name { font-size: 16px; font-weight: 700; }
-.mcz2-root .persona-btn {
-  background: var(--bg); padding: 10px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border);
-  text-align: center; font-weight: 700; font-size: 12px; color: var(--text); transition: border-color 0.2s;
-}
-.mcz2-root .persona-btn:hover { border-color: var(--primary); }
-.mcz2-root .post-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
-  margin-bottom: 14px; transition: box-shadow 0.2s;
-}
-.mcz2-root .post-card:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
-.mcz2-root .post-header { display: flex; gap: 8px; margin-bottom: 10px; }
-.mcz2-root .post-avatar {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: #fff; display: flex;
-  align-items: center; justify-content: center; font-size: 18px; overflow: hidden; flex-shrink: 0;
-}
-.mcz2-root .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.mcz2-root .post-info { flex: 1; }
-.mcz2-root .post-user { font-weight: 700; font-size: 12px; }
-.mcz2-root .post-meta { font-size: 10px; color: var(--text-light); }
-.mcz2-root .post-content { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
-.mcz2-root .post-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.mcz2-root .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mcz2-root .skill-btn {
-  padding: 8px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px;
-  cursor: pointer; font-weight: 600; font-size: 11px; text-align: center; position: relative; transition: all 0.2s;
-}
-.mcz2-root .skill-btn:hover { border-color: var(--primary); }
-.mcz2-root .skill-btn.sel {
-  background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%); color: #fff; border: 3px solid #1565c0;
-  box-shadow: 0 0 12px rgba(33, 150, 243, 0.6); transform: scale(1.08); font-weight: 700;
-}
-.mcz2-root .skill-btn.any-skill { background: var(--accent); color: #fff; border-color: var(--accent); }
-.mcz2-root .skill-btn.any-skill::after { content: "🔄"; position: absolute; top: 2px; right: 4px; font-size: 9px; }
-.mcz2-root .skill-item {
-  background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex;
-  justify-content: space-between; align-items: center; font-size: 11px;
-}
-.mcz2-root .skill-item-name { font-weight: 600; flex: 1; }
-.mcz2-root .skill-item-exp { color: var(--text-light); font-size: 10px; margin-right: 8px; }
-.mcz2-root .skill-item-actions { display: flex; gap: 4px; }
-.mcz2-root .toggle-btn {
-  display: inline-block; padding: 6px 12px; border-radius: 6px; border: 2px solid var(--border);
-  background: var(--bg); cursor: pointer; font-weight: 600; font-size: 11px; margin: 4px; transition: all 0.2s;
-}
-.mcz2-root .toggle-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.mcz2-root .filter-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
-.mcz2-root .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-.mcz2-root .filter-badge { background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 6px; }
-.mcz2-root .gps-status { font-size: 11px; color: var(--text-light); margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; }
-.mcz2-root .genre-btn {
-  padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-  cursor: pointer; margin: 4px; display: inline-block; font-size: 12px; font-weight: 600; transition: all 0.2s;
-}
-.mcz2-root .genre-btn:hover { border-color: var(--primary); }
-.mcz2-root .genre-btn.sel { background: var(--primary); color: #fff; border-color: var(--primary); }
-.mcz2-root .stripe-section {
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
-  border: 2px solid var(--primary); border-radius: 10px; padding: 16px; margin-bottom: 16px;
-}
-.mcz2-root .stripe-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.mcz2-root .balance-info { background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; }
-.mcz2-root .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-.mcz2-root .theme-option {
-  padding: 12px; border-radius: 8px; cursor: pointer; border: 3px solid transparent; text-align: center;
-  font-weight: 600; font-size: 12px; transition: all 0.2s;
-}
+.mcz2-root .modal-desc { font-size: 13px; line-height: 1.5; color: var(--text-light); }
+.mcz2-root .modal-sub { margin-top: 16px; }
+.mcz2-root .modal-sub-title { font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px; }
+.mcz2-root .modal-sub-row { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
+.mcz2-root .modal-sub-row img { width: 32px; height: 32px; border-radius: 9px; object-fit: cover; }
+.mcz2-root .modal-sub-row .s-name { font-weight: 700; font-size: 12px; }
+.mcz2-root .modal-sub-row .s-desc { font-size: 11px; color: var(--text-light); }
+
+/* Theme swatches + settings toggles. */
+.mcz2-root .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+.mcz2-root .theme-option { padding: 12px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; text-align: center; font-weight: 700; font-size: 11px; color: #04121a; transition: all 0.2s; }
 .mcz2-root .theme-option:hover { transform: scale(1.05); }
-.mcz2-root .theme-option.active { border-color: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.6); }
-.mcz2-root .settings-toggle {
-  display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px;
-  background: var(--bg); border-radius: 8px; margin-bottom: 8px;
-}
+.mcz2-root .theme-option.active { border-color: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, 0.5); }
+.mcz2-root .settings-toggle { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
 .mcz2-root .settings-toggle label { flex: 1; font-weight: 600; font-size: 12px; margin: 0; }
-.mcz2-root .toggle-switch { width: 40px; height: 24px; background: var(--border); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
-.mcz2-root .toggle-switch.active { background: var(--success); }
-.mcz2-root .toggle-switch::after { content: ""; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s; }
-.mcz2-root .toggle-switch.active::after { left: 18px; }
-@media (max-width: 768px) {
+.mcz2-root .toggle-switch { width: 42px; height: 24px; background: rgba(255, 255, 255, 0.15); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+.mcz2-root .toggle-switch.active { background: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .toggle-switch::after { content: ""; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: left 0.3s; }
+.mcz2-root .toggle-switch.active::after { left: 21px; }
+@media (max-width: 640px) {
   .mcz2-root .grid-2, .mcz2-root .grid-3 { grid-template-columns: 1fr; }
-  .mcz2-root .skill-grid { grid-template-columns: 1fr; }
-  .mcz2-root .theme-grid { grid-template-columns: repeat(2, 1fr); }
+  .mcz2-root .theme-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* PickConnectZ dock (persistent quick-nav footer). */
+.mcz2-root .dock-wrap { position: fixed; inset-inline: 0; bottom: 0; z-index: 4000; padding: 0 16px 12px; pointer-events: none; }
+.mcz2-root .dock { pointer-events: auto; max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 16px; border: 1px solid var(--border); background: rgba(14, 11, 26, 0.85); backdrop-filter: blur(10px); box-shadow: var(--glow); }
+.mcz2-root .dock-brand { display: flex; align-items: center; gap: 6px; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+.mcz2-root .dock-brand img { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; box-shadow: var(--glow); }
+.mcz2-root .dock-brand span { font-size: 11px; font-weight: 800; color: var(--text); }
+.mcz2-root .dock-scroll { display: flex; align-items: center; gap: 6px; overflow-x: auto; flex: 1; }
+.mcz2-root .dock-icon { position: relative; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; transition: all 0.15s; }
+.mcz2-root .dock-icon img { width: 100%; height: 100%; object-fit: cover; }
+.mcz2-root .dock-icon:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .dock-icon.active { border-color: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .dock-icon .ai-dot { position: absolute; top: 2px; right: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .dock-sep { width: 1px; height: 28px; background: var(--border); flex-shrink: 0; }
+.mcz2-root .dock-edit { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-light); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.mcz2-root .dock-edit:hover, .mcz2-root .dock-edit.active { border-color: var(--primary); color: var(--primary); box-shadow: var(--glow); }
+.mcz2-root .dock-hint { font-size: 11px; color: var(--text-light); padding: 0 6px; }
+.mcz2-root .pin-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+@media (min-width: 640px) { .mcz2-root .pin-grid { grid-template-columns: repeat(8, 1fr); } }
+.mcz2-root .pin-cell { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
+.mcz2-root .pin-cell img { width: 100%; height: 100%; object-fit: cover; }
+.mcz2-root .pin-cell.pinned { border-color: var(--accent); box-shadow: 0 0 14px rgba(255, 43, 209, 0.4); }
+.mcz2-root .pin-cell.disabled { opacity: 0.3; cursor: not-allowed; }
+.mcz2-root .pin-cell .pin-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); color: var(--accent); font-size: 18px; font-weight: 800; }

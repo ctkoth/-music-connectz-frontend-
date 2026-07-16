@@ -13,8 +13,8 @@ const DEFAULT_STATE = {
   paymentHistory: [],
   currentTab: "setup",
   settings: {
-    theme: "theme-blue",
-    lightDark: "light",
+    theme: "neon-cyan",
+    lightDark: "dark",
     notifications: true,
     collabAlerts: true,
     paymentAlerts: true,
