@@ -13,6 +13,7 @@ const DEFAULT_STATE = {
   paymentHistory: [],
   speczOwned: [],
   groups: [],
+  bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
   currentTab: "setup",
   settings: {

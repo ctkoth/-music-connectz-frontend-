@@ -24,7 +24,7 @@ export const CATALOG = [
       { key: "shotz", name: "ShotZ", emoji: "📸", icon: "shotz.png", desc: "Shooting assignments — capture photo/video work to a real brief." },
       { key: "developz", name: "DevelopZ", emoji: "👾", icon: "developz.png", desc: "Code development training — ship real builds: an arcade game, a puzzle, an API toy, an open-source PR." },
       { key: "managez", name: "ManageZ", emoji: "🕴🏼", icon: "managez.png", desc: "Management drills verified server-side: found a label, offer a contract, book a collab, build a roster, send outreach." },
-      { key: "bodiez", name: "BodieZ", emoji: "💪🏽", icon: "bodiez.png", desc: "Strength & body-transformation: routines, exercise library, live session logging, progress, BodyMap, AI coach." },
+      { key: "bodiez", name: "BodieZ", emoji: "💪🏽", icon: "bodiez.png", desc: "Strength & body-transformation: Jefit-style muscle groups, equipment/location-aware exercise library, custom routines, live session logging, and a StatZ AI coach.", fn: true },
     ],
   },
   {

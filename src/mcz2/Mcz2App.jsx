@@ -6,6 +6,7 @@ import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
 import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
+import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import "./mcz2.css";
 
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
@@ -640,9 +641,181 @@ function GroupZPage({ tier }) {
   );
 }
 
+function BodieZPage({ tier }) {
+  const { state, update } = useAppState();
+  const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [] };
+  const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
+  const isStatz = /stat[sz]/i.test(tier || "");
+  const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
+
+  const [section, setSection] = useState("routines");
+  const [muscle, setMuscle] = useState("Chest");
+  const [editingId, setEditingId] = useState(null);
+
+  const avail = availableEquipment(bodiez);
+  const routines = bodiez.routines || [];
+  const editing = routines.find((r) => r.id === editingId);
+
+  const setRoutines = (list) => setBodiez({ routines: list });
+  const patchRoutine = (id, patch) => setRoutines(routines.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const addExercise = (ex) => {
+    if (!editing) return;
+    if (editing.exercises.some((e) => e.name === ex.name)) return;
+    patchRoutine(editing.id, { exercises: [...editing.exercises, { ...ex, sets: 3, reps: 10, weight: 0, rest: 90, superset: false }] });
+  };
+  const patchEx = (i, patch) => patchRoutine(editing.id, { exercises: editing.exercises.map((e, idx) => (idx === i ? { ...e, ...patch } : e)) });
+
+  const shown = EXERCISES.filter((e) => e.muscle === muscle && isAvailable(e, avail));
+
+  const SECTIONS = [["routines", "🧩 Routines"], ["exercises", "📚 Exercises"], ["location", "📍 Location"], ["coach", "🤖 Coach"]];
+
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        {SECTIONS.map(([id, label]) => (
+          <button key={id} className={`heritage-chip${section === id ? " sel" : ""}`} onClick={() => setSection(id)}>{label}</button>
+        ))}
+      </div>
+
+      {section === "location" && (
+        <div className="card">
+          <div className="card-header"><span>📍 Training Location</span>{!isPremium && <span className="tag">🔒 Premium</span>}</div>
+          <div className="chip-wrap" style={{ marginBottom: 12 }}>
+            {Object.keys(LOCATIONS).map((loc) => (
+              <button key={loc} className={`heritage-chip${bodiez.location === loc ? " sel" : ""}`}
+                disabled={!isPremium && loc !== "Gym"}
+                style={!isPremium && loc !== "Gym" ? { opacity: 0.4 } : undefined}
+                onClick={() => isPremium || loc === "Gym" ? setBodiez({ location: loc }) : null}>{loc}</button>
+            ))}
+          </div>
+          {!isPremium && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Premium unlocks Home / Travel / Custom locations — routines adapt to whatever gear you have.</p>}
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>Available equipment{bodiez.location === "Custom" ? " (toggle)" : ` at ${bodiez.location}`}</label>
+          <div className="chip-wrap">
+            {EQUIPMENT.map((eq) => {
+              const on = avail.includes(eq);
+              const editable = bodiez.location === "Custom" && isPremium;
+              return (
+                <button key={eq} className={`heritage-chip${on ? " sel" : ""}`}
+                  style={editable ? undefined : { cursor: "default" }}
+                  onClick={() => {
+                    if (!editable) return;
+                    const ce = bodiez.customEquipment || [];
+                    setBodiez({ customEquipment: ce.includes(eq) ? ce.filter((x) => x !== eq) : [...ce, eq] });
+                  }}>{eq}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {section === "exercises" && (
+        <div className="card">
+          <div className="card-header">📚 Exercise Library</div>
+          <div className="form-group"><label>Muscle group (Jefit)</label>
+            <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+              {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+            </select>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Showing only exercises you can do at <strong>{bodiez.location}</strong>.</p>
+          {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No {muscle} exercises with your current equipment.</p>
+            : shown.map((ex) => (
+              <div key={ex.name} className="skill-item">
+                <span className="skill-item-name">{ex.name}</span>
+                <span className="skill-item-exp">{ex.equipment.join(", ")}</span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {section === "routines" && !editing && (
+        <div className="card">
+          <div className="card-header">🧩 Your Routines</div>
+          {routines.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No routines yet.</p>}
+          {routines.map((r) => (
+            <div key={r.id} className="skill-item">
+              <span className="skill-item-name">{r.name}</span>
+              <span className="skill-item-exp">{r.exercises.length} exercises</span>
+              <div className="skill-item-actions">
+                <button className="btn btn-small" onClick={() => setEditingId(r.id)}>Edit</button>
+                <button className="btn btn-danger btn-small" onClick={() => setRoutines(routines.filter((x) => x.id !== r.id))}>✕</button>
+              </div>
+            </div>
+          ))}
+          <button className="btn" style={{ width: "100%", marginTop: 8 }}
+            onClick={() => { const id = Date.now(); setRoutines([...routines, { id, name: "New Routine", exercises: [] }]); setEditingId(id); setSection("routines"); }}>
+            ➕ Create routine
+          </button>
+        </div>
+      )}
+
+      {section === "routines" && editing && (
+        <>
+          <div className="card">
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button className="btn btn-secondary btn-small" onClick={() => setEditingId(null)}>‹ Back</button>
+              <input value={editing.name} onChange={(e) => patchRoutine(editing.id, { name: e.target.value })} style={{ flex: 1 }} />
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header">➕ Add exercises ({muscle})</div>
+            <div className="form-group"><label>Muscle group</label>
+              <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+                {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>None available at {bodiez.location}.</p>
+              : shown.map((ex) => (
+                <div key={ex.name} className="skill-item">
+                  <span className="skill-item-name">{ex.name}</span>
+                  <button className="btn btn-small" disabled={editing.exercises.some((e) => e.name === ex.name)} onClick={() => addExercise(ex)}>Add</button>
+                </div>
+              ))}
+          </div>
+          <div className="card">
+            <div className="card-header">🏋️ {editing.name} — {editing.exercises.length} exercises</div>
+            {editing.exercises.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>Add exercises above.</p>}
+            {editing.exercises.map((ex, i) => (
+              <div key={ex.name} className="card" style={{ background: "var(--surface-2)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13 }}>{ex.name}</strong>
+                  <button className="btn btn-danger btn-small" onClick={() => patchRoutine(editing.id, { exercises: editing.exercises.filter((_, idx) => idx !== i) })}>✕</button>
+                </div>
+                <div className="grid-3">
+                  <div className="form-group" style={{ margin: 0 }}><label>Sets</label><input type="number" value={ex.sets} onChange={(e) => patchEx(i, { sets: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Reps</label><input type="number" value={ex.reps} onChange={(e) => patchEx(i, { reps: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Weight</label><input type="number" value={ex.weight} onChange={(e) => patchEx(i, { weight: +e.target.value })} /></div>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8 }}>
+                  <div className="form-group" style={{ margin: 0, flex: 1 }}><label>Rest (sec)</label><input type="number" value={ex.rest} onChange={(e) => patchEx(i, { rest: +e.target.value })} /></div>
+                  <button className={`heritage-chip${ex.superset ? " sel" : ""}`} style={{ alignSelf: "flex-end" }} onClick={() => patchEx(i, { superset: !ex.superset })}>⛓ Superset</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {section === "coach" && (
+        <div className="card">
+          <div className="card-header"><span>🤖 AI Coach</span>{!isStatz && <span className="tag">🔒 StatZ</span>}</div>
+          {isStatz ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+              StatZ personal trainer: progressive-overload suggestions, routine generation, and access to other users' routines.
+              Coach reads your logged sessions to recommend when to add weight, repeat, deload, or rest.
+            </p>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 The AI Coach — personal-trainer routine creator, progression logic, and shared user routines — is a <strong>StatZ</strong> feature.</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
+  bodiez: BodieZPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,
