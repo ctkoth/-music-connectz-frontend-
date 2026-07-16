@@ -11,6 +11,8 @@ const DEFAULT_STATE = {
   collabs: [],
   wallet: { balance: 0, earned: 0 },
   paymentHistory: [],
+  speczOwned: [],
+  onboardDismissed: false,
   currentTab: "setup",
   settings: {
     theme: "neon-cyan",

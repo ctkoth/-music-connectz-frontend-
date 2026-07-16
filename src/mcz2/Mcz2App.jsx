@@ -246,12 +246,107 @@ function SettingsPage({ tier }) {
   );
 }
 
+const SKILL_KEYS = ["mimez", "directz", "lessonz", "singz", "rapz", "drumz", "violinz", "guitarz", "bassz", "keyz", "producez", "designz", "shotz", "developz", "managez", "bodiez"];
+
+function OnboardZPage({ onOpen }) {
+  const { state, update } = useAppState();
+  const usage = readStore(USAGE_KEY) || {};
+  const explored = Object.keys(usage).some((k) => SKILL_KEYS.includes(k));
+  const steps = [
+    { emoji: "👤", label: "Set up your profile", hint: "Name, contact, location, bio.", done: !!state.user.name, go: "setup" },
+    { emoji: "🎭", label: "Pick a PersonaZ", hint: "Artist, Producer, Engineer, Designer…", done: state.personas.length > 0, go: "personas" },
+    { emoji: "🎵", label: "Post your first work", hint: "Audio, image, or lyrics.", done: state.examples.length > 0, go: "examples" },
+    { emoji: "🎓", label: "Explore a SkillZ app", hint: "Open any training app.", done: explored, go: "lessonz" },
+  ];
+  const done = steps.filter((s) => s.done).length;
+  return (
+    <div className="card">
+      <div className="card-header"><span>👋 Welcome to Music ConnectZ</span><span className="tag">{done}/{steps.length}</span></div>
+      <div className="ob-bar"><div className="ob-fill" style={{ width: `${(done / steps.length) * 100}%` }} /></div>
+      {steps.map((s, i) => (
+        <div key={i} className={`ob-step${s.done ? " done" : ""}`}>
+          <span className="ob-check">{s.done ? "✓" : s.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <div className="ob-label">{s.label}</div>
+            <div className="ob-hint">{s.hint}</div>
+          </div>
+          {!s.done && <button className="btn btn-small" onClick={() => onOpen(s.go)}>Do it →</button>}
+        </div>
+      ))}
+      {done === steps.length && <p style={{ fontSize: 12, color: "var(--success)", marginTop: 10 }}>🎉 You're all set — welcome aboard!</p>}
+      <button className="btn btn-secondary btn-small" style={{ marginTop: 12 }} onClick={() => update({ onboardDismissed: true })}>Dismiss onboarding</button>
+    </div>
+  );
+}
+
+const SPECZ_ITEMS = [
+  { id: "demographics", name: "Audience Demographics", emoji: "📊", price: 9.99, desc: "Age, region, and platform breakdown of a creator's audience." },
+  { id: "engagement", name: "Engagement Heatmap", emoji: "🔥", price: 7.99, desc: "When and how a creator's fans interact — your best post windows." },
+  { id: "genre-intel", name: "Genre Intelligence", emoji: "🎼", price: 6.99, desc: "Verified genre tags, sub-genre trends, and playlist fit." },
+  { id: "collab-score", name: "Collab Compatibility", emoji: "🤝", price: 4.99, desc: "Predictive score for how well two creators' audiences overlap." },
+  { id: "ugc-covers", name: "UGC: Cover Art Pack", emoji: "🖼️", price: 12.99, desc: "Licensed community cover-art bundle for your releases." },
+  { id: "trending", name: "Trending Metadata Report", emoji: "📈", price: 8.99, desc: "This week's rising tags, sounds, and metadata across the platform." },
+];
+
+function SpecZPage({ tier }) {
+  const { state, updateWallet, addTo } = useAppState();
+  const isStatz = /stat[sz]/i.test(tier || "");
+  if (!isStatz) {
+    return (
+      <div className="card">
+        <div className="card-header">✴️ SpecZ — StatZ Marketplace</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          🔒 SpecZ is a <strong>StatZ</strong>-only marketplace for purchasable user metadata &amp; UGC. Upgrade to StatZ to buy
+          audience analytics, engagement data, genre intelligence, and creator content packs.
+        </p>
+      </div>
+    );
+  }
+  const owned = state.speczOwned || [];
+  const buy = (item) => {
+    if (owned.includes(item.id)) return;
+    if (state.wallet.balance < item.price) return;
+    updateWallet({ balance: Number((state.wallet.balance - item.price).toFixed(2)) });
+    addTo("speczOwned", item.id);
+    addTo("paymentHistory", { amount: -item.price, at: Date.now(), note: `SpecZ: ${item.name}` });
+  };
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">✴️ SpecZ Marketplace</div>
+        <div className="balance-info">Purchase user metadata &amp; UGC with your wallet · Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong></div>
+      </div>
+      {SPECZ_ITEMS.map((item) => {
+        const have = owned.includes(item.id);
+        const canAfford = state.wallet.balance >= item.price;
+        return (
+          <div key={item.id} className="post-card">
+            <div className="post-user">{item.emoji} {item.name}</div>
+            <div className="post-content">{item.desc}</div>
+            <div className="post-actions">
+              {have ? (
+                <span className="tag" style={{ color: "var(--success)" }}>✓ Owned</span>
+              ) : (
+                <button className="btn btn-small" disabled={!canAfford} style={{ opacity: canAfford ? 1 : 0.5 }} onClick={() => buy(item)}>
+                  {canAfford ? `Buy $${item.price.toFixed(2)}` : `Need $${item.price.toFixed(2)} — add funds`}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 const FN_PAGES = {
+  onboardz: OnboardZPage,
   setup: SetupPage,
   personas: PersonasPage,
   examples: PostZPage,
   profile: ProfilePage,
   money: MoneyPage,
+  specz: SpecZPage,
   settings: SettingsPage,
 };
 
@@ -362,7 +457,9 @@ function Shell() {
   const { state, setTab, toggleLightDark } = useAppState();
   const { settings, wallet } = state;
 
-  const [view, setView] = useState(null); // null = launcher; else an fn app key
+  // Brand-new users land in the OnboardZ guided first session.
+  const isNewUser = !state.user.name && state.personas.length === 0 && state.examples.length === 0 && !state.onboardDismissed;
+  const [view, setView] = useState(isNewUser ? "onboardz" : null); // null = launcher; else an fn app key
   const [modalApp, setModalApp] = useState(null);
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
@@ -429,7 +526,7 @@ function Shell() {
             <>
               <button className="btn btn-secondary btn-small" onClick={goHome} style={{ marginBottom: 12 }}>‹ Home</button>
               <div className="card-header" style={{ borderBottom: "none" }}>{activeApp?.emoji} {activeApp?.name}</div>
-              <FnPage tier={tier} />
+              <FnPage tier={tier} onOpen={openApp} />
             </>
           ) : (
             CATALOG.map((group) => (

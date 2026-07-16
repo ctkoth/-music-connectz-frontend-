@@ -101,6 +101,7 @@ export const CATALOG = [
       { key: "labelz", name: "LabelZ", emoji: "🏷️", icon: "labelz.png", desc: "Essentially public groups. Requires Premium, A&R Scout, or Manager persona to create/edit. Gives advances with terms — record-label logic with e-signed contracts." },
       { key: "distributez", name: "DistributeZ", emoji: "🎶", icon: "distributez.png", desc: "Distribution submissions that fill metadata by media type: audio becomes the track, image the cover, text the lyrics. Free = 1/month; Premium & StatZ unlimited; StatZ can submit for licensing." },
       { key: "royaltiez", name: "RoyaltieZ", emoji: "👑", icon: "royaltiez.png", desc: "Current balance and logz, with every royalty source timestamped." },
+      { key: "specz", name: "SpecZ", emoji: "✴️", icon: "specz.png", desc: "The StatZ marketplace for purchasable user metadata & UGC — audience demographics, engagement analytics, genre intelligence, and creator content packs. StatZ only.", fn: true, statz: true },
     ],
   },
   {
@@ -116,6 +117,7 @@ export const CATALOG = [
   {
     label: "You",
     apps: [
+      { key: "onboardz", name: "OnboardZ", emoji: "👋", icon: "onboardz.jpg", desc: "Your guided first session — set up your profile, pick a persona, post your first work, and explore a SkillZ app. Auto-checks each step as you go.", fn: true },
       { key: "setup", name: "Setup", emoji: "⚙️", icon: "preferencez.png", desc: "Your profile basics — name, contact, location, bio, and picture.", fn: true },
       { key: "personas", name: "PersonaZ", emoji: "🎭", icon: "personaz.png", desc: "Pick your personas (Artist, Producer, Mix Engineer, Designer, Videographer, Manager, Ghostwriter, Developer) and add your skills.", fn: true },
       { key: "examples", name: "PostZ", emoji: "🎵", icon: "spinaz.png", desc: "Upload work examples — audio becomes the track, image the cover, text the lyrics — with genre, required skills, and privacy.", fn: true },

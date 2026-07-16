@@ -85,6 +85,8 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
+  "onboardz.jpg": "/icons/onboardz.jpg",
+  "specz.png": "/icons/specz.png",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",

@@ -140,6 +140,15 @@
 .mcz2-root .theme-option { padding: 12px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; text-align: center; font-weight: 700; font-size: 11px; color: #04121a; transition: all 0.2s; }
 .mcz2-root .theme-option:hover { transform: scale(1.05); }
 .mcz2-root .theme-option.active { border-color: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, 0.5); }
+/* OnboardZ guided first session */
+.mcz2-root .ob-bar { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin-bottom: 14px; }
+.mcz2-root .ob-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); box-shadow: var(--glow); transition: width 0.3s; }
+.mcz2-root .ob-step { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
+.mcz2-root .ob-step.done { opacity: 0.6; border-color: var(--success); }
+.mcz2-root .ob-check { width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); font-weight: 800; }
+.mcz2-root .ob-step.done .ob-check { color: var(--success); border-color: var(--success); }
+.mcz2-root .ob-label { font-weight: 700; font-size: 13px; }
+.mcz2-root .ob-hint { font-size: 11px; color: var(--text-light); }
 .mcz2-root .swatch-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
 .mcz2-root .swatch { aspect-ratio: 1; border-radius: 10px; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.15s; }
 .mcz2-root .swatch:hover { transform: scale(1.12); }
