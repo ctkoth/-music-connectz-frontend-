@@ -118,6 +118,7 @@ export const CUSTOM_ICONS = {
   "sonday.png": "/icons/sonday.png",
   "spinaz.png": "/icons/spinaz.png",
   "substancez.png": "/icons/substancez.png",
+  "toolz.png": "/icons/toolz.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
   "trump_toupee.png": "/icons/trump_toupee.png",
   "venuez.png": "/icons/venuez.png",
