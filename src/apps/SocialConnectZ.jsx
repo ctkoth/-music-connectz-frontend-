@@ -53,50 +53,50 @@ export default function SocialConnectZ() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center gap-4">
-        <IconImg icon="social_connectz.png" alt="Social ConnectZ" className="h-14 w-14 rounded-2xl shadow-neon" />
+      <header className="flex items-center gap-3">
+        <IconImg icon="social_connectz.png" alt="Social ConnectZ" className="h-11 w-11 rounded-xl" />
         <div>
-          <h2 className="font-display text-2xl font-extrabold text-mcz-pink">Social ConnectZ 💓</h2>
-          <p className="text-sm text-white/55">Discover creators — filter by NationalitieZ heritage.</p>
+          <h2 className="font-display text-xl font-extrabold">Social ConnectZ</h2>
+          <p className="text-xs text-white/45">Discover creators — filter by NationalitieZ heritage.</p>
         </div>
       </header>
 
       {/* Filters */}
-      <div className="neon-frame space-y-3 p-4">
-        <div className="flex items-center gap-2">
+      <div className="re-card space-y-3">
+        <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3">
           <Search size={16} className="text-white/40" />
-          <input className="neon-input py-2" placeholder="Search name, persona, city…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, city…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
-          <select className="neon-input py-2" value={nat} onChange={(e) => setNat(e.target.value)}>
+          <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
             <option value="">🌐 All NationalitieZ</option>
             {NATIONALITIES.map(([flag, name]) => (
               <option key={name} value={name}>{flag} {name}</option>
             ))}
           </select>
           {nat && (
-            <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" onClick={() => setNat("")}>Clear</button>
+            <button className="re-link shrink-0 px-2 text-xs" onClick={() => setNat("")}>Clear</button>
           )}
         </div>
-        <p className="text-[11px] text-white/40">{filtered.length} creator{filtered.length !== 1 ? "s" : ""} match</p>
+        <p className="re-label">{filtered.length} creator{filtered.length !== 1 ? "s" : ""} match</p>
       </div>
 
       {/* Results */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div key={m.user} className={`neon-frame p-4 ${m.self ? "!border-mcz-gold/50" : ""}`}>
+          <div key={m.user} className={`re-card ${m.self ? "!border-mcz-ember/40" : ""}`}>
             <div className="mb-2 flex items-center gap-3">
               <IconImg icon={m.icon || "personaz.png"} alt="" className="h-11 w-11 rounded-full object-cover" />
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">
-                  {m.user}{m.self && <span className="ml-2 text-[10px] text-mcz-gold">you</span>}
+                  {m.user}{m.self && <span className="ml-2 text-[10px] text-mcz-ember">you</span>}
                 </div>
                 <div className="text-[11px] text-white/50">{m.persona}</div>
               </div>
               {m.looking === "romance"
                 ? <span className="pill !border-mcz-pink/40 !text-mcz-pink"><Heart size={10} className="inline" /> Romance</span>
-                : <span className="pill !border-mcz-cyan/40 !text-mcz-cyan">Collab</span>}
+                : <span className="pill !border-mcz-ember/40 !text-mcz-ember">Collab</span>}
             </div>
             {m.location && (
               <div className="mb-2 flex items-center gap-1 text-[11px] text-white/45">

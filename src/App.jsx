@@ -303,8 +303,10 @@ function Home() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                  tab === t.key ? "bg-white/10 text-white shadow-neon" : "text-white/50 hover:bg-white/5"
+                className={`flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-3 py-2 text-xs font-semibold transition ${
+                  tab === t.key
+                    ? "border-mcz-ember bg-white/[0.06] text-white"
+                    : "border-transparent text-white/50 hover:bg-white/[0.04]"
                 }`}
               >
                 <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
