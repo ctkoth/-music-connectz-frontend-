@@ -242,11 +242,38 @@ function CommunityBar() {
 // scrollable tab bar, and a card-style content area. Rebuilt in the neon MCZ
 // theme with the new rainbow logo and the PostZ / Social ConnectZ / SpecZ /
 // NationalitieZ editions from the synthesized blueprints.
+// Corey-voice tab descriptions (blueprint Global Rule: "clicking the tab icon
+// opens a modal showing the Corey voice description with emoji").
+const TAB_ABOUT = {
+  postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
+  social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
+  profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
+  specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
+  mimez: "🤫 MimeZ — silent-performance training and practice drills.",
+  directz: "🎬 DirectZ — directing tools and guided sessions.",
+  lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
+  drumz: "🥁 DrumZ — drum training: technique, timing, rudiments, chops & fills.",
+  violinz: "🎻 ViolinZ — violin training: posture, bowing, intonation, repertoire.",
+  guitarz: "🎸 GuitarZ — guitar training: chords, strumming, riffs, lead.",
+  bassz: "🎸 BassZ — bass training: groove, fingerstyle, slap, locking in.",
+  singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
+  rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  keyz: "🎹 KeyZ — keyboard training: hands, chords, scales, reading.",
+  messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
+  collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
+  battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
+  labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
+  groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
+  bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
+};
+
 function Home() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState("postz");
+  const [infoKey, setInfoKey] = useState(null);
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
+  const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
   const today = new Date().toLocaleDateString();
 
   const go = (delta) => {
@@ -279,10 +306,10 @@ function Home() {
             </span>
           </button>
 
-          <div className="flex-1 text-center">
-            <div className="text-[11px] font-semibold text-white/70">🎵 {active?.label}</div>
+          <button className="flex-1 text-center" onClick={() => setInfoKey(tab)} title="What is this tab?">
+            <div className="text-[11px] font-semibold text-white/70">🎵 {active?.label} <span className="text-white/30">ⓘ</span></div>
             <div className="text-[9px] text-white/35">{today}</div>
-          </div>
+          </button>
 
           <button
             onClick={() => setTab("profilez")}
@@ -302,11 +329,14 @@ function Home() {
             {TABS.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-3 py-2 text-xs font-semibold transition ${
+                // Blueprint Global Rule: clicking a tab selects it; clicking the
+                // tab you're already on opens its Corey-voice description modal.
+                onClick={() => (tab === t.key ? setInfoKey(t.key) : setTab(t.key))}
+                title={tab === t.key ? "About this tab" : t.label}
+                className={`flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-3 py-2 text-xs font-semibold transition hover:text-white hover:shadow-neon ${
                   tab === t.key
-                    ? "border-mcz-ember bg-white/[0.06] text-white"
-                    : "border-transparent text-white/50 hover:bg-white/[0.04]"
+                    ? "border-mcz-ember bg-white/[0.06] text-white shadow-neon"
+                    : "border-transparent text-white/50 hover:bg-white/[0.06]"
                 }`}
               >
                 <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
@@ -324,6 +354,28 @@ function Home() {
         <CommunityBar />
         {active?.el}
       </main>
+
+      {/* Tab description modal — opened by clicking the active tab / its icon. */}
+      {infoTab && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setInfoKey(null)}
+        >
+          <div
+            className="neon-frame w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <IconImg icon={infoTab.icon} alt="" className="h-14 w-14 rounded-2xl shadow-neon" />
+              <h3 className="font-display text-2xl font-extrabold">{infoTab.label}</h3>
+            </div>
+            <p className="text-sm leading-relaxed text-white/75">
+              {TAB_ABOUT[infoTab.key] || "A Music ConnectZ app."}
+            </p>
+            <button className="re-btn mt-5" onClick={() => setInfoKey(null)}>Got it</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
