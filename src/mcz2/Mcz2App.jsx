@@ -52,11 +52,13 @@ const readStore = (k) => {
 const writeStore = (k, v) => {
   try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ }
 };
+// PickConnectZ pin allowance (blueprint): Free pins 2, the rest AI-populated;
+// Premium and StatZ pin unlimited.
 function tierInfo(tier) {
   const t = (tier || "").toLowerCase();
   if (t.includes("statz") || t.includes("stats")) return { label: "StatZ", limit: Infinity };
-  if (t.includes("premium") || t.includes("pro")) return { label: "Premium", limit: 5 };
-  return { label: "Free", limit: 1 };
+  if (t.includes("premium") || t.includes("pro")) return { label: "Premium", limit: Infinity };
+  return { label: "Free", limit: 2 };
 }
 
 const TOP_APPS = CATALOG.flatMap((g) => g.apps);
