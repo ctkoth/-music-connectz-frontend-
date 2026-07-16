@@ -14,6 +14,7 @@ const DEFAULT_STATE = {
   currentTab: "setup",
   settings: {
     theme: "neon-cyan",
+    accent: "#22e6ff", // tab-highlight glow color (premium/statz customizable)
     lightDark: "dark",
     notifications: true,
     collabAlerts: true,
@@ -45,9 +46,10 @@ function loadState() {
   }
 }
 
-// The wrapper's data-theme: dark mode wins; otherwise the chosen accent theme.
+// data-theme now only controls panel depth (dark vs light); the accent glow
+// color is applied separately as a CSS variable.
 export function dataThemeFor(settings) {
-  return settings.lightDark === "dark" ? "dark" : settings.theme;
+  return settings.lightDark === "light" ? "light" : "dark";
 }
 
 const AppStateContext = createContext(null);

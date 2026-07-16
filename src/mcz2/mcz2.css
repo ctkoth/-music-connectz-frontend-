@@ -140,6 +140,10 @@
 .mcz2-root .theme-option { padding: 12px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; text-align: center; font-weight: 700; font-size: 11px; color: #04121a; transition: all 0.2s; }
 .mcz2-root .theme-option:hover { transform: scale(1.05); }
 .mcz2-root .theme-option.active { border-color: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, 0.5); }
+.mcz2-root .swatch-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.mcz2-root .swatch { aspect-ratio: 1; border-radius: 10px; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.15s; }
+.mcz2-root .swatch:hover { transform: scale(1.12); }
+.mcz2-root .swatch.active { border-color: #fff; transform: scale(1.12); }
 .mcz2-root .settings-toggle { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; }
 .mcz2-root .settings-toggle label { flex: 1; font-weight: 600; font-size: 12px; margin: 0; }
 .mcz2-root .toggle-switch { width: 42px; height: 24px; background: rgba(255, 255, 255, 0.15); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }

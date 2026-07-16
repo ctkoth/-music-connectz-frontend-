@@ -4,18 +4,8 @@ import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
 import { CATALOG, APPS_BY_KEY } from "./catalog.js";
+import { accentStyle, accentOptionsFor } from "./colors.js";
 import "./mcz2.css";
-
-const THEMES = [
-  { id: "neon-cyan", label: "Cyan", color: "#22e6ff" },
-  { id: "neon-pink", label: "Pink", color: "#ff2bd1" },
-  { id: "neon-purple", label: "Purple", color: "#a855f7" },
-  { id: "neon-gold", label: "Gold", color: "#ffcf3f" },
-  { id: "neon-green", label: "Green", color: "#4ade80" },
-  { id: "neon-orange", label: "Orange", color: "#fb923c" },
-  { id: "neon-red", label: "Red", color: "#f43f5e" },
-  { id: "neon-blue", label: "Blue", color: "#4da6ff" },
-];
 
 const SETTING_TOGGLES = [
   { key: "notifications", label: "🔔 Push Notifications" },
@@ -211,23 +201,36 @@ function MoneyPage() {
   );
 }
 
-function SettingsPage() {
-  const { state, setTheme, toggleSetting } = useAppState();
+function SettingsPage({ tier }) {
+  const { state, updateSettings, toggleSetting } = useAppState();
   const { settings } = state;
+  const { tier: tierLabel, colors, locked } = accentOptionsFor(tier);
   return (
     <>
       <div className="card">
-        <div className="card-header">🎨 Neon Themes</div>
-        <div className="theme-grid">
-          {THEMES.map((t) => (
-            <div key={t.id} onClick={() => setTheme(t.id)}
-              className={`theme-option${settings.theme === t.id ? " active" : ""}`}
-              style={{ background: t.color }}>
-              {t.label}
-            </div>
-          ))}
+        <div className="card-header">
+          <span>🎨 Tab Highlight Glow</span>
+          <span className="tag">{tierLabel} · {locked ? "locked" : `${colors.length} colors`}</span>
         </div>
-        <p style={{ fontSize: 11, color: "var(--text-light)" }}>Toggle 🌙 / ☀️ in the header for panel depth.</p>
+        {locked ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+            🔒 Glow color customization is a <strong>Premium</strong> perk — 8 colors on Premium, 32 on StatZ.
+            Upgrade to recolor your tab highlight.
+          </p>
+        ) : (
+          <>
+            <div className="swatch-grid">
+              {colors.map((c) => (
+                <button key={c} onClick={() => updateSettings({ accent: c })}
+                  className={`swatch${settings.accent === c ? " active" : ""}`}
+                  style={{ background: c, boxShadow: `0 0 10px ${c}` }} title={c} aria-label={c} />
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 10 }}>
+              {tierLabel} unlocks {colors.length} glow colors. Toggle 🌙 / ☀️ in the header for panel depth.
+            </p>
+          </>
+        )}
       </div>
       <div className="card">
         <div className="card-header">🔔 Preferences</div>
@@ -400,7 +403,7 @@ function Shell() {
   const balance = Number(wallet.balance || 0).toFixed(2);
 
   return (
-    <div className="mcz2-root" data-theme={dataThemeFor(settings)}>
+    <div className="mcz2-root" data-theme={dataThemeFor(settings)} style={accentStyle(settings.accent)}>
       <div className="container">
         <div className="header">
           <button className="dock-brand" onClick={goHome} title="Home">
@@ -426,7 +429,7 @@ function Shell() {
             <>
               <button className="btn btn-secondary btn-small" onClick={goHome} style={{ marginBottom: 12 }}>‹ Home</button>
               <div className="card-header" style={{ borderBottom: "none" }}>{activeApp?.emoji} {activeApp?.name}</div>
-              <FnPage />
+              <FnPage tier={tier} />
             </>
           ) : (
             CATALOG.map((group) => (
