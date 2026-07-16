@@ -46,6 +46,35 @@ body {
   .pill {
     @apply rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/70;
   }
+
+  /* RepostExchange-inspired layer: flat surfaces, one orange accent,
+     uppercase section labels, honest microcopy. Simplicity + transparency. */
+  .re-card {
+    @apply rounded-xl border border-white/[0.06] bg-white/[0.03] p-4;
+  }
+  .re-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40;
+  }
+  .re-btn {
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl bg-mcz-ember
+           px-4 py-3 text-sm font-bold text-white transition
+           hover:brightness-110 active:scale-[0.99];
+  }
+  .re-link {
+    @apply font-semibold text-mcz-ember transition hover:brightness-125;
+  }
+  .re-badge {
+    @apply rounded-md bg-mcz-ember px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+  }
+  /* 1–10 rating block, dim by default, ember when active/hovered. */
+  .re-scale {
+    @apply flex h-11 flex-1 items-center justify-center rounded-md bg-white/[0.06]
+           text-sm font-bold text-white/70 transition
+           hover:bg-mcz-ember hover:text-white;
+  }
+  .re-scale-on {
+    @apply bg-mcz-ember text-white;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

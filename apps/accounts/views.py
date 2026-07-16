@@ -95,11 +95,14 @@ class MeView(APIView):
     @staticmethod
     def _payload(user):
         data = PublicUserSerializer(user).data
-        prof = getattr(user, "profile", None)
+        # Re-fetch the profile so a PATCH in the same request reflects the saved
+        # row (the reverse `user.profile` may be cached with pre-save values).
+        prof = Profile.objects.filter(user=user).first()
         if prof:
             data.update({
                 "energy": prof.energy, "spinaz": prof.spinaz, "tier": prof.tier,
                 "zodiac": prof.zodiac, "birthday": prof.birthday, "personas": prof.personas,
+                "nationalities": prof.nationalities,
             })
         return data
 
@@ -118,6 +121,14 @@ class MeView(APIView):
                        "indieartist","manager","mime","mixengineer","producer","videographer"}
             personas = [p for p in (data["personas"] or []) if p in allowed]
             prof.personas = personas[:11]
+        if "nationalities" in data:
+            from .models import ALLOWED_NATIONALITIES_SET
+            nats, seen = [], set()
+            for n in (data["nationalities"] or []):
+                if n in ALLOWED_NATIONALITIES_SET and n not in seen:
+                    seen.add(n)
+                    nats.append(n)
+            prof.nationalities = nats[:10]
         prof.save()
         return Response(self._payload(request.user))
 

@@ -59,6 +59,9 @@ INSTALLED_APPS = [
     "apps.rapz",
     "apps.groupz",
     "apps.bugz",
+    "apps.postz",
+    "apps.social",
+    "apps.specz",
 ]
 
 MIDDLEWARE = [

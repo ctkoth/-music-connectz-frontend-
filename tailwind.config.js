@@ -11,6 +11,10 @@ export default {
           cyan: "#22e6ff",
           purple: "#a855f7",
           gold: "#ffcf3f",
+          // RepostExchange-inspired flat surfaces + single orange accent.
+          ember: "#ff5500",
+          ink: "#141414",
+          card: "#1e1e1e",
         },
       },
       boxShadow: {
