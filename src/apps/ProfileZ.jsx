@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Save, Star, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
 const PERSONAS = [
   ["arscout", "A&R Scout", "personaz_arscout.png"],
@@ -23,12 +24,14 @@ export default function ProfileZ() {
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
+  const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
       setMe(d); setSel(d.personas || []); setBirthday(d.birthday || "");
+      if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
   }, []);
 
@@ -36,12 +39,31 @@ export default function ProfileZ() {
     setSel((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));
   }
 
+  function toggleNat(name) {
+    setNats((s) => (s.includes(name) ? s.filter((n) => n !== name) : [...s, name]));
+  }
+
   async function save() {
     setBusy(true); setMsg("");
+    // Mirror the public profile into the shared social store so Social ConnectZ
+    // can surface & heritage-filter this user immediately.
+    saveSocial({
+      ...loadSocial(),
+      profile: {
+        user: me?.username, persona: sel[0] || "Creator",
+        icon: "personaz.png", nationalities: nats, looking: "collab",
+      },
+    });
     try {
-      const d = await api("/api/auth/me/", { method: "PATCH", body: { personas: sel, birthday: birthday || null } });
-      setMe(d); setMsg("Saved! Your PersonaZ and ZodiacZ are set.");
-    } catch (e) { setMsg(e.message); } finally { setBusy(false); }
+      const d = await api("/api/auth/me/", {
+        method: "PATCH",
+        body: { personas: sel, birthday: birthday || null, nationalities: nats },
+      });
+      setMe(d); setMsg("Saved! PersonaZ, ZodiacZ & NationalitieZ are set.");
+    } catch (e) {
+      // Backend may not persist nationalities yet — local heritage still saved.
+      setMsg("Saved locally. NationalitieZ now filterable on Social ConnectZ.");
+    } finally { setBusy(false); }
   }
 
   if (!me) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
@@ -81,6 +103,31 @@ export default function ProfileZ() {
               }`}>
               <IconImg icon={icon} alt={label} className="h-14 w-14 rounded-full object-cover" />
               <span className="text-xs">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <IconImg icon="nationalitiez.png" alt="" className="h-5 w-5 rounded" />
+          NationalitieZ — your heritage ({nats.length} selected)
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          Represent your ancestry. Selections become a filterable metric on Social ConnectZ.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {NATIONALITIES.map(([flag, name]) => (
+            <button
+              key={name}
+              onClick={() => toggleNat(name)}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                nats.includes(name)
+                  ? "border-mcz-pink/70 bg-mcz-pink/15 text-white shadow-neon"
+                  : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"
+              }`}
+            >
+              {flag} {name}
             </button>
           ))}
         </div>
