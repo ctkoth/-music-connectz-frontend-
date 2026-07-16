@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { Loader2, LogOut } from "lucide-react";
+import { ChevronLeft, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
 import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
@@ -253,12 +253,16 @@ function CommunityBar() {
 
 function Home() {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState("mimez");
+  const [tab, setTab] = useState(null); // null = launcher home screen
   const active = TABS.find((t) => t.key === tab);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-      <div className="mb-5 flex items-center gap-3">
+      {/* Logo doubles as a home button back to the launcher */}
+      <button
+        onClick={() => setTab(null)}
+        className="mb-5 flex items-center gap-3 text-left transition hover:opacity-90"
+      >
         <img
           src="/mcz-logo-v4.png"
           alt="Music ConnectZ"
@@ -267,7 +271,7 @@ function Home() {
         <span className="font-display text-xl font-extrabold tracking-tight">
           Music ConnectZ
         </span>
-      </div>
+      </button>
 
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-white/55">
@@ -278,34 +282,57 @@ function Home() {
         </button>
       </div>
 
-      <CommunityBar />
-
-      {/* Grouped tab launcher */}
-      <div className="neon-frame mb-6 space-y-4 p-4">
-        {TAB_GROUPS.map((group) => (
-          <div key={group.label}>
-            <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-widest text-white/35">
-              {group.label}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {group.tabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                    tab === t.key ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/5"
-                  }`}
-                >
-                  <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
-                  {t.label}
-                </button>
-              ))}
+      {active ? (
+        <>
+          {/* App view — back bar + title, then the app itself */}
+          <div className="mb-5 flex items-center gap-3">
+            <button
+              onClick={() => setTab(null)}
+              className="neon-btn-ghost !w-auto px-3 py-2 text-xs"
+            >
+              <ChevronLeft size={14} /> Home
+            </button>
+            <div className="flex items-center gap-2">
+              <IconImg icon={active.icon} alt="" className="h-6 w-6 rounded-lg" />
+              <span className="font-display text-lg font-bold tracking-tight">
+                {active.label}
+              </span>
             </div>
           </div>
-        ))}
-      </div>
+          {active.el}
+        </>
+      ) : (
+        <>
+          <CommunityBar />
 
-      {active?.el}
+          {/* Icon-grid launcher — grouped app tiles, phone home-screen style */}
+          <div className="space-y-6">
+            {TAB_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-3 text-[0.7rem] font-semibold uppercase tracking-widest text-white/35">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-4 gap-x-3 gap-y-4 sm:grid-cols-5">
+                  {group.tabs.map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className="group flex flex-col items-center gap-2 rounded-2xl p-1 transition"
+                    >
+                      <span className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition group-hover:-translate-y-0.5 group-hover:border-white/25 group-hover:shadow-neon">
+                        <IconImg icon={t.icon} alt="" className="h-full w-full object-cover" />
+                      </span>
+                      <span className="text-center text-xs font-semibold text-white/60 transition group-hover:text-white">
+                        {t.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
