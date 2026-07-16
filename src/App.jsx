@@ -144,39 +144,64 @@ export function IconImg({ icon, alt = "", className = "" }) {
   );
 }
 
-const TABS = [
-  { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
-  { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
-  { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
-  { key: "drumz", label: "DrumZ", icon: "drumz.png",
-    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#4da6ff"
-        tagline="Drum training — technique, timing, rudiments, chops & fills." /> },
-  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
-    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#c084fc"
-        tagline="Violin training — posture, bowing, intonation, repertoire." /> },
-  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
-    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#4ade80"
-        tagline="Guitar training — chords, strumming, riffs, lead." /> },
-  { key: "bassz", label: "BassZ", icon: "bassz.png",
-    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#fb923c"
-        tagline="Bass training — groove, fingerstyle, slap, locking in." /> },
-  { key: "singz", label: "SingZ", icon: "singz.png",
-    el: <InstrumentZ appKey="singz" icon="singz.png" title="SingZ" accent="#f472b6"
-        tagline="Vocal training game — range detection, quests, Boss SongZ, voice health first." /> },
-  { key: "rapz", label: "RapZ", icon: "rapz.png",
-    el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
-        tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
-  { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
-  { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
-  { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
-  { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
-  { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
-  { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
-  { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
-  { key: "keyz", label: "KeyZ", icon: "keyz.png",
-    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#22e6ff"
-        tagline="Keyboard training — hands, chords, scales, reading." /> },
+// Tabs organized into labeled sections so the nav reads as a small app
+// launcher instead of one long crowded row. Each group keeps its members
+// together; TABS below is the flattened list used for active-tab lookup.
+const TAB_GROUPS = [
+  {
+    label: "Train",
+    tabs: [
+      { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
+      { key: "drumz", label: "DrumZ", icon: "drumz.png",
+        el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#4da6ff"
+            tagline="Drum training — technique, timing, rudiments, chops & fills." /> },
+      { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+        el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#c084fc"
+            tagline="Violin training — posture, bowing, intonation, repertoire." /> },
+      { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+        el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#4ade80"
+            tagline="Guitar training — chords, strumming, riffs, lead." /> },
+      { key: "bassz", label: "BassZ", icon: "bassz.png",
+        el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#fb923c"
+            tagline="Bass training — groove, fingerstyle, slap, locking in." /> },
+      { key: "keyz", label: "KeyZ", icon: "keyz.png",
+        el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#22e6ff"
+            tagline="Keyboard training — hands, chords, scales, reading." /> },
+      { key: "singz", label: "SingZ", icon: "singz.png",
+        el: <InstrumentZ appKey="singz" icon="singz.png" title="SingZ" accent="#f472b6"
+            tagline="Vocal training game — range detection, quests, Boss SongZ, voice health first." /> },
+      { key: "rapz", label: "RapZ", icon: "rapz.png",
+        el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
+            tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+    ],
+  },
+  {
+    label: "Create",
+    tabs: [
+      { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
+      { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
+      { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
+      { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
+    ],
+  },
+  {
+    label: "Community",
+    tabs: [
+      { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
+      { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
+      { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
+      { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
+    ],
+  },
+  {
+    label: "System",
+    tabs: [
+      { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+    ],
+  },
 ];
+
+const TABS = TAB_GROUPS.flatMap((g) => g.tabs);
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -255,19 +280,28 @@ function Home() {
 
       <CommunityBar />
 
-      {/* Tab bar */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              tab === t.key ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/5"
-            }`}
-          >
-            <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
-            {t.label}
-          </button>
+      {/* Grouped tab launcher */}
+      <div className="neon-frame mb-6 space-y-4 p-4">
+        {TAB_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-widest text-white/35">
+              {group.label}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {group.tabs.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    tab === t.key ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/5"
+                  }`}
+                >
+                  <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
