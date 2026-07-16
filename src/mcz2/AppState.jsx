@@ -12,6 +12,7 @@ const DEFAULT_STATE = {
   wallet: { balance: 0, earned: 0 },
   paymentHistory: [],
   speczOwned: [],
+  groups: [],
   onboardDismissed: false,
   currentTab: "setup",
   settings: {

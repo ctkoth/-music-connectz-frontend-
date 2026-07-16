@@ -541,8 +541,108 @@ function SocialConnectZPage() {
   );
 }
 
+const GROUP_BUILTIN = [
+  { name: "Friends", icon: "groupz_friendz.png", note: "Mutually beneficial" },
+  { name: "Fans", icon: "groupz_fanz.png", note: "Less beneficial" },
+  { name: "Partners", icon: "groupz.png", note: "Work with frequently" },
+  { name: "Blocked", icon: "groupz_blocked.png", note: "Cannot contact you" },
+];
+const VISIBILITIES = [
+  { id: "public", icon: "vis_public.png", label: "Public" },
+  { id: "private", icon: "vis_private.png", label: "Private" },
+  { id: "group", icon: "vis_group.png", label: "Group-only" },
+  { id: "restricted", icon: "vis_restricted.png", label: "Restricted" },
+];
+const GROUP_ICON_CHOICES = ["groupz_custom.png", "groupz_friendz.png", "groupz_fanz.png", "groupz_blocked.png", "groupz.png", "crewz.png", "personaz.png", "collabz.png", "battlez.png", "labelz.png", "spinaz.png", "witchcraft.png"];
+function groupLimitFor(tier) {
+  const t = (tier || "").toLowerCase();
+  if (t.includes("statz") || t.includes("stats")) return 20;
+  if (t.includes("premium") || t.includes("pro")) return 5;
+  return 1;
+}
+
+function GroupZPage({ tier }) {
+  const { state, addTo, removeFrom, setList } = useAppState();
+  const groups = state.groups || [];
+  const limit = groupLimitFor(tier);
+  const canCustomIcon = /premium|pro|stat[sz]/i.test(tier || "");
+  const atLimit = groups.length >= limit;
+  const update = (i, patch) => setList("groups", groups.map((g, idx) => (idx === i ? { ...g, ...patch } : g)));
+  const create = () => { if (!atLimit) addTo("groups", { id: Date.now(), name: "New Group", icon: "groupz_custom.png", visibility: "group" }); };
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">👥 Built-in Groups</div>
+        <div className="grid-2">
+          {GROUP_BUILTIN.map((g) => (
+            <div key={g.name} className="modal-sub-row">
+              <IconImg icon={g.icon} alt={g.name} />
+              <div><div className="s-name">{g.name}</div><div className="s-desc">{g.note}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <span>✏️ Your Custom Groups</span>
+          <span className="tag">{groups.length}/{limit === 20 ? "20" : limit}</span>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
+          {groupLimitFor(tier) === 20 ? "StatZ" : groupLimitFor(tier) === 5 ? "Premium" : "Free"} tier —
+          {" "}{limit} renamable custom group{limit === 1 ? "" : "s"}.
+          {!canCustomIcon && " Premium+ can also set custom group icons."}
+        </p>
+
+        {groups.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No custom groups yet.</p>}
+
+        {groups.map((g, i) => (
+          <div key={g.id} className="card" style={{ background: "var(--surface-2)" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+              <span className="grp-thumb"><IconImg icon={g.icon} alt="" /></span>
+              <input value={g.name} onChange={(e) => update(i, { name: e.target.value })} style={{ flex: 1 }} />
+              <button className="btn btn-danger btn-small" onClick={() => removeFrom("groups", i)}>✕</button>
+            </div>
+
+            <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>Visibility</label>
+            <div className="chip-wrap" style={{ marginBottom: 10 }}>
+              {VISIBILITIES.map((v) => (
+                <button key={v.id} onClick={() => update(i, { visibility: v.id })}
+                  className={`vis-btn${g.visibility === v.id ? " sel" : ""}`} title={v.label}>
+                  <IconImg icon={v.icon} alt={v.label} /> <span>{v.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>
+              Icon {canCustomIcon ? "" : "🔒 (Premium+)"}
+            </label>
+            {canCustomIcon ? (
+              <div className="pin-grid">
+                {GROUP_ICON_CHOICES.map((ic) => (
+                  <div key={ic} className={`pin-cell${g.icon === ic ? " pinned" : ""}`} onClick={() => update(i, { icon: ic })}>
+                    <IconImg icon={ic} alt="" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 11, color: "var(--text-light)" }}>Upgrade to Premium to choose a custom group icon.</p>
+            )}
+          </div>
+        ))}
+
+        <button className="btn" style={{ width: "100%", marginTop: 6 }} disabled={atLimit} onClick={create}>
+          {atLimit ? `Limit reached (${limit}) — upgrade for more` : "➕ Create custom group"}
+        </button>
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
+  groupz: GroupZPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,

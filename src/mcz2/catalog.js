@@ -86,7 +86,8 @@ export const CATALOG = [
       },
       {
         key: "groupz", name: "GroupZ", emoji: "👥", icon: "groupz.png",
-        desc: "Combine other users into editable groups: Friends (mutual benefits), Fans, Partners (frequent collaborators), Blocked (cannot contact you), or Custom.",
+        desc: "Combine other users into editable groups: Friends (mutual benefits), Fans, Partners (frequent collaborators), Blocked (cannot contact you), or Custom. Create renamable custom groups (free 1 / premium 5 / statz 20) with per-group visibility.",
+        fn: true,
         children: [
           { name: "Friends", emoji: "🙂", icon: "groupz_friendz.png", desc: "Mutual benefits." },
           { name: "Fans", emoji: "👋🏽", icon: "groupz_fanz.png", desc: "Followers you have less need to manage." },
