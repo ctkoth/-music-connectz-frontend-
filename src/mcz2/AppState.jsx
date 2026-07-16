@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const STORE_KEY = "musicConnectZState";
 
 const DEFAULT_STATE = {
-  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null },
+  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
   personas: [],
   examples: [],
   collabs: [],
