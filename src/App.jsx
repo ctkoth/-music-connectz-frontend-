@@ -25,6 +25,17 @@ import Mcz2App from "./mcz2/Mcz2App.jsx";
 // fall back to the MCZ logo via <IconImg> until dropped into /public/icons/.
 export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
+  "gamez.png": "/icons/gamez.png",
+  "analytics.png": "/icons/analytics.png",
+  "parcel.png": "/icons/parcel.png",
+  "builder.png": "/icons/builder.png",
+  "filez.png": "/icons/filez.png",
+  "moodz.png": "/icons/moodz.png",
+  "logz.png": "/icons/logz.png",
+  "tellz.png": "/icons/tellz.png",
+  "videoz.png": "/icons/videoz.png",
+  "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
+  "imageconnectz.png": "/icons/imageconnectz.png",
   "azrael.png": "/icons/azrael.png",
   "background.png": "/icons/background.png",
   "battlez.png": "/icons/battlez.png",
