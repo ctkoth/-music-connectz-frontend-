@@ -7,6 +7,7 @@ import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
+import { SIGNS, zodiacFor } from "./zodiac.js";
 import "./mcz2.css";
 
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
@@ -179,7 +180,9 @@ function ProfilePage() {
           {(u.name || "?").charAt(0).toUpperCase()}
         </div>
         <div style={{ fontWeight: 800, fontSize: 15 }}>{u.name || "Not set"}</div>
-        <div style={{ fontSize: 11, color: "var(--text-light)" }}>{[u.location, u.gender].filter(Boolean).join(" · ")}</div>
+        <div style={{ fontSize: 11, color: "var(--text-light)" }}>
+          {[u.location, u.gender, zodiacFor(u.birthday) && `${zodiacFor(u.birthday).emoji} ${zodiacFor(u.birthday).name}`].filter(Boolean).join(" · ")}
+        </div>
       </div>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio"}</div></div>
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
@@ -475,24 +478,26 @@ function PreferenceZPage() {
 
 // Demo roster so the filterable metrics are visibly working in Social ConnectZ.
 const DEMO_MEMBERS = [
-  { name: "Kaya", gender: "female", region: "Africa", country: "Nigeria", sober: true, lookingFor: "collab" },
-  { name: "Diego", gender: "male", region: "South America", country: "Colombia", sober: false, lookingFor: "romance" },
-  { name: "Mei", gender: "female", region: "Asia", country: "Japan", sober: true, lookingFor: "collab" },
-  { name: "Luka", gender: "male", region: "Europe", country: "Croatia", sober: false, lookingFor: "collab" },
-  { name: "Amara", gender: "neutral", region: "Africa", country: "Ghana", sober: true, lookingFor: "romance" },
-  { name: "Sam", gender: "male", region: "North America", country: "United States", sober: false, lookingFor: "collab" },
+  { name: "Kaya", gender: "female", region: "Africa", country: "Nigeria", sober: true, lookingFor: "collab", sign: "Leo" },
+  { name: "Diego", gender: "male", region: "South America", country: "Colombia", sober: false, lookingFor: "romance", sign: "Scorpio" },
+  { name: "Mei", gender: "female", region: "Asia", country: "Japan", sober: true, lookingFor: "collab", sign: "Virgo" },
+  { name: "Luka", gender: "male", region: "Europe", country: "Croatia", sober: false, lookingFor: "collab", sign: "Aries" },
+  { name: "Amara", gender: "neutral", region: "Africa", country: "Ghana", sober: true, lookingFor: "romance", sign: "Pisces" },
+  { name: "Sam", gender: "male", region: "North America", country: "United States", sober: false, lookingFor: "collab", sign: "Gemini" },
 ];
 
 function SocialConnectZPage() {
   const { state } = useAppState();
   const [region, setRegion] = useState("");
   const [gender, setGender] = useState("");
+  const [sign, setSign] = useState("");
   const [soberOnly, setSoberOnly] = useState(false);
   const pref = state.user.preferences || {};
 
   const filtered = DEMO_MEMBERS.filter((m) =>
     (!region || m.region === region) &&
     (!gender || m.gender === gender) &&
+    (!sign || m.sign === sign) &&
     (!soberOnly || m.sober),
   );
 
@@ -520,6 +525,12 @@ function SocialConnectZPage() {
             {PARTNER_GENDERS.map((g) => <option key={g.id} value={g.id}>{g.emoji} {g.label}</option>)}
           </select>
         </div>
+        <div className="form-group"><label>♌ ZodiacZ (sign)</label>
+          <select value={sign} onChange={(e) => setSign(e.target.value)}>
+            <option value="">Any sign</option>
+            {SIGNS.map((s) => <option key={s.name} value={s.name}>{s.emoji} {s.name}</option>)}
+          </select>
+        </div>
         <div className="settings-toggle">
           <label>🧠 SubstanceZ — sober-friendly only</label>
           <div role="switch" aria-checked={soberOnly} onClick={() => setSoberOnly((v) => !v)} className={`toggle-switch${soberOnly ? " active" : ""}`} />
@@ -533,7 +544,7 @@ function SocialConnectZPage() {
         ) : filtered.map((m) => (
           <div key={m.name} className="post-card">
             <div className="post-user">{m.name} · {PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji}</div>
-            <div className="post-meta">🌐 {m.country} · {m.sober ? "🟢 sober" : "🍺 social"} · looking for {m.lookingFor}</div>
+            <div className="post-meta">🌐 {m.country} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"} · looking for {m.lookingFor}</div>
           </div>
         ))}
         <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
@@ -814,10 +825,44 @@ function BodieZPage({ tier }) {
   );
 }
 
+function ZodiacZPage() {
+  const { state } = useAppState();
+  const sign = zodiacFor(state.user.birthday);
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">♌ Your Sign</div>
+        {sign ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+              <span style={{ fontSize: 40 }}>{sign.emoji}</span>
+              <div><div style={{ fontWeight: 800, fontSize: 18 }}>{sign.name}</div>
+                <div style={{ fontSize: 11, color: "var(--text-light)" }}>Auto-detected from your birthday</div></div>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--text-light)", lineHeight: 1.5 }}>{sign.desc}</p>
+          </>
+        ) : (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>Set your birthday in <strong>Setup</strong> to auto-detect your sign.</p>
+        )}
+      </div>
+      <div className="card">
+        <div className="card-header">✨ All 12 Signs</div>
+        {SIGNS.map((s) => (
+          <div key={s.name} className="modal-sub-row" style={sign?.name === s.name ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
+            <span style={{ fontSize: 26, width: 40, textAlign: "center" }}>{s.emoji}</span>
+            <div><div className="s-name">{s.name}</div><div className="s-desc">{s.desc}</div></div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
   bodiez: BodieZPage,
+  zodiacz: ZodiacZPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,
