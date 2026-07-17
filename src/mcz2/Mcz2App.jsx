@@ -115,6 +115,7 @@ const PERSONA_CHOICES = [
   { name: "Designer", emoji: "🎨", icon: "personaz_designer.png" },
   { name: "Videographer", emoji: "🎬", icon: "personaz_videographer.png" },
   { name: "Manager", emoji: "🕴🏼", icon: "personaz_manager.png" },
+  { name: "A&R Scout", emoji: "🔎", icon: "personaz_arscout.png" },
   { name: "Ghostwriter", emoji: "👻", icon: "personaz_ghostwriter.png" },
   { name: "Developer", emoji: "👾", icon: "personaz_developer.png" },
 ];
@@ -1189,6 +1190,117 @@ function MessageZPage() {
   );
 }
 
+function LabelZPage({ tier }) {
+  const { state, addTo, updateSettings } = useAppState();
+  const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
+  const hasLabelPersona = (state.personas || []).some((p) => /manager|a&r|scout/i.test(p.name));
+  const canCreate = isPremium || hasLabelPersona;
+  const [form, setForm] = useState({ artist: "", advance: "", royalty: "", terms: "" });
+  const [sign, setSign] = useState("");
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const contracts = state.labelContracts || [];
+  const submit = () => {
+    if (!canCreate || !form.artist.trim() || !sign.trim()) return;
+    addTo("labelContracts", { id: Date.now(), ...form, advance: Number(form.advance) || 0, royalty: Number(form.royalty) || 0, signedBy: sign.trim(), at: Date.now() });
+    setForm({ artist: "", advance: "", royalty: "", terms: "" }); setSign("");
+  };
+  if (!canCreate) {
+    return (
+      <div className="card">
+        <div className="card-header">🏷️ LabelZ</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          🔒 Creating a label requires <strong>Premium</strong>, or an <strong>A&amp;R Scout</strong> / <strong>Manager</strong> persona. Add one in PersonaZ, or upgrade.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">🏷️ New Signing — Advance Offer</div>
+        <div className="form-group"><label>Artist</label><input value={form.artist} onChange={set("artist")} placeholder="Who are you signing?" /></div>
+        <div className="grid-2">
+          <div className="form-group"><label>💵 Advance ($)</label><input type="number" value={form.advance} onChange={set("advance")} /></div>
+          <div className="form-group"><label>👑 Artist royalty (%)</label><input type="number" value={form.royalty} onChange={set("royalty")} /></div>
+        </div>
+        <div className="form-group"><label>Terms</label><textarea value={form.terms} onChange={set("terms")} style={{ height: 56 }} placeholder="Deliverables, length, recoupment…" /></div>
+        <div className="form-group"><label>✍️ E-signature (type your legal name)</label><input value={sign} onChange={(e) => setSign(e.target.value)} placeholder="Your name" /></div>
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.artist.trim() || !sign.trim()} onClick={submit}>✒️ Sign & issue contract</button>
+      </div>
+      <div className="card">
+        <div className="card-header">📜 Signed Contracts</div>
+        {contracts.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No contracts yet.</p>
+          : [...contracts].reverse().map((c) => (
+            <div key={c.id} className="post-card">
+              <div className="post-user">🏷️ {c.artist} — {money(c.advance)} advance · {c.royalty}% royalty</div>
+              {c.terms && <div className="post-content">{c.terms}</div>}
+              <div className="post-meta">✍️ Signed by {c.signedBy} · {new Date(c.at).toLocaleString()} · hash #{(c.id % 100000).toString(16)}</div>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+}
+
+const LILITH_LISTS = [
+  { id: "inbox", label: "📥 Inbox" },
+  { id: "today", label: "‼️ Today" },
+  { id: "upcoming", label: "📅 Upcoming" },
+  { id: "anytime", label: "👐🏼 Anytime" },
+  { id: "someday", label: "🧠 Someday" },
+  { id: "logbook", label: "🧾 Logbook" },
+  { id: "trash", label: "🚮 Trash" },
+];
+function LilithPage() {
+  const { state, setList, update } = useAppState();
+  const [list, setActiveList] = useState("today");
+  const [title, setTitle] = useState("");
+  const tasks = state.lilithTasks || [];
+  const shown = tasks.filter((t) => t.list === list);
+  const patch = (id, p) => setList("lilithTasks", tasks.map((t) => (t.id === id ? { ...t, ...p } : t)));
+  const add = () => {
+    if (!title.trim()) return;
+    setList("lilithTasks", [...tasks, { id: Date.now(), title: title.trim(), list, xp: 10 }]);
+    setTitle("");
+  };
+  const complete = (t) => { patch(t.id, { list: "logbook", done: true }); update({ energy: (state.energy || 0) + 1 }); };
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        {LILITH_LISTS.map((l) => (
+          <button key={l.id} className={`heritage-chip${list === l.id ? " sel" : ""}`} onClick={() => setActiveList(l.id)}>
+            {l.label} {tasks.filter((t) => t.list === l.id).length || ""}
+          </button>
+        ))}
+      </div>
+      {!["logbook", "trash"].includes(list) && (
+        <div className="card">
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add to ${list}…`} onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1 }} />
+            <button className="btn" onClick={add}>＋</button>
+          </div>
+        </div>
+      )}
+      <div className="card">
+        <div className="card-header">{LILITH_LISTS.find((l) => l.id === list).label}</div>
+        {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing here.</p>
+          : shown.map((t) => (
+            <div key={t.id} className="skill-item">
+              <span className="skill-item-name" style={t.done ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>{t.title}</span>
+              <span className="skill-item-exp">+{t.xp} XP</span>
+              <span className="skill-item-actions">
+                {!t.done && list !== "trash" && <button className="btn btn-success btn-small" onClick={() => complete(t)}>✓</button>}
+                {list !== "trash" ? <button className="btn btn-danger btn-small" onClick={() => patch(t.id, { list: "trash" })}>🚮</button>
+                  : <button className="btn btn-secondary btn-small" onClick={() => patch(t.id, { list: "inbox", done: false })}>↩</button>}
+              </span>
+            </div>
+          ))}
+        {list === "logbook" && shown.length > 0 && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Completed missions earn ⚡ Energy. Clear your Today list for a daily bonus.</p>}
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
@@ -1201,6 +1313,8 @@ const FN_PAGES = {
   distributez: DistributeZPage,
   royaltiez: RoyaltieZPage,
   messagez: MessageZPage,
+  labelz: LabelZPage,
+  lilith: LilithPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,

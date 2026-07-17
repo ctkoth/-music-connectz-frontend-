@@ -19,6 +19,8 @@ const DEFAULT_STATE = {
   royalties: 0,
   royaltyLog: [],
   messages: [],
+  labelContracts: [],
+  lilithTasks: [],
   speczOwned: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },

@@ -111,7 +111,7 @@ export const CATALOG = [
   {
     label: "BusinessZ",
     apps: [
-      { key: "labelz", name: "LabelZ", emoji: "🏷️", icon: "labelz.png", desc: "Essentially public groups. Requires Premium, A&R Scout, or Manager persona to create/edit. Gives advances with terms — record-label logic with e-signed contracts." },
+      { key: "labelz", name: "LabelZ", emoji: "🏷️", icon: "labelz.png", desc: "Essentially public groups. Requires Premium, A&R Scout, or Manager persona to create/edit. Gives advances with terms — record-label logic with e-signed contracts.", fn: true },
       { key: "distributez", name: "DistributeZ", emoji: "🎶", icon: "distributez.png", desc: "Distribution submissions that fill metadata by media type: audio becomes the track, image the cover, text the lyrics. Free = 1/month; Premium & StatZ unlimited; StatZ can submit for licensing.", fn: true },
       { key: "royaltiez", name: "RoyaltieZ", emoji: "👑", icon: "royaltiez.png", desc: "Current balance and logz, with every royalty source timestamped.", fn: true },
       { key: "specz", name: "SpecZ", emoji: "✴️", icon: "specz.png", desc: "The StatZ marketplace for purchasable user metadata & UGC — audience demographics, engagement analytics, genre intelligence, and creator content packs. StatZ only.", fn: true, statz: true },
@@ -124,7 +124,7 @@ export const CATALOG = [
       { key: "sentencez", name: "SentenceZ", emoji: "📃", icon: "sentencez.png", desc: "A Microsoft Word-style editor — all text media opens here." },
       { key: "imagez", name: "ImageZ", emoji: "🖼️", icon: "imagez.png", desc: "A Photoshop-style editor — all image media opens here." },
       { key: "videoz", name: "VideoZ", emoji: "📹", icon: "videoz.png", desc: "A Sony Vegas-style editor — all video media opens here." },
-      { key: "lilith", name: "Lilith", emoji: "💃🏽", icon: "toolz_lilith.png", desc: "An Apple Things-style engine with MCZ mission logic: Inbox, Today, Upcoming, Anytime, Someday, Logbook, RewardZ, AutomationZ. Combo chains, streaks, and XP-based completion — the Artist's Daily Engine." },
+      { key: "lilith", name: "Lilith", emoji: "💃🏽", icon: "toolz_lilith.png", desc: "An Apple Things-style engine with MCZ mission logic: Inbox, Today, Upcoming, Anytime, Someday, Logbook, Trash. XP-based completion — the Artist's Daily Engine.", fn: true },
       { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met." },
       { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work." },
       { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "A Buffer-style post scheduler and management tool." },
