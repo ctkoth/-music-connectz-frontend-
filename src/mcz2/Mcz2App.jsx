@@ -8,7 +8,23 @@ import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
+import { devTaxFor, splitTransaction, money } from "./economy.js";
 import "./mcz2.css";
+
+// Transparent transaction breakdown — RepostExchange-style: plain numbers,
+// the developer-tax cut always shown, and the bold total the user pays.
+function CostBreakdown({ amount, tier, recipient = "Recipient", payLabel = "You pay" }) {
+  const { gross, dev, net, rate, label } = splitTransaction(amount, tier);
+  if (!gross) return null;
+  return (
+    <div className="txn">
+      <div className="txn-row"><span>Amount</span><span>{money(gross)}</span></div>
+      <div className="txn-row txn-tax"><span>Developer tax · {label} {Math.round(rate * 100)}%</span><span>−{money(dev)}</span></div>
+      <div className="txn-row"><span>{recipient} receives</span><span>{money(net)}</span></div>
+      <div className="txn-total"><span>{payLabel}</span><span>{money(gross)}</span></div>
+    </div>
+  );
+}
 
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
 const SUBSTANCES = [
@@ -211,16 +227,18 @@ function ProfilePage() {
   );
 }
 
-function MoneyPage() {
+function MoneyPage({ tier }) {
   const { state, updateWallet, addTo } = useAppState();
   const [amt, setAmt] = useState("");
   const add = () => {
     const v = parseFloat(amt);
     if (!v || v <= 0) return;
-    updateWallet({ balance: Number((state.wallet.balance + v).toFixed(2)), earned: Number((state.wallet.earned + v).toFixed(2)) });
-    addTo("paymentHistory", { amount: v, at: Date.now() });
+    const { net, dev } = splitTransaction(v, tier); // developer tax enforced
+    updateWallet({ balance: Number((state.wallet.balance + net).toFixed(2)), earned: Number((state.wallet.earned + net).toFixed(2)) });
+    addTo("paymentHistory", { amount: net, gross: v, dev, at: Date.now(), note: "Add funds" });
     setAmt("");
   };
+  const { rate, label } = devTaxFor(tier);
   return (
     <>
       <div className="stripe-section">
@@ -228,17 +246,21 @@ function MoneyPage() {
         <div className="balance-info">
           Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> &nbsp;·&nbsp; Lifetime earned: <strong>${Number(state.wallet.earned).toFixed(2)}</strong>
         </div>
-        <div className="form-group"><label>Add funds (demo)</label><input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0.00" /></div>
-        <button className="btn" style={{ width: "100%" }} onClick={add}>➕ Add to balance</button>
-        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Stripe/PayPal checkout wires in with the payments backend.</p>
+        <div className="form-group"><label>Add funds — {label} developer tax {Math.round(rate * 100)}%</label>
+          <input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0.00" /></div>
+        <CostBreakdown amount={amt} tier={tier} recipient="Your wallet" />
+        <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={add}>➕ Add to balance</button>
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Every transaction shows the developer tax up front. Stripe/PayPal checkout wires in with the payments backend.</p>
       </div>
       <div className="card">
         <div className="card-header">🧾 Payment History</div>
         {state.paymentHistory.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No transactions yet.</p>
         ) : [...state.paymentHistory].reverse().map((p, i) => (
-          <div key={i} className="skill-item"><span className="skill-item-name">+${Number(p.amount).toFixed(2)}</span>
-            <span className="skill-item-exp">{new Date(p.at).toLocaleDateString()}</span></div>
+          <div key={i} className="skill-item">
+            <span className="skill-item-name">{p.amount >= 0 ? "+" : ""}{money(p.amount)} {p.note ? `· ${p.note}` : ""}</span>
+            <span className="skill-item-exp">{p.dev ? `tax ${money(p.dev)} · ` : ""}{new Date(p.at).toLocaleDateString()}</span>
+          </div>
         ))}
       </div>
     </>
@@ -350,15 +372,17 @@ function SpecZPage({ tier }) {
   const buy = (item) => {
     if (owned.includes(item.id)) return;
     if (state.wallet.balance < item.price) return;
+    const { dev } = splitTransaction(item.price, tier); // developer tax enforced on the sale
     updateWallet({ balance: Number((state.wallet.balance - item.price).toFixed(2)) });
     addTo("speczOwned", item.id);
-    addTo("paymentHistory", { amount: -item.price, at: Date.now(), note: `SpecZ: ${item.name}` });
+    addTo("paymentHistory", { amount: -item.price, dev, at: Date.now(), note: `SpecZ: ${item.name}` });
   };
+  const { rate, label } = devTaxFor(tier);
   return (
     <>
       <div className="stripe-section">
         <div className="stripe-title">✴️ SpecZ Marketplace</div>
-        <div className="balance-info">Purchase user metadata &amp; UGC with your wallet · Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong></div>
+        <div className="balance-info">Purchase user metadata &amp; UGC with your wallet · Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> · {label} developer tax {Math.round(rate * 100)}% on every buy</div>
       </div>
       {SPECZ_ITEMS.map((item) => {
         const have = owned.includes(item.id);
@@ -367,12 +391,13 @@ function SpecZPage({ tier }) {
           <div key={item.id} className="post-card">
             <div className="post-user">{item.emoji} {item.name}</div>
             <div className="post-content">{item.desc}</div>
-            <div className="post-actions">
+            {!have && <CostBreakdown amount={item.price} tier={tier} recipient="Seller" payLabel="You pay" />}
+            <div className="post-actions" style={{ marginTop: 8 }}>
               {have ? (
                 <span className="tag" style={{ color: "var(--success)" }}>✓ Owned</span>
               ) : (
                 <button className="btn btn-small" disabled={!canAfford} style={{ opacity: canAfford ? 1 : 0.5 }} onClick={() => buy(item)}>
-                  {canAfford ? `Buy $${item.price.toFixed(2)}` : `Need $${item.price.toFixed(2)} — add funds`}
+                  {canAfford ? `Buy ${money(item.price)}` : `Need ${money(item.price)} — add funds`}
                 </button>
               )}
             </div>
