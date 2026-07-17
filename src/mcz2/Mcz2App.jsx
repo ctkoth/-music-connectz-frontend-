@@ -8,7 +8,8 @@ import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
-import { devTaxFor, splitTransaction, money } from "./economy.js";
+import { devTaxFor, splitTransaction, money, mbLabel } from "./economy.js";
+import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
@@ -27,6 +28,42 @@ function CostBreakdown({ amount, tier, recipient = "Recipient", payLabel = "You 
       <div className="txn-row txn-tax"><span>Developer tax · {label} {Math.round(rate * 100)}%</span><span>−{money(dev)}</span></div>
       <div className="txn-row"><span>{recipient} receives</span><span>{money(net)}</span></div>
       <div className="txn-total"><span>{payLabel}</span><span>{money(gross)}</span></div>
+    </div>
+  );
+}
+
+// Textarea that enforces the active tier's character cap and shows a live
+// counter. The cap comes from LimitsContext (backend /api/economy/limits/ when
+// live, local TIER_LIMITS otherwise) — the same limit the server enforces.
+function CappedTextarea({ value, onChange, ...rest }) {
+  const { char_limit } = useLimits();
+  const len = (value || "").length;
+  const near = char_limit && len >= char_limit * 0.9;
+  return (
+    <>
+      <textarea value={value} onChange={onChange} maxLength={char_limit || undefined} {...rest} />
+      {char_limit ? (
+        <div className="char-count" style={{ fontSize: 10, textAlign: "right", color: near ? "var(--gold, #ffcf3f)" : "var(--text-light)", marginTop: 2 }}>
+          {len.toLocaleString()} / {char_limit.toLocaleString()}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+// Readout of the active tier's caps, sourced from LimitsContext.
+function TierLimitsCard() {
+  const { char_limit, upload_mb, storage_mb, storage_used_mb, tier, live } = useLimits();
+  return (
+    <div className="card">
+      <div className="card-header">
+        <span>📦 Tier Limits</span>
+        <span className="tag" style={live ? { color: "var(--success)" } : undefined}>{tier || "free"} · {live ? "● live" : "offline"}</span>
+      </div>
+      <div className="skill-item"><span className="skill-item-name">✍️ Text / prompt length</span><span className="skill-item-exp">{Number(char_limit).toLocaleString()} chars</span></div>
+      <div className="skill-item"><span className="skill-item-name">⬆️ Max upload size</span><span className="skill-item-exp">{mbLabel(upload_mb)}</span></div>
+      <div className="skill-item"><span className="skill-item-name">💾 Storage</span><span className="skill-item-exp">{storage_used_mb != null ? `${mbLabel(storage_used_mb)} / ` : ""}{mbLabel(storage_mb)}</span></div>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Caps are enforced server-side; text inputs cut off at your character limit. Upgrade for higher limits.</p>
     </div>
   );
 }
@@ -107,7 +144,7 @@ function SetupPage() {
         </div>
       </div>
       <div className="form-group"><label>📍 Location</label><input value={form.location} onChange={set("location")} placeholder="City, State or Zip" /></div>
-      <div className="form-group"><label>📝 Bio</label><textarea value={form.bio} onChange={set("bio")} style={{ height: 60 }} /></div>
+      <div className="form-group"><label>📝 Bio</label><CappedTextarea value={form.bio} onChange={set("bio")} style={{ height: 60 }} /></div>
       <button className="btn btn-success" style={{ width: "100%" }} onClick={() => updateUser(form)}>💾 Save Profile</button>
     </div>
   );
@@ -171,7 +208,7 @@ function PostZPage() {
       <div className="card">
         <div className="card-header">🎵 Upload Work Example</div>
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
-        <div className="form-group"><label>📝 Description</label><textarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
+        <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
         <button className="btn btn-success" style={{ width: "100%" }} onClick={add}>📤 Post</button>
       </div>
       <div className="card">
@@ -329,6 +366,7 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
           </>
         )}
       </div>
+      <TierLimitsCard />
       <div className="card">
         <div className="card-header">🔔 Preferences</div>
         {SETTING_TOGGLES.map((row) => (
@@ -1443,7 +1481,7 @@ function MessageZPage() {
         <div className="card">
           <div className="card-header">✍️ New Message</div>
           <div className="form-group"><label>To</label><input value={to} onChange={(e) => setTo(e.target.value)} placeholder="username" /></div>
-          <div className="form-group"><label>Message</label><textarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
+          <div className="form-group"><label>Message</label><CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
           <button className="btn btn-success" style={{ width: "100%" }} onClick={send}>📤 Send</button>
         </div>
       ) : (
@@ -1496,7 +1534,7 @@ function LabelZPage({ tier }) {
           <div className="form-group"><label>💵 Advance ($)</label><input type="number" value={form.advance} onChange={set("advance")} /></div>
           <div className="form-group"><label>👑 Artist royalty (%)</label><input type="number" value={form.royalty} onChange={set("royalty")} /></div>
         </div>
-        <div className="form-group"><label>Terms</label><textarea value={form.terms} onChange={set("terms")} style={{ height: 56 }} placeholder="Deliverables, length, recoupment…" /></div>
+        <div className="form-group"><label>Terms</label><CappedTextarea value={form.terms} onChange={set("terms")} style={{ height: 56 }} placeholder="Deliverables, length, recoupment…" /></div>
         <div className="form-group"><label>✍️ E-signature (type your legal name)</label><input value={sign} onChange={(e) => setSign(e.target.value)} placeholder="Your name" /></div>
         <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.artist.trim() || !sign.trim()} onClick={submit}>✒️ Sign & issue contract</button>
       </div>
@@ -1598,7 +1636,7 @@ function ImageConnectZ() {
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
         {IMAGE_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}
       </div>
-      <div className="form-group"><label>Describe it</label><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
+      <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {type} ({t.ratio})</button>
       <IntelNote role="Designer" />
     </div>
@@ -1665,7 +1703,7 @@ function VideoConnectZ() {
       <div className="card-header">📺 Video ConnectZ <span className="tag">{t.ratio}</span></div>
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{VIDEO_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}</div>
-      <div className="form-group"><label>Concept</label><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${type.toLowerCase()}`} /></div>
+      <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${type.toLowerCase()}`} /></div>
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {type} ({t.ratio})</button>
       <IntelNote role="Videographer" reusable />
     </div>
@@ -1910,6 +1948,7 @@ function Shell() {
   const balance = Number(wallet.balance || 0).toFixed(2);
 
   return (
+    <LimitsProvider tier={tier} serverOk={serverOk}>
     <div className="mcz2-root" data-theme={dataThemeFor(settings)} style={accentStyle(settings.accent)}>
       <div className="container">
         <div className="header">
@@ -1966,6 +2005,7 @@ function Shell() {
 
       <AppModal app={modalApp} onClose={() => setModalApp(null)} onOpen={openApp} />
     </div>
+    </LimitsProvider>
   );
 }
 
