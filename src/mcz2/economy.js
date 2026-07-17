@@ -18,3 +18,22 @@ export function splitTransaction(amount, tier) {
   const net = Math.round((gross - dev) * 100) / 100;
   return { gross, dev, net, rate, label };
 }
+
+// Per-tier caps — mirrors apps/economy/catalog.py on the backend so the client
+// can enforce/preview limits offline. char_limit for text, upload/storage in MB.
+export const TIER_LIMITS = {
+  free: { char_limit: 400, upload_mb: 40, storage_mb: 400 },
+  premium: { char_limit: 4000, upload_mb: 400, storage_mb: 5120 },
+  statz: { char_limit: 40000, upload_mb: 4096, storage_mb: 102400 },
+};
+
+export function limitsFor(tier) {
+  const { label } = devTaxFor(tier);
+  return { ...TIER_LIMITS[label.toLowerCase()], tier: label.toLowerCase() };
+}
+
+// Human-friendly storage/upload label: 400 -> "400MB", 5120 -> "5GB".
+export function mbLabel(mb) {
+  const n = Number(mb) || 0;
+  return n >= 1024 ? `${+(n / 1024).toFixed(n % 1024 ? 1 : 0)}GB` : `${n}MB`;
+}
