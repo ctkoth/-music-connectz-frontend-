@@ -129,7 +129,7 @@ export const CATALOG = [
       { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work." },
       { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "A Buffer-style post scheduler and management tool." },
       { key: "parcel", name: "Parcel Primate", emoji: "🐵", icon: "parcel.png", desc: "A Mailchimp-style email campaign tool." },
-      { key: "filez", name: "FileZ", emoji: "📁", icon: "filez.png", desc: "File management and uploads. Storage caps by tier: Free 400MB / Premium 5GB / StatZ 100GB." },
+      { key: "filez", name: "FileZ", emoji: "📁", icon: "filez.png", desc: "File management and uploads. Storage caps by tier: Free 400MB / Premium 5GB / StatZ 100GB.", fn: true },
     ],
   },
   {
