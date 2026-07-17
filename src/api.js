@@ -33,14 +33,17 @@ function buildUrl(path) {
 }
 
 export async function api(path, { method = "GET", body, auth = true, headers = {} } = {}) {
-  const finalHeaders = { "Content-Type": "application/json", ...headers };
+  // FormData bodies (file uploads) go as multipart — let the browser set the
+  // Content-Type + boundary; don't JSON-encode.
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  const finalHeaders = { ...(isForm ? {} : { "Content-Type": "application/json" }), ...headers };
   if (auth && tokenStore.get()) {
     finalHeaders.Authorization = `Bearer ${tokenStore.get()}`;
   }
   const res = await fetch(buildUrl(path), {
     method,
     headers: finalHeaders,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
   });
 
   let data = null;

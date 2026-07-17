@@ -36,3 +36,17 @@ export const accrueRoyaltiesApi = (amountCents, source = "") =>
 // plan: instant | weekly | monthly | quarterly -> { wallet, breakdown }
 export const cashoutRoyaltiesApi = (plan) =>
   api("/api/economy/royalties/cashout/", { method: "POST", body: { plan } });
+
+// { uploads: [{ id, name, size_bytes, size_mb, content_type, url, created_at }],
+//   storage_used_mb, storage_mb, upload_mb, storage_free_mb }
+export const getUploadsApi = () => api("/api/economy/uploads/");
+
+// Multipart upload. Server enforces upload_mb (413) and storage_mb (409).
+export const uploadFileApi = (file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return api("/api/economy/uploads/", { method: "POST", body: fd });
+};
+
+export const deleteUploadApi = (id) =>
+  api(`/api/economy/uploads/${id}/`, { method: "DELETE" });

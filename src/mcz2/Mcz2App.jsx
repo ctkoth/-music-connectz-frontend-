@@ -13,6 +13,7 @@ import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
+  getUploadsApi, uploadFileApi, deleteUploadApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -1758,7 +1759,91 @@ function IntelligencePage({ tier }) {
   );
 }
 
+function FileZPage({ serverOk }) {
+  const [state, setState] = useState(null); // { uploads, storage_used_mb, storage_mb, upload_mb, storage_free_mb }
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [offline, setOffline] = useState(false);
+
+  const load = () => {
+    getUploadsApi().then((r) => { setState(r); setOffline(false); }).catch(() => setOffline(true));
+  };
+  useEffect(() => { if (serverOk) load(); else setOffline(true); }, [serverOk]);
+
+  const pick = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setErr(""); setBusy(true);
+    try {
+      const r = await uploadFileApi(file); // server enforces size (413) + quota (409)
+      setState(r.upload ? { ...r, uploads: [r.upload, ...(state?.uploads || [])] } : r);
+      load();
+    } catch (e2) {
+      setErr(e2.message || "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id) => {
+    setErr("");
+    try { const r = await deleteUploadApi(id); setState((s) => ({ ...s, ...r, uploads: (s?.uploads || []).filter((u) => u.id !== id) })); }
+    catch (e2) { setErr(e2.message || "Delete failed"); }
+  };
+
+  if (offline || !serverOk) {
+    return (
+      <div className="card">
+        <div className="card-header">📁 FileZ <span className="tag">offline</span></div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          🔌 File uploads need a live connection to the storage backend. Storage caps by tier: Free 400MB · Premium 5GB · StatZ 100GB — enforced server-side once connected.
+        </p>
+      </div>
+    );
+  }
+
+  const usedMb = state?.storage_used_mb ?? 0;
+  const capMb = state?.storage_mb ?? 0;
+  const pct = capMb ? Math.min(100, (usedMb / capMb) * 100) : 0;
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">📁 FileZ <span className="tag" style={{ color: "var(--success)" }}>● live</span></div>
+        <div className="balance-info">
+          Storage: <strong>{mbLabel(usedMb)}</strong> of {mbLabel(capMb)} used · {mbLabel(state?.storage_free_mb ?? 0)} free · max {mbLabel(state?.upload_mb ?? 0)}/file
+        </div>
+        <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.08)", overflow: "hidden", margin: "10px 0" }}>
+          <div style={{ width: `${pct}%`, height: "100%", background: pct > 90 ? "var(--danger)" : "var(--accent, #22e6ff)", transition: "width .3s" }} />
+        </div>
+        <label className="btn" style={{ width: "100%", display: "block", textAlign: "center", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          {busy ? "⏳ Uploading…" : "⬆️ Upload file"}
+          <input type="file" style={{ display: "none" }} disabled={busy} onChange={pick} />
+        </label>
+        {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>⚠️ {err}</p>}
+      </div>
+      <div className="card">
+        <div className="card-header">🗂️ Your Files</div>
+        {(!state?.uploads || state.uploads.length === 0) ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No files yet — upload one above.</p>
+        ) : state.uploads.map((u) => (
+          <div key={u.id} className="skill-item">
+            <span className="skill-item-name">
+              {u.url ? <a href={u.url} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>📄 {u.name}</a> : `📄 ${u.name}`}
+            </span>
+            <span className="skill-item-exp" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {mbLabel(u.size_mb)}
+              <button className="btn btn-small btn-secondary" onClick={() => remove(u.id)} title="Delete">🗑️</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
+  filez: FileZPage,
   onboardz: OnboardZPage,
   groupz: GroupZPage,
   bodiez: BodieZPage,
