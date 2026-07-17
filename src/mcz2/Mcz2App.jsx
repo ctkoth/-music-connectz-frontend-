@@ -513,7 +513,7 @@ const DEMO_MEMBERS = [
   { name: "Sam", gender: "male", region: "North America", country: "United States", sober: false, lookingFor: "collab", sign: "Gemini" },
 ];
 
-function SocialConnectZPage() {
+function DiscoverTab() {
   const { state } = useAppState();
   const [region, setRegion] = useState("");
   const [gender, setGender] = useState("");
@@ -530,14 +530,6 @@ function SocialConnectZPage() {
 
   return (
     <>
-      <div className="card">
-        <div className="card-header">💓 Social ConnectZ</div>
-        <p style={{ fontSize: 11, color: "var(--text-light)" }}>
-          Discovery filtered by your matching metrics. Your PreferenceZ:&nbsp;
-          <strong>{pref.partnerGender ? PARTNER_GENDERS.find((g) => g.id === pref.partnerGender)?.label : "not set"}</strong>.
-        </p>
-      </div>
-
       <div className="card">
         <div className="card-header">🔍 Filters</div>
         <div className="form-group"><label>🌐 NationalitieZ (heritage)</label>
@@ -578,6 +570,161 @@ function SocialConnectZPage() {
           Demo roster — the same NationalitieZ / SubstanceZ / PreferenceZ filters apply in CollabZ and BattleZ once their live feeds ship.
         </p>
       </div>
+    </>
+  );
+}
+
+const DATE_POOL = [
+  { name: "Kaya", sign: "Leo", looking: "Collab", bio: "R&B vocalist chasing a moody hook." },
+  { name: "Diego", sign: "Scorpio", looking: "Romance", bio: "Reggaeton producer, night owl." },
+  { name: "Mei", sign: "Virgo", looking: "Collab", bio: "Mix engineer, clean masters only." },
+  { name: "Luka", sign: "Aries", looking: "Quick collab", bio: "Drill beats, fast turnarounds." },
+  { name: "Amara", sign: "Pisces", looking: "Romance", bio: "Singer-songwriter, soft-focus feels." },
+  { name: "Sam", sign: "Gemini", looking: "Collab", bio: "Multi-instrumentalist, two moods." },
+];
+function Avatar({ name }) {
+  return <div className="post-avatar">{name.charAt(0).toUpperCase()}</div>;
+}
+
+function VibeZTab() {
+  const [acted, setActed] = useState({});
+  return (
+    <div className="card">
+      <div className="card-header">♥️ VibeZ <span className="tag">what they're looking for</span></div>
+      {DATE_POOL.map((p) => {
+        const a = acted[p.name];
+        return (
+          <div key={p.name} className="post-card">
+            <div className="post-header"><Avatar name={p.name} /><div className="post-info">
+              <div className="post-user">{p.name} · {SIGNS.find((s) => s.name === p.sign)?.emoji}</div>
+              <div className="post-meta">💌 Looking for: {p.looking}</div></div></div>
+            <div className="post-content">{p.bio}</div>
+            <div className="post-actions">
+              {a ? <span className="tag" style={{ color: a === "like" ? "var(--primary)" : "var(--text-light)" }}>{a === "like" ? "💚 Liked" : "Passed"}</span> : (
+                <>
+                  <button className="btn btn-small" onClick={() => setActed((s) => ({ ...s, [p.name]: "like" }))}>💚 Vibe</button>
+                  <button className="btn btn-small btn-secondary" onClick={() => setActed((s) => ({ ...s, [p.name]: "pass" }))}>Pass</button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function InfernoTab() {
+  const [i, setI] = useState(0);
+  const [last, setLast] = useState(null);
+  const p = DATE_POOL[i];
+  const act = (kind) => { setLast(`${kind === "fire" ? "🔥 liked" : "👎 passed"} ${p.name}`); setI((n) => n + 1); };
+  return (
+    <div className="card" style={{ textAlign: "center" }}>
+      <div className="card-header" style={{ justifyContent: "center", borderBottom: "none" }}>❤️‍🔥 Inferno</div>
+      {p ? (
+        <>
+          <div className="post-avatar" style={{ width: 72, height: 72, margin: "0 auto 10px", fontSize: 30 }}>{p.name.charAt(0)}</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{p.name} · {SIGNS.find((s) => s.name === p.sign)?.emoji}</div>
+          <div className="post-meta" style={{ marginBottom: 6 }}>💌 {p.looking}</div>
+          <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 12 }}>{p.bio}</p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="btn btn-secondary" onClick={() => act("pass")}>👎 Pass</button>
+            <button className="btn" onClick={() => act("fire")}>🔥 Like</button>
+          </div>
+        </>
+      ) : <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔥 You're all caught up — check back for new profiles.</p>}
+      {last && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 10 }}>{last}</p>}
+    </div>
+  );
+}
+
+const BOARDS = ["General", "Collabs", "Beats", "Bars", "Feedback"];
+const DEMO_BOARD = [
+  { id: "b1", board: "Collabs", who: "Mei", body: "Need a vocalist for a lo-fi flip.", at: Date.now() - 2 * 3600e3 },
+  { id: "b2", board: "Beats", who: "Luka", body: "Free drill loop pack, link in bio.", at: Date.now() - 5 * 3600e3 },
+];
+function BoardZTab() {
+  const { state, addTo } = useAppState();
+  const [board, setBoard] = useState("General");
+  const [body, setBody] = useState("");
+  const posts = [...DEMO_BOARD, ...(state.boardPosts || [])].filter((p) => p.board === board).sort((a, b) => b.at - a.at);
+  const post = () => { if (!body.trim()) return; addTo("boardPosts", { id: Date.now(), board, who: "You", body: body.trim(), at: Date.now() }); setBody(""); };
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 12 }}>
+        {BOARDS.map((b) => <button key={b} className={`heritage-chip${board === b ? " sel" : ""}`} onClick={() => setBoard(b)}>🪧 {b}</button>)}
+      </div>
+      <div className="card">
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={body} onChange={(e) => setBody(e.target.value)} placeholder={`Post to ${board}…`} onKeyDown={(e) => e.key === "Enter" && post()} style={{ flex: 1 }} />
+          <button className="btn" onClick={post}>Post</button>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header">🪧 {board}</div>
+        {posts.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No posts yet — start one.</p>
+          : posts.map((p) => (
+            <div key={p.id} className="post-card">
+              <div className="post-user">{p.who}</div>
+              <div className="post-content">{p.body}</div>
+              <div className="post-meta">{new Date(p.at).toLocaleString()}</div>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+}
+
+const MBTI_Q = [
+  { q: "At a session, you…", a: ["Bring the energy, feed off the room", "E"], b: ["Lock in quietly, headphones on", "I"] },
+  { q: "Writing a track, you start from…", a: ["Concrete refs and what works", "S"], b: ["A feeling or abstract concept", "N"] },
+  { q: "Giving feedback, you lead with…", a: ["The honest technical truth", "T"], b: ["How it makes people feel", "F"] },
+  { q: "Your release plan is…", a: ["Scheduled, roadmapped, on time", "J"], b: ["Drop it when it feels right", "P"] },
+];
+const MBTI_BLURB = {
+  E: "outgoing", I: "reflective", S: "grounded", N: "visionary", T: "analytical", F: "empathic", J: "structured", P: "spontaneous",
+};
+function PersonalitieZTab() {
+  const { state, updateUser } = useAppState();
+  const [ans, setAns] = useState({});
+  const done = Object.keys(ans).length === MBTI_Q.length;
+  const type = MBTI_Q.map((_, i) => ans[i]).join("");
+  const save = () => updateUser({ mbti: type });
+  return (
+    <div className="card">
+      <div className="card-header">😶 PersonalitieZ <span className="tag">MBTI</span></div>
+      {state.user.mbti && <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>Saved type: <strong style={{ color: "var(--primary)" }}>{state.user.mbti}</strong></p>}
+      {MBTI_Q.map((item, i) => (
+        <div key={i} style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{item.q}</div>
+          <div className="chip-wrap">
+            <button className={`heritage-chip${ans[i] === item.a[1] ? " sel" : ""}`} onClick={() => setAns((s) => ({ ...s, [i]: item.a[1] }))}>{item.a[0]}</button>
+            <button className={`heritage-chip${ans[i] === item.b[1] ? " sel" : ""}`} onClick={() => setAns((s) => ({ ...s, [i]: item.b[1] }))}>{item.b[0]}</button>
+          </div>
+        </div>
+      ))}
+      {done && (
+        <div style={{ marginTop: 8 }}>
+          <p style={{ fontSize: 14, fontWeight: 800 }}>Your type: {type}</p>
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>{MBTI_Q.map((_, i) => MBTI_BLURB[ans[i]]).join(" · ")}</p>
+          <button className="btn" style={{ marginTop: 8 }} onClick={save}>Save to profile</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SocialConnectZPage() {
+  const [sub, setSub] = useState("discover");
+  const SUBS = [["discover", "🔎 Discover"], ["vibez", "♥️ VibeZ"], ["inferno", "❤️‍🔥 Inferno"], ["boardz", "🪧 BoardZ"], ["personalitiez", "😶 PersonalitieZ"]];
+  const Body = { discover: DiscoverTab, vibez: VibeZTab, inferno: InfernoTab, boardz: BoardZTab, personalitiez: PersonalitieZTab }[sub];
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        {SUBS.map(([id, label]) => <button key={id} className={`heritage-chip${sub === id ? " sel" : ""}`} onClick={() => setSub(id)}>{label}</button>)}
+      </div>
+      <Body />
     </>
   );
 }

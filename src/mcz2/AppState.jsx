@@ -21,6 +21,7 @@ const DEFAULT_STATE = {
   messages: [],
   labelContracts: [],
   lilithTasks: [],
+  boardPosts: [],
   speczOwned: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
