@@ -162,7 +162,7 @@ export const CATALOG = [
         ],
       },
       { key: "occ", name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", desc: "A VS Code-style editor with git-synced TaskZ, cross-device CRUD, and real-time task ETAs. StatZ users build games in any language (incl. C++/Unreal); Premium in any language except C++. Games publish to GameZ." },
-      { key: "gamez", name: "GameZ", emoji: "👾", icon: "gamez.png", desc: "User-made games built in OCC, sorted by genre and subgenre — Action, RPG, Strategy, Shooter, Puzzle, Racing, Fighting, Simulation, Sports, Horror, and more." },
+      { key: "gamez", name: "GameZ", emoji: "👾", icon: "gamez.png", desc: "User-made games built in OCC, sorted by genre and subgenre — Action, RPG, Strategy, Shooter, Puzzle, Racing, Fighting, Simulation, Sports, Horror, and more.", fn: true },
       { key: "venuez", name: "VenueZ", emoji: "🏛️", icon: "venuez.png", desc: "Host or join events — collaborative sessions and performances." },
       { key: "ratez", name: "Rate ConnectZ", emoji: "🤔", icon: "ratez.png", desc: "Rate media: images by artistic value or attractiveness, text by wit, audio by mix & performance, video by performance. Raters earn 1 Energy per rating.", fn: true },
     ],

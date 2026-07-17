@@ -23,6 +23,7 @@ const DEFAULT_STATE = {
   lilithTasks: [],
   boardPosts: [],
   speczOwned: [],
+  games: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,

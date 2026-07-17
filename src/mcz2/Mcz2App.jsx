@@ -8,6 +8,7 @@ import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
+import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
 import { devTaxFor, splitTransaction, money, mbLabel } from "./economy.js";
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
@@ -1725,23 +1726,44 @@ function SentenceConnectZ() {
   );
 }
 
-function OccConnectZ({ tier }) {
+function OccConnectZ({ tier, onOpen }) {
   const t = occTierFor(tier);
+  const { state, addTo } = useAppState();
   const [lang, setLang] = useState(t.languages[0]);
+  const [genre, setGenre] = useState(GAME_GENRES[0].name);
+  const [title, setTitle] = useState("");
+  const subs = subgenresFor(genre);
+  const [sub, setSub] = useState(subs[0]);
+  const author = state.user?.name || "you";
+  const generate = () => {
+    const name = title.trim() || `Untitled ${genre}`;
+    addTo("games", {
+      id: `g-${Date.now()}`, title: name, author, genre, subgenre: sub, lang,
+      plays: 0, rating: null, mine: true,
+      desc: `A ${t.complexity.toLowerCase()} ${genre.toLowerCase()} game generated in ${lang} via Ocular Code ConnectZ.`,
+    });
+    setTitle("");
+    onOpen?.("gamez"); // published — jump to the GameZ browser
+  };
   return (
     <div className="card">
       <div className="card-header">👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></div>
       <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>{t.desc}</p>
+      <div className="form-group"><label>Game title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Name your game" /></div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Genre</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{GAME_GENRES.map((g) => <Pill key={g.name} active={genre === g.name} onClick={() => { setGenre(g.name); setSub(subgenresFor(g.name)[0]); }}>{g.emoji} {g.name}</Pill>)}</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Subgenre</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{subs.map((s) => <Pill key={s} active={sub === s} onClick={() => setSub(s)}>{s}</Pill>)}</div>
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Language ({t.label} tier)</label>
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{t.languages.map((l) => <Pill key={l} active={lang === l} onClick={() => setLang(l)}>{l}</Pill>)}</div>
-      <button className="btn" style={{ width: "100%" }}>🎮 Generate {t.complexity.toLowerCase()} game in {lang} → GameZ</button>
+      <button className="btn" style={{ width: "100%" }} onClick={generate}>🎮 Generate {t.complexity.toLowerCase()} game in {lang} → GameZ</button>
       <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
       <IntelNote role="Developer" />
     </div>
   );
 }
 
-function IntelligencePage({ tier }) {
+function IntelligencePage({ tier, onOpen }) {
   const [app, setApp] = useState("image");
   const Body = { image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
   return (
@@ -1754,7 +1776,7 @@ function IntelligencePage({ tier }) {
           </button>
         ))}
       </div>
-      <Body tier={tier} />
+      <Body tier={tier} onOpen={onOpen} />
     </>
   );
 }
@@ -1842,7 +1864,109 @@ function FileZPage({ serverOk }) {
   );
 }
 
+function GameZPage() {
+  const { state, setList } = useAppState();
+  const [genre, setGenre] = useState("All");
+  const [sub, setSub] = useState("All");
+  const [q, setQ] = useState("");
+  const [playing, setPlaying] = useState(null);
+
+  // User-made games (published from OCC) sit on top of the seed catalog.
+  const all = [...(state.games || []), ...SEED_GAMES];
+  const subs = genre === "All" ? [] : subgenresFor(genre);
+  const query = q.trim().toLowerCase();
+  const games = all.filter((g) => {
+    if (genre !== "All" && g.genre !== genre) return false;
+    if (sub !== "All" && g.subgenre !== sub) return false;
+    if (query && !(`${g.title} ${g.author} ${g.desc || ""}`.toLowerCase().includes(query))) return false;
+    return true;
+  });
+
+  const pickGenre = (name) => { setGenre(name); setSub("All"); };
+  const play = (g) => {
+    setPlaying(g);
+    // Count the play on user-made games (seed games are static demo data).
+    if ((state.games || []).some((x) => x.id === g.id)) {
+      setList("games", state.games.map((x) => (x.id === g.id ? { ...x, plays: (x.plays || 0) + 1 } : x)));
+    }
+  };
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">👾 GameZ</div>
+        <div className="balance-info">{all.length} user-made games from Ocular Code ConnectZ · sorted by genre &amp; subgenre</div>
+        <div className="form-group" style={{ marginTop: 10 }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 Search games, creators…" />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">🎮 Genre</div>
+        <div className="chip-wrap">
+          <button className={`heritage-chip${genre === "All" ? " sel" : ""}`} onClick={() => pickGenre("All")}>All</button>
+          {GAME_GENRES.map((g) => (
+            <button key={g.name} className={`heritage-chip${genre === g.name ? " sel" : ""}`} onClick={() => pickGenre(g.name)}>{g.emoji} {g.name}</button>
+          ))}
+        </div>
+        {subs.length > 0 && (
+          <>
+            <div className="modal-sub-title" style={{ margin: "12px 0 6px" }}>Subgenre</div>
+            <div className="chip-wrap">
+              <button className={`heritage-chip${sub === "All" ? " sel" : ""}`} onClick={() => setSub("All")}>All</button>
+              {subs.map((s) => (
+                <button key={s} className={`heritage-chip${sub === s ? " sel" : ""}`} onClick={() => setSub(s)}>{s}</button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span>🕹️ {genre === "All" ? "All Games" : genre}{sub !== "All" ? ` · ${sub}` : ""}</span><span className="tag">{games.length}</span></div>
+        {games.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No games match — try a different genre or search.</p>
+        ) : games.map((g) => (
+          <div key={g.id} className="post-card">
+            <div className="post-user">{genreEmoji(g.genre)} {g.title} {g.mine && <span className="tag" style={{ color: "var(--success)" }}>yours</span>}</div>
+            <div className="post-content">{g.desc}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "8px 0" }}>
+              <span className="tag">{g.genre}</span>
+              {g.subgenre && <span className="tag">{g.subgenre}</span>}
+              <span className="tag">💻 {g.lang}</span>
+              <span className="tag">▶ {(g.plays || 0).toLocaleString()}</span>
+              {g.rating != null && <span className="tag">⭐ {g.rating}</span>}
+            </div>
+            <div className="post-meta" style={{ marginBottom: 8 }}>by @{g.author}</div>
+            <button className="btn btn-small" onClick={() => play(g)}>▶ Play</button>
+          </div>
+        ))}
+      </div>
+
+      {playing && (
+        <div className="modal" onClick={() => setPlaying(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header"><div className="modal-title"><h2>{genreEmoji(playing.genre)} {playing.title}</h2></div><button className="close-btn" onClick={() => setPlaying(null)}>×</button></div>
+            <div style={{ padding: 4 }}>
+              <div style={{ height: 160, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, rgba(168,85,247,0.25), rgba(34,230,255,0.25))", fontSize: 40 }}>
+                {genreEmoji(playing.genre)}
+              </div>
+              <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 12 }}>
+                {playing.desc}
+              </p>
+              <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>
+                {playing.genre} · {playing.subgenre} · built in {playing.lang} by @{playing.author}. The in-browser player streams from the creator's OCC build — real playable builds land with the GameZ runtime.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
+  gamez: GameZPage,
   filez: FileZPage,
   onboardz: OnboardZPage,
   groupz: GroupZPage,
