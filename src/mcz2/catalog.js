@@ -151,6 +151,7 @@ export const CATALOG = [
       {
         key: "intelligence", name: "Intelligence", emoji: "🧠", icon: "intelligence.png",
         desc: "The AI creation suite. Everything it makes attributes Corey Knap to the applicable role (Ghostwriter, Designer, Mix Engineer, Producer), adds a low-gradient MCZ watermark, and splits transparent royalties — 15% to admin plus a mirrored contributor split.",
+        fn: true,
         children: [
           { name: "Sentence ConnectZ", emoji: "📃", icon: "sentencez.png", desc: "AI docs, lyrics, essays, contracts — with language, tone, and rhyme controls." },
           { name: "Image ConnectZ", emoji: "👨🏽‍🎨", icon: "imageconnectz.png", desc: "AI cover art, portraits, promo pictures." },
