@@ -162,14 +162,14 @@ export const CATALOG = [
       { key: "occ", name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", desc: "A VS Code-style editor with git-synced TaskZ, cross-device CRUD, and real-time task ETAs. StatZ users build games in any language (incl. C++/Unreal); Premium in any language except C++. Games publish to GameZ." },
       { key: "gamez", name: "GameZ", emoji: "👾", icon: "gamez.png", desc: "User-made games built in OCC, sorted by genre and subgenre — Action, RPG, Strategy, Shooter, Puzzle, Racing, Fighting, Simulation, Sports, Horror, and more." },
       { key: "venuez", name: "VenueZ", emoji: "🏛️", icon: "venuez.png", desc: "Host or join events — collaborative sessions and performances." },
-      { key: "ratez", name: "Rate ConnectZ", emoji: "🤔", icon: "ratez.png", desc: "Rate media: images by artistic value or attractiveness, text by wit, audio by mix & performance, video by performance. Raters earn 1 Energy per rating." },
+      { key: "ratez", name: "Rate ConnectZ", emoji: "🤔", icon: "ratez.png", desc: "Rate media: images by artistic value or attractiveness, text by wit, audio by mix & performance, video by performance. Raters earn 1 Energy per rating.", fn: true },
     ],
   },
   {
     label: "EconZ",
     apps: [
-      { key: "spinaz", name: "SpinaZ", emoji: "🍥", icon: "spinaz.png", desc: "Your SpinAZ log — how they're earned and spent. Buy at 80% of face value ($80 = 100). Earned by streaming other users' media (seconds played − 30)." },
-      { key: "energy", name: "Energy", emoji: "⚡", icon: "energy.png", desc: "Your Energy log — earned and spent. Buy at 80% of face value. Energy is earned from ratings, comments, and daily activity." },
+      { key: "spinaz", name: "SpinaZ", emoji: "🍥", icon: "spinaz.png", desc: "Your SpinAZ log — how they're earned and spent. Buy at 80% of face value ($80 = 100). Earned by streaming other users' media (seconds played − 30).", fn: true },
+      { key: "energy", name: "Energy", emoji: "⚡", icon: "energy.png", desc: "Your Energy log — earned and spent. Buy at 80% of face value. Energy is earned from ratings, comments, and daily activity.", fn: true },
       { key: "analytics", name: "Analytics", emoji: "📈", icon: "analytics.png", desc: "Deep dive into your usage and performance across the platform." },
       { key: "facez", name: "FaceZ", emoji: "🙄", icon: "facez.png", desc: "Faces available for use in AI-generated images/videos — taggable by user profile." },
     ],
