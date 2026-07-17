@@ -1086,6 +1086,109 @@ function RateConnectZPage() {
   );
 }
 
+const DIST_TYPES = [
+  { id: "audio", label: "🎧 Audio → Track" },
+  { id: "image", label: "🖼 Image → Cover" },
+  { id: "text", label: "📝 Text → Lyrics" },
+  { id: "album", label: "💿 Album" },
+];
+function DistributeZPage({ tier }) {
+  const { state, addTo, removeFrom } = useAppState();
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("audio");
+  const [licensing, setLicensing] = useState(false);
+  const isStatz = /stat[sz]/i.test(tier || "");
+  const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
+  const releases = state.releases || [];
+  const now = new Date();
+  const thisMonth = releases.filter((r) => { const d = new Date(r.at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
+  const atFreeLimit = !isPremium && thisMonth >= 1;
+  const submit = () => {
+    if (!title.trim() || atFreeLimit) return;
+    addTo("releases", { id: Date.now(), title: title.trim(), type, licensing: isStatz && licensing, at: Date.now() });
+    setTitle("");
+  };
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><span>🎶 New Submission</span><span className="tag">{isPremium ? "Unlimited" : `${thisMonth}/1 this month`}</span></div>
+        <div className="form-group"><label>Media type</label>
+          <select value={type} onChange={(e) => setType(e.target.value)}>{DIST_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+        </div>
+        <div className="form-group"><label>Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Release title" /></div>
+        {isStatz && (
+          <div className="settings-toggle"><label>⚖️ Submit for licensing (StatZ)</label>
+            <div role="switch" aria-checked={licensing} onClick={() => setLicensing((v) => !v)} className={`toggle-switch${licensing ? " active" : ""}`} /></div>
+        )}
+        {atFreeLimit && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 8 }}>🔒 Free tier allows 1 submission/month — upgrade for unlimited.</p>}
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={atFreeLimit || !title.trim()} onClick={submit}>📤 Submit for distribution</button>
+      </div>
+      <div className="card">
+        <div className="card-header">📀 Your Submissions</div>
+        {releases.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No submissions yet.</p>
+          : [...releases].reverse().map((r, i) => (
+            <div key={r.id} className="skill-item">
+              <span className="skill-item-name">{DIST_TYPES.find((t) => t.id === r.type)?.label.split(" ")[0]} {r.title}{r.licensing ? " · ⚖️ licensing" : ""}</span>
+              <span className="skill-item-actions"><button className="btn btn-danger btn-small" onClick={() => removeFrom("releases", releases.length - 1 - i)}>✕</button></span>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+}
+
+function RoyaltieZPage() {
+  const { state } = useAppState();
+  return <LedgerPage emoji="👑" title="RoyaltieZ" balance={money(state.royalties || 0)} log={state.royaltyLog} note="Every royalty source is timestamped. Instant cashout 15% tax · weekly tiered · monthly 1% · 3-month 0%." />;
+}
+
+const DEMO_INBOX = [
+  { id: "i1", who: "Kaya", body: "Loved your last drop — collab on a hook?", at: Date.now() - 3 * 3600e3 },
+  { id: "i2", who: "LabelZ · Azrael Records", body: "We'd like to send you an advance offer.", at: Date.now() - 26 * 3600e3 },
+];
+function MessageZPage() {
+  const { state, addTo } = useAppState();
+  const [box, setBox] = useState("inbox");
+  const [to, setTo] = useState("");
+  const [body, setBody] = useState("");
+  const sent = (state.messages || []).filter((m) => m.dir === "out");
+  const send = () => {
+    if (!to.trim() || !body.trim()) return;
+    addTo("messages", { id: Date.now(), dir: "out", who: to.trim(), body: body.trim(), at: Date.now() });
+    setTo(""); setBody(""); setBox("outbox");
+  };
+  const list = box === "inbox" ? DEMO_INBOX : [...sent].reverse();
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        <button className={`heritage-chip${box === "inbox" ? " sel" : ""}`} onClick={() => setBox("inbox")}>📥 Inbox</button>
+        <button className={`heritage-chip${box === "outbox" ? " sel" : ""}`} onClick={() => setBox("outbox")}>📤 Outbox</button>
+        <button className={`heritage-chip${box === "compose" ? " sel" : ""}`} onClick={() => setBox("compose")}>✍️ Compose</button>
+      </div>
+      {box === "compose" ? (
+        <div className="card">
+          <div className="card-header">✍️ New Message</div>
+          <div className="form-group"><label>To</label><input value={to} onChange={(e) => setTo(e.target.value)} placeholder="username" /></div>
+          <div className="form-group"><label>Message</label><textarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
+          <button className="btn btn-success" style={{ width: "100%" }} onClick={send}>📤 Send</button>
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-header">{box === "inbox" ? "📥 Inbox" : "📤 Outbox"}</div>
+          {list.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing here yet.</p>
+            : list.map((m) => (
+              <div key={m.id} className="post-card">
+                <div className="post-user">{box === "inbox" ? m.who : `To: ${m.who}`}</div>
+                <div className="post-content">{m.body}</div>
+                <div className="post-meta">{new Date(m.at).toLocaleString()}</div>
+              </div>
+            ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
@@ -1095,6 +1198,9 @@ const FN_PAGES = {
   spinaz: SpinaZPage,
   energy: EnergyPage,
   ratez: RateConnectZPage,
+  distributez: DistributeZPage,
+  royaltiez: RoyaltieZPage,
+  messagez: MessageZPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,

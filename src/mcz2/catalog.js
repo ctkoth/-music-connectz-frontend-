@@ -71,7 +71,8 @@ export const CATALOG = [
       },
       {
         key: "messagez", name: "MessageZ", emoji: "📨", icon: "messagez.png",
-        desc: "Your messaging center.",
+        desc: "Your messaging center — Inbox and Outbox.",
+        fn: true,
         children: [
           { name: "Inbox", emoji: "📥", icon: "inbox.png", desc: "Incoming messages." },
           { name: "Outbox", emoji: "📤", icon: "messagez_outbox.png", desc: "Sent messages." },
@@ -111,8 +112,8 @@ export const CATALOG = [
     label: "BusinessZ",
     apps: [
       { key: "labelz", name: "LabelZ", emoji: "🏷️", icon: "labelz.png", desc: "Essentially public groups. Requires Premium, A&R Scout, or Manager persona to create/edit. Gives advances with terms — record-label logic with e-signed contracts." },
-      { key: "distributez", name: "DistributeZ", emoji: "🎶", icon: "distributez.png", desc: "Distribution submissions that fill metadata by media type: audio becomes the track, image the cover, text the lyrics. Free = 1/month; Premium & StatZ unlimited; StatZ can submit for licensing." },
-      { key: "royaltiez", name: "RoyaltieZ", emoji: "👑", icon: "royaltiez.png", desc: "Current balance and logz, with every royalty source timestamped." },
+      { key: "distributez", name: "DistributeZ", emoji: "🎶", icon: "distributez.png", desc: "Distribution submissions that fill metadata by media type: audio becomes the track, image the cover, text the lyrics. Free = 1/month; Premium & StatZ unlimited; StatZ can submit for licensing.", fn: true },
+      { key: "royaltiez", name: "RoyaltieZ", emoji: "👑", icon: "royaltiez.png", desc: "Current balance and logz, with every royalty source timestamped.", fn: true },
       { key: "specz", name: "SpecZ", emoji: "✴️", icon: "specz.png", desc: "The StatZ marketplace for purchasable user metadata & UGC — audience demographics, engagement analytics, genre intelligence, and creator content packs. StatZ only.", fn: true, statz: true },
     ],
   },
