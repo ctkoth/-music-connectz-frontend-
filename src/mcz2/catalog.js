@@ -45,7 +45,8 @@ export const CATALOG = [
     apps: [
       {
         key: "battlez", name: "BattleZ", emoji: "🪖", icon: "battlez.png",
-        desc: "One post versus another. Contestants verified 18+ can bet money on themselves; other users bet SpinAZ. Winners decided by community rating. Browse and filter battles by NationalitieZ, SubstanceZ, and PreferenceZ.",
+        desc: "One post versus another. Contestants verified 18+ can bet money on themselves; other users bet SpinAZ. Winners decided by anonymous community rating (0–10, 3+ ratings to qualify). Browse and filter battles by NationalitieZ, SubstanceZ, and PreferenceZ.",
+        fn: true,
         children: [
           { name: "Freestyle", emoji: "🆓", icon: "battlez.png", desc: "Live sporadic battles." },
           { name: "1v1", emoji: "1️⃣", icon: "battlez.png", desc: "One artist versus one artist, regardless of other personas helping." },
