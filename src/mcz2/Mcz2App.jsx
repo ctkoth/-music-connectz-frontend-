@@ -9,6 +9,7 @@ import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
 import { devTaxFor, splitTransaction, money } from "./economy.js";
+import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
 
 // Transparent transaction breakdown — RepostExchange-style: plain numbers,
@@ -1301,6 +1302,152 @@ function LilithPage() {
   );
 }
 
+// Shared attribution/royalty footer for anything Intelligence creates.
+function IntelNote({ role, reusable }) {
+  return (
+    <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 4 }}>
+      🏷️ Attributed to Corey Knap ({role}) · low-gradient MCZ watermark applied · can't be exported/downloaded outside posts.
+      {reusable ? " ♻️ Reusable: 10% K-Oth royalty when used on DistributeZ / CollabZ / BattleZ, split transparently to contributors." : ""}
+    </p>
+  );
+}
+function Pill({ active, onClick, children }) {
+  return <button className={`heritage-chip${active ? " sel" : ""}`} onClick={onClick}>{children}</button>;
+}
+
+function ImageConnectZ() {
+  const [type, setType] = useState(IMAGE_TYPES[0].name);
+  const [prompt, setPrompt] = useState("");
+  const t = IMAGE_TYPES.find((x) => x.name === type);
+  return (
+    <div className="card">
+      <div className="card-header">🖼️ Image ConnectZ <span className="tag">{t.ratio}</span></div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Image type</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
+        {IMAGE_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}
+      </div>
+      <div className="form-group"><label>Describe it</label><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {type} ({t.ratio})</button>
+      <IntelNote role="Designer" />
+    </div>
+  );
+}
+
+function InstrumentalConnectZ({ tier }) {
+  const isStatz = /stat[sz]/i.test(tier || "");
+  const [genre, setGenre] = useState(INSTR_GENRES[0]);
+  const [inst, setInst] = useState(["808 / Bass", "Drums"]);
+  const [bpm, setBpm] = useState(140);
+  const [keyIdx, setKeyIdx] = useState(0);
+  const [moodQ, setMoodQ] = useState("");
+  const toggle = (i) => setInst((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+  const keyList = isStatz && moodQ ? KEYS.filter((k) => (k.mood + k.key).toLowerCase().includes(moodQ.toLowerCase())) : KEYS;
+  const chosen = keyList[keyIdx] || KEYS[0];
+  return (
+    <div className="card">
+      <div className="card-header">🎹 Instrumental ConnectZ <span className="tag">MIDI</span></div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Genre</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{INSTR_GENRES.map((g) => <Pill key={g} active={genre === g} onClick={() => setGenre(g)}>{g}</Pill>)}</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Instruments</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{INSTR_INSTRUMENTS.map((i) => <Pill key={i} active={inst.includes(i)} onClick={() => toggle(i)}>{i}</Pill>)}</div>
+      <div className="form-group"><label>BPM: {bpm}</label><input type="range" min="60" max="200" value={bpm} onChange={(e) => setBpm(+e.target.value)} /></div>
+      {isStatz && (
+        <div className="form-group"><label>🔎 StatZ — search key by mood</label><input value={moodQ} onChange={(e) => { setMoodQ(e.target.value); setKeyIdx(0); }} placeholder="e.g., dark, triumphant, midnight" /></div>
+      )}
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Key</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 8px" }}>{keyList.map((k, i) => <Pill key={k.key} active={keyIdx === i} onClick={() => setKeyIdx(i)}>{k.key}</Pill>)}</div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}><strong>{chosen.key}</strong> — {chosen.mood}</p>
+      <button className="btn" style={{ width: "100%" }}>🎼 Generate MIDI · {genre} · {bpm} BPM · {chosen.key}</button>
+      <IntelNote role="Beat Producer" reusable />
+    </div>
+  );
+}
+
+function MixConnectZ() {
+  const [mode, setMode] = useState(MIX_MODES[2]);
+  const [target, setTarget] = useState(MIX_TARGETS[0].name);
+  const [extras, setExtras] = useState(["Vocal tuning"]);
+  const tg = MIX_TARGETS.find((x) => x.name === target);
+  const toggle = (e) => setExtras((s) => (s.includes(e) ? s.filter((x) => x !== e) : [...s, e]));
+  return (
+    <div className="card">
+      <div className="card-header">🎚️ Mix ConnectZ</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Mode</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{MIX_MODES.map((m) => <Pill key={m} active={mode === m} onClick={() => setMode(m)}>{m}</Pill>)}</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Loudness target</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{MIX_TARGETS.map((x) => <Pill key={x.name} active={target === x.name} onClick={() => setTarget(x.name)}>{x.name} · {x.lufs}</Pill>)}</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Enhancements</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{MIX_EXTRAS.map((e) => <Pill key={e} active={extras.includes(e)} onClick={() => toggle(e)}>{e}</Pill>)}</div>
+      <button className="btn" style={{ width: "100%" }}>🎛️ {mode} → {tg.lufs}</button>
+      <IntelNote role="Mix Engineer" />
+    </div>
+  );
+}
+
+function VideoConnectZ() {
+  const [type, setType] = useState(VIDEO_TYPES[0].name);
+  const [prompt, setPrompt] = useState("");
+  const t = VIDEO_TYPES.find((x) => x.name === type);
+  return (
+    <div className="card">
+      <div className="card-header">📺 Video ConnectZ <span className="tag">{t.ratio}</span></div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{VIDEO_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}</div>
+      <div className="form-group"><label>Concept</label><textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${type.toLowerCase()}`} /></div>
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {type} ({t.ratio})</button>
+      <IntelNote role="Videographer" reusable />
+    </div>
+  );
+}
+
+function SentenceConnectZ() {
+  const [doc, setDoc] = useState(DOC_TYPES[0]);
+  return (
+    <div className="card">
+      <div className="card-header">📃 Sentence ConnectZ</div>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Document type</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{DOC_TYPES.map((d) => <Pill key={d} active={doc === d} onClick={() => setDoc(d)}>{d}</Pill>)}</div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>Controls: ChatGPT toggle · document language · Explicit / Slang / Emoji toggles. LyricZ adds genre, mood, metaphor/simile/pun density and syllable-rhyme ranges.</p>
+      <button className="btn" style={{ width: "100%" }}>✍️ Generate {doc}</button>
+      <IntelNote role="Ghostwriter" reusable />
+    </div>
+  );
+}
+
+function OccConnectZ({ tier }) {
+  const t = occTierFor(tier);
+  const [lang, setLang] = useState(t.languages[0]);
+  return (
+    <div className="card">
+      <div className="card-header">👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>{t.desc}</p>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Language ({t.label} tier)</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{t.languages.map((l) => <Pill key={l} active={lang === l} onClick={() => setLang(l)}>{l}</Pill>)}</div>
+      <button className="btn" style={{ width: "100%" }}>🎮 Generate {t.complexity.toLowerCase()} game in {lang} → GameZ</button>
+      <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
+      <IntelNote role="Developer" />
+    </div>
+  );
+}
+
+function IntelligencePage({ tier }) {
+  const [app, setApp] = useState("image");
+  const Body = { image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
+  return (
+    <>
+      <div className="launch-grid" style={{ marginBottom: 14 }}>
+        {INTEL_APPS.map((a) => (
+          <button key={a.id} className={`app-tile${app === a.id ? " active" : ""}`} onClick={() => setApp(a.id)}>
+            <span className="tile-icon"><IconImg icon={a.icon} alt={a.name} /></span>
+            <span className="tile-name">{a.name.replace(" ConnectZ", "")}</span>
+          </button>
+        ))}
+      </div>
+      <Body tier={tier} />
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
@@ -1315,6 +1462,7 @@ const FN_PAGES = {
   messagez: MessageZPage,
   labelz: LabelZPage,
   lilith: LilithPage,
+  intelligence: IntelligencePage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,
