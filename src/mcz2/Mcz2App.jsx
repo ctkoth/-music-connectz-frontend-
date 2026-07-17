@@ -9,7 +9,10 @@ import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
 import { devTaxFor, splitTransaction, money } from "./economy.js";
-import { isSignedIn, getWallet, addFundsApi, setTierApi } from "./economyApi.js";
+import {
+  isSignedIn, getWallet, addFundsApi, setTierApi,
+  getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
+} from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
 
@@ -382,9 +385,19 @@ const SPECZ_ITEMS = [
   { id: "trending", name: "Trending Metadata Report", emoji: "📈", price: 8.99, desc: "This week's rising tags, sounds, and metadata across the platform." },
 ];
 
-function SpecZPage({ tier }) {
-  const { state, updateWallet, addTo } = useAppState();
+function SpecZPage({ tier, serverOk, syncEconomy }) {
+  const { state, updateWallet, addTo, update } = useAppState();
+  const [err, setErr] = useState("");
   const isStatz = /stat[sz]/i.test(tier || "");
+
+  // When live, pull the authoritative owned-list from the backend.
+  useEffect(() => {
+    if (!serverOk || !isStatz) return;
+    getSpecZApi()
+      .then((r) => update({ speczOwned: r.items.filter((i) => i.owned).map((i) => i.id) }))
+      .catch(() => {});
+  }, [serverOk, isStatz]);
+
   if (!isStatz) {
     return (
       <div className="card">
@@ -397,10 +410,24 @@ function SpecZPage({ tier }) {
     );
   }
   const owned = state.speczOwned || [];
-  const buy = (item) => {
+  const buy = async (item) => {
     if (owned.includes(item.id)) return;
+    setErr("");
+    if (serverOk) {
+      try {
+        const r = await buySpecZApi(item.id); // server deducts, records dev tax, enforces StatZ gate
+        updateWallet({ balance: r.wallet.money });
+        addTo("speczOwned", item.id);
+        addTo("paymentHistory", { amount: -item.price, dev: r.dev_tax_cents / 100, at: Date.now(), note: `SpecZ: ${item.name}` });
+        syncEconomy?.();
+        return;
+      } catch (e) {
+        setErr(e.message || "Purchase failed");
+        return; // don't silently grant the item on a server rejection
+      }
+    }
     if (state.wallet.balance < item.price) return;
-    const { dev } = splitTransaction(item.price, tier); // developer tax enforced on the sale
+    const { dev } = splitTransaction(item.price, tier); // local developer tax
     updateWallet({ balance: Number((state.wallet.balance - item.price).toFixed(2)) });
     addTo("speczOwned", item.id);
     addTo("paymentHistory", { amount: -item.price, dev, at: Date.now(), note: `SpecZ: ${item.name}` });
@@ -409,9 +436,10 @@ function SpecZPage({ tier }) {
   return (
     <>
       <div className="stripe-section">
-        <div className="stripe-title">✴️ SpecZ Marketplace</div>
+        <div className="stripe-title">✴️ SpecZ Marketplace {serverOk ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</div>
         <div className="balance-info">Purchase user metadata &amp; UGC with your wallet · Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> · {label} developer tax {Math.round(rate * 100)}% on every buy</div>
       </div>
+      {err && <div className="card" style={{ color: "var(--danger)", fontSize: 12 }}>⚠️ {err}</div>}
       {SPECZ_ITEMS.map((item) => {
         const have = owned.includes(item.id);
         const canAfford = state.wallet.balance >= item.price;
@@ -1312,9 +1340,80 @@ function DistributeZPage({ tier }) {
   );
 }
 
-function RoyaltieZPage() {
-  const { state } = useAppState();
-  return <LedgerPage emoji="👑" title="RoyaltieZ" balance={money(state.royalties || 0)} log={state.royaltyLog} note="Every royalty source is timestamped. Instant cashout 15% tax · weekly tiered · monthly 1% · 3-month 0%." />;
+const CASHOUT_PLANS = [
+  { id: "instant", label: "⚡ Instant", tax: "15% tax" },
+  { id: "weekly", label: "📅 Weekly", tax: "your dev-tax rate" },
+  { id: "monthly", label: "🗓️ Monthly", tax: "1% tax" },
+  { id: "quarterly", label: "📆 3-month", tax: "0% tax" },
+];
+function RoyaltieZPage({ tier, serverOk, syncEconomy }) {
+  const { state, update, updateWallet, addTo } = useAppState();
+  const [royalties, setRoyalties] = useState(state.royalties || 0);
+  const [entries, setEntries] = useState(null);
+  const [plan, setPlan] = useState("weekly");
+  const [msg, setMsg] = useState("");
+
+  const load = () => {
+    if (!serverOk) return;
+    getRoyaltiesApi()
+      .then((r) => {
+        setRoyalties(r.royalties);
+        setEntries(r.entries);
+        update({ royalties: r.royalties });
+      })
+      .catch(() => {});
+  };
+  useEffect(load, [serverOk]);
+
+  const cashout = async () => {
+    setMsg("");
+    if (!serverOk) { setMsg("Cashout requires a live connection to the economy backend."); return; }
+    try {
+      const r = await cashoutRoyaltiesApi(plan); // server applies plan tax, moves net to wallet
+      const b = r.breakdown;
+      updateWallet({ balance: r.wallet.money, earned: Number((state.wallet.earned + b.net_cents / 100).toFixed(2)) });
+      addTo("paymentHistory", { amount: b.net_cents / 100, dev: b.tax_cents / 100, at: Date.now(), note: `Royalty cashout (${b.plan})` });
+      setMsg(`Cashed out ${money(b.gross_cents / 100)} → ${money(b.net_cents / 100)} to wallet (tax ${money(b.tax_cents / 100)}).`);
+      load();
+      syncEconomy?.();
+    } catch (e) {
+      setMsg(e.message || "Cashout failed");
+    }
+  };
+
+  const log = entries
+    ? entries.map((e) => ({ amount: e.amount_cents / 100, note: e.kind === "cashout" ? `Cashout · tax ${money(e.tax_cents / 100)}` : (e.source || "Accrual"), at: new Date(e.created_at).getTime() }))
+    : state.royaltyLog;
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">👑 RoyaltieZ {serverOk ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</div>
+        <div className="balance-info">Royalty balance: <strong>{money(royalties)}</strong> · Every source is timestamped. Instant 15% · weekly tiered · monthly 1% · 3-month 0%.</div>
+        <div className="form-group" style={{ marginTop: 8 }}>
+          <label>Cashout plan</label>
+          <select value={plan} onChange={(e) => setPlan(e.target.value)}>
+            {CASHOUT_PLANS.map((p) => <option key={p.id} value={p.id}>{p.label} — {p.tax}</option>)}
+          </select>
+        </div>
+        <button className="btn" style={{ width: "100%", marginTop: 8 }} disabled={!serverOk || royalties <= 0} onClick={cashout}>
+          💸 Cash out {money(royalties)} to wallet
+        </button>
+        {msg && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>{msg}</p>}
+      </div>
+      <div className="card">
+        <div className="card-header">🧾 Royalty Log</div>
+        {(!log || log.length === 0) ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No royalty activity yet.</p>
+        ) : [...log].reverse().map((e, i) => (
+          <div key={i} className="skill-item">
+            <span className="skill-item-name" style={{ color: e.amount >= 0 ? "var(--success)" : "var(--danger)" }}>{e.amount >= 0 ? "+" : ""}{money(e.amount)} · {e.note}</span>
+            <span className="skill-item-exp">{new Date(e.at).toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
 
 const DEMO_INBOX = [
