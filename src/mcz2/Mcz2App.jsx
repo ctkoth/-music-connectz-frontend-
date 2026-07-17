@@ -9,6 +9,7 @@ import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
 import { devTaxFor, splitTransaction, money } from "./economy.js";
+import { isSignedIn, getWallet, addFundsApi, setTierApi } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
 
@@ -229,13 +230,24 @@ function ProfilePage() {
   );
 }
 
-function MoneyPage({ tier }) {
-  const { state, updateWallet, addTo } = useAppState();
+function MoneyPage({ tier, serverOk, syncEconomy }) {
+  const { state, update, updateWallet, addTo } = useAppState();
   const [amt, setAmt] = useState("");
-  const add = () => {
+  const add = async () => {
     const v = parseFloat(amt);
     if (!v || v <= 0) return;
-    const { net, dev } = splitTransaction(v, tier); // developer tax enforced
+    if (serverOk) {
+      try {
+        const r = await addFundsApi(Math.round(v * 100)); // server enforces dev tax
+        updateWallet({ balance: r.wallet.money, earned: Number((state.wallet.earned + (r.breakdown.net_cents / 100)).toFixed(2)) });
+        update({ energy: r.wallet.energy, spinaz: r.wallet.spinaz });
+        addTo("paymentHistory", { amount: r.breakdown.net_cents / 100, gross: v, dev: r.breakdown.dev_tax_cents / 100, at: Date.now(), note: "Add funds" });
+        setAmt("");
+        syncEconomy?.();
+        return;
+      } catch { /* fall through to local */ }
+    }
+    const { net, dev } = splitTransaction(v, tier); // local developer tax
     updateWallet({ balance: Number((state.wallet.balance + net).toFixed(2)), earned: Number((state.wallet.earned + net).toFixed(2)) });
     addTo("paymentHistory", { amount: net, gross: v, dev, at: Date.now(), note: "Add funds" });
     setAmt("");
@@ -244,7 +256,7 @@ function MoneyPage({ tier }) {
   return (
     <>
       <div className="stripe-section">
-        <div className="stripe-title">💳 Wallet</div>
+        <div className="stripe-title">💳 Wallet {serverOk ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</div>
         <div className="balance-info">
           Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> &nbsp;·&nbsp; Lifetime earned: <strong>${Number(state.wallet.earned).toFixed(2)}</strong>
         </div>
@@ -269,12 +281,26 @@ function MoneyPage({ tier }) {
   );
 }
 
-function SettingsPage({ tier }) {
+function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
   const { state, updateSettings, toggleSetting } = useAppState();
   const { settings } = state;
   const { tier: tierLabel, colors, locked } = accentOptionsFor(tier);
+  const switchTier = async (t) => {
+    try { const r = await setTierApi(t); onTierChange?.(r.tier); syncEconomy?.(); } catch { /* offline */ }
+  };
   return (
     <>
+      {serverOk && (
+        <div className="card">
+          <div className="card-header"><span>🧪 Membership (dev)</span><span className="tag">live</span></div>
+          <div className="chip-wrap">
+            {["free", "premium", "statz"].map((t) => (
+              <button key={t} className={`heritage-chip${/stat/.test(tier) && t === "statz" || /prem|pro/.test(tier) && t === "premium" || (!/stat|prem|pro/.test(tier) && t === "free") ? " sel" : ""}`} onClick={() => switchTier(t)}>{t}</button>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Preview tier gating live against the backend. Real upgrades go through billing.</p>
+        </div>
+      )}
       <div className="card">
         <div className="card-header">
           <span>🎨 Tab Highlight Glow</span>
@@ -1737,10 +1763,22 @@ function Shell() {
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
   const [tier, setTier] = useState("");
+  const [serverOk, setServerOk] = useState(false);
 
+  // Hydrate money/energy/spinaz + tier from the backend economy when signed in;
+  // silently stay on local state if the API is unavailable.
+  const syncEconomy = () => {
+    getWallet()
+      .then((r) => {
+        setServerOk(true);
+        update({ wallet: { ...state.wallet, balance: r.wallet.money }, energy: r.wallet.energy, spinaz: r.wallet.spinaz });
+      })
+      .catch(() => setServerOk(false));
+  };
   useEffect(() => {
     let on = true;
     api("/api/auth/stats/").then((s) => on && setTier(s?.my_tier || "")).catch(() => {});
+    if (isSignedIn()) syncEconomy();
     return () => { on = false; };
   }, []);
 
@@ -1803,7 +1841,7 @@ function Shell() {
             <>
               <button className="btn btn-secondary btn-small" onClick={goHome} style={{ marginBottom: 12 }}>‹ Home</button>
               <div className="card-header" style={{ borderBottom: "none" }}>{activeApp?.emoji} {activeApp?.name}</div>
-              <FnPage tier={tier} onOpen={openApp} />
+              <FnPage tier={tier} onOpen={openApp} serverOk={serverOk} syncEconomy={syncEconomy} onTierChange={setTier} />
             </>
           ) : (
             CATALOG.map((group) => (
