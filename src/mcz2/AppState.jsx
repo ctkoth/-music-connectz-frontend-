@@ -24,6 +24,7 @@ const DEFAULT_STATE = {
   boardPosts: [],
   speczOwned: [],
   games: [],
+  callLog: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,

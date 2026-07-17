@@ -9,6 +9,7 @@ import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
+import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { devTaxFor, splitTransaction, money, mbLabel } from "./economy.js";
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
@@ -1965,7 +1966,174 @@ function GameZPage() {
   );
 }
 
+function CallZPage({ tier, onOpen }) {
+  const { state, updateWallet, addTo } = useAppState();
+  const isStatz = /stat[sz]/i.test(tier || "");
+  const [mode, setMode] = useState("ai"); // ai | user
+  const [method, setMethod] = useState("cash"); // cash | spinaz
+  const [aiModel, setAiModel] = useState(AI_MODELS[0].id);
+  const [callee, setCallee] = useState(CALLABLE_USERS[0].id);
+  const [session, setSession] = useState(null); // { startedAt, seconds }
+  const balance = Number(state.wallet.balance || 0);
+
+  // Live call timer: tick once a second while a call is active.
+  useEffect(() => {
+    if (!session) return undefined;
+    const t = setInterval(() => setSession((s) => (s ? { ...s, seconds: s.seconds + 1 } : s)), 1000);
+    return () => clearInterval(t);
+  }, [session?.startedAt]);
+
+  // Auto-hang-up when the running cost reaches the wallet balance (calls are
+  // billed from cash, so you can't run a negative balance).
+  useEffect(() => {
+    if (session && callCost(session.seconds, session.rate, session.unit) >= balance) {
+      endCall(session, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.seconds, balance]);
+
+  if (!isStatz) {
+    return (
+      <div className="card">
+        <div className="card-header">📞 CallZ — StatZ only</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          🔒 CallZ is a <strong>StatZ</strong> feature. Upgrade to place live AI calls (billed per minute) and user calls
+          (billed per hour) straight from your cash balance.
+        </p>
+      </div>
+    );
+  }
+
+  const aiPick = AI_MODELS.find((m) => m.id === aiModel);
+  const userPick = CALLABLE_USERS.find((u) => u.id === callee);
+  const rate = mode === "ai" ? aiPick.perMin : userPick.perHour;
+  const unit = mode === "ai" ? AI_UNIT_SECONDS : USER_UNIT_SECONDS;
+  const rateLabel = mode === "ai" ? `${money(rate)}/min` : `${money(rate)}/hr`;
+
+  const start = () => {
+    if (method === "spinaz" || balance <= 0 || session) return;
+    setSession({
+      startedAt: Date.now(), seconds: 0, rate, unit,
+      who: mode === "ai" ? aiPick.name : userPick.name,
+      mode,
+    });
+  };
+
+  const endCall = (s = session, autoEnded = false) => {
+    if (!s) return;
+    const gross = Math.min(Number(callCost(s.seconds, s.rate, s.unit).toFixed(2)), balance);
+    if (gross > 0) {
+      const { dev } = splitTransaction(gross, tier); // developer tax on the call spend
+      updateWallet({ balance: Number((balance - gross).toFixed(2)) });
+      addTo("paymentHistory", { amount: -gross, dev, at: Date.now(), note: `CallZ · ${s.mode === "ai" ? "AI" : "User"}: ${s.who}` });
+      addTo("callLog", { id: Date.now(), who: s.who, mode: s.mode, seconds: s.seconds, cost: gross, autoEnded, at: Date.now() });
+    }
+    setSession(null);
+  };
+
+  const runningCost = session ? callCost(session.seconds, session.rate, session.unit) : 0;
+  const canCall = method === "cash" && balance > 0 && !session;
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">📞 CallZ <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>StatZ</span></div>
+        <div className="balance-info">Balance: <strong>{money(balance)}</strong> · Calls bill your cash wallet · {devTaxFor(tier).label} developer tax {Math.round(devTaxFor(tier).rate * 100)}% on every call</div>
+      </div>
+
+      {/* Active call panel */}
+      {session && (
+        <div className="card" style={{ textAlign: "center", border: "1px solid var(--accent, #22e6ff)" }}>
+          <div className="card-header" style={{ justifyContent: "center" }}>🟢 On call — {session.who}</div>
+          <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: 1 }}>{fmtDuration(session.seconds)}</div>
+          <div style={{ fontSize: 12, color: "var(--text-light)", margin: "6px 0 12px" }}>
+            {rateLabel} · running {money(runningCost)} · {money(Math.max(balance - runningCost, 0))} left
+          </div>
+          <button className="btn btn-danger" style={{ width: "100%" }} onClick={() => endCall()}>📴 End call</button>
+        </div>
+      )}
+
+      {!session && (
+        <div className="card">
+          <div className="chip-wrap" style={{ marginBottom: 12 }}>
+            <button className={`heritage-chip${mode === "ai" ? " sel" : ""}`} onClick={() => setMode("ai")}>🤖 AI</button>
+            <button className={`heritage-chip${mode === "user" ? " sel" : ""}`} onClick={() => setMode("user")}>🗣️ User</button>
+          </div>
+
+          {mode === "ai" ? (
+            <>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }}>AI model — cost varies by model</label>
+              <div style={{ margin: "6px 0 12px" }}>
+                {AI_MODELS.map((m) => (
+                  <div key={m.id} className={`skill-item${aiModel === m.id ? "" : ""}`} onClick={() => setAiModel(m.id)}
+                    style={{ cursor: "pointer", border: `1px solid ${aiModel === m.id ? "var(--accent, #22e6ff)" : "var(--border)"}`, borderRadius: 10, padding: 10, marginBottom: 6 }}>
+                    <span className="skill-item-name">{m.emoji} {m.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>— {m.desc}</span></span>
+                    <span className="skill-item-exp">{money(m.perMin)}/min</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }}>Call a user — hourly rate scales with skill</label>
+              <div style={{ margin: "6px 0 12px" }}>
+                {CALLABLE_USERS.map((u) => (
+                  <div key={u.id} className="skill-item" onClick={() => setCallee(u.id)}
+                    style={{ cursor: "pointer", border: `1px solid ${callee === u.id ? "var(--accent, #22e6ff)" : "var(--border)"}`, borderRadius: 10, padding: 10, marginBottom: 6 }}>
+                    <span className="skill-item-name">🗣️ {u.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>— {u.skill}</span></span>
+                    <span className="skill-item-exp">{money(u.perHour)}/hr</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Payment</label>
+          <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
+            <button className={`heritage-chip${method === "cash" ? " sel" : ""}`} onClick={() => setMethod("cash")}>💵 Cash balance</button>
+            <button className={`heritage-chip${method === "spinaz" ? " sel" : ""}`} onClick={() => setMethod("spinaz")}>🍥 SpinAZ</button>
+          </div>
+
+          {method === "spinaz" ? (
+            <div className="card" style={{ margin: 0, background: "rgba(255,207,63,0.08)" }}>
+              <p style={{ fontSize: 12, color: "var(--text-light)" }}>🍥 SpinAZ calling is <strong>coming soon</strong>. For now, add a cash balance via Stripe/PayPal to place calls.</p>
+              <button className="btn btn-small" style={{ marginTop: 8 }} onClick={() => onOpen?.("money")}>➕ Add balance</button>
+            </div>
+          ) : balance <= 0 ? (
+            <div className="card" style={{ margin: 0, background: "rgba(255,43,209,0.08)" }}>
+              <p style={{ fontSize: 12, color: "var(--text-light)" }}>💸 Calls require a cash balance. Add funds to start calling.</p>
+              <button className="btn btn-small" style={{ marginTop: 8 }} onClick={() => onOpen?.("money")}>➕ Add balance</button>
+            </div>
+          ) : (
+            <>
+              <div className="balance-info" style={{ marginBottom: 8 }}>
+                Rate: <strong>{rateLabel}</strong> · you can talk ~<strong>{fmtDuration(Math.floor((balance / rate) * unit))}</strong> on {money(balance)}
+              </div>
+              <button className="btn btn-success" style={{ width: "100%" }} disabled={!canCall} onClick={start}>
+                📞 Call {mode === "ai" ? aiPick.name : userPick.name} — {rateLabel}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-header">🧾 Call History</div>
+        {(!state.callLog || state.callLog.length === 0) ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No calls yet.</p>
+        ) : [...state.callLog].reverse().map((c) => (
+          <div key={c.id} className="skill-item">
+            <span className="skill-item-name">{c.mode === "ai" ? "🤖" : "🗣️"} {c.who} · {fmtDuration(c.seconds)}{c.autoEnded ? " · ⚠️ funds" : ""}</span>
+            <span className="skill-item-exp">{money(c.cost)} · {new Date(c.at).toLocaleDateString()}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
+  callz: CallZPage,
   gamez: GameZPage,
   filez: FileZPage,
   onboardz: OnboardZPage,

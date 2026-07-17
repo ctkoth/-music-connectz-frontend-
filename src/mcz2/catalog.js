@@ -79,7 +79,7 @@ export const CATALOG = [
         ],
       },
       {
-        key: "callz", name: "CallZ", emoji: "📞", icon: "callz.png",
+        key: "callz", name: "CallZ", emoji: "📞", icon: "callz.png", fn: true,
         desc: "Available to StatZ; requires a cash balance to call. SpinAZ attempts say \"coming soon\" and prompt you to add balance via Stripe/PayPal.",
         children: [
           { name: "AI", emoji: "🤖", icon: "callz_ai.png", desc: "Costs vary by AI model choice." },
