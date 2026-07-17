@@ -912,10 +912,20 @@ const BATTLE_MODES = [
   { id: "freestyle", label: "🆓 Freestyle" },
   { id: "cypher", label: "🧑‍🤝‍🧑 Cypher" },
 ];
+const HOUR = 3600e3;
+const BATTLE_WINDOW = 24 * HOUR; // battles close 24h after the post
+// postedAt seeded relative to load: 1v1 open (~22h left), freestyle already
+// closed (shows a decided winner), cypher open. `seed` are community votes —
+// participants' own votes never count.
 const DEMO_BATTLES = {
-  "1v1": { a: { name: "Kaya", track: "Midnight Bloom", seed: [8, 9, 7] }, b: { name: "Diego", track: "Calle Fuego", seed: [7, 6, 8] } },
-  freestyle: { a: { name: "Luka", track: "Off the Dome #14", seed: [6, 7] }, b: { name: "Mei", track: "No Pen Freestyle", seed: [9, 8, 9] } },
-  cypher: { a: { name: "Team North", track: "Cypher Round 1", seed: [7, 8, 7] }, b: { name: "Team South", track: "Cypher Round 2", seed: [8, 6, 7] } },
+  "1v1": { postedAt: Date.now() - 2 * HOUR, viewerIsParticipant: false, a: { name: "Kaya", track: "Midnight Bloom", seed: [8, 9, 7] }, b: { name: "Diego", track: "Calle Fuego", seed: [7, 6, 8] } },
+  freestyle: { postedAt: Date.now() - 25 * HOUR, viewerIsParticipant: false, a: { name: "Luka", track: "Off the Dome #14", seed: [6, 7, 6] }, b: { name: "Mei", track: "No Pen Freestyle", seed: [9, 8, 9] } },
+  cypher: { postedAt: Date.now() - 12 * HOUR, viewerIsParticipant: true, a: { name: "Team North", track: "Cypher Round 1", seed: [7, 8, 7] }, b: { name: "Team South", track: "Cypher Round 2", seed: [8, 6, 7] } },
+};
+const fmtLeft = (ms) => {
+  if (ms <= 0) return "closed";
+  const h = Math.floor(ms / HOUR); const m = Math.floor((ms % HOUR) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
 function BattleZPage() {
@@ -930,13 +940,19 @@ function BattleZPage() {
   const rate = (side, n) => setRatings((r) => ({ ...r, [key(side)]: [...(r[key(side)] ?? battle[side].seed), n], [`${key(side)}:mine`]: n }));
   const skip = (side) => setRatings((r) => ({ ...r, [`${key(side)}:mine`]: 0 }));
 
+  const left = battle.postedAt + BATTLE_WINDOW - Date.now();
+  const closed = left <= 0;
+  const isParticipant = battle.viewerIsParticipant;
+
   const stat = (side) => {
-    const list = listFor(side);
+    const list = listFor(side); // community votes only — participants never count
     return { med: median(list), count: list.length, qualified: list.length >= 3 };
   };
   const A = stat("a"), B = stat("b");
+  // Winner requires the 24h window closed AND both sides with 3+ votes.
   const bothQualified = A.qualified && B.qualified;
-  const winner = !bothQualified ? null : A.med === B.med ? "tie" : A.med > B.med ? "a" : "b";
+  const decided = closed && bothQualified;
+  const winner = !decided ? null : A.med === B.med ? "tie" : A.med > B.med ? "a" : "b";
 
   const Contestant = ({ side }) => {
     const c = battle[side]; const s = stat(side); const mine = mineFor(side);
@@ -945,10 +961,14 @@ function BattleZPage() {
       <div className="card" style={win ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
         <div className="card-header">
           <span>{win ? "🏆 " : ""}{c.name}</span>
-          <span className="tag">{s.qualified ? `${s.med.toFixed(1)}/10` : `${s.count}/3 to qualify`}</span>
+          <span className="tag">{s.qualified ? `${s.med.toFixed(1)}/10` : `${s.count}/3 votes`}</span>
         </div>
-        <div className="post-meta" style={{ marginBottom: 10 }}>🎵 {c.track} · {s.count} rating{s.count === 1 ? "" : "s"}</div>
-        {mine == null ? (
+        <div className="post-meta" style={{ marginBottom: 10 }}>🎵 {c.track} · {s.count} vote{s.count === 1 ? "" : "s"}</div>
+        {closed ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 Voting closed · community median <strong>{s.med.toFixed(1)}/10</strong>{s.qualified ? "" : " (didn't reach 3 votes)"}.</p>
+        ) : isParticipant ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>🚫 You're a participant in this battle — contestants can't vote on their own battle.</p>
+        ) : mine == null ? (
           <RatingScale myRating={null} onRate={(n) => rate(side, n)} onSkip={() => skip(side)} />
         ) : (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>
@@ -969,19 +989,22 @@ function BattleZPage() {
       </div>
       <div className="card" style={{ textAlign: "center" }}>
         <div className="card-header" style={{ justifyContent: "center", borderBottom: "none" }}>🪖 {battle.a.name} vs {battle.b.name}</div>
-        {bothQualified ? (
+        {decided ? (
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>
             {winner === "tie" ? "🤝 It's a tie!" : `🏆 ${battle[winner].name} wins ${stat(winner).med.toFixed(1)}–${stat(winner === "a" ? "b" : "a").med.toFixed(1)}`}
           </p>
+        ) : closed ? (
+          <p style={{ fontSize: 12, color: "var(--accent)" }}>Voting closed — no winner: both sides need 3+ votes to qualify.</p>
         ) : (
-          <p style={{ fontSize: 12, color: "var(--text-light)" }}>Both tracks need 3+ ratings to qualify a winner. Rate them below.</p>
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>⏳ Voting closes in <strong>{fmtLeft(left)}</strong> · winner is the higher community median once 3+ votes are in on each side.</p>
         )}
       </div>
       <Contestant side="a" />
       <Contestant side="b" />
       <div className="card">
         <p style={{ fontSize: 11, color: "var(--text-light)" }}>
-          💰 Verified 18+ contestants can bet money on themselves; everyone else bets 🍥 SpinAZ. Betting settles when the battle closes — wired with the payments backend.
+          🏁 A battle is won by the higher score (community median) once voting closes <strong>24h after posting</strong>, needing at least <strong>3 votes</strong> per side. Participants can't vote on their own battle.
+          <br />💰 Verified 18+ contestants can bet money on themselves; everyone else bets 🍥 SpinAZ. Betting settles at close — wired with the payments backend.
         </p>
       </div>
     </>
