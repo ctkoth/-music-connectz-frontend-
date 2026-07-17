@@ -50,3 +50,17 @@ export const uploadFileApi = (file) => {
 
 export const deleteUploadApi = (id) =>
   api(`/api/economy/uploads/${id}/`, { method: "DELETE" });
+
+// { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
+export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
+
+// Stripe Checkout — returns { url } to redirect the browser to.
+export const createStripeCheckout = (amountCents) =>
+  api("/api/economy/checkout/stripe/", { method: "POST", body: { amount_cents: amountCents } });
+
+// PayPal — returns { id, approve_url } to redirect to; capture on return.
+export const createPaypalOrder = (amountCents) =>
+  api("/api/economy/checkout/paypal/", { method: "POST", body: { amount_cents: amountCents } });
+
+export const capturePaypalOrder = (orderId) =>
+  api("/api/economy/checkout/paypal/capture/", { method: "POST", body: { order_id: orderId } });

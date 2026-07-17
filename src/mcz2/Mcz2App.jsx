@@ -16,6 +16,7 @@ import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
   getUploadsApi, uploadFileApi, deleteUploadApi,
+  getCheckoutConfig, createStripeCheckout, createPaypalOrder, capturePaypalOrder,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -276,6 +277,73 @@ function ProfilePage() {
 function MoneyPage({ tier, serverOk, syncEconomy }) {
   const { state, update, updateWallet, addTo } = useAppState();
   const [amt, setAmt] = useState("");
+  const [checkout, setCheckout] = useState(null); // { stripe_enabled, paypal_enabled, min_cents, max_cents }
+  const [payBusy, setPayBusy] = useState("");     // "stripe" | "paypal" while redirecting
+  const [notice, setNotice] = useState("");
+
+  // Load which checkout providers are live.
+  useEffect(() => {
+    if (!serverOk) return;
+    getCheckoutConfig().then(setCheckout).catch(() => setCheckout(null));
+  }, [serverOk]);
+
+  // Handle the return from a hosted checkout (Stripe/PayPal redirect back here).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("checkout");
+    if (!result) return;
+    const provider = params.get("provider");
+    const cleanUrl = () => window.history.replaceState({}, "", window.location.pathname);
+    if (result === "cancel") {
+      setNotice("Checkout canceled — no charge was made.");
+      cleanUrl();
+      return;
+    }
+    if (result === "success") {
+      (async () => {
+        // PayPal must be captured on return; Stripe credits via webhook.
+        if (provider === "paypal") {
+          const token = params.get("token");
+          if (token) { try { await capturePaypalOrder(token); } catch { /* may already be captured */ } }
+        }
+        setNotice("Payment received — your balance will update momentarily.");
+        syncEconomy?.();
+        setTimeout(() => syncEconomy?.(), 3000); // webhook may lag a beat
+        cleanUrl();
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const payCents = () => Math.round((parseFloat(amt) || 0) * 100);
+
+  const payStripe = async () => {
+    const cents = payCents();
+    if (cents <= 0) return;
+    setPayBusy("stripe"); setNotice("");
+    try {
+      const r = await createStripeCheckout(cents);
+      window.location.href = r.url; // hosted Stripe Checkout
+    } catch (e) {
+      setNotice(e.message || "Could not start Stripe checkout");
+      setPayBusy("");
+    }
+  };
+
+  const payPaypal = async () => {
+    const cents = payCents();
+    if (cents <= 0) return;
+    setPayBusy("paypal"); setNotice("");
+    try {
+      const r = await createPaypalOrder(cents);
+      if (r.approve_url) window.location.href = r.approve_url;
+      else throw new Error("No approval URL returned");
+    } catch (e) {
+      setNotice(e.message || "Could not start PayPal checkout");
+      setPayBusy("");
+    }
+  };
+
   const add = async () => {
     const v = parseFloat(amt);
     if (!v || v <= 0) return;
@@ -303,11 +371,33 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
         <div className="balance-info">
           Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> &nbsp;·&nbsp; Lifetime earned: <strong>${Number(state.wallet.earned).toFixed(2)}</strong>
         </div>
-        <div className="form-group"><label>Add funds — {label} developer tax {Math.round(rate * 100)}%</label>
+        <div className="form-group"><label>Amount — {label} developer tax {Math.round(rate * 100)}%</label>
           <input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0.00" /></div>
         <CostBreakdown amount={amt} tier={tier} recipient="Your wallet" />
-        <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={add}>➕ Add to balance</button>
-        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Every transaction shows the developer tax up front. Stripe/PayPal checkout wires in with the payments backend.</p>
+        {notice && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{notice}</p>}
+
+        {/* Real checkout — buttons appear only for providers the backend has configured. */}
+        {(checkout?.stripe_enabled || checkout?.paypal_enabled) && (
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            {checkout.stripe_enabled && (
+              <button className="btn" style={{ flex: 1 }} disabled={!!payBusy || payCents() <= 0} onClick={payStripe}>
+                {payBusy === "stripe" ? "…" : "💳 Card"}
+              </button>
+            )}
+            {checkout.paypal_enabled && (
+              <button className="btn" style={{ flex: 1, background: "#ffc439", color: "#003087" }} disabled={!!payBusy || payCents() <= 0} onClick={payPaypal}>
+                {payBusy === "paypal" ? "…" : "PayPal"}
+              </button>
+            )}
+          </div>
+        )}
+
+        <button className="btn btn-secondary btn-small" style={{ width: "100%", marginTop: 10 }} onClick={add}>➕ Dev top-up (no charge)</button>
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
+          {checkout?.stripe_enabled || checkout?.paypal_enabled
+            ? "Card & PayPal run through hosted checkout. Every transaction shows the developer tax up front."
+            : "Card/PayPal checkout activates once the payment providers are configured on the backend. Dev top-up credits instantly for testing."}
+        </p>
       </div>
       <div className="card">
         <div className="card-header">🧾 Payment History</div>
@@ -2272,7 +2362,10 @@ function Shell() {
 
   // Brand-new users land in the OnboardZ guided first session.
   const isNewUser = !state.user.name && state.personas.length === 0 && state.examples.length === 0 && !state.onboardDismissed;
-  const [view, setView] = useState(isNewUser ? "onboardz" : null); // null = launcher; else an fn app key
+  // Returning from a Stripe/PayPal checkout lands on /v2?checkout=… — open the
+  // wallet so MoneyPage can capture/confirm the payment.
+  const returningFromCheckout = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("checkout");
+  const [view, setView] = useState(returningFromCheckout ? "money" : (isNewUser ? "onboardz" : null)); // null = launcher; else an fn app key
   const [modalApp, setModalApp] = useState(null);
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
