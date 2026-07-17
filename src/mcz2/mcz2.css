@@ -61,6 +61,8 @@
   text-align: center; font-size: 11px; cursor: pointer; color: var(--gold, #ffcf3f); transition: all 0.2s;
 }
 .mcz2-root .balance:hover { box-shadow: var(--glow); }
+.mcz2-root .balances { display: flex; gap: 5px; }
+.mcz2-root .balances .balance { padding: 5px 8px; font-size: 10px; color: var(--text); }
 .mcz2-root .profile-pic {
   width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden;
   display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;

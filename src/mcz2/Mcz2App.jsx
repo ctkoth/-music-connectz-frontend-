@@ -1011,12 +1011,90 @@ function BattleZPage() {
   );
 }
 
+function LedgerPage({ emoji, title, balance, log, note }) {
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">{emoji} {title}</div>
+        <div className="balance-info">Balance: <strong>{balance}</strong>{note ? <> · {note}</> : null}</div>
+      </div>
+      <div className="card">
+        <div className="card-header">🧾 Log</div>
+        {(!log || log.length === 0) ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No activity yet.</p>
+        ) : [...log].reverse().map((e, i) => (
+          <div key={i} className="skill-item">
+            <span className="skill-item-name" style={{ color: e.amount >= 0 ? "var(--success)" : "var(--danger)" }}>{e.amount >= 0 ? "+" : ""}{e.amount} · {e.note}</span>
+            <span className="skill-item-exp">{new Date(e.at).toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+function SpinaZPage() {
+  const { state } = useAppState();
+  return <LedgerPage emoji="🍥" title="SpinAZ" balance={state.spinaz || 0} log={state.spinazLog} note="Buy at 80% ($80 = 100). Earn by streaming media (sec played − 30)." />;
+}
+function EnergyPage() {
+  const { state } = useAppState();
+  return <LedgerPage emoji="⚡" title="Energy" balance={state.energy || 0} log={state.energyLog} note="Earn from ratings, comments, and daily activity." />;
+}
+
+const RATE_TYPES = [
+  { id: "image", label: "🖼 Image", item: "Cover: Neon Skyline", criteria: ["Artistic value", "Attractiveness"] },
+  { id: "text", label: "📝 Text", item: "Verse: 16 bars", criteria: ["Wit"] },
+  { id: "audio", label: "🎧 Audio", item: "Track: Midnight Bloom", criteria: ["Mix quality", "Performance"] },
+  { id: "video", label: "📹 Video", item: "Video: Calle Fuego", criteria: ["Performance", "Artist quality"] },
+];
+function RateConnectZPage() {
+  const { state, update, addTo } = useAppState();
+  const [type, setType] = useState("image");
+  const [rated, setRated] = useState({});
+  const t = RATE_TYPES.find((x) => x.id === type);
+  const award = (k, n) => {
+    if (rated[k] != null) return;
+    setRated((r) => ({ ...r, [k]: n }));
+    update({ energy: (state.energy || 0) + 1 }); // raters earn 1 Energy per rating
+    addTo("energyLog", { amount: 1, note: `Rated ${t.item}`, at: Date.now() });
+  };
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 14 }}>
+        {RATE_TYPES.map((x) => (
+          <button key={x.id} className={`heritage-chip${type === x.id ? " sel" : ""}`} onClick={() => setType(x.id)}>{x.label}</button>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-header">{t.label} · {t.item}</div>
+        {t.criteria.map((cr) => {
+          const k = `${type}:${cr}`;
+          return (
+            <div key={cr} style={{ marginBottom: 12 }}>
+              <div className="rate-sub" style={{ textAlign: "left", marginBottom: 6 }}>{cr}</div>
+              {rated[k] != null ? (
+                <p style={{ fontSize: 12, color: "var(--text-light)" }}>You rated <strong style={{ color: "var(--primary)" }}>{rated[k]}/10</strong> · earned +1 ⚡</p>
+              ) : (
+                <RatingScale myRating={null} onRate={(n) => award(k, n)} onSkip={() => setRated((r) => ({ ...r, [k]: 0 }))} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="card"><p style={{ fontSize: 11, color: "var(--text-light)" }}>Ratings are anonymous and curate the charts. Raters earn 1 ⚡ Energy per rating; 6+ ratings shape a media's median score, which feeds its price.</p></div>
+    </>
+  );
+}
+
 const FN_PAGES = {
   onboardz: OnboardZPage,
   groupz: GroupZPage,
   bodiez: BodieZPage,
   zodiacz: ZodiacZPage,
   battlez: BattleZPage,
+  spinaz: SpinaZPage,
+  energy: EnergyPage,
+  ratez: RateConnectZPage,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,
@@ -1194,7 +1272,11 @@ function Shell() {
             <button className="theme-toggle" onClick={toggleLightDark} title="Panel depth">
               {settings.lightDark === "dark" ? "🌙" : "☀️"}
             </button>
-            <div className="balance" onClick={() => openApp("money")}>💰 ${balance}</div>
+            <div className="balances">
+              <div className="balance" onClick={() => openApp("money")} title="Money">💲{balance}</div>
+              <div className="balance" onClick={() => openApp("energy")} title="Energy">⚡{state.energy || 0}</div>
+              <div className="balance" onClick={() => openApp("spinaz")} title="SpinAZ">🍥{state.spinaz || 0}</div>
+            </div>
             <div className="profile-pic" onClick={() => openApp("profile")}>
               {(user?.username || "?").charAt(0).toUpperCase()}
             </div>
