@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
   sentenceDocs: [],
   videoProjects: [],
   facez: [],
+  venues: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
@@ -38,6 +39,7 @@ const DEFAULT_STATE = {
     accent: "#22e6ff", // tab-highlight glow color (premium/statz customizable)
     lightDark: "dark",
     notifications: true,
+    ratezAttractiveness: true, // let RateZ ratings move your attractiveness median
     collabAlerts: true,
     paymentAlerts: true,
     emailDigest: true,

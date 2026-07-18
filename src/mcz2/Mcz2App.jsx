@@ -1383,8 +1383,9 @@ const RATE_TYPES = [
   { id: "video", label: "📹 Video", item: "Video: Calle Fuego", criteria: ["Performance", "Artist quality"] },
 ];
 function RateConnectZPage() {
-  const { state, update, addTo } = useAppState();
+  const { state, update, addTo, toggleSetting } = useAppState();
   const [type, setType] = useState("image");
+  const attractOn = state.settings?.ratezAttractiveness !== false;
   const [rated, setRated] = useState({});
   const t = RATE_TYPES.find((x) => x.id === type);
   const award = (k, n) => {
@@ -1415,6 +1416,16 @@ function RateConnectZPage() {
             </div>
           );
         })}
+      </div>
+      <div className="card">
+        <div className="settings-toggle">
+          <label>💯 Let RateZ move my attractiveness median</label>
+          <div role="switch" aria-checked={attractOn} onClick={() => toggleSetting("ratezAttractiveness")}
+            className={`toggle-switch${attractOn ? " active" : ""}`} />
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 6 }}>
+          When on, the attractiveness ratings others give you adjust your median — the score used as a scalable filter on CollabZ, BattleZ, and VenueZ. Turn it off to keep your attractiveness private and unfiltered.
+        </p>
       </div>
       <div className="card"><p style={{ fontSize: 11, color: "var(--text-light)" }}>Ratings are anonymous and curate the charts. Raters earn 1 ⚡ Energy per rating; 6+ ratings shape a media's median score, which feeds its price.</p></div>
     </>
@@ -2463,6 +2474,141 @@ function VideoZPage() {
   );
 }
 
+const VENUE_TYPES = [
+  { id: "party", label: "🎉 Party" },
+  { id: "openmic", label: "🎙️ Open mic" },
+  { id: "theater", label: "🏟️ Theater" },
+  { id: "show", label: "🎞️ Show" },
+  { id: "custom", label: "❓ Custom" },
+];
+const SEED_VENUES = [
+  { id: "v-seed-1", title: "Rooftop Cypher", mode: "collaborative", type: "openmic", host: "Kaya", hostPrice: 10, visitorPay: 8, minAttract: 6, seed: true },
+  { id: "v-seed-2", title: "Neon Nights Showcase", mode: "performance", type: "show", host: "Azrael", hostPrice: 15, minAttract: 0, seed: true },
+  { id: "v-seed-3", title: "Midnight Theater Set", mode: "performance", type: "theater", host: "Lilith", hostPrice: 25, minAttract: 7, seed: true },
+];
+
+function VenueZPage({ tier, serverOk, syncEconomy }) {
+  const { state, updateWallet, addTo, setList } = useAppState();
+  const canCustom = true; // Custom type allowed for Free+ (everyone)
+  const [tab, setTab] = useState("discover"); // discover | host
+  const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+  const [msg, setMsg] = useState("");
+
+  const myAttract = (() => {
+    const r = (state.facez || []).flatMap((f) => f.ratings || []);
+    return r.length ? r.reduce((s, n) => s + n, 0) / r.length : null;
+  })();
+
+  const venues = [...(state.venues || []), ...SEED_VENUES];
+
+  const create = () => {
+    if (!form.title.trim()) return;
+    const v = {
+      id: `v-${Date.now()}`, title: form.title.trim(), mode: form.mode,
+      type: form.type, customName: form.type === "custom" ? form.custom.trim() : "",
+      host: state.user?.name || "you", hostPrice: Number(form.hostPrice) || 0,
+      visitorPay: form.mode === "collaborative" ? Number(form.visitorPay) || 0 : 0,
+      minAttract: Number(form.minAttract) || 0, at: Date.now(),
+    };
+    setList("venues", [v, ...(state.venues || [])]);
+    setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+    setTab("discover");
+  };
+
+  const join = (v) => {
+    setMsg("");
+    if (myAttract != null && v.minAttract > 0 && myAttract < v.minAttract) {
+      setMsg(`🔒 ${v.title} needs an attractiveness of ${v.minAttract}+ — yours is ${myAttract.toFixed(1)}.`);
+      return;
+    }
+    const bal = Number(state.wallet.balance) || 0;
+    if (bal < v.hostPrice) { setMsg(`Need ${money(v.hostPrice)} to attend — add funds.`); return; }
+    // Pay the host (developer tax enforced on the payment).
+    const paid = splitTransaction(v.hostPrice, tier);
+    let newBal = bal - v.hostPrice;
+    addTo("paymentHistory", { amount: -v.hostPrice, dev: paid.dev, at: Date.now(), note: `VenueZ: ${v.title} (attend)` });
+    // Collaborative: you also earn your skill payout (net of dev tax).
+    let earnNote = "";
+    if (v.mode === "collaborative" && v.visitorPay > 0) {
+      const earn = splitTransaction(v.visitorPay, tier);
+      newBal += earn.net;
+      addTo("paymentHistory", { amount: earn.net, dev: earn.dev, at: Date.now(), note: `VenueZ: ${v.title} (skill payout)` });
+      earnNote = ` · earned ${money(earn.net)} for your skill`;
+    }
+    updateWallet({ balance: Number(newBal.toFixed(2)) });
+    setMsg(`✅ Joined ${v.title} — paid ${money(v.hostPrice)} to ${v.host}${earnNote}.`);
+    syncEconomy?.();
+  };
+
+  const typeLabel = (v) => v.type === "custom" ? `❓ ${v.customName || "Custom"}` : VENUE_TYPES.find((t) => t.id === v.type)?.label || v.type;
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">🏛️ VenueZ</div>
+        <div className="balance-info">Go places with your music · Balance {money(state.wallet.balance)} · your attractiveness {myAttract != null ? myAttract.toFixed(1) : "—"}/10</div>
+        <div className="chip-wrap" style={{ marginTop: 8 }}>
+          <button className={`heritage-chip${tab === "discover" ? " sel" : ""}`} onClick={() => setTab("discover")}>🔎 Discover</button>
+          <button className={`heritage-chip${tab === "host" ? " sel" : ""}`} onClick={() => setTab("host")}>🏛️ Host a venue</button>
+        </div>
+        {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+      </div>
+
+      {tab === "host" ? (
+        <div className="card">
+          <div className="card-header">🏛️ Host a venue</div>
+          <div className="form-group"><label>Event name</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Name your event" /></div>
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Mode</label>
+          <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+            <button className={`heritage-chip${form.mode === "collaborative" ? " sel" : ""}`} onClick={() => setForm({ ...form, mode: "collaborative" })}>🤝 Collaborative</button>
+            <button className={`heritage-chip${form.mode === "performance" ? " sel" : ""}`} onClick={() => setForm({ ...form, mode: "performance" })}>🤩 Performance</button>
+          </div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>
+            {form.mode === "collaborative" ? "Visitors get paid their skill price and pay you yours." : "Visitors pay you (your SkillZ or a custom price) to attend."}
+          </p>
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Type</label>
+          <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+            {VENUE_TYPES.map((t) => <button key={t.id} className={`heritage-chip${form.type === t.id ? " sel" : ""}`} onClick={() => setForm({ ...form, type: t.id })}>{t.label}</button>)}
+          </div>
+          {form.type === "custom" && (
+            <div className="form-group"><label>Custom type name</label><input value={form.custom} onChange={(e) => setForm({ ...form, custom: e.target.value })} placeholder="Name your event type" /></div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <div className="form-group" style={{ flex: 1 }}><label>Host price ($)</label><input type="number" min="0" value={form.hostPrice} onChange={(e) => setForm({ ...form, hostPrice: e.target.value })} /></div>
+            {form.mode === "collaborative" && <div className="form-group" style={{ flex: 1 }}><label>Visitor payout ($)</label><input type="number" min="0" value={form.visitorPay} onChange={(e) => setForm({ ...form, visitorPay: e.target.value })} /></div>}
+          </div>
+          <div className="form-group"><label>Min attractiveness filter: {form.minAttract}/10</label><input type="range" min="0" max="10" value={form.minAttract} onChange={(e) => setForm({ ...form, minAttract: e.target.value })} /></div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>Developer tax ({devTaxFor(tier).label} {Math.round(devTaxFor(tier).rate * 100)}%) is applied to every VenueZ payment.</p>
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={create}>➕ Publish venue</button>
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-header"><span>🔎 Venues</span><span className="tag">{venues.length}</span></div>
+          {venues.map((v) => {
+            const locked = myAttract != null && v.minAttract > 0 && myAttract < v.minAttract;
+            return (
+              <div key={v.id} className="post-card">
+                <div className="post-user">{typeLabel(v)} · {v.title} {v.seed ? "" : <span className="tag" style={{ color: "var(--success)" }}>yours</span>}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
+                  <span className="tag">{v.mode === "collaborative" ? "🤝 Collaborative" : "🤩 Performance"}</span>
+                  <span className="tag">host @{v.host}</span>
+                  <span className="tag">attend {money(v.hostPrice)}</span>
+                  {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: "var(--success)" }}>earn {money(v.visitorPay)}</span>}
+                  {v.minAttract > 0 && <span className="tag" style={{ color: locked ? "var(--danger)" : undefined }}>💯 {v.minAttract}+</span>}
+                </div>
+                <CostBreakdown amount={v.hostPrice} tier={tier} recipient={`@${v.host}`} payLabel="You pay to attend" />
+                <button className="btn btn-small" style={{ marginTop: 6, opacity: locked ? 0.5 : 1 }} disabled={locked} onClick={() => join(v)}>
+                  {locked ? `🔒 Needs ${v.minAttract}+ attractiveness` : v.mode === "collaborative" ? "🤝 Join & collaborate" : "🎟️ Pay & attend"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
 function CallZPage({ tier, onOpen }) {
   const { state, updateWallet, addTo } = useAppState();
   const isStatz = /stat[sz]/i.test(tier || "");
@@ -2633,6 +2779,7 @@ const FN_PAGES = {
   dawz: DawZPage,
   sentencez: SentenceZPage,
   videoz: VideoZPage,
+  venuez: VenueZPage,
   callz: CallZPage,
   gamez: GameZPage,
   filez: FileZPage,
