@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -10,6 +10,7 @@ import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableE
 import { SIGNS, zodiacFor } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
+import { DAWS } from "./dawz.js";
 import { devTaxFor, splitTransaction, money, mbLabel } from "./economy.js";
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
@@ -2056,6 +2057,147 @@ function GameZPage() {
   );
 }
 
+function DawZPage({ onOpen }) {
+  const { state, update } = useAppState();
+  const votes = state.dawVotes || {};
+  const vote = (id) => update({ dawVotes: { ...votes, [id]: (votes[id] || 0) + 1 } });
+  // Most-voted first so the crowd's pick floats to the top of the build queue.
+  const ranked = [...DAWS].sort((a, b) => (votes[b.id] || 0) - (votes[a.id] || 0));
+  const totalVotes = Object.values(votes).reduce((s, n) => s + n, 0);
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">🎛️ DawZ — Build Queue</div>
+        <div className="balance-info">
+          The engines aren't built yet. Tap <strong>Vote</strong> to push a DAW up the queue — most-voted gets built first. {totalVotes} vote{totalVotes === 1 ? "" : "s"} cast.
+        </div>
+      </div>
+      {ranked.map((d) => {
+        const count = votes[d.id] || 0;
+        return (
+          <div key={d.id} className="post-card">
+            <div className="post-user" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <IconImg icon={d.icon} alt={d.name} style={{ width: 30, height: 30, borderRadius: 8 }} />
+              {d.emoji} {d.name}
+              {d.built ? <span className="tag" style={{ color: "var(--success)" }}>● built</span> : <span className="tag">🔨 coming soon</span>}
+            </div>
+            <div className="post-content" style={{ margin: "6px 0" }}>{d.desc}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <span className="tag">knockoff of {d.knockoff}</span>
+              <span className="tag">🗳️ {count} vote{count === 1 ? "" : "s"}</span>
+            </div>
+            {d.built ? (
+              <button className="btn btn-small btn-success" onClick={() => onOpen?.(d.id)}>▶ Open {d.name}</button>
+            ) : (
+              <button className="btn btn-small" onClick={() => vote(d.id)}>🗳️ Vote to build</button>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// Rich-text (Microsoft Word-style) editor for SentenceZ.
+const SZ_TOOLS = [
+  { cmd: "bold", label: "B", style: { fontWeight: 800 } },
+  { cmd: "italic", label: "I", style: { fontStyle: "italic" } },
+  { cmd: "underline", label: "U", style: { textDecoration: "underline" } },
+  { cmd: "insertUnorderedList", label: "• List" },
+  { cmd: "insertOrderedList", label: "1. List" },
+  { cmd: "justifyLeft", label: "⬅" },
+  { cmd: "justifyCenter", label: "⬌" },
+  { cmd: "justifyRight", label: "➡" },
+];
+function SentenceZPage() {
+  const { state, setList } = useAppState();
+  const docs = state.sentenceDocs || [];
+  const [openId, setOpenId] = useState(null);
+  const [title, setTitle] = useState("");
+  const [saved, setSaved] = useState("");
+  const bodyRef = useRef(null);
+
+  const exec = (cmd) => { document.execCommand(cmd, false, null); bodyRef.current?.focus(); };
+  const block = (tag) => { document.execCommand("formatBlock", false, tag); bodyRef.current?.focus(); };
+
+  const openDoc = (d) => { setOpenId(d.id); setTitle(d.title); setSaved(""); setTimeout(() => { if (bodyRef.current) bodyRef.current.innerHTML = d.html || ""; }, 0); };
+  const newDoc = () => { setOpenId("new"); setTitle(""); setSaved(""); setTimeout(() => { if (bodyRef.current) bodyRef.current.innerHTML = ""; }, 0); };
+
+  const save = () => {
+    const html = bodyRef.current?.innerHTML || "";
+    const text = bodyRef.current?.innerText || "";
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const name = title.trim() || "Untitled";
+    if (openId && openId !== "new") {
+      setList("sentenceDocs", docs.map((d) => (d.id === openId ? { ...d, title: name, html, words, at: Date.now() } : d)));
+    } else {
+      const id = `doc-${Date.now()}`;
+      setList("sentenceDocs", [{ id, title: name, html, words, at: Date.now() }, ...docs]);
+      setOpenId(id);
+    }
+    setSaved("Saved ✓");
+    setTimeout(() => setSaved(""), 1500);
+  };
+
+  const del = (id) => { setList("sentenceDocs", docs.filter((d) => d.id !== id)); if (openId === id) setOpenId(null); };
+
+  if (openId) {
+    return (
+      <>
+        <div className="stripe-section">
+          <button className="btn btn-secondary btn-small" onClick={() => setOpenId(null)} style={{ marginBottom: 8 }}>‹ Documents</button>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Document title" style={{ fontWeight: 700 }} />
+        </div>
+        <div className="card" style={{ padding: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8, borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
+            <button className="btn btn-small btn-secondary" onClick={() => block("H1")}>H1</button>
+            <button className="btn btn-small btn-secondary" onClick={() => block("H2")}>H2</button>
+            <button className="btn btn-small btn-secondary" onClick={() => block("P")}>¶</button>
+            {SZ_TOOLS.map((t) => (
+              <button key={t.cmd} className="btn btn-small btn-secondary" style={t.style} onClick={() => exec(t.cmd)}>{t.label}</button>
+            ))}
+          </div>
+          <div
+            ref={bodyRef}
+            contentEditable
+            suppressContentEditableWarning
+            className="sz-editor"
+            style={{ minHeight: 260, outline: "none", background: "#fff", color: "#111", padding: 16, borderRadius: 8, lineHeight: 1.6, overflowY: "auto" }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+            <span style={{ fontSize: 11, color: "var(--text-light)" }}>{saved || "Autosaves to your account on Save"}</span>
+            <button className="btn btn-small btn-success" onClick={save}>💾 Save</button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">📝 SentenceZ</div>
+        <div className="balance-info">A Word-style text editor — write, format, and save documents right here.</div>
+        <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={newDoc}>＋ New document</button>
+      </div>
+      <div className="card">
+        <div className="card-header"><span>🗂️ Your Documents</span><span className="tag">{docs.length}</span></div>
+        {docs.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No documents yet — start one above.</p>
+        ) : docs.map((d) => (
+          <div key={d.id} className="skill-item">
+            <span className="skill-item-name" style={{ cursor: "pointer" }} onClick={() => openDoc(d)}>📄 {d.title} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {d.words || 0} words</span></span>
+            <span className="skill-item-exp" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {new Date(d.at).toLocaleDateString()}
+              <button className="btn btn-small btn-secondary" onClick={() => del(d.id)} title="Delete">🗑️</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function CallZPage({ tier, onOpen }) {
   const { state, updateWallet, addTo } = useAppState();
   const isStatz = /stat[sz]/i.test(tier || "");
@@ -2223,6 +2365,8 @@ function CallZPage({ tier, onOpen }) {
 }
 
 const FN_PAGES = {
+  dawz: DawZPage,
+  sentencez: SentenceZPage,
   callz: CallZPage,
   gamez: GameZPage,
   filez: FileZPage,

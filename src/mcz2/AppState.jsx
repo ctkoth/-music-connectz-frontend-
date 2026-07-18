@@ -25,6 +25,8 @@ const DEFAULT_STATE = {
   speczOwned: [],
   games: [],
   callLog: [],
+  dawVotes: {},
+  sentenceDocs: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
