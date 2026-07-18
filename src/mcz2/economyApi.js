@@ -74,6 +74,19 @@ export const createFaceApi = (file, name = "") => {
 export const rateFaceApi = (id, score) => api(`/api/economy/facez/${id}/rate/`, { method: "POST", body: { score } });
 export const deleteFaceApi = (id) => api(`/api/economy/facez/${id}/`, { method: "DELETE" });
 
+// Cross-user profiles
+export const saveProfileApi = (profile) => api("/api/economy/profile/", { method: "POST", body: profile });
+export const getMemberApi = (username) => api(`/api/economy/members/${encodeURIComponent(username)}/`);
+export const searchMembersApi = (filters) => {
+  const p = new URLSearchParams();
+  if (filters.regions?.length) p.set("regions", filters.regions.join(","));
+  if (filters.genders?.length) p.set("genders", filters.genders.join(","));
+  if (filters.signs?.length) p.set("signs", filters.signs.join(","));
+  if (filters.sober) p.set("sober", "1");
+  const q = p.toString();
+  return api(`/api/economy/members/${q ? `?${q}` : ""}`);
+};
+
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
 

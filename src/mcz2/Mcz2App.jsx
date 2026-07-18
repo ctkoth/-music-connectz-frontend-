@@ -21,6 +21,7 @@ import {
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
+  saveProfileApi, searchMembersApi, getMemberApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -77,6 +78,34 @@ function TierLimitsCard() {
       <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Caps are enforced server-side; text inputs cut off at your character limit. Upgrade for higher limits.</p>
     </div>
   );
+}
+
+// Derive the public, searchable profile payload from local AppState.
+function buildProfilePayload(state) {
+  const u = state.user || {};
+  const nats = u.nationalities || [];
+  const regions = REGIONS.filter((r) => nats.includes(r.any) || (r.countries || []).some((c) => nats.includes(c))).map((r) => r.name);
+  const subs = u.substances || {};
+  const declared = Object.values(subs).filter(Boolean);
+  const sober = declared.length > 0 && !Object.values(subs).includes("use");
+  const z = zodiacFor(u.birthday);
+  const pref = u.preferences || {};
+  return {
+    display_name: u.name || "",
+    bio: u.bio || "",
+    location: u.location || "",
+    gender: u.gender || "",
+    birthday: u.birthday || "",
+    sign: z ? z.name : "",
+    nationalities: nats,
+    regions,
+    substances: subs,
+    sober,
+    attracted_to: pref.partnerGenders || (pref.partnerGender ? [pref.partnerGender] : []),
+    asexual: !!pref.asexual,
+    traits: pref.traits || [],
+    personas: (state.personas || []).map((p) => ({ name: p.name, emoji: p.emoji, skills: p.skills || [] })),
+  };
 }
 
 // Flashes a "✓ Saved" confirmation when auto-saving edits (metrics pages).
@@ -900,20 +929,34 @@ const DEMO_MEMBERS = [
 // Toggle a value in/out of a filter array (multi-select).
 function inArr(arr, v) { return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]; }
 
-function DiscoverTab() {
+function DiscoverTab({ serverOk }) {
   const [regions, setRegions] = useState([]);
   const [genders, setGenders] = useState([]);
   const [signs, setSigns] = useState([]);
   const [soberOnly, setSoberOnly] = useState(false);
+  const [live, setLive] = useState(null); // server results, or null when offline
+  const [viewing, setViewing] = useState(null); // a member profile being viewed
 
-  // Multi-select: within a metric it's OR (any match), across metrics it's AND.
-  const filtered = DEMO_MEMBERS.filter((m) =>
+  // Live member search server-side when reachable; debounced on filter change.
+  useEffect(() => {
+    if (!serverOk) { setLive(null); return undefined; }
+    const t = setTimeout(() => {
+      searchMembersApi({ regions, genders, signs, sober: soberOnly })
+        .then((r) => setLive(r.members)).catch(() => setLive(null));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [serverOk, regions, genders, signs, soberOnly]);
+
+  // Offline fallback: filter the demo roster locally.
+  const demoFiltered = DEMO_MEMBERS.filter((m) =>
     (!regions.length || regions.includes(m.region)) &&
     (!genders.length || genders.includes(m.gender)) &&
     (!signs.length || signs.includes(m.sign)) &&
     (!soberOnly || m.sober),
   );
+  const filtered = live !== null ? live : demoFiltered;
   const active = regions.length + genders.length + signs.length + (soberOnly ? 1 : 0);
+  const openMember = (username) => { if (username) getMemberApi(username).then(setViewing).catch(() => {}); };
   const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSoberOnly(false); };
 
   return (
@@ -940,19 +983,52 @@ function DiscoverTab() {
       </div>
 
       <div className="card">
-        <div className="card-header"><span>💼 Matches</span><span className="filter-badge">{filtered.length}</span></div>
+        <div className="card-header"><span>💼 Members {live !== null ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">demo</span>}</span><span className="filter-badge">{filtered.length}</span></div>
         {filtered.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No members match these filters.</p>
-        ) : filtered.map((m) => (
-          <div key={m.name} className="post-card">
-            <div className="post-user">{m.name} · {PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji}</div>
-            <div className="post-meta">🌐 {m.country} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"} · looking for {m.lookingFor}</div>
-          </div>
-        ))}
+        ) : filtered.map((m) => {
+          // Server members use username/display_name/regions; demo uses name/country.
+          const name = m.display_name || m.name;
+          const uname = m.username;
+          const heritage = m.nationalities?.length ? m.nationalities.join(", ") : (m.country || (m.regions || []).join(", "));
+          return (
+            <div key={uname || name} className="post-card" style={uname ? { cursor: "pointer" } : undefined} onClick={() => openMember(uname)}>
+              <div className="post-user">{name} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</div>
+              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.lookingFor ? ` · looking for ${m.lookingFor}` : ""}{uname ? " · tap to view" : ""}</div>
+            </div>
+          );
+        })}
         <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
-          Demo roster — these same multi-select NationalitieZ / PreferenceZ / ZodiacZ / SubstanceZ filters carry into CollabZ, BattleZ, and VenueZ events once their live cross-user feeds ship.
+          {live !== null ? "Live members — filtered server-side by their real metrics. Tap anyone to view their profile." : "Demo roster — sign-in + backend brings up real members here, filtered by their metrics."}
         </p>
       </div>
+
+      {viewing && (
+        <div className="modal" onClick={() => setViewing(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title"><h2>👤 {viewing.display_name || viewing.username}</h2></div>
+              <button className="close-btn" onClick={() => setViewing(null)}>×</button>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
+              @{viewing.username} {viewing.gender && `· ${PARTNER_GENDERS.find((g) => g.id === viewing.gender)?.emoji || viewing.gender}`} {viewing.sign && `· ${SIGNS.find((s) => s.name === viewing.sign)?.emoji || ""} ${viewing.sign}`} {viewing.median != null && `· 💯 ${viewing.median}`}
+            </div>
+            {viewing.bio && <p style={{ fontSize: 13, marginBottom: 8 }}>{viewing.bio}</p>}
+            {viewing.location && <div className="skill-item"><span className="skill-item-name">📍 {viewing.location}</span></div>}
+            {(viewing.nationalities || []).length > 0 && <div style={{ margin: "6px 0" }}>🌐 {viewing.nationalities.map((n) => <span key={n} className="tag">{n}</span>)}</div>}
+            {(viewing.attracted_to || []).length > 0 && <div style={{ margin: "6px 0" }}>💞 Into: {viewing.attracted_to.map((a) => <span key={a} className="tag">{PARTNER_GENDERS.find((g) => g.id === a)?.label || a}</span>)}</div>}
+            {viewing.asexual && <div style={{ margin: "6px 0" }}><span className="tag">🤍 Asexual</span></div>}
+            {(viewing.traits || []).length > 0 && <div style={{ margin: "6px 0" }}>✨ {viewing.traits.map((t) => <span key={t} className="tag">{t}</span>)}</div>}
+            {(viewing.personas || []).map((p) => (
+              <div key={p.name} style={{ marginTop: 8 }}>
+                <div className="modal-sub-title">{p.emoji} {p.name}</div>
+                <div className="chip-wrap">{(p.skills || []).map((s) => <span key={s} className="tag">{s}</span>)}</div>
+              </div>
+            ))}
+            <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Sober-friendly: {viewing.sober ? "🟢 yes" : "🍺 social"}</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1098,7 +1174,7 @@ function PersonalitieZTab() {
   );
 }
 
-function SocialConnectZPage() {
+function SocialConnectZPage({ serverOk }) {
   const [sub, setSub] = useState("discover");
   const SUBS = [["discover", "🔎 Discover"], ["vibez", "♥️ VibeZ"], ["inferno", "❤️‍🔥 Inferno"], ["boardz", "🪧 BoardZ"], ["personalitiez", "😶 PersonalitieZ"]];
   const Body = { discover: DiscoverTab, vibez: VibeZTab, inferno: InfernoTab, boardz: BoardZTab, personalitiez: PersonalitieZTab }[sub];
@@ -1107,7 +1183,7 @@ function SocialConnectZPage() {
       <div className="chip-wrap" style={{ marginBottom: 14 }}>
         {SUBS.map(([id, label]) => <button key={id} className={`heritage-chip${sub === id ? " sel" : ""}`} onClick={() => setSub(id)}>{label}</button>)}
       </div>
-      <Body />
+      <Body serverOk={serverOk} />
     </>
   );
 }
@@ -3393,6 +3469,14 @@ function Shell() {
     if (isSignedIn()) syncEconomy();
     return () => { on = false; };
   }, []);
+
+  // Auto-publish the public profile to the backend (debounced) so other members
+  // can view and search you. Fires when profile/personas change while signed in.
+  useEffect(() => {
+    if (!isSignedIn()) return undefined;
+    const t = setTimeout(() => { saveProfileApi(buildProfilePayload(state)).catch(() => {}); }, 1200);
+    return () => clearTimeout(t);
+  }, [state.user, state.personas]);
 
   const recordUsage = (key) =>
     setUsage((u) => {
