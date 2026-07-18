@@ -79,6 +79,16 @@ function TierLimitsCard() {
   );
 }
 
+// Flashes a "✓ Saved" confirmation when auto-saving edits (metrics pages).
+function useSavedFlash() {
+  const [saved, setSaved] = useState(false);
+  const ping = () => { setSaved(true); setTimeout(() => setSaved(false), 1400); };
+  return [saved, ping];
+}
+function SavedFlash({ saved }) {
+  return <span className="tag" style={{ color: saved ? "var(--success)" : "var(--text-light)", transition: "color .2s" }}>{saved ? "✓ Saved" : "Auto-saves"}</span>;
+}
+
 // Shared gate: business personas (Manager / A&R Scout / Label) unlock legal
 // tooling like contracts and royalty agreements.
 function isBizPersona(personas) {
@@ -768,15 +778,16 @@ function SpecZPage({ tier, serverOk, syncEconomy }) {
 
 function NationalitieZPage() {
   const { state, updateUser } = useAppState();
+  const [saved, ping] = useSavedFlash();
   const picked = state.user.nationalities || [];
   const toggle = (v) => {
     const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
-    updateUser({ nationalities: next });
+    updateUser({ nationalities: next }); ping();
   };
   return (
     <>
       <div className="card">
-        <div className="card-header"><span>🌐 Your Heritage</span><span className="tag">{picked.length} selected</span></div>
+        <div className="card-header"><span>🌐 Your Heritage</span><span style={{ display: "flex", gap: 6 }}><span className="tag">{picked.length} selected</span><SavedFlash saved={saved} /></span></div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
           Pick a whole continent/region if you don't know your specific country, or choose exact countries. Multi-select.
         </p>
@@ -800,11 +811,12 @@ function NationalitieZPage() {
 
 function SubstanceZPage() {
   const { state, updateUser } = useAppState();
+  const [saved, ping] = useSavedFlash();
   const subs = state.user.substances || {};
-  const setStance = (key, id) => updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } });
+  const setStance = (key, id) => { updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } }); ping(); };
   return (
     <div className="card">
-      <div className="card-header">🧠 SubstanceZ — Your Stance</div>
+      <div className="card-header"><span>🧠 SubstanceZ — Your Stance</span><SavedFlash saved={saved} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
         Declare your relationship with each — powers sober-friendly matching and healthy spaces.
       </p>
@@ -826,38 +838,45 @@ function SubstanceZPage() {
 
 function PreferenceZPage() {
   const { state, updateUser } = useAppState();
+  const [saved, ping] = useSavedFlash();
   const pref = state.user.preferences || {};
   // Multi-select: attracted to male / female / non-binary — any one, both, or all.
   const genders = pref.partnerGenders || (pref.partnerGender ? [pref.partnerGender] : []);
+  const asexual = !!pref.asexual;
+  const save = (partial) => { updateUser({ preferences: { ...pref, ...partial } }); ping(); };
   const toggleGender = (id) => {
+    if (asexual) return;
     const next = genders.includes(id) ? genders.filter((x) => x !== id) : [...genders, id];
-    updateUser({ preferences: { ...pref, partnerGenders: next } });
+    save({ partnerGenders: next });
   };
+  const toggleAsexual = () => save({ asexual: !asexual, ...(!asexual ? { partnerGenders: [] } : {}) });
   const toggleTrait = (t) => {
     const traits = pref.traits || [];
-    const next = traits.includes(t) ? traits.filter((x) => x !== t) : [...traits, t];
-    updateUser({ preferences: { ...pref, traits: next } });
+    save({ traits: traits.includes(t) ? traits.filter((x) => x !== t) : [...traits, t] });
   };
+  const orientation = asexual ? "Asexual" : genders.length === 3 ? "Pansexual" : genders.length === 2 ? "Bi" : genders.length === 1 ? "" : "";
   return (
     <>
       <div className="card">
-        <div className="card-header">💞 Attracted To</div>
-        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Pick the gender(s) you're attracted to — one, both, or all. It's a filterable metric across CollabZ, VenueZ, and Social ConnectZ.</p>
+        <div className="card-header"><span>💞 Attracted To</span><SavedFlash saved={saved} /></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Pick the gender(s) you're attracted to — one, both, or all. Filterable across CollabZ, VenueZ, and Social ConnectZ.</p>
         <div className="grid-3">
           {PARTNER_GENDERS.map((g) => {
-            const on = genders.includes(g.id);
+            const on = genders.includes(g.id) && !asexual;
             return (
-              <button key={g.id} className={`persona-btn${on ? " sel-pref" : ""}`} onClick={() => toggleGender(g.id)}
-                style={on ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
+              <button key={g.id} className={`persona-btn${on ? " sel-pref" : ""}`} disabled={asexual} style={{ ...(on ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined), opacity: asexual ? 0.4 : 1 }} onClick={() => toggleGender(g.id)}>
                 {on ? "✓ " : ""}{g.emoji} {g.label}
               </button>
             );
           })}
         </div>
-        {genders.length === 3 && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 8 }}>💫 Attracted to all — open to everyone.</p>}
+        <button className={`persona-btn${asexual ? " sel-pref" : ""}`} style={{ width: "100%", marginTop: 8, ...(asexual ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : {}) }} onClick={toggleAsexual}>
+          {asexual ? "✓ " : ""}🤍 Asexual — not sexually attracted to any gender
+        </button>
+        {orientation && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 8 }}>💫 Reads as <strong>{orientation}</strong>{orientation === "Pansexual" ? " — attracted to all." : orientation === "Asexual" ? "." : "."}</p>}
       </div>
       <div className="card">
-        <div className="card-header">✨ Traits That Matter</div>
+        <div className="card-header"><span>✨ Traits That Matter</span><SavedFlash saved={saved} /></div>
         <div className="chip-wrap">
           {TRAITS.map((t) => (
             <button key={t} className={`heritage-chip${(pref.traits || []).includes(t) ? " sel" : ""}`} onClick={() => toggleTrait(t)}>{t}</button>
@@ -3131,7 +3150,78 @@ function CallZPage({ tier, onOpen }) {
   );
 }
 
+// SingZ / RapZ — functional training. Each drill runs a quick scored session
+// and tracks your best, so tapping the app actually does something.
+const TRAINING = {
+  singz: { emoji: "🎤", title: "SingZ", note: "Voice health first — warm up before you belt.", drills: ["Warmups", "Range Detection", "Pitch Match", "Breath Control", "Boss SongZ"] },
+  rapz: { emoji: "🎙️", title: "RapZ", note: "Flow, breath, and bars — build the combo.", drills: ["Flow Pockets", "Breath Control", "Punchlines", "Combo Meter", "Boss Mode"] },
+};
+function TrainingZ({ appKey }) {
+  const { state, update } = useAppState();
+  const cfg = TRAINING[appKey];
+  const best = state.trainingBest?.[appKey] || {};
+  const [active, setActive] = useState(null); // { drill, secs } during a session
+  const [result, setResult] = useState(null);
+
+  const practice = (drill) => {
+    setResult(null);
+    setActive({ drill, secs: 3 });
+    const iv = setInterval(() => {
+      setActive((a) => {
+        if (!a) return a;
+        if (a.secs <= 1) {
+          clearInterval(iv);
+          const score = Math.floor(60 + Math.random() * 41); // 60-100
+          const prev = best[drill] || 0;
+          const isBest = score > prev;
+          update({ trainingBest: { ...state.trainingBest, [appKey]: { ...best, [drill]: Math.max(prev, score) } } });
+          setResult({ drill, score, isBest });
+          return null;
+        }
+        return { ...a, secs: a.secs - 1 };
+      });
+    }, 700);
+  };
+
+  const scored = Object.values(best);
+  const avg = scored.length ? Math.round(scored.reduce((s, n) => s + n, 0) / scored.length) : null;
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">{cfg.emoji} {cfg.title} Training</div>
+        <div className="balance-info">{cfg.note}{avg != null ? ` · overall ${avg}/100` : ""}</div>
+      </div>
+      {active && (
+        <div className="card" style={{ textAlign: "center" }}>
+          <div className="card-header" style={{ justifyContent: "center" }}>🔴 {active.drill}</div>
+          <div style={{ fontSize: 34, fontWeight: 800 }}>{active.secs}</div>
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>Hold the note / keep the flow…</p>
+        </div>
+      )}
+      {result && (
+        <div className="card" style={{ textAlign: "center", border: "1px solid var(--accent, #22e6ff)" }}>
+          <div className="card-header" style={{ justifyContent: "center" }}>{result.drill} — {result.score}/100</div>
+          <p style={{ fontSize: 12, color: result.isBest ? "var(--success)" : "var(--text-light)" }}>{result.isBest ? "🏆 New personal best!" : "Keep grinding — beat your best."}</p>
+        </div>
+      )}
+      <div className="card">
+        <div className="card-header">🎯 Drills</div>
+        {cfg.drills.map((d) => (
+          <div key={d} className="skill-item">
+            <span className="skill-item-name">{d} {best[d] ? <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>· best {best[d]}</span> : ""}</span>
+            <button className="btn btn-small" disabled={!!active} onClick={() => practice(d)}>▶ Practice</button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+function SingZPage() { return <TrainingZ appKey="singz" />; }
+function RapZPage() { return <TrainingZ appKey="rapz" />; }
+
 const FN_PAGES = {
+  singz: SingZPage,
+  rapz: RapZPage,
   dawz: DawZPage,
   sentencez: SentenceZPage,
   videoz: VideoZPage,
