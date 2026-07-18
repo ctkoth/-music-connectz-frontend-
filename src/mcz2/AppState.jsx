@@ -30,6 +30,7 @@ const DEFAULT_STATE = {
   videoProjects: [],
   facez: [],
   venues: [],
+  trainingBest: {},
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
