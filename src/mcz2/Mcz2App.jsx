@@ -76,6 +76,22 @@ function TierLimitsCard() {
   );
 }
 
+// Shared gate: business personas (Manager / A&R Scout / Label) unlock legal
+// tooling like contracts and royalty agreements.
+function isBizPersona(personas) {
+  return (personas || []).some((p) => /manager|a&r|scout|label/i.test(p.name || ""));
+}
+
+// Disclaimer shown on any AI-generated or platform legal document.
+function LegalDisclaimer() {
+  return (
+    <p style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 8, lineHeight: 1.4 }}>
+      ⚖️ Draft for convenience only — not legal advice. AI/template documents can miss
+      jurisdiction-specific terms. Have a qualified attorney review before anyone signs.
+    </p>
+  );
+}
+
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
 const SUBSTANCES = [
   { key: "caffeine", name: "Caffeine", emoji: "☕" },
@@ -1637,8 +1653,7 @@ function MessageZPage() {
 function LabelZPage({ tier }) {
   const { state, addTo, updateSettings } = useAppState();
   const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
-  const hasLabelPersona = (state.personas || []).some((p) => /manager|a&r|scout/i.test(p.name));
-  const canCreate = isPremium || hasLabelPersona;
+  const canCreate = isPremium || isBizPersona(state.personas);
   const [form, setForm] = useState({ artist: "", advance: "", royalty: "", terms: "" });
   const [sign, setSign] = useState("");
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -1669,6 +1684,7 @@ function LabelZPage({ tier }) {
         </div>
         <div className="form-group"><label>Terms</label><CappedTextarea value={form.terms} onChange={set("terms")} style={{ height: 56 }} placeholder="Deliverables, length, recoupment…" /></div>
         <div className="form-group"><label>✍️ E-signature (type your legal name)</label><input value={sign} onChange={(e) => setSign(e.target.value)} placeholder="Your name" /></div>
+        <LegalDisclaimer />
         <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.artist.trim() || !sign.trim()} onClick={submit}>✒️ Sign & issue contract</button>
       </div>
       <div className="card">
@@ -1848,12 +1864,13 @@ function VideoConnectZ() {
 function SentenceConnectZ() {
   const { state } = useAppState();
   // Contracts & royalty agreements are gated to Manager / A&R Scout personas.
-  const isBiz = (state.personas || []).some((p) => /manager|a&r|scout|label/i.test(p.name || ""));
+  const isBiz = isBizPersona(state.personas);
   const [doc, setDoc] = useState(DOC_TYPES[0].name);
   const [rhyme, setRhyme] = useState(2);
   const [genre, setGenre] = useState(INSTR_GENRES[0]);
   const [prompt, setPrompt] = useState("");
   const isLyrics = doc === "Lyrics";
+  const isLegal = DOC_TYPES.find((d) => d.name === doc)?.gated;
   return (
     <div className="card">
       <div className="card-header">📃 Sentence ConnectZ <span className="tag">Corey voice</span></div>
@@ -1882,6 +1899,7 @@ function SentenceConnectZ() {
         </>
       )}
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Written in Corey voice · toggles for language, Explicit / Slang / Emoji.</p>
+      {isLegal && <LegalDisclaimer />}
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✍️ Generate {doc}</button>
       <IntelNote role="Ghostwriter" reusable />
     </div>
