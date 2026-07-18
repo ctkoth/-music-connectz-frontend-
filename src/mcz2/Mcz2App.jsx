@@ -118,7 +118,7 @@ const STANCES = [
 const PARTNER_GENDERS = [
   { id: "male", label: "Male", emoji: "♂️" },
   { id: "female", label: "Female", emoji: "♀️" },
-  { id: "neutral", label: "Neutral", emoji: "⚧️" },
+  { id: "neutral", label: "Non-Binary", emoji: "⚧️" },
 ];
 const TRAITS = ["Honesty", "Trust", "Communication", "Energy", "Connection", "Creativity", "Ambition", "Humor"];
 
@@ -202,10 +202,27 @@ const PERSONA_CHOICES = [
   { name: "A&R Scout", emoji: "🔎", icon: "personaz_arscout.png" },
   { name: "Ghostwriter", emoji: "👻", icon: "personaz_ghostwriter.png" },
   { name: "Developer", emoji: "👾", icon: "personaz_developer.png" },
+  { name: "Mime", emoji: "🤹", icon: "mimez.png" },
 ];
+
+// Available skills per persona — the user picks which they've got.
+const PERSONA_SKILLS = {
+  "Independent Artist": ["Songwriting", "Vocals", "Stage Presence", "Freestyle", "Melody", "Performance", "Branding"],
+  "Beat Producer": ["Drum Programming", "Sound Design", "Sampling", "Arrangement", "Melody", "Genre Range"],
+  "Mix Engineer": ["EQ", "Compression", "Vocal Tuning", "Mastering", "Stereo Imaging", "Noise Reduction"],
+  "Designer": ["Composition & Layout", "Color Theory", "Typography", "Brand Identity", "Software Mastery", "UI/UX Prototyping", "Visual Storytelling", "Asset Production"],
+  "Videographer": ["Cinematography", "Camera Operation", "Lighting Techniques", "Audio Capture", "Video Editing", "Motion Graphics", "Storyboarding", "Social Optimization", "Music Video Production"],
+  "Manager": ["Strategic Planning", "Team Leadership", "Communication", "Conflict Resolution", "Project Management", "Decision-Making", "Performance Tracking", "Resource Management"],
+  "A&R Scout": ["Talent Spotting", "Market Trends", "Networking", "Deal Structuring", "Genre Expertise", "Analytics"],
+  "Ghostwriter": ["Lyricism", "Storytelling", "Rhyme Schemes", "Hook Writing", "Tone Matching", "Multi-Genre"],
+  "Developer": ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin"],
+  "Mime": ["Lipsync", "Selfie", "Dance", "Drama", "Comedy"],
+};
 function PersonasPage() {
-  const { state, addTo, removeFrom } = useAppState();
+  const { state, addTo, removeFrom, setList } = useAppState();
   const has = (name) => state.personas.some((p) => p.name === name);
+  const toggleSkill = (i, skill) => setList("personas", state.personas.map((p, idx) =>
+    idx === i ? { ...p, skills: (p.skills || []).includes(skill) ? p.skills.filter((s) => s !== skill) : [...(p.skills || []), skill] } : p));
   return (
     <>
       <div className="card">
@@ -220,17 +237,30 @@ function PersonasPage() {
         </div>
       </div>
       <div className="card">
-        <div className="card-header">🎭 Your Personas</div>
+        <div className="card-header">🎭 Your Personas & SkillZ</div>
         {state.personas.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No personas yet — pick some above.</p>
-        ) : state.personas.map((p, i) => (
-          <div key={i} className="persona-card">
-            <div className="persona-header">
-              <span className="persona-name">{p.emoji} {p.name}</span>
-              <button className="btn btn-danger btn-small" onClick={() => removeFrom("personas", i)}>Remove</button>
+        ) : state.personas.map((p, i) => {
+          const pool = PERSONA_SKILLS[p.name] || [];
+          const mine = p.skills || [];
+          return (
+            <div key={i} className="persona-card" style={{ marginBottom: 10 }}>
+              <div className="persona-header">
+                <span className="persona-name">{p.emoji} {p.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {mine.length}/{pool.length} skillZ</span></span>
+                <button className="btn btn-danger btn-small" onClick={() => removeFrom("personas", i)}>Remove</button>
+              </div>
+              {pool.length > 0 && (
+                <div className="chip-wrap" style={{ marginTop: 8 }}>
+                  {pool.map((sk) => (
+                    <button key={sk} className={`heritage-chip${mine.includes(sk) ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => toggleSkill(i, sk)}>
+                      {mine.includes(sk) ? "✓ " : ""}{sk}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
@@ -304,10 +334,12 @@ function ProfilePage({ onOpen }) {
           ? Object.entries(u.substances).filter(([, v]) => v).map(([k, v]) => <span key={k} className="tag">{k}: {v}</span>)
           : "Not set"}</div>
       </div>
-      <div className="form-group"><label>💞 PreferenceZ</label>
-        <div>{u.preferences?.partnerGender
-          ? <span className="tag">Prefers: {u.preferences.partnerGender}</span>
-          : "Not set"}
+      <div className="form-group"><label>💞 PreferenceZ (attracted to)</label>
+        <div>{(() => {
+          const g = u.preferences?.partnerGenders || (u.preferences?.partnerGender ? [u.preferences.partnerGender] : []);
+          const labels = g.map((id) => PARTNER_GENDERS.find((x) => x.id === id)?.label || id);
+          return labels.length ? labels.map((l) => <span key={l} className="tag">{l}</span>) : "Not set";
+        })()}
           {(u.preferences?.traits || []).map((t) => <span key={t} className="tag">{t}</span>)}
         </div>
       </div>
@@ -794,8 +826,13 @@ function SubstanceZPage() {
 
 function PreferenceZPage() {
   const { state, updateUser } = useAppState();
-  const pref = state.user.preferences || { partnerGender: "", traits: [] };
-  const setGender = (id) => updateUser({ preferences: { ...pref, partnerGender: pref.partnerGender === id ? "" : id } });
+  const pref = state.user.preferences || {};
+  // Multi-select: attracted to male / female / non-binary — any one, both, or all.
+  const genders = pref.partnerGenders || (pref.partnerGender ? [pref.partnerGender] : []);
+  const toggleGender = (id) => {
+    const next = genders.includes(id) ? genders.filter((x) => x !== id) : [...genders, id];
+    updateUser({ preferences: { ...pref, partnerGenders: next } });
+  };
   const toggleTrait = (t) => {
     const traits = pref.traits || [];
     const next = traits.includes(t) ? traits.filter((x) => x !== t) : [...traits, t];
@@ -804,16 +841,20 @@ function PreferenceZPage() {
   return (
     <>
       <div className="card">
-        <div className="card-header">💞 Partner Preference</div>
-        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Choose your preference.</p>
+        <div className="card-header">💞 Attracted To</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Pick the gender(s) you're attracted to — one, both, or all. It's a filterable metric across CollabZ, VenueZ, and Social ConnectZ.</p>
         <div className="grid-3">
-          {PARTNER_GENDERS.map((g) => (
-            <button key={g.id} className={`persona-btn${pref.partnerGender === g.id ? " sel-pref" : ""}`} onClick={() => setGender(g.id)}
-              style={pref.partnerGender === g.id ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
-              {g.emoji} {g.label}
-            </button>
-          ))}
+          {PARTNER_GENDERS.map((g) => {
+            const on = genders.includes(g.id);
+            return (
+              <button key={g.id} className={`persona-btn${on ? " sel-pref" : ""}`} onClick={() => toggleGender(g.id)}
+                style={on ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
+                {on ? "✓ " : ""}{g.emoji} {g.label}
+              </button>
+            );
+          })}
         </div>
+        {genders.length === 3 && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 8 }}>💫 Attracted to all — open to everyone.</p>}
       </div>
       <div className="card">
         <div className="card-header">✨ Traits That Matter</div>
