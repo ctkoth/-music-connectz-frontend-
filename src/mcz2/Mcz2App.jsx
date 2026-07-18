@@ -1906,38 +1906,92 @@ function SentenceConnectZ() {
   );
 }
 
+// OCC's Corey-voice replies — keyword-aware, Claude Code-style: acknowledge,
+// lay out the plan, offer the next move. Returns { text, action? }.
+function occReply(text, t) {
+  const q = text.toLowerCase();
+  const plan = (steps) => steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+  if (/game|arcade|platformer|shooter|puzzle|rpg/.test(q)) {
+    return {
+      text: `Say less — a ${t.complexity.toLowerCase()} game is right in my lane on the ${t.label} tier (${t.languages[0]}).\n\nHere's the play:\n${plan(["Lock the core loop — one mechanic that's actually fun", "Build the scene + controls", "Add scoring, juice, and a win/lose state", "Ship it straight to GameZ so people can play"])}\n\nWant me to spin it up and drop it on GameZ?`,
+      action: { kind: "game", label: "🎮 Publish it to GameZ" },
+    };
+  }
+  if (/bug|error|broken|fix|crash|not work/.test(q)) {
+    return { text: `Aight, let's squash it. Paste me the error and the file it's screaming about. I'll:\n${plan(["Read the stack trace top-down — the real cause is usually near the top", "Reproduce it in my head, then in code", "Patch the smallest thing that fixes it — no shotgun edits", "Re-run and prove it's dead"])}\n\nDrop the error when you're ready.` };
+  }
+  if (/site|website|landing|page|html|css/.test(q)) {
+    return { text: `Bet. A clean site's a quick W. My move:\n${plan(["Nail the one message above the fold", "Mobile-first layout — most of your traffic is on a phone", "Neon it up to match your brand", "Wire the CTA to something real"])}\n\nTell me what it's for and who's landing on it.` };
+  }
+  if (/api|backend|server|database|endpoint/.test(q)) {
+    return { text: `Backend work — my favorite kind of quiet. Plan:\n${plan(["Define the data shape first, everything hangs off that", "Endpoints that do one thing each", "Validate every input server-side — never trust the client", "Enforce the dev tax on any money path"])}\n\nWhat's it gotta do?` };
+  }
+  return { text: `I got you. Give me the goal in one line and I'll break it down like this:\n${plan(["What we're actually building", "The simplest version that works", "Ship it, then make it nice"])}\n\nOn the ${t.label} tier I can go ${t.complexity.toLowerCase()} — ${t.desc}` };
+}
+
 function OccConnectZ({ tier, onOpen }) {
   const t = occTierFor(tier);
   const { state, addTo } = useAppState();
-  const [lang, setLang] = useState(t.languages[0]);
-  const [genre, setGenre] = useState(GAME_GENRES[0].name);
-  const [title, setTitle] = useState("");
-  const subs = subgenresFor(genre);
-  const [sub, setSub] = useState(subs[0]);
   const author = state.user?.name || "you";
-  const generate = () => {
-    const name = title.trim() || `Untitled ${genre}`;
-    addTo("games", {
-      id: `g-${Date.now()}`, title: name, author, genre, subgenre: sub, lang,
-      plays: 0, rating: null, mine: true,
-      desc: `A ${t.complexity.toLowerCase()} ${genre.toLowerCase()} game generated in ${lang} via Ocular Code ConnectZ.`,
-    });
-    setTitle("");
-    onOpen?.("gamez"); // published — jump to the GameZ browser
+  const [msgs, setMsgs] = useState([
+    { role: "occ", text: `Yo — I'm OCC, your code hand. Tell me what you're building and I'll break it down, write it, and ship it. On the ${t.label} tier we're going ${t.complexity.toLowerCase()}.` },
+  ]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const endRef = useRef(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, thinking]);
+
+  const send = () => {
+    const text = input.trim();
+    if (!text || thinking) return;
+    setInput("");
+    setMsgs((m) => [...m, { role: "user", text }]);
+    setThinking(true);
+    setTimeout(() => {
+      const r = occReply(text, t);
+      setMsgs((m) => [...m, { role: "occ", text: r.text, action: r.action }]);
+      setThinking(false);
+    }, 550);
   };
+
+  const publishGame = () => {
+    const name = `OCC Build ${Math.floor(Math.random() * 900 + 100)}`;
+    addTo("games", {
+      id: `g-${Date.now()}`, title: name, author, genre: "Arcade", subgenre: "Retro", lang: t.languages[0],
+      plays: 0, rating: null, mine: true, desc: `A ${t.complexity.toLowerCase()} game built in ${t.languages[0]} via Ocular Code ConnectZ.`,
+    });
+    onOpen?.("gamez");
+  };
+
   return (
     <div className="card">
       <div className="card-header">👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></div>
-      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>{t.desc}</p>
-      <div className="form-group"><label>Game title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Name your game" /></div>
-      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Genre</label>
-      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{GAME_GENRES.map((g) => <Pill key={g.name} active={genre === g.name} onClick={() => { setGenre(g.name); setSub(subgenresFor(g.name)[0]); }}>{g.emoji} {g.name}</Pill>)}</div>
-      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Subgenre</label>
-      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{subs.map((s) => <Pill key={s} active={sub === s} onClick={() => setSub(s)}>{s}</Pill>)}</div>
-      <label style={{ fontSize: 11, color: "var(--text-light)" }}>Language ({t.label} tier)</label>
-      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{t.languages.map((l) => <Pill key={l} active={lang === l} onClick={() => setLang(l)}>{l}</Pill>)}</div>
-      <button className="btn" style={{ width: "100%" }} onClick={generate}>🎮 Generate {t.complexity.toLowerCase()} game in {lang} → GameZ</button>
+      <div style={{ background: "#0c0a16", borderRadius: 12, padding: 10, maxHeight: 380, overflowY: "auto", marginBottom: 8 }}>
+        {msgs.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 8 }}>
+            <div style={{
+              maxWidth: "85%", padding: "8px 11px", borderRadius: 12, fontSize: 13, lineHeight: 1.45, whiteSpace: "pre-wrap",
+              background: m.role === "user" ? "var(--accent, #22e6ff)" : "rgba(255,255,255,0.06)",
+              color: m.role === "user" ? "#04121a" : "var(--text, #eee)",
+              border: m.role === "user" ? "none" : "1px solid var(--border)",
+            }}>
+              {m.role === "occ" && <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 2 }}>👁️‍🗨️ OCC</div>}
+              {m.text}
+              {m.action?.kind === "game" && (
+                <div style={{ marginTop: 8 }}><button className="btn btn-small" onClick={publishGame}>{m.action.label}</button></div>
+              )}
+            </div>
+          </div>
+        ))}
+        {thinking && <div style={{ fontSize: 11, color: "var(--text-light)", padding: "2px 4px" }}>👁️‍🗨️ OCC is thinking…</div>}
+        <div ref={endRef} />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Tell OCC what to build…" style={{ flex: 1 }} />
+        <button className="btn btn-small" onClick={send} disabled={!input.trim() || thinking}>Send</button>
+      </div>
       <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>OCC plans and ships in Corey voice. Live code-writing/running turns on when the AI backend key is set.</p>
       <IntelNote role="Developer" />
     </div>
   );
@@ -3055,6 +3109,7 @@ function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
             </>
           )}
         </div>
+        <button className="dock-edit" onClick={() => onOpen("occ")} title="Ask OCC — help & code">❓</button>
         <button className={`dock-edit${editing ? " active" : ""}`} onClick={() => setEditing((v) => !v)} title="Customize slots">⚙</button>
       </div>
     </div>
