@@ -188,6 +188,7 @@ export const CATALOG = [
       { key: "profile", name: "Profile", emoji: "👤", icon: "personaz_indieartist.png", desc: "Your public profile — picture, bio, contact, and skills.", fn: true },
       { key: "money", name: "Money", emoji: "💰", icon: "energy.png", desc: "Your wallet — balance, earnings, add funds via Stripe, and payment history.", fn: true },
       { key: "membership", name: "MembershipZ", emoji: "👑", icon: "membership.png", desc: "Your tier — Free, Premium, or StatZ. Compare every perk across the platform and upgrade monthly or yearly.", fn: true },
+      { key: "merchz", name: "MerchZ", emoji: "🛍️", icon: "merchz.png", desc: "The creator marketplace — sell and buy legal goods: apparel, art, beats, sample packs, accessories, digital downloads. Every sale runs the developer tax; substances aren't a category.", fn: true },
       { key: "homez", name: "Homez", emoji: "🏠", icon: "homez.png", desc: "Your home dashboard — a quick view across your MCZ activity." },
       { key: "moodz", name: "MoodZ", emoji: "😅", icon: "moodz.png", desc: "The mood you were in when posting — tracked and filterable across the platform." },
       { key: "tellz", name: "TellZ", emoji: "🗣️", icon: "tellz.png", desc: "Logs of what you've prompted/posted, selectable per tab. Detailed (word-for-word) or Summary (AI + emoji)." },

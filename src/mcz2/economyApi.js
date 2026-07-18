@@ -74,6 +74,20 @@ export const createFaceApi = (file, name = "") => {
 export const rateFaceApi = (id, score) => api(`/api/economy/facez/${id}/rate/`, { method: "POST", body: { score } });
 export const deleteFaceApi = (id) => api(`/api/economy/facez/${id}/`, { method: "DELETE" });
 
+// MerchZ — legal-goods marketplace
+export const getMerchApi = () => api("/api/economy/merch/");
+export const createMerchApi = ({ title, description, category, priceCents, image }) => {
+  const fd = new FormData();
+  fd.append("title", title);
+  fd.append("description", description || "");
+  fd.append("category", category);
+  fd.append("price_cents", priceCents);
+  if (image) fd.append("image", image);
+  return api("/api/economy/merch/", { method: "POST", body: fd });
+};
+export const buyMerchApi = (id) => api(`/api/economy/merch/${id}/buy/`, { method: "POST" });
+export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method: "DELETE" });
+
 // Cross-user profiles
 export const saveProfileApi = (profile) => api("/api/economy/profile/", { method: "POST", body: profile });
 export const getMemberApi = (username) => api(`/api/economy/members/${encodeURIComponent(username)}/`);

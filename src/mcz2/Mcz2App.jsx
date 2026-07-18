@@ -22,6 +22,7 @@ import {
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi,
+  getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -3294,7 +3295,126 @@ function TrainingZ({ appKey }) {
 function SingZPage() { return <TrainingZ appKey="singz" />; }
 function RapZPage() { return <TrainingZ appKey="rapz" />; }
 
+const MERCH_CATS = [
+  { id: "apparel", label: "👕 Apparel" },
+  { id: "art", label: "🖼️ Art / Prints" },
+  { id: "beats", label: "🎹 Beats" },
+  { id: "samples", label: "🎛️ Sample Packs" },
+  { id: "accessories", label: "🧢 Accessories" },
+  { id: "digital", label: "💾 Digital" },
+];
+function MerchZPage({ tier, serverOk, syncEconomy }) {
+  const { state, updateWallet, addTo } = useAppState();
+  const [tab, setTab] = useState("shop");
+  const [items, setItems] = useState(null); // null = offline/not loaded
+  const [form, setForm] = useState({ title: "", description: "", category: "apparel", price: "" });
+  const [file, setFile] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => getMerchApi().then((r) => setItems(r.items)).catch(() => setItems(null));
+  useEffect(() => { if (serverOk) reload(); else setItems(null); }, [serverOk]);
+
+  const publish = async () => {
+    if (!form.title.trim() || !(Number(form.price) > 0)) { setMsg("Title and a price are required."); return; }
+    setBusy(true); setMsg("");
+    try {
+      await createMerchApi({ title: form.title.trim(), description: form.description.trim(), category: form.category, priceCents: Math.round(Number(form.price) * 100), image: file });
+      setForm({ title: "", description: "", category: "apparel", price: "" }); setFile(null);
+      await reload(); setTab("mine");
+    } catch (e) { setMsg(e.message || "Could not publish"); }
+    setBusy(false);
+  };
+  const buy = async (it) => {
+    setMsg("");
+    try {
+      const r = await buyMerchApi(it.id);
+      updateWallet({ balance: r.wallet.money });
+      addTo("paymentHistory", { amount: -(it.price_cents / 100), dev: r.dev_tax_cents / 100, at: Date.now(), note: `MerchZ: ${it.title}` });
+      setMsg(`✅ Bought ${it.title} from @${it.seller}.`); reload(); syncEconomy?.();
+    } catch (e) { setMsg(e.message || "Purchase failed"); }
+  };
+  const del = async (id) => { try { await deleteMerchApi(id); reload(); } catch { /* ignore */ } };
+
+  if (!serverOk || items === null) {
+    return (
+      <div className="card">
+        <div className="card-header">🛍️ MerchZ <span className="tag">offline</span></div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>The creator marketplace needs a live connection. Sell &amp; buy legal goods — apparel, art, beats, sample packs — with the developer tax on every sale.</p>
+      </div>
+    );
+  }
+
+  const shop = items.filter((i) => !i.mine);
+  const mine = items.filter((i) => i.mine);
+  const catLabel = (id) => MERCH_CATS.find((c) => c.id === id)?.label || id;
+  const list = tab === "mine" ? mine : shop;
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">🛍️ MerchZ <span className="tag" style={{ color: "var(--success)" }}>● live</span></div>
+        <div className="balance-info">Creator marketplace · Balance {money(state.wallet.balance)} · {devTaxFor(tier).label} developer tax {Math.round(devTaxFor(tier).rate * 100)}% on every sale</div>
+        <div className="chip-wrap" style={{ marginTop: 8 }}>
+          <button className={`heritage-chip${tab === "shop" ? " sel" : ""}`} onClick={() => setTab("shop")}>🛒 Shop ({shop.length})</button>
+          <button className={`heritage-chip${tab === "sell" ? " sel" : ""}`} onClick={() => setTab("sell")}>🏷️ Sell</button>
+          <button className={`heritage-chip${tab === "mine" ? " sel" : ""}`} onClick={() => setTab("mine")}>📦 My Listings ({mine.length})</button>
+        </div>
+        {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+      </div>
+
+      {tab === "sell" ? (
+        <div className="card">
+          <div className="card-header">🏷️ List an item</div>
+          <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Neon Logo Hoodie" /></div>
+          <div className="form-group"><label>Description</label><CappedTextarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ height: 50 }} /></div>
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Category</label>
+          <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+            {MERCH_CATS.map((c) => <button key={c.id} className={`heritage-chip${form.category === c.id ? " sel" : ""}`} onClick={() => setForm({ ...form, category: c.id })}>{c.label}</button>)}
+          </div>
+          <div className="form-group"><label>Price ($)</label><input type="number" min="1" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="20.00" /></div>
+          <label className="btn btn-secondary btn-small" style={{ display: "block", textAlign: "center", cursor: "pointer" }}>
+            {file ? `📷 ${file.name}` : "📷 Add a photo (optional)"}
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </label>
+          <p style={{ fontSize: 10, color: "var(--text-light)", margin: "8px 0" }}>Legal goods only. Every sale takes the {devTaxFor(tier).label} developer tax; you keep the rest.</p>
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={busy || !form.title.trim() || !(Number(form.price) > 0)} onClick={publish}>{busy ? "Publishing…" : "🏷️ Publish listing"}</button>
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-header"><span>{tab === "mine" ? "📦 My Listings" : "🛒 Shop"}</span><span className="tag">{list.length}</span></div>
+          {list.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>{tab === "mine" ? "You haven't listed anything yet." : "No items yet — be the first to sell."}</p>
+          ) : list.map((it) => (
+            <div key={it.id} className="post-card">
+              {it.image_url && <img src={it.image_url} alt={it.title} style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 10, marginBottom: 8 }} />}
+              <div className="post-user">{it.title} <span className="tag">{catLabel(it.category)}</span></div>
+              {it.description && <div className="post-content">{it.description}</div>}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
+                <span className="tag">by @{it.seller}</span>
+                <span className="tag">{money(it.price_cents / 100)}</span>
+                {it.sold > 0 && <span className="tag">🛒 {it.sold} sold</span>}
+              </div>
+              {it.mine ? (
+                <button className="btn btn-small btn-danger" onClick={() => del(it.id)}>🗑️ Remove</button>
+              ) : it.bought ? (
+                <span className="tag" style={{ color: "var(--success)" }}>✓ Purchased</span>
+              ) : (
+                <>
+                  <CostBreakdown amount={it.price_cents / 100} tier={tier} recipient={`@${it.seller}`} payLabel="You pay" />
+                  <button className="btn btn-small" onClick={() => buy(it)}>🛒 Buy {money(it.price_cents / 100)}</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
+  merchz: MerchZPage,
   singz: SingZPage,
   rapz: RapZPage,
   dawz: DawZPage,
