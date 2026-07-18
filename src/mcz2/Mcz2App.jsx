@@ -18,6 +18,8 @@ import {
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
   getUploadsApi, uploadFileApi, deleteUploadApi,
   getCheckoutConfig, createStripeCheckout, createPaypalOrder, capturePaypalOrder,
+  getVenuesApi, createVenueApi, joinVenueApi,
+  getAttractivenessApi, setAttractivenessOptInApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -1386,6 +1388,10 @@ function RateConnectZPage() {
   const { state, update, addTo, toggleSetting } = useAppState();
   const [type, setType] = useState("image");
   const attractOn = state.settings?.ratezAttractiveness !== false;
+  const toggleAttract = () => {
+    toggleSetting("ratezAttractiveness");
+    if (isSignedIn()) setAttractivenessOptInApi(!attractOn).catch(() => {}); // sync opt-in to backend
+  };
   const [rated, setRated] = useState({});
   const t = RATE_TYPES.find((x) => x.id === type);
   const award = (k, n) => {
@@ -1420,7 +1426,7 @@ function RateConnectZPage() {
       <div className="card">
         <div className="settings-toggle">
           <label>💯 Let RateZ move my attractiveness median</label>
-          <div role="switch" aria-checked={attractOn} onClick={() => toggleSetting("ratezAttractiveness")}
+          <div role="switch" aria-checked={attractOn} onClick={toggleAttract}
             className={`toggle-switch${attractOn ? " active" : ""}`} />
         </div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 6 }}>
@@ -2487,22 +2493,56 @@ const SEED_VENUES = [
   { id: "v-seed-3", title: "Midnight Theater Set", mode: "performance", type: "theater", host: "Lilith", hostPrice: 25, minAttract: 7, seed: true },
 ];
 
+// Normalize a server venue (cents/host_price_cents) to the local shape.
+function fromServerVenue(v) {
+  return {
+    id: v.id, title: v.title, mode: v.mode, type: v.vtype, customName: v.custom_name,
+    host: v.host, mine: v.mine, hostPrice: v.host_price_cents / 100,
+    visitorPay: v.visitor_pay_cents / 100, minAttract: v.min_attract, attending: v.attending, live: true,
+  };
+}
+
 function VenueZPage({ tier, serverOk, syncEconomy }) {
   const { state, updateWallet, addTo, setList } = useAppState();
-  const canCustom = true; // Custom type allowed for Free+ (everyone)
   const [tab, setTab] = useState("discover"); // discover | host
   const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
   const [msg, setMsg] = useState("");
+  const [serverVenues, setServerVenues] = useState(null); // null = not loaded / offline
+  const [myAttractServer, setMyAttractServer] = useState(null);
 
-  const myAttract = (() => {
+  // Live data when the backend is reachable; local fallback otherwise.
+  useEffect(() => {
+    if (!serverOk) { setServerVenues(null); return; }
+    getVenuesApi().then((r) => setServerVenues(r.venues.map(fromServerVenue))).catch(() => setServerVenues(null));
+    getAttractivenessApi().then((r) => setMyAttractServer(r.median)).catch(() => {});
+  }, [serverOk]);
+
+  const localAttract = (() => {
     const r = (state.facez || []).flatMap((f) => f.ratings || []);
     return r.length ? r.reduce((s, n) => s + n, 0) / r.length : null;
   })();
+  const myAttract = serverVenues ? myAttractServer : localAttract;
 
-  const venues = [...(state.venues || []), ...SEED_VENUES];
+  const venues = serverVenues ? serverVenues : [...(state.venues || []), ...SEED_VENUES];
 
-  const create = () => {
+  const create = async () => {
     if (!form.title.trim()) return;
+    if (serverVenues) {
+      try {
+        await createVenueApi({
+          title: form.title.trim(), mode: form.mode, vtype: form.type,
+          custom_name: form.type === "custom" ? form.custom.trim() : "",
+          host_price_cents: Math.round((Number(form.hostPrice) || 0) * 100),
+          visitor_pay_cents: Math.round((Number(form.visitorPay) || 0) * 100),
+          min_attract: Number(form.minAttract) || 0,
+        });
+        const r = await getVenuesApi();
+        setServerVenues(r.venues.map(fromServerVenue));
+        setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+        setTab("discover");
+        return;
+      } catch (e) { setMsg(e.message || "Could not publish venue"); return; }
+    }
     const v = {
       id: `v-${Date.now()}`, title: form.title.trim(), mode: form.mode,
       type: form.type, customName: form.type === "custom" ? form.custom.trim() : "",
@@ -2515,19 +2555,29 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
     setTab("discover");
   };
 
-  const join = (v) => {
+  const join = async (v) => {
     setMsg("");
+    if (v.live) {
+      try {
+        const r = await joinVenueApi(v.id); // server moves money between wallets + enforces gate/tax
+        updateWallet({ balance: r.wallet.money });
+        addTo("paymentHistory", { amount: -(r.paid_cents / 100), at: Date.now(), note: `VenueZ: ${v.title} (attend)` });
+        if (r.earned_cents) addTo("paymentHistory", { amount: r.earned_cents / 100, at: Date.now(), note: `VenueZ: ${v.title} (skill payout)` });
+        setMsg(`✅ Joined ${v.title}${r.earned_cents ? ` · earned ${money(r.earned_cents / 100)}` : ""}.`);
+        getVenuesApi().then((rr) => setServerVenues(rr.venues.map(fromServerVenue))).catch(() => {});
+        syncEconomy?.();
+        return;
+      } catch (e) { setMsg(e.message || "Could not join"); return; }
+    }
     if (myAttract != null && v.minAttract > 0 && myAttract < v.minAttract) {
       setMsg(`🔒 ${v.title} needs an attractiveness of ${v.minAttract}+ — yours is ${myAttract.toFixed(1)}.`);
       return;
     }
     const bal = Number(state.wallet.balance) || 0;
     if (bal < v.hostPrice) { setMsg(`Need ${money(v.hostPrice)} to attend — add funds.`); return; }
-    // Pay the host (developer tax enforced on the payment).
     const paid = splitTransaction(v.hostPrice, tier);
     let newBal = bal - v.hostPrice;
     addTo("paymentHistory", { amount: -v.hostPrice, dev: paid.dev, at: Date.now(), note: `VenueZ: ${v.title} (attend)` });
-    // Collaborative: you also earn your skill payout (net of dev tax).
     let earnNote = "";
     if (v.mode === "collaborative" && v.visitorPay > 0) {
       const earn = splitTransaction(v.visitorPay, tier);
@@ -2583,12 +2633,17 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
         </div>
       ) : (
         <div className="card">
-          <div className="card-header"><span>🔎 Venues</span><span className="tag">{venues.length}</span></div>
+          <div className="card-header">
+            <span>🔎 Venues {serverVenues ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</span>
+            <span className="tag">{venues.length}</span>
+          </div>
+          {venues.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No venues yet — host one.</p>}
           {venues.map((v) => {
-            const locked = myAttract != null && v.minAttract > 0 && myAttract < v.minAttract;
+            const mine = v.live ? v.mine : !v.seed;
+            const locked = !mine && myAttract != null && v.minAttract > 0 && myAttract < v.minAttract;
             return (
               <div key={v.id} className="post-card">
-                <div className="post-user">{typeLabel(v)} · {v.title} {v.seed ? "" : <span className="tag" style={{ color: "var(--success)" }}>yours</span>}</div>
+                <div className="post-user">{typeLabel(v)} · {v.title} {mine ? <span className="tag" style={{ color: "var(--success)" }}>yours</span> : ""}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
                   <span className="tag">{v.mode === "collaborative" ? "🤝 Collaborative" : "🤩 Performance"}</span>
                   <span className="tag">host @{v.host}</span>
@@ -2596,10 +2651,16 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
                   {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: "var(--success)" }}>earn {money(v.visitorPay)}</span>}
                   {v.minAttract > 0 && <span className="tag" style={{ color: locked ? "var(--danger)" : undefined }}>💯 {v.minAttract}+</span>}
                 </div>
-                <CostBreakdown amount={v.hostPrice} tier={tier} recipient={`@${v.host}`} payLabel="You pay to attend" />
-                <button className="btn btn-small" style={{ marginTop: 6, opacity: locked ? 0.5 : 1 }} disabled={locked} onClick={() => join(v)}>
-                  {locked ? `🔒 Needs ${v.minAttract}+ attractiveness` : v.mode === "collaborative" ? "🤝 Join & collaborate" : "🎟️ Pay & attend"}
-                </button>
+                {!mine && <CostBreakdown amount={v.hostPrice} tier={tier} recipient={`@${v.host}`} payLabel="You pay to attend" />}
+                {mine ? (
+                  <span className="tag">🏛️ You're hosting this</span>
+                ) : v.attending ? (
+                  <span className="tag" style={{ color: "var(--success)" }}>✓ Attending</span>
+                ) : (
+                  <button className="btn btn-small" style={{ marginTop: 6, opacity: locked ? 0.5 : 1 }} disabled={locked} onClick={() => join(v)}>
+                    {locked ? `🔒 Needs ${v.minAttract}+ attractiveness` : v.mode === "collaborative" ? "🤝 Join & collaborate" : "🎟️ Pay & attend"}
+                  </button>
+                )}
               </div>
             );
           })}
