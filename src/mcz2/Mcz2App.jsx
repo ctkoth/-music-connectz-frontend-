@@ -11,7 +11,7 @@ import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, money, mbLabel } from "./economy.js";
+import { devTaxFor, splitTransaction, money, mbLabel, TIER_PRICING } from "./economy.js";
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
@@ -44,15 +44,18 @@ function CostBreakdown({ amount, tier, recipient = "Recipient", payLabel = "You 
 // counter. The cap comes from LimitsContext (backend /api/economy/limits/ when
 // live, local TIER_LIMITS otherwise) — the same limit the server enforces.
 function CappedTextarea({ value, onChange, ...rest }) {
-  const { char_limit } = useLimits();
+  const { char_limit, tier } = useLimits();
   const len = (value || "").length;
   const near = char_limit && len >= char_limit * 0.9;
+  const atLimit = char_limit && len >= char_limit;
+  const canUpgrade = (tier || "free") !== "statz";
   return (
     <>
       <textarea value={value} onChange={onChange} maxLength={char_limit || undefined} {...rest} />
       {char_limit ? (
-        <div className="char-count" style={{ fontSize: 10, textAlign: "right", color: near ? "var(--gold, #ffcf3f)" : "var(--text-light)", marginTop: 2 }}>
-          {len.toLocaleString()} / {char_limit.toLocaleString()}
+        <div className="char-count" style={{ fontSize: 10, display: "flex", justifyContent: "space-between", color: near ? "var(--gold, #ffcf3f)" : "var(--text-light)", marginTop: 2 }}>
+          <span>{atLimit && canUpgrade ? "🔒 Limit reached — upgrade for more" : near && canUpgrade ? "Almost at your limit" : ""}</span>
+          <span>{len.toLocaleString()} / {char_limit.toLocaleString()}</span>
         </div>
       ) : null}
     </>
@@ -94,12 +97,17 @@ function LegalDisclaimer() {
 
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
 const SUBSTANCES = [
+  { key: "cigarettes", name: "Cigarettes", emoji: "🚬" },
   { key: "caffeine", name: "Caffeine", emoji: "☕" },
-  { key: "nicotine", name: "Nicotine", emoji: "🚬" },
   { key: "alcohol", name: "Alcohol", emoji: "🍺" },
-  { key: "cannabis", name: "Cannabis", emoji: "🌿" },
-  { key: "prescriptions", name: "Prescriptions", emoji: "💊" },
-  { key: "psychedelics", name: "Psychedelics", emoji: "🍄" },
+  { key: "thc", name: "THC", emoji: "🌿" },
+  { key: "heroin", name: "Heroin", emoji: "💉" },
+  { key: "crack", name: "Crack", emoji: "🪨" },
+  { key: "meth", name: "Meth", emoji: "💎" },
+  { key: "dxm", name: "DXM", emoji: "🧪" },
+  { key: "adderall", name: "Adderall", emoji: "💊" },
+  { key: "opioids", name: "Opioids", emoji: "⚕️" },
+  { key: "benzos", name: "Benzos", emoji: "😴" },
 ];
 const STANCES = [
   { id: "use", label: "Use", dot: "🟢" },
@@ -150,8 +158,10 @@ const TOP_APPS = CATALOG.flatMap((g) => g.apps);
 function SetupPage() {
   const { state, updateUser } = useAppState();
   const [form, setForm] = useState(state.user);
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const [saved, setSaved] = useState(false);
+  const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setSaved(false); };
   const zsign = zodiacFor(form.birthday);
+  const save = () => { updateUser(form); setSaved(true); setTimeout(() => setSaved(false), 2500); };
   return (
     <div className="card">
       <div className="card-header">👤 Your Profile</div>
@@ -176,7 +186,8 @@ function SetupPage() {
       </div>
       <div className="form-group"><label>📍 Location</label><input value={form.location} onChange={set("location")} placeholder="City, State or Zip" /></div>
       <div className="form-group"><label>📝 Bio</label><CappedTextarea value={form.bio} onChange={set("bio")} style={{ height: 60 }} /></div>
-      <button className="btn btn-success" style={{ width: "100%" }} onClick={() => updateUser(form)}>💾 Save Profile</button>
+      <button className="btn btn-success" style={{ width: "100%" }} onClick={save}>{saved ? "✅ Profile saved!" : "💾 Save Profile"}</button>
+      {saved && <p style={{ fontSize: 11, color: "var(--success)", textAlign: "center", marginTop: 6 }}>Your profile &amp; filters are saved.</p>}
     </div>
   );
 }
@@ -258,10 +269,11 @@ function PostZPage() {
   );
 }
 
-function ProfilePage() {
+function ProfilePage({ onOpen }) {
   const { state } = useAppState();
   const u = state.user;
   const skills = state.personas.flatMap((p) => p.skills || []);
+  const zsign = zodiacFor(u.birthday);
   return (
     <div className="card">
       <div className="card-header">👤 Your Public Profile</div>
@@ -269,9 +281,11 @@ function ProfilePage() {
         <div className="profile-pic" style={{ width: 64, height: 64, margin: "0 auto 8px", fontSize: 26 }}>
           {(u.name || "?").charAt(0).toUpperCase()}
         </div>
-        <div style={{ fontWeight: 800, fontSize: 15 }}>{u.name || "Not set"}</div>
+        {/* Tapping name/sign opens the user's ZodiacZ daily horoscope. */}
+        <div style={{ fontWeight: 800, fontSize: 15, cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{u.name || "Not set"}</div>
         <div style={{ fontSize: 11, color: "var(--text-light)" }}>
-          {[u.location, u.gender, zodiacFor(u.birthday) && `${zodiacFor(u.birthday).emoji} ${zodiacFor(u.birthday).name}`].filter(Boolean).join(" · ")}
+          {[u.location, u.gender].filter(Boolean).join(" · ")}
+          {zsign && <> {(u.location || u.gender) ? "· " : ""}<span style={{ color: "var(--accent, #22e6ff)", cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{zsign.emoji} {zsign.name}</span></>}
         </div>
       </div>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio"}</div></div>
@@ -437,6 +451,104 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+const MEMBERSHIP_TIERS = [
+  {
+    id: "free", name: "Free", emoji: "🆓", icon: null, color: "var(--text-light)",
+    tag: "The on-ramp",
+    perks: [
+      "400-character limit on bios, messages & AI prompts",
+      "PickConnectZ: 2 pinned apps (rest AI-picked)",
+      "OCC builds basic browser games (JS/HTML5, Python)",
+      "1 custom GroupZ · standard glow color",
+      "Developer tax 5% on every transaction",
+      "Full access to CollabZ, BattleZ, RateZ, VenueZ, FaceZ",
+    ],
+  },
+  {
+    id: "premium", name: "Premium", emoji: "👑", icon: "tier_premium.png", color: "var(--gold, #ffcf3f)",
+    tag: "For serious professionals",
+    perks: [
+      "1,500-character limit — say more everywhere",
+      "Unlimited PickConnectZ pins",
+      "OCC builds medium 2D/3D games (any engine but Unreal)",
+      "5 custom GroupZ + custom group icons · 8 glow colors",
+      "400MB uploads · 5GB storage",
+      "LabelZ + contracts/royalty agreements",
+      "Developer tax drops to 3%",
+    ],
+  },
+  {
+    id: "statz", name: "StatZ", emoji: "📈", icon: "tier_statz.png", color: "var(--cyan, #22e6ff)",
+    tag: "Highest tier — for serious professionals",
+    perks: [
+      "5,000-character limit — the whole essay",
+      "Everything in Premium, plus:",
+      "SpecZ analytics marketplace + CallZ live calls",
+      "Image/Video lipsync from FaceZ · Instrumental key-by-mood",
+      "OCC builds advanced games in any language (incl. C++/Unreal)",
+      "20 custom GroupZ · 32 glow colors · 4GB uploads · 100GB storage",
+      "Lowest developer tax: 2%",
+    ],
+  },
+];
+
+function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy }) {
+  const cur = devTaxFor(tier).label.toLowerCase();
+  const [cycle, setCycle] = useState("monthly");
+  const [msg, setMsg] = useState("");
+  const choose = async (id) => {
+    setMsg("");
+    // Dev/preview: flip the membership live against the backend. Real recurring
+    // billing wires in with Stripe subscription price IDs.
+    try { const r = await setTierApi(id); onTierChange?.(r.tier); syncEconomy?.(); setMsg(`You're on ${id.toUpperCase()} now (dev preview).`); }
+    catch { onTierChange?.(id); setMsg(`Switched to ${id.toUpperCase()} locally.`); }
+  };
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">👑 MembershipZ</div>
+        <div className="balance-info">You're on <strong>{cur.toUpperCase()}</strong>. Here's every tier, straight up — pick the one that matches your grind.</div>
+        <div className="chip-wrap" style={{ marginTop: 8 }}>
+          <button className={`heritage-chip${cycle === "monthly" ? " sel" : ""}`} onClick={() => setCycle("monthly")}>Monthly</button>
+          <button className={`heritage-chip${cycle === "yearly" ? " sel" : ""}`} onClick={() => setCycle("yearly")}>Yearly · save ~2 months</button>
+        </div>
+        {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+      </div>
+      {MEMBERSHIP_TIERS.map((t) => {
+        const price = TIER_PRICING[t.id]?.[cycle];
+        const isCur = cur === t.id;
+        return (
+          <div key={t.id} className="card" style={{ border: isCur ? `1px solid ${t.color}` : undefined }}>
+            <div className="card-header">
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {t.icon ? <IconImg icon={t.icon} alt={t.name} style={{ width: 28, height: 28, borderRadius: 7 }} /> : <span>{t.emoji}</span>}
+                <span style={{ color: t.color }}>{t.name}</span>
+              </span>
+              <span className="tag">{price ? `${money(price)}/${cycle === "monthly" ? "mo" : "yr"}` : "Free"}</span>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{t.tag}</p>
+            {t.perks.map((p, i) => (
+              <div key={i} className="skill-item"><span className="skill-item-name" style={{ fontSize: 12 }}>✓ {p}</span></div>
+            ))}
+            <div style={{ marginTop: 10 }}>
+              {isCur ? (
+                <span className="tag" style={{ color: t.color }}>● Your current tier</span>
+              ) : (
+                <button className="btn" style={{ width: "100%" }} onClick={() => choose(t.id)}>
+                  {t.id === "free" ? "Switch to Free" : `Upgrade to ${t.name} — ${money(price)}/${cycle === "monthly" ? "mo" : "yr"}`}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <p style={{ fontSize: 10, color: "var(--text-light)", padding: "0 4px" }}>
+        Upgrades flip your tier instantly for dev/preview. Recurring card billing wires in with Stripe subscriptions (needs price IDs configured on the backend).
+      </p>
     </>
   );
 }
@@ -3009,6 +3121,7 @@ const FN_PAGES = {
   examples: PostZPage,
   profile: ProfilePage,
   money: MoneyPage,
+  membership: MembershipZPage,
   specz: SpecZPage,
   settings: SettingsPage,
 };
@@ -3130,7 +3243,8 @@ function Shell() {
   const [modalApp, setModalApp] = useState(null);
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
-  const [tier, setTier] = useState("");
+  // Dev default StatZ (editable in Settings); the server's real tier overrides on load.
+  const [tier, setTier] = useState("statz");
   const [serverOk, setServerOk] = useState(false);
 
   // Hydrate money/energy/spinaz + tier from the backend economy when signed in;
