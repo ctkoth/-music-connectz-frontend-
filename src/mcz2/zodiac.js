@@ -18,6 +18,59 @@ export const SIGNS = [
   S("Sagittarius", "♐", 11, 22, "The explorer. Global sound, restless creativity — you'd cut a track on three continents. Freedom is the whole vibe."),
 ];
 
+// ---- Daily ZodiacZ reading (Corey voice) ----
+// Deterministic per (sign, day) so everyone with the same sign gets the same
+// reading each day, and it refreshes at midnight.
+const R_VIBE = [
+  "The stars cleared their throat for you today — energy's up, ego's in check, go make something.",
+  "Today's a green light. The universe already signed off; you're just waiting on yourself.",
+  "Slow morning, loud afternoon. Save the big move for when the room warms up.",
+  "You're magnetic today — people are gonna reach out. Answer the ones that matter.",
+  "Low-key power day. Nobody sees the grind but the results show up in a week.",
+  "Creative floodgates are open. Catch the idea now, it won't knock twice.",
+  "Cosmic curveball incoming — roll with it, don't fight it. The detour's the plot.",
+];
+const R_FOCUS = [
+  "Lean into your craft — finish the thing you keep almost-finishing.",
+  "Money's moving your way. Handle a payment, price your work, don't undersell.",
+  "Collabs are blessed today. Slide in that DM, book the session.",
+  "Post it. Your audience is listening louder than usual right now.",
+  "Rest is the move. You can't pour from an empty 808.",
+  "Learn one new thing today — a plugin, a chord, a trick. It compounds.",
+  "Handle the boring admin — metadata, contracts, the follow-up email. Future you says thanks.",
+];
+const R_CAUTION = [
+  "Watch the overthinking — first instinct's usually the hit.",
+  "Don't chase clout today; the real ones aren't in the comments.",
+  "Guard your energy — one draining conversation can eat the whole session.",
+  "Don't drop it half-baked just because you're impatient. Let it breathe.",
+  "Skip the comparison scroll — your timeline isn't your competition.",
+  "Say no to one thing today so you can say yes to your work.",
+];
+const LUCKY_COLORS = ["Neon Pink", "Cyan", "Gold", "Purple", "Electric Blue", "Crimson", "Lime"];
+
+function daySeed(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// Returns a Corey-voice reading for a sign on a given date (Date or default today).
+export function dailyReading(sign, date = new Date()) {
+  if (!sign) return null;
+  const key = `${sign.name}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const s = daySeed(key);
+  const pick = (arr, off) => arr[(s + off) % arr.length];
+  return {
+    date: date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
+    vibe: pick(R_VIBE, 0),
+    focus: pick(R_FOCUS, 3),
+    caution: pick(R_CAUTION, 7),
+    luckyNumber: (s % 9) + 1,
+    luckyColor: pick(LUCKY_COLORS, 5),
+  };
+}
+
 // Returns the SIGNS entry for a "YYYY-MM-DD" birthday, or null.
 export function zodiacFor(birthday) {
   if (!birthday) return null;
