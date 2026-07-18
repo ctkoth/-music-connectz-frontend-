@@ -403,20 +403,31 @@ export default function App() {
       <Route path="/forgot" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
+      {/* Cutover: the code_2.2 rebuild is now the primary app at /. */}
       <Route
         path="/"
         element={
           <RequireAuth>
-            <Home />
+            <Mcz2App />
           </RequireAuth>
         }
       />
-      {/* code_2.2 rebuild — lives at /v2 during the phased port; / flips to it at cutover. */}
+      {/* /v2 kept as an alias so existing links and Stripe/PayPal checkout
+          return URLs (FRONTEND_URL/v2?checkout=…) keep working. */}
       <Route
         path="/v2"
         element={
           <RequireAuth>
             <Mcz2App />
+          </RequireAuth>
+        }
+      />
+      {/* Legacy app preserved during rollout in case anything needs a fallback. */}
+      <Route
+        path="/legacy"
+        element={
+          <RequireAuth>
+            <Home />
           </RequireAuth>
         }
       />
