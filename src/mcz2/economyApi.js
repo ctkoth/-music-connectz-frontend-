@@ -63,6 +63,17 @@ export const setAttractivenessOptInApi = (isPublic) =>
 export const rateAttractivenessApi = (targetUsername, score) =>
   api("/api/economy/attractiveness/rate/", { method: "POST", body: { target_username: targetUsername, score } });
 
+// FaceZ — { mine: [...], feed: [...] } (each: id, owner, name, url, median, count, my_rating, mine)
+export const getFacezApi = () => api("/api/economy/facez/");
+export const createFaceApi = (file, name = "") => {
+  const fd = new FormData();
+  fd.append("image", file);
+  if (name) fd.append("name", name);
+  return api("/api/economy/facez/", { method: "POST", body: fd });
+};
+export const rateFaceApi = (id, score) => api(`/api/economy/facez/${id}/rate/`, { method: "POST", body: { score } });
+export const deleteFaceApi = (id) => api(`/api/economy/facez/${id}/`, { method: "DELETE" });
+
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
 
