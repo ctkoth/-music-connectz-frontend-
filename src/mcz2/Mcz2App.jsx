@@ -20,6 +20,7 @@ import {
   getCheckoutConfig, createStripeCheckout, createPaypalOrder, capturePaypalOrder,
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
+  getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -1926,12 +1927,47 @@ function fileToThumb(file, size = 128) {
   });
 }
 
-function FaceZTab() {
+function FaceCard({ f, live, onRate, onDelete }) {
+  const median = live ? f.median : (f.ratings?.length ? f.ratings.reduce((s, n) => s + n, 0) / f.ratings.length : null);
+  const count = live ? f.count : (f.ratings?.length || 0);
+  const src = live ? f.url : f.img;
+  return (
+    <div className="post-card" style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <img src={src} alt={f.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
+        <div style={{ flex: 1 }}>
+          <div className="post-user">{f.name || "Untitled face"} {live && !f.mine && <span style={{ fontSize: 11, color: "var(--text-light)" }}>· @{f.owner}</span>}</div>
+          <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>
+            {median != null ? `💯 ${Number(median).toFixed(1)}/10` : "unrated"} <span style={{ color: "var(--text-light)" }}>· {count} rating{count === 1 ? "" : "s"}</span>
+            {live && f.my_rating ? <span style={{ color: "var(--text-light)" }}> · you: {f.my_rating}</span> : null}
+          </div>
+        </div>
+        {onDelete && <button className="btn btn-small btn-secondary" onClick={() => onDelete(f.id)} title="Remove">🗑️</button>}
+      </div>
+      {onRate && (
+        <div style={{ marginTop: 8 }}>
+          <label style={{ fontSize: 10, color: "var(--text-light)" }}>Rate attractiveness (RateZ)</label>
+          <div className="chip-wrap" style={{ marginTop: 4 }}>
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <button key={n} className={`heritage-chip${live && f.my_rating === n ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => onRate(f.id, n)}>{n}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FaceZTab({ serverOk }) {
   const { state, setList } = useAppState();
   const faces = state.facez || [];
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef(null);
+  const [server, setServer] = useState(null); // { mine, feed } when live
+  const [view, setView] = useState("mine"); // mine | rate
+
+  const reload = () => getFacezApi().then(setServer).catch(() => setServer(null));
+  useEffect(() => { if (serverOk) reload(); else setServer(null); }, [serverOk]);
 
   const add = async (e) => {
     const file = e.target.files?.[0];
@@ -1939,62 +1975,75 @@ function FaceZTab() {
     if (!file) return;
     setBusy(true);
     try {
-      const img = await fileToThumb(file);
-      setList("facez", [{ id: `f-${Date.now()}`, name: name.trim() || "Untitled face", img, ratings: [], at: Date.now() }, ...faces]);
+      if (server) { await createFaceApi(file, name.trim()); await reload(); }
+      else {
+        const img = await fileToThumb(file);
+        setList("facez", [{ id: `f-${Date.now()}`, name: name.trim() || "Untitled face", img, ratings: [], at: Date.now() }, ...faces]);
+      }
       setName("");
     } catch { /* ignore bad image */ }
     setBusy(false);
   };
 
-  const rate = (id, score) => setList("facez", faces.map((f) => (f.id === id ? { ...f, ratings: [...(f.ratings || []), score] } : f)));
-  const del = (id) => setList("facez", faces.filter((f) => f.id !== id));
-  const avg = (r) => (r && r.length ? (r.reduce((s, n) => s + n, 0) / r.length) : null);
+  const rateLocal = (id, score) => setList("facez", faces.map((f) => (f.id === id ? { ...f, ratings: [...(f.ratings || []), score] } : f)));
+  const delLocal = (id) => setList("facez", faces.filter((f) => f.id !== id));
+  const rateServer = async (id, score) => { try { await rateFaceApi(id, score); reload(); } catch { /* ignore */ } };
+  const delServer = async (id) => { try { await deleteFaceApi(id); reload(); } catch { /* ignore */ } };
 
-  return (
-    <div className="card">
-      <div className="card-header">🙂 FaceZ <span className="tag">face bank</span></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>
-        Bank faces from your media — Image &amp; Video ConnectZ pull from here for likeness. RateZ scores each face's attractiveness out of 10; ratings move the score.
-      </p>
+  const intro = (
+    <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>
+      Bank faces from your media — Image &amp; Video ConnectZ pull from here for likeness. The community rates each face's attractiveness out of 10, and that median feeds your RateZ score / venue filter.
+    </p>
+  );
+  const adder = (
+    <>
       <div className="form-group"><label>Name this face (optional)</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., My promo look" /></div>
       <label className="btn" style={{ width: "100%", display: "block", textAlign: "center", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
         {busy ? "Adding…" : "＋ Add face from your media"}
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} disabled={busy} onChange={add} />
+        <input type="file" accept="image/*" style={{ display: "none" }} disabled={busy} onChange={add} />
       </label>
+    </>
+  );
 
+  // Live: two sub-views — your faces (with community medians) and a feed to rate.
+  if (server) {
+    return (
+      <div className="card">
+        <div className="card-header">🙂 FaceZ <span className="tag" style={{ color: "var(--success)" }}>● live</span></div>
+        {intro}
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>
+          <button className={`heritage-chip${view === "mine" ? " sel" : ""}`} onClick={() => setView("mine")}>My FaceZ ({server.mine.length})</button>
+          <button className={`heritage-chip${view === "rate" ? " sel" : ""}`} onClick={() => setView("rate")}>Rate faces ({server.feed.length})</button>
+        </div>
+        {view === "mine" ? (
+          <>
+            {adder}
+            {server.mine.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 12 }}>No faces banked yet.</p>
+              : server.mine.map((f) => <FaceCard key={f.id} f={f} live onDelete={delServer} />)}
+          </>
+        ) : (
+          server.feed.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No community faces to rate yet.</p>
+            : server.feed.map((f) => <FaceCard key={f.id} f={f} live onRate={rateServer} />)
+        )}
+      </div>
+    );
+  }
+
+  // Offline fallback: local face bank with self-ratings.
+  return (
+    <div className="card">
+      <div className="card-header">🙂 FaceZ <span className="tag">offline</span></div>
+      {intro}
+      {adder}
       {faces.length === 0 ? (
         <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 12 }}>No faces banked yet.</p>
-      ) : faces.map((f) => {
-        const a = avg(f.ratings);
-        return (
-          <div key={f.id} className="post-card" style={{ marginTop: 10 }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <img src={f.img} alt={f.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
-              <div style={{ flex: 1 }}>
-                <div className="post-user">{f.name}</div>
-                <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>
-                  {a != null ? `💯 ${a.toFixed(1)}/10 attractiveness` : "unrated"} <span style={{ color: "var(--text-light)" }}>· {(f.ratings || []).length} rating{(f.ratings || []).length === 1 ? "" : "s"}</span>
-                </div>
-              </div>
-              <button className="btn btn-small btn-secondary" onClick={() => del(f.id)} title="Remove">🗑️</button>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <label style={{ fontSize: 10, color: "var(--text-light)" }}>Rate attractiveness (RateZ)</label>
-              <div className="chip-wrap" style={{ marginTop: 4 }}>
-                {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                  <button key={n} className="heritage-chip" style={{ padding: "2px 8px" }} onClick={() => rate(f.id, n)}>{n}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      ) : faces.map((f) => <FaceCard key={f.id} f={f} live={false} onRate={rateLocal} onDelete={delLocal} />)}
     </div>
   );
 }
 
-function IntelligencePage({ tier, onOpen }) {
+function IntelligencePage({ tier, onOpen, serverOk }) {
   const [app, setApp] = useState("facez");
   const Body = { facez: FaceZTab, image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
   return (
@@ -2007,7 +2056,7 @@ function IntelligencePage({ tier, onOpen }) {
           </button>
         ))}
       </div>
-      <Body tier={tier} onOpen={onOpen} />
+      <Body tier={tier} onOpen={onOpen} serverOk={serverOk} />
     </>
   );
 }
