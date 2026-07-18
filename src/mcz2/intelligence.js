@@ -87,6 +87,7 @@ export const DOC_TYPES = [
 
 // Intelligence sub-apps for the hub tabs.
 export const INTEL_APPS = [
+  { id: "facez", name: "FaceZ", emoji: "🙂", icon: "facez.png", role: "Face Bank" },
   { id: "image", name: "Image ConnectZ", emoji: "🖼️", icon: "imageconnectz.png", role: "Designer" },
   { id: "instrumental", name: "Instrumental ConnectZ", emoji: "🎹", icon: "instrumentalconnectz.png", role: "Beat Producer" },
   { id: "mix", name: "Mix ConnectZ", emoji: "🎚️", icon: "mixez.png", role: "Mix Engineer" },
