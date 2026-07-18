@@ -536,7 +536,7 @@ const MEMBERSHIP_TIERS = [
       "PickConnectZ: 2 pinned apps (rest AI-picked)",
       "OCC builds basic browser games (JS/HTML5, Python)",
       "1 custom GroupZ · standard glow color",
-      "Developer tax 5% on every transaction",
+      "Developer tax 10% on every transaction",
       "Full access to CollabZ, BattleZ, RateZ, VenueZ, FaceZ",
     ],
   },
@@ -550,7 +550,7 @@ const MEMBERSHIP_TIERS = [
       "5 custom GroupZ + custom group icons · 8 glow colors",
       "400MB uploads · 5GB storage",
       "LabelZ + contracts/royalty agreements",
-      "Developer tax drops to 3%",
+      "Developer tax drops to 5%",
     ],
   },
   {
