@@ -897,42 +897,41 @@ const DEMO_MEMBERS = [
   { name: "Sam", gender: "male", region: "North America", country: "United States", sober: false, lookingFor: "collab", sign: "Gemini" },
 ];
 
-function DiscoverTab() {
-  const { state } = useAppState();
-  const [region, setRegion] = useState("");
-  const [gender, setGender] = useState("");
-  const [sign, setSign] = useState("");
-  const [soberOnly, setSoberOnly] = useState(false);
-  const pref = state.user.preferences || {};
+// Toggle a value in/out of a filter array (multi-select).
+function inArr(arr, v) { return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]; }
 
+function DiscoverTab() {
+  const [regions, setRegions] = useState([]);
+  const [genders, setGenders] = useState([]);
+  const [signs, setSigns] = useState([]);
+  const [soberOnly, setSoberOnly] = useState(false);
+
+  // Multi-select: within a metric it's OR (any match), across metrics it's AND.
   const filtered = DEMO_MEMBERS.filter((m) =>
-    (!region || m.region === region) &&
-    (!gender || m.gender === gender) &&
-    (!sign || m.sign === sign) &&
+    (!regions.length || regions.includes(m.region)) &&
+    (!genders.length || genders.includes(m.gender)) &&
+    (!signs.length || signs.includes(m.sign)) &&
     (!soberOnly || m.sober),
   );
+  const active = regions.length + genders.length + signs.length + (soberOnly ? 1 : 0);
+  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSoberOnly(false); };
 
   return (
     <>
       <div className="card">
-        <div className="card-header">🔍 Filters</div>
-        <div className="form-group"><label>🌐 NationalitieZ (heritage)</label>
-          <select value={region} onChange={(e) => setRegion(e.target.value)}>
-            <option value="">All regions</option>
-            {REGIONS.map((r) => <option key={r.name} value={r.name}>{r.emoji} {r.name}</option>)}
-          </select>
+        <div className="card-header"><span>🔍 Filters {active > 0 && <span className="tag">{active}</span>}</span>{active > 0 && <button className="btn btn-small btn-secondary" onClick={clear}>Clear</button>}</div>
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>Pick as many as you want in each — combine metrics to narrow the room.</p>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🌐 NationalitieZ (heritage)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {REGIONS.map((r) => <button key={r.name} className={`heritage-chip${regions.includes(r.name) ? " sel" : ""}`} onClick={() => setRegions((a) => inArr(a, r.name))}>{r.emoji} {r.name}</button>)}
         </div>
-        <div className="form-group"><label>💞 PreferenceZ (gender)</label>
-          <select value={gender} onChange={(e) => setGender(e.target.value)}>
-            <option value="">Any</option>
-            {PARTNER_GENDERS.map((g) => <option key={g.id} value={g.id}>{g.emoji} {g.label}</option>)}
-          </select>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>💞 PreferenceZ (gender)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {PARTNER_GENDERS.map((g) => <button key={g.id} className={`heritage-chip${genders.includes(g.id) ? " sel" : ""}`} onClick={() => setGenders((a) => inArr(a, g.id))}>{g.emoji} {g.label}</button>)}
         </div>
-        <div className="form-group"><label>♌ ZodiacZ (sign)</label>
-          <select value={sign} onChange={(e) => setSign(e.target.value)}>
-            <option value="">Any sign</option>
-            {SIGNS.map((s) => <option key={s.name} value={s.name}>{s.emoji} {s.name}</option>)}
-          </select>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>♌ ZodiacZ (sign)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {SIGNS.map((s) => <button key={s.name} className={`heritage-chip${signs.includes(s.name) ? " sel" : ""}`} onClick={() => setSigns((a) => inArr(a, s.name))}>{s.emoji} {s.name}</button>)}
         </div>
         <div className="settings-toggle">
           <label>🧠 SubstanceZ — sober-friendly only</label>
@@ -951,7 +950,7 @@ function DiscoverTab() {
           </div>
         ))}
         <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
-          Demo roster — the same NationalitieZ / SubstanceZ / PreferenceZ filters apply in CollabZ and BattleZ once their live feeds ship.
+          Demo roster — these same multi-select NationalitieZ / PreferenceZ / ZodiacZ / SubstanceZ filters carry into CollabZ, BattleZ, and VenueZ events once their live cross-user feeds ship.
         </p>
       </div>
     </>
