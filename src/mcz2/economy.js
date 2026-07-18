@@ -23,8 +23,14 @@ export function splitTransaction(amount, tier) {
 // can enforce/preview limits offline. char_limit for text, upload/storage in MB.
 export const TIER_LIMITS = {
   free: { char_limit: 400, upload_mb: 40, storage_mb: 400 },
-  premium: { char_limit: 4000, upload_mb: 400, storage_mb: 5120 },
-  statz: { char_limit: 40000, upload_mb: 4096, storage_mb: 102400 },
+  premium: { char_limit: 1500, upload_mb: 400, storage_mb: 5120 },
+  statz: { char_limit: 5000, upload_mb: 4096, storage_mb: 102400 },
+};
+
+// Membership pricing + Corey-voice tier pitches for the upgrade page.
+export const TIER_PRICING = {
+  premium: { monthly: 10, yearly: 90 },
+  statz: { monthly: 15, yearly: 150 },
 };
 
 export function limitsFor(tier) {
