@@ -121,6 +121,7 @@ export const CUSTOM_ICONS = {
   "royaltiez.png": "/icons/royaltiez.png",
   "scoutz.png": "/icons/scoutz.png",
   "sentencez.png": "/icons/sentencez.png",
+  "sentencez_editor.png": "/icons/sentencez_editor.png",
   "shotz.png": "/icons/shotz.png",
   "singz.png": "/icons/singz.png",
   "skillz.png": "/icons/skillz.png",
@@ -145,12 +146,13 @@ export const CUSTOM_ICONS = {
 
 // Renders a registry icon; if the file is missing (still being remade),
 // falls back to the MCZ logo instead of a broken image.
-export function IconImg({ icon, alt = "", className = "" }) {
+export function IconImg({ icon, alt = "", className = "", style }) {
   return (
     <img
       src={CUSTOM_ICONS[icon] || "/mcz-logo-v4.png"}
       alt={alt}
       className={className}
+      style={style}
       onError={(e) => {
         if (!e.currentTarget.dataset.fbk) {
           e.currentTarget.dataset.fbk = "1";
