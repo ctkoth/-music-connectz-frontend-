@@ -51,6 +51,18 @@ export const uploadFileApi = (file) => {
 export const deleteUploadApi = (id) =>
   api(`/api/economy/uploads/${id}/`, { method: "DELETE" });
 
+// VenueZ — { venues: [...] }
+export const getVenuesApi = () => api("/api/economy/venues/");
+export const createVenueApi = (v) => api("/api/economy/venues/", { method: "POST", body: v });
+export const joinVenueApi = (id) => api(`/api/economy/venues/${id}/join/`, { method: "POST" });
+
+// RateZ attractiveness — { median, count, public }
+export const getAttractivenessApi = () => api("/api/economy/attractiveness/");
+export const setAttractivenessOptInApi = (isPublic) =>
+  api("/api/economy/attractiveness/", { method: "POST", body: { public: isPublic } });
+export const rateAttractivenessApi = (targetUsername, score) =>
+  api("/api/economy/attractiveness/rate/", { method: "POST", body: { target_username: targetUsername, score } });
+
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
 
