@@ -28,6 +28,7 @@ const DEFAULT_STATE = {
   dawVotes: {},
   sentenceDocs: [],
   videoProjects: [],
+  facez: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,

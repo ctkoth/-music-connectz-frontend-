@@ -1886,9 +1886,100 @@ function OccConnectZ({ tier, onOpen }) {
   );
 }
 
+// Read an image file and downscale it to a small square thumbnail dataURL so
+// it fits in localStorage. Used by FaceZ to bank faces from the user's media.
+function fileToThumb(file, size = 128) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = size; c.height = size;
+        const ctx = c.getContext("2d");
+        const s = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        resolve(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function FaceZTab() {
+  const { state, setList } = useAppState();
+  const faces = state.facez || [];
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  const add = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const img = await fileToThumb(file);
+      setList("facez", [{ id: `f-${Date.now()}`, name: name.trim() || "Untitled face", img, ratings: [], at: Date.now() }, ...faces]);
+      setName("");
+    } catch { /* ignore bad image */ }
+    setBusy(false);
+  };
+
+  const rate = (id, score) => setList("facez", faces.map((f) => (f.id === id ? { ...f, ratings: [...(f.ratings || []), score] } : f)));
+  const del = (id) => setList("facez", faces.filter((f) => f.id !== id));
+  const avg = (r) => (r && r.length ? (r.reduce((s, n) => s + n, 0) / r.length) : null);
+
+  return (
+    <div className="card">
+      <div className="card-header">🙂 FaceZ <span className="tag">face bank</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>
+        Bank faces from your media — Image &amp; Video ConnectZ pull from here for likeness. RateZ scores each face's attractiveness out of 10; ratings move the score.
+      </p>
+      <div className="form-group"><label>Name this face (optional)</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., My promo look" /></div>
+      <label className="btn" style={{ width: "100%", display: "block", textAlign: "center", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
+        {busy ? "Adding…" : "＋ Add face from your media"}
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} disabled={busy} onChange={add} />
+      </label>
+
+      {faces.length === 0 ? (
+        <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 12 }}>No faces banked yet.</p>
+      ) : faces.map((f) => {
+        const a = avg(f.ratings);
+        return (
+          <div key={f.id} className="post-card" style={{ marginTop: 10 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <img src={f.img} alt={f.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
+              <div style={{ flex: 1 }}>
+                <div className="post-user">{f.name}</div>
+                <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>
+                  {a != null ? `💯 ${a.toFixed(1)}/10 attractiveness` : "unrated"} <span style={{ color: "var(--text-light)" }}>· {(f.ratings || []).length} rating{(f.ratings || []).length === 1 ? "" : "s"}</span>
+                </div>
+              </div>
+              <button className="btn btn-small btn-secondary" onClick={() => del(f.id)} title="Remove">🗑️</button>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label style={{ fontSize: 10, color: "var(--text-light)" }}>Rate attractiveness (RateZ)</label>
+              <div className="chip-wrap" style={{ marginTop: 4 }}>
+                {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                  <button key={n} className="heritage-chip" style={{ padding: "2px 8px" }} onClick={() => rate(f.id, n)}>{n}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function IntelligencePage({ tier, onOpen }) {
-  const [app, setApp] = useState("image");
-  const Body = { image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
+  const [app, setApp] = useState("facez");
+  const Body = { facez: FaceZTab, image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
   return (
     <>
       <div className="launch-grid" style={{ marginBottom: 14 }}>
