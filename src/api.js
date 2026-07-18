@@ -32,19 +32,63 @@ function buildUrl(path) {
   return API_BASE + clean;
 }
 
+// Exchange the stored refresh token for a fresh access token. Returns the new
+// access token, or "" if refresh isn't possible (forces a re-login). A single
+// in-flight refresh is shared so a burst of 401s doesn't stampede the endpoint.
+let refreshInFlight = null;
+async function refreshAccess() {
+  const refresh = tokenStore.getRefresh();
+  if (!refresh) return "";
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch(buildUrl("/api/auth/refresh/"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh }),
+        });
+        if (!res.ok) throw new Error("refresh failed");
+        const data = await res.json();
+        if (data?.access) {
+          tokenStore.set(data.access, data.refresh);
+          return data.access;
+        }
+        throw new Error("no access in refresh response");
+      } catch {
+        tokenStore.clear(); // refresh dead → require a fresh login
+        return "";
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
+
+async function doFetch(path, { method, body, isForm, extraHeaders, token }) {
+  const headers = { ...(isForm ? {} : { "Content-Type": "application/json" }), ...extraHeaders };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return fetch(buildUrl(path), {
+    method,
+    headers,
+    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+  });
+}
+
 export async function api(path, { method = "GET", body, auth = true, headers = {} } = {}) {
   // FormData bodies (file uploads) go as multipart — let the browser set the
   // Content-Type + boundary; don't JSON-encode.
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
-  const finalHeaders = { ...(isForm ? {} : { "Content-Type": "application/json" }), ...headers };
-  if (auth && tokenStore.get()) {
-    finalHeaders.Authorization = `Bearer ${tokenStore.get()}`;
+  const opts = { method, body, isForm, extraHeaders: headers };
+
+  let token = auth ? tokenStore.get() : "";
+  let res = await doFetch(path, { ...opts, token });
+
+  // Access token expired? Transparently refresh once and retry.
+  if (res.status === 401 && auth && tokenStore.getRefresh()) {
+    const fresh = await refreshAccess();
+    if (fresh) res = await doFetch(path, { ...opts, token: fresh });
   }
-  const res = await fetch(buildUrl(path), {
-    method,
-    headers: finalHeaders,
-    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-  });
 
   let data = null;
   const text = await res.text();

@@ -27,6 +27,7 @@ const DEFAULT_STATE = {
   callLog: [],
   dawVotes: {},
   sentenceDocs: [],
+  videoProjects: [],
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
