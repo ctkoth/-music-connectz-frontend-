@@ -11,6 +11,7 @@ export const IMAGE_TYPES = [
   { name: "Profile Picture", ratio: "1:1" },
   { name: "Promotional Picture", ratio: "4:5" },
   { name: "Banner", ratio: "3:1" },
+  { name: "Desktop Background", ratio: "16:9" },
   { name: "Phone Background", ratio: "9:19.5" },
   { name: "Video Thumbnail", ratio: "16:9" },
   { name: "Story / Reel", ratio: "9:16" },
@@ -73,8 +74,16 @@ export function occTierFor(tier) {
   return OCC_TIERS.free;
 }
 
-// Sentence ConnectZ — document types.
-export const DOC_TYPES = ["LyricZ", "EssayZ", "ContractZ", "Bio", "Press Release", "Guitar Tabs", "Sheet Music"];
+// Sentence ConnectZ — document types. `gated` docs (contracts, royalty
+// agreements) are only offered to Manager / A&R Scout personas.
+export const DOC_TYPES = [
+  { name: "Lyrics", gated: false },
+  { name: "Essay", gated: false },
+  { name: "Instagram Caption", gated: false },
+  { name: "Social Media Post", gated: false },
+  { name: "Artist Contract", gated: true },
+  { name: "Royalties Agreement", gated: true },
+];
 
 // Intelligence sub-apps for the hub tabs.
 export const INTEL_APPS = [

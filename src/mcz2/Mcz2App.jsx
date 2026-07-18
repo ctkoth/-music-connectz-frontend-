@@ -1711,7 +1711,7 @@ function IntelNote({ role, reusable }) {
   return (
     <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 4 }}>
       🏷️ Attributed to Corey Knap ({role}) · low-gradient MCZ watermark applied · can't be exported/downloaded outside posts.
-      {reusable ? " ♻️ Reusable: 10% K-Oth royalty when used on DistributeZ / CollabZ / BattleZ, split transparently to contributors." : ""}
+      {reusable ? " ♻️ Reusable: 10% K-Oth royalty when used on DistributeZ / CollabZ / BattleZ, split transparently to contributors. Edit the output and the royalty scales to how much stays original — change 50% of the words, K-Oth is paid on the other 50% (so 5%)." : ""}
     </p>
   );
 }
@@ -1731,6 +1731,7 @@ function ImageConnectZ() {
         {IMAGE_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}
       </div>
       <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Uses your saved FaceZ for likeness. StatZ can lipsync the result to an audio/video track and drop it into VideoZ.</p>
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {type} ({t.ratio})</button>
       <IntelNote role="Designer" />
     </div>
@@ -1798,6 +1799,7 @@ function VideoConnectZ() {
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{VIDEO_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}</div>
       <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${type.toLowerCase()}`} /></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Built from your saved FaceZ. StatZ can lipsync it to a supplied audio track and finish it in VideoZ.</p>
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {type} ({t.ratio})</button>
       <IntelNote role="Videographer" reusable />
     </div>
@@ -1805,14 +1807,43 @@ function VideoConnectZ() {
 }
 
 function SentenceConnectZ() {
-  const [doc, setDoc] = useState(DOC_TYPES[0]);
+  const { state } = useAppState();
+  // Contracts & royalty agreements are gated to Manager / A&R Scout personas.
+  const isBiz = (state.personas || []).some((p) => /manager|a&r|scout|label/i.test(p.name || ""));
+  const [doc, setDoc] = useState(DOC_TYPES[0].name);
+  const [rhyme, setRhyme] = useState(2);
+  const [genre, setGenre] = useState(INSTR_GENRES[0]);
+  const [prompt, setPrompt] = useState("");
+  const isLyrics = doc === "Lyrics";
   return (
     <div className="card">
-      <div className="card-header">📃 Sentence ConnectZ</div>
+      <div className="card-header">📃 Sentence ConnectZ <span className="tag">Corey voice</span></div>
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Document type</label>
-      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{DOC_TYPES.map((d) => <Pill key={d} active={doc === d} onClick={() => setDoc(d)}>{d}</Pill>)}</div>
-      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>Controls: ChatGPT toggle · document language · Explicit / Slang / Emoji toggles. LyricZ adds genre, mood, metaphor/simile/pun density and syllable-rhyme ranges.</p>
-      <button className="btn" style={{ width: "100%" }}>✍️ Generate {doc}</button>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
+        {DOC_TYPES.map((d) => {
+          const locked = d.gated && !isBiz;
+          return (
+            <Pill key={d.name} active={doc === d.name} onClick={() => !locked && setDoc(d.name)}>
+              {locked ? "🔒 " : ""}{d.name}
+            </Pill>
+          );
+        })}
+      </div>
+      {DOC_TYPES.find((d) => d.name === doc)?.gated && !isBiz && (
+        <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 8 }}>🔒 Contracts &amp; royalty agreements need a Manager or A&amp;R Scout persona.</p>
+      )}
+      <div className="form-group"><label>Describe the topic (text or paste media link)</label>
+        <CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 52 }} placeholder={isLyrics ? "What's the song about?" : `Brief for your ${doc.toLowerCase()}`} /></div>
+      {isLyrics && (
+        <>
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Genre</label>
+          <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{INSTR_GENRES.map((g) => <Pill key={g} active={genre === g} onClick={() => setGenre(g)}>{g}</Pill>)}</div>
+          <div className="form-group"><label>Rhyme scheme: last {rhyme} syllable{rhyme === 1 ? "" : "s"} of each line must rhyme</label>
+            <input type="range" min="1" max="6" value={rhyme} onChange={(e) => setRhyme(+e.target.value)} /></div>
+        </>
+      )}
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Written in Corey voice · toggles for language, Explicit / Slang / Emoji.</p>
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✍️ Generate {doc}</button>
       <IntelNote role="Ghostwriter" reusable />
     </div>
   );
