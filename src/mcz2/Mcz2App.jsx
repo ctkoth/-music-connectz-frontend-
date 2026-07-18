@@ -2198,6 +2198,149 @@ function SentenceZPage() {
   );
 }
 
+// VideoZ — a Sony Vegas-style multitrack timeline editor.
+const VZ_CLIP_TYPES = [
+  { id: "video", label: "🎬 Video", track: "video", color: "#7c5cff" },
+  { id: "image", label: "🖼️ Image", track: "video", color: "#22a7ff" },
+  { id: "text", label: "🔤 Title", track: "video", color: "#ff8f3f" },
+  { id: "transition", label: "✨ Transition", track: "video", color: "#ff2bd1" },
+  { id: "audio", label: "🎵 Audio", track: "audio", color: "#22e6ff" },
+];
+function fmtSecs(s) { const m = Math.floor(s / 60), r = s % 60; return `${m}:${String(r).padStart(2, "0")}`; }
+
+function VideoZPage() {
+  const { state, setList } = useAppState();
+  const projects = state.videoProjects || [];
+  const [openId, setOpenId] = useState(null);
+  const [name, setName] = useState("");
+  const [clips, setClips] = useState([]);
+  const [form, setForm] = useState({ label: "", type: "video", seconds: 5 });
+  const [saved, setSaved] = useState("");
+
+  const openProj = (p) => { setOpenId(p.id); setName(p.name); setClips(p.clips || []); setSaved(""); };
+  const newProj = () => { setOpenId("new"); setName(""); setClips([]); setSaved(""); };
+
+  const addClip = () => {
+    const label = form.label.trim() || VZ_CLIP_TYPES.find((t) => t.id === form.type).label.replace(/^\S+\s/, "");
+    const track = VZ_CLIP_TYPES.find((t) => t.id === form.type).track;
+    setClips((c) => [...c, { id: `c-${Date.now()}`, label, type: form.type, track, seconds: Math.max(1, Number(form.seconds) || 1) }]);
+    setForm({ ...form, label: "" });
+  };
+  const trim = (id, delta) => setClips((c) => c.map((x) => (x.id === id ? { ...x, seconds: Math.max(1, x.seconds + delta) } : x)));
+  const move = (id, dir) => setClips((c) => {
+    const track = c.find((x) => x.id === id).track;
+    const lane = c.filter((x) => x.track === track);
+    const i = lane.findIndex((x) => x.id === id);
+    const j = i + dir;
+    if (j < 0 || j >= lane.length) return c;
+    [lane[i], lane[j]] = [lane[j], lane[i]];
+    const other = c.filter((x) => x.track !== track);
+    return track === "video" ? [...lane, ...other] : [...other, ...lane];
+  });
+  const del = (id) => setClips((c) => c.filter((x) => x.id !== id));
+
+  const save = () => {
+    const proj = { id: openId !== "new" ? openId : `vp-${Date.now()}`, name: name.trim() || "Untitled Project", clips, at: Date.now() };
+    if (openId !== "new") setList("videoProjects", projects.map((p) => (p.id === openId ? proj : p)));
+    else { setList("videoProjects", [proj, ...projects]); setOpenId(proj.id); }
+    setSaved("Saved ✓"); setTimeout(() => setSaved(""), 1500);
+  };
+
+  const lane = (track) => clips.filter((c) => c.track === track);
+  const runtime = Math.max(lane("video").reduce((s, c) => s + c.seconds, 0), lane("audio").reduce((s, c) => s + c.seconds, 0));
+
+  const Track = ({ track, title }) => {
+    const items = lane(track);
+    const total = items.reduce((s, c) => s + c.seconds, 0) || 1;
+    return (
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>{title} · {fmtSecs(items.reduce((s, c) => s + c.seconds, 0))}</div>
+        <div style={{ display: "flex", gap: 3, background: "#0c0a16", borderRadius: 8, padding: 4, minHeight: 46, overflowX: "auto" }}>
+          {items.length === 0 ? <span style={{ fontSize: 11, color: "var(--text-light)", alignSelf: "center", padding: 6 }}>empty</span> :
+            items.map((c) => {
+              const col = VZ_CLIP_TYPES.find((t) => t.id === c.type)?.color || "#7c5cff";
+              return (
+                <div key={c.id} onClick={() => setForm((f) => ({ ...f }))}
+                  style={{ flex: `0 0 ${Math.max(48, (c.seconds / total) * 240)}px`, background: `${col}33`, border: `1px solid ${col}`, borderRadius: 6, padding: "4px 6px", fontSize: 10, color: "#fff", position: "relative" }}>
+                  <div style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</div>
+                  <div style={{ color: "var(--text-light)" }}>{fmtSecs(c.seconds)}</div>
+                  <div style={{ display: "flex", gap: 2, marginTop: 3 }}>
+                    <button className="btn btn-small btn-secondary" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => move(c.id, -1)}>‹</button>
+                    <button className="btn btn-small btn-secondary" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => trim(c.id, -1)}>−</button>
+                    <button className="btn btn-small btn-secondary" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => trim(c.id, 1)}>+</button>
+                    <button className="btn btn-small btn-secondary" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => move(c.id, 1)}>›</button>
+                    <button className="btn btn-small btn-secondary" style={{ padding: "0 5px", fontSize: 10 }} onClick={() => del(c.id)}>🗑️</button>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    );
+  };
+
+  if (openId) {
+    return (
+      <>
+        <div className="stripe-section">
+          <button className="btn btn-secondary btn-small" onClick={() => setOpenId(null)} style={{ marginBottom: 8 }}>‹ Projects</button>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" style={{ fontWeight: 700 }} />
+          <div className="balance-info" style={{ marginTop: 6 }}>Total runtime: <strong>{fmtSecs(runtime)}</strong> · {clips.length} clip{clips.length === 1 ? "" : "s"}</div>
+        </div>
+        <div className="card">
+          <div className="card-header">➕ Add clip</div>
+          <div className="chip-wrap" style={{ marginBottom: 8 }}>
+            {VZ_CLIP_TYPES.map((t) => (
+              <button key={t.id} className={`heritage-chip${form.type === t.id ? " sel" : ""}`} onClick={() => setForm({ ...form, type: t.id })}>{t.label}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Clip name" style={{ flex: 2 }} />
+            <input type="number" min="1" value={form.seconds} onChange={(e) => setForm({ ...form, seconds: e.target.value })} placeholder="sec" style={{ flex: 1 }} />
+          </div>
+          <button className="btn btn-small" style={{ width: "100%", marginTop: 8 }} onClick={addClip}>➕ Add to timeline</button>
+        </div>
+        <div className="card">
+          <div className="card-header">🎞️ Timeline</div>
+          <Track track="video" title="🎬 Video / Titles" />
+          <Track track="audio" title="🎵 Audio" />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+            <span style={{ fontSize: 10, color: "var(--text-light)" }}>{saved || "Export/render arrives with the render backend."}</span>
+            <button className="btn btn-small btn-success" onClick={save}>💾 Save project</button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">🎬 VideoZ <span className="tag">Sony Vegas-style</span></div>
+        <div className="balance-info">Build videos on a multitrack timeline — clips, titles, and audio.</div>
+        <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={newProj}>＋ New project</button>
+      </div>
+      <div className="card">
+        <div className="card-header"><span>🗂️ Your Projects</span><span className="tag">{projects.length}</span></div>
+        {projects.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No projects yet — start one above.</p>
+        ) : projects.map((p) => {
+          const rt = (p.clips || []).filter((c) => c.track === "video").reduce((s, c) => s + c.seconds, 0);
+          return (
+            <div key={p.id} className="skill-item">
+              <span className="skill-item-name" style={{ cursor: "pointer" }} onClick={() => openProj(p)}>🎬 {p.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {(p.clips || []).length} clips · {fmtSecs(rt)}</span></span>
+              <span className="skill-item-exp" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {new Date(p.at).toLocaleDateString()}
+                <button className="btn btn-small btn-secondary" onClick={() => setList("videoProjects", projects.filter((x) => x.id !== p.id))} title="Delete">🗑️</button>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function CallZPage({ tier, onOpen }) {
   const { state, updateWallet, addTo } = useAppState();
   const isStatz = /stat[sz]/i.test(tier || "");
@@ -2367,6 +2510,7 @@ function CallZPage({ tier, onOpen }) {
 const FN_PAGES = {
   dawz: DawZPage,
   sentencez: SentenceZPage,
+  videoz: VideoZPage,
   callz: CallZPage,
   gamez: GameZPage,
   filez: FileZPage,
