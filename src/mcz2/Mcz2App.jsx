@@ -7,7 +7,7 @@ import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
-import { SIGNS, zodiacFor } from "./zodiac.js";
+import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
@@ -135,6 +135,7 @@ function SetupPage() {
   const { state, updateUser } = useAppState();
   const [form, setForm] = useState(state.user);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const zsign = zodiacFor(form.birthday);
   return (
     <div className="card">
       <div className="card-header">👤 Your Profile</div>
@@ -144,10 +145,16 @@ function SetupPage() {
         <div className="form-group"><label>📱 Phone</label><input value={form.phone} onChange={set("phone")} /></div>
       </div>
       <div className="grid-2">
-        <div className="form-group"><label>🎂 Birthday</label><input type="date" value={form.birthday} onChange={set("birthday")} /></div>
+        <div className="form-group">
+          <label>🎂 Birthday {zsign && <span style={{ color: "var(--accent, #22e6ff)" }}>· {zsign.emoji} {zsign.name}</span>}</label>
+          <input type="date" value={form.birthday} onChange={set("birthday")} />
+        </div>
         <div className="form-group"><label>⚧️ Gender</label>
           <select value={form.gender} onChange={set("gender")}>
-            <option value="">Select</option><option>Male</option><option>Female</option><option>Non-Binary</option>
+            <option value="">Select</option>
+            <option value="Male">🚹 Male ♂️</option>
+            <option value="Female">🚺 Female ♀️</option>
+            <option value="Non-Binary">⚧️ Non-Binary</option>
           </select>
         </div>
       </div>
@@ -1191,6 +1198,7 @@ function BodieZPage({ tier }) {
 function ZodiacZPage() {
   const { state } = useAppState();
   const sign = zodiacFor(state.user.birthday);
+  const reading = dailyReading(sign);
   return (
     <>
       <div className="card">
@@ -1208,6 +1216,19 @@ function ZodiacZPage() {
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>Set your birthday in <strong>Setup</strong> to auto-detect your sign.</p>
         )}
       </div>
+      {reading && (
+        <div className="stripe-section">
+          <div className="stripe-title">🔮 Today's Reading {sign.emoji}</div>
+          <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{reading.date} · your daily cosmic guide, straight from K-Oth</div>
+          <p style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{reading.vibe}</p>
+          <p style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}><strong>🎯 Today:</strong> {reading.focus}</p>
+          <p style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}><strong>⚠️ Watch:</strong> {reading.caution}</p>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <span className="tag">🔢 Lucky number {reading.luckyNumber}</span>
+            <span className="tag">🎨 Lucky color {reading.luckyColor}</span>
+          </div>
+        </div>
+      )}
       <div className="card">
         <div className="card-header">✨ All 12 Signs</div>
         {SIGNS.map((s) => (
