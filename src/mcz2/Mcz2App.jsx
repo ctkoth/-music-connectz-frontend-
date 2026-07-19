@@ -76,6 +76,7 @@ import {
   getUploadsApi, uploadFileApi, deleteUploadApi,
   getCheckoutConfig, createStripeCheckout, createPaypalOrder, capturePaypalOrder,
   getFoundingApi, claimFoundingApi, foundingCheckoutApi,
+  getRefundWindowApi, refundMembershipApi,
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
@@ -916,6 +917,56 @@ function FoundingCard({ serverOk, onTierChange, syncEconomy }) {
   );
 }
 
+// 10-day downgrade-for-refund. Shows the live window; the button refunds the
+// purchase, cancels any subscription, and drops the tier to Free.
+function RefundCard({ serverOk, onTierChange, syncEconomy, onOpen }) {
+  const [rw, setRw] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  useEffect(() => { if (serverOk) getRefundWindowApi().then(setRw).catch(() => setRw(null)); }, [serverOk]);
+
+  const doRefund = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await refundMembershipApi();
+      onTierChange?.(r.tier); syncEconomy?.();
+      setMsg(`✅ Downgraded to Free. ${r.note || ""}`);
+      setConfirm(false);
+      getRefundWindowApi().then(setRw).catch(() => {});
+    } catch (e) {
+      setMsg(e?.message?.includes("window") ? "That purchase is past the 10-day refund window." : "Couldn't process — try again or file a BugZ.");
+    }
+    setBusy(false);
+  };
+
+  const days = rw?.window_days ?? 10;
+  return (
+    <div className="card">
+      <div className="card-header">🧾 Refunds</div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
+        <strong>{days}-day refund window.</strong> Downgrade for a full refund within {days} days of purchase — the charge goes back to your payment method, any subscription is cancelled, and you drop to Free. After that, purchases are final. SpinAZ &amp; Energy are non-refundable (spendable currency). Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>file a BugZ</button> (squashed bugs pay 200 SpinAZ).
+      </p>
+      {rw?.eligible ? (
+        <>
+          <p style={{ fontSize: 11, color: "var(--success)", marginBottom: 6 }}>✅ You're inside the window — <strong>{rw.days_left} day{rw.days_left === 1 ? "" : "s"} left</strong> to refund your {rw.kind} purchase.</p>
+          {confirm ? (
+            <div style={{ display: "flex", gap: 6 }}>
+              <button className="btn btn-small btn-danger" style={{ flex: 1 }} disabled={busy} onClick={doRefund}>{busy ? "…" : "Yes, refund & downgrade"}</button>
+              <button className="btn btn-small btn-secondary" onClick={() => setConfirm(false)}>Keep my tier</button>
+            </div>
+          ) : (
+            <button className="btn btn-small btn-secondary" onClick={() => setConfirm(true)}>↩️ Downgrade &amp; refund</button>
+          )}
+        </>
+      ) : rw && rw.kind ? (
+        <p style={{ fontSize: 11, color: "var(--text-light)" }}>Your {rw.kind} purchase is past the {days}-day window — it's final now.</p>
+      ) : null}
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, onOpen }) {
   const cur = (tier || "").toLowerCase() === "debug" ? "debug" : devTaxFor(tier).label.toLowerCase();
   const [cycle, setCycle] = useState("monthly");
@@ -993,10 +1044,11 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
             : <button className="btn" style={{ width: "100%" }} onClick={() => choose("debug")}>🛠️ Switch to Debug</button>}
         </div>
       )}
+      <RefundCard serverOk={serverOk} onTierChange={onTierChange} syncEconomy={syncEconomy} onOpen={onOpen} />
       <div className="card">
-        <div className="card-header">🧾 Refunds &amp; disputes</div>
+        <div className="card-header">🧾 Disputes</div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
-          Straight up: <strong>membership and upgrades aren't refundable</strong> — they unlock features instantly, so there's nothing to give back. Wallet funds you spend on other members (CollabZ, MerchZ, VenueZ, CallZ) are real money between users; disputes and refunds on those are handled member-to-member inside CollabZ. Hit a broken feature? Don't ask for a refund — <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>submit a BugZ report</button> and we fix it (squashed bugs pay you 200 SpinAZ).
+          Wallet funds you spend on other members (CollabZ, MerchZ, VenueZ, CallZ) are real money between users; disputes and refunds on those are handled member-to-member inside CollabZ. Hit a broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>submit a BugZ report</button> and we fix it (squashed bugs pay you 200 SpinAZ).
         </p>
       </div>
       <p style={{ fontSize: 10, color: "var(--text-light)", padding: "0 4px" }}>
@@ -2977,7 +3029,7 @@ function LegalZPage() {
       <div className="card">
         <div className="card-header">🧾 Refunds</div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
-          <strong>Membership and upgrades are non-refundable.</strong> They unlock features the instant you buy them, so there's nothing to return. SpinAZ and Energy purchases are also final. If something's broken, that's a bug — file a <strong>BugZ</strong> report and we fix it (squashed bugs pay you 200 SpinAZ). We don't issue refunds for buyer's remorse.
+          <strong>Membership &amp; upgrades — 10-day refund window.</strong> You can downgrade for a full refund within <strong>10 days</strong> of purchase, straight from MembershipZ: the charge is refunded to your original payment method, any subscription is cancelled, and your tier drops back to Free. After 10 days the purchase is final. <strong>SpinAZ and Energy purchases are non-refundable</strong> (they're spendable currency). If something's broken, that's a bug — file a <strong>BugZ</strong> report and we fix it (squashed bugs pay you 200 SpinAZ). We don't issue refunds for buyer's remorse outside the 10-day window.
         </p>
       </div>
       <div className="card">

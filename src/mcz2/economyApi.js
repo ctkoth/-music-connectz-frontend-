@@ -142,6 +142,10 @@ export const setLocationApi = (share, lat, lng) =>
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
 
+// 10-day downgrade-for-refund window.
+export const getRefundWindowApi = () => api("/api/economy/membership/refund/");
+export const refundMembershipApi = () => api("/api/economy/membership/refund/", { method: "POST" });
+
 // Stripe Checkout — returns { url } to redirect the browser to.
 export const createStripeCheckout = (amountCents) =>
   api("/api/economy/checkout/stripe/", { method: "POST", body: { amount_cents: amountCents } });
