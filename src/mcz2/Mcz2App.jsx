@@ -16,7 +16,29 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, FLOW_GREEN, FLOW_RED } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED } from "./economy.js";
+
+// Tier + Founding Member badges, reusable across profiles and member cards.
+// Tapping the tier chip (when onOpen given) jumps to MembershipZ upgrade prices.
+const TIER_COLOR = { free: "var(--text-light)", premium: "var(--gold, #ffcf3f)", statz: "var(--cyan, #22e6ff)", debug: "var(--gold, #ffcf3f)" };
+function TierBadge({ tier, onOpen, size = 12 }) {
+  const k = tierKey(tier);
+  const clickable = !!onOpen && k !== "statz" && k !== "debug";
+  return (
+    <span
+      className="tag"
+      title={clickable ? "Tap to see upgrade prices" : `${tierLabel(k)} member`}
+      onClick={clickable ? () => onOpen("membership") : undefined}
+      style={{ color: TIER_COLOR[k], fontSize: size, cursor: clickable ? "pointer" : "default", borderColor: TIER_COLOR[k] }}
+    >
+      {TIER_EMOJI[k]} {tierLabel(k)}{clickable ? " · ⬆️ upgrade" : ""}
+    </span>
+  );
+}
+function FoundingBadge({ founding, lifetime }) {
+  if (!founding && !lifetime) return null;
+  return <span className="tag" title="Founding 50 member" style={{ color: "var(--gold, #ffcf3f)", borderColor: "var(--gold, #ffcf3f)" }}>👑 Founding{lifetime ? " · Lifetime" : ""}</span>;
+}
 
 // Colored money: green = money in / growth, red = money out / cost.
 // `flow`: "in" (green), "out" (red), or omit for neutral. Optional sign prefix.
@@ -499,11 +521,17 @@ function PostZPage() {
   );
 }
 
-function ProfilePage({ onOpen }) {
+function ProfilePage({ onOpen, tier, serverOk }) {
   const { state } = useAppState();
   const u = state.user;
   const skills = state.personas.flatMap((p) => p.skills || []);
   const zsign = zodiacFor(u.birthday);
+  const [me, setMe] = useState(null); // { tier, founding, lifetime } from server
+  useEffect(() => {
+    if (!serverOk || !u?.username) return;
+    getMemberApi(u.username).then(setMe).catch(() => setMe(null));
+  }, [serverOk, u?.username]);
+  const effTier = me?.tier || tier;
   return (
     <div className="card">
       <div className="card-header">👤 Your Public Profile</div>
@@ -513,6 +541,10 @@ function ProfilePage({ onOpen }) {
         </div>
         {/* Tapping name/sign opens the user's ZodiacZ daily horoscope. */}
         <div style={{ fontWeight: 800, fontSize: 15, cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{u.name || "Not set"}</div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", margin: "6px 0" }}>
+          <TierBadge tier={effTier} onOpen={onOpen} />
+          <FoundingBadge founding={me?.founding} lifetime={me?.lifetime} />
+        </div>
         <div style={{ fontSize: 11, color: "var(--text-light)" }}>
           {[u.location, u.gender].filter(Boolean).join(" · ")}
           {zsign && <> {(u.location || u.gender) ? "· " : ""}<span style={{ color: "var(--accent, #22e6ff)", cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{zsign.emoji} {zsign.name}</span></>}
@@ -1342,9 +1374,15 @@ function DiscoverTab({ serverOk }) {
               <div className="modal-title"><h2>👤 {viewing.display_name || viewing.username}</h2></div>
               <button className="close-btn" onClick={() => setViewing(null)}>×</button>
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 6 }}>
               @{viewing.username} {viewing.gender && `· ${PARTNER_GENDERS.find((g) => g.id === viewing.gender)?.emoji || viewing.gender}`} {viewing.sign && `· ${SIGNS.find((s) => s.name === viewing.sign)?.emoji || ""} ${viewing.sign}`} {viewing.median != null && `· 💯 ${viewing.median}`}
             </div>
+            {(viewing.tier || viewing.founding) && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                <TierBadge tier={viewing.tier} />
+                <FoundingBadge founding={viewing.founding} lifetime={viewing.lifetime} />
+              </div>
+            )}
             {viewing.bio && <p style={{ fontSize: 13, marginBottom: 8 }}>{viewing.bio}</p>}
             {viewing.location && <div className="skill-item"><span className="skill-item-name">📍 {viewing.location}</span></div>}
             {(viewing.nationalities || []).length > 0 && <div style={{ margin: "6px 0" }}>🌐 {viewing.nationalities.map((n) => <span key={n} className="tag">{n}</span>)}</div>}
@@ -1431,8 +1469,8 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
           const heritage = m.nationalities?.length ? m.nationalities.join(", ") : (m.country || (m.regions || []).join(", "));
           return (
             <div key={uname || name} className="post-card">
-              <div className="post-user">{name} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</div>
-              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}</div>
+              <div className="post-user">{name} {m.founding && <span title="Founding member">👑</span>} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</div>
+              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.tier && m.tier !== "free" ? ` · ${TIER_EMOJI[tierKey(m.tier)]} ${tierLabel(m.tier)}` : ""}</div>
               <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onPick?.(m)}>{actionLabel}{uname ? ` · @${uname}` : name ? ` · ${name}` : ""}</button>
             </div>
           );
