@@ -660,6 +660,17 @@ export default function App() {
           </RequireAuth>
         }
       />
+      {/* Every tab opens on its own URL — /gamez, /battlez, /singz, /lilith, …
+          (blueprint: "every tab opens on a url named after the tab"). Static
+          routes above win by specificity, so /login etc. are unaffected. */}
+      <Route
+        path="/:tab"
+        element={
+          <RequireAuth>
+            <Mcz2App />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
