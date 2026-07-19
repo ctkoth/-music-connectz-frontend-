@@ -125,6 +125,14 @@ function isBizPersona(personas) {
   return (personas || []).some((p) => /manager|a&r|scout|label/i.test(p.name || ""));
 }
 
+// Upgrade call-to-action button — drops the member straight into MembershipZ
+// from any locked feature. Every upgrade prompt should pair its 🔒 copy with this.
+function UpgradeCTA({ onOpen, label = "👑 Upgrade", to = "membership", style }) {
+  return (
+    <button className="btn" style={{ marginTop: 8, ...style }} onClick={() => onOpen?.(to)}>{label}</button>
+  );
+}
+
 // Disclaimer shown on any AI-generated or platform legal document.
 function LegalDisclaimer() {
   return (
@@ -536,7 +544,7 @@ const MEMBERSHIP_TIERS = [
       "PickConnectZ: 2 pinned apps (rest AI-picked)",
       "OCC builds basic browser games (JS/HTML5, Python)",
       "1 custom GroupZ · standard glow color",
-      "Developer tax 5% on every transaction",
+      "Developer tax 10% on every transaction",
       "Full access to CollabZ, BattleZ, RateZ, VenueZ, FaceZ",
     ],
   },
@@ -550,7 +558,7 @@ const MEMBERSHIP_TIERS = [
       "5 custom GroupZ + custom group icons · 8 glow colors",
       "400MB uploads · 5GB storage",
       "LabelZ + contracts/royalty agreements",
-      "Developer tax drops to 3%",
+      "Developer tax drops to 5%",
     ],
   },
   {
@@ -568,8 +576,8 @@ const MEMBERSHIP_TIERS = [
   },
 ];
 
-function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy }) {
-  const cur = devTaxFor(tier).label.toLowerCase();
+function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, onOpen }) {
+  const cur = (tier || "").toLowerCase() === "debug" ? "debug" : devTaxFor(tier).label.toLowerCase();
   const [cycle, setCycle] = useState("monthly");
   const [msg, setMsg] = useState("");
   const choose = async (id) => {
@@ -618,6 +626,21 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy }) {
           </div>
         );
       })}
+      {isOwner && (
+        <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+          <div className="card-header"><span style={{ color: "var(--gold, #ffcf3f)" }}>🛠️ Debug (owner)</span>{cur === "debug" ? <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>● active</span> : <span className="tag">owner-only</span>}</div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>God-mode for the owner: 0% developer tax, unlimited character/upload/storage limits, every gate unlocked. Only your account can switch into it.</p>
+          {cur === "debug"
+            ? <button className="btn btn-secondary" style={{ width: "100%" }} onClick={() => choose("statz")}>Drop back to StatZ</button>
+            : <button className="btn" style={{ width: "100%" }} onClick={() => choose("debug")}>🛠️ Switch to Debug</button>}
+        </div>
+      )}
+      <div className="card">
+        <div className="card-header">🧾 Refunds &amp; disputes</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Straight up: <strong>membership and upgrades aren't refundable</strong> — they unlock features instantly, so there's nothing to give back. Wallet funds you spend on other members (CollabZ, MerchZ, VenueZ, CallZ) are real money between users; disputes and refunds on those are handled member-to-member inside CollabZ. Hit a broken feature? Don't ask for a refund — <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>submit a BugZ report</button> and we fix it (squashed bugs pay you 200 SpinAZ).
+        </p>
+      </div>
       <p style={{ fontSize: 10, color: "var(--text-light)", padding: "0 4px" }}>
         Upgrades flip your tier instantly for dev/preview. Recurring card billing wires in with Stripe subscriptions (needs price IDs configured on the backend).
       </p>
@@ -727,7 +750,7 @@ const SPECZ_ITEMS = [
   { id: "trending", name: "Trending Metadata Report", emoji: "📈", price: 8.99, desc: "This week's rising tags, sounds, and metadata across the platform." },
 ];
 
-function SpecZPage({ tier, serverOk, syncEconomy }) {
+function SpecZPage({ tier, serverOk, syncEconomy, onOpen }) {
   const { state, updateWallet, addTo, update } = useAppState();
   const [err, setErr] = useState("");
   const isStatz = /stat[sz]/i.test(tier || "");
@@ -748,6 +771,7 @@ function SpecZPage({ tier, serverOk, syncEconomy }) {
           🔒 SpecZ is a <strong>StatZ</strong>-only marketplace for purchasable user metadata &amp; UGC. Upgrade to StatZ to buy
           audience analytics, engagement data, genre intelligence, and creator content packs.
         </p>
+        <UpgradeCTA onOpen={onOpen} label="👑 Upgrade to StatZ" />
       </div>
     );
   }
@@ -934,6 +958,7 @@ function DiscoverTab({ serverOk }) {
   const [regions, setRegions] = useState([]);
   const [genders, setGenders] = useState([]);
   const [signs, setSigns] = useState([]);
+  const [subs, setSubs] = useState([]); // SubstanceZ keys wanted sober-friendly
   const [soberOnly, setSoberOnly] = useState(false);
   const [live, setLive] = useState(null); // server results, or null when offline
   const [viewing, setViewing] = useState(null); // a member profile being viewed
@@ -942,23 +967,24 @@ function DiscoverTab({ serverOk }) {
   useEffect(() => {
     if (!serverOk) { setLive(null); return undefined; }
     const t = setTimeout(() => {
-      searchMembersApi({ regions, genders, signs, sober: soberOnly })
+      searchMembersApi({ regions, genders, signs, substances: subs, sober: soberOnly })
         .then((r) => setLive(r.members)).catch(() => setLive(null));
     }, 300);
     return () => clearTimeout(t);
-  }, [serverOk, regions, genders, signs, soberOnly]);
+  }, [serverOk, regions, genders, signs, subs, soberOnly]);
 
   // Offline fallback: filter the demo roster locally.
   const demoFiltered = DEMO_MEMBERS.filter((m) =>
     (!regions.length || regions.includes(m.region)) &&
     (!genders.length || genders.includes(m.gender)) &&
     (!signs.length || signs.includes(m.sign)) &&
+    (!subs.length || m.sober) &&
     (!soberOnly || m.sober),
   );
   const filtered = live !== null ? live : demoFiltered;
-  const active = regions.length + genders.length + signs.length + (soberOnly ? 1 : 0);
+  const active = regions.length + genders.length + signs.length + subs.length + (soberOnly ? 1 : 0);
   const openMember = (username) => { if (username) getMemberApi(username).then(setViewing).catch(() => {}); };
-  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSoberOnly(false); };
+  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSubs([]); setSoberOnly(false); };
 
   return (
     <>
@@ -977,8 +1003,12 @@ function DiscoverTab({ serverOk }) {
         <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
           {SIGNS.map((s) => <button key={s.name} className={`heritage-chip${signs.includes(s.name) ? " sel" : ""}`} onClick={() => setSigns((a) => inArr(a, s.name))}>{s.emoji} {s.name}</button>)}
         </div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🧠 SubstanceZ (show members sober-friendly on…)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {SUBSTANCES.map((s) => <button key={s.key} className={`heritage-chip${subs.includes(s.key) ? " sel" : ""}`} onClick={() => setSubs((a) => inArr(a, s.key))}>{s.emoji} {s.name}</button>)}
+        </div>
         <div className="settings-toggle">
-          <label>🧠 SubstanceZ — sober-friendly only</label>
+          <label>🧠 SubstanceZ — sober-friendly only (all)</label>
           <div role="switch" aria-checked={soberOnly} onClick={() => setSoberOnly((v) => !v)} className={`toggle-switch${soberOnly ? " active" : ""}`} />
         </div>
       </div>
@@ -1030,6 +1060,84 @@ function DiscoverTab({ serverOk }) {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// Reusable cross-user member finder: multi-select NationalitieZ / PreferenceZ /
+// ZodiacZ / SubstanceZ filters (OR within a metric, AND across metrics), live
+// server search with a demo fallback. Used by CollabZ, MessageZ, and anywhere
+// members pick other members. onPick(member) fires when a result is tapped.
+function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
+  const [regions, setRegions] = useState([]);
+  const [genders, setGenders] = useState([]);
+  const [signs, setSigns] = useState([]);
+  const [subs, setSubs] = useState([]); // substance keys wanted sober-friendly
+  const [live, setLive] = useState(null);
+
+  useEffect(() => {
+    if (!serverOk) { setLive(null); return undefined; }
+    const t = setTimeout(() => {
+      searchMembersApi({ regions, genders, signs, substances: subs })
+        .then((r) => setLive(r.members)).catch(() => setLive(null));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [serverOk, regions, genders, signs, subs]);
+
+  const demoFiltered = DEMO_MEMBERS.filter((m) =>
+    (!regions.length || regions.includes(m.region)) &&
+    (!genders.length || genders.includes(m.gender)) &&
+    (!signs.length || signs.includes(m.sign)) &&
+    (!subs.length || m.sober),
+  );
+  const filtered = live !== null ? live : demoFiltered;
+  const active = regions.length + genders.length + signs.length + subs.length;
+  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSubs([]); };
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><span>🔍 Filters {active > 0 && <span className="tag">{active}</span>}</span>{active > 0 && <button className="btn btn-small btn-secondary" onClick={clear}>Clear</button>}</div>
+        {note && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{note}</p>}
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>Pick as many as you want in each — combine metrics to narrow it down.</p>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🌐 NationalitieZ (heritage)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {REGIONS.map((r) => <button key={r.name} className={`heritage-chip${regions.includes(r.name) ? " sel" : ""}`} onClick={() => setRegions((a) => inArr(a, r.name))}>{r.emoji} {r.name}</button>)}
+        </div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>💞 PreferenceZ (gender)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {PARTNER_GENDERS.map((g) => <button key={g.id} className={`heritage-chip${genders.includes(g.id) ? " sel" : ""}`} onClick={() => setGenders((a) => inArr(a, g.id))}>{g.emoji} {g.label}</button>)}
+        </div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>♌ ZodiacZ (sign)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+          {SIGNS.map((s) => <button key={s.name} className={`heritage-chip${signs.includes(s.name) ? " sel" : ""}`} onClick={() => setSigns((a) => inArr(a, s.name))}>{s.emoji} {s.name}</button>)}
+        </div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🧠 SubstanceZ (show members sober-friendly on…)</label>
+        <div className="chip-wrap" style={{ margin: "6px 0 2px" }}>
+          {SUBSTANCES.map((s) => <button key={s.key} className={`heritage-chip${subs.includes(s.key) ? " sel" : ""}`} onClick={() => setSubs((a) => inArr(a, s.key))}>{s.emoji} {s.name}</button>)}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span>💼 Members {live !== null ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">demo</span>}</span><span className="filter-badge">{filtered.length}</span></div>
+        {filtered.length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No members match these filters.</p>
+        ) : filtered.map((m) => {
+          const name = m.display_name || m.name;
+          const uname = m.username;
+          const heritage = m.nationalities?.length ? m.nationalities.join(", ") : (m.country || (m.regions || []).join(", "));
+          return (
+            <div key={uname || name} className="post-card">
+              <div className="post-user">{name} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</div>
+              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}</div>
+              <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onPick?.(m)}>{actionLabel}{uname ? ` · @${uname}` : name ? ` · ${name}` : ""}</button>
+            </div>
+          );
+        })}
+        <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
+          {live !== null ? "Live members — filtered server-side by their real metrics." : "Demo roster — sign-in + backend brings up real members, filtered by their metrics."}
+        </p>
+      </div>
     </>
   );
 }
@@ -1855,17 +1963,19 @@ const DEMO_INBOX = [
   { id: "i1", who: "Kaya", body: "Loved your last drop — collab on a hook?", at: Date.now() - 3 * 3600e3 },
   { id: "i2", who: "LabelZ · Azrael Records", body: "We'd like to send you an advance offer.", at: Date.now() - 26 * 3600e3 },
 ];
-function MessageZPage() {
+function MessageZPage({ serverOk }) {
   const { state, addTo } = useAppState();
   const [box, setBox] = useState("inbox");
   const [to, setTo] = useState("");
   const [body, setBody] = useState("");
+  const [finding, setFinding] = useState(false);
   const sent = (state.messages || []).filter((m) => m.dir === "out");
   const send = () => {
     if (!to.trim() || !body.trim()) return;
     addTo("messages", { id: Date.now(), dir: "out", who: to.trim(), body: body.trim(), at: Date.now() });
     setTo(""); setBody(""); setBox("outbox");
   };
+  const pick = (m) => { setTo(m.username || m.display_name || m.name || ""); setFinding(false); };
   const list = box === "inbox" ? DEMO_INBOX : [...sent].reverse();
   return (
     <>
@@ -1875,12 +1985,21 @@ function MessageZPage() {
         <button className={`heritage-chip${box === "compose" ? " sel" : ""}`} onClick={() => setBox("compose")}>✍️ Compose</button>
       </div>
       {box === "compose" ? (
-        <div className="card">
-          <div className="card-header">✍️ New Message</div>
-          <div className="form-group"><label>To</label><input value={to} onChange={(e) => setTo(e.target.value)} placeholder="username" /></div>
-          <div className="form-group"><label>Message</label><CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
-          <button className="btn btn-success" style={{ width: "100%" }} onClick={send}>📤 Send</button>
-        </div>
+        <>
+          <div className="card">
+            <div className="card-header">✍️ New Message</div>
+            <div className="form-group">
+              <label>To</label>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="username" style={{ flex: 1 }} />
+                <button className="btn btn-small btn-secondary" onClick={() => setFinding((v) => !v)}>{finding ? "✕ Close" : "🔍 Find"}</button>
+              </div>
+            </div>
+            <div className="form-group"><label>Message</label><CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
+            <button className="btn btn-success" style={{ width: "100%" }} onClick={send}>📤 Send</button>
+          </div>
+          {finding && <MemberFinder serverOk={serverOk} onPick={pick} actionLabel="✉️ Message" note="Filter members by NationalitieZ, PreferenceZ, ZodiacZ and SubstanceZ — tap one to address your message." />}
+        </>
       ) : (
         <div className="card">
           <div className="card-header">{box === "inbox" ? "📥 Inbox" : "📤 Outbox"}</div>
@@ -1898,7 +2017,70 @@ function MessageZPage() {
   );
 }
 
-function LabelZPage({ tier }) {
+// CollabZ — user-based collaboration. Find collaborators by their real metrics,
+// send a paid collab offer (real money between members), and settle any dispute
+// or refund member-to-member right here. Membership/upgrades are never refundable.
+function CollabZPage({ tier, serverOk, onOpen }) {
+  const { state, addTo } = useAppState();
+  const [target, setTarget] = useState(null);
+  const [offer, setOffer] = useState("");
+  const [terms, setTerms] = useState("");
+  const requests = state.collabRequests || [];
+  const submit = () => {
+    if (!target || !(Number(offer) > 0)) return;
+    addTo("collabRequests", {
+      id: Date.now(),
+      who: target.username || target.display_name || target.name,
+      amount: Number(offer),
+      terms: terms.trim(),
+      status: "sent",
+      at: Date.now(),
+    });
+    setTarget(null); setOffer(""); setTerms("");
+  };
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">🤝 CollabZ — user-based</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Every CollabZ is member-to-member. You put up <strong>real wallet money</strong>, the developer tax applies to your tier, and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
+        </p>
+        <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>
+          🧾 Disputes &amp; refunds on a collab are settled between the two members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
+        </p>
+      </div>
+
+      {target ? (
+        <div className="card" style={{ border: "1px solid var(--primary)" }}>
+          <div className="card-header"><span>🤝 Offer to {target.username ? `@${target.username}` : (target.display_name || target.name)}</span><button className="btn btn-small btn-secondary" onClick={() => setTarget(null)}>Change</button></div>
+          <div className="form-group"><label>💵 Offer ($)</label><input type="number" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="0.00" /></div>
+          <div className="form-group"><label>Terms</label><CappedTextarea value={terms} onChange={(e) => setTerms(e.target.value)} style={{ height: 56 }} placeholder="What are you collaborating on? Deliverables, splits, deadline…" /></div>
+          {Number(offer) > 0 && (() => { const s = splitTransaction(Number(offer), tier); return (
+            <p style={{ fontSize: 11, color: "var(--text-light)" }}>Developer tax ({s.label} {Math.round(s.rate * 100)}%): {money(s.dev)} · your collaborator receives {money(s.net)}.</p>
+          ); })()}
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+        </div>
+      ) : (
+        <MemberFinder serverOk={serverOk} onPick={setTarget} actionLabel="🤝 Collab with" note="Multi-select filters — combine NationalitieZ, PreferenceZ, ZodiacZ and SubstanceZ to find the right collaborator." />
+      )}
+
+      {requests.length > 0 && (
+        <div className="card">
+          <div className="card-header">📤 Your collab offers</div>
+          {[...requests].reverse().map((r) => (
+            <div key={r.id} className="post-card">
+              <div className="post-user">To: {r.who} · {money(r.amount)} <span className="tag">{r.status}</span></div>
+              {r.terms && <div className="post-content">{r.terms}</div>}
+              <div className="post-meta">{new Date(r.at).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function LabelZPage({ tier, onOpen }) {
   const { state, addTo, updateSettings } = useAppState();
   const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
   const canCreate = isPremium || isBizPersona(state.personas);
@@ -1918,6 +2100,10 @@ function LabelZPage({ tier }) {
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
           🔒 Creating a label requires <strong>Premium</strong>, or an <strong>A&amp;R Scout</strong> / <strong>Manager</strong> persona. Add one in PersonaZ, or upgrade.
         </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <UpgradeCTA onOpen={onOpen} label="👑 Upgrade to Premium" />
+          <UpgradeCTA onOpen={onOpen} label="🎭 Add a persona" to="personas" style={{ background: "transparent", border: "1px solid var(--primary)" }} />
+        </div>
       </div>
     );
   }
@@ -3094,6 +3280,7 @@ function CallZPage({ tier, onOpen }) {
           🔒 CallZ is a <strong>StatZ</strong> feature. Upgrade to place live AI calls (billed per minute) and user calls
           (billed per hour) straight from your cash balance.
         </p>
+        <UpgradeCTA onOpen={onOpen} label="👑 Upgrade to StatZ" />
       </div>
     );
   }
@@ -3435,6 +3622,7 @@ const FN_PAGES = {
   distributez: DistributeZPage,
   royaltiez: RoyaltieZPage,
   messagez: MessageZPage,
+  collabz: CollabZPage,
   labelz: LabelZPage,
   lilith: LilithPage,
   intelligence: IntelligencePage,
@@ -3557,8 +3745,11 @@ function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
 
 function Shell() {
   const { user, logout } = useAuth();
-  const { state, setTab, toggleLightDark } = useAppState();
+  const { state, update, setTab, toggleLightDark } = useAppState();
   const { settings, wallet } = state;
+  // Live community tallies + owner flag from /api/auth/stats/.
+  const [community, setCommunity] = useState({ total: null, online: null });
+  const isOwner = !!(user?.is_owner || community.isOwner);
 
   // Brand-new users land in the OnboardZ guided first session.
   const isNewUser = !state.user.name && state.personas.length === 0 && state.examples.length === 0 && !state.onboardDismissed;
@@ -3585,7 +3776,11 @@ function Shell() {
   };
   useEffect(() => {
     let on = true;
-    api("/api/auth/stats/").then((s) => on && setTier(s?.my_tier || "")).catch(() => {});
+    api("/api/auth/stats/").then((s) => {
+      if (!on) return;
+      setTier(s?.my_tier || "");
+      setCommunity({ total: s?.total_members ?? null, online: s?.online_now ?? null, isOwner: !!s?.is_owner });
+    }).catch(() => {});
     if (isSignedIn()) syncEconomy();
     return () => { on = false; };
   }, []);
@@ -3636,7 +3831,12 @@ function Shell() {
           </button>
           <div className="header-center">
             <div className="header-title">🎵 Music ConnectZ</div>
-            <div className="header-subtitle">{user?.username ? `@${user.username}` : "Signed in"}</div>
+            <div className="header-subtitle">
+              {user?.username ? `@${user.username}` : "Signed in"}
+              {community.total != null && <span title="Total members"> · 👥 {community.total}</span>}
+              {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · 🟢 {community.online}</span>}
+              {isOwner && <span title="Owner" style={{ color: "var(--gold, #ffcf3f)" }}> · 🛠️ owner</span>}
+            </div>
           </div>
           <div className="header-right">
             <button className="theme-toggle" onClick={toggleLightDark} title="Panel depth">
@@ -3658,7 +3858,7 @@ function Shell() {
             <>
               <button className="btn btn-secondary btn-small" onClick={goHome} style={{ marginBottom: 12 }}>‹ Home</button>
               <div className="card-header" style={{ borderBottom: "none" }}>{activeApp?.emoji} {activeApp?.name}</div>
-              <FnPage tier={tier} onOpen={openApp} serverOk={serverOk} syncEconomy={syncEconomy} onTierChange={setTier} />
+              <FnPage tier={tier} onOpen={openApp} serverOk={serverOk} syncEconomy={syncEconomy} onTierChange={setTier} isOwner={isOwner} />
             </>
           ) : (
             CATALOG.map((group) => (

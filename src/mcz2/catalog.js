@@ -31,7 +31,7 @@ export const CATALOG = [
     label: "CollabZ",
     apps: [
       {
-        key: "collabz", name: "CollabZ", emoji: "🤝", icon: "collabz.png",
+        key: "collabz", name: "CollabZ", emoji: "🤝", icon: "collabz.png", fn: true,
         desc: "Collaborate with other users and manage collab projects — filter collaborators by NationalitieZ heritage, SubstanceZ stance, and PreferenceZ.",
         children: [
           { name: "CoverZ", emoji: "🫴🏼", icon: "coverz.png", desc: "Covers of songs and redraws of existing art." },
