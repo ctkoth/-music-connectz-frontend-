@@ -96,6 +96,7 @@ export const searchMembersApi = (filters) => {
   if (filters.regions?.length) p.set("regions", filters.regions.join(","));
   if (filters.genders?.length) p.set("genders", filters.genders.join(","));
   if (filters.signs?.length) p.set("signs", filters.signs.join(","));
+  if (filters.substances?.length) p.set("substances", filters.substances.join(","));
   if (filters.sober) p.set("sober", "1");
   const q = p.toString();
   return api(`/api/economy/members/${q ? `?${q}` : ""}`);
