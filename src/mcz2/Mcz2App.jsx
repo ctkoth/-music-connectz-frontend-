@@ -147,6 +147,102 @@ function LegalDisclaimer() {
   );
 }
 
+// ---- Universal social layer ----
+// Drop <SocialBar id=… /> on ANY content — posts, CollabZ, BattleZ, profiles —
+// to make it shareable / (dis)likeable / commentable. State is keyed by `id`.
+function SocialBar({ id, shareText, style }) {
+  const { state, update, addXP } = useAppState();
+  const s = (state.social || {})[id] || { up: 0, down: 0, my: 0, comments: [] };
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [flash, setFlash] = useState("");
+  const setS = (patch) => update({ social: { ...(state.social || {}), [id]: { ...s, ...patch } } });
+  const vote = (dir) => {
+    const my = s.my === dir ? 0 : dir;
+    let up = s.up || 0; let down = s.down || 0;
+    if (s.my === 1) up--; if (s.my === -1) down--;
+    if (my === 1) up++; if (my === -1) down++;
+    setS({ my, up: Math.max(0, up), down: Math.max(0, down) });
+    if (my !== 0) addXP(1, "Reacted");
+  };
+  const share = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const text = shareText || "Check this out on Music ConnectZ";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) await navigator.share({ text, url });
+      else { await navigator.clipboard.writeText(`${text} ${url}`); setFlash("🔗 copied"); setTimeout(() => setFlash(""), 1500); }
+    } catch { /* user cancelled share */ }
+  };
+  const addComment = () => {
+    if (!draft.trim()) return;
+    setS({ comments: [{ id: Date.now(), body: draft.trim(), at: Date.now() }, ...(s.comments || [])] });
+    addXP(2, "Commented");
+    setDraft("");
+  };
+  const comments = s.comments || [];
+  return (
+    <div style={{ marginTop: 8, ...style }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <button className={`btn btn-small${s.my === 1 ? "" : " btn-secondary"}`} onClick={() => vote(1)}>👍 {s.up || 0}</button>
+        <button className={`btn btn-small${s.my === -1 ? " btn-danger" : " btn-secondary"}`} onClick={() => vote(-1)}>👎 {s.down || 0}</button>
+        <button className="btn btn-small btn-secondary" onClick={() => setOpen((v) => !v)}>💬 {comments.length}</button>
+        <button className="btn btn-small btn-secondary" onClick={share}>🔗 Share</button>
+        {flash && <span style={{ fontSize: 11, color: "var(--success)" }}>{flash}</span>}
+      </div>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addComment()} placeholder="Add a comment…" style={{ flex: 1 }} />
+            <button className="btn btn-small" onClick={addComment} disabled={!draft.trim()}>Post</button>
+          </div>
+          {comments.map((c) => (
+            <div key={c.id} className="post-card" style={{ marginTop: 6 }}><div className="post-content">{c.body}</div><div className="post-meta">{new Date(c.at).toLocaleString()}</div></div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Profile/post links — add labelled URLs; render as tappable chips.
+function LinksEditor({ links, onChange }) {
+  const list = links || [];
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const add = () => {
+    if (!url.trim()) return;
+    let u = url.trim(); if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    onChange([...list, { id: Date.now(), label: label.trim() || u.replace(/^https?:\/\//, "").split("/")[0], url: u }]);
+    setLabel(""); setUrl("");
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="label (Spotify)" style={{ flex: 1, minWidth: 90 }} />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="url" style={{ flex: 1.4, minWidth: 120 }} />
+        <button className="btn btn-small" onClick={add} disabled={!url.trim()}>+ Link</button>
+      </div>
+      <div className="chip-wrap">
+        {list.map((l) => (
+          <span key={l.id} className="tag" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+            🔗 {l.label}
+            <button onClick={() => onChange(list.filter((x) => x.id !== l.id))} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>×</button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinksRow({ links }) {
+  if (!links?.length) return null;
+  return (
+    <div className="chip-wrap" style={{ margin: "6px 0" }}>
+      {links.map((l) => <a key={l.id || l.url} href={l.url} target="_blank" rel="noreferrer" className="tag" style={{ color: "var(--accent, #22e6ff)", textDecoration: "none" }}>🔗 {l.label || l.url}</a>)}
+    </div>
+  );
+}
+
 // Self-declared, filterable matching metrics (NationalitieZ / SubstanceZ / PreferenceZ).
 const SUBSTANCES = [
   { key: "cigarettes", name: "Cigarettes", emoji: "🚬" },
@@ -249,6 +345,9 @@ function SetupPage() {
       </div>
       <div className="form-group"><label>📍 Location</label><input value={form.location} onChange={set("location")} placeholder="City, State or Zip" /></div>
       <div className="form-group"><label>📝 Bio</label><CappedTextarea value={form.bio} onChange={set("bio")} style={{ height: 60 }} /></div>
+      <div className="form-group"><label>🔗 Links (Spotify, IG, YouTube, store…)</label>
+        <LinksEditor links={form.links} onChange={(l) => { setForm((f) => ({ ...f, links: l })); setSaved(false); }} />
+      </div>
       <button className="btn btn-success" style={{ width: "100%" }} onClick={save}>{saved ? "✅ Profile saved!" : "💾 Save Profile"}</button>
       {saved && <p style={{ fontSize: 11, color: "var(--success)", textAlign: "center", marginTop: 6 }}>Your profile &amp; filters are saved.</p>}
     </div>
@@ -335,10 +434,11 @@ function PostZPage() {
   const { state, addTo, removeFrom } = useAppState();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
+  const [links, setLinks] = useState([]);
   const add = () => {
     if (!title.trim()) return;
-    addTo("examples", { title: title.trim(), desc: desc.trim(), at: Date.now() });
-    setTitle(""); setDesc("");
+    addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, at: Date.now() });
+    setTitle(""); setDesc(""); setLinks([]);
   };
   return (
     <>
@@ -346,6 +446,7 @@ function PostZPage() {
         <div className="card-header">🎵 Upload Work Example</div>
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
         <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
+        <div className="form-group"><label>🔗 Links (Spotify, YouTube, store…)</label><LinksEditor links={links} onChange={setLinks} /></div>
         <button className="btn btn-success" style={{ width: "100%" }} onClick={add}>📤 Post</button>
       </div>
       <div className="card">
@@ -353,10 +454,12 @@ function PostZPage() {
         {state.examples.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No examples yet.</p>
         ) : state.examples.map((ex, i) => (
-          <div key={i} className="post-card">
+          <div key={ex.id || i} className="post-card">
             <div className="post-user">{ex.title}</div>
             <div className="post-content">{ex.desc}</div>
-            <button className="btn btn-danger btn-small" onClick={() => removeFrom("examples", i)}>Delete</button>
+            <LinksRow links={ex.links} />
+            <SocialBar id={`post:${ex.id || i}`} shareText={`${ex.title} on Music ConnectZ`} />
+            <button className="btn btn-danger btn-small" style={{ marginTop: 8 }} onClick={() => removeFrom("examples", i)}>Delete</button>
           </div>
         ))}
       </div>
@@ -384,6 +487,7 @@ function ProfilePage({ onOpen }) {
         </div>
       </div>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio"}</div></div>
+      {(u.links || []).length > 0 && <div className="form-group"><label>🔗 Links</label><LinksRow links={u.links} /></div>}
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
         <div>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : "None yet"}</div>
@@ -1287,6 +1391,7 @@ function BoardZTab() {
               <div className="post-user">{p.who}</div>
               <div className="post-content">{p.body}</div>
               <div className="post-meta">{new Date(p.at).toLocaleString()}</div>
+              <SocialBar id={`board:${p.id}`} shareText={`${p.who} on BoardZ`} />
             </div>
           ))}
       </div>
@@ -2018,6 +2123,7 @@ function BattleZPage({ tier, onOpen }) {
         ) : (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>⏳ Voting closes in <strong>{fmtLeft(left)}</strong> · winner is the higher community median once 3+ votes are in on each side.</p>
         )}
+        <SocialBar id={`battle:${mode}`} shareText={`${battle.a.name} vs ${battle.b.name} — BattleZ on Music ConnectZ`} style={{ display: "flex", justifyContent: "center" }} />
       </div>
       <Contestant side="a" />
       <Contestant side="b" />
@@ -2464,6 +2570,7 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           {[...requests].reverse().map((r) => (
             <div key={r.id} className="post-card">
               <div className="post-user">To: {r.who} · {money(r.amount)} <span className="tag">{r.status}</span></div>
+              <SocialBar id={`collab:${r.id}`} shareText={`Collab offer to ${r.who}`} />
               {r.terms && <div className="post-content">{r.terms}</div>}
               <div className="post-meta">{new Date(r.at).toLocaleString()}</div>
             </div>
