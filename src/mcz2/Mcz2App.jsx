@@ -10,6 +10,7 @@ import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableE
 import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
+import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
 import { devTaxFor, splitTransaction, money, mbLabel, TIER_PRICING } from "./economy.js";
@@ -2467,6 +2468,7 @@ function occReply(text, t, knowledge = []) {
 const OCC_TABS = [
   { key: "editor", label: "Editor", emoji: "👁️‍🗨️" },
   { key: "learnz", label: "LearnZ", emoji: "🎓" },
+  { key: "exportz", label: "ExportZ", emoji: "📤" },
   { key: "gitz", label: "GitZ", emoji: "🐙" },
   { key: "taskz", label: "TaskZ", emoji: "📑" },
   { key: "codez", label: "CodeZ", emoji: "🧩" },
@@ -2525,6 +2527,7 @@ function OccWorkspace({ tier, onOpen, serverOk, syncEconomy }) {
 
       {tab === "editor" && <OccEditor t={t} author={author} occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} serverOk={serverOk} syncEconomy={syncEconomy} />}
       {tab === "learnz" && <OccLearnZ occ={occ} patch={patch} />}
+      {tab === "exportz" && <OccExportZ occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} />}
       {tab === "gitz" && <OccGitZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "taskz" && <OccTaskZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "codez" && <OccCodeZ occ={occ} patch={patch} />}
@@ -2727,6 +2730,81 @@ function OccLearnZ({ occ, patch }) {
         </div>
       )}
     </>
+  );
+}
+
+// --- ExportZ: route OCC media exports to the matching Intelligence app ---
+function OccExportZ({ occ, patch, logAction, onOpen }) {
+  const [name, setName] = useState("");
+  const exports = occ.exports || [];
+  const route = name.trim() ? routeForFile(name.trim()) : null;
+  const doExport = (fileName) => {
+    const nm = (fileName || name).trim();
+    if (!nm) return;
+    const r = routeForFile(nm);
+    const rec = { id: Date.now(), name: nm, ext: extOf(nm) || "—", category: r.category, app: r.app, at: Date.now() };
+    patch({ exports: [rec, ...exports].slice(0, 200) });
+    logAction("export", `Exported ${nm} → ${r.label} (${r.category})`);
+    setName("");
+  };
+  const pickFile = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((f) => doExport(f.name));
+    e.target.value = "";
+  };
+  const remove = (id) => patch({ exports: exports.filter((x) => x.id !== id) });
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>
+        📤 OCC sends every export to the matching Intelligence app by media type — images (all types, incl. <strong>.ico</strong>) → ImageConnectZ, video → VideoConnectZ, audio → InstrumentalConnectZ, text/docs → SentenceConnectZ, code stays in OCC. Exports are delivered to every other member's matching app (not the owner's).
+      </p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doExport()} placeholder="filename.ext (e.g. cover.ico, track.wav, hook.mp4)" style={{ flex: 1 }} />
+        <button className="btn btn-small" onClick={() => doExport()} disabled={!name.trim()}>📤 Export</button>
+      </div>
+      {route && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginBottom: 8 }}>→ routes to {route.emoji} {route.label} ({route.category})</p>}
+      <label className="btn btn-small btn-secondary" style={{ display: "inline-block", marginBottom: 10, cursor: "pointer" }}>
+        📁 Pick file(s) to export<input type="file" multiple onChange={pickFile} style={{ display: "none" }} />
+      </label>
+
+      <div className="chip-wrap" style={{ marginBottom: 10 }}>
+        {MEDIA_ROUTES.map((r) => (
+          <button key={r.app} className="heritage-chip" onClick={() => onOpen?.("intelligence")}>{r.emoji} {r.label}</button>
+        ))}
+      </div>
+
+      {exports.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No exports yet — export a file and OCC routes it to the right Intelligence app.</p>
+        : exports.map((x) => {
+          const r = ROUTE_BY_APP[x.app] || { emoji: "📄", label: x.app };
+          return (
+            <div key={x.id} className="post-card">
+              <div className="post-user">{r.emoji} {x.name} <span className="tag">.{x.ext}</span> <span className="tag" style={{ color: "var(--success)" }}>→ {r.label}</span></div>
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                <button className="btn btn-small" onClick={() => onOpen?.("intelligence")}>Open {r.label}</button>
+                <button className="btn btn-small btn-secondary" onClick={() => remove(x.id)}>🗑</button>
+              </div>
+            </div>
+          );
+        })}
+    </>
+  );
+}
+
+// Strip shown at the top of an Intelligence sub-app listing OCC exports routed
+// to it. `appId` matches the IntelligencePage sub-app (image/video/instrumental/…).
+function OccExportsStrip({ appId }) {
+  const { state } = useAppState();
+  const mine = (state.occ?.exports || []).filter((x) => x.app === appId);
+  if (mine.length === 0) return null;
+  const r = ROUTE_BY_APP[appId] || {};
+  return (
+    <div className="card" style={{ border: "1px dashed var(--primary)" }}>
+      <div className="card-header"><span>📤 OCC exports {r.emoji}</span><span className="tag">{mine.length}</span></div>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 6 }}>Media OCC routed here by type. On other members' accounts these arrive automatically.</p>
+      <div className="chip-wrap">
+        {mine.slice(0, 12).map((x) => <span key={x.id} className="tag">{x.name}</span>)}
+      </div>
+    </div>
   );
 }
 
@@ -3191,6 +3269,7 @@ function IntelligencePage({ tier, onOpen, serverOk, syncEconomy }) {
           </button>
         ))}
       </div>
+      <OccExportsStrip appId={app} />
       <Body tier={tier} onOpen={onOpen} serverOk={serverOk} syncEconomy={syncEconomy} />
     </>
   );
