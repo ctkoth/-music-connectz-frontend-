@@ -1445,19 +1445,70 @@ function GroupZPage({ tier }) {
 }
 
 function BodieZPage({ tier }) {
-  const { state, update } = useAppState();
-  const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [] };
+  const { state, update, addXP } = useAppState();
+  const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [], sessions: [] };
   const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
   const isStatz = /stat[sz]/i.test(tier || "");
   const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
 
-  const [section, setSection] = useState("routines");
+  const [section, setSection] = useState("today");
   const [muscle, setMuscle] = useState("Chest");
   const [editingId, setEditingId] = useState(null);
+  const [live, setLive] = useState(null); // active workout being logged
 
   const avail = availableEquipment(bodiez);
   const routines = bodiez.routines || [];
+  const sessions = bodiez.sessions || [];
   const editing = routines.find((r) => r.id === editingId);
+
+  // ---- Session logging + progress helpers ----
+  const startSession = (r) => {
+    setLive({
+      routineId: r.id, name: r.name, startedAt: Date.now(),
+      ex: r.exercises.map((e) => ({
+        name: e.name, muscle: e.muscle, target: { sets: e.sets, reps: e.reps, weight: e.weight },
+        sets: Array.from({ length: Math.max(1, e.sets) }, () => ({ w: e.weight || 0, r: e.reps || 0, rpe: 8, done: false })),
+      })),
+    });
+    setSection("session");
+  };
+  const patchSet = (ei, si, patch) => setLive((L) => ({ ...L, ex: L.ex.map((x, i) => i !== ei ? x : { ...x, sets: x.sets.map((s, j) => j === si ? { ...s, ...patch } : s) }) }));
+  const addSet = (ei) => setLive((L) => ({ ...L, ex: L.ex.map((x, i) => i !== ei ? x : { ...x, sets: [...x.sets, { ...(x.sets[x.sets.length - 1] || { w: 0, r: 0, rpe: 8 }), done: false }] }) }));
+  const finishSession = () => {
+    const done = live.ex.map((x) => {
+      const s = x.sets.filter((st) => st.done);
+      const volume = s.reduce((t, st) => t + st.w * st.r, 0);
+      const best = s.reduce((b, st) => (st.w > (b?.w || 0) ? st : b), null);
+      return { name: x.name, muscle: x.muscle, target: x.target, sets: s, volume, best, hitTarget: s.length >= x.target.sets && s.every((st) => st.r >= x.target.reps) };
+    }).filter((e) => e.sets.length);
+    const volume = done.reduce((t, e) => t + e.volume, 0);
+    const rec = { id: Date.now(), name: live.name, at: Date.now(), minutes: Math.max(1, Math.round((Date.now() - live.startedAt) / 60000)), volume, entries: done };
+    setBodiez({ sessions: [rec, ...sessions].slice(0, 200) });
+    addXP(10 + Math.floor(volume / 2000), `BodieZ: ${live.name}`);
+    setLive(null);
+    setSection("progress");
+  };
+
+  const lastEntry = (exName) => { for (const s of sessions) { const e = s.entries.find((x) => x.name === exName); if (e) return e; } return null; };
+  const prFor = (exName) => { let best = 0; sessions.forEach((s) => s.entries.forEach((e) => { if (e.name === exName && e.best) best = Math.max(best, e.best.w); })); return best; };
+  // Progressive-overload verdict from the last logged session of an exercise.
+  const coachVerdict = (e) => {
+    if (!e) return null;
+    const avgRpe = e.sets.length ? e.sets.reduce((t, s) => t + (s.rpe || 0), 0) / e.sets.length : 0;
+    if (e.hitTarget && avgRpe <= 8) return { emoji: "⬆️", text: "Add weight — you cleared every target rep with gas left." };
+    if (e.hitTarget) return { emoji: "➡️", text: "Repeat the load — you hit target but it was heavy." };
+    if (avgRpe >= 9.5) return { emoji: "⬇️", text: "Reduce load or rest — high fatigue, missed reps." };
+    return { emoji: "➡️", text: "Repeat — you were 1–2 reps short of target." };
+  };
+  // BodyMap freshness by muscle: days since last trained.
+  const muscleStatus = (m) => {
+    const s = sessions.find((sess) => sess.entries.some((e) => e.muscle === m));
+    if (!s) return { label: "untrained", days: null, color: "var(--text-light)" };
+    const days = Math.floor((Date.now() - s.at) / 864e5);
+    if (days <= 2) return { label: `${days}d — fresh`, days, color: "var(--success)" };
+    if (days <= 6) return { label: `${days}d — ready`, days, color: "var(--accent, #22e6ff)" };
+    return { label: `${days}d — undertrained`, days, color: "var(--gold, #ffcf3f)" };
+  };
 
   const setRoutines = (list) => setBodiez({ routines: list });
   const patchRoutine = (id, patch) => setRoutines(routines.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -1470,7 +1521,12 @@ function BodieZPage({ tier }) {
 
   const shown = EXERCISES.filter((e) => e.muscle === muscle && isAvailable(e, avail));
 
-  const SECTIONS = [["routines", "🧩 Routines"], ["exercises", "📚 Exercises"], ["location", "📍 Location"], ["coach", "🤖 Coach"]];
+  const SECTIONS = [
+    ["today", "💪 Today"],
+    ...(live ? [["session", "⏱️ Session"]] : []),
+    ["routines", "🧩 Routines"], ["exercises", "📚 Exercises"], ["progress", "📈 Progress"],
+    ["bodymap", "🧍 BodyMap"], ["location", "📍 Location"], ["coach", "🤖 Coach"],
+  ];
 
   return (
     <>
@@ -1584,9 +1640,9 @@ function BodieZPage({ tier }) {
                   <button className="btn btn-danger btn-small" onClick={() => patchRoutine(editing.id, { exercises: editing.exercises.filter((_, idx) => idx !== i) })}>✕</button>
                 </div>
                 <div className="grid-3">
-                  <div className="form-group" style={{ margin: 0 }}><label>Sets</label><input type="number" value={ex.sets} onChange={(e) => patchEx(i, { sets: +e.target.value })} /></div>
-                  <div className="form-group" style={{ margin: 0 }}><label>Reps</label><input type="number" value={ex.reps} onChange={(e) => patchEx(i, { reps: +e.target.value })} /></div>
-                  <div className="form-group" style={{ margin: 0 }}><label>Weight</label><input type="number" value={ex.weight} onChange={(e) => patchEx(i, { weight: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Target sets</label><input type="number" value={ex.sets} onChange={(e) => patchEx(i, { sets: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Target reps</label><input type="number" value={ex.reps} onChange={(e) => patchEx(i, { reps: +e.target.value })} /></div>
+                  <div className="form-group" style={{ margin: 0 }}><label>Target weight</label><input type="number" value={ex.weight} onChange={(e) => patchEx(i, { weight: +e.target.value })} /></div>
                 </div>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8 }}>
                   <div className="form-group" style={{ margin: 0, flex: 1 }}><label>Rest (sec)</label><input type="number" value={ex.rest} onChange={(e) => patchEx(i, { rest: +e.target.value })} /></div>
@@ -1598,9 +1654,112 @@ function BodieZPage({ tier }) {
         </>
       )}
 
+      {section === "today" && (
+        <>
+          <div className="stripe-section">
+            <div className="stripe-title">💪 Today</div>
+            <div className="balance-info">{sessions.length} session{sessions.length === 1 ? "" : "s"} logged · 🔥 streak {state.progression?.streak || 0} · last volume {sessions[0] ? sessions[0].volume.toLocaleString() : 0}</div>
+          </div>
+          <div className="card">
+            <div className="card-header">▶️ Start a workout</div>
+            {routines.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No routines yet — build one in 🧩 Routines.</p>
+              : routines.map((r) => (
+                <div key={r.id} className="skill-item">
+                  <span className="skill-item-name">{r.name} <span className="tag">{r.exercises.length} ex</span></span>
+                  <button className="btn btn-small" disabled={!r.exercises.length} onClick={() => startSession(r)}>▶ Start</button>
+                </div>
+              ))}
+          </div>
+          {sessions[0] && (
+            <div className="card">
+              <div className="card-header">🧾 Last session</div>
+              <div className="post-user">{sessions[0].name} · {new Date(sessions[0].at).toLocaleDateString()}</div>
+              <div className="post-meta">{sessions[0].minutes} min · volume {sessions[0].volume.toLocaleString()} · {sessions[0].entries.length} exercises</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {section === "session" && (
+        live ? (
+          <>
+            <div className="card">
+              <div className="card-header"><span>⏱️ {live.name}</span><button className="btn btn-small btn-secondary" onClick={() => setLive(null)}>Cancel</button></div>
+              <p style={{ fontSize: 11, color: "var(--text-light)" }}>Log each set — tap ✓ when it's done. Target shown per exercise.</p>
+            </div>
+            {live.ex.map((x, ei) => {
+              const prev = lastEntry(x.name);
+              return (
+                <div key={x.name} className="card">
+                  <div className="card-header"><span>🏋️ {x.name}</span><span className="tag">🎯 {x.target.sets}×{x.target.reps} @ {x.target.weight}</span></div>
+                  {prev && <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 6 }}>Last time: {prev.best ? `${prev.best.w}×${prev.best.r}` : "—"} · PR {prFor(x.name)}</p>}
+                  {x.sets.map((s, si) => (
+                    <div key={si} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: "var(--text-light)", width: 18 }}>{si + 1}</span>
+                      <input type="number" value={s.w} onChange={(e) => patchSet(ei, si, { w: +e.target.value })} placeholder="wt" style={{ width: 64 }} />
+                      <span style={{ fontSize: 11 }}>×</span>
+                      <input type="number" value={s.r} onChange={(e) => patchSet(ei, si, { r: +e.target.value })} placeholder="reps" style={{ width: 56 }} />
+                      <input type="number" value={s.rpe} onChange={(e) => patchSet(ei, si, { rpe: +e.target.value })} title="RPE" style={{ width: 48 }} />
+                      <button className={`btn btn-small${s.done ? " btn-success" : " btn-secondary"}`} onClick={() => patchSet(ei, si, { done: !s.done })}>{s.done ? "✓" : "○"}</button>
+                    </div>
+                  ))}
+                  <button className="btn btn-small btn-secondary" onClick={() => addSet(ei)}>+ set</button>
+                </div>
+              );
+            })}
+            <button className="btn btn-success" style={{ width: "100%" }} onClick={finishSession}>🏁 Finish &amp; save</button>
+          </>
+        ) : (
+          <div className="card"><p style={{ fontSize: 12, color: "var(--text-light)" }}>No active workout. Start one from 💪 Today.</p></div>
+        )
+      )}
+
+      {section === "progress" && (
+        <>
+          <div className="stripe-section">
+            <div className="stripe-title">📈 Progress</div>
+            <div className="balance-info">{sessions.length} sessions · total volume {sessions.reduce((t, s) => t + s.volume, 0).toLocaleString()} · 🔥 {state.progression?.streak || 0} day streak</div>
+          </div>
+          <div className="card">
+            <div className="card-header">🏅 Personal records</div>
+            {sessions.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Log a session to build PRs.</p>
+              : [...new Set(sessions.flatMap((s) => s.entries.map((e) => e.name)))].slice(0, 20).map((n) => (
+                <div key={n} className="settings-toggle"><label>{n}</label><span className="tag">PR {prFor(n)}</span></div>
+              ))}
+          </div>
+          <div className="card">
+            <div className="card-header">🧾 Recent sessions</div>
+            {sessions.slice(0, 10).map((s) => (
+              <div key={s.id} className="post-card">
+                <div className="post-user">{s.name} <span className="tag">{s.minutes}m</span></div>
+                <div className="post-meta">{new Date(s.at).toLocaleString()} · volume {s.volume.toLocaleString()} · {s.entries.length} exercises</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {section === "bodymap" && (
+        <div className="card">
+          <div className="card-header">🧍 BodyMap</div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Days since each muscle was last trained — green fresh, blue ready, gold undertrained.</p>
+          {MUSCLE_GROUPS.map((m) => { const st = muscleStatus(m); return (
+            <div key={m} className="settings-toggle"><label>{m}</label><span className="tag" style={{ color: st.color }}>{st.label}</span></div>
+          ); })}
+        </div>
+      )}
+
       {section === "coach" && (
         <div className="card">
           <div className="card-header"><span>🤖 AI Coach</span>{!isStatz && <span className="tag">🔒 StatZ</span>}</div>
+          {isStatz && sessions.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              {[...new Set(sessions.flatMap((s) => s.entries.map((e) => e.name)))].slice(0, 12).map((n) => {
+                const v = coachVerdict(lastEntry(n)); if (!v) return null;
+                return <div key={n} className="skill-item"><span className="skill-item-name">{v.emoji} {n}</span><span className="skill-item-exp">{v.text}</span></div>;
+              })}
+            </div>
+          )}
           {isStatz ? (
             <p style={{ fontSize: 12, color: "var(--text-light)" }}>
               StatZ personal trainer: progressive-overload suggestions, routine generation, and access to other users' routines.
