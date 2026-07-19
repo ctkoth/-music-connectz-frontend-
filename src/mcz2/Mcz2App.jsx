@@ -24,7 +24,7 @@ import {
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
-  chargeAiApi,
+  chargeAiApi, occChatApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -2561,39 +2561,51 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEco
 
   const addTask = (text, eta) => patch({ tasks: [{ id: Date.now(), text, status: "queued", eta, at: Date.now() }, ...(occ.tasks || [])] });
 
+  // Templated fallback when the live LLM backend is unavailable.
+  const localReply = (text) => {
+    const r = occReply(text, t, occ.knowledge);
+    setMsgs((m) => [...m, { role: "occ", text: r.text, action: r.action }]);
+  };
+  const afterReply = (text) => {
+    // SuggestionZ: OCC proposes the work as a task. Automated: it also logs a start.
+    if (occ.settings?.suggestions) addTask(`OCC: ${text.slice(0, 60)}`, "~5 min");
+    if (occ.settings?.automated) logAction("auto", `Auto-started work on: ${text.slice(0, 60)}`);
+  };
+
   const send = async () => {
     const text = input.trim();
     if (!text || thinking) return;
-    // Charge the minimum cost to cover the model (server-enforced; owner free).
-    if (serverOk) {
-      try {
-        const r = await chargeAiApi(model.id, `OCC ${model.label}`);
-        setNotice(`${model.emoji} ${model.label} · ${centsLabel(r.cost_cents)} · balance ${money(r.money)}`);
-        syncEconomy?.();
-      } catch (e) {
-        if (String(e?.message || e).includes("402") || e?.status === 402) {
-          setMsgs((m) => [...m, { role: "occ", text: `You're short on balance for ${model.label} (${centsLabel(model.costCents)}/message). Add funds in Money, or switch to Corey GPT — it's the cheapest.` }]);
-          return;
-        }
-        // Other errors: proceed offline, just note it.
-        setNotice(`${model.emoji} ${model.label} · ${centsLabel(model.costCents)} (offline estimate)`);
-      }
-    } else {
-      setNotice(`${model.emoji} ${model.label} · ${centsLabel(model.costCents)}/message (billed live when connected)`);
-    }
     setInput("");
     setMsgs((m) => [...m, { role: "user", text }]);
     // Every prompt is remembered in TellZ.
     patch({ tell: [{ id: Date.now(), tab: "OCC Editor", text, at: Date.now() }, ...(occ.tell || [])].slice(0, 200) });
     setThinking(true);
-    setTimeout(() => {
-      const r = occReply(text, t, occ.knowledge);
-      setMsgs((m) => [...m, { role: "occ", text: r.text, action: r.action }]);
-      // SuggestionZ: OCC proposes the work as a task. Automated: it also logs a start.
-      if (occ.settings?.suggestions) addTask(`OCC: ${text.slice(0, 60)}`, "~5 min");
-      if (occ.settings?.automated) logAction("auto", `Auto-started work on: ${text.slice(0, 60)}`);
-      setThinking(false);
-    }, 550);
+
+    if (serverOk) {
+      try {
+        // Live LLM reply — server charges the minimum model cost on success.
+        const hist = msgs.filter((m) => m.text).slice(-8).map((m) => ({ role: m.role, text: m.text }));
+        const r = await occChatApi({ model: model.id, prompt: text, knowledge: occ.knowledge || [], history: hist });
+        setMsgs((m) => [...m, { role: "occ", text: r.text }]);
+        setNotice(`${model.emoji} ${model.label} · ${centsLabel(r.cost_cents)} · balance ${money(r.money)}`);
+        syncEconomy?.();
+        afterReply(text);
+        setThinking(false);
+        return;
+      } catch (e) {
+        const msg = String(e?.message || e);
+        if (msg.includes("402") || e?.status === 402) {
+          setMsgs((m) => [...m, { role: "occ", text: `You're short on balance for ${model.label} (${centsLabel(model.costCents)}/message). Add funds in Money, or switch to Corey GPT — it's the cheapest.` }]);
+          setThinking(false);
+          return;
+        }
+        // 503 / offline → fall back to the built-in templated reply (no charge).
+        setNotice(`${model.emoji} ${model.label} · offline replies (set ANTHROPIC_API_KEY on the backend for live Corey GPT)`);
+      }
+    } else {
+      setNotice(`${model.emoji} ${model.label} · ${centsLabel(model.costCents)}/message — live when connected`);
+    }
+    setTimeout(() => { localReply(text); afterReply(text); setThinking(false); }, 400);
   };
 
   const publishGame = () => {
