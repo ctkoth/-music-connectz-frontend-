@@ -69,6 +69,7 @@ export const CUSTOM_ICONS = {
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
+  "gitz.png": "/icons/gitz.png",
   "groupz.png": "/icons/groupz.png",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
   "groupz_custom.png": "/icons/groupz_custom.png",

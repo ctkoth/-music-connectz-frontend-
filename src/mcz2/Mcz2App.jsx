@@ -8,7 +8,7 @@ import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
-import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji } from "./gamez.js";
+import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
 import { devTaxFor, splitTransaction, money, mbLabel, TIER_PRICING } from "./economy.js";
@@ -2451,6 +2451,7 @@ function occReply(text, t) {
 // OCC tab set — the Claude-Code-style workspace. Each is name + emoji + panel.
 const OCC_TABS = [
   { key: "editor", label: "Editor", emoji: "👁️‍🗨️" },
+  { key: "gitz", label: "GitZ", emoji: "🐙" },
   { key: "taskz", label: "TaskZ", emoji: "📑" },
   { key: "codez", label: "CodeZ", emoji: "🧩" },
   { key: "pathz", label: "PathZ", emoji: "🛤️" },
@@ -2470,6 +2471,15 @@ const OCC_TASK_STATUS = {
 };
 const UNDO_WINDOW_MS = 60000; // members can undo an OCC edit within a minute.
 
+// OCC's AI voice/model. "Corey GPT" is the default house voice; members can
+// switch OCC's language/model here.
+const OCC_MODELS = [
+  { id: "corey-gpt", label: "Corey GPT", emoji: "🎤", note: "Straight-up K-Oth voice — how all MCZ talks." },
+  { id: "standard", label: "Standard", emoji: "🤖", note: "Plain, neutral assistant voice." },
+  { id: "technical", label: "Technical", emoji: "📐", note: "Terse, code-first, minimal chatter." },
+];
+const occModel = (id) => OCC_MODELS.find((m) => m.id === id) || OCC_MODELS[0];
+
 function OccWorkspace({ tier, onOpen }) {
   const t = occTierFor(tier);
   const { state, update } = useAppState();
@@ -2487,6 +2497,7 @@ function OccWorkspace({ tier, onOpen }) {
       <div className="card-header">
         <span>👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></span>
         <span style={{ display: "flex", gap: 6 }}>
+          <span className="tag">{occModel(occ.settings?.model).emoji} {occModel(occ.settings?.model).label}</span>
           {occ.settings?.automated && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>🤖 auto</span>}
           {occ.settings?.suggestions && <span className="tag">💭 tips</span>}
         </span>
@@ -2502,6 +2513,7 @@ function OccWorkspace({ tier, onOpen }) {
       </div>
 
       {tab === "editor" && <OccEditor t={t} author={author} occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} />}
+      {tab === "gitz" && <OccGitZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "taskz" && <OccTaskZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "codez" && <OccCodeZ occ={occ} patch={patch} />}
       {tab === "pathz" && <OccPathZ occ={occ} patch={patch} />}
@@ -2511,7 +2523,7 @@ function OccWorkspace({ tier, onOpen }) {
       {tab === "tellz" && <OccTellZ occ={occ} patch={patch} />}
       {tab === "logz" && <OccLogZ rows={occ.log} />}
       {tab === "search" && <OccSearch occ={occ} />}
-      {tab === "settings" && <OccSettings occ={occ} patch={patch} logAction={logAction} />}
+      {tab === "settings" && <OccSettings occ={occ} patch={patch} logAction={logAction} tier={tier} />}
 
       <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 10 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
       <IntelNote role="Developer" />
@@ -2522,9 +2534,13 @@ function OccWorkspace({ tier, onOpen }) {
 // --- Editor tab: the chat + game publish + git-as-a-task ---
 function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
   const { addTo } = useAppState();
-  const [msgs, setMsgs] = useState([
-    { role: "occ", text: `Yo — I'm OCC, your code hand. Tell me what you're building and I'll break it down, write it, and ship it. On the ${t.label} tier we're going ${t.complexity.toLowerCase()}.` },
-  ]);
+  const model = occModel(occ.settings?.model);
+  const greeting = model.id === "corey-gpt"
+    ? `Yo — I'm OCC, your code hand. Tell me what you're building and I'll break it down, write it, and ship it. On the ${t.label} tier we're going ${t.complexity.toLowerCase()}.`
+    : model.id === "technical"
+      ? `OCC ready. ${t.label} tier · ${t.complexity} complexity. State the goal; I'll return a plan and code.`
+      : `Hi, I'm OCC. Tell me what you'd like to build and I'll plan it, write it, and ship it. You're on the ${t.label} tier (${t.complexity.toLowerCase()}).`;
+  const [msgs, setMsgs] = useState([{ role: "occ", text: greeting }]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const endRef = useRef(null);
@@ -2562,8 +2578,10 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
 
   const commitGit = () => {
     // Git integration is itself a task — surfaced with why/what/how.
-    addTask("Git: commit + push OCC changes", "~1 min");
-    logAction("git", "Queued git commit + push (git integration runs as a task)");
+    const def = (occ.repos || []).find((r) => r.id === occ.defaultRepo);
+    const target = def ? `${def.owner}/${def.name} (${def.branch})` : "the default repo — set one in GitZ";
+    addTask(`Git: commit + push to ${target}`, "~1 min");
+    logAction("git", `Queued git commit + push → ${target}`);
   };
 
   return (
@@ -2601,6 +2619,66 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
         {" "}{/statz|stat|debug/i.test(t.label) ? "C++ / Unreal is unlocked." : "C++ / Unreal is StatZ-only (Unreal is reserved for StatZ)."}
       </p>
       <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>OCC plans and ships in Corey voice. Git integration runs as a task in TaskZ. Live code-writing/running turns on when the AI backend key is set.</p>
+    </>
+  );
+}
+
+// --- GitZ: the GitHub repos OCC commits to, with a default target ---
+const OCC_SUGGESTED_REPOS = [
+  { owner: "ctkoth", name: "-music-connectz-frontend-", branch: "main" },
+  { owner: "ctkoth", name: "music-connectz-backend", branch: "main" },
+];
+function OccGitZ({ occ, patch, logAction }) {
+  const repos = occ.repos || [];
+  const [owner, setOwner] = useState("");
+  const [name, setName] = useState("");
+  const [branch, setBranch] = useState("main");
+  const addRepo = (o, n, b) => {
+    const owner2 = (o ?? owner).trim(); const name2 = (n ?? name).trim(); const branch2 = (b ?? branch).trim() || "main";
+    if (!owner2 || !name2) return;
+    if (repos.some((r) => r.owner === owner2 && r.name === name2)) return;
+    const id = Date.now();
+    const next = [{ id, owner: owner2, name: name2, branch: branch2 }, ...repos];
+    patch({ repos: next, defaultRepo: occ.defaultRepo || id });
+    logAction("git", `Connected repo ${owner2}/${name2}`);
+    setOwner(""); setName(""); setBranch("main");
+  };
+  const setDefault = (id) => { patch({ defaultRepo: id }); logAction("git", `Default commit target set to ${id}`); };
+  const remove = (id) => patch({ repos: repos.filter((r) => r.id !== id), defaultRepo: occ.defaultRepo === id ? null : occ.defaultRepo });
+  const def = repos.find((r) => r.id === occ.defaultRepo);
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🐙 The GitHub repositories OCC commits to. Set a default and every 🔀 git task ships there.</p>
+      <div className="card" style={{ marginBottom: 10 }}>
+        <div className="card-header">🎯 Default commit target</div>
+        {def ? <p style={{ fontSize: 13 }}>{def.owner}/<strong>{def.name}</strong> <span className="tag">{def.branch}</span></p>
+          : <p style={{ fontSize: 12, color: "var(--text-light)" }}>No default yet — add a repo and pin it.</p>}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+        <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="owner" style={{ flex: 1, minWidth: 90 }} />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="repo" style={{ flex: 1.3, minWidth: 110 }} />
+        <input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="branch" style={{ width: 90 }} />
+        <button className="btn btn-small" onClick={() => addRepo()} disabled={!owner.trim() || !name.trim()}>+ Add</button>
+      </div>
+      {OCC_SUGGESTED_REPOS.filter((s) => !repos.some((r) => r.owner === s.owner && r.name === s.name)).length > 0 && (
+        <div className="chip-wrap" style={{ marginBottom: 10 }}>
+          <span style={{ fontSize: 10, color: "var(--text-light)", alignSelf: "center" }}>Quick add:</span>
+          {OCC_SUGGESTED_REPOS.filter((s) => !repos.some((r) => r.owner === s.owner && r.name === s.name)).map((s) => (
+            <button key={s.name} className="heritage-chip" onClick={() => addRepo(s.owner, s.name, s.branch)}>➕ {s.name}</button>
+          ))}
+        </div>
+      )}
+      {repos.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No repos connected yet.</p>
+        : repos.map((r) => (
+          <div key={r.id} className="post-card">
+            <div className="post-user">🐙 {r.owner}/{r.name} <span className="tag">{r.branch}</span> {occ.defaultRepo === r.id && <span className="tag" style={{ color: "var(--success)" }}>● default</span>}</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+              {occ.defaultRepo !== r.id && <button className="btn btn-small" onClick={() => setDefault(r.id)}>🎯 Make default</button>}
+              <button className="btn btn-small btn-secondary" onClick={() => remove(r.id)}>🗑 Remove</button>
+            </div>
+          </div>
+        ))}
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Connecting here tells OCC where to commit. Live push runs through the platform's GitHub integration once your account's authorized.</p>
     </>
   );
 }
@@ -2812,11 +2890,31 @@ function OccSearch({ occ }) {
 }
 
 // --- Settings: Automated + SuggestionZ toggles ---
-function OccSettings({ occ, patch, logAction }) {
+function OccSettings({ occ, patch, logAction, tier }) {
   const s = occ.settings || {};
   const toggle = (k) => { const next = { ...s, [k]: !s[k] }; patch({ settings: next }); logAction("settings", `${k} → ${next[k] ? "on" : "off"}`); };
+  const setModel = (id) => { patch({ settings: { ...s, model: id } }); logAction("settings", `voice → ${id}`); };
+  const setLang = (lang) => { patch({ settings: { ...s, language: lang } }); logAction("settings", `default language → ${lang}`); };
   return (
     <>
+      <div className="card" style={{ marginBottom: 10 }}>
+        <div className="card-header">🎙️ OCC voice / language</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>How OCC talks to you. Corey GPT is the house voice — how all MCZ speaks.</p>
+        <div className="chip-wrap">
+          {OCC_MODELS.map((m) => (
+            <button key={m.id} className={`heritage-chip${(s.model || "corey-gpt") === m.id ? " sel" : ""}`} onClick={() => setModel(m.id)} title={m.note}>{m.emoji} {m.label}</button>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>{occModel(s.model).note}</p>
+        <div className="modal-sub-title" style={{ margin: "12px 0 6px" }}>💻 Default coding language</div>
+        <div className="chip-wrap">
+          {langsForTier(tier).map((l) => (
+            <button key={l.name} className={`heritage-chip${(s.language || "JavaScript / HTML5") === l.name ? " sel" : ""}`} disabled={l.locked} onClick={() => setLang(l.name)} title={l.locked ? `${l.tier}-tier only` : ""} style={l.locked ? { opacity: 0.45 } : undefined}>
+              {l.name}{l.locked ? " 🔒" : ""}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="settings-toggle">
         <label>🤖 Automated — OCC performs taskz without asking, just updates you live in LogZ</label>
         <div role="switch" aria-checked={!!s.automated} onClick={() => toggle("automated")} className={`toggle-switch${s.automated ? " active" : ""}`} />
