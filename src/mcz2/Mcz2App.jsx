@@ -1714,7 +1714,7 @@ const BATTLE_SEED_POOLS = {
 };
 
 function BattleZPage({ tier, onOpen }) {
-  const { state, update, updateUser, updateWallet, addTo } = useAppState();
+  const { state, update, updateUser, updateWallet, addTo, addXP } = useAppState();
   const [mode, setMode] = useState("1v1");
   const vgate = useWatchGate(mode); // watch 30s before voting on a battle
   // ratings + my pick per contestant, seeded from demo; reset when mode changes.
@@ -1724,7 +1724,7 @@ function BattleZPage({ tier, onOpen }) {
   const listFor = (side) => ratings[key(side)] ?? battle[side].seed;
   const mineFor = (side) => ratings[`${key(side)}:mine`] ?? null;
 
-  const rate = (side, n) => setRatings((r) => ({ ...r, [key(side)]: [...(r[key(side)] ?? battle[side].seed), n], [`${key(side)}:mine`]: n }));
+  const rate = (side, n) => { setRatings((r) => ({ ...r, [key(side)]: [...(r[key(side)] ?? battle[side].seed), n], [`${key(side)}:mine`]: n })); addXP(2, "BattleZ vote"); };
   const skip = (side) => setRatings((r) => ({ ...r, [`${key(side)}:mine`]: 0 }));
 
   const left = battle.postedAt + BATTLE_WINDOW - Date.now();
@@ -1968,7 +1968,7 @@ function useWatchGate(resetKey, rateS = 30, commentS = 60) {
 }
 
 function RateConnectZPage() {
-  const { state, update, addTo, toggleSetting } = useAppState();
+  const { state, update, addTo, toggleSetting, addXP } = useAppState();
   const [type, setType] = useState("image");
   const gate = useWatchGate(type); // 30s to rate, 60s to comment — resets per item
   const [comments, setComments] = useState({});
@@ -1978,6 +1978,7 @@ function RateConnectZPage() {
     setComments((c) => ({ ...c, [type]: [{ id: Date.now(), body: draft.trim(), at: Date.now() }, ...(c[type] || [])] }));
     update({ energy: (state.energy || 0) + 1 });
     addTo("energyLog", { amount: 1, note: "Commented", at: Date.now() });
+    addXP(3, "Commented");
     setDraft("");
   };
   const attractOn = state.settings?.ratezAttractiveness !== false;
@@ -1992,6 +1993,7 @@ function RateConnectZPage() {
     setRated((r) => ({ ...r, [k]: n }));
     update({ energy: (state.energy || 0) + 1 }); // raters earn 1 Energy per rating
     addTo("energyLog", { amount: 1, note: `Rated ${t.item}`, at: Date.now() });
+    addXP(3, `Rated ${t.item}`);
   };
   return (
     <>
@@ -4615,8 +4617,10 @@ const tabToView = (slug) => {
 
 function Shell() {
   const { user, logout } = useAuth();
-  const { state, update, setTab, toggleLightDark } = useAppState();
+  const { state, update, setTab, toggleLightDark, touchStreak } = useAppState();
   const { settings, wallet } = state;
+  const prog = state.progression || { xp: 0, level: 1, streak: 0 };
+  useEffect(() => { touchStreak(); }, []); // daily streak bookkeeping on load
   const navigate = useNavigate();
   const { tab } = useParams(); // the /:tab URL segment, if any
   // Live community tallies + owner flag from /api/auth/stats/.
@@ -4722,9 +4726,14 @@ function Shell() {
             <div className="header-title">🎵 Music ConnectZ</div>
             <div className="header-subtitle">
               {user?.username ? `@${user.username}` : "Signed in"}
+              <span title={`${prog.xp} XP`}> · 🎮 Lv {prog.level}</span>
+              {prog.streak > 0 && <span title="Daily streak" style={{ color: "var(--gold, #ffcf3f)" }}> · 🔥 {prog.streak}</span>}
               {community.total != null && <span title="Total members"> · 👥 {community.total}</span>}
               {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · 🟢 {community.online}</span>}
               {isOwner && <span title="Owner" style={{ color: "var(--gold, #ffcf3f)" }}> · 🛠️ owner</span>}
+            </div>
+            <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.15)", marginTop: 3, overflow: "hidden" }} title={`${prog.xp % 100}/100 XP to next level`}>
+              <div style={{ width: `${prog.xp % 100}%`, height: "100%", background: "var(--primary)" }} />
             </div>
           </div>
           <div className="header-right">
