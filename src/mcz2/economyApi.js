@@ -99,6 +99,11 @@ export const createMerchApi = ({ title, description, category, priceCents, image
 export const buyMerchApi = (id) => api(`/api/economy/merch/${id}/buy/`, { method: "POST" });
 export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method: "DELETE" });
 
+// Universal social layer (cross-user reactions + comments)
+export const getSocialApi = (item) => api(`/api/economy/social/?item=${encodeURIComponent(item)}`);
+export const reactSocialApi = (item, value) => api("/api/economy/social/react/", { method: "POST", body: { item, value } });
+export const commentSocialApi = (item, body) => api("/api/economy/social/comment/", { method: "POST", body: { item, body } });
+
 // Cross-user profiles
 export const saveProfileApi = (profile) => api("/api/economy/profile/", { method: "POST", body: profile });
 export const getMemberApi = (username) => api(`/api/economy/members/${encodeURIComponent(username)}/`);
