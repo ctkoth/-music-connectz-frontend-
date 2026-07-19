@@ -99,6 +99,11 @@ export const createMerchApi = ({ title, description, category, priceCents, image
 export const buyMerchApi = (id) => api(`/api/economy/merch/${id}/buy/`, { method: "POST" });
 export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method: "DELETE" });
 
+// DirectZ collaborative video works (ReelZ / EpisodeZ / MovieZ)
+export const getDirectzApi = (fmt) => api(`/api/economy/directz/${fmt ? `?fmt=${fmt}` : ""}`);
+export const createDirectzApi = (work) => api("/api/economy/directz/", { method: "POST", body: work });
+export const rateDirectzApi = (id, score) => api(`/api/economy/directz/${id}/rate/`, { method: "POST", body: { score } });
+
 // Universal social layer (cross-user reactions + comments)
 export const getSocialApi = (item) => api(`/api/economy/social/?item=${encodeURIComponent(item)}`);
 export const reactSocialApi = (item, value) => api("/api/economy/social/react/", { method: "POST", body: { item, value } });

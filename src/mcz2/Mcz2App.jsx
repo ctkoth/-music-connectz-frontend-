@@ -81,10 +81,11 @@ import {
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
+  getDirectzApi, createDirectzApi, rateDirectzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi,
 } from "./economyApi.js";
-import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS } from "./intelligence.js";
+import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS } from "./intelligence.js";
 import "./mcz2.css";
 
 // Transparent transaction breakdown — RepostExchange-style: plain numbers,
@@ -5497,8 +5498,166 @@ function MerchZPage({ tier, serverOk, syncEconomy }) {
   );
 }
 
+// DirectZ — create collaborative ReelZ/EpisodeZ/MovieZ, pay every contributor
+// their worth for the skills used, get an AI rating on submit that real user
+// ratings take over once 3+ people rate.
+function DirectZWorkCard({ w, onRated, mine }) {
+  const [busy, setBusy] = useState(false);
+  const rate = async (score) => {
+    setBusy(true);
+    try { const r = await rateDirectzApi(w.id, score); onRated?.(r); } catch { /* offline */ }
+    setBusy(false);
+  };
+  const fmt = DIRECTZ_FORMATS.find((f) => f.id === w.fmt);
+  return (
+    <div className="post-card">
+      <div className="post-user">{fmt?.emoji} {w.title} <span className="tag">{fmt?.name}</span></div>
+      <div className="post-meta">{w.video_type && `${w.video_type} · `}{w.mood && `🫥 ${w.mood} · `}by @{w.owner}{w.duration_sec ? ` · ${Math.round(w.duration_sec / 60)}min` : ""}</div>
+      {w.description && <div className="post-content" style={{ fontSize: 12 }}>{w.description}</div>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 0" }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: "var(--gold, #ffcf3f)" }}>⭐ {w.rating != null ? `${w.rating}/10` : "—"}</span>
+        <span className="tag" style={{ color: w.source === "users" ? "var(--success)" : "var(--accent, #22e6ff)" }}>{w.source === "users" ? `👥 ${w.count} user ratings` : `🤖 AI rating${w.count ? ` · ${w.count}/3 user` : ""}`}</span>
+      </div>
+      {(w.contributors || []).length > 0 && (
+        <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>
+          🤝 {w.contributors.map((c) => c.name).filter(Boolean).join(", ")} — paid their worth for skills used
+        </div>
+      )}
+      {!mine && (
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 11, marginBottom: 3 }}>Rate this work{w.my_rating ? ` · you: ${w.my_rating}` : ""}:</div>
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+              <button key={n} disabled={busy} onClick={() => rate(n)} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11, ...(w.my_rating === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }}>{n}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <SocialBar id={`directz:${w.id}`} shareText={`${w.title} on DirectZ`} />
+    </div>
+  );
+}
+
+function DirectZPage({ tier, serverOk }) {
+  const { state } = useAppState();
+  const me = state.user?.name || state.user?.username || "You";
+  const [tab, setTab] = useState("feed");
+  const [fmtFilter, setFmtFilter] = useState("");
+  const [works, setWorks] = useState([]);
+  const [msg, setMsg] = useState("");
+  // create form
+  const [form, setForm] = useState({ fmt: "reelz", video_type: VIDEO_TYPES[0].name, mood: "", title: "", description: "", minutes: 2 });
+  const [rows, setRows] = useState([{ id: 1, name: me, tier: tier || "free", skills: [{ name: "Direction", price: 60 }] }]);
+  const setF = (k, v) => setForm((s) => ({ ...s, [k]: v }));
+
+  const load = () => { if (serverOk) getDirectzApi(fmtFilter).then((r) => setWorks(r.works || [])).catch(() => setWorks([])); };
+  useEffect(load, [serverOk, fmtFilter]);
+
+  const worthOf = (r) => r.skills.reduce((t, s) => t + (Number(s.price) || 0), 0);
+  const setRow = (id, patch) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const setSkill = (id, si, patch) => setRow(id, { skills: rows.find((r) => r.id === id).skills.map((s, i) => (i === si ? { ...s, ...patch } : s)) });
+  const addSkill = (id) => setRow(id, { skills: [...rows.find((r) => r.id === id).skills, { name: "", price: "" }] });
+  const addPerson = () => setRows((rs) => [...rs, { id: Date.now(), name: "", tier: "free", skills: [{ name: "", price: "" }] }]);
+  const participants = rows.filter((r) => r.name.trim()).map((r) => ({ id: r.id, name: r.name.trim(), tier: r.tier, worth: worthOf(r) }));
+  const settled = participants.length >= 2 ? collabSettlement(participants) : [];
+
+  const submit = async () => {
+    if (!form.title.trim()) return;
+    setMsg("");
+    const contributors = rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim(), tier: r.tier, skills: r.skills.filter((s) => s.name.trim()).map((s) => ({ name: s.name.trim(), price: Number(s.price) || 0 })) }));
+    const body = { fmt: form.fmt, video_type: form.video_type, mood: form.mood, title: form.title.trim(), description: form.description.trim(), duration_sec: Math.round((Number(form.minutes) || 0) * 60), contributors };
+    try {
+      const w = await createDirectzApi(body);
+      setMsg(`🤖 Submitted — AI rated it ${w.rating}/10. Real user ratings take over once 3 people rate it.`);
+      setForm((s) => ({ ...s, title: "", description: "" }));
+      setTab("feed"); load();
+    } catch { setMsg("Couldn't submit — sign in and connect to post a DirectZ work."); }
+  };
+
+  const onRated = (updated) => setWorks((ws) => ws.map((w) => (w.id === updated.id ? updated : w)));
+
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">🎬 DirectZ</div>
+        <div className="balance-info">Direct collaborative video — ReelZ, EpisodeZ &amp; MovieZ. Every contributor is paid their worth for the skills used. AI rates your submission, then real members' ratings take over.</div>
+        <div className="chip-wrap" style={{ marginTop: 8 }}>
+          <button className={`heritage-chip${tab === "feed" ? " sel" : ""}`} onClick={() => setTab("feed")}>🎞️ Feed</button>
+          <button className={`heritage-chip${tab === "create" ? " sel" : ""}`} onClick={() => setTab("create")}>➕ Create</button>
+        </div>
+      </div>
+
+      {tab === "create" ? (
+        <>
+          <div className="card">
+            <div className="card-header">🎬 New work</div>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>Format</label>
+            <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+              {DIRECTZ_FORMATS.map((f) => <button key={f.id} className={`heritage-chip${form.fmt === f.id ? " sel" : ""}`} onClick={() => setF("fmt", f.id)} title={f.note}>{f.emoji} {f.name} <span style={{ opacity: 0.7 }}>({f.label})</span></button>)}
+            </div>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
+            <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+              {VIDEO_TYPES.map((x) => <Pill key={x.name} active={form.video_type === x.name} onClick={() => setF("video_type", x.name)}>{x.name}</Pill>)}
+            </div>
+            <MoodPicker mood={form.mood} setMood={(m) => setF("mood", m)} />
+            <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setF("title", e.target.value)} placeholder="Name your work" /></div>
+            <div className="form-group"><label>Concept / description</label><CappedTextarea value={form.description} onChange={(e) => setF("description", e.target.value)} style={{ height: 56 }} placeholder="What's the vision? The AI rating rewards a clear, well-staffed concept." /></div>
+            <div className="form-group"><label>Length (minutes)</label><input type="number" min="0" value={form.minutes} onChange={(e) => setF("minutes", e.target.value)} style={{ width: 100 }} /></div>
+          </div>
+
+          <div className="card">
+            <div className="card-header"><span>🤝 Contributors — paid their worth</span><span className="tag">{participants.length}</span></div>
+            <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Add everyone who works on it and the skills they bring. Each person's worth is funded by the others who use it (developer tax per payer's tier).</p>
+            {rows.map((r) => (
+              <div key={r.id} className="post-card" style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                  <input value={r.name} onChange={(e) => setRow(r.id, { name: e.target.value })} placeholder="Name" style={{ flex: 1 }} />
+                  <select value={r.tier} onChange={(e) => setRow(r.id, { tier: e.target.value })} style={{ width: 100 }}>{TIER_OPTS.map(([v, l]) => <option key={v} value={v}>{TIER_EMOJI[v]} {l}</option>)}</select>
+                </div>
+                {r.skills.map((s, si) => (
+                  <div key={si} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                    <input value={s.name} onChange={(e) => setSkill(r.id, si, { name: e.target.value })} placeholder="Skill" style={{ flex: 1 }} />
+                    <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 11 }} onClick={() => addSkill(r.id)}>+ add skill</button>
+                  <span style={{ fontSize: 11, color: "var(--text-light)" }}>worth <strong>{money(worthOf(r))}</strong></span>
+                </div>
+              </div>
+            ))}
+            <button className="btn btn-small btn-secondary" onClick={addPerson}>➕ Add contributor</button>
+            {settled.length >= 2 && (
+              <div className="txn" style={{ marginTop: 10 }}>
+                {settled.map((p) => (
+                  <div key={p.id} className="txn-row"><span>{p.name}</span><span><Amount value={p.receives} flow="in" /> in · <Amount value={p.pays} flow="out" /> out</span></div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={submit}>🤖 Submit for AI rating</button>
+          {msg && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+        </>
+      ) : (
+        <>
+          <div className="chip-wrap" style={{ marginBottom: 10 }}>
+            <button className={`heritage-chip${fmtFilter === "" ? " sel" : ""}`} onClick={() => setFmtFilter("")}>All</button>
+            {DIRECTZ_FORMATS.map((f) => <button key={f.id} className={`heritage-chip${fmtFilter === f.id ? " sel" : ""}`} onClick={() => setFmtFilter(f.id)}>{f.emoji} {f.name}</button>)}
+          </div>
+          {msg && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 8 }}>{msg}</p>}
+          {works.length === 0
+            ? <div className="card"><p style={{ fontSize: 12, color: "var(--text-light)" }}>{serverOk ? "No works yet — hit Create to direct the first ReelZ." : "Sign in + connect to see the DirectZ feed."}</p></div>
+            : works.map((w) => <DirectZWorkCard key={w.id} w={w} mine={w.mine} onRated={onRated} />)}
+        </>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
   merchz: MerchZPage,
+  directz: DirectZPage,
   singz: SingZPage,
   rapz: RapZPage,
   dawz: DawZPage,
