@@ -184,3 +184,37 @@ export function ratedPrice(basePrice, ratings) {
   const price = Math.max(0, Math.round(base * factor * 100) / 100);
   return { price, factor, med, rated: true };
 }
+
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+// ---------------------------------------------------------------------------
+// CollabZ settlement — the core rule: EVERY contributor is paid their worth
+// for the skills others use, and everyone pays for the skills they use.
+//
+// Each participant brings skills totalling `worth`. In an N-person collab each
+// person's work is used by the other N-1, so their worth is funded equally by
+// those N-1. The developer tax is taken from each payment at the PAYER's tier,
+// so the payee receives the net. The books always balance:
+//   Σ paid-in (gross) == Σ worth ;  Σ received == Σ worth − Σ tax.
+//
+// participants: [{ id, name, tier, worth }]  →  each augmented with
+//   { receives, pays, tax, net }  (receives/pays in dollars, net = receives−pays)
+// ---------------------------------------------------------------------------
+export function collabSettlement(participants) {
+  const ps = (participants || []).map((p) => ({ ...p, worth: Math.max(0, Number(p.worth) || 0) }));
+  const n = ps.length;
+  if (n < 2) return ps.map((p) => ({ ...p, receives: 0, pays: 0, tax: 0, net: 0 }));
+  const rate = (p) => devTaxFor(p.tier).rate;
+  return ps.map((p, i) => {
+    let pays = 0, tax = 0, receives = 0;
+    ps.forEach((q, j) => {
+      if (j === i) return;
+      const shareOfQ = q.worth / (n - 1); // p pays this toward q's worth
+      pays += shareOfQ;
+      tax += shareOfQ * rate(p);
+      const shareOfP = p.worth / (n - 1); // q pays this toward p's worth; tax at q's rate
+      receives += shareOfP * (1 - rate(q));
+    });
+    return { ...p, receives: round2(receives), pays: round2(pays), tax: round2(tax), net: round2(receives - pays) };
+  });
+}
