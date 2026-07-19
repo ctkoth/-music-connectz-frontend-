@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -4432,10 +4433,18 @@ function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
   );
 }
 
+// A URL slug is a valid tab if it maps to a functional page. /home = launcher.
+const tabToView = (slug) => {
+  if (!slug || slug === "home" || slug === "v2") return null;
+  return FN_PAGES[slug] ? slug : null;
+};
+
 function Shell() {
   const { user, logout } = useAuth();
   const { state, update, setTab, toggleLightDark } = useAppState();
   const { settings, wallet } = state;
+  const navigate = useNavigate();
+  const { tab } = useParams(); // the /:tab URL segment, if any
   // Live community tallies + owner flag from /api/auth/stats/.
   const [community, setCommunity] = useState({ total: null, online: null });
   const isOwner = !!(user?.is_owner || community.isOwner);
@@ -4445,7 +4454,19 @@ function Shell() {
   // Returning from a Stripe/PayPal checkout lands on /v2?checkout=… — open the
   // wallet so MoneyPage can capture/confirm the payment.
   const returningFromCheckout = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("checkout");
-  const [view, setView] = useState(returningFromCheckout ? "money" : (isNewUser ? "onboardz" : null)); // null = launcher; else an fn app key
+  // Initial view: a deep-linked tab wins, then checkout, then onboarding.
+  const [view, setView] = useState(tabToView(tab) || (returningFromCheckout ? "money" : (isNewUser ? "onboardz" : null)));
+
+  // Keep the view in sync with the URL for back/forward + deep links. Skip the
+  // first render so the checkout/onboarding initial view isn't clobbered.
+  const firstNav = useRef(true);
+  useEffect(() => {
+    if (firstNav.current) { firstNav.current = false; return; }
+    const v = tabToView(tab);
+    setView(v);
+    setModalApp(null);
+    if (v) setTab(v);
+  }, [tab]);
   const [modalApp, setModalApp] = useState(null);
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
@@ -4492,13 +4513,14 @@ function Shell() {
   const openApp = (key) => {
     const app = APPS_BY_KEY[key];
     if (!app) {
-      // Functional pages without a launcher tile (e.g. legalz) open directly.
-      if (FN_PAGES[key]) { recordUsage(key); setModalApp(null); setView(key); setTab(key); }
+      // Functional pages without a launcher tile (e.g. legalz) open on their URL.
+      if (FN_PAGES[key]) { recordUsage(key); setModalApp(null); navigate(`/${key}`); }
       return;
     }
     recordUsage(key);
     setModalApp(null);
-    if (app.fn) { setView(key); setTab(key); }
+    // Functional apps get their own URL; description-only apps open a modal overlay.
+    if (app.fn) navigate(`/${key}`);
     else setModalApp(app);
   };
 
@@ -4509,7 +4531,7 @@ function Shell() {
       return next;
     });
 
-  const goHome = () => { setView(null); setModalApp(null); };
+  const goHome = () => { setModalApp(null); navigate("/"); };
   const FnPage = view ? FN_PAGES[view] : null;
   const activeApp = view ? APPS_BY_KEY[view] : null;
   const balance = Number(wallet.balance || 0).toFixed(2);
