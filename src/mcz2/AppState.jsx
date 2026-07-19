@@ -34,7 +34,9 @@ const DEFAULT_STATE = {
     habits: [],     // { id, text, at }
     tell: [],       // { id, tab, text, at } — prompts/posts log
     log: [],        // { id, kind, text, at } — everything OCC did
-    settings: { automated: false, suggestions: true },
+    repos: [],      // { id, owner, name, branch } — GitHub repos OCC can commit to
+    defaultRepo: null, // id of the repo new commits target
+    settings: { automated: false, suggestions: true, model: "corey-gpt", language: "JavaScript / HTML5" },
   },
   callLog: [],
   dawVotes: {},
