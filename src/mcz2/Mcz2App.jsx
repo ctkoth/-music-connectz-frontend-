@@ -16,7 +16,15 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, money, mbLabel, TIER_PRICING } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, money, mbLabel, TIER_PRICING, FLOW_GREEN, FLOW_RED } from "./economy.js";
+
+// Colored money: green = money in / growth, red = money out / cost.
+// `flow`: "in" (green), "out" (red), or omit for neutral. Optional sign prefix.
+function Amount({ value, flow, sign = false, bold = false }) {
+  const color = flow === "in" ? FLOW_GREEN : flow === "out" ? FLOW_RED : "inherit";
+  const prefix = sign ? (flow === "out" ? "−" : flow === "in" ? "+" : "") : "";
+  return <span style={{ color, fontWeight: bold ? 700 : "inherit" }}>{prefix}{money(Math.abs(Number(value) || 0))}</span>;
+}
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
@@ -42,9 +50,9 @@ function CostBreakdown({ amount, tier, recipient = "Recipient", payLabel = "You 
   return (
     <div className="txn">
       <div className="txn-row"><span>Amount</span><span>{money(gross)}</span></div>
-      <div className="txn-row txn-tax"><span>Developer tax · {label} {Math.round(rate * 100)}%</span><span>−{money(dev)}</span></div>
-      <div className="txn-row"><span>{recipient} receives</span><span>{money(net)}</span></div>
-      <div className="txn-total"><span>{payLabel}</span><span>{money(gross)}</span></div>
+      <div className="txn-row txn-tax"><span>Developer tax · {label} {Math.round(rate * 100)}%</span><Amount value={dev} flow="out" sign /></div>
+      <div className="txn-row"><span>{recipient} receives</span><Amount value={net} flow="in" bold /></div>
+      <div className="txn-total"><span>{payLabel}</span><Amount value={gross} flow="out" bold /></div>
     </div>
   );
 }
@@ -634,7 +642,10 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
       <div className="stripe-section">
         <div className="stripe-title">💳 Wallet {serverOk ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</div>
         <div className="balance-info">
-          Balance: <strong>${Number(state.wallet.balance).toFixed(2)}</strong> &nbsp;·&nbsp; Lifetime earned: <strong>${Number(state.wallet.earned).toFixed(2)}</strong>
+          Balance: <strong>{money(state.wallet.balance)}</strong> &nbsp;·&nbsp; Lifetime earned: <strong><Amount value={state.wallet.earned} flow="in" /></strong>
+        </div>
+        <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 2 }}>
+          <span style={{ color: FLOW_GREEN }}>● green = money in / growth</span> &nbsp;·&nbsp; <span style={{ color: FLOW_RED }}>● red = cost / money out</span>
         </div>
         <div className="form-group"><label>Amount — {label} developer tax {Math.round(rate * 100)}%</label>
           <input type="number" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="0.00" /></div>
@@ -2412,9 +2423,9 @@ function DistributeZPage({ tier }) {
 
 const CASHOUT_PLANS = [
   { id: "instant", label: "⚡ Instant", tax: "15% tax" },
-  { id: "weekly", label: "📅 Weekly", tax: "your dev-tax rate" },
+  { id: "weekly", label: "📅 Weekly", tax: "per-tier: Free 10% · Premium 5% · StatZ 3%" },
   { id: "monthly", label: "🗓️ Monthly", tax: "1% tax" },
-  { id: "quarterly", label: "📆 3-month", tax: "0% tax" },
+  { id: "quarterly", label: "📆 3-month", tax: "0% tax — tax free" },
 ];
 function RoyaltieZPage({ tier, serverOk, syncEconomy }) {
   const { state, update, updateWallet, addTo } = useAppState();
@@ -2459,15 +2470,22 @@ function RoyaltieZPage({ tier, serverOk, syncEconomy }) {
     <>
       <div className="stripe-section">
         <div className="stripe-title">👑 RoyaltieZ {serverOk ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</div>
-        <div className="balance-info">Royalty balance: <strong>{money(royalties)}</strong> · Every source is timestamped. Instant 15% · weekly tiered · monthly 1% · 3-month 0%.</div>
+        <div className="balance-info">Royalty balance: <strong><Amount value={royalties} flow="in" /></strong> · Every source is timestamped. Instant 15% · weekly tiered · monthly 1% · 3-month 0%.</div>
         <div className="form-group" style={{ marginTop: 8 }}>
           <label>Cashout plan</label>
           <select value={plan} onChange={(e) => setPlan(e.target.value)}>
             {CASHOUT_PLANS.map((p) => <option key={p.id} value={p.id}>{p.label} — {p.tax}</option>)}
           </select>
         </div>
+        {royalties > 0 && (() => { const c = splitCashout(royalties, plan, tier); return (
+          <div className="txn" style={{ marginTop: 8 }}>
+            <div className="txn-row"><span>Royalties</span><Amount value={c.gross} /></div>
+            <div className="txn-row txn-tax"><span>Cashout tax · {Math.round(c.rate * 100)}%</span><Amount value={c.tax} flow="out" sign /></div>
+            <div className="txn-total"><span>You receive</span><Amount value={c.net} flow="in" bold /></div>
+          </div>
+        ); })()}
         <button className="btn" style={{ width: "100%", marginTop: 8 }} disabled={!serverOk || royalties <= 0} onClick={cashout}>
-          💸 Cash out {money(royalties)} to wallet
+          💸 Cash out to wallet
         </button>
         {msg && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>{msg}</p>}
       </div>

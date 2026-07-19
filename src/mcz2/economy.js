@@ -7,6 +7,16 @@
 
 export const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 
+// Semantic colors for numbers: GREEN = money in / growth, RED = money out / cost.
+// Callers use `flowColor("in")` etc. or the <Amount> component in Mcz2App.
+export const FLOW_GREEN = "var(--success, #35d07f)";
+export const FLOW_RED = "var(--danger, #ff5a5f)";
+export function flowColor(direction) {
+  if (direction === "in" || direction === "gain" || direction === "up") return FLOW_GREEN;
+  if (direction === "out" || direction === "cost" || direction === "down") return FLOW_RED;
+  return "inherit";
+}
+
 // SpinAZ — the in-app currency. $1 = 100 SpinAZ.
 export const SPINAZ_PER_DOLLAR = 100;
 export const dollarsToSpinaz = (usd) => Math.round((Number(usd) || 0) * SPINAZ_PER_DOLLAR);
@@ -51,11 +61,11 @@ export function splitTransaction(amount, tier) {
 
 // ---------------------------------------------------------------------------
 // RoyaltieZ 👑 — cashout tax, cheaper the longer you let funds mature.
-// Instant 15% (flat). Weekly by tier (Free10/Prem5/StatZ2). Monthly 1%. 3-month 0%.
+// Instant 15% (flat). Weekly by tier (Free10/Prem5/StatZ3). Monthly 1%. 3-month 0%.
 // ---------------------------------------------------------------------------
 export const ROYALTIEZ = {
   instant: { id: "instant", label: "Instant", emoji: "⚡", note: "Cash out now", flat: 0.15 },
-  weekly: { id: "weekly", label: "Weekly", emoji: "🗓️", note: "Hold ~7 days", byTier: { free: 0.10, premium: 0.05, statz: 0.02, debug: 0 } },
+  weekly: { id: "weekly", label: "Weekly", emoji: "🗓️", note: "Hold ~7 days", byTier: { free: 0.10, premium: 0.05, statz: 0.03, debug: 0 } },
   monthly: { id: "monthly", label: "Monthly", emoji: "📆", note: "Hold ~30 days", flat: 0.01 },
   quarterly: { id: "quarterly", label: "3-Month", emoji: "🏆", note: "Hold ~90 days — tax free", flat: 0.0 },
 };
