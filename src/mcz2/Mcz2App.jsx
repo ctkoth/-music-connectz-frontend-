@@ -79,7 +79,7 @@ import {
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
-  saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi,
+  saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi,
@@ -1460,6 +1460,21 @@ function DiscoverTab({ serverOk }) {
   );
 }
 
+// Min/max range filter row. A set range gates exclusive — members outside it
+// (or without a value for the metric) are excluded server-side.
+function RangeRow({ label, emoji, minKey, maxKey, rng, setR, min = 0, max = 100, step = 1, suffix = "" }) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>{emoji} {label}</label>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+        <input type="number" min={min} max={max} step={step} value={rng[minKey] ?? ""} placeholder={`min${suffix}`} onChange={(e) => setR(minKey, e.target.value)} style={{ width: 90 }} />
+        <span style={{ color: "var(--text-light)" }}>–</span>
+        <input type="number" min={min} max={max} step={step} value={rng[maxKey] ?? ""} placeholder={`max${suffix}`} onChange={(e) => setR(maxKey, e.target.value)} style={{ width: 90 }} />
+      </div>
+    </div>
+  );
+}
+
 // Reusable cross-user member finder: multi-select NationalitieZ / PreferenceZ /
 // ZodiacZ / SubstanceZ filters (OR within a metric, AND across metrics), live
 // server search with a demo fallback. Used by CollabZ, MessageZ, and anywhere
@@ -1469,16 +1484,35 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
   const [genders, setGenders] = useState([]);
   const [signs, setSigns] = useState([]);
   const [subs, setSubs] = useState([]); // substance keys wanted sober-friendly
+  const [rng, setRng] = useState({}); // { age_min, age_max, attr_min, attr_max, max_km }
+  const [locMsg, setLocMsg] = useState("");
+  const [locating, setLocating] = useState(false);
   const [live, setLive] = useState(null);
+  const setR = (k, v) => setRng((s) => ({ ...s, [k]: v }));
 
   useEffect(() => {
     if (!serverOk) { setLive(null); return undefined; }
     const t = setTimeout(() => {
-      searchMembersApi({ regions, genders, signs, substances: subs })
+      searchMembersApi({ regions, genders, signs, substances: subs, ...rng })
         .then((r) => setLive(r.members)).catch(() => setLive(null));
     }, 300);
     return () => clearTimeout(t);
-  }, [serverOk, regions, genders, signs, subs]);
+  }, [serverOk, regions, genders, signs, subs, rng]);
+
+  // Capture GPS and share it so distance filtering works (opt-in).
+  const useMyLocation = () => {
+    if (!navigator.geolocation) { setLocMsg("Geolocation isn't available on this device."); return; }
+    setLocating(true); setLocMsg("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try { await setLocationApi(true, pos.coords.latitude, pos.coords.longitude); setLocMsg("📍 Location shared — distance filtering on."); }
+        catch { setLocMsg("Saved locally — sign in to sync location."); }
+        setLocating(false);
+      },
+      () => { setLocMsg("Location permission denied."); setLocating(false); },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   const demoFiltered = DEMO_MEMBERS.filter((m) =>
     (!regions.length || regions.includes(m.region)) &&
@@ -1487,8 +1521,9 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
     (!subs.length || m.sober),
   );
   const filtered = live !== null ? live : demoFiltered;
-  const active = regions.length + genders.length + signs.length + subs.length;
-  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSubs([]); };
+  const rangeActive = Object.values(rng).filter((v) => v != null && v !== "").length;
+  const active = regions.length + genders.length + signs.length + subs.length + rangeActive;
+  const clear = () => { setRegions([]); setGenders([]); setSigns([]); setSubs([]); setRng({}); };
 
   return (
     <>
@@ -1509,8 +1544,23 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
           {SIGNS.map((s) => <button key={s.name} className={`heritage-chip${signs.includes(s.name) ? " sel" : ""}`} onClick={() => setSigns((a) => inArr(a, s.name))}>{s.emoji} {s.name}</button>)}
         </div>
         <label style={{ fontSize: 11, color: "var(--text-light)" }}>🧠 SubstanceZ (show members sober-friendly on…)</label>
-        <div className="chip-wrap" style={{ margin: "6px 0 2px" }}>
+        <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
           {SUBSTANCES.map((s) => <button key={s.key} className={`heritage-chip${subs.includes(s.key) ? " sel" : ""}`} onClick={() => setSubs((a) => inArr(a, s.key))}>{s.emoji} {s.name}</button>)}
+        </div>
+
+        {/* Range gates — a set range excludes anyone outside it. */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8, marginTop: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>🎚️ Range filters <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(exclusive — gates who qualifies)</span></div>
+          <RangeRow label="Attractiveness (/10)" emoji="💯" minKey="attr_min" maxKey="attr_max" rng={rng} setR={setR} min={1} max={10} />
+          <RangeRow label="Age (years)" emoji="🎂" minKey="age_min" maxKey="age_max" rng={rng} setR={setR} min={13} max={99} />
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>🗺️ Distance (within km — for in-person collabs)</label>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+              <input type="number" min={1} value={rng.max_km ?? ""} placeholder="max km" onChange={(e) => setR("max_km", e.target.value)} style={{ width: 90 }} />
+              <button className="btn btn-small btn-secondary" onClick={useMyLocation} disabled={locating}>{locating ? "📍 locating…" : "📍 Use my location"}</button>
+            </div>
+            {locMsg && <div style={{ fontSize: 10, color: "var(--accent, #22e6ff)", marginTop: 3 }}>{locMsg}</div>}
+          </div>
         </div>
       </div>
 
@@ -1530,7 +1580,7 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
                   : <span className="post-avatar" style={{ width: 32, height: 32, fontSize: 14 }}>{(name || "?").charAt(0).toUpperCase()}</span>}
                 <span>{name} {m.founding && <span title="Founding member">👑</span>} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</span>
               </div>
-              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.tier && m.tier !== "free" ? ` · ${TIER_EMOJI[tierKey(m.tier)]} ${tierLabel(m.tier)}` : ""}</div>
+              <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.age != null ? ` · 🎂 ${m.age}` : ""}{m.distance_km != null ? ` · 🗺️ ${m.distance_km}km` : ""}{m.tier && m.tier !== "free" ? ` · ${TIER_EMOJI[tierKey(m.tier)]} ${tierLabel(m.tier)}` : ""}</div>
               <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onPick?.(m)}>{actionLabel}{uname ? ` · @${uname}` : name ? ` · ${name}` : ""}</button>
             </div>
           );

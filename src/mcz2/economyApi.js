@@ -122,9 +122,17 @@ export const searchMembersApi = (filters) => {
   if (filters.signs?.length) p.set("signs", filters.signs.join(","));
   if (filters.substances?.length) p.set("substances", filters.substances.join(","));
   if (filters.sober) p.set("sober", "1");
+  // Range gates (min/max). Only set the ones provided.
+  for (const k of ["age_min", "age_max", "attr_min", "attr_max", "max_km"]) {
+    if (filters[k] != null && filters[k] !== "") p.set(k, filters[k]);
+  }
   const q = p.toString();
   return api(`/api/economy/members/${q ? `?${q}` : ""}`);
 };
+
+// Opt-in GPS location for in-person distance filtering.
+export const setLocationApi = (share, lat, lng) =>
+  api("/api/economy/profile/location/", { method: "POST", body: { share, lat, lng } });
 
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
