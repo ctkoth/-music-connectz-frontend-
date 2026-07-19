@@ -9,6 +9,7 @@ import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
+import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
 import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
@@ -4651,6 +4652,94 @@ function TrainingZ({ appKey }) {
     </>
   );
 }
+// Templated Corey-voice feedback from real audio scores (fallback / offline).
+function localCoreyFeedback(result, context) {
+  const s = result.scores; const m = result.metrics;
+  const weak = [["pitch", s.pitch, "pitch — you're drifting off the note; lock a reference tone and match it"],
+    ["breath", s.breath, "breath support — your phrases run long without a real breath; mark breath points"],
+    ["cadence", s.cadence, "cadence — your timing's uneven; practice to a metronome and ride the pocket"],
+    ["control", s.control, "dynamic control — your volume jumps around; keep the level steady, then add dynamics on purpose"]]
+    .sort((a, b) => a[1] - b[1]);
+  return `🎧 Aight, real talk on your ${context} — I clocked ${m.note} at ${m.pitchHz}Hz.\n\n` +
+    `🔧 Top two to work on:\n1. ${weak[0][2]}.\n2. ${weak[1][2]}.\n\n` +
+    `💪 Drill: ${s.pitch < 70 ? "hum a steady note, then slide up a 5th and back — 5 clean reps." : s.breath < 70 ? "4-count inhale, 8-count phrase, repeat 8 rounds." : "record the same 8 bars 3x and keep the best."}\n\n` +
+    `${s.overall >= 80 ? "🔥 Overall you're solid — polish these and it's a wrap." : "You got the bones — tighten these two and it levels up fast. 💯"}`;
+}
+
+// InstrumentZ audio lab — record from mic or upload a file, get real scores + Corey feedback.
+function AudioLab({ context = "take", onResult }) {
+  const { addXP } = useAppState();
+  const signedIn = isSignedIn();
+  const [status, setStatus] = useState("");
+  const [result, setResult] = useState(null);
+  const [feedback, setFeedback] = useState("");
+  const [busy, setBusy] = useState(false);
+  const recRef = useRef(null); const chunksRef = useRef([]); const streamRef = useRef(null);
+
+  const run = async (blob) => {
+    setStatus("analyzing"); setFeedback("");
+    try { const buf = await decodeBlob(blob); const r = analyzeAudioBuffer(buf); setResult(r); onResult?.(r); if (r.ok) addXP(4, "InstrumentZ take"); }
+    catch { setResult({ ok: false }); }
+    setStatus("");
+  };
+  const startRec = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mr = new MediaRecorder(stream); chunksRef.current = [];
+      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.onstop = () => { const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" }); streamRef.current?.getTracks().forEach((t) => t.stop()); run(blob); };
+      recRef.current = mr; mr.start(); setStatus("recording");
+    } catch { setStatus("denied"); }
+  };
+  const stopRec = () => { if (recRef.current?.state === "recording") recRef.current.stop(); setStatus("analyzing"); };
+  const onFile = (e) => { const f = e.target.files?.[0]; if (f) run(f); e.target.value = ""; };
+
+  const askCorey = async () => {
+    if (!result?.ok) return;
+    const m = result.metrics, s = result.scores;
+    const prompt = `Coach me on my ${context}. Analysis: detected pitch ${m.note} (${m.pitchHz}Hz), pitch stability ${s.pitch}/100 (semitone spread ${m.semitoneSpread}), breath/phrasing ${s.breath}/100 (avg phrase ${m.avgPhraseSec}s), cadence ${s.cadence}/100 (${m.onsetsPerSec} hits/sec), dynamic control ${s.control}/100. Give me the top 2 things to work on — pitch, breath, cadence etc — and one concrete drill. Keep it tight.`;
+    setBusy(true); setFeedback("");
+    if (signedIn) {
+      try { const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [] }); setFeedback(r.text); }
+      catch { setFeedback(localCoreyFeedback(result, context)); }
+    } else setFeedback(localCoreyFeedback(result, context));
+    setBusy(false);
+  };
+
+  const LAB_METERS = [["pitch", "🎯 Pitch"], ["breath", "🫁 Breath"], ["cadence", "🌪️ Cadence"], ["control", "🎚️ Control"]];
+  return (
+    <div className="card">
+      <div className="card-header"><span>🎙️ InstrumentZ Lab</span>{status === "recording" && <span className="tag" style={{ color: "var(--danger)" }}>● REC</span>}</div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Record live or drop an audio/video file — SingZ analyzes your real pitch, breath &amp; cadence, then Corey coaches you.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {status !== "recording"
+          ? <button className="btn btn-small btn-success" onClick={startRec}>🎙️ Record</button>
+          : <button className="btn btn-small btn-danger" onClick={stopRec}>⏹ Stop &amp; analyze</button>}
+        <label className="btn btn-small btn-secondary" style={{ cursor: "pointer" }}>📁 Upload audio/video<input type="file" accept="audio/*,video/*" onChange={onFile} style={{ display: "none" }} /></label>
+      </div>
+      {status === "analyzing" && <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 8 }}>⏳ Analyzing…</p>}
+      {status === "denied" && <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 8 }}>🎤 Mic blocked — allow microphone access, or upload a file instead.</p>}
+      {result && !result.ok && status !== "analyzing" && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>Couldn't read enough voiced audio — record a few seconds louder, or upload a clearer clip.</p>}
+      {result?.ok && (
+        <>
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12, marginBottom: 6 }}>Detected: <strong>{result.metrics.note}</strong> · {result.metrics.pitchHz}Hz · {result.metrics.durationSec}s · overall <strong style={{ color: "var(--primary)" }}>{result.scores.overall}/100</strong></div>
+            {LAB_METERS.map(([id, label]) => (
+              <div key={id} style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{label}</span><strong>{result.scores[id]}</strong></div>
+                <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.1)" }}><div style={{ width: `${result.scores[id]}%`, height: "100%", borderRadius: 3, background: "var(--primary)" }} /></div>
+              </div>
+            ))}
+          </div>
+          <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={askCorey} disabled={busy}>{busy ? "🎤 Corey's listening…" : "🎤 Get Corey feedback"}</button>
+          {feedback && <p style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 8, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 10 }}>{feedback}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---- SingZ vocal game engine (loop: check-in → warmup → mission → boss → cooldown → reward) ----
 function SingZPage({ tier }) {
   const { state, update, addXP, awardBadge } = useAppState();
@@ -4663,6 +4752,7 @@ function SingZPage({ tier }) {
   const [checkin, setCheckin] = useState({ condition: 3, hydration: 3, rest: 3, energy: 3 });
   const [skill, setSkill] = useState("Pitch");
   const [scores, setScores] = useState(null);
+  const [labResult, setLabResult] = useState(null); // real audio analysis, if recorded
 
   const diff = DIFFICULTIES.find((d) => d.id === sz.difficulty) || DIFFICULTIES[0];
   const sessions = sz.sessions || [];
@@ -4704,12 +4794,18 @@ function SingZPage({ tier }) {
   const startSession = () => { setStage("checkin"); setScores(null); setTab("session"); };
   const wellness = wellnessOf(checkin);
   const runMission = () => {
+    const lab = labResult?.ok ? labResult.scores : null;
     const s = {};
     SCORE_METERS.forEach((m) => {
+      // Real audio maps onto the meters when a take was recorded/uploaded.
+      if (lab) {
+        const map = { pitch: lab.pitch, tone: lab.control, breath: lab.breath, range: lab.pitch, agility: lab.cadence, consistency: lab.control };
+        if (m.id in map) { s[m.id] = map[m.id]; return; }
+      }
       let b = diff.base;
       if (m.id === "health") b = 60 + wellness * 8;
-      if (m.id === "goal") b = diff.base - (sz.goalPath === "bridge" ? 6 : 0);
-      s[m.id] = simScore(b, wellness);
+      if (m.id === "goal") b = (lab ? lab.overall : diff.base) - (sz.goalPath === "bridge" ? 6 : 0);
+      s[m.id] = lab && m.id === "goal" ? Math.max(30, Math.min(100, Math.round(b))) : simScore(b, wellness);
     });
     setScores(s);
     setStage("boss");
@@ -4768,13 +4864,17 @@ function SingZPage({ tier }) {
           )}
 
           {stage === "mission" && (
-            <div className="card">
-              <div className="card-header">🎯 Skill Mission</div>
-              <div className="form-group"><label>Train a skill</label>
-                <div className="chip-wrap">{SINGZ_SKILLS.map((s) => <button key={s} className={`heritage-chip${skill === s ? " sel" : ""}`} onClick={() => setSkill(s)}>{s}</button>)}</div>
+            <>
+              <div className="card">
+                <div className="card-header">🎯 Skill Mission</div>
+                <div className="form-group"><label>Train a skill</label>
+                  <div className="chip-wrap">{SINGZ_SKILLS.map((s) => <button key={s} className={`heritage-chip${skill === s ? " sel" : ""}`} onClick={() => setSkill(s)}>{s}</button>)}</div>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-light)" }}>Record or upload your take below for real pitch/breath/cadence scoring — or skip the lab to run a guided (simulated) mission.</p>
               </div>
-              <button className="btn btn-success" style={{ width: "100%" }} onClick={runMission}>🎙️ Perform the mission</button>
-            </div>
+              <AudioLab context={`singing take (${skill})`} onResult={setLabResult} />
+              <button className="btn btn-success" style={{ width: "100%" }} onClick={runMission}>{labResult?.ok ? "👑 Score my take as the Boss Take" : "🎙️ Run guided mission"}</button>
+            </>
           )}
 
           {stage === "boss" && scores && (
@@ -4854,7 +4954,15 @@ function SingZPage({ tier }) {
     </>
   );
 }
-function RapZPage() { return <TrainingZ appKey="rapz" />; }
+function RapZPage() {
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🎧 RapZ</div><div className="balance-info">Drop a verse live or upload it — get real flow/breath/cadence scoring + Corey feedback.</div></div>
+      <AudioLab context="rap verse" />
+      <TrainingZ appKey="rapz" />
+    </>
+  );
+}
 
 const MERCH_CATS = [
   { id: "apparel", label: "👕 Apparel" },
