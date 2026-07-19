@@ -265,6 +265,7 @@ const PERSONA_CHOICES = [
   { name: "A&R Scout", emoji: "🔎", icon: "personaz_arscout.png" },
   { name: "Ghostwriter", emoji: "👻", icon: "personaz_ghostwriter.png" },
   { name: "Developer", emoji: "👾", icon: "personaz_developer.png" },
+  { name: "Weightlifter", emoji: "🏋🏼", icon: "personaz_weightlifter.png" },
   { name: "Mime", emoji: "🤹", icon: "mimez.png" },
 ];
 
@@ -279,6 +280,7 @@ const PERSONA_SKILLS = {
   "A&R Scout": ["Talent Spotting", "Market Trends", "Networking", "Deal Structuring", "Genre Expertise", "Analytics"],
   "Ghostwriter": ["Lyricism", "Storytelling", "Rhyme Schemes", "Hook Writing", "Tone Matching", "Multi-Genre"],
   "Developer": ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin"],
+  "Weightlifter": ["Routine Design", "Personal Training", "Powerlifting", "HIIT", "Olympic Lifting", "Nutrition Coaching", "Mobility & Recovery", "Progressive Overload"],
   "Mime": ["Lipsync", "Selfie", "Dance", "Drama", "Comedy"],
 };
 function PersonasPage() {
@@ -1511,6 +1513,20 @@ function BodieZPage({ tier }) {
   };
 
   const setRoutines = (list) => setBodiez({ routines: list });
+  const [sellMsg, setSellMsg] = useState("");
+  // Sell a custom routine on the creator marketplace (real money + dev tax).
+  const sellRoutine = async (r) => {
+    if (!r.exercises.length) return;
+    const p = Number(window.prompt(`List "${r.name}" for sale — price in $?`, "9.99"));
+    if (!(p > 0)) return;
+    const desc = `BodieZ routine · ${r.exercises.length} exercises — ` + r.exercises.map((e) => `${e.name} ${e.sets}×${e.reps}`).join(", ");
+    try {
+      await createMerchApi({ title: r.name, description: desc.slice(0, 480), category: "routines", priceCents: Math.round(p * 100) });
+      setSellMsg(`✅ Listed "${r.name}" for ${money(p)} in the marketplace (MerchZ · routines).`);
+    } catch {
+      setSellMsg("Listing needs you signed in with a live connection.");
+    }
+  };
   const patchRoutine = (id, patch) => setRoutines(routines.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const addExercise = (ex) => {
     if (!editing) return;
@@ -1590,12 +1606,14 @@ function BodieZPage({ tier }) {
         <div className="card">
           <div className="card-header">🧩 Your Routines</div>
           {routines.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No routines yet.</p>}
+          {sellMsg && <p style={{ fontSize: 11, color: "var(--success)", marginBottom: 8 }}>{sellMsg}</p>}
           {routines.map((r) => (
             <div key={r.id} className="skill-item">
               <span className="skill-item-name">{r.name}</span>
               <span className="skill-item-exp">{r.exercises.length} exercises</span>
               <div className="skill-item-actions">
                 <button className="btn btn-small" onClick={() => setEditingId(r.id)}>Edit</button>
+                <button className="btn btn-small btn-secondary" disabled={!r.exercises.length} onClick={() => sellRoutine(r)}>💰 Sell</button>
                 <button className="btn btn-danger btn-small" onClick={() => setRoutines(routines.filter((x) => x.id !== r.id))}>✕</button>
               </div>
             </div>
@@ -4512,6 +4530,7 @@ const MERCH_CATS = [
   { id: "samples", label: "🎛️ Sample Packs" },
   { id: "accessories", label: "🧢 Accessories" },
   { id: "digital", label: "💾 Digital" },
+  { id: "routines", label: "🏋️ Routines" },
 ];
 function MerchZPage({ tier, serverOk, syncEconomy }) {
   const { state, updateWallet, addTo } = useAppState();

@@ -110,6 +110,7 @@ export const CUSTOM_ICONS = {
   "personaz_director.webp": "/icons/personaz_director.webp",
   "personaz_ghostwriter.png": "/icons/personaz_ghostwriter.png",
   "personaz_indieartist.png": "/icons/personaz_indieartist.png",
+  "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "personaz_manager.png": "/icons/personaz_manager.png",
   "personaz_mime.png": "/icons/personaz_mime.png",
   "personaz_mixengineer.png": "/icons/personaz_mixengineer.png",
