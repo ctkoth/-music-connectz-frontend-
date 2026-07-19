@@ -170,6 +170,17 @@ const PARTNER_GENDERS = [
 ];
 const TRAITS = ["Honesty", "Trust", "Communication", "Energy", "Connection", "Creativity", "Ambition", "Humor"];
 
+// Notification preferences by app-group. `rec` marks Corey's recommended-on set
+// (marketing, posts, collabs, battles) so a member can one-tap the sensible baseline.
+const NOTIF_GROUPS = [
+  { key: "notif_connect", label: "🤝 ConnectZ — collabs, messages, follows", rec: true },
+  { key: "notif_compete", label: "⚔️ CompeteZ — BattleZ & RateZ results", rec: true },
+  { key: "notif_posts", label: "🎵 PostZ — shares, ratings, comments", rec: true },
+  { key: "notif_marketing", label: "📣 Marketing — drops, tips & offers", rec: true },
+  { key: "notif_money", label: "💰 MoneyZ — payments, royalties, cashouts", rec: false },
+  { key: "notif_intel", label: "🧠 IntelligenceZ — AI jobs & exports", rec: false },
+];
+
 const SETTING_TOGGLES = [
   { key: "notifications", label: "🔔 Push Notifications" },
   { key: "collabAlerts", label: "🤝 Collab Alerts" },
@@ -703,6 +714,22 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
               className={`toggle-switch${settings[row.key] ? " active" : ""}`} />
           </div>
         ))}
+      </div>
+      <div className="card">
+        <div className="card-header"><span>🔔 Notifications by app group</span>
+          <button className="btn btn-small btn-secondary" onClick={() => updateSettings(Object.fromEntries(NOTIF_GROUPS.map((g) => [g.key, g.rec])))}>✨ Use recommended</button>
+        </div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Pick which kinds of activity ping you. My recommended set (marketing, postz, collabz, battlez) keeps you in the loop without the noise.</p>
+        {NOTIF_GROUPS.map((g) => {
+          const on = settings[g.key] ?? g.rec;
+          return (
+            <div key={g.key} className="settings-toggle">
+              <label>{g.label}{g.rec && <span className="tag" style={{ marginLeft: 6 }}>recommended</span>}</label>
+              <div role="switch" aria-checked={on} onClick={() => updateSettings({ [g.key]: !on })}
+                className={`toggle-switch${on ? " active" : ""}`} />
+            </div>
+          );
+        })}
       </div>
     </>
   );
@@ -2076,6 +2103,47 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+// LegalZ — the site-side coverage: terms, refund/dispute policy, entity + liability
+// disclaimers. The owner drops their real LLC name in via the OWNER_ENTITY constant.
+const OWNER_ENTITY = "Music ConnectZ (operating entity — set your LLC name here)";
+function LegalZPage() {
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">⚖️ Terms &amp; Policies</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Music ConnectZ is operated by <strong>{OWNER_ENTITY}</strong>. Using the platform means you agree to everything below. Plain English, no fine-print games.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🧾 Refunds</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          <strong>Membership and upgrades are non-refundable.</strong> They unlock features the instant you buy them, so there's nothing to return. SpinAZ and Energy purchases are also final. If something's broken, that's a bug — file a <strong>BugZ</strong> report and we fix it (squashed bugs pay you 200 SpinAZ). We don't issue refunds for buyer's remorse.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🤝 Member-to-member disputes</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Money you spend on other members — CollabZ offers, MerchZ, VenueZ, CallZ — is a transaction <em>between you and them</em>. Disputes and refunds on those are settled member-to-member inside CollabZ. {OWNER_ENTITY} takes the developer tax as a platform fee and provides the rails, but is not a party to your deal and isn't liable for another member's delivery, quality, or conduct.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🛡️ Liability</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          The platform is provided "as is," without warranties. To the fullest extent the law allows, {OWNER_ENTITY} is not liable for lost profits, lost data, or indirect/consequential damages arising from your use of Music ConnectZ, member transactions, or AI-generated output. AI documents and tools are drafts for convenience, not legal advice.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">📇 Contact &amp; entity</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Legal notices go to the operating entity above. <strong>Set your registered LLC name, state of formation, and a contact address</strong> in the <code>OWNER_ENTITY</code> field (and your lawyer should review this page before you rely on it).
+        </p>
+      </div>
+      <LegalDisclaimer />
     </>
   );
 }
@@ -3623,6 +3691,7 @@ const FN_PAGES = {
   royaltiez: RoyaltieZPage,
   messagez: MessageZPage,
   collabz: CollabZPage,
+  legalz: LegalZPage,
   labelz: LabelZPage,
   lilith: LilithPage,
   intelligence: IntelligencePage,
@@ -3802,7 +3871,11 @@ function Shell() {
 
   const openApp = (key) => {
     const app = APPS_BY_KEY[key];
-    if (!app) return;
+    if (!app) {
+      // Functional pages without a launcher tile (e.g. legalz) open directly.
+      if (FN_PAGES[key]) { recordUsage(key); setModalApp(null); setView(key); setTab(key); }
+      return;
+    }
     recordUsage(key);
     setModalApp(null);
     if (app.fn) { setView(key); setTab(key); }
@@ -3876,7 +3949,10 @@ function Shell() {
             ))
           )}
 
-          <button className="btn btn-secondary btn-small" onClick={logout} style={{ marginTop: 8 }}>🚪 Log out</button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <button className="btn btn-secondary btn-small" onClick={() => openApp("legalz")}>⚖️ Terms &amp; Policies</button>
+            <button className="btn btn-secondary btn-small" onClick={logout}>🚪 Log out</button>
+          </div>
         </div>
 
         <Dock usage={usage} pins={pins} tier={tier} current={view} onOpen={openApp} onTogglePin={togglePin} onHome={goHome} />
