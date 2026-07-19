@@ -782,7 +782,7 @@ const MEMBERSHIP_TIERS = [
     id: "premium", name: "Premium", emoji: "👑", icon: "tier_premium.png", color: "var(--gold, #ffcf3f)",
     tag: "For serious professionals",
     perks: [
-      "4,000-character limit — say more everywhere",
+      "1,000-character limit — say more everywhere",
       "SuggestionZ 😉 — AI explains what/why/how across every app",
       "Unlimited PickConnectZ pins",
       "OCC builds medium 2D/3D games (any engine but Unreal)",
@@ -796,7 +796,7 @@ const MEMBERSHIP_TIERS = [
     id: "statz", name: "StatZ", emoji: "📈", icon: "tier_statz.png", color: "var(--cyan, #22e6ff)",
     tag: "Highest tier — for serious professionals",
     perks: [
-      "40,000-character limit — the whole essay",
+      "5,000-character limit — the whole essay",
       "Everything in Premium, plus:",
       "Automations 🤖 + CallZ ☎️ — run apps without input",
       "SpecZ analytics marketplace + live calls",
@@ -1023,8 +1023,8 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
         <div className="card-header">🧾 All upgrade options</div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Everything you can upgrade or top up, in one place.</p>
         {[
-          { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "4,000-char limit · SuggestionZ 😉 · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
-          { emoji: "📊", name: "StatZ", price: "add-on: $5/mo · $40/yr", unlocks: "40,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3%", cta: "Upgrade to StatZ", to: "membership" },
+          { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "1,000-char limit · SuggestionZ 😉 · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
+          { emoji: "📊", name: "StatZ", price: "$15/mo · $150/yr", unlocks: "5,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3% · includes everything in Premium", cta: "Upgrade to StatZ", to: "membership" },
           { emoji: "🍥", name: "SpinAZ top-up", price: "buy at 80% ($80 = 100)", unlocks: "Subscription currency — spend on spins, boosts and premium features.", cta: "Buy SpinAZ", to: "spinaz" },
           { emoji: "⚡", name: "Energy top-up", price: "buy at 80% ($80 = 100)", unlocks: "Powers ratings, comments and daily activity when you're tapped out.", cta: "Buy Energy", to: "energy" },
           { emoji: "✴️", name: "SpecZ (StatZ only)", price: "per-item", unlocks: "Audience analytics, engagement heatmaps, genre intelligence, UGC packs.", cta: "Open SpecZ", to: "specz" },
