@@ -911,7 +911,8 @@ function FoundingCard({ serverOk, onTierChange, syncEconomy }) {
         )}
       </div>
 
-      {f.stripe_enabled && !f.sold_out && <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>🔒 Secure Stripe checkout — StatZ unlocks automatically after payment. Yearly/monthly lock your founding rate for as long as you stay subscribed.</p>}
+      <p style={{ fontSize: 10, color: "var(--success)", marginTop: 8 }}>🛡️ Risk-free: full refund if you downgrade within 10 days.</p>
+      {f.stripe_enabled && !f.sold_out && <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>🔒 Secure Stripe checkout — StatZ unlocks automatically after payment. Yearly/monthly lock your founding rate for as long as you stay subscribed.</p>}
       {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
     </div>
   );
@@ -5972,8 +5973,8 @@ function Shell() {
               {user?.username ? `@${user.username}` : "Signed in"}
               <span title={`${prog.xp} XP`}> · 🎮 Lv {prog.level}</span>
               {prog.streak > 0 && <span title="Daily streak" style={{ color: "var(--gold, #ffcf3f)" }}> · 🔥 {prog.streak}</span>}
-              {community.total != null && <span title="Total members"> · 👥 {community.total} total</span>}
-              {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · 🟢 {community.online} online</span>}
+              {community.total != null && <span title="Total members"> · Total 👥 {community.total}</span>}
+              {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · Online 🟢 {community.online}</span>}
               {isOwner && <span title="Owner" style={{ color: "var(--gold, #ffcf3f)" }}> · 🛠️ owner</span>}
             </div>
             <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.15)", marginTop: 3, overflow: "hidden" }} title={`${prog.xp % 100}/100 XP to next level`}>
