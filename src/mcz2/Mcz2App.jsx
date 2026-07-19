@@ -2716,7 +2716,7 @@ function OccWorkspace({ tier, onOpen, serverOk, syncEconomy }) {
 
 // --- Editor tab: the chat + game publish + git-as-a-task ---
 function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEconomy }) {
-  const { addTo } = useAppState();
+  const { state, addTo } = useAppState();
   const [notice, setNotice] = useState("");
   const model = occModel(occ.settings?.model);
   const greeting = model.id === "corey-gpt"
@@ -2756,7 +2756,8 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEco
       try {
         // Live LLM reply — server charges the minimum model cost on success.
         const hist = msgs.filter((m) => m.text).slice(-8).map((m) => ({ role: m.role, text: m.text }));
-        const r = await occChatApi({ model: model.id, prompt: text, knowledge: occ.knowledge || [], history: hist });
+        const acronyms = (occ.codez || []).map((x) => ({ term: x.term, means: x.means }));
+        const r = await occChatApi({ model: model.id, prompt: text, knowledge: occ.knowledge || [], history: hist, slang: !!state.settings?.coreySlang, acronyms });
         setMsgs((m) => [...m, { role: "occ", text: r.text }]);
         setNotice(`${model.emoji} ${model.label} · ${centsLabel(r.cost_cents)} · balance ${money(r.money)}`);
         syncEconomy?.();
@@ -3244,6 +3245,8 @@ function OccSearch({ occ }) {
 
 // --- Settings: Automated + SuggestionZ toggles ---
 function OccSettings({ occ, patch, logAction, tier }) {
+  const { state, updateSettings } = useAppState();
+  const appSettings = state.settings || {};
   const s = occ.settings || {};
   const toggle = (k) => { const next = { ...s, [k]: !s[k] }; patch({ settings: next }); logAction("settings", `${k} → ${next[k] ? "on" : "off"}`); };
   const setModel = (id) => { patch({ settings: { ...s, model: id } }); logAction("settings", `voice → ${id}`); };
@@ -3259,6 +3262,10 @@ function OccSettings({ occ, patch, logAction, tier }) {
           ))}
         </div>
         <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>{occModel(s.model).note} You're charged only the minimum to cover the model — {centsLabel(occModel(s.model).costCents)}/message.</p>
+        <div className="settings-toggle" style={{ marginTop: 8 }}>
+          <label>🗣️ AAVE colloquialisms (Corey GPT) — off keeps professional docs clean</label>
+          <div role="switch" aria-checked={!!appSettings.coreySlang} onClick={() => updateSettings({ coreySlang: !appSettings.coreySlang })} className={`toggle-switch${appSettings.coreySlang ? " active" : ""}`} />
+        </div>
         <div className="modal-sub-title" style={{ margin: "12px 0 6px" }}>💻 Default coding language</div>
         <div className="chip-wrap">
           {langsForTier(tier).map((l) => (
