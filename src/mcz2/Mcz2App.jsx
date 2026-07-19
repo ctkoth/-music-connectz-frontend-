@@ -8,6 +8,7 @@ import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
+import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
@@ -4650,7 +4651,209 @@ function TrainingZ({ appKey }) {
     </>
   );
 }
-function SingZPage() { return <TrainingZ appKey="singz" />; }
+// ---- SingZ vocal game engine (loop: check-in → warmup → mission → boss → cooldown → reward) ----
+function SingZPage({ tier }) {
+  const { state, update, addXP, awardBadge } = useAppState();
+  const sz = state.singz || { onboarded: false, sessions: [], badges: [], quests: {}, strain: 0 };
+  const setSz = (patch) => update({ singz: { ...sz, ...patch } });
+  const isStatz = /stat[sz]/i.test(tier || "");
+
+  const [tab, setTab] = useState("session");
+  const [stage, setStage] = useState(null); // active session stage
+  const [checkin, setCheckin] = useState({ condition: 3, hydration: 3, rest: 3, energy: 3 });
+  const [skill, setSkill] = useState("Pitch");
+  const [scores, setScores] = useState(null);
+
+  const diff = DIFFICULTIES.find((d) => d.id === sz.difficulty) || DIFFICULTIES[0];
+  const sessions = sz.sessions || [];
+  const recoveryMode = (sz.strain || 0) >= 2; // repeated strain → recovery-first
+
+  // ---- Onboarding ----
+  if (!sz.onboarded) {
+    const detect = () => setSz({ range: RANGE_CLASSES[Math.floor(Math.random() * RANGE_CLASSES.length)].name });
+    return (
+      <>
+        <div className="stripe-section"><div className="stripe-title">🎤 SingZ — set up your voice</div><div className="balance-info">Baseline test → confirm range → pick a goal. Voice-health first, always.</div></div>
+        <div className="card">
+          <div className="card-header">🎙️ Baseline range test</div>
+          <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>Hum low to high; SingZ auto-detects your likely class. Confirm or change it.</p>
+          <button className="btn btn-small" onClick={detect}>🔎 Auto-detect range</button>
+          {sz.range && <p style={{ fontSize: 12, color: "var(--accent, #22e6ff)", marginTop: 8 }}>Detected: {RANGE_CLASSES.find((r) => r.name === sz.range)?.emoji} <strong>{sz.range}</strong></p>}
+          <div className="chip-wrap" style={{ marginTop: 8 }}>
+            {RANGE_CLASSES.map((r) => <button key={r.name} className={`heritage-chip${sz.range === r.name ? " sel" : ""}`} onClick={() => setSz({ range: r.name })}>{r.emoji} {r.name}</button>)}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header">🎯 Goal range</div>
+          <div className="chip-wrap">{RANGE_CLASSES.map((r) => <button key={r.name} className={`heritage-chip${sz.goalRange === r.name ? " sel" : ""}`} onClick={() => setSz({ goalRange: r.name })}>{r.emoji} {r.name}</button>)}</div>
+        </div>
+        <div className="card">
+          <div className="card-header">🧭 Goal path</div>
+          {GOAL_PATHS.map((g) => <button key={g.id} className={`persona-btn${sz.goalPath === g.id ? " sel-pref" : ""}`} style={{ width: "100%", marginBottom: 6, ...(sz.goalPath === g.id ? { borderColor: "var(--primary)" } : {}) }} onClick={() => setSz({ goalPath: g.id })}>{g.emoji} {g.name} — {g.note}</button>)}
+        </div>
+        <div className="card">
+          <div className="card-header">🎚️ Starting difficulty</div>
+          <div className="chip-wrap">{DIFFICULTIES.filter((d) => d.id !== "boss").map((d) => <button key={d.id} className={`heritage-chip${sz.difficulty === d.id ? " sel" : ""}`} onClick={() => setSz({ difficulty: d.id })}>{d.emoji} {d.name}</button>)}</div>
+        </div>
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={!sz.range || !sz.goalRange} onClick={() => setSz({ onboarded: true })}>✅ Start training</button>
+      </>
+    );
+  }
+
+  // ---- Session flow ----
+  const startSession = () => { setStage("checkin"); setScores(null); setTab("session"); };
+  const wellness = wellnessOf(checkin);
+  const runMission = () => {
+    const s = {};
+    SCORE_METERS.forEach((m) => {
+      let b = diff.base;
+      if (m.id === "health") b = 60 + wellness * 8;
+      if (m.id === "goal") b = diff.base - (sz.goalPath === "bridge" ? 6 : 0);
+      s[m.id] = simScore(b, wellness);
+    });
+    setScores(s);
+    setStage("boss");
+  };
+  const finishSession = () => {
+    const overall = Math.round(SCORE_METERS.reduce((t, m) => t + scores[m.id], 0) / SCORE_METERS.length);
+    const strained = scores.health < 55 || wellness <= 2;
+    const rec = { id: Date.now(), at: Date.now(), skill, difficulty: diff.id, overall, scores, range: sz.range };
+    const badges = [...(sz.badges || [])];
+    if (scores.pitch >= 92 && !badges.includes("Pitch Sniper")) { awardBadge("SingZ: Pitch Sniper"); badges.push("Pitch Sniper"); }
+    if (scores.breath >= 90 && !badges.includes("Breath Keeper")) { awardBadge("SingZ: Breath Keeper"); badges.push("Breath Keeper"); }
+    setSz({ sessions: [rec, ...sessions].slice(0, 100), badges, strain: strained ? (sz.strain || 0) + 1 : 0 });
+    addXP(8 + Math.round(overall / 10), `SingZ ${skill}`);
+    setStage("reward");
+  };
+
+  const TABS = [["session", "🎮 Session"], ["progress", "📈 Progress"], ["badgez", "🏅 BadgeZ"], ["setup", "⚙️ Setup"]];
+
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 12 }}>
+        {TABS.map(([id, l]) => <button key={id} className={`heritage-chip${tab === id ? " sel" : ""}`} onClick={() => setTab(id)}>{l}</button>)}
+      </div>
+
+      {tab === "session" && (
+        <>
+          {recoveryMode && <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}><p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>🚨 Recovery-first mode — repeated strain detected. Stage Boss &amp; advanced range work are paused until you log a healthy check-in. Protect the voice.</p></div>}
+          {!stage && (
+            <div className="card">
+              <div className="card-header"><span>🎤 {RANGE_CLASSES.find((r) => r.name === sz.range)?.emoji} {sz.range} → {sz.goalRange}</span><span className="tag">{diff.emoji} {diff.name}</span></div>
+              <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>Goal path: {GOAL_PATHS.find((g) => g.id === sz.goalPath)?.emoji} {GOAL_PATHS.find((g) => g.id === sz.goalPath)?.name}. The loop: check-in → warmup → skill mission → boss take → cooldown → reward.</p>
+              <button className="btn btn-success" style={{ width: "100%" }} onClick={startSession}>▶️ Start session</button>
+            </div>
+          )}
+
+          {stage === "checkin" && (
+            <div className="card">
+              <div className="card-header">🎤 Check-in</div>
+              {CHECKIN.map((c) => (
+                <div key={c.id} style={{ marginBottom: 8 }}>
+                  <label style={{ fontSize: 12 }}>{c.label}</label>
+                  <div className="chip-wrap">{[1, 2, 3, 4, 5].map((n) => <button key={n} className={`heritage-chip${checkin[c.id] === n ? " sel" : ""}`} onClick={() => setCheckin((s) => ({ ...s, [c.id]: n }))}>{n}</button>)}</div>
+                </div>
+              ))}
+              <p style={{ fontSize: 11, color: wellness <= 2 ? "var(--danger)" : "var(--text-light)" }}>{wellness <= 2 ? "⚠️ Low readiness — SingZ will keep it gentle and recovery-focused." : "✅ Good to train."}</p>
+              <button className="btn" style={{ width: "100%" }} onClick={() => setStage("warmup")}>Next → Warmup</button>
+            </div>
+          )}
+
+          {stage === "warmup" && (
+            <div className="card">
+              <div className="card-header">🔥 Warmup Quest</div>
+              <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>Lip trills, sirens, and gentle scales to open the voice. Complete before advanced work unlocks.</p>
+              <button className="btn btn-success" style={{ width: "100%" }} onClick={() => setStage("mission")}>✅ Warmup done</button>
+            </div>
+          )}
+
+          {stage === "mission" && (
+            <div className="card">
+              <div className="card-header">🎯 Skill Mission</div>
+              <div className="form-group"><label>Train a skill</label>
+                <div className="chip-wrap">{SINGZ_SKILLS.map((s) => <button key={s} className={`heritage-chip${skill === s ? " sel" : ""}`} onClick={() => setSkill(s)}>{s}</button>)}</div>
+              </div>
+              <button className="btn btn-success" style={{ width: "100%" }} onClick={runMission}>🎙️ Perform the mission</button>
+            </div>
+          )}
+
+          {stage === "boss" && scores && (
+            <div className="card">
+              <div className="card-header">👑 Boss Take — scored</div>
+              {SCORE_METERS.map((m) => (
+                <div key={m.id} style={{ marginBottom: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{m.emoji} {m.name}</span><strong style={{ color: scores[m.id] >= 80 ? "var(--success)" : scores[m.id] >= 65 ? "var(--accent, #22e6ff)" : "var(--gold, #ffcf3f)" }}>{scores[m.id]}</strong></div>
+                  <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.1)" }}><div style={{ width: `${scores[m.id]}%`, height: "100%", borderRadius: 3, background: "var(--primary)" }} /></div>
+                </div>
+              ))}
+              <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={() => setStage("cooldown")}>Next → Cooldown</button>
+            </div>
+          )}
+
+          {stage === "cooldown" && (
+            <div className="card">
+              <div className="card-header">🛌 Recovery Cooldown</div>
+              <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>Descending hums and rest — required before you finish. This is what keeps your voice healthy long-term.</p>
+              <button className="btn btn-success" style={{ width: "100%" }} onClick={finishSession}>🏆 Complete &amp; claim reward</button>
+            </div>
+          )}
+
+          {stage === "reward" && scores && (
+            <div className="card" style={{ border: "1px solid var(--primary)" }}>
+              <div className="card-header">🏆 Reward</div>
+              <p style={{ fontSize: 13 }}>Session complete — <strong>{Math.round(SCORE_METERS.reduce((t, m) => t + scores[m.id], 0) / SCORE_METERS.length)}/100</strong> overall on {skill}. XP earned, streak advanced. {scores.health < 55 ? "⚠️ Voice health was low — logged for recovery." : "Voice health solid 💪"}</p>
+              <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={() => { setStage(null); setTab("session"); }}>Done</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "progress" && (
+        <>
+          <div className="stripe-section"><div className="stripe-title">📈 Progress</div><div className="balance-info">{sessions.length} sessions · avg {sessions.length ? Math.round(sessions.reduce((t, s) => t + s.overall, 0) / sessions.length) : 0}/100 · 🔥 {state.progression?.streak || 0}</div></div>
+          <div className="card">
+            <div className="card-header">🗺️ VoiceMap (averages)</div>
+            {SCORE_METERS.map((m) => { const vals = sessions.map((s) => s.scores[m.id]).filter(Boolean); const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0; return (
+              <div key={m.id} className="settings-toggle"><label>{m.emoji} {m.name}</label><span className="tag">{avg || "—"}</span></div>
+            ); })}
+          </div>
+          <div className="card">
+            <div className="card-header">🧾 Recent sessions</div>
+            {sessions.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No sessions yet.</p>
+              : sessions.slice(0, 10).map((s) => <div key={s.id} className="post-card"><div className="post-user">{s.skill} · {s.overall}/100</div><div className="post-meta">{new Date(s.at).toLocaleString()} · {DIFFICULTIES.find((d) => d.id === s.difficulty)?.name}</div></div>)}
+          </div>
+        </>
+      )}
+
+      {tab === "badgez" && (
+        <div className="card">
+          <div className="card-header">🏅 BadgeZ</div>
+          {(sz.badges || []).length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Earn badges like Pitch Sniper 🎯 and Breath Keeper 🫁 by scoring high.</p>
+            : <div className="chip-wrap">{sz.badges.map((b) => <span key={b} className="tag">🏅 {b}</span>)}</div>}
+        </div>
+      )}
+
+      {tab === "setup" && (
+        <>
+          <div className="card">
+            <div className="card-header">🎚️ Difficulty</div>
+            <div className="chip-wrap">{DIFFICULTIES.map((d) => <button key={d.id} className={`heritage-chip${sz.difficulty === d.id ? " sel" : ""}`} disabled={d.id === "boss" && recoveryMode} onClick={() => setSz({ difficulty: d.id })}>{d.emoji} {d.name}</button>)}</div>
+            <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 6 }}>{diff.note}</p>
+          </div>
+          <div className="card">
+            <div className="card-header">🎯 Range &amp; goal</div>
+            <p style={{ fontSize: 12 }}>Current: {sz.range} → Goal: {sz.goalRange} · {GOAL_PATHS.find((g) => g.id === sz.goalPath)?.name}</p>
+            <button className="btn btn-small btn-secondary" style={{ marginTop: 8 }} onClick={() => setSz({ onboarded: false })}>Re-run onboarding</button>
+          </div>
+          <div className="card">
+            <div className="card-header"><span>🤖 AI Vocal Coach</span>{!isStatz && <span className="tag">🔒 StatZ</span>}</div>
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>{isStatz ? "StatZ: deeper feedback on weak notes/transitions, advanced range mapping, auto weekly vocal plan, and smart song breakdowns." : "🔒 The AI Vocal Coach, advanced range mapping, and auto weekly plans are a StatZ feature."}</p>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
 function RapZPage() { return <TrainingZ appKey="rapz" />; }
 
 const MERCH_CATS = [
