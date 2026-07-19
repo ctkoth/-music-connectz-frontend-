@@ -19,6 +19,11 @@ export const setTierApi = (tier) =>
 // { char_limit, upload_mb, storage_mb, storage_used_mb, tier, dev_tax_rate }
 export const getLimitsApi = () => api("/api/economy/limits/");
 
+// AI usage — charge the minimum cost to cover the model. 402 if short; owner free.
+// Returns { model, cost_cents, money_cents, money }.
+export const chargeAiApi = (model, note = "OCC AI usage") =>
+  api("/api/economy/ai/charge/", { method: "POST", body: { model, note } });
+
 // { items: [{ id, name, price_cents, owned }] }
 export const getSpecZApi = () => api("/api/economy/specz/");
 

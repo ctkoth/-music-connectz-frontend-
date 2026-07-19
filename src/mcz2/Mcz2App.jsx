@@ -9,6 +9,7 @@ import { REGIONS } from "./heritage.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
+import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
 import { devTaxFor, splitTransaction, money, mbLabel, TIER_PRICING } from "./economy.js";
@@ -23,6 +24,7 @@ import {
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
+  chargeAiApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -2427,9 +2429,22 @@ function SentenceConnectZ() {
 
 // OCC's Corey-voice replies — keyword-aware, Claude Code-style: acknowledge,
 // lay out the plan, offer the next move. Returns { text, action? }.
-function occReply(text, t) {
+function occReply(text, t, knowledge = []) {
   const q = text.toLowerCase();
   const plan = (steps) => steps.map((s, i) => `${i + 1}. ${s}`).join("\n");
+  // If the member has taught Corey GPT something relevant, lead with it.
+  const taught = (knowledge || []).find((k) => k.text && q.split(/\s+/).some((w) => w.length > 3 && k.text.toLowerCase().includes(w)));
+  // College-course questions: teach from the built-in curriculum.
+  const course = courseForQuery(text);
+  if (course && /(teach|learn|explain|what is|how do|course|lesson|help me with|study)/.test(q)) {
+    const lessons = course.modules.flatMap((m) => m.lessons).slice(0, 6);
+    return {
+      text: `${course.emoji} ${course.name} — I got you.${taught ? `\n\n📝 You taught me: ${taught.text}` : ""}\n\nHere's the track I'd run you through:\n${lessons.map((l, i) => `${i + 1}. ${l}`).join("\n")}\n\nOpen the 🎓 LearnZ tab for the full course, or ask me about any one of these and I'll break it down.`,
+    };
+  }
+  if (taught) {
+    return { text: `📝 From what you taught me: ${taught.text}\n\nWant me to go deeper or apply it to what you're building?` };
+  }
   if (/game|arcade|platformer|shooter|puzzle|rpg/.test(q)) {
     return {
       text: `Say less — a ${t.complexity.toLowerCase()} game is right in my lane on the ${t.label} tier (${t.languages[0]}).\n\nHere's the play:\n${plan(["Lock the core loop — one mechanic that's actually fun", "Build the scene + controls", "Add scoring, juice, and a win/lose state", "Ship it straight to GameZ so people can play"])}\n\nWant me to spin it up and drop it on GameZ?`,
@@ -2451,6 +2466,7 @@ function occReply(text, t) {
 // OCC tab set — the Claude-Code-style workspace. Each is name + emoji + panel.
 const OCC_TABS = [
   { key: "editor", label: "Editor", emoji: "👁️‍🗨️" },
+  { key: "learnz", label: "LearnZ", emoji: "🎓" },
   { key: "gitz", label: "GitZ", emoji: "🐙" },
   { key: "taskz", label: "TaskZ", emoji: "📑" },
   { key: "codez", label: "CodeZ", emoji: "🧩" },
@@ -2471,20 +2487,15 @@ const OCC_TASK_STATUS = {
 };
 const UNDO_WINDOW_MS = 60000; // members can undo an OCC edit within a minute.
 
-// OCC's AI voice/model. "Corey GPT" is the default house voice; members can
-// switch OCC's language/model here.
-const OCC_MODELS = [
-  { id: "corey-gpt", label: "Corey GPT", emoji: "🎤", note: "Straight-up K-Oth voice — how all MCZ talks." },
-  { id: "standard", label: "Standard", emoji: "🤖", note: "Plain, neutral assistant voice." },
-  { id: "technical", label: "Technical", emoji: "📐", note: "Terse, code-first, minimal chatter." },
-];
-const occModel = (id) => OCC_MODELS.find((m) => m.id === id) || OCC_MODELS[0];
+// OCC's AI voices/models + curricula live in aiModels.js (shared with billing).
+const OCC_MODELS = OCC_AI_MODELS;
+const occModel = aiModel;
 
-function OccWorkspace({ tier, onOpen }) {
+function OccWorkspace({ tier, onOpen, serverOk, syncEconomy }) {
   const t = occTierFor(tier);
   const { state, update } = useAppState();
   const author = state.user?.name || "you";
-  const occ = state.occ || { tasks: [], codez: [], paths: [], mistakes: [], habits: [], tell: [], log: [], settings: { automated: false, suggestions: true } };
+  const occ = state.occ || { tasks: [], codez: [], paths: [], mistakes: [], habits: [], tell: [], log: [], knowledge: [], settings: { automated: false, suggestions: true } };
   const [tab, setTab] = useState("editor");
 
   // Persist a partial patch into state.occ.
@@ -2512,7 +2523,8 @@ function OccWorkspace({ tier, onOpen }) {
         <button className="heritage-chip" onClick={() => onOpen?.("filez")}>📁 FileZ</button>
       </div>
 
-      {tab === "editor" && <OccEditor t={t} author={author} occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} />}
+      {tab === "editor" && <OccEditor t={t} author={author} occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} serverOk={serverOk} syncEconomy={syncEconomy} />}
+      {tab === "learnz" && <OccLearnZ occ={occ} patch={patch} />}
       {tab === "gitz" && <OccGitZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "taskz" && <OccTaskZ occ={occ} patch={patch} logAction={logAction} />}
       {tab === "codez" && <OccCodeZ occ={occ} patch={patch} />}
@@ -2532,8 +2544,9 @@ function OccWorkspace({ tier, onOpen }) {
 }
 
 // --- Editor tab: the chat + game publish + git-as-a-task ---
-function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
+function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEconomy }) {
   const { addTo } = useAppState();
+  const [notice, setNotice] = useState("");
   const model = occModel(occ.settings?.model);
   const greeting = model.id === "corey-gpt"
     ? `Yo — I'm OCC, your code hand. Tell me what you're building and I'll break it down, write it, and ship it. On the ${t.label} tier we're going ${t.complexity.toLowerCase()}.`
@@ -2548,16 +2561,33 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
 
   const addTask = (text, eta) => patch({ tasks: [{ id: Date.now(), text, status: "queued", eta, at: Date.now() }, ...(occ.tasks || [])] });
 
-  const send = () => {
+  const send = async () => {
     const text = input.trim();
     if (!text || thinking) return;
+    // Charge the minimum cost to cover the model (server-enforced; owner free).
+    if (serverOk) {
+      try {
+        const r = await chargeAiApi(model.id, `OCC ${model.label}`);
+        setNotice(`${model.emoji} ${model.label} · ${centsLabel(r.cost_cents)} · balance ${money(r.money)}`);
+        syncEconomy?.();
+      } catch (e) {
+        if (String(e?.message || e).includes("402") || e?.status === 402) {
+          setMsgs((m) => [...m, { role: "occ", text: `You're short on balance for ${model.label} (${centsLabel(model.costCents)}/message). Add funds in Money, or switch to Corey GPT — it's the cheapest.` }]);
+          return;
+        }
+        // Other errors: proceed offline, just note it.
+        setNotice(`${model.emoji} ${model.label} · ${centsLabel(model.costCents)} (offline estimate)`);
+      }
+    } else {
+      setNotice(`${model.emoji} ${model.label} · ${centsLabel(model.costCents)}/message (billed live when connected)`);
+    }
     setInput("");
     setMsgs((m) => [...m, { role: "user", text }]);
     // Every prompt is remembered in TellZ.
     patch({ tell: [{ id: Date.now(), tab: "OCC Editor", text, at: Date.now() }, ...(occ.tell || [])].slice(0, 200) });
     setThinking(true);
     setTimeout(() => {
-      const r = occReply(text, t);
+      const r = occReply(text, t, occ.knowledge);
       setMsgs((m) => [...m, { role: "occ", text: r.text, action: r.action }]);
       // SuggestionZ: OCC proposes the work as a task. Automated: it also logs a start.
       if (occ.settings?.suggestions) addTask(`OCC: ${text.slice(0, 60)}`, "~5 min");
@@ -2610,6 +2640,9 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Tell OCC what to build…" style={{ flex: 1 }} />
         <button className="btn btn-small" onClick={send} disabled={!input.trim() || thinking}>Send</button>
       </div>
+      <p style={{ fontSize: 10, color: notice ? "var(--success)" : "var(--text-light)", marginTop: 4 }}>
+        {notice || `${model.emoji} ${model.label} · ${centsLabel(model.costCents)}/message — you're only charged the minimum to cover the model. Corey GPT is the cheapest.`}
+      </p>
       <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
         <button className="btn btn-small btn-secondary" onClick={commitGit}>🔀 Git commit (as task)</button>
         <button className="btn btn-small btn-secondary" onClick={() => onOpen?.("gamez")}>👾 Open GameZ</button>
@@ -2619,6 +2652,68 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
         {" "}{/statz|stat|debug/i.test(t.label) ? "C++ / Unreal is unlocked." : "C++ / Unreal is StatZ-only (Unreal is reserved for StatZ)."}
       </p>
       <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>OCC plans and ships in Corey voice. Git integration runs as a task in TaskZ. Live code-writing/running turns on when the AI backend key is set.</p>
+    </>
+  );
+}
+
+// --- LearnZ: the college courses Corey GPT teaches + what you teach it back ---
+function OccLearnZ({ occ, patch }) {
+  const [open, setOpen] = useState(null); // expanded course id
+  const [course, setCourse] = useState(CURRICULA[0].id);
+  const [text, setText] = useState("");
+  const knowledge = occ.knowledge || [];
+  const teach = () => {
+    if (!text.trim()) return;
+    patch({ knowledge: [{ id: Date.now(), course, text: text.trim(), at: Date.now() }, ...knowledge] });
+    setText("");
+  };
+  const forget = (id) => patch({ knowledge: knowledge.filter((k) => k.id !== id) });
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🎓 Corey GPT is taught these college courses — and it learns from what you teach it. Ask about any of these in the Editor.</p>
+      {CURRICULA.map((c) => (
+        <div key={c.id} className="card" style={{ marginBottom: 8 }}>
+          <div className="card-header" style={{ cursor: "pointer" }} onClick={() => setOpen(open === c.id ? null : c.id)}>
+            <span>{c.emoji} {c.name}</span>
+            <span className="tag">{open === c.id ? "▲" : "▼"}</span>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-light)" }}>{c.blurb}</p>
+          {open === c.id && c.modules.map((m) => (
+            <div key={m.title} style={{ marginTop: 8 }}>
+              <div className="modal-sub-title">{m.title}</div>
+              {m.lessons.map((l) => <div key={l} className="skill-item"><span className="skill-item-name" style={{ fontSize: 12 }}>• {l}</span></div>)}
+            </div>
+          ))}
+        </div>
+      ))}
+
+      <div className="card">
+        <div className="card-header">📝 Teach Corey GPT</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Add your own knowledge — a fact, a rule, how you like things done. OCC folds it into its answers.</p>
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>
+          {CURRICULA.map((c) => <button key={c.id} className={`heritage-chip${course === c.id ? " sel" : ""}`} onClick={() => setCourse(c.id)}>{c.emoji} {c.name}</button>)}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && teach()} placeholder="Teach OCC something…" style={{ flex: 1 }} />
+          <button className="btn btn-small" onClick={teach} disabled={!text.trim()}>Teach</button>
+        </div>
+      </div>
+
+      {knowledge.length > 0 && (
+        <div className="card">
+          <div className="card-header">🧠 What you've taught it <span className="tag">{knowledge.length}</span></div>
+          {knowledge.map((k) => {
+            const c = CURRICULA.find((x) => x.id === k.course);
+            return (
+              <div key={k.id} className="post-card">
+                <div className="post-user">{c ? `${c.emoji} ${c.name}` : "General"}</div>
+                <div className="post-content">{k.text}</div>
+                <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => forget(k.id)}>🗑 Forget</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
@@ -2902,10 +2997,10 @@ function OccSettings({ occ, patch, logAction, tier }) {
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>How OCC talks to you. Corey GPT is the house voice — how all MCZ speaks.</p>
         <div className="chip-wrap">
           {OCC_MODELS.map((m) => (
-            <button key={m.id} className={`heritage-chip${(s.model || "corey-gpt") === m.id ? " sel" : ""}`} onClick={() => setModel(m.id)} title={m.note}>{m.emoji} {m.label}</button>
+            <button key={m.id} className={`heritage-chip${(s.model || "corey-gpt") === m.id ? " sel" : ""}`} onClick={() => setModel(m.id)} title={m.note}>{m.emoji} {m.label} · {centsLabel(m.costCents)}</button>
           ))}
         </div>
-        <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>{occModel(s.model).note}</p>
+        <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>{occModel(s.model).note} You're charged only the minimum to cover the model — {centsLabel(occModel(s.model).costCents)}/message.</p>
         <div className="modal-sub-title" style={{ margin: "12px 0 6px" }}>💻 Default coding language</div>
         <div className="chip-wrap">
           {langsForTier(tier).map((l) => (
@@ -3071,7 +3166,7 @@ function FaceZTab({ serverOk }) {
   );
 }
 
-function IntelligencePage({ tier, onOpen, serverOk }) {
+function IntelligencePage({ tier, onOpen, serverOk, syncEconomy }) {
   const [app, setApp] = useState("facez");
   const Body = { facez: FaceZTab, image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccWorkspace }[app];
   return (
@@ -3084,7 +3179,7 @@ function IntelligencePage({ tier, onOpen, serverOk }) {
           </button>
         ))}
       </div>
-      <Body tier={tier} onOpen={onOpen} serverOk={serverOk} />
+      <Body tier={tier} onOpen={onOpen} serverOk={serverOk} syncEconomy={syncEconomy} />
     </>
   );
 }
