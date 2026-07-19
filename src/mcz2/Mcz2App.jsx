@@ -16,7 +16,7 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, splitCashout, money, mbLabel, TIER_PRICING, FLOW_GREEN, FLOW_RED } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, FLOW_GREEN, FLOW_RED } from "./economy.js";
 
 // Colored money: green = money in / growth, red = money out / cost.
 // `flow`: "in" (green), "out" (red), or omit for neutral. Optional sign prefix.
@@ -2562,6 +2562,80 @@ function MessageZPage({ serverOk }) {
   );
 }
 
+// CollabZ Split Studio — the core rule: every contributor is paid their worth
+// for the skills others use, and everyone pays for the skills they use. Add each
+// collaborator + the skills they bring; the settlement funds every person's worth
+// and shows exactly who pays and who gets paid (green = paid, red = owed).
+const TIER_OPTS = [["free", "Free"], ["premium", "Premium"], ["statz", "StatZ"]];
+function CollabSplitStudio({ tier }) {
+  const { state } = useAppState();
+  const me = state.user?.name || state.user?.username || "You";
+  const [rows, setRows] = useState([
+    { id: 1, name: me, tier: (tier || "free"), skills: [{ name: "Vocals", price: 40 }] },
+    { id: 2, name: "", tier: "free", skills: [{ name: "", price: "" }] },
+  ]);
+  const worthOf = (r) => r.skills.reduce((t, s) => t + (Number(s.price) || 0), 0);
+  const setRow = (id, patch) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const setSkill = (id, si, patch) => setRow(id, { skills: rows.find((r) => r.id === id).skills.map((s, i) => (i === si ? { ...s, ...patch } : s)) });
+  const addSkill = (id) => setRow(id, { skills: [...rows.find((r) => r.id === id).skills, { name: "", price: "" }] });
+  const addPerson = () => setRows((rs) => [...rs, { id: Date.now(), name: "", tier: "free", skills: [{ name: "", price: "" }] }]);
+  const removePerson = (id) => setRows((rs) => (rs.length > 2 ? rs.filter((r) => r.id !== id) : rs));
+
+  const participants = rows.filter((r) => r.name.trim() && worthOf(r) >= 0).map((r) => ({ id: r.id, name: r.name.trim(), tier: r.tier, worth: worthOf(r) }));
+  const settled = participants.length >= 2 ? collabSettlement(participants) : [];
+  const pot = participants.reduce((t, p) => t + p.worth, 0);
+  const platform = settled.reduce((t, p) => t + p.tax, 0);
+
+  return (
+    <div className="card" style={{ border: "1px solid var(--primary)" }}>
+      <div className="card-header"><span>💠 Split Studio — everyone paid their worth</span><span className="tag">{participants.length} in</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>
+        Add each collaborator and the skills they bring. Every person's worth is funded by the others who use it, and everyone pays for the skills they use. Developer tax comes off each payment at the payer's tier.
+      </p>
+      {rows.map((r) => (
+        <div key={r.id} className="post-card" style={{ marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+            <input value={r.name} onChange={(e) => setRow(r.id, { name: e.target.value })} placeholder="Collaborator name" style={{ flex: 1 }} />
+            <select value={r.tier} onChange={(e) => setRow(r.id, { tier: e.target.value })} style={{ width: 100 }}>
+              {TIER_OPTS.map(([v, l]) => <option key={v} value={v}>{TIER_EMOJI[v]} {l}</option>)}
+            </select>
+            {rows.length > 2 && <button className="btn btn-small btn-secondary" onClick={() => removePerson(r.id)} title="Remove">✕</button>}
+          </div>
+          {r.skills.map((s, si) => (
+            <div key={si} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+              <input value={s.name} onChange={(e) => setSkill(r.id, si, { name: e.target.value })} placeholder="Skill (e.g. Mixing)" style={{ flex: 1 }} />
+              <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+            <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 11 }} onClick={() => addSkill(r.id)}>+ add skill</button>
+            <span style={{ fontSize: 11, color: "var(--text-light)" }}>worth <strong>{money(worthOf(r))}</strong></span>
+          </div>
+        </div>
+      ))}
+      <button className="btn btn-small btn-secondary" onClick={addPerson}>➕ Add collaborator</button>
+
+      {settled.length >= 2 && pot > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="card-header" style={{ fontSize: 13 }}><span>🧾 Settlement</span><span className="tag">pot {money(pot)} · platform {money(platform)}</span></div>
+          <div className="txn">
+            {settled.map((p) => (
+              <div key={p.id} className="txn-row" style={{ alignItems: "baseline" }}>
+                <span>{p.name} <span style={{ color: "var(--text-light)", fontSize: 10 }}>{TIER_EMOJI[devTaxFor(p.tier).key]} worth {money(p.worth)}</span></span>
+                <span style={{ textAlign: "right" }}>
+                  <Amount value={p.receives} flow="in" /> <span style={{ color: "var(--text-light)" }}>in</span> · <Amount value={p.pays} flow="out" /> <span style={{ color: "var(--text-light)" }}>out</span><br />
+                  <span style={{ fontSize: 11 }}>net <Amount value={p.net} flow={p.net >= 0 ? "in" : "out"} sign bold /></span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Every contributor's worth is fully funded by the others who use it. Green = paid to them, red = they owe. On accept, wallets settle atomically and the platform keeps {money(platform)} in developer tax.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // CollabZ — user-based collaboration. Find collaborators by their real metrics,
 // send a paid collab offer (real money between members), and settle any dispute
 // or refund member-to-member right here. Membership/upgrades are never refundable.
@@ -2591,9 +2665,11 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           Every CollabZ is member-to-member. You put up <strong>real wallet money</strong>, the developer tax applies to your tier, and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
         </p>
         <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>
-          🧾 Disputes &amp; refunds on a collab are settled between the two members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
+          🧾 Disputes &amp; refunds on a collab are settled between the members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
         </p>
       </div>
+
+      <CollabSplitStudio tier={tier} />
 
       {target ? (
         <div className="card" style={{ border: "1px solid var(--primary)" }}>
