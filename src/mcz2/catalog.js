@@ -183,7 +183,7 @@ export const CATALOG = [
     apps: [
       { key: "onboardz", name: "OnboardZ", emoji: "👋", icon: "onboardz.jpg", desc: "Your guided first session — set up your profile, pick a persona, post your first work, and explore a SkillZ app. Auto-checks each step as you go.", fn: true },
       { key: "setup", name: "Setup", emoji: "⚙️", icon: "preferencez.png", desc: "Your profile basics — name, contact, location, bio, and picture.", fn: true },
-      { key: "personas", name: "PersonaZ", emoji: "🎭", icon: "personaz.png", desc: "Pick your personas (Artist, Producer, Mix Engineer, Designer, Videographer, Manager, Ghostwriter, Developer) and add your skills.", fn: true },
+      { key: "personas", name: "PersonaZ", emoji: "🎭", icon: "personaz.png", desc: "Pick your personas (Artist, Producer, Mix Engineer, Designer, Videographer, Manager, Ghostwriter, Developer, Weightlifter) and add your skills.", fn: true },
       { key: "examples", name: "PostZ", emoji: "🎵", icon: "spinaz.png", desc: "Upload work examples — audio becomes the track, image the cover, text the lyrics — with genre, required skills, and privacy.", fn: true },
       { key: "profile", name: "Profile", emoji: "👤", icon: "personaz_indieartist.png", desc: "Your public profile — picture, bio, contact, and skills.", fn: true },
       { key: "money", name: "Money", emoji: "💰", icon: "energy.png", desc: "Your wallet — balance, earnings, add funds via Stripe, and payment history.", fn: true },
