@@ -1706,8 +1706,15 @@ const fmtLeft = (ms) => {
   const h = Math.floor(ms / HOUR); const m = Math.floor((ms % HOUR) / 60000);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
+// Seed 🍥 SpinAZ crowd pools per side so betting feels alive before anyone bets.
+const BATTLE_SEED_POOLS = {
+  "1v1": { a: 320, b: 260 },
+  freestyle: { a: 180, b: 540 },
+  cypher: { a: 300, b: 300 },
+};
 
-function BattleZPage() {
+function BattleZPage({ tier, onOpen }) {
+  const { state, update, updateUser, updateWallet, addTo } = useAppState();
   const [mode, setMode] = useState("1v1");
   // ratings + my pick per contestant, seeded from demo; reset when mode changes.
   const [ratings, setRatings] = useState({});
@@ -1732,6 +1739,60 @@ function BattleZPage() {
   const bothQualified = A.qualified && B.qualified;
   const decided = closed && bothQualified;
   const winner = !decided ? null : A.med === B.med ? "tie" : A.med > B.med ? "a" : "b";
+
+  // ---- Betting layer ----
+  // Contestants (18+ verified) stake real money on themselves; spectators bet
+  // 🍥 SpinAZ on a side. Pools = seed crowd + this member's stakes.
+  const verified18 = !!state.user.verified18;
+  const bets = (state.battleBets || {})[mode] || {};
+  const seed = BATTLE_SEED_POOLS[mode] || { a: 0, b: 0 };
+  const spinazPool = (side) => (seed[side] || 0) + (bets[side] || 0);
+  const mySide = bets.mySpinazSide || null;
+  const myMoney = bets.myMoney || 0;
+  const spinaz = state.spinaz || 0;
+  const setBets = (patch) => update({ battleBets: { ...(state.battleBets || {}), [mode]: { ...bets, ...patch } } });
+
+  const [betAmt, setBetAmt] = useState(50);
+  const [stakeAmt, setStakeAmt] = useState(5);
+
+  const placeSpinaz = (side) => {
+    const amt = Math.max(1, Math.floor(Number(betAmt) || 0));
+    if (closed || amt > spinaz || (mySide && mySide !== side)) return;
+    update({ spinaz: spinaz - amt });
+    addTo("spinazLog", { id: Date.now(), delta: -amt, note: `BattleZ bet on ${battle[side].name}`, at: Date.now() });
+    setBets({ [side]: (bets[side] || 0) + amt, mySpinazSide: side });
+  };
+  const stakeMoney = () => {
+    // Contestant stakes money on their own side (side "a" for the participant).
+    const amt = Math.round((Number(stakeAmt) || 0) * 100) / 100;
+    if (!isParticipant || !verified18 || closed || amt <= 0 || amt > Number(state.wallet.balance || 0)) return;
+    updateWallet({ balance: Number(state.wallet.balance || 0) - amt });
+    addTo("paymentHistory", { id: Date.now(), type: "battle-stake", amount: -amt, note: `Staked on yourself vs ${battle.b.name}`, at: Date.now() });
+    setBets({ myMoney: myMoney + amt, myMoneySide: "a" });
+  };
+
+  // Settlement — pays out once the battle is decided (winner is not a tie).
+  const settle = () => {
+    if (!decided || bets.collected) return;
+    let spinazWin = 0; let moneyWin = 0;
+    if (mySide && winner !== "tie" && mySide === winner) {
+      const loser = winner === "a" ? "b" : "a";
+      const winPool = spinazPool(winner) || 1;
+      // Return your stake + your proportional share of the losing pool.
+      spinazWin = Math.round((bets[winner] || 0) + (bets[winner] || 0) / winPool * spinazPool(loser));
+    } else if (mySide && winner === "tie") {
+      spinazWin = bets[mySide] || 0; // refund on a tie
+    }
+    if (myMoney > 0 && (winner === "a" || winner === "tie")) {
+      // Head-to-head wager: win doubles your stake minus the developer tax; tie refunds.
+      const gross = winner === "tie" ? myMoney : myMoney * 2;
+      const { net } = splitTransaction(gross, tier);
+      moneyWin = net;
+    }
+    if (spinazWin) { update({ spinaz: spinaz + spinazWin }); addTo("spinazLog", { id: Date.now(), delta: spinazWin, note: "BattleZ winnings", at: Date.now() }); }
+    if (moneyWin) { updateWallet({ balance: Number(state.wallet.balance || 0) + moneyWin }); addTo("paymentHistory", { id: Date.now() + 1, type: "battle-win", amount: moneyWin, note: "BattleZ payout", at: Date.now() }); }
+    setBets({ collected: true, payout: { spinaz: spinazWin, money: moneyWin } });
+  };
 
   const Contestant = ({ side }) => {
     const c = battle[side]; const s = stat(side); const mine = mineFor(side);
@@ -1780,10 +1841,75 @@ function BattleZPage() {
       </div>
       <Contestant side="a" />
       <Contestant side="b" />
+
+      {/* ---- Betting ---- */}
+      <div className="card">
+        <div className="card-header"><span>🎰 The Pool</span><span className="tag">🍥 {spinazPool("a") + spinazPool("b")} staked</span></div>
+        <div className="grid-2" style={{ marginBottom: 8 }}>
+          {["a", "b"].map((side) => {
+            const pool = spinazPool(side); const total = spinazPool("a") + spinazPool("b") || 1;
+            return (
+              <div key={side} className="post-card" style={mySide === side ? { borderColor: "var(--primary)" } : undefined}>
+                <div className="post-user">{battle[side].name}</div>
+                <div className="post-meta">🍥 {pool} · {Math.round((pool / total) * 100)}% of pool{mySide === side ? ` · you: 🍥 ${bets[side] || 0}` : ""}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {!closed && !isParticipant && (
+          <>
+            <div className="form-group"><label>🍥 Bet SpinAZ (you have {spinaz})</label>
+              <input type="number" min="1" value={betAmt} onChange={(e) => setBetAmt(e.target.value)} />
+            </div>
+            <div className="grid-2">
+              {["a", "b"].map((side) => (
+                <button key={side} className="btn btn-small" disabled={Number(betAmt) > spinaz || Number(betAmt) < 1 || (mySide && mySide !== side)} onClick={() => placeSpinaz(side)}>
+                  Bet on {battle[side].name}
+                </button>
+              ))}
+            </div>
+            {mySide && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>You're riding with <strong>{battle[mySide].name}</strong> (🍥 {bets[mySide]}). Win the pool if they take it.</p>}
+            {Number(betAmt) > spinaz && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>Not enough SpinAZ — earn or buy more.</p>}
+          </>
+        )}
+
+        {!closed && isParticipant && (
+          <>
+            <div className="modal-sub-title" style={{ margin: "8px 0 6px" }}>💰 Stake money on yourself</div>
+            {!verified18 ? (
+              <>
+                <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>🔞 Money stakes are for <strong>verified 18+</strong> contestants only.</p>
+                <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => { if (window.confirm("Confirm you are 18 or older. This enables real-money stakes.")) updateUser({ verified18: true }); }}>✅ I'm 18+ — verify</button>
+              </>
+            ) : (
+              <>
+                <div className="form-group"><label>Stake ($) — balance {money(Number(state.wallet.balance || 0))}</label>
+                  <input type="number" min="1" step="0.01" value={stakeAmt} onChange={(e) => setStakeAmt(e.target.value)} />
+                </div>
+                {Number(stakeAmt) > 0 && (() => { const s = splitTransaction(Number(stakeAmt) * 2, tier); return (
+                  <p style={{ fontSize: 11, color: "var(--text-light)" }}>Win → {money(s.net)} back (2× stake − {s.label} dev tax {Math.round(s.rate * 100)}%). Lose → forfeit to the pool.</p>
+                ); })()}
+                <button className="btn btn-small" disabled={Number(stakeAmt) <= 0 || Number(stakeAmt) > Number(state.wallet.balance || 0)} onClick={stakeMoney}>💰 Stake {money(Number(stakeAmt) || 0)} on yourself</button>
+                {myMoney > 0 && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>Staked {money(myMoney)} on yourself.</p>}
+              </>
+            )}
+          </>
+        )}
+
+        {decided && (mySide || myMoney > 0) && (
+          bets.collected ? (
+            <p style={{ fontSize: 12, color: "var(--success)", marginTop: 8 }}>✅ Settled — {bets.payout?.spinaz ? `🍥 ${bets.payout.spinaz} ` : ""}{bets.payout?.money ? `+ ${money(bets.payout.money)} ` : ""}{(!bets.payout?.spinaz && !bets.payout?.money) ? "no winnings this time" : "paid out"}.</p>
+          ) : (
+            <button className="btn btn-success" style={{ width: "100%", marginTop: 8 }} onClick={settle}>🏁 Settle &amp; collect winnings</button>
+          )
+        )}
+      </div>
+
       <div className="card">
         <p style={{ fontSize: 11, color: "var(--text-light)" }}>
           🏁 A battle is won by the higher score (community median) once voting closes <strong>24h after posting</strong>, needing at least <strong>3 votes</strong> per side. Participants can't vote on their own battle.
-          <br />💰 Verified 18+ contestants can bet money on themselves; everyone else bets 🍥 SpinAZ. Betting settles at close — wired with the payments backend.
+          <br />💰 Verified 18+ contestants stake money on themselves; everyone else bets 🍥 SpinAZ on a side. Winners split the losing pool; the developer tax applies to money payouts. Cross-user escrow settles server-side next.
         </p>
       </div>
     </>
