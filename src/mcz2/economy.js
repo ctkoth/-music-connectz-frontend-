@@ -22,6 +22,36 @@ export const SPINAZ_PER_DOLLAR = 100;
 export const dollarsToSpinaz = (usd) => Math.round((Number(usd) || 0) * SPINAZ_PER_DOLLAR);
 export const spinazToDollars = (sp) => (Number(sp) || 0) / SPINAZ_PER_DOLLAR;
 
+// How SpinAZ are earned — shown right next to the price so it's always clear.
+export const SPINAZ_EARNINGS = [
+  { emoji: "▶️", how: "Stream media", detail: "1 SpinAZ per second played beyond the first 30s" },
+  { emoji: "🛑", how: "Restricted-post joins", detail: "300 SpinAZ per valid join to a post you restricted" },
+  { emoji: "🏆", how: "Win a BattleZ", detail: "take the pot spectators staked on you" },
+  { emoji: "🐛", how: "Squash a BugZ", detail: "200 SpinAZ per accepted bug report" },
+  { emoji: "💵", how: "Buy them", detail: `$1 = ${SPINAZ_PER_DOLLAR} SpinAZ` },
+];
+
+// ---------------------------------------------------------------------------
+// Energy rules (Global Rules). Energy powers posting, rating and comments.
+//  • Passive hourly: follower reach (Music ConnectZ + external) ÷ tier divisor
+//    (Free 10, Premium 5, StatZ 1).
+//  • Rating another user: +1 energy.
+//  • Commenting on another user's post: energy = the post's median rating,
+//    granted 1 hour after the post.
+//  • Posting media costs the combined price of the skills used, in cents
+//    (so $1 of skill = 100 energy).
+// ---------------------------------------------------------------------------
+export const ENERGY_HOURLY_DIVISOR = { free: 10, premium: 5, statz: 1, debug: 1 };
+export function energyRatePerHour(tier, reach) {
+  const d = ENERGY_HOURLY_DIVISOR[tierKey(tier)] ?? 10;
+  return Math.floor((Number(reach) || 0) / d);
+}
+export const ENERGY_PER_RATING = 1;
+export const commentEnergy = (medianRating) => Math.max(0, Math.round(Number(medianRating) || 0));
+// Posting a piece of media costs the combined skill price (in cents) = energy.
+export const postCostEnergy = (skillPricesDollars) =>
+  Math.round((skillPricesDollars || []).reduce((t, p) => t + (Number(p) || 0), 0) * 100);
+
 // ---------------------------------------------------------------------------
 // Tiers
 // ---------------------------------------------------------------------------

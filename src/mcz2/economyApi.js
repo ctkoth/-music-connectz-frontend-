@@ -119,6 +119,10 @@ export const uploadAvatarApi = (file) => {
 // dimension: "overall" | "attractiveness"; score 1-10
 export const rateProfileApi = (targetUsername, dimension, score) =>
   api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
+
+// Follow graph — action: "follow" | "unfollow". Returns counts + relationship.
+export const followApi = (username, action) => api("/api/economy/follow/", { method: "POST", body: { username, action } });
+export const getFollowApi = (username) => api(`/api/economy/follow/?username=${encodeURIComponent(username)}`);
 export const getMemberApi = (username) => api(`/api/economy/members/${encodeURIComponent(username)}/`);
 export const searchMembersApi = (filters) => {
   const p = new URLSearchParams();
