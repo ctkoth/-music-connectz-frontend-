@@ -734,61 +734,110 @@ const MEMBERSHIP_TIERS = [
   },
 ];
 
-// Founding 50 — lifetime StatZ at 50% off for the first 50 members. Live counter
-// from /economy/founding/; buys through Stripe when live, dev-preview grant otherwise.
+// Founding 50 — StatZ at 50% off for the first 50 members, three ways: lifetime
+// (one-time), yearly, or monthly. Live counter from /economy/founding/; buys via
+// Stripe when live, dev-preview grant otherwise. Lists every StatZ benefit.
 function FoundingCard({ serverOk, onTierChange, syncEconomy }) {
   const signedIn = isSignedIn();
   const [f, setF] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
+  const [showAll, setShowAll] = useState(false);
   useEffect(() => {
     if (!serverOk) return;
     getFoundingApi().then(setF).catch(() => setF(null));
   }, [serverOk]);
   if (!serverOk || !f || f.tier !== "statz") return null;
 
-  const price = money((f.price_cents || 0) / 100);
-  const full = money((f.full_price_cents || 0) / 100);
-  const claim = async () => {
-    setBusy(true); setMsg("");
+  const statzPerks = (MEMBERSHIP_TIERS.find((t) => t.id === "statz")?.perks || []).filter((p) => !/^everything in/i.test(p));
+  const c = (n) => money((n || 0) / 100);
+  // plan → { label, price, full, sub, save }
+  const PLANS = [
+    { id: "lifetime", label: "Lifetime", emoji: "♾️", price: f.price_cents, full: f.full_price_cents, sub: "one-time · never re-billed", best: true },
+    { id: "year", label: "Yearly", emoji: "🗓️", price: f.year_cents, full: (f.year_cents || 0) * 2, sub: "per year · founding rate locked in" },
+    { id: "month", label: "Monthly", emoji: "📆", price: f.month_cents, full: (f.month_cents || 0) * 2, sub: "per month · cancel anytime" },
+  ];
+
+  const claim = async (plan) => {
+    setBusy(plan); setMsg("");
     try {
       if (f.stripe_enabled) {
-        const r = await foundingCheckoutApi(); // real money — redirect to Stripe
+        const r = await foundingCheckoutApi(plan); // real money — redirect to Stripe
         if (r.url) { window.location.href = r.url; return; }
       }
-      const r = await claimFoundingApi(); // dev-preview grant
+      // Dev-preview (no Stripe): lifetime grants a founding seat; year/month flip StatZ.
+      if (plan === "lifetime") {
+        const r = await claimFoundingApi();
+        setF((s) => ({ ...s, claimed: r.claimed, remaining: r.remaining, sold_out: r.sold_out }));
+        setMsg("🎉 You're a Founding Lifetime StatZ member — locked in forever.");
+      } else {
+        await setTierApi("statz");
+        setMsg(`🎉 Founding StatZ (${plan}) active — 50% off, grandfathered.`);
+      }
       onTierChange?.("statz"); syncEconomy?.();
-      setF((s) => ({ ...s, claimed: r.claimed, remaining: r.remaining, sold_out: r.sold_out }));
-      setMsg("🎉 You're a Founding Lifetime StatZ member — locked in forever.");
     } catch (e) {
       setMsg(e?.message?.includes("sold out") ? "😔 All 50 founding seats are claimed." : "Couldn't complete — try again.");
       getFoundingApi().then(setF).catch(() => {});
     }
-    setBusy(false);
+    setBusy("");
   };
 
   const pct = Math.min(100, Math.round((f.claimed / f.limit) * 100));
   return (
-    <div className="card" style={{ border: "2px solid var(--gold, #ffcf3f)", background: "linear-gradient(135deg, rgba(255,207,63,0.08), rgba(34,230,255,0.06))" }}>
-      <div className="card-header"><span style={{ color: "var(--gold, #ffcf3f)" }}>👑 Founding 50 — Lifetime StatZ</span><span className="tag" style={{ color: f.sold_out ? "var(--danger)" : "var(--success)" }}>{f.sold_out ? "SOLD OUT" : `${f.remaining} left`}</span></div>
-      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
-        The first <strong>50 members</strong> lock in <strong>StatZ for life</strong> at <strong>50% off</strong> — pay once, keep the highest tier forever. No monthly, no annual, never re-billed.
-      </p>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 24, fontWeight: 800, color: "var(--gold, #ffcf3f)" }}>{price}</span>
-        <span style={{ textDecoration: "line-through", color: "var(--text-light)", fontSize: 14 }}>{full}</span>
-        <span className="tag">one-time · lifetime</span>
+    <div className="card" style={{ border: "2px solid var(--gold, #ffcf3f)", background: "linear-gradient(135deg, rgba(255,207,63,0.10), rgba(34,230,255,0.06))" }}>
+      <div className="card-header">
+        <span style={{ color: "var(--gold, #ffcf3f)" }}>👑 Founding 50 — StatZ 50% off</span>
+        <span className="tag" style={{ color: f.sold_out ? "var(--danger)" : "var(--success)" }}>{f.sold_out ? "SOLD OUT" : `🔥 ${f.remaining} left`}</span>
       </div>
-      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.12)", overflow: "hidden", marginBottom: 6 }}>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
+        The first <strong>50 members</strong> lock in the highest tier at <strong>half price</strong> — forever, or at grandfathered yearly/monthly rates. Pick your plan:
+      </p>
+
+      {/* Live scarcity meter */}
+      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.12)", overflow: "hidden", marginBottom: 4 }}>
         <div style={{ width: `${pct}%`, height: "100%", background: "var(--gold, #ffcf3f)" }} />
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>👥 {f.claimed} / {f.limit} claimed</div>
-      <button className="btn" style={{ width: "100%", background: "var(--gold, #ffcf3f)", color: "#1a1a1a", fontWeight: 700 }}
-        disabled={busy || f.sold_out || !signedIn}
-        onClick={claim}>
-        {f.sold_out ? "Sold out" : busy ? "…" : signedIn ? `👑 Claim lifetime StatZ — ${price}` : "Sign in to claim"}
-      </button>
-      {f.stripe_enabled && !f.sold_out && <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>Secure checkout via Stripe. Your StatZ unlocks automatically after payment.</p>}
+      <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>👥 {f.claimed} / {f.limit} founding seats claimed</div>
+
+      {/* Three plan options with visual cues */}
+      <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
+        {PLANS.map((p) => (
+          <div key={p.id} className="post-card" style={{ border: p.best ? "1px solid var(--gold, #ffcf3f)" : undefined, position: "relative" }}>
+            {p.best && <span className="tag" style={{ position: "absolute", top: -8, right: 8, background: "var(--gold, #ffcf3f)", color: "#1a1a1a", fontWeight: 700 }}>BEST VALUE</span>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 700 }}>{p.emoji} {p.label}</div>
+                <div style={{ fontSize: 10, color: "var(--text-light)" }}>{p.sub}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: FLOW_GREEN }}>{c(p.price)}</span>
+                <span style={{ textDecoration: "line-through", color: "var(--text-light)", fontSize: 12, marginLeft: 6 }}>{c(p.full)}</span>
+                <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", fontWeight: 700 }}>SAVE {c(p.full - p.price)} · 50% off</div>
+              </div>
+            </div>
+            <button className="btn btn-small" style={{ width: "100%", marginTop: 8, background: p.best ? "var(--gold, #ffcf3f)" : undefined, color: p.best ? "#1a1a1a" : undefined, fontWeight: 700 }}
+              disabled={!!busy || f.sold_out || !signedIn}
+              onClick={() => claim(p.id)}>
+              {f.sold_out ? "Sold out" : busy === p.id ? "…" : signedIn ? `⬆️ Get StatZ — ${c(p.price)}${p.id === "year" ? "/yr" : p.id === "month" ? "/mo" : ""}` : "Sign in to claim"}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* All StatZ benefits */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>📈 Everything StatZ unlocks</div>
+        {(showAll ? statzPerks : statzPerks.slice(0, 4)).map((p, i) => (
+          <div key={i} className="skill-item"><span className="skill-item-name" style={{ fontSize: 12 }}><span style={{ color: FLOW_GREEN }}>✓</span> {p}</span></div>
+        ))}
+        {statzPerks.length > 4 && (
+          <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 11, marginTop: 4 }} onClick={() => setShowAll((s) => !s)}>
+            {showAll ? "Show less" : `+ ${statzPerks.length - 4} more benefits`}
+          </button>
+        )}
+      </div>
+
+      {f.stripe_enabled && !f.sold_out && <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>🔒 Secure Stripe checkout — StatZ unlocks automatically after payment. Yearly/monthly lock your founding rate for as long as you stay subscribed.</p>}
       {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
     </div>
   );
