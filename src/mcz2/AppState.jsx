@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const STORE_KEY = "musicConnectZState";
 
 const DEFAULT_STATE = {
-  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
+  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
   personas: [],
   examples: [],
   collabs: [],
@@ -24,6 +24,7 @@ const DEFAULT_STATE = {
   boardPosts: [],
   speczOwned: [],
   games: [],
+  battleBets: {}, // { [mode]: { a, b, myMoney, mySpinazSide, collected } } — BattleZ wagers
   // Ocular Code ConnectZ workspace (Claude-Code-style): tasks, learned notes,
   // logs and the automation settings that drive OCC.
   occ: {
