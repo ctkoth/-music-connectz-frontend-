@@ -15,6 +15,9 @@ const DEFAULT_STATE = {
   spinaz: 0,
   energyLog: [],
   spinazLog: [],
+  // Platform State Model (blueprint): XP-driven progression shared across
+  // RapZ / SingZ / Lilith / BodieZ / challenges.
+  progression: { xp: 0, level: 1, streak: 0, lastDay: "", shields: 1, badges: [], xpLog: [] },
   releases: [],
   royalties: 0,
   royaltyLog: [],
@@ -82,6 +85,7 @@ function loadState() {
       wallet: { ...DEFAULT_STATE.wallet, ...(saved.wallet || {}) },
       settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) },
       occ: { ...DEFAULT_STATE.occ, ...(saved.occ || {}), settings: { ...DEFAULT_STATE.occ.settings, ...((saved.occ || {}).settings || {}) } },
+      progression: { ...DEFAULT_STATE.progression, ...(saved.progression || {}) },
     };
   } catch {
     return structuredClone(DEFAULT_STATE);
@@ -133,6 +137,42 @@ export function AppStateProvider({ children }) {
       removeFrom: (field, idx) => setState((s) => ({ ...s, [field]: s[field].filter((_, i) => i !== idx) })),
       // Replace an entire list field.
       setList: (field, list) => setState((s) => ({ ...s, [field]: list })),
+      // Award XP (level = 1 + xp/100) and log it. Blueprint progression model.
+      addXP: (amount, note = "") =>
+        setState((s) => {
+          const p = s.progression || { xp: 0, level: 1, badges: [], xpLog: [] };
+          const xp = Math.max(0, (p.xp || 0) + amount);
+          return {
+            ...s,
+            progression: {
+              ...p,
+              xp,
+              level: 1 + Math.floor(xp / 100),
+              xpLog: [{ amount, note, at: Date.now() }, ...(p.xpLog || [])].slice(0, 100),
+            },
+          };
+        }),
+      // Award a cosmetic badge once (no duplicates).
+      awardBadge: (badge) =>
+        setState((s) => {
+          const p = s.progression || { badges: [] };
+          if ((p.badges || []).includes(badge)) return s;
+          return { ...s, progression: { ...p, badges: [...(p.badges || []), badge] } };
+        }),
+      // Daily streak bookkeeping: called on load. Consecutive days build the
+      // streak; a gap resets to 1 (a shield can save one missed day).
+      touchStreak: () =>
+        setState((s) => {
+          const p = s.progression || { streak: 0, lastDay: "", shields: 1 };
+          const today = new Date().toISOString().slice(0, 10);
+          if (p.lastDay === today) return s;
+          const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+          let streak; let shields = p.shields ?? 1;
+          if (p.lastDay === y) streak = (p.streak || 0) + 1;
+          else if (p.lastDay && shields > 0) { streak = (p.streak || 0) + 1; shields -= 1; } // shield saves the gap
+          else streak = 1;
+          return { ...s, progression: { ...p, streak, shields, lastDay: today } };
+        }),
       reset: () => setState(structuredClone(DEFAULT_STATE)),
     }),
     [],
