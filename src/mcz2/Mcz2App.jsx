@@ -637,6 +637,23 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
           </div>
         );
       })}
+      <div className="card">
+        <div className="card-header">🧾 All upgrade options</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Everything you can upgrade or top up, in one place.</p>
+        {[
+          { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "1,500-char limit · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
+          { emoji: "📊", name: "StatZ", price: "$15/mo · $150/yr", unlocks: "5,000-char limit · 4GB uploads / 100GB storage · SpecZ marketplace · CallZ live calls · C++/Unreal games · dev tax drops to 2%", cta: "Upgrade to StatZ", to: "membership" },
+          { emoji: "🍥", name: "SpinAZ top-up", price: "buy at 80% ($80 = 100)", unlocks: "Subscription currency — spend on spins, boosts and premium features.", cta: "Buy SpinAZ", to: "spinaz" },
+          { emoji: "⚡", name: "Energy top-up", price: "buy at 80% ($80 = 100)", unlocks: "Powers ratings, comments and daily activity when you're tapped out.", cta: "Buy Energy", to: "energy" },
+          { emoji: "✴️", name: "SpecZ (StatZ only)", price: "per-item", unlocks: "Audience analytics, engagement heatmaps, genre intelligence, UGC packs.", cta: "Open SpecZ", to: "specz" },
+        ].map((o) => (
+          <div key={o.name} className="post-card">
+            <div className="post-user">{o.emoji} {o.name} <span className="tag">{o.price}</span></div>
+            <div className="post-content" style={{ fontSize: 12 }}>{o.unlocks}</div>
+            <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onOpen?.(o.to)}>👑 {o.cta}</button>
+          </div>
+        ))}
+      </div>
       {isOwner && (
         <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
           <div className="card-header"><span style={{ color: "var(--gold, #ffcf3f)" }}>🛠️ Debug (owner)</span>{cur === "debug" ? <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>● active</span> : <span className="tag">owner-only</span>}</div>
@@ -2431,10 +2448,80 @@ function occReply(text, t) {
   return { text: `I got you. Give me the goal in one line and I'll break it down like this:\n${plan(["What we're actually building", "The simplest version that works", "Ship it, then make it nice"])}\n\nOn the ${t.label} tier I can go ${t.complexity.toLowerCase()} — ${t.desc}` };
 }
 
-function OccConnectZ({ tier, onOpen }) {
+// OCC tab set — the Claude-Code-style workspace. Each is name + emoji + panel.
+const OCC_TABS = [
+  { key: "editor", label: "Editor", emoji: "👁️‍🗨️" },
+  { key: "taskz", label: "TaskZ", emoji: "📑" },
+  { key: "codez", label: "CodeZ", emoji: "🧩" },
+  { key: "pathz", label: "PathZ", emoji: "🛤️" },
+  { key: "mistakez", label: "MistakeZ", emoji: "😢" },
+  { key: "habitz", label: "HabitZ", emoji: "🫠" },
+  { key: "console", label: "Console", emoji: "🖥️" },
+  { key: "tellz", label: "TellZ", emoji: "🗣️" },
+  { key: "logz", label: "LogZ", emoji: "🪵" },
+  { key: "search", label: "Search", emoji: "🔍" },
+  { key: "settings", label: "Settings", emoji: "⚙️" },
+];
+
+const OCC_TASK_STATUS = {
+  queued: { label: "Queued", emoji: "🕒" },
+  running: { label: "In progress", emoji: "⚙️" },
+  done: { label: "Done", emoji: "✅" },
+};
+const UNDO_WINDOW_MS = 60000; // members can undo an OCC edit within a minute.
+
+function OccWorkspace({ tier, onOpen }) {
   const t = occTierFor(tier);
-  const { state, addTo } = useAppState();
+  const { state, update } = useAppState();
   const author = state.user?.name || "you";
+  const occ = state.occ || { tasks: [], codez: [], paths: [], mistakes: [], habits: [], tell: [], log: [], settings: { automated: false, suggestions: true } };
+  const [tab, setTab] = useState("editor");
+
+  // Persist a partial patch into state.occ.
+  const patch = (p) => update({ occ: { ...occ, ...p } });
+  const now = () => Date.now();
+  const logAction = (kind, text) => patch({ log: [{ id: now(), kind, text, at: now() }, ...(occ.log || [])].slice(0, 300) });
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <span>👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></span>
+        <span style={{ display: "flex", gap: 6 }}>
+          {occ.settings?.automated && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>🤖 auto</span>}
+          {occ.settings?.suggestions && <span className="tag">💭 tips</span>}
+        </span>
+      </div>
+
+      {/* Tab bar */}
+      <div className="chip-wrap" style={{ marginBottom: 12 }}>
+        {OCC_TABS.map((x) => (
+          <button key={x.key} className={`heritage-chip${tab === x.key ? " sel" : ""}`} onClick={() => setTab(x.key)}>{x.emoji} {x.label}</button>
+        ))}
+        <button className="heritage-chip" onClick={() => onOpen?.("callz")}>📞 CallZ</button>
+        <button className="heritage-chip" onClick={() => onOpen?.("filez")}>📁 FileZ</button>
+      </div>
+
+      {tab === "editor" && <OccEditor t={t} author={author} occ={occ} patch={patch} logAction={logAction} onOpen={onOpen} />}
+      {tab === "taskz" && <OccTaskZ occ={occ} patch={patch} logAction={logAction} />}
+      {tab === "codez" && <OccCodeZ occ={occ} patch={patch} />}
+      {tab === "pathz" && <OccPathZ occ={occ} patch={patch} />}
+      {tab === "mistakez" && <OccNotes occ={occ} patch={patch} field="mistakes" title="😢 MistakeZ" hint="Errors OCC made — logged so it doesn't repeat them." />}
+      {tab === "habitz" && <OccNotes occ={occ} patch={patch} field="habits" title="🫠 HabitZ" hint="Things you repeat — OCC notes the pattern and adapts." />}
+      {tab === "console" && <OccLog rows={occ.log} title="🖥️ Output / Console" empty="No output yet — OCC logs every action it takes here." />}
+      {tab === "tellz" && <OccTellZ occ={occ} patch={patch} />}
+      {tab === "logz" && <OccLogZ rows={occ.log} />}
+      {tab === "search" && <OccSearch occ={occ} />}
+      {tab === "settings" && <OccSettings occ={occ} patch={patch} logAction={logAction} />}
+
+      <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 10 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
+      <IntelNote role="Developer" />
+    </div>
+  );
+}
+
+// --- Editor tab: the chat + game publish + git-as-a-task ---
+function OccEditor({ t, author, occ, patch, logAction, onOpen }) {
+  const { addTo } = useAppState();
   const [msgs, setMsgs] = useState([
     { role: "occ", text: `Yo — I'm OCC, your code hand. Tell me what you're building and I'll break it down, write it, and ship it. On the ${t.label} tier we're going ${t.complexity.toLowerCase()}.` },
   ]);
@@ -2443,15 +2530,22 @@ function OccConnectZ({ tier, onOpen }) {
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, thinking]);
 
+  const addTask = (text, eta) => patch({ tasks: [{ id: Date.now(), text, status: "queued", eta, at: Date.now() }, ...(occ.tasks || [])] });
+
   const send = () => {
     const text = input.trim();
     if (!text || thinking) return;
     setInput("");
     setMsgs((m) => [...m, { role: "user", text }]);
+    // Every prompt is remembered in TellZ.
+    patch({ tell: [{ id: Date.now(), tab: "OCC Editor", text, at: Date.now() }, ...(occ.tell || [])].slice(0, 200) });
     setThinking(true);
     setTimeout(() => {
       const r = occReply(text, t);
       setMsgs((m) => [...m, { role: "occ", text: r.text, action: r.action }]);
+      // SuggestionZ: OCC proposes the work as a task. Automated: it also logs a start.
+      if (occ.settings?.suggestions) addTask(`OCC: ${text.slice(0, 60)}`, "~5 min");
+      if (occ.settings?.automated) logAction("auto", `Auto-started work on: ${text.slice(0, 60)}`);
       setThinking(false);
     }, 550);
   };
@@ -2459,16 +2553,22 @@ function OccConnectZ({ tier, onOpen }) {
   const publishGame = () => {
     const name = `OCC Build ${Math.floor(Math.random() * 900 + 100)}`;
     addTo("games", {
-      id: `g-${Date.now()}`, title: name, author, genre: "Arcade", subgenre: "Retro", lang: t.languages[0],
+      id: `g-${Date.now()}`, title: name, author, genre: "Casual / Idle", subgenre: "Hyper-Casual", lang: t.languages[0],
       plays: 0, rating: null, mine: true, desc: `A ${t.complexity.toLowerCase()} game built in ${t.languages[0]} via Ocular Code ConnectZ.`,
     });
+    logAction("ship", `Published "${name}" to GameZ`);
     onOpen?.("gamez");
   };
 
+  const commitGit = () => {
+    // Git integration is itself a task — surfaced with why/what/how.
+    addTask("Git: commit + push OCC changes", "~1 min");
+    logAction("git", "Queued git commit + push (git integration runs as a task)");
+  };
+
   return (
-    <div className="card">
-      <div className="card-header">👁️‍🗨️ Ocular Code ConnectZ <span className="tag">{t.label} · {t.complexity}</span></div>
-      <div style={{ background: "#0c0a16", borderRadius: 12, padding: 10, maxHeight: 380, overflowY: "auto", marginBottom: 8 }}>
+    <>
+      <div style={{ background: "#0c0a16", borderRadius: 12, padding: 10, maxHeight: 340, overflowY: "auto", marginBottom: 8 }}>
         {msgs.map((m, i) => (
           <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 8 }}>
             <div style={{
@@ -2492,10 +2592,245 @@ function OccConnectZ({ tier, onOpen }) {
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Tell OCC what to build…" style={{ flex: 1 }} />
         <button className="btn btn-small" onClick={send} disabled={!input.trim() || thinking}>Send</button>
       </div>
-      <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>🔐 Any attempt to access Music ConnectZ repos is flagged, prevented, and alerts the owner — unless it's the owner. Media requests route to the matching Intelligence app.</p>
-      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>OCC plans and ships in Corey voice. Live code-writing/running turns on when the AI backend key is set.</p>
-      <IntelNote role="Developer" />
-    </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-small btn-secondary" onClick={commitGit}>🔀 Git commit (as task)</button>
+        <button className="btn btn-small btn-secondary" onClick={() => onOpen?.("gamez")}>👾 Open GameZ</button>
+      </div>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>
+        💻 On {t.label} you can build in: {t.languages.join(", ")}.
+        {" "}{/statz|stat|debug/i.test(t.label) ? "C++ / Unreal is unlocked." : "C++ / Unreal is StatZ-only (Unreal is reserved for StatZ)."}
+      </p>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>OCC plans and ships in Corey voice. Git integration runs as a task in TaskZ. Live code-writing/running turns on when the AI backend key is set.</p>
+    </>
+  );
+}
+
+// --- TaskZ: OCC's task queue with status, ETA and a 60s undo window ---
+function OccTaskZ({ occ, patch, logAction }) {
+  const [text, setText] = useState("");
+  const tasks = occ.tasks || [];
+  const add = () => { if (!text.trim()) return; patch({ tasks: [{ id: Date.now(), text: text.trim(), status: "queued", eta: "~5 min", at: Date.now() }, ...tasks] }); setText(""); };
+  const setStatus = (id, status) => {
+    patch({ tasks: tasks.map((x) => (x.id === id ? { ...x, status, undoUntil: status === "done" ? Date.now() + UNDO_WINDOW_MS : x.undoUntil } : x)) });
+    if (status === "done") logAction("task", `Completed task ${id}`);
+  };
+  const undo = (id) => { patch({ tasks: tasks.map((x) => (x.id === id ? { ...x, status: "queued", undoUntil: null } : x)) }); logAction("undo", `Undid task ${id}`); };
+  const remove = (id) => patch({ tasks: tasks.filter((x) => x.id !== id) });
+  return (
+    <>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Add a task for OCC…" style={{ flex: 1 }} />
+        <button className="btn btn-small" onClick={add} disabled={!text.trim()}>Add</button>
+      </div>
+      {tasks.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No tasks yet. Ask OCC in the Editor and it queues the work here with live status + ETA.</p>
+        : tasks.map((x) => {
+          const s = OCC_TASK_STATUS[x.status] || OCC_TASK_STATUS.queued;
+          const canUndo = x.status === "done" && x.undoUntil && x.undoUntil > Date.now();
+          return (
+            <div key={x.id} className="post-card">
+              <div className="post-user">{s.emoji} {x.text} <span className="tag">{s.label}</span> {x.eta && x.status !== "done" && <span className="tag">ETA {x.eta}</span>}</div>
+              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                {x.status === "queued" && <button className="btn btn-small" onClick={() => setStatus(x.id, "running")}>▶ Start</button>}
+                {x.status === "running" && <button className="btn btn-small btn-success" onClick={() => setStatus(x.id, "done")}>✅ Done</button>}
+                {canUndo && <button className="btn btn-small btn-secondary" onClick={() => undo(x.id)}>↩ Undo (60s)</button>}
+                <button className="btn btn-small btn-secondary" onClick={() => remove(x.id)}>🗑 Remove</button>
+              </div>
+            </div>
+          );
+        })}
+    </>
+  );
+}
+
+// --- CodeZ: acronyms/typos/slang the user types, with tallies + sort ---
+function OccCodeZ({ occ, patch }) {
+  const [term, setTerm] = useState("");
+  const [means, setMeans] = useState("");
+  const [desc, setDesc] = useState(true); // sort by count descending
+  const rows = [...(occ.codez || [])].sort((a, b) => (desc ? b.count - a.count : a.count - b.count));
+  const add = () => {
+    if (!term.trim()) return;
+    const existing = (occ.codez || []).find((x) => x.term.toLowerCase() === term.trim().toLowerCase());
+    if (existing) patch({ codez: occ.codez.map((x) => (x.id === existing.id ? { ...x, count: x.count + 1, means: means.trim() || x.means } : x)) });
+    else patch({ codez: [{ id: Date.now(), term: term.trim(), means: means.trim(), count: 1 }, ...(occ.codez || [])] });
+    setTerm(""); setMeans("");
+  };
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Acronyms, typos and slang you type that mean something else — OCC tallies each so it learns your shorthand.</p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+        <input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="term (e.g. 'occ')" style={{ flex: 1 }} />
+        <input value={means} onChange={(e) => setMeans(e.target.value)} placeholder="means…" style={{ flex: 1.4 }} />
+        <button className="btn btn-small" onClick={add} disabled={!term.trim()}>+ / tally</button>
+      </div>
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        <button className={`heritage-chip${desc ? " sel" : ""}`} onClick={() => setDesc(true)}>▼ Most used</button>
+        <button className={`heritage-chip${!desc ? " sel" : ""}`} onClick={() => setDesc(false)}>▲ Least used</button>
+      </div>
+      {rows.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing tracked yet.</p>
+        : rows.map((x) => (
+          <div key={x.id} className="settings-toggle">
+            <label>{x.term}{x.means && <span style={{ color: "var(--text-light)" }}> → {x.means}</span>}</label>
+            <span className="tag">×{x.count}</span>
+          </div>
+        ))}
+    </>
+  );
+}
+
+// --- PathZ: cross-device user paths, full CRUD ---
+function OccPathZ({ occ, patch }) {
+  const [device, setDevice] = useState("");
+  const [path, setPath] = useState("");
+  const paths = occ.paths || [];
+  const add = () => { if (!device.trim() || !path.trim()) return; patch({ paths: [{ id: Date.now(), device: device.trim(), path: path.trim() }, ...paths] }); setDevice(""); setPath(""); };
+  const remove = (id) => patch({ paths: paths.filter((x) => x.id !== id) });
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Your working paths across devices — OCC keeps them in sync so a build picks up where you left off.</p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+        <input value={device} onChange={(e) => setDevice(e.target.value)} placeholder="device (Phone / Laptop)" style={{ flex: 1 }} />
+        <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="/path/to/project" style={{ flex: 1.6 }} />
+        <button className="btn btn-small" onClick={add} disabled={!device.trim() || !path.trim()}>Add</button>
+      </div>
+      {paths.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No paths yet.</p>
+        : paths.map((x) => (
+          <div key={x.id} className="post-card">
+            <div className="post-user">🛤️ {x.device}</div>
+            <div className="post-meta" style={{ wordBreak: "break-all" }}>{x.path}</div>
+            <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => remove(x.id)}>🗑 Remove</button>
+          </div>
+        ))}
+    </>
+  );
+}
+
+// --- Generic notes tab (MistakeZ / HabitZ) ---
+function OccNotes({ occ, patch, field, title, hint }) {
+  const [text, setText] = useState("");
+  const rows = occ[field] || [];
+  const add = () => { if (!text.trim()) return; patch({ [field]: [{ id: Date.now(), text: text.trim(), at: Date.now() }, ...rows] }); setText(""); };
+  const remove = (id) => patch({ [field]: rows.filter((x) => x.id !== id) });
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{hint}</p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder={`Add to ${title.replace(/^\S+\s/, "")}…`} style={{ flex: 1 }} />
+        <button className="btn btn-small" onClick={add} disabled={!text.trim()}>Add</button>
+      </div>
+      {rows.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing noted yet.</p>
+        : rows.map((x) => (
+          <div key={x.id} className="post-card">
+            <div className="post-content">{x.text}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+              <span className="post-meta">{new Date(x.at).toLocaleString()}</span>
+              <button className="btn btn-small btn-secondary" onClick={() => remove(x.id)}>🗑</button>
+            </div>
+          </div>
+        ))}
+    </>
+  );
+}
+
+// --- TellZ: prompts/posts log ---
+function OccTellZ({ occ }) {
+  const rows = occ.tell || [];
+  return (
+    <>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🗣️ Everything you've prompted OCC — a running record across the workspace.</p>
+      {rows.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing logged yet.</p>
+        : rows.map((x) => (
+          <div key={x.id} className="post-card">
+            <div className="post-user">{x.tab}</div>
+            <div className="post-content">{x.text}</div>
+            <div className="post-meta">{new Date(x.at).toLocaleString()}</div>
+          </div>
+        ))}
+    </>
+  );
+}
+
+// --- Console / raw action log ---
+function OccLog({ rows, title, empty }) {
+  const list = rows || [];
+  return (
+    <>
+      {title && <div className="modal-sub-title" style={{ marginBottom: 8 }}>{title}</div>}
+      {list.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>{empty || "Nothing logged yet."}</p>
+        : <div style={{ background: "#0c0a16", borderRadius: 10, padding: 10, fontFamily: "monospace", fontSize: 12, maxHeight: 340, overflowY: "auto" }}>
+          {list.map((x) => (
+            <div key={x.id} style={{ color: "var(--text-light)", marginBottom: 4 }}>
+              <span style={{ color: "var(--accent, #22e6ff)" }}>[{new Date(x.at).toLocaleTimeString()}]</span> {x.kind ? `${x.kind}: ` : ""}{x.text}
+            </div>
+          ))}
+        </div>}
+    </>
+  );
+}
+
+// --- LogZ: filter the action log by range ---
+function OccLogZ({ rows }) {
+  const [range, setRange] = useState("day");
+  const spans = { day: 864e5, week: 6048e5, month: 2592e6 };
+  const cutoff = range === "all" ? 0 : Date.now() - (spans[range] || 864e5);
+  const list = (rows || []).filter((x) => x.at >= cutoff);
+  return (
+    <>
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        {[["day", "Today"], ["week", "This week"], ["month", "This month"], ["all", "All time"]].map(([k, l]) => (
+          <button key={k} className={`heritage-chip${range === k ? " sel" : ""}`} onClick={() => setRange(k)}>{l}</button>
+        ))}
+      </div>
+      <OccLog rows={list} title={`🪵 ${list.length} entr${list.length === 1 ? "y" : "ies"}`} empty="Nothing in this range." />
+    </>
+  );
+}
+
+// --- Search across every OCC tab ---
+function OccSearch({ occ }) {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const hits = !query ? [] : [
+    ...(occ.tasks || []).map((x) => ({ where: "TaskZ", text: x.text })),
+    ...(occ.codez || []).map((x) => ({ where: "CodeZ", text: `${x.term} → ${x.means}` })),
+    ...(occ.paths || []).map((x) => ({ where: "PathZ", text: `${x.device}: ${x.path}` })),
+    ...(occ.mistakes || []).map((x) => ({ where: "MistakeZ", text: x.text })),
+    ...(occ.habits || []).map((x) => ({ where: "HabitZ", text: x.text })),
+    ...(occ.tell || []).map((x) => ({ where: "TellZ", text: x.text })),
+    ...(occ.log || []).map((x) => ({ where: "Log", text: x.text })),
+  ].filter((r) => r.text.toLowerCase().includes(query));
+  return (
+    <>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Search across TaskZ, CodeZ, PathZ, logs…" style={{ marginBottom: 10 }} />
+      {!query ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Type to search everything OCC knows.</p>
+        : hits.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No matches.</p>
+          : hits.map((r, i) => (
+            <div key={i} className="post-card"><div className="post-user">{r.where}</div><div className="post-content">{r.text}</div></div>
+          ))}
+    </>
+  );
+}
+
+// --- Settings: Automated + SuggestionZ toggles ---
+function OccSettings({ occ, patch, logAction }) {
+  const s = occ.settings || {};
+  const toggle = (k) => { const next = { ...s, [k]: !s[k] }; patch({ settings: next }); logAction("settings", `${k} → ${next[k] ? "on" : "off"}`); };
+  return (
+    <>
+      <div className="settings-toggle">
+        <label>🤖 Automated — OCC performs taskz without asking, just updates you live in LogZ</label>
+        <div role="switch" aria-checked={!!s.automated} onClick={() => toggle("automated")} className={`toggle-switch${s.automated ? " active" : ""}`} />
+      </div>
+      <div className="settings-toggle">
+        <label>💭 SuggestionZ — OCC adds taskz explaining the what, why &amp; how before doing them</label>
+        <div role="switch" aria-checked={!!s.suggestions} onClick={() => toggle("suggestions")} className={`toggle-switch${s.suggestions ? " active" : ""}`} />
+      </div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>
+        {s.automated
+          ? "🤖 Automated is on — OCC will just do the work and log it. Watch LogZ for the play-by-play."
+          : "💭 Suggestion mode — OCC proposes taskz (with why/how) and waits for your go. Flip Automated on to let it run."}
+      </p>
+    </>
   );
 }
 
@@ -2640,7 +2975,7 @@ function FaceZTab({ serverOk }) {
 
 function IntelligencePage({ tier, onOpen, serverOk }) {
   const [app, setApp] = useState("facez");
-  const Body = { facez: FaceZTab, image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccConnectZ }[app];
+  const Body = { facez: FaceZTab, image: ImageConnectZ, instrumental: InstrumentalConnectZ, mix: MixConnectZ, video: VideoConnectZ, sentence: SentenceConnectZ, occ: OccWorkspace }[app];
   return (
     <>
       <div className="launch-grid" style={{ marginBottom: 14 }}>
@@ -3695,6 +4030,7 @@ const FN_PAGES = {
   labelz: LabelZPage,
   lilith: LilithPage,
   intelligence: IntelligencePage,
+  occ: OccWorkspace,
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,

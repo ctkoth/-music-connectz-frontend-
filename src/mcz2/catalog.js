@@ -161,7 +161,7 @@ export const CATALOG = [
           { name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", desc: "The AI code editor — see OCC." },
         ],
       },
-      { key: "occ", name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", desc: "A VS Code-style editor with git-synced TaskZ, cross-device CRUD, and real-time task ETAs. StatZ users build games in any language (incl. C++/Unreal); Premium in any language except C++. Games publish to GameZ." },
+      { key: "occ", name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", fn: true, desc: "A VS Code-style editor with git-synced TaskZ, cross-device CRUD, and real-time task ETAs. StatZ users build games in any language (incl. C++/Unreal); Premium in any language except C++. Games publish to GameZ." },
       { key: "sentencez", name: "SentenceZ", emoji: "📝", icon: "sentencez_editor.png", desc: "A Microsoft Word-style text editor — write, format, and save documents right on the platform. Bold/italic/underline, headings, lists, alignment, live word count, and autosave.", fn: true },
       { key: "videoz", name: "VideoZ", emoji: "🎬", icon: "videoz.png", desc: "A Sony Vegas-style video editor — build a project on a multitrack timeline: add video/image/text clips and audio, trim, reorder, and preview the sequence. Our knockoff of Sony Vegas Pro.", fn: true },
       { key: "gamez", name: "GameZ", emoji: "👾", icon: "gamez.png", desc: "User-made games built in OCC, sorted by genre and subgenre — Action, RPG, Strategy, Shooter, Puzzle, Racing, Fighting, Simulation, Sports, Horror, and more.", fn: true },
