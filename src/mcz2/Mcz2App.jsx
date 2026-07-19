@@ -1716,6 +1716,7 @@ const BATTLE_SEED_POOLS = {
 function BattleZPage({ tier, onOpen }) {
   const { state, update, updateUser, updateWallet, addTo } = useAppState();
   const [mode, setMode] = useState("1v1");
+  const vgate = useWatchGate(mode); // watch 30s before voting on a battle
   // ratings + my pick per contestant, seeded from demo; reset when mode changes.
   const [ratings, setRatings] = useState({});
   const battle = DEMO_BATTLES[mode];
@@ -1808,6 +1809,8 @@ function BattleZPage({ tier, onOpen }) {
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 Voting closed · community median <strong>{s.med.toFixed(1)}/10</strong>{s.qualified ? "" : " (didn't reach 3 votes)"}.</p>
         ) : isParticipant ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>🚫 You're a participant in this battle — contestants can't vote on their own battle.</p>
+        ) : mine == null && !vgate.canRate ? (
+          <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>⏳ Watch the round — voting unlocks in <strong>{Math.max(0, vgate.rateS - vgate.sec)}s</strong>.</p>
         ) : mine == null ? (
           <RatingScale myRating={null} onRate={(n) => rate(side, n)} onSkip={() => skip(side)} />
         ) : (
@@ -1952,9 +1955,31 @@ const RATE_TYPES = [
   { id: "audio", label: "🎧 Audio", item: "Track: Midnight Bloom", criteria: ["Mix quality", "Performance"] },
   { id: "video", label: "📹 Video", item: "Video: Calle Fuego", criteria: ["Performance", "Artist quality"] },
 ];
+// Genuine-engagement gate: you can rate (like/dislike or score) only after 30s
+// on the item, and comment only after 60s. Resets whenever `resetKey` changes.
+function useWatchGate(resetKey, rateS = 30, commentS = 60) {
+  const [sec, setSec] = useState(0);
+  useEffect(() => {
+    setSec(0);
+    const id = setInterval(() => setSec((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [resetKey]);
+  return { sec, canRate: sec >= rateS, canComment: sec >= commentS, rateS, commentS };
+}
+
 function RateConnectZPage() {
   const { state, update, addTo, toggleSetting } = useAppState();
   const [type, setType] = useState("image");
+  const gate = useWatchGate(type); // 30s to rate, 60s to comment — resets per item
+  const [comments, setComments] = useState({});
+  const [draft, setDraft] = useState("");
+  const addComment = () => {
+    if (!gate.canComment || !draft.trim()) return;
+    setComments((c) => ({ ...c, [type]: [{ id: Date.now(), body: draft.trim(), at: Date.now() }, ...(c[type] || [])] }));
+    update({ energy: (state.energy || 0) + 1 });
+    addTo("energyLog", { amount: 1, note: "Commented", at: Date.now() });
+    setDraft("");
+  };
   const attractOn = state.settings?.ratezAttractiveness !== false;
   const toggleAttract = () => {
     toggleSetting("ratezAttractiveness");
@@ -1976,11 +2001,16 @@ function RateConnectZPage() {
         ))}
       </div>
       <div className="card">
-        <div className="card-header">{t.label} · {t.item}</div>
+        <div className="card-header"><span>{t.label} · {t.item}</span><span className="tag">{gate.sec}s viewed</span></div>
+        {!gate.canRate && (
+          <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 8 }}>
+            ⏳ Give it a real look — rating unlocks in <strong>{Math.max(0, gate.rateS - gate.sec)}s</strong>. Keep your score honest.
+          </p>
+        )}
         {t.criteria.map((cr) => {
           const k = `${type}:${cr}`;
           return (
-            <div key={cr} style={{ marginBottom: 12 }}>
+            <div key={cr} style={{ marginBottom: 12, opacity: gate.canRate || rated[k] != null ? 1 : 0.45, pointerEvents: gate.canRate || rated[k] != null ? "auto" : "none" }}>
               <div className="rate-sub" style={{ textAlign: "left", marginBottom: 6 }}>{cr}</div>
               {rated[k] != null ? (
                 <p style={{ fontSize: 12, color: "var(--text-light)" }}>You rated <strong style={{ color: "var(--primary)" }}>{rated[k]}/10</strong> · earned +1 ⚡</p>
@@ -1990,6 +2020,17 @@ function RateConnectZPage() {
             </div>
           );
         })}
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span>💬 Comments</span>{!gate.canComment && <span className="tag">unlocks in {Math.max(0, gate.commentS - gate.sec)}s</span>}</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addComment()} placeholder={gate.canComment ? "Say something real…" : "Comment unlocks after 60s"} disabled={!gate.canComment} style={{ flex: 1 }} />
+          <button className="btn btn-small" onClick={addComment} disabled={!gate.canComment || !draft.trim()}>Post</button>
+        </div>
+        {(comments[type] || []).map((c) => (
+          <div key={c.id} className="post-card"><div className="post-content">{c.body}</div><div className="post-meta">{new Date(c.at).toLocaleTimeString()}</div></div>
+        ))}
       </div>
       <div className="card">
         <div className="settings-toggle">
