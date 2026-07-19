@@ -27,6 +27,7 @@ import {
   saveProfileApi, searchMembersApi, getMemberApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   chargeAiApi, occChatApi,
+  getSocialApi, reactSocialApi, commentSocialApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
 import "./mcz2.css";
@@ -110,6 +111,7 @@ function buildProfilePayload(state) {
     asexual: !!pref.asexual,
     traits: pref.traits || [],
     personas: (state.personas || []).map((p) => ({ name: p.name, emoji: p.emoji, skills: p.skills || [] })),
+    links: (state.user.links || []).map((l) => ({ label: l.label, url: l.url })),
   };
 }
 
@@ -152,17 +154,31 @@ function LegalDisclaimer() {
 // to make it shareable / (dis)likeable / commentable. State is keyed by `id`.
 function SocialBar({ id, shareText, style }) {
   const { state, update, addXP } = useAppState();
-  const s = (state.social || {})[id] || { up: 0, down: 0, my: 0, comments: [] };
+  const signedIn = isSignedIn();
+  // Server state when signed in; otherwise the per-device local store.
+  const [srv, setSrv] = useState(null);
+  const local = (state.social || {})[id] || { up: 0, down: 0, my: 0, comments: [] };
+  const s = srv || local;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState("");
-  const setS = (patch) => update({ social: { ...(state.social || {}), [id]: { ...s, ...patch } } });
+
+  useEffect(() => {
+    if (!signedIn) return;
+    getSocialApi(id).then(setSrv).catch(() => setSrv(null));
+  }, [id, signedIn]);
+
+  const setS = (patch) => update({ social: { ...(state.social || {}), [id]: { ...local, ...patch } } });
   const vote = (dir) => {
     const my = s.my === dir ? 0 : dir;
-    let up = s.up || 0; let down = s.down || 0;
-    if (s.my === 1) up--; if (s.my === -1) down--;
-    if (my === 1) up++; if (my === -1) down++;
-    setS({ my, up: Math.max(0, up), down: Math.max(0, down) });
+    if (signedIn) {
+      reactSocialApi(id, my).then(setSrv).catch(() => {});
+    } else {
+      let up = s.up || 0; let down = s.down || 0;
+      if (s.my === 1) up--; if (s.my === -1) down--;
+      if (my === 1) up++; if (my === -1) down++;
+      setS({ my, up: Math.max(0, up), down: Math.max(0, down) });
+    }
     if (my !== 0) addXP(1, "Reacted");
   };
   const share = async () => {
@@ -175,7 +191,8 @@ function SocialBar({ id, shareText, style }) {
   };
   const addComment = () => {
     if (!draft.trim()) return;
-    setS({ comments: [{ id: Date.now(), body: draft.trim(), at: Date.now() }, ...(s.comments || [])] });
+    if (signedIn) commentSocialApi(id, draft.trim()).then(setSrv).catch(() => {});
+    else setS({ comments: [{ id: Date.now(), body: draft.trim(), at: Date.now() }, ...(local.comments || [])] });
     addXP(2, "Commented");
     setDraft("");
   };
@@ -196,7 +213,11 @@ function SocialBar({ id, shareText, style }) {
             <button className="btn btn-small" onClick={addComment} disabled={!draft.trim()}>Post</button>
           </div>
           {comments.map((c) => (
-            <div key={c.id} className="post-card" style={{ marginTop: 6 }}><div className="post-content">{c.body}</div><div className="post-meta">{new Date(c.at).toLocaleString()}</div></div>
+            <div key={c.id} className="post-card" style={{ marginTop: 6 }}>
+              {c.user && <div className="post-user">@{c.user}</div>}
+              <div className="post-content">{c.body}</div>
+              <div className="post-meta">{new Date(c.at).toLocaleString()}</div>
+            </div>
           ))}
         </div>
       )}
@@ -1210,7 +1231,9 @@ function DiscoverTab({ serverOk }) {
                 <div className="chip-wrap">{(p.skills || []).map((s) => <span key={s} className="tag">{s}</span>)}</div>
               </div>
             ))}
+            {(viewing.links || []).length > 0 && <div style={{ margin: "8px 0" }}><LinksRow links={viewing.links} /></div>}
             <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Sober-friendly: {viewing.sober ? "🟢 yes" : "🍺 social"}</p>
+            {viewing.username && <SocialBar id={`profile:${viewing.username}`} shareText={`@${viewing.username} on Music ConnectZ`} />}
           </div>
         </div>
       )}
