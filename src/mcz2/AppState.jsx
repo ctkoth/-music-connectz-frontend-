@@ -5,7 +5,10 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const STORE_KEY = "musicConnectZState";
 
 const DEFAULT_STATE = {
-  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
+  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, links: [], nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
+  // Universal social layer: likes/dislikes/comments keyed by any item id, so
+  // posts, CollabZ, BattleZ, profiles — anything — is shareable/rateable/commentable.
+  social: {},
   personas: [],
   examples: [],
   collabs: [],
