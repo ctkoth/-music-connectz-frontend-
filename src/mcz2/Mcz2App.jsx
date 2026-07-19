@@ -16,7 +16,7 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour } from "./economy.js";
 
 // Tier + Founding Member badges, reusable across profiles and member cards.
 // Tapping the tier chip (when onOpen given) jumps to MembershipZ upgrade prices.
@@ -39,6 +39,37 @@ function FoundingBadge({ founding, lifetime }) {
   if (!founding && !lifetime) return null;
   return <span className="tag" title="Founding 50 member" style={{ color: "var(--gold, #ffcf3f)", borderColor: "var(--gold, #ffcf3f)" }}>👑 Founding{lifetime ? " · Lifetime" : ""}</span>;
 }
+// Follow / friends / fans. Mutual follow = friends; one-way = a fan.
+const REL_BADGE = {
+  friends: { label: "🤝 Friends", color: "var(--success)" },
+  fan: { label: "⭐ Your fan", color: "var(--gold, #ffcf3f)" },
+  following: { label: "Following", color: "var(--primary)" },
+  none: null,
+};
+function FollowButton({ username, rel: rel0, counts: counts0, onChange }) {
+  const [rel, setRel] = useState(rel0 || { is_following: false, label: "none" });
+  const [counts, setCounts] = useState(counts0 || null);
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      const r = await followApi(username, rel.is_following ? "unfollow" : "follow");
+      setRel(r.relationship); setCounts(r); onChange?.(r);
+    } catch { /* offline */ }
+    setBusy(false);
+  };
+  const badge = REL_BADGE[rel.label];
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "6px 0" }}>
+      <button className={`btn btn-small${rel.is_following ? " btn-secondary" : ""}`} disabled={busy} onClick={toggle}>
+        {rel.is_following ? "✓ Following" : rel.follows_me ? "↩️ Follow back" : "➕ Follow"}
+      </button>
+      {badge && <span className="tag" style={{ color: badge.color }}>{badge.label}</span>}
+      {counts && <span style={{ fontSize: 11, color: "var(--text-light)" }}>👥 {counts.total_followers} followers · 🤝 {counts.friends}</span>}
+    </div>
+  );
+}
+
 // 1–10 rater for a member's profile picture. dimension = overall | attractiveness.
 function ProfileRater({ username, dimension, label, emoji, median, mine, onRated }) {
   const [busy, setBusy] = useState(false);
@@ -81,6 +112,7 @@ import {
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
+  followApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   chargeAiApi, occChatApi,
@@ -545,6 +577,61 @@ function PostZPage() {
   );
 }
 
+// SocialZ — connect external accounts + links. Each entry carries a follower
+// count that populates your reach (external followers) for the energy engine.
+const SOCIALZ_PRESETS = [
+  { label: "Spotify", emoji: "🟢" }, { label: "Apple Music", emoji: "🍎" },
+  { label: "YouTube", emoji: "▶️" }, { label: "SoundCloud", emoji: "☁️" },
+  { label: "Instagram", emoji: "📸" }, { label: "TikTok", emoji: "🎵" },
+  { label: "X", emoji: "✖️" }, { label: "Website", emoji: "🔗" },
+];
+function SocialZConnect({ serverOk, onSaved }) {
+  const { state, update } = useAppState();
+  const [links, setLinks] = useState(() => (state.user?.links || []).map((l) => ({ label: l.label || "", url: l.url || "", followers: l.followers || "" })));
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const setL = (i, patch) => setLinks((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const add = (label = "") => setLinks((ls) => [...ls, { label, url: "", followers: "" }]);
+  const remove = (i) => setLinks((ls) => ls.filter((_, j) => j !== i));
+  const totalExternal = links.reduce((t, l) => t + (Number(l.followers) || 0), 0);
+
+  const save = async () => {
+    setBusy(true); setMsg("");
+    const clean = links.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({ label: l.label.trim(), url: l.url.trim(), followers: Number(l.followers) || 0 }));
+    update({ user: { ...state.user, links: clean } });
+    if (serverOk) {
+      try {
+        const r = await saveProfileApi({ links: clean, external_followers: totalExternal });
+        onSaved?.(r); setMsg("✅ SocialZ saved — followers added to your reach.");
+      } catch { setMsg("Saved locally — sign in to sync."); }
+    } else setMsg("Saved locally — sign in to sync.");
+    setBusy(false);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-header"><span>🌐 SocialZ — connect &amp; share</span><span className="tag">reach +{totalExternal}</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Add your accounts &amp; links and your follower count on each. Your total follower reach (Music ConnectZ + these) drives your hourly ⚡ energy and shows on your profile so people can find your work.</p>
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        {SOCIALZ_PRESETS.map((p) => <button key={p.label} className="heritage-chip" onClick={() => add(p.label)}>{p.emoji} {p.label}</button>)}
+      </div>
+      {links.map((l, i) => (
+        <div key={i} className="post-card" style={{ marginBottom: 6 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+            <input value={l.label} onChange={(e) => setL(i, { label: e.target.value })} placeholder="Platform" style={{ width: 110 }} />
+            <input value={l.url} onChange={(e) => setL(i, { url: e.target.value })} placeholder="https://…" style={{ flex: 1 }} />
+            <button className="btn btn-small btn-secondary" onClick={() => remove(i)} title="Remove">✕</button>
+          </div>
+          <input type="number" min="0" value={l.followers} onChange={(e) => setL(i, { followers: e.target.value })} placeholder="followers on this account" style={{ width: "100%" }} />
+        </div>
+      ))}
+      <button className="btn btn-small btn-secondary" onClick={() => add()}>➕ Add link</button>
+      <button className="btn btn-success" style={{ width: "100%", marginTop: 8 }} disabled={busy} onClick={save}>{busy ? "Saving…" : "💾 Save SocialZ"}</button>
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function ProfilePage({ onOpen, tier, serverOk }) {
   const { state } = useAppState();
   const u = state.user;
@@ -591,9 +678,18 @@ function ProfilePage({ onOpen, tier, serverOk }) {
           {[u.location, u.gender].filter(Boolean).join(" · ")}
           {zsign && <> {(u.location || u.gender) ? "· " : ""}<span style={{ color: "var(--accent, #22e6ff)", cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{zsign.emoji} {zsign.name}</span></>}
         </div>
+        {me && (
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", fontSize: 11, marginTop: 6 }}>
+            <span title="Total followers (MCZ + connected)">👥 {me.total_followers ?? 0} followers</span>
+            <span title="Following">➡️ {me.following ?? 0} following</span>
+            <span title="Mutual follows">🤝 {me.friends ?? 0} friends</span>
+            <span title="One-way followers">⭐ {me.fans ?? 0} fans</span>
+            {me.energy_per_hour != null && <span title="Passive energy per hour from your reach" style={{ color: "var(--gold, #ffcf3f)" }}>⚡ {me.energy_per_hour}/hr</span>}
+          </div>
+        )}
       </div>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio"}</div></div>
-      {(u.links || []).length > 0 && <div className="form-group"><label>🔗 Links</label><LinksRow links={u.links} /></div>}
+      <SocialZConnect serverOk={serverOk} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
         <div>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : "None yet"}</div>
@@ -1474,10 +1570,13 @@ function DiscoverTab({ serverOk }) {
               @{viewing.username} {viewing.gender && `· ${PARTNER_GENDERS.find((g) => g.id === viewing.gender)?.emoji || viewing.gender}`} {viewing.sign && `· ${SIGNS.find((s) => s.name === viewing.sign)?.emoji || ""} ${viewing.sign}`}
             </div>
             {(viewing.tier || viewing.founding) && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                 <TierBadge tier={viewing.tier} />
                 <FoundingBadge founding={viewing.founding} lifetime={viewing.lifetime} />
               </div>
+            )}
+            {viewing.username && !viewing.mine && (
+              <FollowButton username={viewing.username} rel={viewing.relationship} counts={viewing} />
             )}
             {viewing.username && !viewing.mine && (
               <div className="card" style={{ padding: 10, marginBottom: 8 }}>
@@ -2576,7 +2675,20 @@ function LedgerPage({ emoji, title, balance, log, note }) {
 }
 function SpinaZPage() {
   const { state } = useAppState();
-  return <LedgerPage emoji="🍥" title="SpinAZ" balance={state.spinaz || 0} log={state.spinazLog} note="Buy at 80% ($80 = 100). Earn by streaming media (sec played − 30)." />;
+  return (
+    <>
+      <LedgerPage emoji="🍥" title="SpinAZ" balance={state.spinaz || 0} log={state.spinazLog} note={`In-app currency · $1 = ${SPINAZ_PER_DOLLAR} SpinAZ.`} />
+      <div className="card">
+        <div className="card-header">💰 How you earn SpinAZ</div>
+        {SPINAZ_EARNINGS.map((e) => (
+          <div key={e.how} className="skill-item">
+            <span className="skill-item-name" style={{ fontSize: 12 }}>{e.emoji} {e.how}</span>
+            <span className="skill-item-exp" style={{ fontSize: 11 }}>{e.detail}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
 function EnergyPage() {
   const { state } = useAppState();
