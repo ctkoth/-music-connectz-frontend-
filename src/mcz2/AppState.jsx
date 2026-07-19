@@ -54,6 +54,8 @@ const DEFAULT_STATE = {
   facez: [],
   venues: [],
   trainingBest: {},
+  // SingZ vocal game: onboarding, sessions, quests, badges, strain safety.
+  singz: { onboarded: false, range: "", goalRange: "", goalPath: "strengthen", difficulty: "starter", sessions: [], badges: [], strain: 0, questDay: "", quests: {} },
   groups: [],
   bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
   onboardDismissed: false,
@@ -89,6 +91,7 @@ function loadState() {
       settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) },
       occ: { ...DEFAULT_STATE.occ, ...(saved.occ || {}), settings: { ...DEFAULT_STATE.occ.settings, ...((saved.occ || {}).settings || {}) } },
       progression: { ...DEFAULT_STATE.progression, ...(saved.progression || {}) },
+      singz: { ...DEFAULT_STATE.singz, ...(saved.singz || {}) },
     };
   } catch {
     return structuredClone(DEFAULT_STATE);
