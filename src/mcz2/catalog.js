@@ -10,7 +10,7 @@ export const CATALOG = [
     label: "SkillZ",
     apps: [
       { key: "mimez", name: "MimeZ", emoji: "🕺", icon: "mimez.png", desc: "Lipsync & dance selfie challenges — capture a real performance take from your camera." },
-      { key: "directz", name: "DirectZ", emoji: "🎬", icon: "directz.png", desc: "Directing drills — shot planning, scene calls, and creative direction assignments." },
+      { key: "directz", name: "DirectZ", emoji: "🎬", icon: "directz.png", desc: "Direct collaborative video — ReelZ, EpisodeZ & MovieZ. Contributors are paid their worth for skills used; AI rates your submission, then real member ratings take over.", fn: true },
       { key: "lessonz", name: "LessonZ", emoji: "🎓", icon: "lessonz.png", desc: "Guided learning paths, technique breakdowns, mini-courses, and structured practice modules." },
       { key: "singz", name: "SingZ", emoji: "👩🏼‍🎤", icon: "singz.png", desc: "Vocal training built like a game: range detection, warmups, pitch/breath scoring, Boss SongZ — voice health first.", fn: true },
       { key: "rapz", name: "RapZ", emoji: "👨🏼‍🎤", icon: "rapz.png", desc: "Rap training: 16 style tracks, flow pockets, breath control, punchlines, a combo meter, and Boss Mode.", fn: true },
