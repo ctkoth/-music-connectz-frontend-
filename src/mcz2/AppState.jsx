@@ -24,6 +24,18 @@ const DEFAULT_STATE = {
   boardPosts: [],
   speczOwned: [],
   games: [],
+  // Ocular Code ConnectZ workspace (Claude-Code-style): tasks, learned notes,
+  // logs and the automation settings that drive OCC.
+  occ: {
+    tasks: [],      // { id, text, status, eta, at, undoUntil }
+    codez: [],      // { id, term, means, count }
+    paths: [],      // { id, device, path }
+    mistakes: [],   // { id, text, at }
+    habits: [],     // { id, text, at }
+    tell: [],       // { id, tab, text, at } — prompts/posts log
+    log: [],        // { id, kind, text, at } — everything OCC did
+    settings: { automated: false, suggestions: true },
+  },
   callLog: [],
   dawVotes: {},
   sentenceDocs: [],
@@ -64,6 +76,7 @@ function loadState() {
       user: { ...DEFAULT_STATE.user, ...(saved.user || {}) },
       wallet: { ...DEFAULT_STATE.wallet, ...(saved.wallet || {}) },
       settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) },
+      occ: { ...DEFAULT_STATE.occ, ...(saved.occ || {}), settings: { ...DEFAULT_STATE.occ.settings, ...((saved.occ || {}).settings || {}) } },
     };
   } catch {
     return structuredClone(DEFAULT_STATE);
