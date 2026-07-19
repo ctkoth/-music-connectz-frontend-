@@ -106,6 +106,14 @@ export const commentSocialApi = (item, body) => api("/api/economy/social/comment
 
 // Cross-user profiles
 export const saveProfileApi = (profile) => api("/api/economy/profile/", { method: "POST", body: profile });
+export const uploadAvatarApi = (file) => {
+  const fd = new FormData();
+  fd.append("avatar", file);
+  return api("/api/economy/profile/avatar/", { method: "POST", body: fd });
+};
+// dimension: "overall" | "attractiveness"; score 1-10
+export const rateProfileApi = (targetUsername, dimension, score) =>
+  api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
 export const getMemberApi = (username) => api(`/api/economy/members/${encodeURIComponent(username)}/`);
 export const searchMembersApi = (filters) => {
   const p = new URLSearchParams();

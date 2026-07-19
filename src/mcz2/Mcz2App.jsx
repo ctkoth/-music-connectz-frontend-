@@ -39,6 +39,28 @@ function FoundingBadge({ founding, lifetime }) {
   if (!founding && !lifetime) return null;
   return <span className="tag" title="Founding 50 member" style={{ color: "var(--gold, #ffcf3f)", borderColor: "var(--gold, #ffcf3f)" }}>👑 Founding{lifetime ? " · Lifetime" : ""}</span>;
 }
+// 1–10 rater for a member's profile picture. dimension = overall | attractiveness.
+function ProfileRater({ username, dimension, label, emoji, median, mine, onRated }) {
+  const [busy, setBusy] = useState(false);
+  const [my, setMy] = useState(mine ?? null);
+  const rate = async (score) => {
+    setBusy(true);
+    try { const r = await rateProfileApi(username, dimension, score); setMy(score); onRated?.(r); } catch { /* offline */ }
+    setBusy(false);
+  };
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ fontSize: 11, marginBottom: 3 }}>{emoji} {label}: <strong>{median != null ? `${median}/10` : "unrated"}</strong>{my != null ? ` · you: ${my}` : ""}</div>
+      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+        {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+          <button key={n} disabled={busy} onClick={() => rate(n)}
+            className="heritage-chip"
+            style={{ padding: "2px 7px", fontSize: 11, ...(my === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }}>{n}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Colored money: green = money in / growth, red = money out / cost.
 // `flow`: "in" (green), "out" (red), or omit for neutral. Optional sign prefix.
@@ -57,7 +79,7 @@ import {
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
-  saveProfileApi, searchMembersApi, getMemberApi,
+  saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi,
@@ -526,19 +548,37 @@ function ProfilePage({ onOpen, tier, serverOk }) {
   const u = state.user;
   const skills = state.personas.flatMap((p) => p.skills || []);
   const zsign = zodiacFor(u.birthday);
-  const [me, setMe] = useState(null); // { tier, founding, lifetime } from server
+  const [me, setMe] = useState(null); // { tier, founding, lifetime, avatar, overall, attractiveness } from server
+  const [uploading, setUploading] = useState(false);
   useEffect(() => {
     if (!serverOk || !u?.username) return;
     getMemberApi(u.username).then(setMe).catch(() => setMe(null));
   }, [serverOk, u?.username]);
   const effTier = me?.tier || tier;
+  const onAvatar = async (e) => {
+    const file = e.target.files?.[0]; e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try { const r = await uploadAvatarApi(file); setMe((s) => ({ ...(s || {}), avatar: r.avatar })); } catch { /* offline */ }
+    setUploading(false);
+  };
   return (
     <div className="card">
       <div className="card-header">👤 Your Public Profile</div>
       <div style={{ textAlign: "center", padding: 14 }}>
-        <div className="profile-pic" style={{ width: 64, height: 64, margin: "0 auto 8px", fontSize: 26 }}>
-          {(u.name || "?").charAt(0).toUpperCase()}
-        </div>
+        <label style={{ cursor: "pointer", display: "inline-block" }} title="Change profile picture">
+          {me?.avatar
+            ? <img src={me.avatar} alt="You" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", margin: "0 auto 6px", display: "block", border: "2px solid var(--primary)" }} />
+            : <div className="profile-pic" style={{ width: 72, height: 72, margin: "0 auto 6px", fontSize: 28 }}>{(u.name || "?").charAt(0).toUpperCase()}</div>}
+          <input type="file" accept="image/*" onChange={onAvatar} style={{ display: "none" }} />
+        </label>
+        <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 4 }}>{uploading ? "⏳ Uploading…" : "📷 Tap the picture to change it"}</div>
+        {(me?.overall != null || me?.attractiveness != null) && (
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", fontSize: 11, marginBottom: 4 }}>
+            <span title="Overall rating">⭐ Overall {me.overall != null ? `${me.overall}/10` : "—"}</span>
+            <span title="Attractiveness rating">💯 Attractiveness {me.attractiveness != null ? `${me.attractiveness}/10` : "—"}</span>
+          </div>
+        )}
         {/* Tapping name/sign opens the user's ZodiacZ daily horoscope. */}
         <div style={{ fontWeight: 800, fontSize: 15, cursor: "pointer" }} onClick={() => onOpen?.("zodiacz")}>{u.name || "Not set"}</div>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", margin: "6px 0" }}>
@@ -1049,6 +1089,7 @@ function OnboardZPage({ onOpen }) {
   const explored = Object.keys(usage).some((k) => SKILL_KEYS.includes(k));
   const steps = [
     { emoji: "👤", label: "Set up your profile", hint: "Name, contact, location, bio.", done: !!state.user.name, go: "setup" },
+    { emoji: "💳", label: "Top up your wallet", hint: "Add funds, SpinAZ or Energy to start transacting.", done: Number(state.wallet?.balance) > 0 || Number(state.wallet?.spinaz) > 0, go: "money" },
     { emoji: "🎭", label: "Pick a PersonaZ", hint: "Artist, Producer, Engineer, Designer…", done: state.personas.length > 0, go: "personas" },
     { emoji: "🎵", label: "Post your first work", hint: "Audio, image, or lyrics.", done: state.examples.length > 0, go: "examples" },
     { emoji: "🎓", label: "Explore a SkillZ app", hint: "Open any training app.", done: explored, go: "lessonz" },
@@ -1374,13 +1415,27 @@ function DiscoverTab({ serverOk }) {
               <div className="modal-title"><h2>👤 {viewing.display_name || viewing.username}</h2></div>
               <button className="close-btn" onClick={() => setViewing(null)}>×</button>
             </div>
+            {viewing.avatar && <img src={viewing.avatar} alt={viewing.username} style={{ width: 88, height: 88, borderRadius: "50%", objectFit: "cover", display: "block", margin: "0 auto 8px", border: "2px solid var(--primary)" }} />}
             <div style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 6 }}>
-              @{viewing.username} {viewing.gender && `· ${PARTNER_GENDERS.find((g) => g.id === viewing.gender)?.emoji || viewing.gender}`} {viewing.sign && `· ${SIGNS.find((s) => s.name === viewing.sign)?.emoji || ""} ${viewing.sign}`} {viewing.median != null && `· 💯 ${viewing.median}`}
+              @{viewing.username} {viewing.gender && `· ${PARTNER_GENDERS.find((g) => g.id === viewing.gender)?.emoji || viewing.gender}`} {viewing.sign && `· ${SIGNS.find((s) => s.name === viewing.sign)?.emoji || ""} ${viewing.sign}`}
             </div>
             {(viewing.tier || viewing.founding) && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                 <TierBadge tier={viewing.tier} />
                 <FoundingBadge founding={viewing.founding} lifetime={viewing.lifetime} />
+              </div>
+            )}
+            {viewing.username && !viewing.mine && (
+              <div className="card" style={{ padding: 10, marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>⭐ Rate their profile</div>
+                <ProfileRater username={viewing.username} dimension="overall" label="Overall" emoji="⭐" median={viewing.overall} mine={viewing.my_overall} onRated={(r) => setViewing((v) => ({ ...v, overall: r.overall }))} />
+                <ProfileRater username={viewing.username} dimension="attractiveness" label="Attractiveness" emoji="💯" median={viewing.attractiveness ?? viewing.median} mine={viewing.my_attractiveness} onRated={(r) => setViewing((v) => ({ ...v, attractiveness: r.attractiveness, median: r.attractiveness }))} />
+              </div>
+            )}
+            {viewing.mine && (viewing.overall != null || viewing.attractiveness != null) && (
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", fontSize: 11, marginBottom: 8 }}>
+                <span>⭐ Overall {viewing.overall != null ? `${viewing.overall}/10` : "—"}</span>
+                <span>💯 Attractiveness {viewing.attractiveness != null ? `${viewing.attractiveness}/10` : "—"}</span>
               </div>
             )}
             {viewing.bio && <p style={{ fontSize: 13, marginBottom: 8 }}>{viewing.bio}</p>}
@@ -1469,7 +1524,12 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
           const heritage = m.nationalities?.length ? m.nationalities.join(", ") : (m.country || (m.regions || []).join(", "));
           return (
             <div key={uname || name} className="post-card">
-              <div className="post-user">{name} {m.founding && <span title="Founding member">👑</span>} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</div>
+              <div className="post-user" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {m.avatar
+                  ? <img src={m.avatar} alt={name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
+                  : <span className="post-avatar" style={{ width: 32, height: 32, fontSize: 14 }}>{(name || "?").charAt(0).toUpperCase()}</span>}
+                <span>{name} {m.founding && <span title="Founding member">👑</span>} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</span>
+              </div>
               <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.tier && m.tier !== "free" ? ` · ${TIER_EMOJI[tierKey(m.tier)]} ${tierLabel(m.tier)}` : ""}</div>
               <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onPick?.(m)}>{actionLabel}{uname ? ` · @${uname}` : name ? ` · ${name}` : ""}</button>
             </div>
