@@ -136,4 +136,4 @@ export const capturePaypalOrder = (orderId) =>
 // GET: { claimed, limit, remaining, sold_out, tier, price_cents, full_price_cents, stripe_enabled }
 export const getFoundingApi = () => api("/api/economy/founding/");
 export const claimFoundingApi = () => api("/api/economy/founding/claim/", { method: "POST" });
-export const foundingCheckoutApi = () => api("/api/economy/founding/checkout/", { method: "POST" });
+export const foundingCheckoutApi = (plan = "lifetime") => api("/api/economy/founding/checkout/", { method: "POST", body: { plan } });
