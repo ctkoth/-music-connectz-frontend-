@@ -37,6 +37,7 @@ const DEFAULT_STATE = {
     repos: [],      // { id, owner, name, branch } — GitHub repos OCC can commit to
     defaultRepo: null, // id of the repo new commits target
     knowledge: [],  // { id, course, text, at } — what the user has taught Corey GPT
+    exports: [],    // { id, name, ext, category, app, at } — media OCC routed to Intelligence apps
     settings: { automated: false, suggestions: true, model: "corey-gpt", language: "JavaScript / HTML5" },
   },
   callLog: [],
