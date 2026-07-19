@@ -20,6 +20,66 @@ export const IMAGE_TYPES = [
   { name: "Merch Print", ratio: "4:5" },
 ];
 
+// Shared MOOD taxonomy — used by ShotZ (image), DirectZ (video), Instrumental
+// key-by-mood, and search/collab filters. Grouped so pickers can section them.
+export const MOOD_GROUPS = [
+  {
+    group: "Positive / Uplifting", emoji: "😌",
+    moods: [
+      { name: "Joyful", note: "light, bright, energized happiness" },
+      { name: "Calm", note: "peaceful, steady, grounded" },
+      { name: "Optimistic", note: "hopeful, future-focused" },
+      { name: "Grateful", note: "appreciative, warm, connected" },
+      { name: "Inspired", note: "creative spark, motivation" },
+      { name: "Confident", note: "self-assured, ready, locked-in" },
+    ],
+  },
+  {
+    group: "Negative / Heavy", emoji: "😔",
+    moods: [
+      { name: "Sad", note: "low energy, emotional heaviness" },
+      { name: "Anxious", note: "worried, tense, restless" },
+      { name: "Frustrated", note: "blocked, irritated, stuck" },
+      { name: "Lonely", note: "disconnected, isolated" },
+      { name: "Angry", note: "heated, reactive, intense" },
+      { name: "Overwhelmed", note: "too much input, too little bandwidth" },
+    ],
+  },
+  {
+    group: "Neutral / Transitional", emoji: "😶",
+    moods: [
+      { name: "Indifferent", note: "detached, unbothered" },
+      { name: "Reflective", note: "thoughtful, introspective" },
+      { name: "Curious", note: "open, exploring, questioning" },
+      { name: "Tired", note: "low energy, drained" },
+      { name: "Bored", note: "unstimulated, waiting for something to hit" },
+    ],
+  },
+  {
+    group: "Creative / Artistic", emoji: "🔥",
+    moods: [
+      { name: "Melancholic", note: "sad but beautiful, nostalgic" },
+      { name: "Moody", note: "shifting emotions, atmospheric" },
+      { name: "Dreamy", note: "floaty, surreal, imaginative" },
+      { name: "Aggressive", note: "sharp, intense, confrontational" },
+      { name: "Dark", note: "shadowy, brooding, heavy" },
+      { name: "Hyped", note: "energized, ready to move" },
+    ],
+  },
+  {
+    group: "Social / Interpersonal", emoji: "🎭",
+    moods: [
+      { name: "Playful", note: "joking, lighthearted" },
+      { name: "Affectionate", note: "warm, caring" },
+      { name: "Awkward", note: "unsure, socially tense" },
+      { name: "Supportive", note: "encouraging, present" },
+      { name: "Detached", note: "emotionally distant" },
+    ],
+  },
+];
+// Flat list of mood names for quick chip filters.
+export const MOODS = MOOD_GROUPS.flatMap((g) => g.moods.map((m) => m.name));
+
 // Video ConnectZ — user's three plus common creator formats.
 export const VIDEO_TYPES = [
   { name: "Music Video", ratio: "16:9" },
@@ -31,6 +91,18 @@ export const VIDEO_TYPES = [
   { name: "Shorts / Reel", ratio: "9:16" },
   { name: "Behind-the-Scenes", ratio: "16:9" },
 ];
+
+// DirectZ — video works by length. Each is its own app/feed. Videos carry a
+// video type + mood, and are collab-able, shareable, cross-pollinated, and
+// rateable/likeable/commentable like everything else on the platform.
+export const DIRECTZ_FORMATS = [
+  { id: "reelz", name: "ReelZ", emoji: "🎞️", icon: "reelz.png", minSec: 30, maxSec: 30 * 60, label: "30 sec – 30 min", note: "Shorts, visualizers, teasers." },
+  { id: "episodez", name: "EpisodeZ", emoji: "📺", icon: "episodez.png", minSec: 30 * 60, maxSec: 60 * 60, label: "30 – 60 min", note: "Episodic series, docs, sessions." },
+  { id: "moviez", name: "MovieZ", emoji: "🎬", icon: "moviez.png", minSec: 60 * 60, maxSec: 3 * 3600, label: "1 – 3 hours", note: "Features, concert films, long-form." },
+];
+export function directzFormatForSec(sec) {
+  return DIRECTZ_FORMATS.find((f) => sec >= f.minSec && sec <= f.maxSec) || null;
+}
 
 // Mix ConnectZ — AI mix/master.
 export const MIX_MODES = ["Mix", "Master", "Mix + Master"];

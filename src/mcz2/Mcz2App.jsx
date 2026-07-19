@@ -31,7 +31,7 @@ import {
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi,
 } from "./economyApi.js";
-import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS } from "./intelligence.js";
+import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS } from "./intelligence.js";
 import "./mcz2.css";
 
 // Transparent transaction breakdown — RepostExchange-style: plain numbers,
@@ -2777,8 +2777,28 @@ function Pill({ active, onClick, children }) {
   return <button className={`heritage-chip${active ? " sel" : ""}`} onClick={onClick}>{children}</button>;
 }
 
+// Mood picker — grouped chips shared across ShotZ (image) and DirectZ (video).
+function MoodPicker({ mood, setMood }) {
+  return (
+    <div style={{ margin: "6px 0 12px" }}>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>🫥 Mood</label>
+      {MOOD_GROUPS.map((g) => (
+        <div key={g.group} style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 3 }}>{g.emoji} {g.group}</div>
+          <div className="chip-wrap">
+            {g.moods.map((m) => (
+              <button key={m.name} type="button" title={m.note} className={`heritage-chip${mood === m.name ? " sel" : ""}`} onClick={() => setMood(mood === m.name ? "" : m.name)}>{m.name}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ImageConnectZ() {
   const [type, setType] = useState(IMAGE_TYPES[0].name);
+  const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
   const t = IMAGE_TYPES.find((x) => x.name === type);
   return (
@@ -2788,9 +2808,10 @@ function ImageConnectZ() {
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
         {IMAGE_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}
       </div>
+      <MoodPicker mood={mood} setMood={setMood} />
       <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Uses your saved FaceZ for likeness. StatZ can lipsync the result to an audio/video track and drop it into VideoZ.</p>
-      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {type} ({t.ratio})</button>
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {mood ? `${mood} ` : ""}{type} ({t.ratio})</button>
       <IntelNote role="Designer" />
     </div>
   );
@@ -2849,6 +2870,7 @@ function MixConnectZ() {
 
 function VideoConnectZ() {
   const [type, setType] = useState(VIDEO_TYPES[0].name);
+  const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
   const t = VIDEO_TYPES.find((x) => x.name === type);
   return (
@@ -2856,9 +2878,10 @@ function VideoConnectZ() {
       <div className="card-header">📺 Video ConnectZ <span className="tag">{t.ratio}</span></div>
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{VIDEO_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}</div>
-      <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${type.toLowerCase()}`} /></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Built from your saved FaceZ. StatZ can lipsync it to a supplied audio track and finish it in VideoZ.</p>
-      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {type} ({t.ratio})</button>
+      <MoodPicker mood={mood} setMood={setMood} />
+      <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${mood ? mood.toLowerCase() + " " : ""}${type.toLowerCase()}`} /></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Built from your saved FaceZ. StatZ can lipsync it to a supplied audio track and finish it in VideoZ / DirectZ (ReelZ · EpisodeZ · MovieZ).</p>
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {mood ? `${mood} ` : ""}{type} ({t.ratio})</button>
       <IntelNote role="Videographer" reusable />
     </div>
   );
@@ -5385,8 +5408,8 @@ function Shell() {
               {user?.username ? `@${user.username}` : "Signed in"}
               <span title={`${prog.xp} XP`}> · 🎮 Lv {prog.level}</span>
               {prog.streak > 0 && <span title="Daily streak" style={{ color: "var(--gold, #ffcf3f)" }}> · 🔥 {prog.streak}</span>}
-              {community.total != null && <span title="Total members"> · 👥 {community.total}</span>}
-              {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · 🟢 {community.online}</span>}
+              {community.total != null && <span title="Total members"> · 👥 {community.total} total</span>}
+              {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · 🟢 {community.online} online</span>}
               {isOwner && <span title="Owner" style={{ color: "var(--gold, #ffcf3f)" }}> · 🛠️ owner</span>}
             </div>
             <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.15)", marginTop: 3, overflow: "hidden" }} title={`${prog.xp % 100}/100 XP to next level`}>
