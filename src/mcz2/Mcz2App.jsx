@@ -31,6 +31,7 @@ import {
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
   getUploadsApi, uploadFileApi, deleteUploadApi,
   getCheckoutConfig, createStripeCheckout, createPaypalOrder, capturePaypalOrder,
+  getFoundingApi, claimFoundingApi, foundingCheckoutApi,
   getVenuesApi, createVenueApi, joinVenueApi,
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
@@ -733,6 +734,66 @@ const MEMBERSHIP_TIERS = [
   },
 ];
 
+// Founding 50 — lifetime StatZ at 50% off for the first 50 members. Live counter
+// from /economy/founding/; buys through Stripe when live, dev-preview grant otherwise.
+function FoundingCard({ serverOk, onTierChange, syncEconomy }) {
+  const signedIn = isSignedIn();
+  const [f, setF] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    if (!serverOk) return;
+    getFoundingApi().then(setF).catch(() => setF(null));
+  }, [serverOk]);
+  if (!serverOk || !f || f.tier !== "statz") return null;
+
+  const price = money((f.price_cents || 0) / 100);
+  const full = money((f.full_price_cents || 0) / 100);
+  const claim = async () => {
+    setBusy(true); setMsg("");
+    try {
+      if (f.stripe_enabled) {
+        const r = await foundingCheckoutApi(); // real money — redirect to Stripe
+        if (r.url) { window.location.href = r.url; return; }
+      }
+      const r = await claimFoundingApi(); // dev-preview grant
+      onTierChange?.("statz"); syncEconomy?.();
+      setF((s) => ({ ...s, claimed: r.claimed, remaining: r.remaining, sold_out: r.sold_out }));
+      setMsg("🎉 You're a Founding Lifetime StatZ member — locked in forever.");
+    } catch (e) {
+      setMsg(e?.message?.includes("sold out") ? "😔 All 50 founding seats are claimed." : "Couldn't complete — try again.");
+      getFoundingApi().then(setF).catch(() => {});
+    }
+    setBusy(false);
+  };
+
+  const pct = Math.min(100, Math.round((f.claimed / f.limit) * 100));
+  return (
+    <div className="card" style={{ border: "2px solid var(--gold, #ffcf3f)", background: "linear-gradient(135deg, rgba(255,207,63,0.08), rgba(34,230,255,0.06))" }}>
+      <div className="card-header"><span style={{ color: "var(--gold, #ffcf3f)" }}>👑 Founding 50 — Lifetime StatZ</span><span className="tag" style={{ color: f.sold_out ? "var(--danger)" : "var(--success)" }}>{f.sold_out ? "SOLD OUT" : `${f.remaining} left`}</span></div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>
+        The first <strong>50 members</strong> lock in <strong>StatZ for life</strong> at <strong>50% off</strong> — pay once, keep the highest tier forever. No monthly, no annual, never re-billed.
+      </p>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 24, fontWeight: 800, color: "var(--gold, #ffcf3f)" }}>{price}</span>
+        <span style={{ textDecoration: "line-through", color: "var(--text-light)", fontSize: 14 }}>{full}</span>
+        <span className="tag">one-time · lifetime</span>
+      </div>
+      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.12)", overflow: "hidden", marginBottom: 6 }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: "var(--gold, #ffcf3f)" }} />
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>👥 {f.claimed} / {f.limit} claimed</div>
+      <button className="btn" style={{ width: "100%", background: "var(--gold, #ffcf3f)", color: "#1a1a1a", fontWeight: 700 }}
+        disabled={busy || f.sold_out || !signedIn}
+        onClick={claim}>
+        {f.sold_out ? "Sold out" : busy ? "…" : signedIn ? `👑 Claim lifetime StatZ — ${price}` : "Sign in to claim"}
+      </button>
+      {f.stripe_enabled && !f.sold_out && <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>Secure checkout via Stripe. Your StatZ unlocks automatically after payment.</p>}
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, onOpen }) {
   const cur = (tier || "").toLowerCase() === "debug" ? "debug" : devTaxFor(tier).label.toLowerCase();
   const [cycle, setCycle] = useState("monthly");
@@ -755,6 +816,7 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
         </div>
         {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
       </div>
+      <FoundingCard serverOk={serverOk} onTierChange={onTierChange} syncEconomy={syncEconomy} />
       {MEMBERSHIP_TIERS.map((t) => {
         const price = TIER_PRICING[t.id]?.[cycle];
         const isCur = cur === t.id;
