@@ -87,8 +87,8 @@ export function splitCashout(amount, scheduleId, tier) {
 // ---------------------------------------------------------------------------
 export const TIER_LIMITS = {
   free: { char_limit: 400, upload_mb: 40, storage_mb: 400 },
-  premium: { char_limit: 4000, upload_mb: 400, storage_mb: 5120 },     // 5GB
-  statz: { char_limit: 40000, upload_mb: 4096, storage_mb: 102400 },   // 4GB / 100GB
+  premium: { char_limit: 1000, upload_mb: 400, storage_mb: 5120 },    // 5GB
+  statz: { char_limit: 5000, upload_mb: 4096, storage_mb: 102400 },   // 4GB / 100GB
 };
 
 export function limitsFor(tier) {
@@ -117,7 +117,7 @@ export function mbLabel(mb) {
 // ---------------------------------------------------------------------------
 export const TIER_PRICING = {
   premium: { monthly: 10, yearly: 90, addon: false },
-  statz: { monthly: 5, yearly: 40, addon: true }, // additional cost on top of Premium
+  statz: { monthly: 15, yearly: 150, addon: false }, // full StatZ price (includes Premium)
 };
 
 // Promo ladder for a lower-tier active user: 20% → (15m warning) 40% → 80% FINAL (60s).
