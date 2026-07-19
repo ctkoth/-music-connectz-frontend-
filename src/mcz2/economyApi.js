@@ -131,3 +131,9 @@ export const createPaypalOrder = (amountCents) =>
 
 export const capturePaypalOrder = (orderId) =>
   api("/api/economy/checkout/paypal/capture/", { method: "POST", body: { order_id: orderId } });
+
+// Founding 50 — lifetime StatZ offer.
+// GET: { claimed, limit, remaining, sold_out, tier, price_cents, full_price_cents, stripe_enabled }
+export const getFoundingApi = () => api("/api/economy/founding/");
+export const claimFoundingApi = () => api("/api/economy/founding/claim/", { method: "POST" });
+export const foundingCheckoutApi = () => api("/api/economy/founding/checkout/", { method: "POST" });
