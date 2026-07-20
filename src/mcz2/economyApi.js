@@ -113,6 +113,7 @@ export const rateDirectzApi = (id, score) => api(`/api/economy/directz/${id}/rat
 export const getSocialApi = (item) => api(`/api/economy/social/?item=${encodeURIComponent(item)}`);
 export const reactSocialApi = (item, value) => api("/api/economy/social/react/", { method: "POST", body: { item, value } });
 export const commentSocialApi = (item, body) => api("/api/economy/social/comment/", { method: "POST", body: { item, body } });
+export const rateSocialApi = (item, score) => api("/api/economy/social/rate/", { method: "POST", body: { item, score } });
 
 // Cross-user profiles
 export const saveProfileApi = (profile) => api("/api/economy/profile/", { method: "POST", body: profile });
