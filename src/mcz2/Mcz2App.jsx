@@ -122,6 +122,7 @@ import {
   getAutoTopUpsApi, createAutoTopUpApi, cancelAutoTopUpApi,
   getIdentityApi, startIdentityApi,
   getPostzApi, createPostzApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
+  clickLinkApi, getLinkTalliesApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
@@ -445,11 +446,63 @@ function LinksEditor({ links, onChange }) {
   );
 }
 
-function LinksRow({ links }) {
+// Renders member links with a live click tally, a malware/spyware safety flag,
+// and the +5⚡ reward for genuinely visiting another member's link. `owner` is
+// the link owner's username (so the backend knows whose link was clicked).
+function LinksRow({ links, owner = "" }) {
+  const [tallies, setTallies] = useState({}); // url -> { clicks, safe, threat }
+  const [flash, setFlash] = useState("");
+  const { update } = useAppState();
+  const signedIn = isSignedIn();
+
+  useEffect(() => {
+    if (!signedIn || !owner) return;
+    getLinkTalliesApi(owner).then((r) => {
+      const map = {};
+      (r.links || []).forEach((c) => { map[c.url] = c; });
+      setTallies(map);
+    }).catch(() => {});
+  }, [owner, signedIn]);
+
   if (!links?.length) return null;
+
+  const onClick = (e, l) => {
+    if (!signedIn) return; // plain navigation when signed out
+    const t = tallies[l.url];
+    if (t && t.safe === false) {
+      // Flagged unsafe — block the visit and warn.
+      e.preventDefault();
+      setFlash(`⚠️ "${l.label || l.url}" was flagged unsafe (${t.threat || "threat"}) — not opening.`);
+      setTimeout(() => setFlash(""), 4000);
+      return;
+    }
+    // Record the click now; confirm a genuine 30s dwell to earn the reward.
+    clickLinkApi(l.url, owner, 0).then((r) => setTallies((m) => ({ ...m, [l.url]: r }))).catch(() => {});
+    setTimeout(() => {
+      clickLinkApi(l.url, owner, 31).then((r) => {
+        setTallies((m) => ({ ...m, [l.url]: r }));
+        if (r.rewarded) { update({ energy: r.energy }); setFlash("🔗 +5⚡ for visiting a member's link!"); setTimeout(() => setFlash(""), 3000); }
+      }).catch(() => {});
+    }, 31000);
+  };
+
   return (
-    <div className="chip-wrap" style={{ margin: "6px 0" }}>
-      {links.map((l) => <a key={l.id || l.url} href={l.url} target="_blank" rel="noreferrer" className="tag" style={{ color: "var(--accent, #22e6ff)", textDecoration: "none" }}>🔗 {l.label || l.url}</a>)}
+    <div style={{ margin: "6px 0" }}>
+      <div className="chip-wrap">
+        {links.map((l) => {
+          const t = tallies[l.url];
+          const unsafe = t && t.safe === false;
+          return (
+            <a key={l.id || l.url} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => onClick(e, l)}
+               className="tag" style={{ color: unsafe ? "var(--danger)" : "var(--accent, #22e6ff)", textDecoration: "none" }}
+               title={unsafe ? `Flagged unsafe: ${t.threat}` : "Opens in a new tab · visiting a member's link earns +5⚡"}>
+              {unsafe ? "⚠️" : "🔗"} {l.label || l.url}
+              {t && t.clicks != null && <span style={{ color: "var(--text-light)", marginLeft: 4 }}>· {t.clicks} click{t.clicks === 1 ? "" : "s"}</span>}
+            </a>
+          );
+        })}
+      </div>
+      {flash && <div style={{ fontSize: 11, color: /⚠️/.test(flash) ? "var(--danger)" : "var(--success)", marginTop: 2 }}>{flash}</div>}
     </div>
   );
 }
@@ -783,7 +836,7 @@ function PostZPage({ serverOk }) {
                   {ex.score?.overall != null && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 2 }}>🎯 scored {ex.score.overall}/10</div>}
                 </div>
               )}
-              <LinksRow links={ex.links} />
+              <LinksRow links={ex.links} owner={ex.author || ""} />
               {restricted && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {ex.joins || 0} join{(ex.joins || 0) === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
               {restricted && ex.author && !ex.mine && <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => join(ex.id)}>🛑 Join this drop</button>}
               <SocialBar id={`post:${ex.id || i}`} shareText={`${ex.title} on Music ConnectZ`} />
@@ -2223,7 +2276,7 @@ function DiscoverTab({ serverOk }) {
                 <div className="chip-wrap">{(p.skills || []).map((s) => <span key={s} className="tag">{s}</span>)}</div>
               </div>
             ))}
-            {(viewing.links || []).length > 0 && <div style={{ margin: "8px 0" }}><LinksRow links={viewing.links} /></div>}
+            {(viewing.links || []).length > 0 && <div style={{ margin: "8px 0" }}><LinksRow links={viewing.links} owner={viewing.username || ""} /></div>}
             <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Sober-friendly: {viewing.sober ? "🟢 yes" : "🍺 social"}</p>
             {viewing.username && <SocialBar id={`profile:${viewing.username}`} shareText={`@${viewing.username} on Music ConnectZ`} />}
           </div>
@@ -7311,7 +7364,7 @@ function PostModal({ post, onClose, onOpen }) {
               : <audio src={post.media_url} controls style={{ width: "100%" }} />}
           </div>
         )}
-        <LinksRow links={post.links} />
+        <LinksRow links={post.links} owner={post.author || ""} />
         <SocialBar id={`post:${post.id}`} shareText={`${post.title} on Music ConnectZ`} />
         {onOpen && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
