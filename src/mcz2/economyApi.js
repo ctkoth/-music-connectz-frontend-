@@ -126,6 +126,11 @@ export const uploadAvatarApi = (file) => {
 export const rateProfileApi = (targetUsername, dimension, score) =>
   api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
 
+// Moderation
+export const reportItemApi = (item, reason, note = "") => api("/api/economy/report/", { method: "POST", body: { item, reason, note } });
+export const blockUserApi = (username, action) => api("/api/economy/block/", { method: "POST", body: { username, action } });
+export const getBlockedApi = () => api("/api/economy/block/");
+
 // Notifications
 export const getNotificationsApi = () => api("/api/economy/notifications/");
 export const markNotificationApi = (opts) => api("/api/economy/notifications/", { method: "POST", body: opts }); // {id} or {all:true}

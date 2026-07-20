@@ -110,6 +110,7 @@ import {
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
   followApi, getNotificationsApi, markNotificationApi,
+  reportItemApi, blockUserApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
@@ -278,6 +279,7 @@ function SocialBar({ id, shareText, style }) {
   const s = srv || local;
   const [open, setOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState("");
 
@@ -334,8 +336,17 @@ function SocialBar({ id, shareText, style }) {
         </button>
         <button className="btn btn-small btn-secondary" onClick={() => setOpen((v) => !v)}>💬 {comments.length}</button>
         <button className="btn btn-small btn-secondary" onClick={share}>🔗 Share</button>
+        {signedIn && <button className="btn btn-small btn-secondary" onClick={() => setReportOpen((v) => !v)} title="Report">⚠️</button>}
         {flash && <span style={{ fontSize: 11, color: "var(--success)" }}>{flash}</span>}
       </div>
+      {reportOpen && (
+        <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--text-light)" }}>Report:</span>
+          {[["spam", "Spam"], ["harassment", "Harassment"], ["hate", "Hate"], ["nsfw", "NSFW"], ["stolen", "Stolen"], ["other", "Other"]].map(([reason, l]) => (
+            <button key={reason} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11 }} onClick={() => { reportItemApi(id, reason).catch(() => {}); setReportOpen(false); setFlash("⚠️ reported — thanks"); setTimeout(() => setFlash(""), 1800); }}>{l}</button>
+          ))}
+        </div>
+      )}
       {rateOpen && (
         <div style={{ marginTop: 8, padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
           <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>Tap to rate — lights up every star up to your pick:</div>
@@ -1690,6 +1701,12 @@ function DiscoverTab({ serverOk }) {
             )}
             {viewing.username && !viewing.mine && (
               <FollowButton username={viewing.username} rel={viewing.relationship} counts={viewing} />
+            )}
+            {viewing.username && !viewing.mine && (
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                <button className="btn btn-small btn-secondary" onClick={() => { reportItemApi(`profile:${viewing.username}`, "other").catch(() => {}); alert("Reported to moderation — thanks."); }}>⚠️ Report</button>
+                <button className="btn btn-small btn-secondary" onClick={() => { if (confirm(`Block @${viewing.username}? You won't see each other.`)) { blockUserApi(viewing.username, "block").then(() => setViewing(null)).catch(() => {}); } }}>🚫 Block</button>
+              </div>
             )}
             {viewing.username && !viewing.mine && (
               <div className="card" style={{ padding: 10, marginBottom: 8 }}>
