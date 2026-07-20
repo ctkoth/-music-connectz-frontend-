@@ -111,6 +111,7 @@ import {
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
   followApi, getNotificationsApi, markNotificationApi,
   reportItemApi, blockUserApi, exportAccountApi, deleteAccountApi,
+  getConversationsApi, getThreadApi, sendMessageApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
@@ -3126,56 +3127,82 @@ const DEMO_INBOX = [
   { id: "i1", who: "Kaya", body: "Loved your last drop — collab on a hook?", at: Date.now() - 3 * 3600e3 },
   { id: "i2", who: "LabelZ · Azrael Records", body: "We'd like to send you an advance offer.", at: Date.now() - 26 * 3600e3 },
 ];
+// Real cross-user DMs: conversation list → thread → send. Server-backed when
+// signed in; blocks + tier char limit enforced server-side.
 function MessageZPage({ serverOk }) {
-  const { state, addTo } = useAppState();
-  const [box, setBox] = useState("inbox");
-  const [to, setTo] = useState("");
+  const signedIn = isSignedIn();
+  const live = signedIn && serverOk;
+  const [convos, setConvos] = useState([]);
+  const [active, setActive] = useState(null); // username of open thread
+  const [thread, setThread] = useState([]);
   const [body, setBody] = useState("");
   const [finding, setFinding] = useState(false);
-  const sent = (state.messages || []).filter((m) => m.dir === "out");
-  const send = () => {
-    if (!to.trim() || !body.trim()) return;
-    addTo("messages", { id: Date.now(), dir: "out", who: to.trim(), body: body.trim(), at: Date.now() });
-    setTo(""); setBody(""); setBox("outbox");
+  const [composeTo, setComposeTo] = useState("");
+
+  const loadConvos = () => { if (live) getConversationsApi().then((r) => setConvos(r.conversations || [])).catch(() => {}); };
+  const loadThread = (u) => { if (live && u) getThreadApi(u).then((r) => setThread(r.messages || [])).catch(() => {}); };
+  useEffect(loadConvos, [live]);
+  useEffect(() => { if (active) { loadThread(active); const t = setInterval(() => loadThread(active), 20000); return () => clearInterval(t); } }, [active]);
+
+  const send = async () => {
+    const to = active || composeTo.trim();
+    if (!to || !body.trim()) return;
+    try {
+      await sendMessageApi(to, body.trim());
+      setBody(""); setActive(to); setComposeTo("");
+      loadThread(to); loadConvos();
+    } catch (e) { alert(e?.message?.includes("blocked") ? "You can't message this user." : e?.message?.includes("limit") ? "Message too long for your tier — upgrade for more." : "Couldn't send."); }
   };
-  const pick = (m) => { setTo(m.username || m.display_name || m.name || ""); setFinding(false); };
-  const list = box === "inbox" ? DEMO_INBOX : [...sent].reverse();
+  const pick = (m) => { setComposeTo(m.username || m.display_name || m.name || ""); setActive(null); setFinding(false); };
+
+  if (!live) return <div className="card"><p style={{ fontSize: 12, color: "var(--text-light)" }}>💬 Sign in + connect to message other members.</p></div>;
+
+  if (active) {
+    return (
+      <>
+        <button className="btn btn-small btn-secondary" style={{ marginBottom: 10 }} onClick={() => { setActive(null); loadConvos(); }}>‹ Conversations</button>
+        <div className="card">
+          <div className="card-header">💬 @{active}</div>
+          <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+            {thread.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No messages yet — say hi.</p>
+              : thread.map((m) => (
+                <div key={m.id} style={{ alignSelf: m.mine ? "flex-end" : "flex-start", maxWidth: "80%", background: m.mine ? "var(--primary)" : "rgba(255,255,255,0.08)", color: m.mine ? "#fff" : "inherit", borderRadius: 12, padding: "6px 10px", fontSize: 13 }}>
+                  {m.body}
+                  <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>{new Date(m.at).toLocaleString()}</div>
+                </div>
+              ))}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 40, flex: 1 }} placeholder="Message…" />
+            <button className="btn btn-success" onClick={send} disabled={!body.trim()}>📤</button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <div className="chip-wrap" style={{ marginBottom: 14 }}>
-        <button className={`heritage-chip${box === "inbox" ? " sel" : ""}`} onClick={() => setBox("inbox")}>📥 Inbox</button>
-        <button className={`heritage-chip${box === "outbox" ? " sel" : ""}`} onClick={() => setBox("outbox")}>📤 Outbox</button>
-        <button className={`heritage-chip${box === "compose" ? " sel" : ""}`} onClick={() => setBox("compose")}>✍️ Compose</button>
-      </div>
-      {box === "compose" ? (
-        <>
-          <div className="card">
-            <div className="card-header">✍️ New Message</div>
-            <div className="form-group">
-              <label>To</label>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="username" style={{ flex: 1 }} />
-                <button className="btn btn-small btn-secondary" onClick={() => setFinding((v) => !v)}>{finding ? "✕ Close" : "🔍 Find"}</button>
-              </div>
-            </div>
-            <div className="form-group"><label>Message</label><CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 70 }} /></div>
-            <button className="btn btn-success" style={{ width: "100%" }} onClick={send}>📤 Send</button>
-          </div>
-          {finding && <MemberFinder serverOk={serverOk} onPick={pick} actionLabel="✉️ Message" note="Filter members by NationalitieZ, PreferenceZ, ZodiacZ and SubstanceZ — tap one to address your message." />}
-        </>
-      ) : (
-        <div className="card">
-          <div className="card-header">{box === "inbox" ? "📥 Inbox" : "📤 Outbox"}</div>
-          {list.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing here yet.</p>
-            : list.map((m) => (
-              <div key={m.id} className="post-card">
-                <div className="post-user">{box === "inbox" ? m.who : `To: ${m.who}`}</div>
-                <div className="post-content">{m.body}</div>
-                <div className="post-meta">{new Date(m.at).toLocaleString()}</div>
-              </div>
-            ))}
+      <div className="card">
+        <div className="card-header">✍️ New message</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          <input value={composeTo} onChange={(e) => setComposeTo(e.target.value)} placeholder="username" style={{ flex: 1 }} />
+          <button className="btn btn-small btn-secondary" onClick={() => setFinding((v) => !v)}>{finding ? "✕" : "🔍 Find"}</button>
+          <button className="btn btn-small" onClick={() => composeTo.trim() && setActive(composeTo.trim())} disabled={!composeTo.trim()}>Open</button>
         </div>
-      )}
+        {finding && <MemberFinder serverOk={serverOk} onPick={pick} actionLabel="✉️ Message" note="Filter members, then tap one to message them." />}
+      </div>
+      <div className="card">
+        <div className="card-header">💬 Conversations</div>
+        {convos.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No conversations yet.</p>
+          : convos.map((c) => (
+            <div key={c.user} className="post-card" style={{ cursor: "pointer" }} onClick={() => setActive(c.user)}>
+              <div className="post-user">@{c.user} {c.unread > 0 && <span className="tag" style={{ color: "var(--danger)" }}>{c.unread} new</span>}</div>
+              <div className="post-content" style={{ fontSize: 12, color: "var(--text-light)" }}>{c.last}</div>
+              <div className="post-meta">{new Date(c.at).toLocaleString()}</div>
+            </div>
+          ))}
+      </div>
     </>
   );
 }
