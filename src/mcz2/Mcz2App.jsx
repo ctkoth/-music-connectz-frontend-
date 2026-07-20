@@ -609,11 +609,12 @@ function PostZPage({ serverOk }) {
   const [vis, setVis] = useState("public");
   const [skillCost, setSkillCost] = useState(0); // $ of skills used → energy cost
   const [feed, setFeed] = useState(null); // server posts
+  const [sort, setSort] = useState("hot");
   const [msg, setMsg] = useState("");
   const visOf = (id) => POST_VIS.find((v) => v.id === id) || POST_VIS[0];
 
-  const load = () => { if (serverOk) getPostzApi().then((r) => setFeed(r.posts || [])).catch(() => setFeed(null)); };
-  useEffect(load, [serverOk]);
+  const load = () => { if (serverOk) getPostzApi(sort).then((r) => setFeed(r.posts || [])).catch(() => setFeed(null)); };
+  useEffect(load, [serverOk, sort]);
 
   const add = async () => {
     if (!title.trim()) return;
@@ -658,14 +659,23 @@ function PostZPage({ serverOk }) {
       </div>
       <div className="card">
         <div className="card-header">{feed !== null ? "🌐 Community feed" : "🎵 Your Work Examples"}</div>
+        {feed !== null && (
+          <div className="chip-wrap" style={{ marginBottom: 8 }}>
+            {[["hot", "🔥 Hot"], ["new", "🆕 New"], ["top", "⭐ Top rated"]].map(([id, l]) => (
+              <button key={id} className={`heritage-chip${sort === id ? " sel" : ""}`} onClick={() => setSort(id)}>{l}</button>
+            ))}
+            <span style={{ fontSize: 10, color: "var(--text-light)", alignSelf: "center", marginLeft: 4 }}>👍 ranks reach · ⭐ ranks value</span>
+          </div>
+        )}
         {(feed !== null ? feed : localPosts).length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>{feed !== null ? "No posts yet — be the first." : "No examples yet."}</p>
         ) : (feed !== null ? feed : localPosts).map((ex, i) => {
           const v = visOf(ex.visibility);
           const restricted = ex.visibility === "restricted";
           return (
-            <div key={ex.id || i} className="post-card">
-              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
+            <div key={ex.id || i} className="post-card" style={ex.flagged ? { opacity: 0.6 } : undefined}>
+              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
+              {ex.vibe != null && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 2 }}>✨ vibe {ex.vibe > 0 ? "+" : ""}{ex.vibe} · 👍 {ex.up || 0} 👎 {ex.down || 0}{ex.rating != null ? ` · ⭐ ${ex.rating}/10` : ""}</div>}
               <div className="post-content">{ex.description ?? ex.desc}</div>
               <LinksRow links={ex.links} />
               {restricted && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {ex.joins || 0} join{(ex.joins || 0) === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
