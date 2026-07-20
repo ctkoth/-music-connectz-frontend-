@@ -585,11 +585,30 @@ const PERSONA_SKILLS = {
   "Weightlifter": ["Routine Design", "Personal Training", "Powerlifting", "HIIT", "Olympic Lifting", "Nutrition Coaching", "Mobility & Recovery", "Progressive Overload"],
   "Mime": ["Lipsync", "Selfie", "Dance", "Drama", "Comedy"],
 };
+// Skills carry a start date so experience = years since start. Back-compat:
+// legacy plain-string skills read as name with no date.
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const skillName = (s) => (typeof s === "string" ? s : s?.name || "");
+const skillStart = (s) => (typeof s === "string" ? "" : s?.start || "");
+function expYears(start) {
+  if (!start) return null;
+  const [y, m, d] = String(start).split("-").map(Number);
+  if (!y) return null;
+  const t = new Date();
+  const mo = t.getMonth() + 1;
+  const yrs = t.getFullYear() - y - ((mo < m || (mo === m && t.getDate() < d)) ? 1 : 0);
+  return yrs >= 0 ? yrs : null;
+}
+const expLabel = (start) => { const y = expYears(start); return y == null ? "" : y === 0 ? "<1y" : `${y}y`; };
+
 function PersonasPage() {
   const { state, addTo, removeFrom, setList } = useAppState();
   const has = (name) => state.personas.some((p) => p.name === name);
+  const hasSkill = (mine, sk) => (mine || []).some((s) => skillName(s) === sk);
   const toggleSkill = (i, skill) => setList("personas", state.personas.map((p, idx) =>
-    idx === i ? { ...p, skills: (p.skills || []).includes(skill) ? p.skills.filter((s) => s !== skill) : [...(p.skills || []), skill] } : p));
+    idx === i ? { ...p, skills: hasSkill(p.skills, skill) ? (p.skills || []).filter((s) => skillName(s) !== skill) : [...(p.skills || []), { name: skill, start: todayISO() }] } : p));
+  const setSkillStart = (i, skill, start) => setList("personas", state.personas.map((p, idx) =>
+    idx === i ? { ...p, skills: (p.skills || []).map((s) => (skillName(s) === skill ? { name: skill, start } : s)) } : p));
   return (
     <>
       <div className="card">
@@ -619,9 +638,20 @@ function PersonasPage() {
               {pool.length > 0 && (
                 <div className="chip-wrap" style={{ marginTop: 8 }}>
                   {pool.map((sk) => (
-                    <button key={sk} className={`heritage-chip${mine.includes(sk) ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => toggleSkill(i, sk)}>
-                      {mine.includes(sk) ? "✓ " : ""}{sk}
+                    <button key={sk} className={`heritage-chip${hasSkill(mine, sk) ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => toggleSkill(i, sk)}>
+                      {hasSkill(mine, sk) ? "✓ " : ""}{sk}
                     </button>
+                  ))}
+                </div>
+              )}
+              {mine.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginBottom: 4 }}>📅 Started each skill — sets your experience (years) shown to collaborators &amp; used in search.</div>
+                  {mine.map((s) => (
+                    <div key={skillName(s)} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4, fontSize: 11 }}>
+                      <span style={{ flex: 1 }}>{skillName(s)} {skillStart(s) && <span style={{ color: "var(--gold, #ffcf3f)" }}>· {expLabel(skillStart(s))} exp</span>}</span>
+                      <input type="date" max={todayISO()} value={skillStart(s)} onChange={(e) => setSkillStart(i, skillName(s), e.target.value)} style={{ width: 140, fontSize: 11 }} />
+                    </div>
                   ))}
                 </div>
               )}
@@ -1103,7 +1133,7 @@ function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
         <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add PersonaZ</span>}</div>
       </div>
       <div className="form-group"><label>🎯 Skills</label>
-        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{skills.length ? skills.map((s, i) => <span key={i} className="tag">{s}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add skills</span>}</div>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{skills.length ? skills.map((s, i) => <span key={i} className="tag">{skillName(s)}{skillStart(s) ? ` · ${expLabel(skillStart(s))}` : ""}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add skills</span>}</div>
       </div>
       {/* Tapping a metric opens its selector app to make choices. */}
       <div className="form-group"><label>🌐 NationalitieZ (heritage) <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
@@ -1689,6 +1719,9 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
 }
 
 const SKILL_KEYS = ["mimez", "directz", "lessonz", "singz", "rapz", "drumz", "violinz", "guitarz", "bassz", "keyz", "producez", "designz", "shotz", "developz", "managez", "bodiez"];
+// The CI workflow (.github/workflows/android-apk.yml) publishes the debug APK to
+// this release asset on every push to main.
+const APK_DOWNLOAD_URL = "https://github.com/ctkoth/-music-connectz-frontend-/releases/download/apk-latest/MusicConnectZ.apk";
 
 function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
   const { state, update } = useAppState();
@@ -1721,6 +1754,12 @@ function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
       <button className="btn btn-secondary btn-small" style={{ marginTop: 12 }} onClick={() => update({ onboardDismissed: true })}>Dismiss onboarding</button>
     </div>
     <TopUpTiles serverOk={serverOk} tier={tier} syncEconomy={syncEconomy} />
+    <div className="card">
+      <div className="card-header"><span>📱 Get the Android app</span><IconImg icon="logo.png" alt="Music ConnectZ" style={{ width: 26, height: 26, borderRadius: 6 }} /></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Install Music ConnectZ on your phone — same account, home-screen icon, full-screen. Android APK (sideload: open the file and allow install from this source).</p>
+      <a className="btn btn-success" style={{ width: "100%", textAlign: "center", textDecoration: "none" }} href={APK_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">⬇️ Download the app (.apk)</a>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>iOS + Play Store builds coming next. Link goes live once the first build publishes.</p>
+    </div>
     </>
   );
 }
@@ -2206,6 +2245,7 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
           <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>🎚️ Range filters <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(exclusive — gates who qualifies)</span></div>
           <RangeRow label="Attractiveness (/10)" emoji="💯" minKey="attr_min" maxKey="attr_max" rng={rng} setR={setR} min={1} max={10} />
           <RangeRow label="Age (years)" emoji="🎂" minKey="age_min" maxKey="age_max" rng={rng} setR={setR} min={13} max={99} />
+          <RangeRow label="Skill experience (years)" emoji="🧠" minKey="exp_min" maxKey="exp_max" rng={rng} setR={setR} min={0} max={50} />
           <div style={{ marginBottom: 8 }}>
             <label style={{ fontSize: 11, color: "var(--text-light)" }}>🗺️ Distance (within km — for in-person collabs)</label>
             <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
