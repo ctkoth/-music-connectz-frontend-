@@ -7,6 +7,7 @@ import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
 import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
+import { CONTINENTS, TOP_20, flagOf } from "./nationalitiez.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
@@ -517,7 +518,11 @@ function SetupPage() {
   return (
     <div className="card">
       <div className="card-header">👤 Your Profile</div>
-      <div className="form-group"><label>Username</label><input value={form.name} onChange={set("name")} placeholder="Your name" /></div>
+      <div className="grid-2">
+        <div className="form-group"><label>First name</label><input value={form.firstName || ""} onChange={set("firstName")} placeholder="First" /></div>
+        <div className="form-group"><label>Last name</label><input value={form.lastName || ""} onChange={set("lastName")} placeholder="Last" /></div>
+      </div>
+      <div className="form-group"><label>Display name / username</label><input value={form.name} onChange={set("name")} placeholder="Shown publicly" /></div>
       <div className="grid-2">
         <div className="form-group"><label>📧 Email</label><input type="email" value={form.email} onChange={set("email")} /></div>
         <div className="form-group"><label>📱 Phone</label><input value={form.phone} onChange={set("phone")} /></div>
@@ -1552,31 +1557,65 @@ function SpecZPage({ tier, serverOk, syncEconomy, onOpen }) {
 function NationalitieZPage() {
   const { state, updateUser } = useAppState();
   const [saved, ping] = useSavedFlash();
+  const [continent, setContinent] = useState(null); // gated continent id
+  const [query, setQuery] = useState("");
   const picked = state.user.nationalities || [];
   const toggle = (v) => {
     const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
     updateUser({ nationalities: next }); ping();
   };
+  const regionOf = (cid) => REGIONS.find((r) => r.name === CONTINENTS.find((c) => c.id === cid)?.region);
+  const allCountries = REGIONS.flatMap((r) => r.countries);
+  // Search across all countries; otherwise show the gated continent's countries,
+  // or the Top-20 flag grid by default.
+  const results = query.trim()
+    ? allCountries.filter((c) => c.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60)
+    : continent ? (regionOf(continent)?.countries || []) : TOP_20;
+
   return (
     <>
       <div className="card">
         <div className="card-header"><span>🌐 Your Heritage</span><span style={{ display: "flex", gap: 6 }}><span className="tag">{picked.length} selected</span><SavedFlash saved={saved} /></span></div>
-        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
-          Pick a whole continent/region if you don't know your specific country, or choose exact countries. Multi-select.
-        </p>
-        {REGIONS.map((r) => (
-          <div key={r.name} style={{ marginBottom: 14 }}>
-            <div className="modal-sub-title" style={{ marginBottom: 6 }}>{r.emoji} {r.name}</div>
-            <div className="chip-wrap">
-              <button className={`heritage-chip any${picked.includes(r.any) ? " sel" : ""}`} onClick={() => toggle(r.any)}>
-                {r.emoji} {r.name} (anywhere)
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick a continent to see its countries, tap the Top-20 flags, or search for any country. Multi-select — also filters your CollabZ / VenueZ / search.</p>
+
+        {/* Continent selectors — picking one gates its countries. */}
+        <div className="chip-wrap" style={{ marginBottom: 10 }}>
+          {CONTINENTS.map((c) => {
+            const r = REGIONS.find((x) => x.name === c.region);
+            const anySel = r && picked.includes(r.any);
+            return (
+              <button key={c.id} className={`heritage-chip${continent === c.id ? " sel" : ""}`} onClick={() => { setContinent(continent === c.id ? null : c.id); setQuery(""); }}>
+                {c.emoji} {c.name}{c.descriptor ? ` (${c.descriptor})` : ""}{anySel ? " ✓" : ""}
               </button>
-              {r.countries.map((c) => (
-                <button key={c} className={`heritage-chip${picked.includes(c) ? " sel" : ""}`} onClick={() => toggle(c)}>{c}</button>
-              ))}
+            );
+          })}
+        </div>
+
+        {/* "Whole continent" quick pick when one is gated. */}
+        {continent && !query && (() => {
+          const c = CONTINENTS.find((x) => x.id === continent); const r = REGIONS.find((x) => x.name === c.region);
+          return r ? <button className={`heritage-chip any${picked.includes(r.any) ? " sel" : ""}`} style={{ marginBottom: 8 }} onClick={() => toggle(r.any)}>{c.emoji} All of {c.name} (anywhere)</button> : null;
+        })()}
+
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔎 Search any country…" style={{ width: "100%", marginBottom: 10 }} />
+
+        <div className="modal-sub-title" style={{ marginBottom: 6 }}>{query ? "🔎 Results" : continent ? `${CONTINENTS.find((c) => c.id === continent)?.emoji} Countries` : "🌟 Top 20 nationalities"}</div>
+        <div className="chip-wrap">
+          {results.map((c) => (
+            <button key={c} className={`heritage-chip${picked.includes(c) ? " sel" : ""}`} onClick={() => toggle(c)}>{flagOf(c)} {c}</button>
+          ))}
+          {results.length === 0 && <span style={{ fontSize: 12, color: "var(--text-light)" }}>No match — try another spelling.</span>}
+        </div>
+
+        {/* Show what's already picked, with flags, so they can deselect. */}
+        {picked.length > 0 && (
+          <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8 }}>
+            <div className="modal-sub-title" style={{ marginBottom: 6 }}>✅ Your NationalitieZ</div>
+            <div className="chip-wrap">
+              {picked.map((c) => <button key={c} className="heritage-chip sel" onClick={() => toggle(c)}>{flagOf(c)} {c} ✕</button>)}
             </div>
           </div>
-        ))}
+        )}
       </div>
     </>
   );
