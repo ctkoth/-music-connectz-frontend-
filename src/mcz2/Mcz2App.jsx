@@ -2639,19 +2639,28 @@ function BattleZPage({ tier, onOpen }) {
           <span>{win ? "🏆 " : ""}{c.name}</span>
           <span className="tag">{s.qualified ? `${s.med.toFixed(1)}/10` : `${s.count}/3 votes`}</span>
         </div>
-        <div className="post-meta" style={{ marginBottom: 10 }}>🎵 {c.track} · {s.count} vote{s.count === 1 ? "" : "s"}</div>
+        {/* Median as fractional stars, with the score + vote total as clear integers on the side. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          <StarRow value={s.med || 0} size={16} />
+          <strong style={{ fontSize: 15, color: win ? "var(--primary)" : "inherit" }}>{s.count ? s.med.toFixed(1) : "—"}<span style={{ fontSize: 11, color: "var(--text-light)" }}>/10</span></strong>
+          <span className="tag" title="Total votes">🗳️ {s.count} vote{s.count === 1 ? "" : "s"}</span>
+        </div>
+        <div className="post-meta" style={{ marginBottom: 10 }}>🎵 {c.track}</div>
         {closed ? (
-          <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 Voting closed · community median <strong>{s.med.toFixed(1)}/10</strong>{s.qualified ? "" : " (didn't reach 3 votes)"}.</p>
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 Voting closed{s.qualified ? "" : " · didn't reach 3 votes"}.</p>
         ) : isParticipant ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>🚫 You're a participant in this battle — contestants can't vote on their own battle.</p>
         ) : mine == null && !vgate.canRate ? (
           <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>⏳ Watch the round — voting unlocks in <strong>{Math.max(0, vgate.rateS - vgate.sec)}s</strong>.</p>
         ) : mine == null ? (
-          <RatingScale myRating={null} onRate={(n) => rate(side, n)} onSkip={() => skip(side)} />
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>Rate this contestant:</div>
+            <StarRow value={0} size={22} showEnds onRate={(n) => rate(side, n)} />
+            <button className="btn-link" style={{ background: "none", border: "none", color: "var(--text-light)", cursor: "pointer", padding: 0, fontSize: 11, marginTop: 6, display: "block" }} onClick={() => skip(side)}>Skip</button>
+          </div>
         ) : (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>
             {mine ? <>You rated <strong style={{ color: "var(--primary)" }}>{mine}/10</strong>. </> : "You skipped. "}
-            Community median: <strong>{s.med.toFixed(1)}/10</strong>.
           </p>
         )}
       </div>
@@ -2866,7 +2875,10 @@ function RateConnectZPage() {
               {rated[k] != null ? (
                 <p style={{ fontSize: 12, color: "var(--text-light)" }}>You rated <strong style={{ color: "var(--primary)" }}>{rated[k]}/10</strong> · earned +1 ⚡</p>
               ) : (
-                <RatingScale myRating={null} onRate={(n) => award(k, n)} onSkip={() => setRated((r) => ({ ...r, [k]: 0 }))} />
+                <div>
+                  <StarRow value={0} size={22} showEnds onRate={(n) => award(k, n)} />
+                  <button className="btn-link" style={{ background: "none", border: "none", color: "var(--text-light)", cursor: "pointer", padding: 0, fontSize: 11, marginTop: 6, display: "block" }} onClick={() => setRated((r) => ({ ...r, [k]: 0 }))}>Skip</button>
+                </div>
               )}
             </div>
           );
