@@ -108,6 +108,12 @@ export const sharePostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/
 // Daily creator-submission budget — { used, cap, remaining }.
 export const getSubmissionsApi = () => api("/api/economy/submissions/");
 
+// Member link clicks — record a click (tally + safety scan + maybe +5⚡), and
+// fetch a member's link tallies.
+export const clickLinkApi = (url, owner = "", activeSeconds = 0) =>
+  api("/api/economy/link/click/", { method: "POST", body: { url, owner, active_seconds: activeSeconds } });
+export const getLinkTalliesApi = (owner) => api(`/api/economy/link/tallies/?owner=${encodeURIComponent(owner || "")}`);
+
 // Parcel Primate — Mailchimp-style campaigns (post + DM + email channels).
 export const getParcelApi = () => api("/api/economy/parcel/");
 export const sendParcelApi = ({ subject, body, audience, channels }) =>
