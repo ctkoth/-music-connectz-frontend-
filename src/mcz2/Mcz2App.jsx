@@ -540,16 +540,25 @@ function PersonasPage() {
   );
 }
 
+// PostZ visibility 👁️ — who can see a post. Restricted rewards the creator
+// 300 SpinAZ per valid join (another IP active <5 min or staying >5 min).
+const POST_VIS = [
+  { id: "public", emoji: "👀", label: "Public", note: "Viewable by anyone." },
+  { id: "restricted", emoji: "🛑", label: "Restricted", note: "Members only — tracks joins (timestamp + profile card). Earn 300 SpinAZ per valid join from another IP active <5 min or staying >5 min." },
+  { id: "private", emoji: "🔏", label: "Private", note: "Only you can see it." },
+];
 function PostZPage() {
   const { state, addTo, removeFrom } = useAppState();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [links, setLinks] = useState([]);
+  const [vis, setVis] = useState("public");
   const add = () => {
     if (!title.trim()) return;
-    addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, at: Date.now() });
-    setTitle(""); setDesc(""); setLinks([]);
+    addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, visibility: vis, joins: [], at: Date.now() });
+    setTitle(""); setDesc(""); setLinks([]); setVis("public");
   };
+  const visOf = (id) => POST_VIS.find((v) => v.id === id) || POST_VIS[0];
   return (
     <>
       <div className="card">
@@ -557,21 +566,32 @@ function PostZPage() {
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
         <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
         <div className="form-group"><label>🔗 Links (Spotify, YouTube, store…)</label><LinksEditor links={links} onChange={setLinks} /></div>
+        <div className="form-group">
+          <label>👁️ Visibility</label>
+          <div className="chip-wrap">
+            {POST_VIS.map((v) => <button key={v.id} className={`heritage-chip${vis === v.id ? " sel" : ""}`} onClick={() => setVis(v.id)}>{v.emoji} {v.label}</button>)}
+          </div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>{visOf(vis).note}</p>
+        </div>
         <button className="btn btn-success" style={{ width: "100%" }} onClick={add}>📤 Post</button>
       </div>
       <div className="card">
         <div className="card-header">🎵 Your Work Examples</div>
         {state.examples.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No examples yet.</p>
-        ) : state.examples.map((ex, i) => (
-          <div key={ex.id || i} className="post-card">
-            <div className="post-user">{ex.title}</div>
-            <div className="post-content">{ex.desc}</div>
-            <LinksRow links={ex.links} />
-            <SocialBar id={`post:${ex.id || i}`} shareText={`${ex.title} on Music ConnectZ`} />
-            <button className="btn btn-danger btn-small" style={{ marginTop: 8 }} onClick={() => removeFrom("examples", i)}>Delete</button>
-          </div>
-        ))}
+        ) : state.examples.map((ex, i) => {
+          const v = visOf(ex.visibility);
+          return (
+            <div key={ex.id || i} className="post-card">
+              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span></div>
+              <div className="post-content">{ex.desc}</div>
+              <LinksRow links={ex.links} />
+              {ex.visibility === "restricted" && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {(ex.joins || []).length} join{(ex.joins || []).length === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
+              <SocialBar id={`post:${ex.id || i}`} shareText={`${ex.title} on Music ConnectZ`} />
+              <button className="btn btn-danger btn-small" style={{ marginTop: 8 }} onClick={() => removeFrom("examples", i)}>Delete</button>
+            </div>
+          );
+        })}
       </div>
     </>
   );
@@ -1903,9 +1923,9 @@ function SocialConnectZPage({ serverOk }) {
 }
 
 const GROUP_BUILTIN = [
-  { name: "Friends", icon: "groupz_friendz.png", note: "Mutually beneficial" },
-  { name: "Fans", icon: "groupz_fanz.png", note: "Less beneficial" },
-  { name: "Partners", icon: "groupz.png", note: "Work with frequently" },
+  { name: "FriendZ", icon: "groupz_friendz.png", note: "Mutual follows — your friends" },
+  { name: "FanZ", icon: "groupz_fanz.png", note: "Follow you one-way — your fans" },
+  { name: "PartnerZ", icon: "groupz.png", note: "Agreed partners (with a terms doc)" },
   { name: "Blocked", icon: "groupz_blocked.png", note: "Cannot contact you" },
 ];
 const VISIBILITIES = [
