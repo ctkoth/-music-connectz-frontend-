@@ -104,6 +104,11 @@ export const getPostzApi = (sort = "hot") => api(`/api/economy/postz/?sort=${sor
 export const createPostzApi = (post) => api("/api/economy/postz/", { method: "POST", body: post });
 export const joinPostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/join/`, { method: "POST", body: { active_seconds: activeSeconds } });
 
+// Parcel Primate — Mailchimp-style campaigns (post + DM + email channels).
+export const getParcelApi = () => api("/api/economy/parcel/");
+export const sendParcelApi = ({ subject, body, audience, channels }) =>
+  api("/api/economy/parcel/", { method: "POST", body: { subject, body, audience, channels } });
+
 // CollabZ escrow deals — money (or SpinAZ) held until the payer approves.
 export const getCollabsApi = () => api("/api/economy/collab/");
 export const getCollabApi = (id) => api(`/api/economy/collab/${id}/`);
