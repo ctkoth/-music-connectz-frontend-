@@ -160,6 +160,7 @@ export const CATALOG = [
     label: "ToolZ",
     apps: [
       { key: "lilith", name: "Lilith", emoji: "💃🏽", icon: "toolz_lilith.png", desc: "An Apple Things-style engine with MCZ mission logic: Inbox, Today, Upcoming, Anytime, Someday, Logbook, Trash. XP-based completion — the Artist's Daily Engine.", fn: true },
+      { key: "parcel", name: "Parcel Primate", emoji: "🐵", icon: "parcel.png", desc: "Mailchimp-style e-mail marketing for Music ConnectZ. Write a campaign like a post and blast your audience (followers / fans / friends) across the feed, DMs, and email — same post paradigm on every channel.", fn: true },
       { key: "filez", name: "FileZ", emoji: "📁", icon: "filez.png", desc: "File management and uploads. Storage caps by tier: Free 400MB / Premium 5GB / StatZ 100GB.", fn: true },
     ],
   },
@@ -211,7 +212,6 @@ export const CATALOG = [
       { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met." },
       { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work." },
       { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "A Buffer-style post scheduler and management tool." },
-      { key: "parcel", name: "Parcel Primate", emoji: "🐵", icon: "parcel.png", desc: "A Mailchimp-style email campaign tool." },
     ],
   },
 ];

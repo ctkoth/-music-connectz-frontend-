@@ -117,6 +117,7 @@ import {
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getCollabsApi, createCollabApi, fundCollabApi, deliverCollabApi, releaseCollabApi, disputeCollabApi, refundCollabApi,
+  getParcelApi, sendParcelApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
@@ -6346,6 +6347,80 @@ function DirectZPage({ tier, serverOk }) {
   );
 }
 
+// ---- Parcel Primate: Mailchimp-style campaigns (post paradigm + email) ----
+function ParcelPrimatePage({ serverOk }) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [audience, setAudience] = useState("followers");
+  const [channels, setChannels] = useState({ post: true, message: false, email: false });
+  const [info, setInfo] = useState(null); // { audiences, email_ready }
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => { if (serverOk) getParcelApi().then(setInfo).catch(() => setInfo(null)); }, [serverOk]);
+  const toggle = (c) => setChannels((s) => ({ ...s, [c]: !s[c] }));
+  const chosen = Object.entries(channels).filter(([, v]) => v).map(([k]) => k);
+  const size = info?.audiences?.[audience] ?? null;
+  const send = async () => {
+    if (!subject.trim() || !chosen.length) { setMsg("Add a subject and pick at least one channel."); return; }
+    setBusy(true); setMsg(""); setResult(null);
+    try {
+      const r = await sendParcelApi({ subject: subject.trim(), body: body.trim(), audience, channels: chosen });
+      setResult(r); setMsg("📣 Campaign sent!");
+    } catch (e) { setMsg(e?.message || "Couldn't send — try again."); }
+    setBusy(false);
+  };
+  const AUD = [["followers", "👥 All followers"], ["fans", "⭐ Fans"], ["friends", "🤝 Friends"]];
+  const CH = [["post", "📣 Post to feed", "Publishes a public PostZ from you."], ["message", "📨 Direct message", "DMs every recipient + notifies them."], ["email", "✉️ Email", "Emails recipients who have an address on file."]];
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><span>🐵 Parcel Primate — campaigns</span><span className="tag">e-mail marketing</span></div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Write it once like a post, blast it to <strong>your</strong> audience. Every channel follows the same post paradigm — publish to the feed, slide into DMs, and hit inboxes. This reaches the people who follow you, never the whole platform. 📬
+        </p>
+        {!serverOk && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Sign in to load your audience and send.</p>}
+      </div>
+
+      <div className="card">
+        <div className="form-group"><label>✍️ Subject</label><input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="New drop, show announcement, ask…" /></div>
+        <div className="form-group"><label>📝 Message</label><CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 90 }} placeholder="What do you want your people to know?" /></div>
+
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🎯 Audience</label>
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>
+          {AUD.map(([v, l]) => (
+            <button key={v} className={`heritage-chip${audience === v ? " sel" : ""}`} onClick={() => setAudience(v)}>
+              {l}{info?.audiences ? ` (${info.audiences[v] ?? 0})` : ""}
+            </button>
+          ))}
+        </div>
+
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>📡 Channels</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "6px 0 10px" }}>
+          {CH.map(([v, l, hint]) => (
+            <label key={v} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>
+              <input type="checkbox" checked={channels[v]} onChange={() => toggle(v)} />
+              <span>{l} <span style={{ color: "var(--text-light)", fontSize: 10 }}>— {hint}</span>
+                {v === "email" && info && !info.email_ready && <span style={{ color: "var(--gold, #ffcf3f)", fontSize: 10 }}> · not wired up yet</span>}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {size != null && <p style={{ fontSize: 11, color: "var(--text-light)" }}>This will reach up to <strong>{size}</strong> {audience}.</p>}
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={busy || !serverOk || !subject.trim() || !chosen.length} onClick={send}>{busy ? "Sending…" : "🚀 Send campaign"}</button>
+        {msg && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+        {result && (
+          <div className="post-card" style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 12 }}>Reached <strong>{result.recipients}</strong> · 📣 posted {result.posted} · 📨 messaged {result.messaged} · ✉️ emailed {result.emailed}</div>
+            {result.email_note && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>{result.email_note}</div>}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ---- LegendZ: "what every indicator means" in Corey voice ----
 function LegendZRow({ emoji, term, children, cta, onOpen }) {
   return (
@@ -6443,6 +6518,7 @@ function LegendZPage({ onOpen }) {
 
 const FN_PAGES = {
   legendz: LegendZPage,
+  parcel: ParcelPrimatePage,
   merchz: MerchZPage,
   directz: DirectZPage,
   singz: SingZPage,
