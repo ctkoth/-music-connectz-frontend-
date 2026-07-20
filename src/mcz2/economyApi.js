@@ -200,6 +200,10 @@ export const createAutoTopUpApi = ({ amountCents, interval }) =>
   api("/api/economy/autotopup/", { method: "POST", body: { amount_cents: amountCents, interval } });
 export const cancelAutoTopUpApi = (id) => api(`/api/economy/autotopup/${id}/cancel/`, { method: "POST" });
 
+// 18+ age verification via Stripe Identity.
+export const getIdentityApi = () => api("/api/economy/identity/");
+export const startIdentityApi = () => api("/api/economy/identity/", { method: "POST" });
+
 // 10-day downgrade-for-refund window.
 export const getRefundWindowApi = () => api("/api/economy/membership/refund/");
 export const refundMembershipApi = () => api("/api/economy/membership/refund/", { method: "POST" });

@@ -119,6 +119,7 @@ import {
   getCollabsApi, createCollabApi, fundCollabApi, deliverCollabApi, releaseCollabApi, disputeCollabApi, refundCollabApi,
   getParcelApi, sendParcelApi,
   getAutoTopUpsApi, createAutoTopUpApi, cancelAutoTopUpApi,
+  getIdentityApi, startIdentityApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
@@ -998,6 +999,41 @@ function AutoTopUpManager({ serverOk }) {
   );
 }
 
+// 18+ age verification (Stripe Identity). Server-truth flag gates money betting.
+function useIdentity(serverOk) {
+  const [status, setStatus] = useState(null); // { verified_18plus, stripe_enabled }
+  const load = () => getIdentityApi().then(setStatus).catch(() => setStatus(null));
+  useEffect(() => { if (serverOk) load(); }, [serverOk]);
+  return status;
+}
+
+function Verify18({ serverOk }) {
+  const status = useIdentity(serverOk);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (status?.verified_18plus) return <span className="tag" style={{ color: "var(--success)" }}>🔞 18+ verified ✅</span>;
+  const start = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await startIdentityApi();
+      if (r.url) { window.location.href = r.url; return; }
+      if (r.verified_18plus) setMsg("✅ You're already verified.");
+    } catch (e) { setMsg(e?.message || "Verification isn't available right now."); }
+    setBusy(false);
+  };
+  return (
+    <div>
+      <button className="btn btn-small btn-secondary" disabled={busy || !serverOk} onClick={start}>{busy ? "…" : "🔞 Verify 18+ with ID"}</button>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>
+        {status && !status.stripe_enabled
+          ? "A real government-ID check (Stripe Identity) activates once it's configured — no more honor-system."
+          : "One-time government-ID check via Stripe — proves you're 18+ so you can stake real money."}
+      </p>
+      {msg && <p style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
   const { state } = useAppState();
   const u = state.user;
@@ -1057,6 +1093,10 @@ function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
       <button className="btn btn-success" style={{ width: "100%", marginBottom: 10 }} onClick={() => onOpen?.("setup")}>✏️ Edit profile (name, bio, email, photo)</button>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio — tap Edit profile to add one."}</div></div>
       <TopUpTiles serverOk={serverOk} tier={effTier} syncEconomy={syncEconomy} />
+      <div className="card">
+        <div className="card-header"><span>🔞 Age verification</span><Verify18 serverOk={serverOk} /></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", margin: 0 }}>Verify you're 18+ with a one-time government-ID check (Stripe Identity) to unlock real-money stakes on BattleZ and any adult content. Your ID goes to Stripe, not stored by us.</p>
+      </div>
       <SocialZConnect serverOk={serverOk} mczFollowers={me?.followers ?? 0} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
@@ -2907,8 +2947,9 @@ const BATTLE_SEED_POOLS = {
   cypher: { a: 300, b: 300 },
 };
 
-function BattleZPage({ tier, onOpen }) {
+function BattleZPage({ tier, onOpen, serverOk }) {
   const { state, update, updateUser, updateWallet, addTo, addXP } = useAppState();
+  const idStatus = useIdentity(serverOk);
   const [mode, setMode] = useState("1v1");
   const vgate = useWatchGate(mode); // watch 30s before voting on a battle
   // ratings + my pick per contestant, seeded from demo; reset when mode changes.
@@ -2938,7 +2979,8 @@ function BattleZPage({ tier, onOpen }) {
   // ---- Betting layer ----
   // Contestants (18+ verified) stake real money on themselves; spectators bet
   // 🍥 SpinAZ on a side. Pools = seed crowd + this member's stakes.
-  const verified18 = !!state.user.verified18;
+  // Server-verified 18+ (Stripe Identity) gates real-money stakes — no honor system.
+  const verified18 = !!idStatus?.verified_18plus;
   const bets = (state.battleBets || {})[mode] || {};
   const seed = BATTLE_SEED_POOLS[mode] || { a: 0, b: 0 };
   const spinazPool = (side) => (seed[side] || 0) + (bets[side] || 0);
@@ -3087,7 +3129,7 @@ function BattleZPage({ tier, onOpen }) {
             {!verified18 ? (
               <>
                 <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>🔞 Money stakes are for <strong>verified 18+</strong> contestants only.</p>
-                <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => { if (window.confirm("Confirm you are 18 or older. This enables real-money stakes.")) updateUser({ verified18: true }); }}>✅ I'm 18+ — verify</button>
+                <Verify18 serverOk={serverOk} />
               </>
             ) : (
               <>
