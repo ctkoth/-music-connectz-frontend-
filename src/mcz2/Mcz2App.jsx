@@ -822,28 +822,30 @@ function ProfilePage({ onOpen, tier, serverOk }) {
           </div>
         )}
       </div>
-      <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio"}</div></div>
+      <button className="btn btn-success" style={{ width: "100%", marginBottom: 10 }} onClick={() => onOpen?.("setup")}>✏️ Edit profile (name, bio, email, photo)</button>
+      <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio — tap Edit profile to add one."}</div></div>
       <SocialZConnect serverOk={serverOk} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
-        <div>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : "None yet"}</div>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add PersonaZ</span>}</div>
       </div>
       <div className="form-group"><label>🎯 Skills</label>
-        <div>{skills.length ? skills.map((s, i) => <span key={i} className="tag">{s}</span>) : "None yet"}</div>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{skills.length ? skills.map((s, i) => <span key={i} className="tag">{s}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add skills</span>}</div>
       </div>
-      <div className="form-group"><label>🌐 NationalitieZ (heritage)</label>
-        <div>{(u.nationalities || []).length ? u.nationalities.map((n, i) => <span key={i} className="tag">{n}</span>) : "Not set"}</div>
+      {/* Tapping a metric opens its selector app to make choices. */}
+      <div className="form-group"><label>🌐 NationalitieZ (heritage) <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("nationalitiez")}>{(u.nationalities || []).length ? u.nationalities.map((n, i) => <span key={i} className="tag">{n}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Set NationalitieZ</span>}</div>
       </div>
-      <div className="form-group"><label>🧠 SubstanceZ</label>
-        <div>{Object.entries(u.substances || {}).filter(([, v]) => v).length
+      <div className="form-group"><label>🧠 SubstanceZ <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("substancez")}>{Object.entries(u.substances || {}).filter(([, v]) => v).length
           ? Object.entries(u.substances).filter(([, v]) => v).map(([k, v]) => <span key={k} className="tag">{k}: {v}</span>)
-          : "Not set"}</div>
+          : <span className="tag" style={{ color: "var(--primary)" }}>+ Set SubstanceZ</span>}</div>
       </div>
-      <div className="form-group"><label>💞 PreferenceZ (attracted to)</label>
-        <div>{(() => {
+      <div className="form-group"><label>💞 PreferenceZ (attracted to) <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("preferencez")}>{(() => {
           const g = u.preferences?.partnerGenders || (u.preferences?.partnerGender ? [u.preferences.partnerGender] : []);
           const labels = g.map((id) => PARTNER_GENDERS.find((x) => x.id === id)?.label || id);
-          return labels.length ? labels.map((l) => <span key={l} className="tag">{l}</span>) : "Not set";
+          return labels.length ? labels.map((l) => <span key={l} className="tag">{l}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Set PreferenceZ</span>;
         })()}
           {(u.preferences?.traits || []).map((t) => <span key={t} className="tag">{t}</span>)}
         </div>
