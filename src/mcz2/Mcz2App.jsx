@@ -118,6 +118,7 @@ import {
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getCollabsApi, createCollabApi, fundCollabApi, deliverCollabApi, releaseCollabApi, disputeCollabApi, refundCollabApi,
   getParcelApi, sendParcelApi,
+  getAutoTopUpsApi, createAutoTopUpApi, cancelAutoTopUpApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
@@ -945,6 +946,54 @@ function TopUpTiles({ serverOk, tier, syncEconomy, onDone, compact = false }) {
         })}
       </div>
       {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+      <AutoTopUpManager serverOk={serverOk} />
+    </div>
+  );
+}
+
+// Hands-off recurring top-up: Stripe bills a saved card on a schedule, each
+// charge adds money + tier Energy to the wallet. Only shown when Stripe is live.
+const AUTO_INTERVALS = [["week", "Weekly"], ["month", "Monthly"], ["year", "Annual"]];
+function AutoTopUpManager({ serverOk }) {
+  const [rows, setRows] = useState(null); // null=unknown, []=none
+  const [enabled, setEnabled] = useState(false);
+  const [amt, setAmt] = useState(10);
+  const [cadence, setCadence] = useState("month");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const load = () => getAutoTopUpsApi().then((r) => { setRows(r.auto_topups || []); setEnabled(!!r.stripe_enabled); }).catch(() => { setRows([]); setEnabled(false); });
+  useEffect(() => { if (serverOk) load(); }, [serverOk]);
+  if (!serverOk || rows === null) return null;
+  const active = rows.filter((a) => a.active);
+  const start = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await createAutoTopUpApi({ amountCents: amt * 100, interval: cadence });
+      if (r.url) { window.location.href = r.url; return; }
+    } catch (e) { setMsg(e?.message || "Couldn't start auto top-up."); }
+    setBusy(false);
+  };
+  const cancel = async (id) => { setBusy(true); try { await cancelAutoTopUpApi(id); await load(); } catch { /* ignore */ } setBusy(false); };
+  return (
+    <div style={{ marginTop: 12, borderTop: "1px dashed var(--border)", paddingTop: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: 12 }}>⚡ Auto top-up {enabled ? "" : <span style={{ color: "var(--text-light)", fontWeight: 400 }}>· card billing not live yet</span>}</strong>
+      </div>
+      <p style={{ fontSize: 10, color: "var(--text-light)", margin: "4px 0 8px" }}>Stripe bills your saved card automatically — each charge adds the money + tier Energy to your wallet. Cancel anytime.</p>
+      {active.map((a) => (
+        <div key={a.id} className="skill-item">
+          <span className="skill-item-name">🔁 ${a.amount}/{AUTO_INTERVALS.find(([v]) => v === a.interval)?.[1]?.toLowerCase() || a.interval}</span>
+          <span className="skill-item-actions"><button className="btn btn-small btn-danger" disabled={busy} onClick={() => cancel(a.id)}>Cancel</button></span>
+        </div>
+      ))}
+      {enabled && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          <select value={amt} onChange={(e) => setAmt(Number(e.target.value))} style={{ width: 84 }}>{TOPUP_PRESETS.map((d) => <option key={d} value={d}>${d}</option>)}</select>
+          <select value={cadence} onChange={(e) => setCadence(e.target.value)} style={{ width: 104 }}>{AUTO_INTERVALS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <button className="btn btn-small btn-success" disabled={busy} onClick={start}>{busy ? "…" : "💳 Automate"}</button>
+        </div>
+      )}
+      {msg && <p style={{ fontSize: 10, color: "var(--danger)", marginTop: 6 }}>{msg}</p>}
     </div>
   );
 }
