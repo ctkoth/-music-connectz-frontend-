@@ -27,8 +27,8 @@ export const chargeAiApi = (model, note = "OCC AI usage") =>
 // OCC's real LLM reply (Corey GPT etc.). Charges the model cost on success;
 // 402 if short, 503 when the LLM backend isn't configured (fall back to local).
 // Returns { text, model, cost_cents, money }.
-export const occChatApi = ({ model, prompt, knowledge, history, slang, acronyms }) =>
-  api("/api/economy/ai/occ/", { method: "POST", body: { model, prompt, knowledge, history, slang, acronyms } });
+export const occChatApi = ({ model, prompt, knowledge, history, slang, acronyms, suggest }) =>
+  api("/api/economy/ai/occ/", { method: "POST", body: { model, prompt, knowledge, history, slang, acronyms, suggest } });
 
 // { items: [{ id, name, price_cents, owned }] }
 export const getSpecZApi = () => api("/api/economy/specz/");
