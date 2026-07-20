@@ -116,6 +116,7 @@ import {
   getConversationsApi, getThreadApi, sendMessageApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
+  getCollabsApi, createCollabApi, fundCollabApi, deliverCollabApi, releaseCollabApi, disputeCollabApi, refundCollabApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
@@ -3449,9 +3450,89 @@ function CollabSplitStudio({ tier }) {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Every contributor's worth is fully funded by the others who use it. Green = paid to them, red = they owe. On accept, wallets settle atomically and the platform keeps {money(platform)} in developer tax.</p>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Every contributor's worth is fully funded by the others who use it. Green = paid to them, red = they owe. This is your live preview — start a 🔒 escrow deal from an offer above and each payer's share is held safe until approval; the platform keeps {money(platform)} in developer tax on release.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// 🔒 Escrow-protected badge — reusable wherever money changes hands.
+function EscrowBadge({ title = "Escrow-protected — money is held until you approve, then released. Refundable while a dispute is open." }) {
+  return <span className="tag" style={{ color: "var(--success)" }} title={title}>🔒 Escrow-protected</span>;
+}
+
+const COLLAB_STATUS = {
+  draft: { emoji: "📝", label: "Draft — awaiting funding", color: "var(--text-light)" },
+  funded: { emoji: "🔒", label: "Funded — money held in escrow", color: "var(--gold, #ffcf3f)" },
+  delivered: { emoji: "📦", label: "Delivered — awaiting approval", color: "var(--accent, #22e6ff)" },
+  released: { emoji: "✅", label: "Released — paid out", color: "var(--success)" },
+  disputed: { emoji: "⚖️", label: "Disputed — under review", color: "var(--danger)" },
+  refunded: { emoji: "↩️", label: "Refunded", color: "var(--text-light)" },
+  cancelled: { emoji: "✕", label: "Cancelled", color: "var(--text-light)" },
+};
+
+// Live tracker for the current user's escrow deals: shows who's funded, the
+// amount held, the auto-release countdown, and the right action per role.
+function CollabDealTracker({ me, refreshKey }) {
+  const [deals, setDeals] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const load = () => getCollabsApi().then((r) => setDeals(r.deals || [])).catch(() => {});
+  useEffect(() => { load(); }, [refreshKey]);
+  const act = async (fn, id) => {
+    setBusy(true); setMsg("");
+    try { await fn(id); await load(); } catch (e) { setMsg(e?.message || "Couldn't complete that — try again."); }
+    setBusy(false);
+  };
+  const active = deals.filter((d) => !["released", "refunded", "cancelled"].includes(d.status));
+  const done = deals.filter((d) => ["released", "refunded", "cancelled"].includes(d.status));
+  if (!deals.length) return null;
+  const uname = me?.username;
+  const myEntry = (d) => d.participants.find((p) => p.username === uname);
+  const dealRow = (d) => {
+    const meta = COLLAB_STATUS[d.status] || COLLAB_STATUS.draft;
+    const mine = myEntry(d);
+    const iOwe = mine && Number(mine.pays_cents) > 0;
+    const iFunded = mine && mine.funded;
+    const cur = d.currency === "spinaz" ? "🍥" : "$";
+    const fmtAmt = (c) => (d.currency === "spinaz" ? `${c} 🍥` : money(c / 100));
+    const daysLeft = d.auto_release_at ? Math.max(0, Math.ceil((new Date(d.auto_release_at) - Date.now()) / 86400000)) : null;
+    return (
+      <div key={d.id} className="post-card" style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <strong style={{ fontSize: 13 }}>{d.title || `Collab #${d.id}`}</strong>
+          <span className="tag" style={{ color: meta.color }}>{meta.emoji} {d.status}</span>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-light)", margin: "4px 0" }}>{meta.label}{d.status === "funded" && daysLeft != null && ` · auto-releases in ${daysLeft}d`}</div>
+        <div style={{ fontSize: 11 }}>
+          {d.participants.map((p) => (
+            <div key={p.username} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>{p.username === uname ? "You" : `@${p.username}`} {p.funded ? "🔒" : ""}</span>
+              <span style={{ color: "var(--text-light)" }}>
+                {Number(p.pays_cents) > 0 && <>pays {fmtAmt(p.pays_cents)} </>}
+                {Number(p.receives_cents) > 0 && <span style={{ color: "var(--success)" }}>gets {fmtAmt(p.receives_cents)}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+        {d.currency === "money" && d.held_cents > 0 && <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🔒 {money(d.held_cents / 100)} held safe in escrow</div>}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          {iOwe && !iFunded && ["draft", "funded"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(fundCollabApi, d.id)}>💳 Fund my share ({fmtAmt(mine.pays_cents)}{d.stake_spinaz ? ` + ${d.stake_spinaz}🍥 stake` : ""})</button>}
+          {d.status === "funded" && mine && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(deliverCollabApi, d.id)}>📦 Mark delivered</button>}
+          {iOwe && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(releaseCollabApi, d.id)}>✅ Approve &amp; release</button>}
+          {mine && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(disputeCollabApi, d.id)} title="Freezes auto-release; the platform will mediate">⚖️ Dispute</button>}
+          {iOwe && ["draft", "funded"].includes(d.status) && !d.delivered_at && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(refundCollabApi, d.id)} title="Cancel and return held funds">↩️ Cancel &amp; refund</button>}
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+      <div className="card-header"><span>🔒 Your escrow deals</span><EscrowBadge /></div>
+      {active.map(dealRow)}
+      {done.length > 0 && <details style={{ marginTop: 6 }}><summary style={{ fontSize: 11, color: "var(--text-light)", cursor: "pointer" }}>Past deals ({done.length})</summary>{done.map(dealRow)}</details>}
+      {msg && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{msg}</p>}
     </div>
   );
 }
@@ -3464,6 +3545,11 @@ function CollabZPage({ tier, serverOk, onOpen }) {
   const [target, setTarget] = useState(null);
   const [offer, setOffer] = useState("");
   const [terms, setTerms] = useState("");
+  const [stake, setStake] = useState(0);
+  const [collabCur, setCollabCur] = useState("money");
+  const [dealKey, setDealKey] = useState(0);
+  const [escrowMsg, setEscrowMsg] = useState("");
+  const [escrowBusy, setEscrowBusy] = useState(false);
   const requests = state.collabRequests || [];
   const submit = () => {
     if (!target || !(Number(offer) > 0)) return;
@@ -3477,17 +3563,42 @@ function CollabZPage({ tier, serverOk, onOpen }) {
     });
     setTarget(null); setOffer(""); setTerms("");
   };
+  // Turn an offer into a real escrow deal: I pay the offer, my collaborator
+  // delivers; the money is held until I approve. Requires a real member target.
+  const startEscrow = async () => {
+    if (!target?.username || !(Number(offer) > 0)) return;
+    setEscrowBusy(true); setEscrowMsg("");
+    try {
+      await createCollabApi({
+        title: terms.trim() ? terms.trim().slice(0, 80) : `Collab with @${target.username}`,
+        currency: collabCur,
+        stake_spinaz: Number(stake) || 0,
+        participants: [
+          { username: state.user?.username, worth_cents: 0 },
+          { username: target.username, worth_cents: Math.round(Number(offer) * (collabCur === "spinaz" ? 1 : 100)) },
+        ],
+      });
+      setEscrowMsg("🔒 Escrow deal created — fund your share below to hold the money safe.");
+      setTarget(null); setOffer(""); setTerms(""); setStake(0);
+      setDealKey((k) => k + 1);
+    } catch (e) { setEscrowMsg(e?.message || "Couldn't create the escrow deal — is your collaborator a signed-in member?"); }
+    setEscrowBusy(false);
+  };
   return (
     <>
       <div className="card">
         <div className="card-header">🤝 CollabZ — user-based</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}><EscrowBadge /><span style={{ fontSize: 11, color: "var(--text-light)" }}>Your money is held safe until you approve the work.</span></div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
-          Every CollabZ is member-to-member. You put up <strong>real wallet money</strong>, the developer tax applies to your tier, and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
+          Every CollabZ is member-to-member. You put up <strong>real wallet money</strong> (or 🍥 SpinAZ), it's <strong>held in escrow</strong> — not sent — until you approve; the developer tax applies to your tier and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
         </p>
         <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>
-          🧾 Disputes &amp; refunds on a collab are settled between the members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
+          🧾 Money's held until you approve, auto-releases after the window, and is refundable while a dispute is open — settled between members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
         </p>
       </div>
+
+      {serverOk && <CollabDealTracker me={state.user} refreshKey={dealKey} />}
+      {escrowMsg && <div className="card"><p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", margin: 0 }}>{escrowMsg}</p></div>}
 
       <CollabSplitStudio tier={tier} />
 
@@ -3496,10 +3607,28 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           <div className="card-header"><span>🤝 Offer to {target.username ? `@${target.username}` : (target.display_name || target.name)}</span><button className="btn btn-small btn-secondary" onClick={() => setTarget(null)}>Change</button></div>
           <div className="form-group"><label>💵 Offer ($)</label><input type="number" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="0.00" /></div>
           <div className="form-group"><label>Terms</label><CappedTextarea value={terms} onChange={(e) => setTerms(e.target.value)} style={{ height: 56 }} placeholder="What are you collaborating on? Deliverables, splits, deadline…" /></div>
-          {Number(offer) > 0 && (() => { const s = splitTransaction(Number(offer), tier); return (
+          {Number(offer) > 0 && collabCur === "money" && (() => { const s = splitTransaction(Number(offer), tier); return (
             <p style={{ fontSize: 11, color: "var(--text-light)" }}>Developer tax ({s.label} {Math.round(s.rate * 100)}%): {money(s.dev)} · your collaborator receives {money(s.net)}.</p>
           ); })()}
-          <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+          {serverOk && target.username && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "6px 0" }}>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }}>Pay with</label>
+              <div className="chip-wrap">
+                <button className={`heritage-chip${collabCur === "money" ? " sel" : ""}`} onClick={() => setCollabCur("money")}>💲 Money</button>
+                <button className={`heritage-chip${collabCur === "spinaz" ? " sel" : ""}`} onClick={() => setCollabCur("spinaz")}>🍥 SpinAZ</button>
+              </div>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }} title="Optional refundable good-faith stake both sides put up; returned on completion.">🍥 Stake</label>
+              <input type="number" min="0" value={stake} onChange={(e) => setStake(e.target.value)} placeholder="0" style={{ width: 70 }} />
+            </div>
+          )}
+          {serverOk && target.username ? (
+            <>
+              <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0) || escrowBusy} onClick={startEscrow}>{escrowBusy ? "Creating…" : "🔒 Start escrow deal (held until you approve)"}</button>
+              <button className="btn btn-secondary btn-small" style={{ width: "100%", marginTop: 6 }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send informal offer (no escrow)</button>
+            </>
+          ) : (
+            <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+          )}
         </div>
       ) : (
         <MemberFinder serverOk={serverOk} onPick={setTarget} actionLabel="🤝 Collab with" note="Multi-select filters — combine NationalitieZ, PreferenceZ, ZodiacZ and SubstanceZ to find the right collaborator." />
@@ -3538,6 +3667,12 @@ function LegalZPage() {
         <div className="card-header">🧾 Refunds</div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
           <strong>Membership &amp; upgrades — 10-day refund window.</strong> You can downgrade for a full refund within <strong>10 days</strong> of purchase, straight from MembershipZ: the charge is refunded to your original payment method, any subscription is cancelled, and your tier drops back to Free. After 10 days the purchase is final. <strong>SpinAZ and Energy purchases are non-refundable</strong> (they're spendable currency). If something's broken, that's a bug — file a <strong>BugZ</strong> report and we fix it (squashed bugs pay you 200 SpinAZ). We don't issue refunds for buyer's remorse outside the 10-day window.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🔒 CollabZ escrow</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Funds committed to a CollabZ deal are <strong>held in escrow</strong> by {OWNER_ENTITY} and are not paid to your collaborator until (a) the paying member approves release, or (b) the deal <strong>auto-releases</strong> after the release window (default 10 days from funding) if no dispute is open. Either party may open a <strong>dispute</strong> within the dispute window, which freezes auto-release pending resolution. A deal cancelled before delivery returns all held funds and any good-faith stake to the payers. Optional SpinAZ stakes are refundable good faith and are returned on completion. Escrow is a holding mechanism only — {OWNER_ENTITY} is not an arbiter of creative quality and mediates disputes at its discretion.
         </p>
       </div>
       <div className="card">
@@ -6265,6 +6400,15 @@ function LegendZPage({ onOpen }) {
         </LegendZRow>
         <LegendZRow emoji="👑" term="RoyaltieZ" onOpen={onOpen} cta={{ to: "royaltiez", label: "👑 RoyaltieZ" }}>
           Ongoing earnings from work that keeps paying — accrue them, then cash out. This is the long game: build once, collect forever.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">🔒 Trust &amp; escrow</div>
+        <LegendZRow emoji="🔒" term="Escrow (CollabZ)" onOpen={onOpen} cta={{ to: "collabz", label: "🤝 Start a collab" }}>
+          Here's the honest truth about doing a deal with someone you don't know yet: your money doesn't go straight to them. When you start a CollabZ deal, what you pay gets <b>held by the platform</b> — locked, safe — and only releases to your collaborator <em>when you approve the work</em>. Ghost you? You get it back. It even auto-releases after the window so <em>they're</em> not stuck either, and either side can open a dispute to freeze it. That's how a stranger takes the first leap without getting burned.
+        </LegendZRow>
+        <LegendZRow emoji="🍥" term="Good-faith stake" onOpen={onOpen}>
+          Optional. Both sides can put up a small refundable SpinAZ stake when a deal starts — skin in the game that scares off flakes and spammers. Follow through and you get every bit of it back. It costs an honest creator nothing; it just filters out the people who were never serious.
         </LegendZRow>
       </div>
       <div className="card">
