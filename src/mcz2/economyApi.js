@@ -127,6 +127,13 @@ export const uploadAvatarApi = (file) => {
 export const rateProfileApi = (targetUsername, dimension, score) =>
   api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
 
+// SocialZ verification: action "start" issues a bio code, "check" AI-reads the
+// live follower count + confirms the code → proves ownership + the number.
+export const startSocialVerifyApi = (url, label = "") =>
+  api("/api/economy/social/verify/", { method: "POST", body: { action: "start", url, label } });
+export const checkSocialVerifyApi = (url) =>
+  api("/api/economy/social/verify/", { method: "POST", body: { action: "check", url } });
+
 // Direct messages
 export const getConversationsApi = () => api("/api/economy/messages/");
 export const getThreadApi = (username) => api(`/api/economy/messages/?with=${encodeURIComponent(username)}`);
