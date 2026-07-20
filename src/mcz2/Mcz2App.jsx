@@ -109,7 +109,8 @@ import {
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
-  followApi,
+  followApi, getNotificationsApi, markNotificationApi,
+  reportItemApi, blockUserApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
@@ -278,6 +279,7 @@ function SocialBar({ id, shareText, style }) {
   const s = srv || local;
   const [open, setOpen] = useState(false);
   const [rateOpen, setRateOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState("");
 
@@ -334,8 +336,17 @@ function SocialBar({ id, shareText, style }) {
         </button>
         <button className="btn btn-small btn-secondary" onClick={() => setOpen((v) => !v)}>💬 {comments.length}</button>
         <button className="btn btn-small btn-secondary" onClick={share}>🔗 Share</button>
+        {signedIn && <button className="btn btn-small btn-secondary" onClick={() => setReportOpen((v) => !v)} title="Report">⚠️</button>}
         {flash && <span style={{ fontSize: 11, color: "var(--success)" }}>{flash}</span>}
       </div>
+      {reportOpen && (
+        <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--text-light)" }}>Report:</span>
+          {[["spam", "Spam"], ["harassment", "Harassment"], ["hate", "Hate"], ["nsfw", "NSFW"], ["stolen", "Stolen"], ["other", "Other"]].map(([reason, l]) => (
+            <button key={reason} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11 }} onClick={() => { reportItemApi(id, reason).catch(() => {}); setReportOpen(false); setFlash("⚠️ reported — thanks"); setTimeout(() => setFlash(""), 1800); }}>{l}</button>
+          ))}
+        </div>
+      )}
       {rateOpen && (
         <div style={{ marginTop: 8, padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
           <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>Tap to rate — lights up every star up to your pick:</div>
@@ -1690,6 +1701,12 @@ function DiscoverTab({ serverOk }) {
             )}
             {viewing.username && !viewing.mine && (
               <FollowButton username={viewing.username} rel={viewing.relationship} counts={viewing} />
+            )}
+            {viewing.username && !viewing.mine && (
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                <button className="btn btn-small btn-secondary" onClick={() => { reportItemApi(`profile:${viewing.username}`, "other").catch(() => {}); alert("Reported to moderation — thanks."); }}>⚠️ Report</button>
+                <button className="btn btn-small btn-secondary" onClick={() => { if (confirm(`Block @${viewing.username}? You won't see each other.`)) { blockUserApi(viewing.username, "block").then(() => setViewing(null)).catch(() => {}); } }}>🚫 Block</button>
+              </div>
             )}
             {viewing.username && !viewing.mine && (
               <div className="card" style={{ padding: 10, marginBottom: 8 }}>
@@ -5984,6 +6001,62 @@ const FN_PAGES = {
   settings: SettingsPage,
 };
 
+// ---- Notifications bell (header) ----
+const NOTIF_EMOJI = { follow: "👥", rate: "⭐", like: "👍", comment: "💬", join: "🛑", pay: "💸", system: "🔔" };
+function NotificationsBell({ serverOk, onOpen }) {
+  const signedIn = isSignedIn();
+  const [data, setData] = useState({ notifications: [], unread: 0 });
+  const [open, setOpen] = useState(false);
+  const load = () => { if (signedIn && serverOk) getNotificationsApi().then(setData).catch(() => {}); };
+  useEffect(() => {
+    if (!signedIn || !serverOk) return undefined;
+    load();
+    const t = setInterval(load, 45000); // poll every 45s
+    return () => clearInterval(t);
+  }, [signedIn, serverOk]);
+  if (!signedIn || !serverOk) return null;
+
+  const markAll = () => { markNotificationApi({ all: true }).then(() => load()).catch(() => {}); };
+  const click = (n) => {
+    markNotificationApi({ id: n.id }).then(() => load()).catch(() => {});
+    if (n.item_id?.startsWith("post:")) onOpen?.("examples");
+    setOpen(false);
+  };
+  const ago = (iso) => {
+    const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 60) return "now"; if (s < 3600) return `${Math.floor(s / 60)}m`; if (s < 86400) return `${Math.floor(s / 3600)}h`;
+    return `${Math.floor(s / 86400)}d`;
+  };
+  return (
+    <div style={{ position: "relative" }}>
+      <button className="theme-toggle" onClick={() => { setOpen((v) => !v); if (!open) load(); }} title="Notifications" style={{ position: "relative" }}>
+        🔔
+        {data.unread > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "var(--danger)", color: "#fff", borderRadius: 10, fontSize: 9, minWidth: 15, height: 15, lineHeight: "15px", textAlign: "center", padding: "0 3px", fontWeight: 700 }}>{data.unread > 99 ? "99+" : data.unread}</span>}
+      </button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: 34, width: 280, maxHeight: 380, overflowY: "auto", background: "var(--panel, #12101c)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: 8, zIndex: 50, boxShadow: "0 8px 30px rgba(0,0,0,0.5)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <strong style={{ fontSize: 13 }}>🔔 Notifications</strong>
+            {data.unread > 0 && <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 11 }} onClick={markAll}>Mark all read</button>}
+          </div>
+          {data.notifications.length === 0
+            ? <p style={{ fontSize: 12, color: "var(--text-light)", padding: 8 }}>Nothing yet — follows, ratings, likes and joins show up here.</p>
+            : data.notifications.map((n) => (
+              <div key={n.id} onClick={() => click(n)} style={{ display: "flex", gap: 8, padding: "6px 4px", cursor: "pointer", borderRadius: 8, background: n.read ? "transparent" : "rgba(168,85,247,0.10)" }}>
+                <span style={{ fontSize: 15 }}>{NOTIF_EMOJI[n.kind] || "🔔"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12 }}>{n.text}</div>
+                  <div style={{ fontSize: 10, color: "var(--text-light)" }}>{ago(n.created_at)}</div>
+                </div>
+                {!n.read && <span style={{ width: 7, height: 7, borderRadius: 4, background: "var(--primary)", alignSelf: "center" }} />}
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- App description modal (blueprint "click icon → Corey voice" pattern) ----
 function AppModal({ app, onClose, onOpen }) {
   if (!app) return null;
@@ -6215,6 +6288,7 @@ function Shell() {
             </div>
           </div>
           <div className="header-right">
+            <NotificationsBell serverOk={serverOk} onOpen={openApp} />
             <button className="theme-toggle" onClick={toggleLightDark} title="Panel depth">
               {settings.lightDark === "dark" ? "🌙" : "☀️"}
             </button>
