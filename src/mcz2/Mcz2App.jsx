@@ -2245,7 +2245,13 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
           <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>🎚️ Range filters <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(exclusive — gates who qualifies)</span></div>
           <RangeRow label="Attractiveness (/10)" emoji="💯" minKey="attr_min" maxKey="attr_max" rng={rng} setR={setR} min={1} max={10} />
           <RangeRow label="Age (years)" emoji="🎂" minKey="age_min" maxKey="age_max" rng={rng} setR={setR} min={13} max={99} />
-          <RangeRow label="Skill experience (years)" emoji="🧠" minKey="exp_min" maxKey="exp_max" rng={rng} setR={setR} min={0} max={50} />
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>🧠 Skill experience — minimum years (no max)</label>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+              <input type="number" min={0} value={rng.exp_min ?? ""} placeholder="min years" onChange={(e) => setR("exp_min", e.target.value)} style={{ width: 110 }} />
+              <span style={{ fontSize: 11, color: "var(--text-light)" }}>+ years in the craft — no upper cap</span>
+            </div>
+          </div>
           <div style={{ marginBottom: 8 }}>
             <label style={{ fontSize: 11, color: "var(--text-light)" }}>🗺️ Distance (within km — for in-person collabs)</label>
             <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
