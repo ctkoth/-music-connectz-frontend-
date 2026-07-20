@@ -104,6 +104,16 @@ export const getPostzApi = (sort = "hot") => api(`/api/economy/postz/?sort=${sor
 export const createPostzApi = (post) => api("/api/economy/postz/", { method: "POST", body: post });
 export const joinPostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/join/`, { method: "POST", body: { active_seconds: activeSeconds } });
 
+// CollabZ escrow deals — money (or SpinAZ) held until the payer approves.
+export const getCollabsApi = () => api("/api/economy/collab/");
+export const getCollabApi = (id) => api(`/api/economy/collab/${id}/`);
+export const createCollabApi = (deal) => api("/api/economy/collab/", { method: "POST", body: deal });
+export const fundCollabApi = (id) => api(`/api/economy/collab/${id}/fund/`, { method: "POST" });
+export const deliverCollabApi = (id) => api(`/api/economy/collab/${id}/deliver/`, { method: "POST" });
+export const releaseCollabApi = (id) => api(`/api/economy/collab/${id}/release/`, { method: "POST" });
+export const disputeCollabApi = (id) => api(`/api/economy/collab/${id}/dispute/`, { method: "POST" });
+export const refundCollabApi = (id) => api(`/api/economy/collab/${id}/refund/`, { method: "POST" });
+
 // DirectZ collaborative video works (ReelZ / EpisodeZ / MovieZ)
 export const getDirectzApi = (fmt) => api(`/api/economy/directz/${fmt ? `?fmt=${fmt}` : ""}`);
 export const createDirectzApi = (work) => api("/api/economy/directz/", { method: "POST", body: work });
@@ -126,6 +136,13 @@ export const uploadAvatarApi = (file) => {
 // dimension: "overall" | "attractiveness"; score 1-10
 export const rateProfileApi = (targetUsername, dimension, score) =>
   api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
+
+// SocialZ verification: action "start" issues a bio code, "check" AI-reads the
+// live follower count + confirms the code → proves ownership + the number.
+export const startSocialVerifyApi = (url, label = "") =>
+  api("/api/economy/social/verify/", { method: "POST", body: { action: "start", url, label } });
+export const checkSocialVerifyApi = (url) =>
+  api("/api/economy/social/verify/", { method: "POST", body: { action: "check", url } });
 
 // Direct messages
 export const getConversationsApi = () => api("/api/economy/messages/");

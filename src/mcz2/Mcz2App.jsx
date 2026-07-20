@@ -110,11 +110,13 @@ import {
   getAttractivenessApi, setAttractivenessOptInApi,
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
+  startSocialVerifyApi, checkSocialVerifyApi,
   followApi, getNotificationsApi, markNotificationApi,
   reportItemApi, blockUserApi, exportAccountApi, deleteAccountApi,
   getConversationsApi, getThreadApi, sendMessageApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
+  getCollabsApi, createCollabApi, fundCollabApi, deliverCollabApi, releaseCollabApi, disputeCollabApi, refundCollabApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
@@ -741,33 +743,121 @@ const SOCIALZ_PRESETS = [
   { label: "Instagram", emoji: "📸" }, { label: "TikTok", emoji: "🎵" },
   { label: "X", emoji: "✖️" }, { label: "Website", emoji: "🔗" },
 ];
-function SocialZConnect({ serverOk, onSaved }) {
+// Median of a list of numbers (matches the backend reach_median rule).
+function medianOf(nums) {
+  const xs = nums.filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+  if (!xs.length) return 0;
+  const mid = xs.length >> 1;
+  return xs.length % 2 ? xs[mid] : Math.round((xs[mid - 1] + xs[mid]) / 2);
+}
+const fmtReach = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : `${n}`);
+
+function SocialZConnect({ serverOk, onSaved, mczFollowers = 0 }) {
   const { state, update } = useAppState();
-  const [links, setLinks] = useState(() => (state.user?.links || []).map((l) => ({ label: l.label || "", url: l.url || "", followers: l.followers || "" })));
+  const [links, setLinks] = useState(() => (state.user?.links || []).map((l) => ({
+    label: l.label || "", url: l.url || "", followers: l.followers || "",
+    verified: !!l.verified, verified_count: l.verified_count ?? null, code: l.code || "",
+  })));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [verifyingAt, setVerifyingAt] = useState(-1);
+  const [prevMedian, setPrevMedian] = useState(null); // for the ▲/▼ delta
   const setL = (i, patch) => setLinks((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-  const add = (label = "") => setLinks((ls) => [...ls, { label, url: "", followers: "" }]);
+  const add = (label = "") => setLinks((ls) => [...ls, { label, url: "", followers: "", verified: false, verified_count: null, code: "" }]);
   const remove = (i) => setLinks((ls) => ls.filter((_, j) => j !== i));
-  const totalExternal = links.reduce((t, l) => t + (Number(l.followers) || 0), 0);
 
-  const save = async () => {
-    setBusy(true); setMsg("");
-    const clean = links.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({ label: l.label.trim(), url: l.url.trim(), followers: Number(l.followers) || 0 }));
+  // Sources that COUNT toward reach: Music ConnectZ (always) + every VERIFIED
+  // link. Unverified links are shown but excluded — same rule as the backend,
+  // so nobody games reach with a stranger's big account.
+  const sources = [
+    { label: "Music ConnectZ", followers: mczFollowers, verified: true },
+    ...links.filter((l) => l.url.trim()).map((l) => ({
+      label: l.label.trim() || l.url.trim(),
+      followers: l.verified ? ((l.verified_count ?? Number(l.followers)) || 0) : (Number(l.followers) || 0),
+      verified: !!l.verified,
+    })),
+  ];
+  const median = medianOf(sources.filter((s) => s.verified).map((s) => s.followers));
+  const delta = prevMedian == null ? 0 : median - prevMedian;
+
+  const persist = async (nextLinks, note) => {
+    const clean = nextLinks.filter((l) => l.label.trim() || l.url.trim()).map((l) => ({
+      label: l.label.trim(), url: l.url.trim(), followers: Number(l.followers) || 0,
+      verified: !!l.verified, verified_count: l.verified_count ?? null, code: l.code || "",
+    }));
     update({ user: { ...state.user, links: clean } });
     if (serverOk) {
-      try {
-        const r = await saveProfileApi({ links: clean, external_followers: totalExternal });
-        onSaved?.(r); setMsg("✅ SocialZ saved — followers added to your reach.");
-      } catch { setMsg("Saved locally — sign in to sync."); }
+      try { const r = await saveProfileApi({ links: clean }); onSaved?.(r); setMsg(note || "✅ SocialZ saved."); }
+      catch { setMsg("Saved locally — sign in to sync."); }
     } else setMsg("Saved locally — sign in to sync.");
-    setBusy(false);
   };
+
+  const save = async () => { setPrevMedian(median); setBusy(true); setMsg(""); await persist(links, "✅ SocialZ saved — verified reach updated."); setBusy(false); };
+
+  const startVerify = async (i) => {
+    const l = links[i];
+    if (!l.url.trim()) { setMsg("Add the profile URL first, then verify."); return; }
+    if (!serverOk) { setMsg("Sign in to verify — it proves the account is yours."); return; }
+    setVerifyingAt(i); setMsg("");
+    try {
+      const r = await startSocialVerifyApi(l.url.trim(), l.label.trim());
+      setL(i, { code: r.code });
+      setMsg(`🔑 ${r.instructions}`);
+    } catch { setMsg("Couldn't start verification — try again."); }
+    setVerifyingAt(-1);
+  };
+
+  const checkVerify = async (i) => {
+    const l = links[i];
+    if (!serverOk) return;
+    setPrevMedian(median); setVerifyingAt(i); setMsg("");
+    try {
+      const r = await checkSocialVerifyApi(l.url.trim());
+      if (r.verified) {
+        setL(i, { verified: true, verified_count: r.followers, followers: r.followers ?? l.followers });
+        setMsg(`✅ Verified — ${r.followers != null ? fmtReach(r.followers) + " followers confirmed" : "account confirmed"} and counted in your median.`);
+        onSaved?.(r);
+      } else setMsg(r.detail || "Not verified yet — add the code to your bio and retry.");
+    } catch (e) { setMsg(e?.detail || "Couldn't verify that page — some platforms block automated checks."); }
+    setVerifyingAt(-1);
+  };
+
+  // Re-poll verified counts hourly so the median stays live as follower counts move.
+  useEffect(() => {
+    if (!serverOk) return;
+    const id = setInterval(() => {
+      links.forEach((l, i) => { if (l.verified && l.url.trim()) checkVerify(i); });
+    }, 3600 * 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverOk, links.length]);
 
   return (
     <div className="card">
-      <div className="card-header"><span>🌐 SocialZ — connect &amp; share</span><span className="tag">reach +{totalExternal}</span></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Add your accounts &amp; links and your follower count on each. Your total follower reach (Music ConnectZ + these) drives your hourly ⚡ energy and shows on your profile so people can find your work.</p>
+      <div className="card-header"><span>🌐 SocialZ — connect, verify &amp; share</span><span className="tag" title="Median follower reach across your verified accounts">📏 median {fmtReach(median)}</span></div>
+
+      {/* Fixed reach-median readout — always in the same spot, per-source tallies. */}
+      <div className="post-card" style={{ marginBottom: 8, background: "rgba(255,255,255,0.03)" }}>
+        <div style={{ fontSize: 11, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          {sources.map((s, k) => (
+            <span key={k} title={s.verified ? "Verified — counts toward your median" : "Unverified — not counted until you verify it"}
+              style={{ opacity: s.verified ? 1 : 0.45 }}>
+              {s.verified ? "✓" : "•"} {s.label} {fmtReach(s.followers)}{k < sources.length - 1 ? " ·" : ""}
+            </span>
+          ))}
+        </div>
+        <div style={{ marginTop: 6, fontWeight: 800, fontSize: 13 }}>
+          📏 Reach median: {fmtReach(median)}
+          {delta !== 0 && (
+            <span style={{ marginLeft: 8, color: delta > 0 ? "var(--success)" : "var(--danger)", fontSize: 12 }}>
+              {delta > 0 ? "▲" : "▼"} {fmtReach(Math.abs(delta))}
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 2 }}>Median of your <b>verified</b> sources — drives your hourly ⚡ energy. Unverified links don't count (anti-cheat).</div>
+      </div>
+
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Add your accounts, then <b>Verify</b> — we drop a code in your bio and read your live follower count, so no one games their reach with someone else's account.</p>
       <div className="chip-wrap" style={{ marginBottom: 8 }}>
         {SOCIALZ_PRESETS.map((p) => <button key={p.label} className="heritage-chip" onClick={() => add(p.label)}>{p.emoji} {p.label}</button>)}
       </div>
@@ -775,10 +865,18 @@ function SocialZConnect({ serverOk, onSaved }) {
         <div key={i} className="post-card" style={{ marginBottom: 6 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
             <input value={l.label} onChange={(e) => setL(i, { label: e.target.value })} placeholder="Platform" style={{ width: 110 }} />
-            <input value={l.url} onChange={(e) => setL(i, { url: e.target.value })} placeholder="https://…" style={{ flex: 1 }} />
+            <input value={l.url} onChange={(e) => setL(i, { url: e.target.value, verified: false })} placeholder="https://…" style={{ flex: 1 }} />
             <button className="btn btn-small btn-secondary" onClick={() => remove(i)} title="Remove">✕</button>
           </div>
-          <input type="number" min="0" value={l.followers} onChange={(e) => setL(i, { followers: e.target.value })} placeholder="followers on this account" style={{ width: "100%" }} />
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input type="number" min="0" value={l.followers} onChange={(e) => setL(i, { followers: e.target.value })} placeholder="followers (verify to confirm)" style={{ flex: 1 }} disabled={l.verified} />
+            {l.verified
+              ? <span className="tag" style={{ color: "var(--success)" }} title="Verified — counts toward your median">✓ {fmtReach((l.verified_count ?? Number(l.followers)) || 0)}</span>
+              : l.code
+                ? <button className="btn btn-small btn-success" disabled={verifyingAt === i} onClick={() => checkVerify(i)} title="We fetch your public page and confirm the code + follower count">{verifyingAt === i ? "…" : "✅ Verify"}</button>
+                : <button className="btn btn-small btn-secondary" disabled={verifyingAt === i} onClick={() => startVerify(i)} title="Get a code to add to your bio, proving the account is yours">{verifyingAt === i ? "…" : "🔑 Get code"}</button>}
+          </div>
+          {l.code && !l.verified && <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>Add <b>{l.code}</b> to your public bio, then tap Verify.</div>}
         </div>
       ))}
       <button className="btn btn-small btn-secondary" onClick={() => add()}>➕ Add link</button>
@@ -846,7 +944,7 @@ function ProfilePage({ onOpen, tier, serverOk }) {
       </div>
       <button className="btn btn-success" style={{ width: "100%", marginBottom: 10 }} onClick={() => onOpen?.("setup")}>✏️ Edit profile (name, bio, email, photo)</button>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio — tap Edit profile to add one."}</div></div>
-      <SocialZConnect serverOk={serverOk} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
+      <SocialZConnect serverOk={serverOk} mczFollowers={me?.followers ?? 0} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
         <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("personas")}>{state.personas.length ? state.personas.map((p, i) => <span key={i} className="tag">{p.emoji} {p.name}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Add PersonaZ</span>}</div>
@@ -1354,7 +1452,7 @@ function AccountDangerZone({ serverOk }) {
   );
 }
 
-function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
+function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
   const { state, updateSettings, toggleSetting } = useAppState();
   const { settings } = state;
   const { tier: tierLabel, colors, locked } = accentOptionsFor(tier);
@@ -1363,6 +1461,11 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
   };
   return (
     <>
+      <div className="card">
+        <div className="card-header">🗺️ LegendZ</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>New here or unsure what a number means? Every indicator on the app — 🔥 Streak, 📏 reach median, ⚡ energy, ⭐ ratings, tiers — explained in plain English, with the move to make.</p>
+        <button className="btn btn-secondary" style={{ width: "100%" }} onClick={() => onOpen?.("legendz")}>🗺️ Open LegendZ — what everything means</button>
+      </div>
       {serverOk && (
         <div className="card">
           <div className="card-header"><span>🧪 Membership (dev)</span><span className="tag">live</span></div>
@@ -3347,9 +3450,89 @@ function CollabSplitStudio({ tier }) {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Every contributor's worth is fully funded by the others who use it. Green = paid to them, red = they owe. On accept, wallets settle atomically and the platform keeps {money(platform)} in developer tax.</p>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Every contributor's worth is fully funded by the others who use it. Green = paid to them, red = they owe. This is your live preview — start a 🔒 escrow deal from an offer above and each payer's share is held safe until approval; the platform keeps {money(platform)} in developer tax on release.</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// 🔒 Escrow-protected badge — reusable wherever money changes hands.
+function EscrowBadge({ title = "Escrow-protected — money is held until you approve, then released. Refundable while a dispute is open." }) {
+  return <span className="tag" style={{ color: "var(--success)" }} title={title}>🔒 Escrow-protected</span>;
+}
+
+const COLLAB_STATUS = {
+  draft: { emoji: "📝", label: "Draft — awaiting funding", color: "var(--text-light)" },
+  funded: { emoji: "🔒", label: "Funded — money held in escrow", color: "var(--gold, #ffcf3f)" },
+  delivered: { emoji: "📦", label: "Delivered — awaiting approval", color: "var(--accent, #22e6ff)" },
+  released: { emoji: "✅", label: "Released — paid out", color: "var(--success)" },
+  disputed: { emoji: "⚖️", label: "Disputed — under review", color: "var(--danger)" },
+  refunded: { emoji: "↩️", label: "Refunded", color: "var(--text-light)" },
+  cancelled: { emoji: "✕", label: "Cancelled", color: "var(--text-light)" },
+};
+
+// Live tracker for the current user's escrow deals: shows who's funded, the
+// amount held, the auto-release countdown, and the right action per role.
+function CollabDealTracker({ me, refreshKey }) {
+  const [deals, setDeals] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const load = () => getCollabsApi().then((r) => setDeals(r.deals || [])).catch(() => {});
+  useEffect(() => { load(); }, [refreshKey]);
+  const act = async (fn, id) => {
+    setBusy(true); setMsg("");
+    try { await fn(id); await load(); } catch (e) { setMsg(e?.message || "Couldn't complete that — try again."); }
+    setBusy(false);
+  };
+  const active = deals.filter((d) => !["released", "refunded", "cancelled"].includes(d.status));
+  const done = deals.filter((d) => ["released", "refunded", "cancelled"].includes(d.status));
+  if (!deals.length) return null;
+  const uname = me?.username;
+  const myEntry = (d) => d.participants.find((p) => p.username === uname);
+  const dealRow = (d) => {
+    const meta = COLLAB_STATUS[d.status] || COLLAB_STATUS.draft;
+    const mine = myEntry(d);
+    const iOwe = mine && Number(mine.pays_cents) > 0;
+    const iFunded = mine && mine.funded;
+    const cur = d.currency === "spinaz" ? "🍥" : "$";
+    const fmtAmt = (c) => (d.currency === "spinaz" ? `${c} 🍥` : money(c / 100));
+    const daysLeft = d.auto_release_at ? Math.max(0, Math.ceil((new Date(d.auto_release_at) - Date.now()) / 86400000)) : null;
+    return (
+      <div key={d.id} className="post-card" style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <strong style={{ fontSize: 13 }}>{d.title || `Collab #${d.id}`}</strong>
+          <span className="tag" style={{ color: meta.color }}>{meta.emoji} {d.status}</span>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-light)", margin: "4px 0" }}>{meta.label}{d.status === "funded" && daysLeft != null && ` · auto-releases in ${daysLeft}d`}</div>
+        <div style={{ fontSize: 11 }}>
+          {d.participants.map((p) => (
+            <div key={p.username} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>{p.username === uname ? "You" : `@${p.username}`} {p.funded ? "🔒" : ""}</span>
+              <span style={{ color: "var(--text-light)" }}>
+                {Number(p.pays_cents) > 0 && <>pays {fmtAmt(p.pays_cents)} </>}
+                {Number(p.receives_cents) > 0 && <span style={{ color: "var(--success)" }}>gets {fmtAmt(p.receives_cents)}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+        {d.currency === "money" && d.held_cents > 0 && <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🔒 {money(d.held_cents / 100)} held safe in escrow</div>}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+          {iOwe && !iFunded && ["draft", "funded"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(fundCollabApi, d.id)}>💳 Fund my share ({fmtAmt(mine.pays_cents)}{d.stake_spinaz ? ` + ${d.stake_spinaz}🍥 stake` : ""})</button>}
+          {d.status === "funded" && mine && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(deliverCollabApi, d.id)}>📦 Mark delivered</button>}
+          {iOwe && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(releaseCollabApi, d.id)}>✅ Approve &amp; release</button>}
+          {mine && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(disputeCollabApi, d.id)} title="Freezes auto-release; the platform will mediate">⚖️ Dispute</button>}
+          {iOwe && ["draft", "funded"].includes(d.status) && !d.delivered_at && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(refundCollabApi, d.id)} title="Cancel and return held funds">↩️ Cancel &amp; refund</button>}
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+      <div className="card-header"><span>🔒 Your escrow deals</span><EscrowBadge /></div>
+      {active.map(dealRow)}
+      {done.length > 0 && <details style={{ marginTop: 6 }}><summary style={{ fontSize: 11, color: "var(--text-light)", cursor: "pointer" }}>Past deals ({done.length})</summary>{done.map(dealRow)}</details>}
+      {msg && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{msg}</p>}
     </div>
   );
 }
@@ -3362,6 +3545,11 @@ function CollabZPage({ tier, serverOk, onOpen }) {
   const [target, setTarget] = useState(null);
   const [offer, setOffer] = useState("");
   const [terms, setTerms] = useState("");
+  const [stake, setStake] = useState(0);
+  const [collabCur, setCollabCur] = useState("money");
+  const [dealKey, setDealKey] = useState(0);
+  const [escrowMsg, setEscrowMsg] = useState("");
+  const [escrowBusy, setEscrowBusy] = useState(false);
   const requests = state.collabRequests || [];
   const submit = () => {
     if (!target || !(Number(offer) > 0)) return;
@@ -3375,17 +3563,42 @@ function CollabZPage({ tier, serverOk, onOpen }) {
     });
     setTarget(null); setOffer(""); setTerms("");
   };
+  // Turn an offer into a real escrow deal: I pay the offer, my collaborator
+  // delivers; the money is held until I approve. Requires a real member target.
+  const startEscrow = async () => {
+    if (!target?.username || !(Number(offer) > 0)) return;
+    setEscrowBusy(true); setEscrowMsg("");
+    try {
+      await createCollabApi({
+        title: terms.trim() ? terms.trim().slice(0, 80) : `Collab with @${target.username}`,
+        currency: collabCur,
+        stake_spinaz: Number(stake) || 0,
+        participants: [
+          { username: state.user?.username, worth_cents: 0 },
+          { username: target.username, worth_cents: Math.round(Number(offer) * (collabCur === "spinaz" ? 1 : 100)) },
+        ],
+      });
+      setEscrowMsg("🔒 Escrow deal created — fund your share below to hold the money safe.");
+      setTarget(null); setOffer(""); setTerms(""); setStake(0);
+      setDealKey((k) => k + 1);
+    } catch (e) { setEscrowMsg(e?.message || "Couldn't create the escrow deal — is your collaborator a signed-in member?"); }
+    setEscrowBusy(false);
+  };
   return (
     <>
       <div className="card">
         <div className="card-header">🤝 CollabZ — user-based</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}><EscrowBadge /><span style={{ fontSize: 11, color: "var(--text-light)" }}>Your money is held safe until you approve the work.</span></div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
-          Every CollabZ is member-to-member. You put up <strong>real wallet money</strong>, the developer tax applies to your tier, and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
+          Every CollabZ is member-to-member. You put up <strong>real wallet money</strong> (or 🍥 SpinAZ), it's <strong>held in escrow</strong> — not sent — until you approve; the developer tax applies to your tier and the rest goes to your collaborator. Filter the room by their real metrics — NationalitieZ, PreferenceZ, ZodiacZ, SubstanceZ — then send an offer.
         </p>
         <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>
-          🧾 Disputes &amp; refunds on a collab are settled between the members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
+          🧾 Money's held until you approve, auto-releases after the window, and is refundable while a dispute is open — settled between members here. <strong>Membership and upgrades are not refundable.</strong> Broken feature? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("bugz")}>Submit a BugZ report.</button>
         </p>
       </div>
+
+      {serverOk && <CollabDealTracker me={state.user} refreshKey={dealKey} />}
+      {escrowMsg && <div className="card"><p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", margin: 0 }}>{escrowMsg}</p></div>}
 
       <CollabSplitStudio tier={tier} />
 
@@ -3394,10 +3607,28 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           <div className="card-header"><span>🤝 Offer to {target.username ? `@${target.username}` : (target.display_name || target.name)}</span><button className="btn btn-small btn-secondary" onClick={() => setTarget(null)}>Change</button></div>
           <div className="form-group"><label>💵 Offer ($)</label><input type="number" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="0.00" /></div>
           <div className="form-group"><label>Terms</label><CappedTextarea value={terms} onChange={(e) => setTerms(e.target.value)} style={{ height: 56 }} placeholder="What are you collaborating on? Deliverables, splits, deadline…" /></div>
-          {Number(offer) > 0 && (() => { const s = splitTransaction(Number(offer), tier); return (
+          {Number(offer) > 0 && collabCur === "money" && (() => { const s = splitTransaction(Number(offer), tier); return (
             <p style={{ fontSize: 11, color: "var(--text-light)" }}>Developer tax ({s.label} {Math.round(s.rate * 100)}%): {money(s.dev)} · your collaborator receives {money(s.net)}.</p>
           ); })()}
-          <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+          {serverOk && target.username && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "6px 0" }}>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }}>Pay with</label>
+              <div className="chip-wrap">
+                <button className={`heritage-chip${collabCur === "money" ? " sel" : ""}`} onClick={() => setCollabCur("money")}>💲 Money</button>
+                <button className={`heritage-chip${collabCur === "spinaz" ? " sel" : ""}`} onClick={() => setCollabCur("spinaz")}>🍥 SpinAZ</button>
+              </div>
+              <label style={{ fontSize: 11, color: "var(--text-light)" }} title="Optional refundable good-faith stake both sides put up; returned on completion.">🍥 Stake</label>
+              <input type="number" min="0" value={stake} onChange={(e) => setStake(e.target.value)} placeholder="0" style={{ width: 70 }} />
+            </div>
+          )}
+          {serverOk && target.username ? (
+            <>
+              <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0) || escrowBusy} onClick={startEscrow}>{escrowBusy ? "Creating…" : "🔒 Start escrow deal (held until you approve)"}</button>
+              <button className="btn btn-secondary btn-small" style={{ width: "100%", marginTop: 6 }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send informal offer (no escrow)</button>
+            </>
+          ) : (
+            <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+          )}
         </div>
       ) : (
         <MemberFinder serverOk={serverOk} onPick={setTarget} actionLabel="🤝 Collab with" note="Multi-select filters — combine NationalitieZ, PreferenceZ, ZodiacZ and SubstanceZ to find the right collaborator." />
@@ -3436,6 +3667,12 @@ function LegalZPage() {
         <div className="card-header">🧾 Refunds</div>
         <p style={{ fontSize: 12, color: "var(--text-light)" }}>
           <strong>Membership &amp; upgrades — 10-day refund window.</strong> You can downgrade for a full refund within <strong>10 days</strong> of purchase, straight from MembershipZ: the charge is refunded to your original payment method, any subscription is cancelled, and your tier drops back to Free. After 10 days the purchase is final. <strong>SpinAZ and Energy purchases are non-refundable</strong> (they're spendable currency). If something's broken, that's a bug — file a <strong>BugZ</strong> report and we fix it (squashed bugs pay you 200 SpinAZ). We don't issue refunds for buyer's remorse outside the 10-day window.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🔒 CollabZ escrow</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Funds committed to a CollabZ deal are <strong>held in escrow</strong> by {OWNER_ENTITY} and are not paid to your collaborator until (a) the paying member approves release, or (b) the deal <strong>auto-releases</strong> after the release window (default 10 days from funding) if no dispute is open. Either party may open a <strong>dispute</strong> within the dispute window, which freezes auto-release pending resolution. A deal cancelled before delivery returns all held funds and any good-faith stake to the payers. Optional SpinAZ stakes are refundable good faith and are returned on completion. Escrow is a holding mechanism only — {OWNER_ENTITY} is not an arbiter of creative quality and mediates disputes at its discretion.
         </p>
       </div>
       <div className="card">
@@ -6109,7 +6346,103 @@ function DirectZPage({ tier, serverOk }) {
   );
 }
 
+// ---- LegendZ: "what every indicator means" in Corey voice ----
+function LegendZRow({ emoji, term, children, cta, onOpen }) {
+  return (
+    <div className="post-card" style={{ marginBottom: 6 }}>
+      <div style={{ fontWeight: 800, fontSize: 13 }}>{emoji} {term}</div>
+      <div style={{ fontSize: 12, color: "var(--text-light)", marginTop: 2 }}>{children}</div>
+      {cta && <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => onOpen?.(cta.to)}>{cta.label}</button>}
+    </div>
+  );
+}
+
+function LegendZPage({ onOpen }) {
+  return (
+    <>
+      <div className="card">
+        <div className="card-header">🗺️ LegendZ — what everything means</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>
+          Real talk — every number on this app <em>does</em> something. No mystery meters, no fake hype. 💯 Here's what each one means and exactly how to move it. If a chip's got a number, this page tells you the <b>what</b>, the <b>why</b>, and the <b>move</b>.
+        </p>
+      </div>
+      <div className="card">
+        <div className="card-header">🔥 Streak &amp; progress</div>
+        <LegendZRow emoji="🔥" term="Streak" onOpen={onOpen} cta={{ to: "quest", label: "🎯 Keep it alive" }}>
+          Consecutive active days. Show up daily and it compounds — miss a day and it resets to zero. Think training: the gains come from the streak, not the one big session. Keep it warm.
+        </LegendZRow>
+        <LegendZRow emoji="🎮" term="Level &amp; XP" onOpen={onOpen}>
+          Every real action feeds XP; XP fills the bar under your name and rolls you to the next Level. It's proof-of-work — the more you actually build, the higher it climbs. No shortcuts, no buying it.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">👥 Reach &amp; social</div>
+        <LegendZRow emoji="👥" term="Followers / Total" onOpen={onOpen} cta={{ to: "social_connectz", label: "🌐 Connect accounts" }}>
+          People following you on Music ConnectZ plus your <b>verified</b> outside accounts. This is your audience — it feeds your ⚡ energy and shows on your profile so collaborators find you.
+        </LegendZRow>
+        <LegendZRow emoji="📏" term="Reach median" onOpen={onOpen} cta={{ to: "social_connectz", label: "✅ Verify accounts" }}>
+          The <b>median</b> follower count across your verified sources — not the sum. Median, so one giant account can't fake your whole reach; it's your <em>typical</em> pull. Only verified accounts count (we read your live count + a code in your bio), so nobody games it with someone else's numbers.
+        </LegendZRow>
+        <LegendZRow emoji="🤝" term="Friends / ⭐ Fans" onOpen={onOpen}>
+          Friends = mutual follows (you both follow each other). Fans = folks who follow you and you haven't followed back. Fans are your audience; friends are your circle.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">💲 Currency &amp; energy</div>
+        <LegendZRow emoji="⚡" term="Energy" onOpen={onOpen} cta={{ to: "energy", label: "⚡ Earn / buy energy" }}>
+          Fuel for actions. You earn it passively every hour off your reach median — Free = median/10, Premium = median/5, StatZ = median/1 — so bigger verified reach + higher tier = more free energy. Tap to top up.
+        </LegendZRow>
+        <LegendZRow emoji="🍥" term="SpinAZ" onOpen={onOpen} cta={{ to: "spinaz", label: "🍥 Get SpinAZ" }}>
+          The reward currency — you earn it from wins (squash a BugZ = 200 🍥) and spend it on perks. Real spendable value, not vanity points.
+        </LegendZRow>
+        <LegendZRow emoji="💲" term="Money &amp; dev tax" onOpen={onOpen} cta={{ to: "money", label: "💲 Wallet" }}>
+          Your real wallet balance. Member-to-member deals (CollabZ, MerchZ, VenueZ) run through it; the platform takes a small <b>developer tax</b> as its cut and hands you the rest. Every split is shown before you commit — no hidden skim.
+        </LegendZRow>
+        <LegendZRow emoji="👑" term="RoyaltieZ" onOpen={onOpen} cta={{ to: "royaltiez", label: "👑 RoyaltieZ" }}>
+          Ongoing earnings from work that keeps paying — accrue them, then cash out. This is the long game: build once, collect forever.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">🔒 Trust &amp; escrow</div>
+        <LegendZRow emoji="🔒" term="Escrow (CollabZ)" onOpen={onOpen} cta={{ to: "collabz", label: "🤝 Start a collab" }}>
+          Here's the honest truth about doing a deal with someone you don't know yet: your money doesn't go straight to them. When you start a CollabZ deal, what you pay gets <b>held by the platform</b> — locked, safe — and only releases to your collaborator <em>when you approve the work</em>. Ghost you? You get it back. It even auto-releases after the window so <em>they're</em> not stuck either, and either side can open a dispute to freeze it. That's how a stranger takes the first leap without getting burned.
+        </LegendZRow>
+        <LegendZRow emoji="🍥" term="Good-faith stake" onOpen={onOpen}>
+          Optional. Both sides can put up a small refundable SpinAZ stake when a deal starts — skin in the game that scares off flakes and spammers. Follow through and you get every bit of it back. It costs an honest creator nothing; it just filters out the people who were never serious.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">⭐ Ratings &amp; vibe</div>
+        <LegendZRow emoji="⭐" term="Rating (1–10)" onOpen={onOpen}>
+          Real members rate the work; AI seeds a fair starting score, then human ratings take over. Ratings drive value and price — higher-rated work commands more. It's a median so a couple of haters (or homers) can't swing it.
+        </LegendZRow>
+        <LegendZRow emoji="✨" term="Vibe (👍 − 👎)" onOpen={onOpen}>
+          Likes minus dislikes on a post = its reach. Positive vibe pushes it up the feed; negative buries it. Honest signal, both directions.
+        </LegendZRow>
+        <LegendZRow emoji="🛑" term="Restricted joins" onOpen={onOpen}>
+          Some posts pay you to join — but only for <b>real</b> engagement (anti-fraud caps + dedup). Genuine activity earns; farming it doesn't.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">🏅 Tiers &amp; status</div>
+        <LegendZRow emoji="🎟️" term="Tier badges (Free / Premium / StatZ)" onOpen={onOpen} cta={{ to: "membership", label: "🎟️ Compare tiers" }}>
+          Your membership. Higher tiers unlock bigger limits, faster energy, longer edit windows, and more upload room. StatZ is the top — full throttle. Every tier's exact perks are on MembershipZ, and upgrades have a 10-day refund window.
+        </LegendZRow>
+        <LegendZRow emoji="🟢" term="Online / 👥 Total members" onOpen={onOpen}>
+          Live headcount — who's on right now and how big the community is. Higher online = better odds for real-time CollabZ and CallZ.
+        </LegendZRow>
+      </div>
+      <div className="card">
+        <div className="card-header">🤔 Still unsure?</div>
+        <p style={{ fontSize: 12, color: "var(--text-light)" }}>Ask OCC — it talks you through anything in plain English. 🎧</p>
+        <button className="btn btn-success" style={{ width: "100%" }} onClick={() => onOpen?.("occ")}>🤖 Ask OCC</button>
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
+  legendz: LegendZPage,
   merchz: MerchZPage,
   directz: DirectZPage,
   singz: SingZPage,
@@ -6429,7 +6762,7 @@ function Shell() {
             <div className="header-subtitle">
               {user?.username ? `@${user.username}` : "Signed in"}
               <span title={`${prog.xp} XP`}> · 🎮 Lv {prog.level}</span>
-              {prog.streak > 0 && <span title="Daily streak" style={{ color: "var(--gold, #ffcf3f)" }}> · 🔥 {prog.streak}</span>}
+              {prog.streak > 0 && <span title="Streak — consecutive active days. Keep it alive; it compounds your rewards. Tap for the Legend." style={{ color: "var(--gold, #ffcf3f)", cursor: "pointer" }} onClick={() => openApp("legendz")}> · 🔥 {prog.streak} Streak</span>}
               {community.total != null && <span title="Total members"> · Total 👥 {community.total}</span>}
               {community.online != null && <span title="Online now" style={{ color: "var(--success)" }}> · Online 🟢 {community.online}</span>}
               {isOwner && <span title="Owner" style={{ color: "var(--gold, #ffcf3f)" }}> · 🛠️ owner</span>}
