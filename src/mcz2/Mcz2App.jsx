@@ -110,7 +110,7 @@ import {
   getFacezApi, createFaceApi, rateFaceApi, deleteFaceApi,
   saveProfileApi, searchMembersApi, getMemberApi, uploadAvatarApi, rateProfileApi, setLocationApi,
   followApi, getNotificationsApi, markNotificationApi,
-  reportItemApi, blockUserApi,
+  reportItemApi, blockUserApi, exportAccountApi, deleteAccountApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
@@ -1279,6 +1279,47 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
   );
 }
 
+// Privacy & account — data export + permanent deletion (store-required).
+function AccountDangerZone({ serverOk }) {
+  const { logout } = useAuth();
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState("");
+  if (!serverOk || !isSignedIn()) return null;
+
+  const download = async () => {
+    setBusy("export"); setMsg("");
+    try {
+      const data = await exportAccountApi();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "music-connectz-data.json"; a.click();
+      URL.revokeObjectURL(url);
+      setMsg("📦 Your data downloaded.");
+    } catch { setMsg("Couldn't export — try again."); }
+    setBusy("");
+  };
+  const del = async () => {
+    if (confirm !== "DELETE") return;
+    setBusy("delete"); setMsg("");
+    try { await deleteAccountApi(); try { logout(); } catch { /* ignore */ } window.location.reload(); }
+    catch { setMsg("Couldn't delete — try again or contact support."); setBusy(""); }
+  };
+  return (
+    <div className="card" style={{ border: "1px solid var(--danger)" }}>
+      <div className="card-header"><span style={{ color: "var(--danger)" }}>🔐 Privacy &amp; account</span></div>
+      <button className="btn btn-small btn-secondary" style={{ width: "100%", marginBottom: 10 }} disabled={busy === "export"} onClick={download}>{busy === "export" ? "…" : "📦 Download my data"}</button>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Deleting your account is <strong>permanent</strong> — it wipes your profile, wallet, posts, follows and everything else. Type <strong>DELETE</strong> to confirm.</p>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" style={{ flex: 1 }} />
+        <button className="btn btn-small btn-danger" disabled={confirm !== "DELETE" || busy === "delete"} onClick={del}>{busy === "delete" ? "…" : "Delete forever"}</button>
+      </div>
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
   const { state, updateSettings, toggleSetting } = useAppState();
   const { settings } = state;
@@ -1351,6 +1392,7 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy }) {
           );
         })}
       </div>
+      <AccountDangerZone serverOk={serverOk} />
     </>
   );
 }

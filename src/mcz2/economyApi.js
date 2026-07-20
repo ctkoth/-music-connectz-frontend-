@@ -126,6 +126,10 @@ export const uploadAvatarApi = (file) => {
 export const rateProfileApi = (targetUsername, dimension, score) =>
   api("/api/economy/profile/rate/", { method: "POST", body: { target_username: targetUsername, dimension, score } });
 
+// Account self-service
+export const exportAccountApi = () => api("/api/economy/account/export/");
+export const deleteAccountApi = () => api("/api/economy/account/delete/", { method: "POST", body: { confirm: "DELETE" } });
+
 // Moderation
 export const reportItemApi = (item, reason, note = "") => api("/api/economy/report/", { method: "POST", body: { item, reason, note } });
 export const blockUserApi = (username, action) => api("/api/economy/block/", { method: "POST", body: { username, action } });
