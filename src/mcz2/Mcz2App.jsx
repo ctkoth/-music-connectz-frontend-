@@ -1719,9 +1719,55 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
 }
 
 const SKILL_KEYS = ["mimez", "directz", "lessonz", "singz", "rapz", "drumz", "violinz", "guitarz", "bassz", "keyz", "producez", "designz", "shotz", "developz", "managez", "bodiez"];
-// The CI workflow (.github/workflows/android-apk.yml) publishes the debug APK to
-// this release asset on every push to main.
+// CI workflows publish these release assets on push to main:
+// android-apk.yml → apk-latest, windows-exe.yml → exe-latest.
 const APK_DOWNLOAD_URL = "https://github.com/ctkoth/-music-connectz-frontend-/releases/download/apk-latest/MusicConnectZ.apk";
+const EXE_DOWNLOAD_URL = "https://github.com/ctkoth/-music-connectz-frontend-/releases/download/exe-latest/MusicConnectZ-Setup.exe";
+// Set this to your App Store / TestFlight link once the iOS app is published.
+const IOS_APP_URL = "";
+
+function detectOS() {
+  const ua = (navigator.userAgent || "").toLowerCase();
+  const plat = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "").toLowerCase();
+  if (/android/.test(ua)) return "android";
+  if (/iphone|ipad|ipod/.test(ua) || (plat.includes("mac") && (navigator.maxTouchPoints || 0) > 1)) return "ios";
+  if (/win/.test(plat) || /windows/.test(ua)) return "windows";
+  if (/mac/.test(plat)) return "mac";
+  return "other";
+}
+
+// Device-aware app download — leads with the build for the visitor's OS, with
+// the rest available below. OnboardZ is always reachable, so members can return
+// anytime to grab any build.
+function DownloadApp() {
+  const os = detectOS();
+  const OPTS = {
+    android: { emoji: "🤖", name: "Android", label: "Download for Android (.apk)", href: APK_DOWNLOAD_URL, ready: true, note: "Open the file and allow installs from this source." },
+    windows: { emoji: "🪟", name: "Windows", label: "Download for Windows (.exe)", href: EXE_DOWNLOAD_URL, ready: true, note: "Run the installer — SmartScreen: More info → Run anyway (unsigned)." },
+    ios: { emoji: "🍎", name: "iPhone / iPad", label: IOS_APP_URL ? "Get it on the App Store" : "iOS — App Store coming soon", href: IOS_APP_URL, ready: !!IOS_APP_URL, note: "iOS installs through the App Store / TestFlight, not a direct download." },
+  };
+  const primaryKey = OPTS[os] ? os : "windows"; // mac/other → show desktop first
+  const primary = OPTS[primaryKey];
+  const others = ["android", "windows", "ios"].filter((k) => k !== primaryKey);
+  const Btn = ({ o, big }) => (o.ready ? (
+    <a className={`btn ${big ? "btn-success" : "btn-secondary btn-small"}`} style={{ width: "100%", textAlign: "center", textDecoration: "none", marginTop: big ? 0 : 6 }} href={o.href} target="_blank" rel="noopener noreferrer">{o.emoji} {o.label}</a>
+  ) : (
+    <div className="btn btn-secondary btn-small" style={{ width: "100%", textAlign: "center", opacity: 0.6, marginTop: big ? 0 : 6, cursor: "default" }}>{o.emoji} {o.label}</div>
+  ));
+  return (
+    <div className="card">
+      <div className="card-header"><span>📲 Get the app</span><IconImg icon="logo.png" alt="Music ConnectZ" style={{ width: 26, height: 26, borderRadius: 6 }} /></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Same account, home-screen icon, full-screen. We detected <strong>{primary.name}</strong> — grab that, or pick another below.</p>
+      <Btn o={primary} big />
+      <p style={{ fontSize: 10, color: "var(--text-light)", margin: "4px 0 8px" }}>{primary.note}</p>
+      <div style={{ borderTop: "1px dashed var(--border)", paddingTop: 8 }}>
+        <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 2 }}>Other platforms</div>
+        {others.map((k) => <Btn key={k} o={OPTS[k]} />)}
+      </div>
+      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>↩️ Come back to OnboardZ anytime to download again. Links go live as each build publishes.</p>
+    </div>
+  );
+}
 
 function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
   const { state, update } = useAppState();
@@ -1754,12 +1800,7 @@ function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
       <button className="btn btn-secondary btn-small" style={{ marginTop: 12 }} onClick={() => update({ onboardDismissed: true })}>Dismiss onboarding</button>
     </div>
     <TopUpTiles serverOk={serverOk} tier={tier} syncEconomy={syncEconomy} />
-    <div className="card">
-      <div className="card-header"><span>📱 Get the Android app</span><IconImg icon="logo.png" alt="Music ConnectZ" style={{ width: 26, height: 26, borderRadius: 6 }} /></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Install Music ConnectZ on your phone — same account, home-screen icon, full-screen. Android APK (sideload: open the file and allow install from this source).</p>
-      <a className="btn btn-success" style={{ width: "100%", textAlign: "center", textDecoration: "none" }} href={APK_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">⬇️ Download the app (.apk)</a>
-      <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>iOS + Play Store builds coming next. Link goes live once the first build publishes.</p>
-    </div>
+    <DownloadApp />
     </>
   );
 }
