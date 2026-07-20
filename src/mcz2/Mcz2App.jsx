@@ -99,6 +99,7 @@ function Amount({ value, flow, sign = false, bold = false }) {
   return <span style={{ color, fontWeight: bold ? 700 : "inherit" }}>{prefix}{money(Math.abs(Number(value) || 0))}</span>;
 }
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
+import { PostModalProvider, usePostModal } from "./PostModalContext.jsx";
 import {
   isSignedIn, getWallet, addFundsApi, setTierApi,
   getSpecZApi, buySpecZApi, getRoyaltiesApi, cashoutRoyaltiesApi,
@@ -683,6 +684,7 @@ const POST_VIS = [
 ];
 function PostZPage({ serverOk }) {
   const { state, addTo, removeFrom, update } = useAppState();
+  const { openPost } = usePostModal();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [links, setLinks] = useState([]);
@@ -765,7 +767,7 @@ function PostZPage({ serverOk }) {
           const restricted = ex.visibility === "restricted";
           return (
             <div key={ex.id || i} className="post-card" style={ex.flagged ? { opacity: 0.6 } : undefined}>
-              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
+              <div className="post-user"><span style={{ cursor: "pointer" }} title="Open post" onClick={() => openPost(ex)}>{ex.title}</span> <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
               {ex.vibe != null && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 2 }}>✨ vibe {ex.vibe > 0 ? "+" : ""}{ex.vibe} · 👍 {ex.up || 0} 👎 {ex.down || 0}{ex.rating != null ? ` · ⭐ ${ex.rating}/10` : ""}</div>}
               <div className="post-content">{ex.description ?? ex.desc}</div>
               {ex.media_url && (
@@ -7265,6 +7267,46 @@ function AppModal({ app, onClose, onOpen }) {
   );
 }
 
+// A post opened as a modal overlay — persists over whatever page is underneath,
+// so it stays put regardless of navigation until you close it. Carries the
+// media + /10 score and the full SocialBar (rate 1–10 / comment / share +5⚡).
+function PostModal({ post, onClose, onOpen }) {
+  if (!post) return null;
+  const v = POST_VIS.find((x) => x.id === post.visibility) || POST_VIS[0];
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title"><h2>🎵 {post.title}</h2></div>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>
+          <span className="tag" title={v.note}>{v.emoji} {v.label}</span>
+          {post.author && <> · @{post.author}</>}
+          {post.rating != null && <> · ⭐ {post.rating}/10</>}
+          {post.score?.overall != null && <> · 🎯 scored {post.score.overall}/10</>}
+        </div>
+        {(post.description || post.desc) && <p className="modal-desc">{post.description ?? post.desc}</p>}
+        {post.media_url && (
+          <div style={{ margin: "8px 0" }}>
+            {post.media_type === "video"
+              ? <video src={post.media_url} controls style={{ width: "100%", maxHeight: 340, borderRadius: 10 }} />
+              : <audio src={post.media_url} controls style={{ width: "100%" }} />}
+          </div>
+        )}
+        <LinksRow links={post.links} />
+        <SocialBar id={`post:${post.id}`} shareText={`${post.title} on Music ConnectZ`} />
+        {onOpen && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <button className="btn btn-small btn-secondary" onClick={() => { onClose(); onOpen("collabz"); }}>🤝 CollabZ</button>
+            <button className="btn btn-small btn-secondary" onClick={() => { onClose(); onOpen("dawz"); }}>🎛️ DAW</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---- PickConnectZ dock ----
 function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
   const [editing, setEditing] = useState(false);
@@ -7371,6 +7413,7 @@ function Shell() {
     if (v) setTab(v);
   }, [tab]);
   const [modalApp, setModalApp] = useState(null);
+  const { post: postModal, closePost } = usePostModal();
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
   // Dev default StatZ (editable in Settings); the server's real tier overrides on load.
@@ -7510,6 +7553,7 @@ function Shell() {
       </div>
 
       <AppModal app={modalApp} onClose={() => setModalApp(null)} onOpen={openApp} />
+      <PostModal post={postModal} onClose={closePost} onOpen={openApp} />
     </div>
     </LimitsProvider>
   );
@@ -7518,7 +7562,9 @@ function Shell() {
 export default function Mcz2App() {
   return (
     <AppStateProvider>
-      <Shell />
+      <PostModalProvider>
+        <Shell />
+      </PostModalProvider>
     </AppStateProvider>
   );
 }
