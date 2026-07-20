@@ -211,7 +211,7 @@ export const CATALOG = [
       { key: "keyconnectz", name: "Key ConnectZ", emoji: "⌨️", icon: "keyconnectz.png", desc: "System keyboard on mobile, floating keyboard on desktop (Ctrl+Shift+K). Custom background image, mic speech-to-text, and translation to your desired output." },
       { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met." },
       { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work." },
-      { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "A Buffer-style post scheduler and management tool." },
+      { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "Buffer-style post management & scheduling — queue, schedule, and manage your posts across the platform." },
     ],
   },
 ];
