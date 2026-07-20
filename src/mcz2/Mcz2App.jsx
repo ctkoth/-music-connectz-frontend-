@@ -468,11 +468,16 @@ const SUBSTANCES = [
   { key: "opioids", name: "Opioids", emoji: "⚕️" },
   { key: "benzos", name: "Benzos", emoji: "😴" },
 ];
+// Stance ladder. Only "use"/"sometimes" count as active on the backend's
+// sober-friendly filter — every other stance (incl. the sober-leaning ones and
+// legacy "sober"/"avoid") reads as sober-friendly.
 const STANCES = [
   { id: "use", label: "Use", dot: "🟢" },
   { id: "sometimes", label: "Sometimes", dot: "🟡" },
-  { id: "sober", label: "Sober", dot: "🔴" },
-  { id: "avoid", label: "Prefer sober", dot: "🚫" },
+  { id: "before", label: "From before", dot: "🕰️" },
+  { id: "oftensober", label: "Often sober", dot: "🔵" },
+  { id: "soberchoice", label: "Sober by choice", dot: "🔴" },
+  { id: "never", label: "Never", dot: "⚪" },
 ];
 const PARTNER_GENDERS = [
   { id: "male", label: "Male", emoji: "♂️" },
@@ -1987,13 +1992,20 @@ function NationalitieZPage() {
 function SubstanceZPage() {
   const { state, updateUser } = useAppState();
   const [saved, ping] = useSavedFlash();
+  const [dirty, setDirty] = useState(false);
   const subs = state.user.substances || {};
-  const setStance = (key, id) => { updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } }); ping(); };
+  const setStance = (key, id) => { updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } }); setDirty(true); };
+  const save = () => {
+    // Persist the public profile now so the stance powers matching immediately.
+    if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {});
+    setDirty(false); ping();
+  };
+  const declared = Object.values(subs).filter(Boolean).length;
   return (
     <div className="card">
       <div className="card-header"><span>🧠 SubstanceZ — Your Stance</span><SavedFlash saved={saved} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
-        Declare your relationship with each — powers sober-friendly matching and healthy spaces.
+        Declare your relationship with each — powers sober-friendly matching and healthy spaces. Only <strong>Use</strong> and <strong>Sometimes</strong> read as active; <strong>From before</strong>, <strong>Often sober</strong>, <strong>Sober by choice</strong> and <strong>Never</strong> all read as sober-friendly.
       </p>
       {SUBSTANCES.map((s) => (
         <div key={s.key} className="settings-toggle" style={{ flexWrap: "wrap" }}>
@@ -2007,6 +2019,11 @@ function SubstanceZPage() {
           </div>
         </div>
       ))}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+        <button className="btn btn-success" style={{ flex: 1 }} onClick={save}>💾 Save stance{declared ? ` (${declared} declared)` : ""}</button>
+        {saved && <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✅ Saved</span>}
+        {dirty && !saved && <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Unsaved changes</span>}
+      </div>
     </div>
   );
 }
