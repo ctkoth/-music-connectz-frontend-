@@ -889,7 +889,7 @@ function SocialZConnect({ serverOk, onSaved, mczFollowers = 0 }) {
 
 // Wallet top-up tiles — $1–$100 presets that also grant Energy (= cents × tier
 // multiplier), shown transparently. Free ×1, Premium ×2 (gold), StatZ ×4 (green).
-const TOPUP_PRESETS = [1, 5, 10, 20, 50, 100];
+const TOPUP_PRESETS = [5, 10, 20, 50, 100];
 const ENERGY_TOPUP_MULT = { free: 1, premium: 2, statz: 4 };
 function TopUpTiles({ serverOk, tier, syncEconomy, onDone, compact = false }) {
   const { state, update, updateWallet, addTo } = useAppState();
@@ -2411,7 +2411,7 @@ function GroupZPage({ tier }) {
   );
 }
 
-function BodieZPage({ tier }) {
+function BodieZPage({ tier, onOpen }) {
   const { state, update, addXP } = useAppState();
   const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [], sessions: [] };
   const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
@@ -2516,6 +2516,8 @@ function BodieZPage({ tier }) {
           <button key={id} className={`heritage-chip${section === id ? " sel" : ""}`} onClick={() => setSection(id)}>{label}</button>
         ))}
       </div>
+
+      {section === "today" && <HabitStrip appKey="bodiez" appName="BodieZ" onOpen={onOpen} />}
 
       {section === "location" && (
         <div className="card">
@@ -3822,58 +3824,204 @@ function LabelZPage({ tier, onOpen }) {
 }
 
 const LILITH_LISTS = [
-  { id: "inbox", label: "📥 Inbox" },
   { id: "today", label: "‼️ Today" },
+  { id: "habits", label: "🔁 Habits" },
+  { id: "inbox", label: "📥 Inbox" },
   { id: "upcoming", label: "📅 Upcoming" },
   { id: "anytime", label: "👐🏼 Anytime" },
   { id: "someday", label: "🧠 Someday" },
   { id: "logbook", label: "🧾 Logbook" },
   { id: "trash", label: "🚮 Trash" },
 ];
-function LilithPage() {
+
+// ---- Recurring-habit helpers (shared by Lilith + the training apps) ----
+const REPEAT_OPTS = [["none", "Once"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["annual", "Annual"]];
+const REPEAT_MS = { daily: 864e5, weekly: 6048e5, monthly: 2592e6, annual: 31536e6 };
+const REPEAT_LABEL = Object.fromEntries(REPEAT_OPTS);
+const rollDue = (repeat, from = Date.now()) => from + (REPEAT_MS[repeat] || 0);
+const isHabit = (t) => t.repeat && t.repeat !== "none";
+const dueLabel = (t) => {
+  if (!t.dueAt) return "";
+  const d = Math.ceil((t.dueAt - Date.now()) / 864e5);
+  return d <= 0 ? "due now" : `in ${d}d`;
+};
+// Curated metrics per app + globals; free-text also allowed. This is the
+// "reference every metric in every app" surface (expandable v1).
+const GLOBAL_METRICS = ["followers", "reach median", "energy", "spinaz", "money", "level", "streak", "rating"];
+const APP_METRICS = {
+  bodiez: ["volume", "PRs", "sets", "reps", "bodyweight", "recovery"],
+  singz: ["range", "pitch accuracy", "breath", "vibrato", "sessions"],
+  rapz: ["flow", "breath", "rhymes", "bars written", "BPM comfort"],
+  money: ["balance", "energy"],
+  directz: ["works", "rating"],
+  battlez: ["wins", "rating"],
+  collabz: ["deals", "escrow"],
+};
+const metricsFor = (k) => [...(APP_METRICS[k] || []), ...GLOBAL_METRICS];
+
+// Reusable: run an in-app top-up (money + tier energy) — same path as TopUpTiles.
+function useTopUp({ serverOk, tier }) {
+  const { state, update, updateWallet, addTo } = useAppState();
+  return async (dollars) => {
+    const cents = dollars * 100;
+    if (serverOk) {
+      try {
+        const r = await addFundsApi(cents);
+        updateWallet({ balance: r.wallet.money, earned: Number((state.wallet.earned + r.breakdown.net_cents / 100).toFixed(2)) });
+        update({ energy: r.wallet.energy, spinaz: r.wallet.spinaz });
+        addTo("paymentHistory", { amount: r.breakdown.net_cents / 100, gross: dollars, dev: r.breakdown.dev_tax_cents / 100, at: Date.now(), note: "Top up (habit)" });
+        return `✅ +${money(r.breakdown.net_cents / 100)} + ${r.breakdown.energy_granted}⚡`;
+      } catch { /* local fallback */ }
+    }
+    const { net } = splitTransaction(dollars, tier);
+    const mult = ENERGY_TOPUP_MULT[tierKey(tier)] || 1;
+    updateWallet({ balance: Number((state.wallet.balance + net).toFixed(2)), earned: Number((state.wallet.earned + net).toFixed(2)) });
+    update({ energy: (state.energy || 0) + cents * mult });
+    return `✅ +${money(net)} + ${cents * mult}⚡ (local)`;
+  };
+}
+
+// Cross-app recurring-habit strip — mounted on BodieZ / SingZ / RapZ. Writes into
+// the shared state.lilithTasks pool so every habit also shows up in Lilith.
+function HabitStrip({ appKey, appName, onOpen }) {
+  const { state, setList, update } = useAppState();
+  const tasks = state.lilithTasks || [];
+  const mine = tasks.filter((t) => t.app === appKey && isHabit(t) && t.list !== "trash");
+  const [title, setTitle] = useState("");
+  const [repeat, setRepeat] = useState("weekly");
+  const [metric, setMetric] = useState("");
+  const add = () => {
+    if (!title.trim()) return;
+    setList("lilithTasks", [...tasks, { id: Date.now(), title: title.trim(), list: "today", app: appKey, repeat, metric, dueAt: rollDue(repeat), energy: 2, xp: 10 }]);
+    setTitle(""); setMetric("");
+  };
+  const complete = (t) => {
+    setList("lilithTasks", (state.lilithTasks || []).map((x) => (x.id === t.id ? { ...x, dueAt: rollDue(x.repeat), lastDone: Date.now() } : x)));
+    update({ energy: (state.energy || 0) + (t.energy || 1) });
+  };
+  return (
+    <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+      <div className="card-header"><span>🔁 {appName} habits</span><button className="btn btn-small btn-secondary" onClick={() => onOpen?.("lilith")}>💃🏽 Lilith</button></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Weekly / monthly / annual practice habits — they earn ⚡ Energy and cross-pollinate into Lilith.</p>
+      {mine.map((t) => (
+        <div key={t.id} className="skill-item">
+          <span className="skill-item-name">{t.title}{t.metric ? <span style={{ color: "var(--text-light)" }}> · {t.metric}</span> : ""} <span style={{ color: "var(--text-light)", fontSize: 10 }}>({REPEAT_LABEL[t.repeat]} · {dueLabel(t)})</span></span>
+          <span className="skill-item-actions"><button className="btn btn-success btn-small" onClick={() => complete(t)}>✓ +{t.energy || 1}⚡</button></span>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New practice habit…" onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1, minWidth: 120 }} />
+        <select value={repeat} onChange={(e) => setRepeat(e.target.value)} style={{ width: 96 }}>{REPEAT_OPTS.filter(([id]) => id !== "none").map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+        <select value={metric} onChange={(e) => setMetric(e.target.value)} style={{ flex: 1 }}><option value="">metric (optional)</option>{metricsFor(appKey).map((m) => <option key={m} value={m}>{m}</option>)}</select>
+        <button className="btn btn-small" onClick={add}>＋ Add habit</button>
+      </div>
+    </div>
+  );
+}
+
+function LilithPage({ onOpen, tier, serverOk }) {
   const { state, setList, update } = useAppState();
   const [list, setActiveList] = useState("today");
   const [title, setTitle] = useState("");
+  const [repeat, setRepeat] = useState("none");
+  const [app, setApp] = useState("");
+  const [metric, setMetric] = useState("");
+  const [topupAmt, setTopupAmt] = useState(10);
+  const [topupRepeat, setTopupRepeat] = useState("monthly");
+  const [msg, setMsg] = useState("");
+  const runTopUp = useTopUp({ serverOk, tier });
   const tasks = state.lilithTasks || [];
-  const shown = tasks.filter((t) => t.list === list);
+  const fnApps = CATALOG.flatMap((g) => g.apps).filter((a) => a.fn);
+  const shown = list === "habits" ? tasks.filter((t) => isHabit(t) && t.list !== "trash") : tasks.filter((t) => t.list === list);
   const patch = (id, p) => setList("lilithTasks", tasks.map((t) => (t.id === id ? { ...t, ...p } : t)));
   const add = () => {
     if (!title.trim()) return;
-    setList("lilithTasks", [...tasks, { id: Date.now(), title: title.trim(), list, xp: 10 }]);
-    setTitle("");
+    const t = { id: Date.now(), title: title.trim(), list: list === "habits" ? "today" : list, xp: 10, energy: 1 };
+    if (repeat !== "none") { t.repeat = repeat; t.dueAt = rollDue(repeat); t.energy = 2; }
+    if (app) { t.app = app; }
+    if (metric) { t.metric = metric; }
+    setList("lilithTasks", [...tasks, t]);
+    setTitle(""); setMetric("");
   };
-  const complete = (t) => { patch(t.id, { list: "logbook", done: true }); update({ energy: (state.energy || 0) + 1 }); };
+  const addTopUpHabit = () => {
+    setList("lilithTasks", [...tasks, { id: Date.now(), title: `Top up $${topupAmt}`, list: "today", app: "money", repeat: topupRepeat, dueAt: rollDue(topupRepeat), topupAmount: Number(topupAmt), energy: 2, xp: 10 }]);
+    setMsg(`💳 Top-up habit added — $${topupAmt} ${topupRepeat}. Complete it to fund + earn energy.`);
+  };
+  const complete = async (t) => {
+    if (t.app === "money" && t.topupAmount) {
+      const m = await runTopUp(t.topupAmount);
+      setMsg(m);
+    } else {
+      update({ energy: (state.energy || 0) + (t.energy || 1) });
+    }
+    if (isHabit(t)) patch(t.id, { dueAt: rollDue(t.repeat), lastDone: Date.now() });  // reschedule
+    else patch(t.id, { list: "logbook", done: true });
+  };
+  const openApp = (a) => onOpen?.(a);
   return (
     <>
       <div className="chip-wrap" style={{ marginBottom: 14 }}>
         {LILITH_LISTS.map((l) => (
           <button key={l.id} className={`heritage-chip${list === l.id ? " sel" : ""}`} onClick={() => setActiveList(l.id)}>
-            {l.label} {tasks.filter((t) => t.list === l.id).length || ""}
+            {l.label} {(l.id === "habits" ? tasks.filter((t) => isHabit(t) && t.list !== "trash").length : tasks.filter((t) => t.list === l.id).length) || ""}
           </button>
         ))}
       </div>
+
       {!["logbook", "trash"].includes(list) && (
         <div className="card">
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add to ${list}…`} onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`Add ${list === "habits" ? "a habit" : `to ${list}`}…`} onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1 }} />
             <button className="btn" onClick={add}>＋</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <select value={repeat} onChange={(e) => setRepeat(e.target.value)} title="Repeat" style={{ width: 96 }}>{REPEAT_OPTS.map(([id, l]) => <option key={id} value={id}>{id === "none" ? "Once" : `🔁 ${l}`}</option>)}</select>
+            <select value={app} onChange={(e) => { setApp(e.target.value); setMetric(""); }} title="Link an app" style={{ flex: 1, minWidth: 110 }}>
+              <option value="">Link app (optional)</option>
+              {fnApps.map((a) => <option key={a.key} value={a.key}>{a.emoji} {a.name}</option>)}
+            </select>
+            {app && <select value={metric} onChange={(e) => setMetric(e.target.value)} title="Metric" style={{ flex: 1, minWidth: 110 }}><option value="">metric…</option>{metricsFor(app).map((m) => <option key={m} value={m}>{m}</option>)}</select>}
+          </div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 6 }}>Link any app + metric — habits cross-pollinate across the whole platform. 🌐</p>
+        </div>
+      )}
+
+      {list === "habits" && (
+        <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+          <div className="card-header">💳 Top-up habit</div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Schedule a top-up that rewards Energy = the $ you add (× your tier). One tap on the due date funds + fuels you. <span style={{ color: "var(--text-light)" }}>(Scheduled one-tap — not silent card billing.)</span></p>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <select value={topupAmt} onChange={(e) => setTopupAmt(Number(e.target.value))} style={{ width: 90 }}>{TOPUP_PRESETS.map((d) => <option key={d} value={d}>${d}</option>)}</select>
+            <select value={topupRepeat} onChange={(e) => setTopupRepeat(e.target.value)} style={{ width: 110 }}>{REPEAT_OPTS.filter(([id]) => id !== "none").map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select>
+            <button className="btn btn-success btn-small" onClick={addTopUpHabit}>＋ Add top-up habit</button>
           </div>
         </div>
       )}
+
       <div className="card">
         <div className="card-header">{LILITH_LISTS.find((l) => l.id === list).label}</div>
         {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing here.</p>
-          : shown.map((t) => (
-            <div key={t.id} className="skill-item">
-              <span className="skill-item-name" style={t.done ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>{t.title}</span>
-              <span className="skill-item-exp">+{t.xp} XP</span>
-              <span className="skill-item-actions">
-                {!t.done && list !== "trash" && <button className="btn btn-success btn-small" onClick={() => complete(t)}>✓</button>}
-                {list !== "trash" ? <button className="btn btn-danger btn-small" onClick={() => patch(t.id, { list: "trash" })}>🚮</button>
-                  : <button className="btn btn-secondary btn-small" onClick={() => patch(t.id, { list: "inbox", done: false })}>↩</button>}
-              </span>
-            </div>
-          ))}
+          : shown.map((t) => {
+            const linked = t.app && APPS_BY_KEY[t.app];
+            return (
+              <div key={t.id} className="skill-item">
+                <span className="skill-item-name" style={t.done ? { textDecoration: "line-through", opacity: 0.6 } : undefined}>
+                  {t.title}
+                  {t.metric ? <span style={{ color: "var(--text-light)", fontSize: 10 }}> · {t.metric}</span> : ""}
+                  {isHabit(t) && <span style={{ color: "var(--gold, #ffcf3f)", fontSize: 10 }}> · 🔁 {REPEAT_LABEL[t.repeat]} {dueLabel(t)}</span>}
+                  {linked && <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: "0 0 0 6px", fontSize: 10 }} onClick={() => openApp(t.app)}>{linked.emoji} open</button>}
+                </span>
+                <span className="skill-item-actions">
+                  {!t.done && list !== "trash" && <button className="btn btn-success btn-small" onClick={() => complete(t)}>✓{isHabit(t) ? ` +${t.energy || 1}⚡` : ""}</button>}
+                  {list !== "trash" ? <button className="btn btn-danger btn-small" onClick={() => patch(t.id, { list: "trash", repeat: "none" })}>🚮</button>
+                    : <button className="btn btn-secondary btn-small" onClick={() => patch(t.id, { list: "inbox", done: false })}>↩</button>}
+                </span>
+              </div>
+            );
+          })}
+        {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
         {list === "logbook" && shown.length > 0 && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Completed missions earn ⚡ Energy. Clear your Today list for a daily bonus.</p>}
       </div>
     </>
@@ -5915,7 +6063,7 @@ function AudioLab({ context = "take", onResult, kind = "voice" }) {
 }
 
 // ---- SingZ vocal game engine (loop: check-in → warmup → mission → boss → cooldown → reward) ----
-function SingZPage({ tier }) {
+function SingZPage({ tier, onOpen }) {
   const { state, update, addXP, awardBadge } = useAppState();
   const sz = state.singz || { onboarded: false, sessions: [], badges: [], quests: {}, strain: 0 };
   const setSz = (patch) => update({ singz: { ...sz, ...patch } });
@@ -6006,6 +6154,8 @@ function SingZPage({ tier }) {
       <div className="chip-wrap" style={{ marginBottom: 12 }}>
         {TABS.map(([id, l]) => <button key={id} className={`heritage-chip${tab === id ? " sel" : ""}`} onClick={() => setTab(id)}>{l}</button>)}
       </div>
+
+      {tab === "session" && <HabitStrip appKey="singz" appName="SingZ" onOpen={onOpen} />}
 
       {tab === "session" && (
         <>
@@ -6131,10 +6281,11 @@ function SingZPage({ tier }) {
     </>
   );
 }
-function RapZPage() {
+function RapZPage({ onOpen }) {
   return (
     <>
       <div className="stripe-section"><div className="stripe-title">🎧 RapZ</div><div className="balance-info">Drop a verse live or upload it — get real flow/breath/cadence scoring + Corey feedback.</div></div>
+      <HabitStrip appKey="rapz" appName="RapZ" onOpen={onOpen} />
       <AudioLab context="rap verse" kind="rap" />
       <TrainingZ appKey="rapz" />
     </>
