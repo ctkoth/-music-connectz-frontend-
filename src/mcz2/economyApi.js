@@ -103,6 +103,10 @@ export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method:
 export const getPostzApi = (sort = "hot") => api(`/api/economy/postz/?sort=${sort}`);
 export const createPostzApi = (post) => api("/api/economy/postz/", { method: "POST", body: post });
 export const joinPostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/join/`, { method: "POST", body: { active_seconds: activeSeconds } });
+// Share another member's post — grants the sharer +5⚡ once (dwell-gated).
+export const sharePostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/share/`, { method: "POST", body: { active_seconds: activeSeconds } });
+// Daily creator-submission budget — { used, cap, remaining }.
+export const getSubmissionsApi = () => api("/api/economy/submissions/");
 
 // Parcel Primate — Mailchimp-style campaigns (post + DM + email channels).
 export const getParcelApi = () => api("/api/economy/parcel/");
@@ -152,7 +156,8 @@ export const checkSocialVerifyApi = (url) =>
 // Direct messages
 export const getConversationsApi = () => api("/api/economy/messages/");
 export const getThreadApi = (username) => api(`/api/economy/messages/?with=${encodeURIComponent(username)}`);
-export const sendMessageApi = (to, body) => api("/api/economy/messages/", { method: "POST", body: { to, body } });
+export const sendMessageApi = (to, body, media = null) =>
+  api("/api/economy/messages/", { method: "POST", body: { to, body, media_url: media?.url || "", media_type: media?.type || "" } });
 export const editMessageApi = (editId, body) => api("/api/economy/messages/", { method: "POST", body: { edit_id: editId, body } });
 
 // Account self-service

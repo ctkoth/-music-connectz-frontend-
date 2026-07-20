@@ -120,7 +120,7 @@ import {
   getParcelApi, sendParcelApi,
   getAutoTopUpsApi, createAutoTopUpApi, cancelAutoTopUpApi,
   getIdentityApi, startIdentityApi,
-  getPostzApi, createPostzApi, joinPostzApi,
+  getPostzApi, createPostzApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
@@ -292,6 +292,7 @@ function SocialBar({ id, shareText, style }) {
   const [editId, setEditId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
   const [flash, setFlash] = useState("");
+  const mountRef = useRef(Date.now()); // dwell timer for the share reward
 
   useEffect(() => {
     if (!signedIn) return;
@@ -318,6 +319,16 @@ function SocialBar({ id, shareText, style }) {
       if (typeof navigator !== "undefined" && navigator.share) await navigator.share({ text, url });
       else { await navigator.clipboard.writeText(`${text} ${url}`); setFlash("🔗 copied"); setTimeout(() => setFlash(""), 1500); }
     } catch { /* user cancelled share */ }
+    // Sharing another member's PostZ earns +5⚡ (once per post, dwell-gated
+    // server-side — you must have genuinely viewed it for 30s+).
+    if (signedIn && typeof id === "string" && id.startsWith("post:")) {
+      const pid = id.slice(5);
+      const dwell = Math.round((Date.now() - mountRef.current) / 1000);
+      try {
+        const r = await sharePostzApi(pid, dwell);
+        if (r?.rewarded) { setFlash("🔁 +5⚡ shared!"); addXP(1, "Shared a post"); setTimeout(() => setFlash(""), 2500); }
+      } catch { /* own post / already shared / not enough dwell — no reward */ }
+    }
   };
   const addComment = () => {
     if (!draft.trim()) return;
@@ -677,6 +688,7 @@ function PostZPage({ serverOk }) {
   const [links, setLinks] = useState([]);
   const [vis, setVis] = useState("public");
   const [skillCost, setSkillCost] = useState(0); // $ of skills used → energy cost
+  const [media, setMedia] = useState(null); // { url, type } audio/video attachment
   const [feed, setFeed] = useState(null); // server posts
   const [sort, setSort] = useState("hot");
   const [msg, setMsg] = useState("");
@@ -688,15 +700,15 @@ function PostZPage({ serverOk }) {
   const add = async () => {
     if (!title.trim()) return;
     setMsg("");
-    const body = { title: title.trim(), description: desc.trim(), links, visibility: vis, skill_cost_cents: Math.round((Number(skillCost) || 0) * 100) };
+    const body = { title: title.trim(), description: desc.trim(), links, visibility: vis, skill_cost_cents: Math.round((Number(skillCost) || 0) * 100), media_url: media?.url || "", media_type: media?.type || "" };
     if (serverOk) {
       try {
         const r = await createPostzApi(body);
         if (r.energy_charged) update({ energy: r.energy });
         setMsg(r.energy_charged ? `📤 Posted — ${r.energy_charged} energy spent on skills used.` : "📤 Posted.");
-        setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0); load();
+        setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0); setMedia(null); load();
         return;
-      } catch { setMsg("Couldn't post to the server — saved locally."); }
+      } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : "Couldn't post to the server — saved locally."); }
     }
     addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, visibility: vis, joins: [], at: Date.now() });
     setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0);
@@ -724,6 +736,7 @@ function PostZPage({ serverOk }) {
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
         <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
         <div className="form-group"><label>🔗 Links (Spotify, YouTube, store…)</label><LinksEditor links={links} onChange={setLinks} /></div>
+        <div className="form-group"><label>🎙️ Attach audio/video (record or upload)</label><MediaCapture onUploaded={setMedia} /></div>
         <div className="form-group">
           <label>👁️ Visibility</label>
           <div className="chip-wrap">
@@ -755,6 +768,14 @@ function PostZPage({ serverOk }) {
               <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
               {ex.vibe != null && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 2 }}>✨ vibe {ex.vibe > 0 ? "+" : ""}{ex.vibe} · 👍 {ex.up || 0} 👎 {ex.down || 0}{ex.rating != null ? ` · ⭐ ${ex.rating}/10` : ""}</div>}
               <div className="post-content">{ex.description ?? ex.desc}</div>
+              {ex.media_url && (
+                <div style={{ marginTop: 6 }}>
+                  {ex.media_type === "video"
+                    ? <video src={ex.media_url} controls style={{ width: "100%", maxHeight: 260, borderRadius: 8 }} />
+                    : <audio src={ex.media_url} controls style={{ width: "100%" }} />}
+                  {ex.score?.overall != null && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 2 }}>🎯 scored {ex.score.overall}/10</div>}
+                </div>
+              )}
               <LinksRow links={ex.links} />
               {restricted && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {ex.joins || 0} join{(ex.joins || 0) === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
               {restricted && ex.author && !ex.mine && <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => join(ex.id)}>🛑 Join this drop</button>}
@@ -3034,6 +3055,35 @@ const BATTLE_SEED_POOLS = {
   cypher: { a: 300, b: 300 },
 };
 
+// Drop your own battle entry — record/upload, then it posts to the feed as a
+// PostZ others can rate out of 10, comment on, and share.
+function BattleEntryRecorder({ mode, onOpen }) {
+  const [media, setMedia] = useState(null);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const post = async () => {
+    if (!media?.url) return;
+    setBusy(true); setMsg("");
+    try {
+      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, 160), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
+      setMsg("✅ Entry posted to the feed — others can rate it 1–10, comment & share.");
+      setMedia(null); setName("");
+    } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post your entry.")); }
+    setBusy(false);
+  };
+  return (
+    <div className="card">
+      <div className="card-header">🎤 Drop your entry</div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Record or upload your round — it posts to the feed where the community rates it out of 10.</p>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name your entry" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+      <MediaCapture onUploaded={setMedia} />
+      {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post my entry"}</button>}
+      {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}{/✅/.test(msg) && onOpen && <> <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen("postz")}>View feed</button></>}</p>}
+    </div>
+  );
+}
+
 function BattleZPage({ tier, onOpen, serverOk }) {
   const { state, update, updateUser, updateWallet, addTo, addXP } = useAppState();
   const idStatus = useIdentity(serverOk);
@@ -3162,6 +3212,7 @@ function BattleZPage({ tier, onOpen, serverOk }) {
           <button key={m.id} className={`heritage-chip${mode === m.id ? " sel" : ""}`} onClick={() => setMode(m.id)}>{m.label}</button>
         ))}
       </div>
+      {serverOk && <BattleEntryRecorder mode={mode} onOpen={onOpen} />}
       <div className="card" style={{ textAlign: "center" }}>
         <div className="card-header" style={{ justifyContent: "center", borderBottom: "none" }}>🪖 {battle.a.name} vs {battle.b.name}</div>
         {decided ? (
@@ -3549,6 +3600,7 @@ function MessageZPage({ serverOk }) {
   const [composeTo, setComposeTo] = useState("");
   const [editMsgId, setEditMsgId] = useState(null);
   const [editMsgDraft, setEditMsgDraft] = useState("");
+  const [media, setMedia] = useState(null); // { url, type } audio/video attachment
 
   const loadConvos = () => { if (live) getConversationsApi().then((r) => setConvos(r.conversations || [])).catch(() => {}); };
   const loadThread = (u) => { if (live && u) getThreadApi(u).then((r) => setThread(r.messages || [])).catch(() => {}); };
@@ -3557,10 +3609,10 @@ function MessageZPage({ serverOk }) {
 
   const send = async () => {
     const to = active || composeTo.trim();
-    if (!to || !body.trim()) return;
+    if (!to || (!body.trim() && !media)) return;
     try {
-      await sendMessageApi(to, body.trim());
-      setBody(""); setActive(to); setComposeTo("");
+      await sendMessageApi(to, body.trim(), media);
+      setBody(""); setMedia(null); setActive(to); setComposeTo("");
       loadThread(to); loadConvos();
     } catch (e) { alert(e?.message?.includes("blocked") ? "You can't message this user." : e?.message?.includes("limit") ? "Message too long for your tier — upgrade for more." : "Couldn't send."); }
   };
@@ -3589,6 +3641,13 @@ function MessageZPage({ serverOk }) {
                       <button className="btn btn-small btn-secondary" onClick={() => setEditMsgId(null)}>✕</button>
                     </div>
                   ) : m.body}
+                  {m.media_url && (
+                    <div style={{ marginTop: m.body ? 4 : 0 }}>
+                      {m.media_type === "video"
+                        ? <video src={m.media_url} controls style={{ width: "100%", maxHeight: 200, borderRadius: 8 }} />
+                        : <audio src={m.media_url} controls style={{ width: "100%" }} />}
+                    </div>
+                  )}
                   <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2, display: "flex", gap: 8, alignItems: "center" }}>
                     {new Date(m.at).toLocaleString()}
                     {m.mine && editMsgId !== m.id && <span style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => { setEditMsgId(m.id); setEditMsgDraft(m.body); }}>✏️ edit</span>}
@@ -3598,8 +3657,9 @@ function MessageZPage({ serverOk }) {
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <CappedTextarea value={body} onChange={(e) => setBody(e.target.value)} style={{ height: 40, flex: 1 }} placeholder="Message…" />
-            <button className="btn btn-success" onClick={send} disabled={!body.trim()}>📤</button>
+            <button className="btn btn-success" onClick={send} disabled={!body.trim() && !media}>📤</button>
           </div>
+          <MediaCapture onUploaded={setMedia} compact />
         </div>
       </>
     );
@@ -3855,6 +3915,7 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           <div className="card-header"><span>🤝 Offer to {target.username ? `@${target.username}` : (target.display_name || target.name)}</span><button className="btn btn-small btn-secondary" onClick={() => setTarget(null)}>Change</button></div>
           <div className="form-group"><label>💵 Offer ($)</label><input type="number" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="0.00" /></div>
           <div className="form-group"><label>Terms</label><CappedTextarea value={terms} onChange={(e) => setTerms(e.target.value)} style={{ height: 56 }} placeholder="What are you collaborating on? Deliverables, splits, deadline…" /></div>
+          <div className="form-group"><label>🎧 Attach a reference sample (record/upload)</label><MediaCapture onUploaded={(m) => { if (m?.url) setTerms((t) => `${t}${t ? "\n" : ""}🎧 Sample: ${m.url}`); }} /></div>
           {Number(offer) > 0 && collabCur === "money" && (() => { const s = splitTransaction(Number(offer), tier); return (
             <p style={{ fontSize: 11, color: "var(--text-light)" }}>Developer tax ({s.label} {Math.round(s.rate * 100)}%): {money(s.dev)} · your collaborator receives {money(s.net)}.</p>
           ); })()}
@@ -4604,6 +4665,7 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEco
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Tell OCC what to build…" style={{ flex: 1 }} />
         <button className="btn btn-small" onClick={send} disabled={!input.trim() || thinking}>Send</button>
       </div>
+      {serverOk && <MediaCapture onUploaded={(m) => { if (m?.url) setInput((t) => `${t}${t ? " " : ""}[reference clip: ${m.url}]`); }} compact />}
       <p style={{ fontSize: 10, color: notice ? "var(--success)" : "var(--text-light)", marginTop: 4 }}>
         {notice || `${model.emoji} ${model.label} · ${centsLabel(model.costCents)}/message — you're only charged the minimum to cover the model. Corey GPT is the cheapest.`}
       </p>
@@ -6094,7 +6156,7 @@ function TrainingZ({ appKey }) {
     <>
       <div className="stripe-section">
         <div className="stripe-title">{cfg.emoji} {cfg.title} Training</div>
-        <div className="balance-info">{cfg.note}{avg != null ? ` · overall ${avg}/100` : ""}</div>
+        <div className="balance-info">{cfg.note}{avg != null ? ` · overall ${toTen(avg)}/10` : ""}</div>
       </div>
       {active && (
         <div className="card" style={{ textAlign: "center" }}>
@@ -6105,7 +6167,7 @@ function TrainingZ({ appKey }) {
       )}
       {result && (
         <div className="card" style={{ textAlign: "center", border: "1px solid var(--accent, #22e6ff)" }}>
-          <div className="card-header" style={{ justifyContent: "center" }}>{result.drill} — {result.score}/100</div>
+          <div className="card-header" style={{ justifyContent: "center" }}>{result.drill} — {toTen(result.score)}/10</div>
           <p style={{ fontSize: 12, color: result.isBest ? "var(--success)" : "var(--text-light)" }}>{result.isBest ? "🏆 New personal best!" : "Keep grinding — beat your best."}</p>
         </div>
       )}
@@ -6113,7 +6175,7 @@ function TrainingZ({ appKey }) {
         <div className="card-header">🎯 Drills</div>
         {cfg.drills.map((d) => (
           <div key={d} className="skill-item">
-            <span className="skill-item-name">{d} {best[d] ? <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>· best {best[d]}</span> : ""}</span>
+            <span className="skill-item-name">{d} {best[d] ? <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>· best {toTen(best[d])}/10</span> : ""}</span>
             <button className="btn btn-small" disabled={!!active} onClick={() => practice(d)}>▶ Practice</button>
           </div>
         ))}
@@ -6155,8 +6217,14 @@ const METER_LABELS = {
   cadence: "🌪️ Cadence", flow: "🌊 Flow", clarity: "🗣️ Clarity", timing: "⏱️ Timing", control: "🎚️ Control",
 };
 
+// Scores are computed internally on a /100 scale but shown to members out of 10
+// (one decimal) — Corey wants ratings out of 10 everywhere.
+const toTen = (n) => (Math.max(0, Math.min(100, Number(n) || 0)) / 10).toFixed(1);
+
 // InstrumentZ audio lab — record from mic or upload a file, get real scores + Corey feedback.
-function AudioLab({ context = "take", onResult, kind = "voice" }) {
+// A scored take keeps its media so it can be saved as a PostZ (mp3/webm/video),
+// then rated / commented / shared and cross-pollinated into CollabZ or a DAW.
+function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = "" }) {
   const { addXP } = useAppState();
   const signedIn = isSignedIn();
   const [status, setStatus] = useState("");
@@ -6164,9 +6232,12 @@ function AudioLab({ context = "take", onResult, kind = "voice" }) {
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
   const recRef = useRef(null); const chunksRef = useRef([]); const streamRef = useRef(null);
+  const [media, setMedia] = useState(null); // { blob, type:"audio"|"video", name }
+  const [save, setSave] = useState(null);    // save-as-post UI state
 
-  const run = async (blob) => {
-    setStatus("analyzing"); setFeedback("");
+  const run = async (blob, mediaMeta) => {
+    setStatus("analyzing"); setFeedback(""); setSave(null);
+    if (mediaMeta) setMedia({ blob, ...mediaMeta });
     try { const buf = await decodeBlob(blob); const r = analyzeAudioBuffer(buf, kind); setResult(r); onResult?.(r); if (r.ok) addXP(4, "InstrumentZ take"); }
     catch { setResult({ ok: false }); }
     setStatus("");
@@ -6177,12 +6248,12 @@ function AudioLab({ context = "take", onResult, kind = "voice" }) {
       streamRef.current = stream;
       const mr = new MediaRecorder(stream); chunksRef.current = [];
       mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-      mr.onstop = () => { const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" }); streamRef.current?.getTracks().forEach((t) => t.stop()); run(blob); };
+      mr.onstop = () => { const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" }); streamRef.current?.getTracks().forEach((t) => t.stop()); run(blob, { type: "audio", name: `${skill || context || "take"}.webm` }); };
       recRef.current = mr; mr.start(); setStatus("recording");
     } catch { setStatus("denied"); }
   };
   const stopRec = () => { if (recRef.current?.state === "recording") recRef.current.stop(); setStatus("analyzing"); };
-  const onFile = (e) => { const f = e.target.files?.[0]; if (f) run(f); e.target.value = ""; };
+  const onFile = (e) => { const f = e.target.files?.[0]; if (f) run(f, { type: (f.type || "").startsWith("video") ? "video" : "audio", name: f.name }); e.target.value = ""; };
 
   const askCorey = async () => {
     if (!result?.ok) return;
@@ -6216,7 +6287,7 @@ function AudioLab({ context = "take", onResult, kind = "voice" }) {
       {result?.ok && (
         <>
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12, marginBottom: 6 }}>Detected: <strong>{m.note}</strong> · {m.pitchHz}Hz · {m.durationSec}s · overall <strong style={{ color: "var(--primary)" }}>{result.scores.overall}/100</strong></div>
+            <div style={{ fontSize: 12, marginBottom: 6 }}>Detected: <strong>{m.note}</strong> · {m.pitchHz}Hz · {m.durationSec}s · overall <strong style={{ color: "var(--primary)" }}>{toTen(result.scores.overall)}/10</strong></div>
             {/* Pitch range panel — low→high span + detected vocal class */}
             {m.rangeSemitones > 0 && (
               <div style={{ marginBottom: 8, padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.05)" }}>
@@ -6229,14 +6300,158 @@ function AudioLab({ context = "take", onResult, kind = "voice" }) {
             )}
             {shownMeters.filter((id) => id in result.scores).map((id) => (
               <div key={id} style={{ marginBottom: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{METER_LABELS[id] || id}</span><strong>{result.scores[id]}</strong></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{METER_LABELS[id] || id}</span><strong>{toTen(result.scores[id])}/10</strong></div>
                 <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.1)" }}><div style={{ width: `${result.scores[id]}%`, height: "100%", borderRadius: 3, background: "var(--primary)" }} /></div>
               </div>
             ))}
           </div>
           <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={askCorey} disabled={busy}>{busy ? "🎤 Corey's listening…" : "🎤 Get Corey feedback"}</button>
           {feedback && <p style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 8, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 10 }}>{feedback}</p>}
+          {media && signedIn && (
+            <SaveTakeAsPost
+              media={media}
+              result={result}
+              context={context}
+              skill={skill}
+              onOpen={onOpen}
+              save={save}
+              setSave={setSave}
+            />
+          )}
         </>
+      )}
+    </div>
+  );
+}
+
+// Turn a scored take into a nameable PostZ carrying its audio/video + the /10
+// score, then rate / comment / share it — and cross-pollinate to CollabZ or a DAW.
+function SaveTakeAsPost({ media, result, context, skill, onOpen, save, setSave }) {
+  const [name, setName] = useState("");
+  const [vis, setVis] = useState("public");
+  const [busy, setBusy] = useState(false);
+  const [budget, setBudget] = useState(null); // { used, cap, remaining }
+  const [err, setErr] = useState("");
+  const posted = save?.post;
+
+  useEffect(() => { getSubmissionsApi().then(setBudget).catch(() => {}); }, []);
+
+  const savePost = async () => {
+    setBusy(true); setErr("");
+    try {
+      const up = await uploadFileApi(new File([media.blob], media.name || "take.webm", { type: media.blob.type || "audio/webm" }));
+      const url = up?.upload?.url || up?.url || "";
+      const scores10 = Object.fromEntries(Object.entries(result.scores || {}).map(([k, v]) => [k, Number(toTen(v))]));
+      const post = await createPostzApi({
+        title: (name || `${skill || context || "Take"}`).slice(0, 160),
+        description: `🎙️ ${skill || context} take · overall ${toTen(result.scores.overall)}/10`,
+        media_url: url,
+        media_type: media.type,
+        score: { overall: Number(toTen(result.scores.overall)), meters: scores10, note: result.metrics?.note },
+        visibility: vis,
+      });
+      setSave({ post, url });
+    } catch (e) {
+      const msg = e?.message || "";
+      setErr(/limit|429/i.test(msg) ? "Daily submission limit reached — upgrade for more submits." : (msg || "Couldn't save the take."));
+    }
+    setBusy(false);
+  };
+
+  if (posted) {
+    return (
+      <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(46,213,115,0.1)", border: "1px solid var(--success)" }}>
+        <div style={{ fontSize: 13, color: "var(--success)", fontWeight: 700 }}>✅ Saved as PostZ — “{posted.title}”</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", margin: "4px 0 8px" }}>It's on the feed now — others can rate it out of 10, comment, and share. Cross-pollinate it:</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("collabz")}>🤝 Send to CollabZ</button>}
+          {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("dawz")}>🎛️ Open in DAW</button>}
+          {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("postz")}>📣 View in PostZ</button>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>💾 Save this take as a PostZ</div>
+      {budget && <div style={{ fontSize: 11, color: budget.remaining > 0 ? "var(--text-light)" : "var(--danger)", marginBottom: 6 }}>Submits left today: <strong>{budget.remaining}/{budget.cap}</strong>{budget.remaining <= 0 ? " — upgrade for more" : ""}</div>}
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`Name your take (e.g. "${skill || "Verse"} v1")`} style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+      <select value={vis} onChange={(e) => setVis(e.target.value)} style={{ width: "100%", marginBottom: 6 }}>
+        <option value="public">🌐 Public — anyone can rate &amp; share</option>
+        <option value="restricted">🔒 Members only</option>
+        <option value="private">🙈 Private (just me)</option>
+      </select>
+      {err && <p style={{ fontSize: 11, color: "var(--danger)", margin: "0 0 6px" }}>{err}</p>}
+      <button className="btn btn-small btn-success" style={{ width: "100%" }} onClick={savePost} disabled={busy || (budget && budget.remaining <= 0)}>{busy ? "Saving…" : "💾 Save take → PostZ"}</button>
+    </div>
+  );
+}
+
+// Reusable record-or-upload → hosted URL + inline preview. Used anywhere a
+// member can attach audio/video: CollabZ, BattleZ, Social ConnectZ, MessageZ, OCC.
+function MediaCapture({ onUploaded, accept = "audio/*,video/*", allowVideo = true, compact = false }) {
+  const [status, setStatus] = useState("");   // "", "recording", "uploading", "denied"
+  const [preview, setPreview] = useState(null); // { url, type }
+  const [err, setErr] = useState("");
+  const recRef = useRef(null); const chunksRef = useRef([]); const streamRef = useRef(null);
+
+  const upload = async (blob, type, name) => {
+    setStatus("uploading"); setErr("");
+    try {
+      const file = new File([blob], name || `clip.${type === "video" ? "webm" : "webm"}`, { type: blob.type || (type === "video" ? "video/webm" : "audio/webm") });
+      const r = await uploadFileApi(file);
+      const url = r?.upload?.url || r?.url || "";
+      const info = { url, type };
+      setPreview(info); onUploaded?.(info);
+    } catch (e) {
+      const msg = e?.message || "";
+      setErr(/413|too large/i.test(msg) ? "File's too big for your tier — upgrade for larger uploads." : /409|storage/i.test(msg) ? "Storage full — free some space or upgrade." : (msg || "Upload failed."));
+    }
+    setStatus("");
+  };
+
+  const startRec = async (wantVideo) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(wantVideo ? { audio: true, video: true } : { audio: true });
+      streamRef.current = stream;
+      const mr = new MediaRecorder(stream); chunksRef.current = [];
+      mr.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || (wantVideo ? "video/webm" : "audio/webm") });
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        upload(blob, wantVideo ? "video" : "audio");
+      };
+      recRef.current = { mr, video: wantVideo }; mr.start(); setStatus("recording");
+    } catch { setStatus("denied"); }
+  };
+  const stopRec = () => { if (recRef.current?.mr?.state === "recording") recRef.current.mr.stop(); };
+  const onFile = (e) => { const f = e.target.files?.[0]; if (f) upload(f, (f.type || "").startsWith("video") ? "video" : "audio", f.name); e.target.value = ""; };
+
+  return (
+    <div style={{ marginTop: compact ? 4 : 8 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        {status !== "recording" ? (
+          <>
+            <button type="button" className="btn btn-small btn-success" onClick={() => startRec(false)}>🎙️ Record</button>
+            {allowVideo && <button type="button" className="btn btn-small btn-secondary" onClick={() => startRec(true)}>🎥 Video</button>}
+            <label className="btn btn-small btn-secondary" style={{ cursor: "pointer" }}>📁 Attach<input type="file" accept={accept} onChange={onFile} style={{ display: "none" }} /></label>
+          </>
+        ) : (
+          <button type="button" className="btn btn-small btn-danger" onClick={stopRec}>⏹ Stop &amp; upload</button>
+        )}
+        {status === "uploading" && <span style={{ fontSize: 11, color: "var(--text-light)" }}>⏳ Uploading…</span>}
+        {status === "recording" && <span className="tag" style={{ color: "var(--danger)" }}>● REC</span>}
+      </div>
+      {status === "denied" && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>🎤 Mic/camera blocked — allow access or attach a file.</p>}
+      {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{err}</p>}
+      {preview?.url && (
+        <div style={{ marginTop: 6 }}>
+          {preview.type === "video"
+            ? <video src={preview.url} controls style={{ width: "100%", maxHeight: 220, borderRadius: 8 }} />
+            : <audio src={preview.url} controls style={{ width: "100%" }} />}
+          <button type="button" className="btn btn-small btn-secondary" style={{ marginTop: 4 }} onClick={() => { setPreview(null); onUploaded?.(null); }}>✕ Remove</button>
+        </div>
       )}
     </div>
   );
@@ -6379,7 +6594,7 @@ function SingZPage({ tier, onOpen }) {
                 </div>
                 <p style={{ fontSize: 11, color: "var(--text-light)" }}>Record or upload your take below for real pitch/breath/cadence scoring — or skip the lab to run a guided (simulated) mission.</p>
               </div>
-              <AudioLab context={`singing take (${skill})`} kind="voice" onResult={setLabResult} />
+              <AudioLab context={`singing take (${skill})`} kind="voice" onResult={setLabResult} onOpen={onOpen} skill={`SingZ ${skill}`} />
               <button className="btn btn-success" style={{ width: "100%" }} onClick={runMission}>{labResult?.ok ? "👑 Score my take as the Boss Take" : "🎙️ Run guided mission"}</button>
             </>
           )}
@@ -6389,7 +6604,7 @@ function SingZPage({ tier, onOpen }) {
               <div className="card-header">👑 Boss Take — scored</div>
               {SCORE_METERS.map((m) => (
                 <div key={m.id} style={{ marginBottom: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{m.emoji} {m.name}</span><strong style={{ color: scores[m.id] >= 80 ? "var(--success)" : scores[m.id] >= 65 ? "var(--accent, #22e6ff)" : "var(--gold, #ffcf3f)" }}>{scores[m.id]}</strong></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}><span>{m.emoji} {m.name}</span><strong style={{ color: scores[m.id] >= 80 ? "var(--success)" : scores[m.id] >= 65 ? "var(--accent, #22e6ff)" : "var(--gold, #ffcf3f)" }}>{toTen(scores[m.id])}/10</strong></div>
                   <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.1)" }}><div style={{ width: `${scores[m.id]}%`, height: "100%", borderRadius: 3, background: "var(--primary)" }} /></div>
                 </div>
               ))}
@@ -6408,7 +6623,7 @@ function SingZPage({ tier, onOpen }) {
           {stage === "reward" && scores && (
             <div className="card" style={{ border: "1px solid var(--primary)" }}>
               <div className="card-header">🏆 Reward</div>
-              <p style={{ fontSize: 13 }}>Session complete — <strong>{Math.round(SCORE_METERS.reduce((t, m) => t + scores[m.id], 0) / SCORE_METERS.length)}/100</strong> overall on {skill}. XP earned, streak advanced. {scores.health < 55 ? "⚠️ Voice health was low — logged for recovery." : "Voice health solid 💪"}</p>
+              <p style={{ fontSize: 13 }}>Session complete — <strong>{toTen(Math.round(SCORE_METERS.reduce((t, m) => t + scores[m.id], 0) / SCORE_METERS.length))}/10</strong> overall on {skill}. XP earned, streak advanced. {scores.health < 55 ? "⚠️ Voice health was low — logged for recovery." : "Voice health solid 💪"}</p>
               <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={() => { setStage(null); setTab("session"); }}>Done</button>
             </div>
           )}
@@ -6417,17 +6632,17 @@ function SingZPage({ tier, onOpen }) {
 
       {tab === "progress" && (
         <>
-          <div className="stripe-section"><div className="stripe-title">📈 Progress</div><div className="balance-info">{sessions.length} sessions · avg {sessions.length ? Math.round(sessions.reduce((t, s) => t + s.overall, 0) / sessions.length) : 0}/100 · 🔥 {state.progression?.streak || 0}</div></div>
+          <div className="stripe-section"><div className="stripe-title">📈 Progress</div><div className="balance-info">{sessions.length} sessions · avg {sessions.length ? toTen(Math.round(sessions.reduce((t, s) => t + s.overall, 0) / sessions.length)) : "0.0"}/10 · 🔥 {state.progression?.streak || 0}</div></div>
           <div className="card">
             <div className="card-header">🗺️ VoiceMap (averages)</div>
             {SCORE_METERS.map((m) => { const vals = sessions.map((s) => s.scores[m.id]).filter(Boolean); const avg = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0; return (
-              <div key={m.id} className="settings-toggle"><label>{m.emoji} {m.name}</label><span className="tag">{avg || "—"}</span></div>
+              <div key={m.id} className="settings-toggle"><label>{m.emoji} {m.name}</label><span className="tag">{avg ? `${toTen(avg)}/10` : "—"}</span></div>
             ); })}
           </div>
           <div className="card">
             <div className="card-header">🧾 Recent sessions</div>
             {sessions.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No sessions yet.</p>
-              : sessions.slice(0, 10).map((s) => <div key={s.id} className="post-card"><div className="post-user">{s.skill} · {s.overall}/100</div><div className="post-meta">{new Date(s.at).toLocaleString()} · {DIFFICULTIES.find((d) => d.id === s.difficulty)?.name}</div></div>)}
+              : sessions.slice(0, 10).map((s) => <div key={s.id} className="post-card"><div className="post-user">{s.skill} · {toTen(s.overall)}/10</div><div className="post-meta">{new Date(s.at).toLocaleString()} · {DIFFICULTIES.find((d) => d.id === s.difficulty)?.name}</div></div>)}
           </div>
         </>
       )}
@@ -6466,7 +6681,7 @@ function RapZPage({ onOpen }) {
     <>
       <div className="stripe-section"><div className="stripe-title">🎧 RapZ</div><div className="balance-info">Drop a verse live or upload it — get real flow/breath/cadence scoring + Corey feedback.</div></div>
       <HabitStrip appKey="rapz" appName="RapZ" onOpen={onOpen} />
-      <AudioLab context="rap verse" kind="rap" />
+      <AudioLab context="rap verse" kind="rap" onOpen={onOpen} skill="RapZ verse" />
       <TrainingZ appKey="rapz" />
     </>
   );
