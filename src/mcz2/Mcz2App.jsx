@@ -645,8 +645,17 @@ function PostZPage({ serverOk }) {
   };
 
   const join = async (id) => {
-    try { const r = await joinPostzApi(id); setMsg(r.rewarded ? `🛑 You're the first from your IP — creator earned ${r.reward_spinaz} SpinAZ.` : "🛑 Joined."); load(); }
-    catch { /* offline */ }
+    // Record the join now (no reward yet), then confirm real engagement after a
+    // few seconds — the creator only earns 300 SpinAZ for a genuine visit.
+    try { await joinPostzApi(id, 0); setMsg("🛑 Joined — stay a few seconds to support the creator…"); load(); }
+    catch { /* offline */ return; }
+    setTimeout(async () => {
+      try {
+        const r = await joinPostzApi(id, 6); // engaged heartbeat (>5s)
+        if (r.rewarded) setMsg(`🛑 Thanks for staying — creator earned ${r.reward_spinaz} SpinAZ.`);
+        load();
+      } catch { /* offline */ }
+    }, 6000);
   };
 
   const localPosts = feed === null ? (state.examples || []) : [];
