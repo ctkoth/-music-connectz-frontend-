@@ -116,7 +116,8 @@ import {
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
-  getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi,
+  getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
+  editMessageApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS } from "./intelligence.js";
 import "./mcz2.css";
@@ -282,6 +283,8 @@ function SocialBar({ id, shareText, style }) {
   const [rateOpen, setRateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editDraft, setEditDraft] = useState("");
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
@@ -367,13 +370,27 @@ function SocialBar({ id, shareText, style }) {
             <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addComment()} placeholder="Add a comment…" style={{ flex: 1 }} />
             <button className="btn btn-small" onClick={addComment} disabled={!draft.trim()}>Post</button>
           </div>
-          {comments.map((c) => (
-            <div key={c.id} className="post-card" style={{ marginTop: 6 }}>
-              {c.user && <div className="post-user">@{c.user}</div>}
-              <div className="post-content">{c.body}</div>
-              <div className="post-meta">{new Date(c.at).toLocaleString()}</div>
-            </div>
-          ))}
+          {comments.map((c) => {
+            const mine = signedIn && c.user && c.user === state.user?.username;
+            const editing = editId === c.id;
+            const saveEdit = async () => {
+              try { const r = await editCommentApi(id, c.id, editDraft.trim()); setSrv(r); setEditId(null); }
+              catch (e) { alert(e?.message?.includes("window") ? "⏳ Edit window passed — upgrade for a longer edit window (Free 6m · Premium 60m · StatZ 6h)." : "Couldn't edit."); }
+            };
+            return (
+              <div key={c.id} className="post-card" style={{ marginTop: 6 }}>
+                {c.user && <div className="post-user">@{c.user}{mine && !editing && <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 10, marginLeft: 8 }} onClick={() => { setEditId(c.id); setEditDraft(c.body); }}>✏️ edit</button>}</div>}
+                {editing ? (
+                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    <input value={editDraft} onChange={(e) => setEditDraft(e.target.value)} style={{ flex: 1 }} />
+                    <button className="btn btn-small" onClick={saveEdit} disabled={!editDraft.trim()}>Save</button>
+                    <button className="btn btn-small btn-secondary" onClick={() => setEditId(null)}>✕</button>
+                  </div>
+                ) : <div className="post-content">{c.body}</div>}
+                <div className="post-meta">{new Date(c.at).toLocaleString()}</div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -3140,6 +3157,8 @@ function MessageZPage({ serverOk }) {
   const [body, setBody] = useState("");
   const [finding, setFinding] = useState(false);
   const [composeTo, setComposeTo] = useState("");
+  const [editMsgId, setEditMsgId] = useState(null);
+  const [editMsgDraft, setEditMsgDraft] = useState("");
 
   const loadConvos = () => { if (live) getConversationsApi().then((r) => setConvos(r.conversations || [])).catch(() => {}); };
   const loadThread = (u) => { if (live && u) getThreadApi(u).then((r) => setThread(r.messages || [])).catch(() => {}); };
@@ -3155,6 +3174,10 @@ function MessageZPage({ serverOk }) {
       loadThread(to); loadConvos();
     } catch (e) { alert(e?.message?.includes("blocked") ? "You can't message this user." : e?.message?.includes("limit") ? "Message too long for your tier — upgrade for more." : "Couldn't send."); }
   };
+  const saveEdit = async () => {
+    try { await editMessageApi(editMsgId, editMsgDraft.trim()); setEditMsgId(null); loadThread(active); }
+    catch (e) { alert(e?.message?.includes("window") ? "⏳ Edit window passed — upgrade for a longer edit window (Free 6m · Premium 60m · StatZ 6h)." : "Couldn't edit."); }
+  };
   const pick = (m) => { setComposeTo(m.username || m.display_name || m.name || ""); setActive(null); setFinding(false); };
 
   if (!live) return <div className="card"><p style={{ fontSize: 12, color: "var(--text-light)" }}>💬 Sign in + connect to message other members.</p></div>;
@@ -3169,8 +3192,17 @@ function MessageZPage({ serverOk }) {
             {thread.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No messages yet — say hi.</p>
               : thread.map((m) => (
                 <div key={m.id} style={{ alignSelf: m.mine ? "flex-end" : "flex-start", maxWidth: "80%", background: m.mine ? "var(--primary)" : "rgba(255,255,255,0.08)", color: m.mine ? "#fff" : "inherit", borderRadius: 12, padding: "6px 10px", fontSize: 13 }}>
-                  {m.body}
-                  <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2 }}>{new Date(m.at).toLocaleString()}</div>
+                  {editMsgId === m.id ? (
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <input value={editMsgDraft} onChange={(e) => setEditMsgDraft(e.target.value)} style={{ flex: 1, fontSize: 12 }} />
+                      <button className="btn btn-small" onClick={saveEdit} disabled={!editMsgDraft.trim()}>Save</button>
+                      <button className="btn btn-small btn-secondary" onClick={() => setEditMsgId(null)}>✕</button>
+                    </div>
+                  ) : m.body}
+                  <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2, display: "flex", gap: 8, alignItems: "center" }}>
+                    {new Date(m.at).toLocaleString()}
+                    {m.mine && editMsgId !== m.id && <span style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => { setEditMsgId(m.id); setEditMsgDraft(m.body); }}>✏️ edit</span>}
+                  </div>
                 </div>
               ))}
           </div>
