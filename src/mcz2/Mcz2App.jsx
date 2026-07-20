@@ -887,7 +887,69 @@ function SocialZConnect({ serverOk, onSaved, mczFollowers = 0 }) {
   );
 }
 
-function ProfilePage({ onOpen, tier, serverOk }) {
+// Wallet top-up tiles — $1–$100 presets that also grant Energy (= cents × tier
+// multiplier), shown transparently. Free ×1, Premium ×2 (gold), StatZ ×4 (green).
+const TOPUP_PRESETS = [1, 5, 10, 20, 50, 100];
+const ENERGY_TOPUP_MULT = { free: 1, premium: 2, statz: 4 };
+function TopUpTiles({ serverOk, tier, syncEconomy, onDone, compact = false }) {
+  const { state, update, updateWallet, addTo } = useAppState();
+  const [busy, setBusy] = useState(0);
+  const [msg, setMsg] = useState("");
+  const tk = tierKey(tier);
+  const mult = ENERGY_TOPUP_MULT[tk] || 1;
+  const buy = async (dollars) => {
+    setBusy(dollars); setMsg("");
+    const cents = dollars * 100;
+    if (serverOk) {
+      try {
+        const r = await addFundsApi(cents);
+        updateWallet({ balance: r.wallet.money, earned: Number((state.wallet.earned + r.breakdown.net_cents / 100).toFixed(2)) });
+        update({ energy: r.wallet.energy, spinaz: r.wallet.spinaz });
+        addTo("paymentHistory", { amount: r.breakdown.net_cents / 100, gross: dollars, dev: r.breakdown.dev_tax_cents / 100, at: Date.now(), note: "Top up" });
+        setMsg(`✅ Added ${money(r.breakdown.net_cents / 100)} + ${r.breakdown.energy_granted}⚡ energy`);
+        syncEconomy?.(); onDone?.(); setBusy(0); return;
+      } catch { /* fall through to local */ }
+    }
+    const { net } = splitTransaction(dollars, tier);
+    updateWallet({ balance: Number((state.wallet.balance + net).toFixed(2)), earned: Number((state.wallet.earned + net).toFixed(2)) });
+    update({ energy: (state.energy || 0) + cents * mult });
+    addTo("paymentHistory", { amount: net, gross: dollars, dev: dollars - net, at: Date.now(), note: "Top up" });
+    setMsg(`✅ Added ${money(net)} + ${cents * mult}⚡ energy (saved locally)`);
+    setBusy(0);
+  };
+  return (
+    <div className="card">
+      <div className="card-header"><span>💳 Top up</span><span className="tag" title="Every $1 tops up your wallet and grants Energy">$1 = 100⚡ base</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>
+        Add funds and get <strong>Energy</strong> free with it — <strong>{mult}×</strong> on your {tk.toUpperCase()} tier.
+        Every tier, transparent: Free <b>×1</b> · <span style={{ color: "var(--gold, #ffcf3f)" }}>Premium ×2</span> · <span style={{ color: "var(--success)" }}>StatZ ×4</span>.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: compact ? "repeat(3,1fr)" : "repeat(auto-fit,minmax(96px,1fr))", gap: 8 }}>
+        {TOPUP_PRESETS.map((d) => {
+          const big = d >= 50, mid = d >= 20;
+          return (
+            <button key={d} disabled={busy === d} onClick={() => buy(d)}
+              style={{
+                padding: big ? "16px 10px" : mid ? "13px 10px" : "10px 8px",
+                borderRadius: 12, cursor: "pointer", color: "#fff", fontWeight: 800,
+                border: big ? "2px solid var(--gold, #ffcf3f)" : "1px solid var(--border)",
+                background: big ? "linear-gradient(135deg,#7c3aed,#db2777)" : mid ? "linear-gradient(135deg,var(--primary),#1565C0)" : "var(--primary)",
+                boxShadow: big ? "0 0 16px rgba(219,39,119,0.5)" : "none",
+                fontSize: big ? 20 : mid ? 17 : 15, transform: big ? "scale(1.02)" : "none",
+              }}>
+              {busy === d ? "…" : `$${d}`}
+              <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.95, marginTop: 2 }}>+{d * 100 * mult}⚡</div>
+              {big && <div style={{ fontSize: 9, marginTop: 2 }}>🔥 best value</div>}
+            </button>
+          );
+        })}
+      </div>
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
+    </div>
+  );
+}
+
+function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
   const { state } = useAppState();
   const u = state.user;
   const skills = state.personas.flatMap((p) => p.skills || []);
@@ -945,6 +1007,7 @@ function ProfilePage({ onOpen, tier, serverOk }) {
       </div>
       <button className="btn btn-success" style={{ width: "100%", marginBottom: 10 }} onClick={() => onOpen?.("setup")}>✏️ Edit profile (name, bio, email, photo)</button>
       <div className="form-group"><label>📝 Bio</label><div style={{ fontSize: 12 }}>{u.bio || "No bio — tap Edit profile to add one."}</div></div>
+      <TopUpTiles serverOk={serverOk} tier={effTier} syncEconomy={syncEconomy} />
       <SocialZConnect serverOk={serverOk} mczFollowers={me?.followers ?? 0} onSaved={(r) => setMe((s) => ({ ...(s || {}), ...r }))} />
       <div className="form-group"><label>📧 Email</label><div style={{ fontSize: 12 }}>{u.email || "No email"}</div></div>
       <div className="form-group"><label>🎭 Personas</label>
@@ -1314,7 +1377,7 @@ function RefundCard({ serverOk, onTierChange, syncEconomy, onOpen }) {
           )}
         </>
       ) : rw && rw.kind ? (
-        <p style={{ fontSize: 11, color: "var(--text-light)" }}>Your {rw.kind} purchase is past the {days}-day window — it's final now.</p>
+        <p style={{ fontSize: 11, color: "var(--text-light)" }}>Your {rw.kind} purchase is past the {days}-day window — <strong>not refundable</strong> after {days} days.</p>
       ) : null}
       {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
     </div>
@@ -1537,7 +1600,7 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
 
 const SKILL_KEYS = ["mimez", "directz", "lessonz", "singz", "rapz", "drumz", "violinz", "guitarz", "bassz", "keyz", "producez", "designz", "shotz", "developz", "managez", "bodiez"];
 
-function OnboardZPage({ onOpen }) {
+function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
   const { state, update } = useAppState();
   const usage = readStore(USAGE_KEY) || {};
   const explored = Object.keys(usage).some((k) => SKILL_KEYS.includes(k));
@@ -1550,6 +1613,7 @@ function OnboardZPage({ onOpen }) {
   ];
   const done = steps.filter((s) => s.done).length;
   return (
+    <>
     <div className="card">
       <div className="card-header"><span>👋 Welcome to Music ConnectZ</span><span className="tag">{done}/{steps.length}</span></div>
       <div className="ob-bar"><div className="ob-fill" style={{ width: `${(done / steps.length) * 100}%` }} /></div>
@@ -1566,6 +1630,8 @@ function OnboardZPage({ onOpen }) {
       {done === steps.length && <p style={{ fontSize: 12, color: "var(--success)", marginTop: 10 }}>🎉 You're all set — welcome aboard!</p>}
       <button className="btn btn-secondary btn-small" style={{ marginTop: 12 }} onClick={() => update({ onboardDismissed: true })}>Dismiss onboarding</button>
     </div>
+    <TopUpTiles serverOk={serverOk} tier={tier} syncEconomy={syncEconomy} />
+    </>
   );
 }
 
@@ -3521,7 +3587,7 @@ function CollabDealTracker({ me, refreshKey }) {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
           {iOwe && !iFunded && ["draft", "funded"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(fundCollabApi, d.id)}>💳 Fund my share ({fmtAmt(mine.pays_cents)}{d.stake_spinaz ? ` + ${d.stake_spinaz}🍥 stake` : ""})</button>}
           {d.status === "funded" && mine && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(deliverCollabApi, d.id)}>📦 Mark delivered</button>}
-          {iOwe && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(releaseCollabApi, d.id)}>✅ Approve &amp; release</button>}
+          {iOwe && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-success" disabled={busy} onClick={() => act(releaseCollabApi, d.id)} title="Releases the held funds to your collaborator instantly">✅ Accept &amp; pay now</button>}
           {mine && ["funded", "delivered"].includes(d.status) && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(disputeCollabApi, d.id)} title="Freezes auto-release; the platform will mediate">⚖️ Dispute</button>}
           {iOwe && ["draft", "funded"].includes(d.status) && !d.delivered_at && <button className="btn btn-small btn-secondary" disabled={busy} onClick={() => act(refundCollabApi, d.id)} title="Cancel and return held funds">↩️ Cancel &amp; refund</button>}
         </div>
@@ -6465,7 +6531,9 @@ function LegendZPage({ onOpen }) {
       <div className="card">
         <div className="card-header">💲 Currency &amp; energy</div>
         <LegendZRow emoji="⚡" term="Energy" onOpen={onOpen} cta={{ to: "energy", label: "⚡ Earn / buy energy" }}>
-          Fuel for actions. You earn it passively every hour off your reach median — Free = median/10, Premium = median/5, StatZ = median/1 — so bigger verified reach + higher tier = more free energy. Tap to top up.
+          Fuel for actions. Two ways to get it, both transparent:<br />
+          • <b>Passive/hour</b> off your reach median — Free <b>median/10</b> · <span style={{ color: "var(--gold, #ffcf3f)" }}>Premium median/5</span> · <span style={{ color: "var(--success)" }}>StatZ median/1</span>.<br />
+          • <b>On top-up</b> you also get energy = the cents you add × your tier: Free <b>×1</b> ($1 = 100⚡) · <span style={{ color: "var(--gold, #ffcf3f)" }}>Premium ×2 (200⚡)</span> · <span style={{ color: "var(--success)" }}>StatZ ×4 (400⚡)</span>.
         </LegendZRow>
         <LegendZRow emoji="🍥" term="SpinAZ" onOpen={onOpen} cta={{ to: "spinaz", label: "🍥 Get SpinAZ" }}>
           The reward currency — you earn it from wins (squash a BugZ = 200 🍥) and spend it on perks. Real spendable value, not vanity points.
