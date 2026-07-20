@@ -117,7 +117,7 @@ import {
   getDirectzApi, createDirectzApi, rateDirectzApi,
   getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
-  getSocialApi, reactSocialApi, commentSocialApi,
+  getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi,
 } from "./economyApi.js";
 import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS } from "./intelligence.js";
 import "./mcz2.css";
@@ -250,6 +250,7 @@ function SocialBar({ id, shareText, style }) {
   const local = (state.social || {})[id] || { up: 0, down: 0, my: 0, comments: [] };
   const s = srv || local;
   const [open, setOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState("");
 
@@ -286,16 +287,33 @@ function SocialBar({ id, shareText, style }) {
     addXP(2, "Commented");
     setDraft("");
   };
+  const rate = (score) => {
+    const val = s.my_rating === score ? 0 : score;
+    if (signedIn) reactRate(val);
+    else setS({ my_rating: val || undefined });
+    if (val) addXP(1, "Rated");
+    setRateOpen(false);
+  };
+  const reactRate = (val) => { rateSocialApi(id, val).then(setSrv).catch(() => {}); };
   const comments = s.comments || [];
   return (
     <div style={{ marginTop: 8, ...style }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         <button className={`btn btn-small${s.my === 1 ? "" : " btn-secondary"}`} onClick={() => vote(1)}>👍 {s.up || 0}</button>
         <button className={`btn btn-small${s.my === -1 ? " btn-danger" : " btn-secondary"}`} onClick={() => vote(-1)}>👎 {s.down || 0}</button>
+        <button className={`btn btn-small${rateOpen ? "" : " btn-secondary"}`} onClick={() => setRateOpen((v) => !v)} title="Rate this 1–10">⭐ {s.rating != null ? `${s.rating}/10` : "Rate"}{s.my_rating ? ` · you ${s.my_rating}` : ""}</button>
         <button className="btn btn-small btn-secondary" onClick={() => setOpen((v) => !v)}>💬 {comments.length}</button>
         <button className="btn btn-small btn-secondary" onClick={share}>🔗 Share</button>
         {flash && <span style={{ fontSize: 11, color: "var(--success)" }}>{flash}</span>}
       </div>
+      {rateOpen && (
+        <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 6 }}>
+          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+            <button key={n} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11, ...(s.my_rating === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }} onClick={() => rate(n)}>{n}</button>
+          ))}
+          {s.rating_count != null && <span style={{ fontSize: 10, color: "var(--text-light)", alignSelf: "center", marginLeft: 4 }}>{s.rating_count} rating{s.rating_count === 1 ? "" : "s"}</span>}
+        </div>
+      )}
       {open && (
         <div style={{ marginTop: 6 }}>
           <div style={{ display: "flex", gap: 6 }}>
