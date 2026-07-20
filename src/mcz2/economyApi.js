@@ -100,7 +100,7 @@ export const buyMerchApi = (id) => api(`/api/economy/merch/${id}/buy/`, { method
 export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method: "DELETE" });
 
 // PostZ — cross-user posts with visibility + restricted-join rewards
-export const getPostzApi = () => api("/api/economy/postz/");
+export const getPostzApi = (sort = "hot") => api(`/api/economy/postz/?sort=${sort}`);
 export const createPostzApi = (post) => api("/api/economy/postz/", { method: "POST", body: post });
 export const joinPostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/join/`, { method: "POST", body: { active_seconds: activeSeconds } });
 
