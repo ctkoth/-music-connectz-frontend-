@@ -81,14 +81,11 @@ function ProfileRater({ username, dimension, label, emoji, median, mine, onRated
   };
   return (
     <div style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: 11, marginBottom: 3 }}>{emoji} {label}: <strong>{median != null ? `${median}/10` : "unrated"}</strong>{my != null ? ` · you: ${my}` : ""}</div>
-      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-        {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-          <button key={n} disabled={busy} onClick={() => rate(n)}
-            className="heritage-chip"
-            style={{ padding: "2px 7px", fontSize: 11, ...(my === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }}>{n}</button>
-        ))}
+      <div style={{ fontSize: 11, marginBottom: 3, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        <span>{emoji} {label}:</span>
+        <StarRow value={median || 0} size={13} /><strong>{median != null ? `${median}/10` : "unrated"}</strong>{my != null ? <span style={{ color: "var(--text-light)" }}> · you {my}</span> : ""}
       </div>
+      <StarRow value={my || 0} size={20} showEnds onRate={(n) => !busy && rate(n)} />
     </div>
   );
 }
@@ -242,6 +239,36 @@ function LegalDisclaimer() {
 // ---- Universal social layer ----
 // Drop <SocialBar id=… /> on ANY content — posts, CollabZ, BattleZ, profiles —
 // to make it shareable / (dis)likeable / commentable. State is keyed by `id`.
+// Fractional star row (out of `max`, default 10). Display mode (no onRate)
+// shades each star to the median's fraction; input mode (onRate given) is a
+// clickable row that lights up every star up to the one you hover/click.
+// showEnds adds the 👎🏼 (1 = worst) / 🥰 (10 = best) cues.
+function StarRow({ value = 0, max = 10, onRate, size = 15, showEnds = false }) {
+  const [hover, setHover] = useState(0);
+  const shown = onRate ? (hover || value) : value;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: showEnds ? 5 : 0 }}>
+      {showEnds && <span title="1 = 👎🏼 worst" style={{ fontSize: size - 1 }}>👎🏼</span>}
+      <span style={{ display: "inline-flex" }} onMouseLeave={onRate ? () => setHover(0) : undefined}>
+        {Array.from({ length: max }, (_, i) => {
+          const fill = Math.max(0, Math.min(1, shown - i));
+          return (
+            <span key={i}
+              onClick={onRate ? () => onRate(i + 1) : undefined}
+              onMouseEnter={onRate ? () => setHover(i + 1) : undefined}
+              title={onRate ? `${i + 1}/10` : undefined}
+              style={{ position: "relative", display: "inline-block", width: size, height: size, lineHeight: `${size}px`, fontSize: size, cursor: onRate ? "pointer" : "default" }}>
+              <span style={{ color: "rgba(255,255,255,0.22)" }}>★</span>
+              <span style={{ position: "absolute", left: 0, top: 0, width: `${fill * 100}%`, overflow: "hidden", color: "var(--gold, #ffcf3f)" }}>★</span>
+            </span>
+          );
+        })}
+      </span>
+      {showEnds && <span title="10 = 🥰 best" style={{ fontSize: size - 1 }}>🥰</span>}
+    </span>
+  );
+}
+
 function SocialBar({ id, shareText, style }) {
   const { state, update, addXP } = useAppState();
   const signedIn = isSignedIn();
@@ -301,17 +328,25 @@ function SocialBar({ id, shareText, style }) {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
         <button className={`btn btn-small${s.my === 1 ? "" : " btn-secondary"}`} onClick={() => vote(1)}>👍 {s.up || 0}</button>
         <button className={`btn btn-small${s.my === -1 ? " btn-danger" : " btn-secondary"}`} onClick={() => vote(-1)}>👎 {s.down || 0}</button>
-        <button className={`btn btn-small${rateOpen ? "" : " btn-secondary"}`} onClick={() => setRateOpen((v) => !v)} title="Rate this 1–10">⭐ {s.rating != null ? `${s.rating}/10` : "Rate"}{s.my_rating ? ` · you ${s.my_rating}` : ""}</button>
+        <button className={`btn btn-small${rateOpen ? "" : " btn-secondary"}`} onClick={() => setRateOpen((v) => !v)} title="Rate this 1–10" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <StarRow value={s.rating || 0} size={13} />
+          <span style={{ fontSize: 11 }}>{s.rating != null ? `${s.rating}/10` : "Rate"}</span>
+        </button>
         <button className="btn btn-small btn-secondary" onClick={() => setOpen((v) => !v)}>💬 {comments.length}</button>
         <button className="btn btn-small btn-secondary" onClick={share}>🔗 Share</button>
         {flash && <span style={{ fontSize: 11, color: "var(--success)" }}>{flash}</span>}
       </div>
       {rateOpen && (
-        <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 6 }}>
-          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-            <button key={n} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11, ...(s.my_rating === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }} onClick={() => rate(n)}>{n}</button>
-          ))}
-          {s.rating_count != null && <span style={{ fontSize: 10, color: "var(--text-light)", alignSelf: "center", marginLeft: 4 }}>{s.rating_count} rating{s.rating_count === 1 ? "" : "s"}</span>}
+        <div style={{ marginTop: 8, padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
+          <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>Tap to rate — lights up every star up to your pick:</div>
+          <StarRow value={s.my_rating || 0} size={22} showEnds onRate={rate} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, color: "var(--text-light)" }}>Community median:</span>
+            <StarRow value={s.rating || 0} size={14} />
+            <strong style={{ fontSize: 12 }}>{s.rating != null ? `${s.rating}/10` : "—"}</strong>
+            {s.rating_count != null && <span style={{ fontSize: 10, color: "var(--text-light)" }}>· {s.rating_count} rating{s.rating_count === 1 ? "" : "s"}</span>}
+            {s.my_rating ? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0, fontSize: 10 }} onClick={() => rate(s.my_rating)}>clear mine</button> : null}
+          </div>
         </div>
       )}
       {open && (
@@ -5759,11 +5794,7 @@ function DirectZWorkCard({ w, onRated, mine }) {
       {!mine && (
         <div style={{ marginBottom: 6 }}>
           <div style={{ fontSize: 11, marginBottom: 3 }}>Rate this work{w.my_rating ? ` · you: ${w.my_rating}` : ""}:</div>
-          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-            {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-              <button key={n} disabled={busy} onClick={() => rate(n)} className="heritage-chip" style={{ padding: "2px 7px", fontSize: 11, ...(w.my_rating === n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : {}) }}>{n}</button>
-            ))}
-          </div>
+          <StarRow value={w.my_rating || 0} size={20} showEnds onRate={(n) => !busy && rate(n)} />
         </div>
       )}
       <SocialBar id={`directz:${w.id}`} shareText={`${w.title} on DirectZ`} />
