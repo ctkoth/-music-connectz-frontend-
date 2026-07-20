@@ -115,6 +115,7 @@ import {
   followApi,
   getMerchApi, createMerchApi, buyMerchApi, deleteMerchApi,
   getDirectzApi, createDirectzApi, rateDirectzApi,
+  getPostzApi, createPostzApi, joinPostzApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi,
 } from "./economyApi.js";
@@ -547,22 +548,47 @@ const POST_VIS = [
   { id: "restricted", emoji: "🛑", label: "Restricted", note: "Members only — tracks joins (timestamp + profile card). Earn 300 SpinAZ per valid join from another IP active <5 min or staying >5 min." },
   { id: "private", emoji: "🔏", label: "Private", note: "Only you can see it." },
 ];
-function PostZPage() {
-  const { state, addTo, removeFrom } = useAppState();
+function PostZPage({ serverOk }) {
+  const { state, addTo, removeFrom, update } = useAppState();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [links, setLinks] = useState([]);
   const [vis, setVis] = useState("public");
-  const add = () => {
-    if (!title.trim()) return;
-    addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, visibility: vis, joins: [], at: Date.now() });
-    setTitle(""); setDesc(""); setLinks([]); setVis("public");
-  };
+  const [skillCost, setSkillCost] = useState(0); // $ of skills used → energy cost
+  const [feed, setFeed] = useState(null); // server posts
+  const [msg, setMsg] = useState("");
   const visOf = (id) => POST_VIS.find((v) => v.id === id) || POST_VIS[0];
+
+  const load = () => { if (serverOk) getPostzApi().then((r) => setFeed(r.posts || [])).catch(() => setFeed(null)); };
+  useEffect(load, [serverOk]);
+
+  const add = async () => {
+    if (!title.trim()) return;
+    setMsg("");
+    const body = { title: title.trim(), description: desc.trim(), links, visibility: vis, skill_cost_cents: Math.round((Number(skillCost) || 0) * 100) };
+    if (serverOk) {
+      try {
+        const r = await createPostzApi(body);
+        if (r.energy_charged) update({ energy: r.energy });
+        setMsg(r.energy_charged ? `📤 Posted — ${r.energy_charged} energy spent on skills used.` : "📤 Posted.");
+        setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0); load();
+        return;
+      } catch { setMsg("Couldn't post to the server — saved locally."); }
+    }
+    addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, visibility: vis, joins: [], at: Date.now() });
+    setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0);
+  };
+
+  const join = async (id) => {
+    try { const r = await joinPostzApi(id); setMsg(r.rewarded ? `🛑 You're the first from your IP — creator earned ${r.reward_spinaz} SpinAZ.` : "🛑 Joined."); load(); }
+    catch { /* offline */ }
+  };
+
+  const localPosts = feed === null ? (state.examples || []) : [];
   return (
     <>
       <div className="card">
-        <div className="card-header">🎵 Upload Work Example</div>
+        <div className="card-header">🎵 Post your work</div>
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
         <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
         <div className="form-group"><label>🔗 Links (Spotify, YouTube, store…)</label><LinksEditor links={links} onChange={setLinks} /></div>
@@ -573,22 +599,26 @@ function PostZPage() {
           </div>
           <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>{visOf(vis).note}</p>
         </div>
-        <button className="btn btn-success" style={{ width: "100%" }} onClick={add}>📤 Post</button>
+        <div className="form-group"><label>🎯 Skill value used ($) — costs that in energy (100/$)</label><input type="number" min="0" step="0.5" value={skillCost} onChange={(e) => setSkillCost(e.target.value)} style={{ width: 120 }} /></div>
+        <button className="btn btn-success" style={{ width: "100%" }} onClick={add}>📤 Post{Number(skillCost) > 0 ? ` (−${Math.round(Number(skillCost) * 100)}⚡)` : ""}</button>
+        {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
       </div>
       <div className="card">
-        <div className="card-header">🎵 Your Work Examples</div>
-        {state.examples.length === 0 ? (
-          <p style={{ fontSize: 12, color: "var(--text-light)" }}>No examples yet.</p>
-        ) : state.examples.map((ex, i) => {
+        <div className="card-header">{feed !== null ? "🌐 Community feed" : "🎵 Your Work Examples"}</div>
+        {(feed !== null ? feed : localPosts).length === 0 ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)" }}>{feed !== null ? "No posts yet — be the first." : "No examples yet."}</p>
+        ) : (feed !== null ? feed : localPosts).map((ex, i) => {
           const v = visOf(ex.visibility);
+          const restricted = ex.visibility === "restricted";
           return (
             <div key={ex.id || i} className="post-card">
-              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span></div>
-              <div className="post-content">{ex.desc}</div>
+              <div className="post-user">{ex.title} <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
+              <div className="post-content">{ex.description ?? ex.desc}</div>
               <LinksRow links={ex.links} />
-              {ex.visibility === "restricted" && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {(ex.joins || []).length} join{(ex.joins || []).length === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
+              {restricted && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🛑 {ex.joins || 0} join{(ex.joins || 0) === 1 ? "" : "s"} · earns 300 SpinAZ per valid join</div>}
+              {restricted && ex.author && !ex.mine && <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => join(ex.id)}>🛑 Join this drop</button>}
               <SocialBar id={`post:${ex.id || i}`} shareText={`${ex.title} on Music ConnectZ`} />
-              <button className="btn btn-danger btn-small" style={{ marginTop: 8 }} onClick={() => removeFrom("examples", i)}>Delete</button>
+              {ex.mine === undefined && feed === null && <button className="btn btn-danger btn-small" style={{ marginTop: 8 }} onClick={() => removeFrom("examples", i)}>Delete</button>}
             </div>
           );
         })}
