@@ -4,7 +4,7 @@
 // backend AI_MODEL_COSTS; the server is the source of truth and enforces them.
 
 export const AI_MODELS = [
-  { id: "corey-gpt", label: "Corey GPT", emoji: "🎤", costCents: 2, note: "Straight-up K-Oth voice — how all MCZ talks. Learns from your input + the built-in courses. Priced under every other voice." },
+  { id: "corey-gpt", label: "Corey GPT", emoji: "🎤", costCents: 1, note: "Straight-up K-Oth voice — how all MCZ talks. Learns from your input + the built-in courses. Priced under every other voice." },
   { id: "standard", label: "Standard", emoji: "🤖", costCents: 3, note: "Plain, neutral assistant voice." },
   { id: "technical", label: "Technical", emoji: "📐", costCents: 3, note: "Terse, code-first, minimal chatter." },
 ];

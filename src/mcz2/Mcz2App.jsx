@@ -4670,7 +4670,7 @@ function OccEditor({ t, author, occ, patch, logAction, onOpen, serverOk, syncEco
         // Live LLM reply — server charges the minimum model cost on success.
         const hist = msgs.filter((m) => m.text).slice(-8).map((m) => ({ role: m.role, text: m.text }));
         const acronyms = (occ.codez || []).map((x) => ({ term: x.term, means: x.means }));
-        const r = await occChatApi({ model: model.id, prompt: text, knowledge: occ.knowledge || [], history: hist, slang: !!state.settings?.coreySlang, acronyms });
+        const r = await occChatApi({ model: model.id, prompt: text, knowledge: occ.knowledge || [], history: hist, slang: !!state.settings?.coreySlang, acronyms, suggest: !!occ.settings?.suggestions });
         setMsgs((m) => [...m, { role: "occ", text: r.text }]);
         setNotice(`${model.emoji} ${model.label} · ${centsLabel(r.cost_cents)} · balance ${money(r.money)}`);
         syncEconomy?.();
@@ -6297,7 +6297,7 @@ const toTen = (n) => (Math.max(0, Math.min(100, Number(n) || 0)) / 10).toFixed(1
 // A scored take keeps its media so it can be saved as a PostZ (mp3/webm/video),
 // then rated / commented / shared and cross-pollinated into CollabZ or a DAW.
 function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = "" }) {
-  const { addXP } = useAppState();
+  const { addXP, state } = useAppState();
   const signedIn = isSignedIn();
   const [status, setStatus] = useState("");
   const [result, setResult] = useState(null);
@@ -6335,7 +6335,7 @@ function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = 
     const prompt = `Coach me on my ${context} (${result.profile?.label || "voice"}). Analysis: detected pitch ${m.note} (${m.pitchHz}Hz).${rangeLine} Scores: ${meterLine}. Emphasis for this instrument: ${result.profile?.emphasis}. Give me the top 2 things to work on and one concrete drill. Keep it tight.`;
     setBusy(true); setFeedback("");
     if (signedIn) {
-      try { const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [] }); setFeedback(r.text); }
+      try { const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [], suggest: !!state.occ?.settings?.suggestions }); setFeedback(r.text); }
       catch { setFeedback(localCoreyFeedback(result, context)); }
     } else setFeedback(localCoreyFeedback(result, context));
     setBusy(false);
