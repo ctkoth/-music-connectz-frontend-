@@ -1440,7 +1440,7 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Everything you can upgrade or top up, in one place.</p>
         {[
           { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "1,000-char limit · SuggestionZ 😉 · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
-          { emoji: "📊", name: "StatZ", price: "$15/mo · $150/yr", unlocks: "5,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3% · includes everything in Premium", cta: "Upgrade to StatZ", to: "membership" },
+          { emoji: "📊", name: "StatZ", price: "$15/mo · $120/yr", unlocks: "5,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3% · includes everything in Premium", cta: "Upgrade to StatZ", to: "membership" },
           { emoji: "🍥", name: "SpinAZ top-up", price: "buy at 80% ($80 = 100)", unlocks: "Subscription currency — spend on spins, boosts and premium features.", cta: "Buy SpinAZ", to: "spinaz" },
           { emoji: "⚡", name: "Energy top-up", price: "buy at 80% ($80 = 100)", unlocks: "Powers ratings, comments and daily activity when you're tapped out.", cta: "Buy Energy", to: "energy" },
           { emoji: "✴️", name: "SpecZ (StatZ only)", price: "per-item", unlocks: "Audience analytics, engagement heatmaps, genre intelligence, UGC packs.", cta: "Open SpecZ", to: "specz" },
