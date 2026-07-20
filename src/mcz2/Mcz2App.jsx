@@ -1215,6 +1215,7 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
             : "Card/PayPal checkout activates once the payment providers are configured on the backend. Dev top-up credits instantly for testing."}
         </p>
       </div>
+      <TopUpTiles serverOk={serverOk} tier={tier} syncEconomy={syncEconomy} />
       <div className="card">
         <div className="card-header">🧾 Payment History</div>
         {state.paymentHistory.length === 0 ? (
@@ -4046,6 +4047,7 @@ function LilithPage({ onOpen, tier, serverOk }) {
             <select value={topupRepeat} onChange={(e) => setTopupRepeat(e.target.value)} style={{ width: 110 }}>{REPEAT_OPTS.filter(([id]) => id !== "none").map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select>
             <button className="btn btn-success btn-small" onClick={addTopUpHabit}>＋ Add top-up habit</button>
           </div>
+          <AutoTopUpManager serverOk={serverOk} />
         </div>
       )}
 
