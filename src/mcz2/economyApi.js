@@ -194,6 +194,12 @@ export const setLocationApi = (share, lat, lng) =>
 // { stripe_enabled, stripe_publishable_key, paypal_enabled, min_cents, max_cents }
 export const getCheckoutConfig = () => api("/api/economy/checkout/config/");
 
+// Stripe saved-card auto top-up (recurring wallet funding).
+export const getAutoTopUpsApi = () => api("/api/economy/autotopup/");
+export const createAutoTopUpApi = ({ amountCents, interval }) =>
+  api("/api/economy/autotopup/", { method: "POST", body: { amount_cents: amountCents, interval } });
+export const cancelAutoTopUpApi = (id) => api(`/api/economy/autotopup/${id}/cancel/`, { method: "POST" });
+
 // 10-day downgrade-for-refund window.
 export const getRefundWindowApi = () => api("/api/economy/membership/refund/");
 export const refundMembershipApi = () => api("/api/economy/membership/refund/", { method: "POST" });
