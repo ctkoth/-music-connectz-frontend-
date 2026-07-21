@@ -100,6 +100,34 @@ export const DIRECTZ_FORMATS = [
   { id: "episodez", name: "EpisodeZ", emoji: "📺", icon: "episodez.png", minSec: 30 * 60, maxSec: 60 * 60, label: "30 – 60 min", note: "Episodic series, docs, sessions." },
   { id: "moviez", name: "MovieZ", emoji: "🎬", icon: "moviez.png", minSec: 60 * 60, maxSec: 3 * 3600, label: "1 – 3 hours", note: "Features, concert films, long-form." },
 ];
+
+// Genres per DirectZ format, TV-guide style: ReelZ = short-form, EpisodeZ = TV
+// genres, MovieZ = film genres. Used in DirectZ Create + Director/Videographer
+// persona skills so a video's genre matches its length format.
+export const MOVIE_GENRES = [
+  { name: "Action", emoji: "💥" }, { name: "Adventure", emoji: "🗺️" }, { name: "Comedy", emoji: "😂" },
+  { name: "Drama", emoji: "🎭" }, { name: "Horror", emoji: "👻" }, { name: "Thriller", emoji: "🔪" },
+  { name: "Sci-Fi", emoji: "🚀" }, { name: "Fantasy", emoji: "🐉" }, { name: "Romance", emoji: "💘" },
+  { name: "Mystery", emoji: "🕵️" }, { name: "Crime", emoji: "🚔" }, { name: "Documentary", emoji: "🎞️" },
+  { name: "Animation", emoji: "✏️" }, { name: "Musical", emoji: "🎵" }, { name: "Western", emoji: "🤠" },
+  { name: "War", emoji: "⚔️" }, { name: "Family", emoji: "👨‍👩‍👧" }, { name: "Biopic", emoji: "👤" },
+  { name: "Sports", emoji: "🏆" }, { name: "Concert Film", emoji: "🎤" },
+];
+export const TV_GENRES = [
+  { name: "Sitcom", emoji: "😂" }, { name: "Drama Series", emoji: "🎭" }, { name: "Reality TV", emoji: "📹" },
+  { name: "Docuseries", emoji: "🎞️" }, { name: "News", emoji: "📰" }, { name: "Talk Show", emoji: "🎙️" },
+  { name: "Game Show", emoji: "🎯" }, { name: "Soap Opera", emoji: "💔" }, { name: "Miniseries", emoji: "📺" },
+  { name: "Anime", emoji: "🎌" }, { name: "Cartoon", emoji: "🧑‍🎨" }, { name: "Variety Show", emoji: "🎪" },
+  { name: "Sports Broadcast", emoji: "🏟️" }, { name: "True Crime", emoji: "🔍" }, { name: "Cooking Show", emoji: "🍳" },
+  { name: "Educational", emoji: "🎓" }, { name: "Kids / Family", emoji: "🧸" }, { name: "Late Night", emoji: "🌙" },
+];
+export const SHORT_GENRES = [
+  { name: "Visualizer", emoji: "🌀" }, { name: "Teaser", emoji: "🎬" }, { name: "Vlog", emoji: "📹" },
+  { name: "Skit", emoji: "🎭" }, { name: "Tutorial", emoji: "🛠️" }, { name: "Behind-the-Scenes", emoji: "🎥" },
+  { name: "Lyric", emoji: "📝" }, { name: "Challenge", emoji: "🏁" }, { name: "Reaction", emoji: "😲" },
+  { name: "Dance", emoji: "💃" }, { name: "Comedy", emoji: "😂" }, { name: "Highlight", emoji: "✨" },
+];
+export const DIRECTZ_GENRES = { reelz: SHORT_GENRES, episodez: TV_GENRES, moviez: MOVIE_GENRES };
 export function directzFormatForSec(sec) {
   return DIRECTZ_FORMATS.find((f) => sec >= f.minSec && sec <= f.maxSec) || null;
 }
