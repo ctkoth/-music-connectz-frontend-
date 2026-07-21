@@ -203,7 +203,7 @@ export const CATALOG = [
       { key: "managez", name: "ManageZ", emoji: "🕴🏼", icon: "managez.png", desc: "Management drills verified server-side: found a label, offer a contract, book a collab, build a roster, send outreach." },
       // Media editors / dashboards not built yet
       { key: "imagez", name: "ImageZ", emoji: "🖼️", icon: "imagez.png", desc: "A Photoshop-style editor — all image media opens here." },
-      { key: "analytics", name: "AnalyticZ", emoji: "📈", icon: "analytics.png", desc: "Deep dive into your usage and performance across the platform." },
+      { key: "analytics", name: "AnalyticZ", emoji: "📈", icon: "analytics.png", desc: "Deep dive into your usage and performance across the platform.", fn: true, premium: true },
       { key: "facez", name: "FaceZ", emoji: "🙄", icon: "facez.png", desc: "Faces available for use in AI-generated images/videos — taggable by user profile." },
       { key: "homez", name: "Homez", emoji: "🏠", icon: "homez.png", desc: "Your home dashboard — a quick view across your MCZ activity." },
       { key: "moodz", name: "MoodZ", emoji: "😅", icon: "moodz.png", desc: "The mood you were in when posting — tracked and filterable across the platform." },
@@ -212,8 +212,8 @@ export const CATALOG = [
       // Generic productivity knock-offs — parked well away from the music core
       { key: "keyconnectz", name: "Key ConnectZ", emoji: "⌨️", icon: "keyconnectz.png", desc: "System keyboard on mobile, floating keyboard on desktop (Ctrl+Shift+K). Custom background image, mic speech-to-text, and translation to your desired output." },
       { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met." },
-      { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work." },
-      { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "Buffer-style post management & scheduling — queue, schedule, and manage your posts across the platform." },
+      { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work.", fn: true, premium: true },
+      { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "Buffer-style post management & scheduling — queue, schedule, and manage your posts across the platform.", fn: true, premium: true },
     ],
   },
 ];
