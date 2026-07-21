@@ -1180,6 +1180,65 @@ function rateBasisNote({ rate, unit, hours }, currency = "$") {
     : `${currency}${total.toFixed(2)} per work`;
 }
 
+// Reusable 2.2 skill picker — persona → collapsible category → emoji skill chips
+// (single-select) + a start-date, modeled off PersonasPage. Used anywhere a
+// collaborator enters a skill (CollabZ Split Studio, DirectZ contributors) so
+// skills come from the 2.2 catalog with emoji + experience, not free text.
+// value = { name, start, price }; picking a skill you've priced prefills price.
+function SkillPicker({ value, onChange, skillRates = [] }) {
+  const personas = Object.keys(PERSONA_SKILLS);
+  const [persona, setPersona] = useState(personas[0]);
+  const [openCats, setOpenCats] = useState({});
+  const cats = PERSONA_SKILLS[persona] || {};
+  const picked = value?.name || "";
+  const pick = (sk) => {
+    const match = skillRates.find((r) => r.name === sk);
+    const next = { ...value, name: sk, start: value?.start || todayISO() };
+    // Prefill the agreed $ worth from the member's own priced SkillZ, only when
+    // the field is still empty — an agreed amount always stays editable.
+    if (match && !(Number(value?.price) > 0)) next.price = match.rate;
+    onChange(next);
+  };
+  return (
+    <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 6, marginBottom: 4 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
+        <select value={persona} onChange={(e) => setPersona(e.target.value)} style={{ flex: 1, fontSize: 11 }} title="Persona">
+          {personas.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        {picked && <span className="tag" style={{ color: "var(--success)" }}>✓ {picked}</span>}
+      </div>
+      {Object.entries(cats).map(([cat, skills]) => {
+        const key = `${persona}:${cat}`;
+        const here = skills.includes(picked);
+        const open = key in openCats ? openCats[key] : here;
+        return (
+          <div key={cat} style={{ marginTop: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, cursor: "pointer", display: "flex", gap: 6, alignItems: "center" }} onClick={() => setOpenCats((o) => ({ ...o, [key]: !open }))}>
+              <span style={{ opacity: 0.7 }}>{open ? "▾" : "▸"}</span><span>{cat}</span>
+            </div>
+            {open && (
+              <div className="chip-wrap" style={{ marginTop: 3 }}>
+                {skills.map((sk) => (
+                  <button key={sk} type="button" className={`heritage-chip${picked === sk ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => pick(sk)}>
+                    {picked === sk ? "✓ " : ""}{sk}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {picked && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 5, fontSize: 11 }}>
+          <span style={{ color: "var(--text-light)" }}>📅 since</span>
+          <input type="date" max={todayISO()} value={value?.start || ""} onChange={(e) => onChange({ ...value, start: e.target.value })} style={{ width: 140, fontSize: 11 }} />
+          {value?.start && <span style={{ color: "var(--gold, #ffcf3f)" }}>{expLabel(value.start)} exp</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PersonasPage({ onOpen }) {
   const { state, addTo, removeFrom, setList } = useAppState();
   const gate = useMetricGate("personas");
@@ -4859,9 +4918,12 @@ function CollabSplitStudio({ tier }) {
             {rows.length > 2 && <button className="btn btn-small btn-secondary" onClick={() => removePerson(r.id)} title="Remove">✕</button>}
           </div>
           {r.skills.map((s, si) => (
-            <div key={si} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-              <input value={s.name} onChange={(e) => setSkill(r.id, si, { name: e.target.value })} placeholder="Skill (e.g. Mixing)" style={{ flex: 1 }} />
-              <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+            <div key={si} style={{ marginBottom: 6 }}>
+              <SkillPicker value={s} onChange={(v) => setSkill(r.id, si, v)} skillRates={mySkillRates(state)} />
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "var(--text-light)" }}>💲 worth (as agreed)</span>
+                <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+              </div>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
@@ -8271,9 +8333,12 @@ function DirectZPage({ tier, serverOk }) {
                   <select value={r.tier} onChange={(e) => setRow(r.id, { tier: e.target.value })} style={{ width: 100 }}>{TIER_OPTS.map(([v, l]) => <option key={v} value={v}>{TIER_EMOJI[v]} {l}</option>)}</select>
                 </div>
                 {r.skills.map((s, si) => (
-                  <div key={si} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                    <input value={s.name} onChange={(e) => setSkill(r.id, si, { name: e.target.value })} placeholder="Skill" style={{ flex: 1 }} />
-                    <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+                  <div key={si} style={{ marginBottom: 6 }}>
+                    <SkillPicker value={s} onChange={(v) => setSkill(r.id, si, v)} skillRates={mySkillRates(state)} />
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-light)" }}>💲 worth (as agreed)</span>
+                      <input type="number" value={s.price} onChange={(e) => setSkill(r.id, si, { price: e.target.value })} placeholder="$ worth" style={{ width: 90 }} />
+                    </div>
                   </div>
                 ))}
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
