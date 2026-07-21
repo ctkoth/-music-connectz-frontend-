@@ -127,6 +127,15 @@ export function limitsFor(tier) {
   return { ...base, tier: k === "debug" ? "statz" : k };
 }
 
+// How long after posting you can still edit a message/comment/post/rating/prompt,
+// by tier (mirrors the backend EDIT_WINDOW_SECONDS): Free 4m · Premium 40m · StatZ 4h.
+export const EDIT_WINDOW_SECONDS = { free: 4 * 60, premium: 40 * 60, statz: 4 * 3600, debug: 10 ** 9 };
+export function editWindowFor(tier) {
+  const k = tierKey(tier);
+  return EDIT_WINDOW_SECONDS[k] ?? EDIT_WINDOW_SECONDS.free;
+}
+export const EDIT_WINDOW_LABEL = "Free 4m · Premium 40m · StatZ 4h";
+
 // Warn when within 10% of a cap; lock at/over it.
 export const LIMIT_WARN_RATIO = 0.9;
 export function limitState(used, cap) {

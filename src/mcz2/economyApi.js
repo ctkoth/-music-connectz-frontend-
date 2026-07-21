@@ -103,6 +103,8 @@ export const deleteMerchApi = (id) => api(`/api/economy/merch/${id}/`, { method:
 // PostZ — cross-user posts with visibility + restricted-join rewards
 export const getPostzApi = (sort = "hot") => api(`/api/economy/postz/?sort=${sort}`);
 export const createPostzApi = (post) => api("/api/economy/postz/", { method: "POST", body: post });
+// Edit your own post (title/description) within the tier's edit window.
+export const editPostApi = (id, patch) => api("/api/economy/postz/", { method: "POST", body: { edit_id: id, ...patch } });
 export const joinPostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/join/`, { method: "POST", body: { active_seconds: activeSeconds } });
 // Share another member's post — grants the sharer +5⚡ once (dwell-gated).
 export const sharePostzApi = (id, activeSeconds = 0) => api(`/api/economy/postz/${id}/share/`, { method: "POST", body: { active_seconds: activeSeconds } });
