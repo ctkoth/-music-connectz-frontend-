@@ -7831,7 +7831,7 @@ const toTen = (n) => (Math.max(0, Math.min(100, Number(n) || 0)) / 10).toFixed(1
 // InstrumentZ audio lab — record from mic or upload a file, get real scores + Corey feedback.
 // A scored take keeps its media so it can be saved as a PostZ (mp3/webm/video),
 // then rated / commented / shared and cross-pollinated into CollabZ or a DAW.
-function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = "" }) {
+function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = "", style = "" }) {
   const { addXP, state } = useAppState();
   const signedIn = isSignedIn();
   const [status, setStatus] = useState("");
@@ -7867,7 +7867,8 @@ function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = 
     const m = result.metrics, s = result.scores;
     const meterLine = (result.profile?.metrics || []).filter((id) => id in s).map((id) => `${id} ${s[id]}/100`).join(", ");
     const rangeLine = m.vocalClass ? ` Range class ${m.vocalClass}, ${m.lowNote}–${m.highNote} (${m.rangeOctaves} octaves).` : (m.rangeSemitones ? ` Range ${m.lowNote}–${m.highNote} (${m.rangeOctaves} oct).` : "");
-    const prompt = `Coach me on my ${context} (${result.profile?.label || "voice"}). Analysis: detected pitch ${m.note} (${m.pitchHz}Hz).${rangeLine} Scores: ${meterLine}. Emphasis for this instrument: ${result.profile?.emphasis}. Give me the top 2 things to work on and one concrete drill. Keep it tight.`;
+    const styleClause = style ? ` I'm working the ${styleName(style)} style — judge it against what that style demands and give me the top 2 things to improve *for ${styleName(style)}* specifically, plus one ${styleName(style)}-focused drill.` : " Give me the top 2 things to work on and one concrete drill.";
+    const prompt = `Coach me on my ${context} (${result.profile?.label || "voice"}). Analysis: detected pitch ${m.note} (${m.pitchHz}Hz).${rangeLine} Scores: ${meterLine}. Emphasis for this instrument: ${result.profile?.emphasis}.${styleClause} Keep it tight.`;
     setBusy(true); setFeedback("");
     if (signedIn) {
       try { const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [], suggest: !!state.occ?.settings?.suggestions }); setFeedback(r.text); }
@@ -7912,7 +7913,7 @@ function AudioLab({ context = "take", onResult, kind = "voice", onOpen, skill = 
               </div>
             ))}
           </div>
-          <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={askCorey} disabled={busy}>{busy ? "🎤 Corey's listening…" : "🎤 Get Corey feedback"}</button>
+          <button className="btn" style={{ width: "100%", marginTop: 8 }} onClick={askCorey} disabled={busy}>{busy ? "🎤 Corey's listening…" : `🎤 Get Corey feedback${style ? ` for ${styleName(style)}` : ""} · 🏷️ prompt`}</button>
           {feedback && <p style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 8, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 10 }}>{feedback}</p>}
           {media && signedIn && (
             <SaveTakeAsPost
@@ -8312,12 +8313,55 @@ function SingZPage({ tier, onOpen }) {
     </>
   );
 }
+// Rap flow/delivery styles + rap subgenres — the styles you can build a habit
+// around and get style-specific Corey coaching on. Kept consistent with the
+// rap entries in MUSIC_GENRE_SKILLS, plus delivery styles.
+const RAP_STYLES = [
+  "Boom Bap 🥁", "Trap 🏚️", "Drill ⚔️", "Cloud Rap ☁️", "Lyrical 🧠", "Storytelling 📖",
+  "Freestyle 🌀", "Melodic 🎶", "Double-Time ⚡", "Old School 📻", "Conscious ✊", "Mumble 😶‍🌫️",
+];
+const styleName = (s) => (s || "").replace(/\s*\p{Extended_Pictographic}.*$/u, "").trim() || s;
+
+// RapZ: pick a rap style, turn it into a practice habit, and record style-aware
+// takes that Corey coaches for that exact style.
+function RapStylePractice({ onOpen }) {
+  const { state, setList } = useAppState();
+  const [style, setStyle] = useState(RAP_STYLES[0]);
+  const [flash, setFlash] = useState("");
+  const makeHabit = () => {
+    const tasks = state.lilithTasks || [];
+    const title = `Practice ${style}`;
+    if (tasks.some((t) => t.app === "rapz" && t.title === title && t.list !== "trash")) {
+      setFlash(`Already a habit — “${title}” is in your RapZ habits.`); setTimeout(() => setFlash(""), 2600); return;
+    }
+    setList("lilithTasks", [...tasks, { id: Date.now(), title, list: "today", app: "rapz", repeat: "daily", metric: "style", dueAt: rollDue("daily"), energy: 2, xp: 10 }]);
+    setFlash(`✓ Habit added — “${title}” · Daily · +2⚡. Record a take below for Corey's style feedback.`);
+    setTimeout(() => setFlash(""), 3200);
+  };
+  return (
+    <>
+      <div className="card" style={{ border: "1px solid var(--primary)" }}>
+        <div className="card-header"><span>🎤 Rap Style</span><span className="tag">{styleName(style)}</span></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Pick a style — make it a daily habit, then drop takes and Corey coaches you <strong>for that style</strong>. 🌐 It cross-pollinates into Lilith.</p>
+        <div className="chip-wrap" style={{ marginBottom: 10 }}>
+          {RAP_STYLES.map((s) => (
+            <button key={s} className={`heritage-chip${style === s ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => setStyle(s)}>{s}</button>
+          ))}
+        </div>
+        <button className="btn btn-small btn-success" style={{ boxShadow: "0 0 10px var(--gold, #ffcf3f)" }} onClick={makeHabit}>＋ Make a habit from {styleName(style)}</button>
+        {flash && <p style={{ fontSize: 12, color: /already/i.test(flash) ? "var(--gold, #ffcf3f)" : "var(--success)", marginTop: 8, fontWeight: 600 }}>{flash}</p>}
+      </div>
+      <AudioLab context={`${styleName(style)} rap verse`} kind="rap" onOpen={onOpen} skill={`${styleName(style)} verse`} style={style} />
+    </>
+  );
+}
+
 function RapZPage({ onOpen }) {
   return (
     <>
       <div className="stripe-section"><div className="stripe-title">🎧 RapZ</div><div className="balance-info">Drop a verse live or upload it — get real flow/breath/cadence scoring + Corey feedback.</div></div>
       <HabitStrip appKey="rapz" appName="RapZ" onOpen={onOpen} />
-      <AudioLab context="rap verse" kind="rap" onOpen={onOpen} skill="RapZ verse" />
+      <RapStylePractice onOpen={onOpen} />
       <TrainingZ appKey="rapz" />
     </>
   );
