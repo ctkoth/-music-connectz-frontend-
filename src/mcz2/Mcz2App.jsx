@@ -144,27 +144,37 @@ function Translatable({ text, tag: Tag = "div", className, style, onCharge }) {
   );
 }
 // Lets the member choose which icon an app shows (for apps with >1 variant).
-// The choice persists in settings.appIcons and applies everywhere the tile draws.
-function AppIconPicker({ appKey }) {
+// Choosing a custom icon is a Premium perk — Free stays on the default with a
+// lock + upgrade prompt. The choice persists in settings.appIcons and applies
+// everywhere the tile draws.
+function AppIconPicker({ appKey, tier, onOpen }) {
   const { state, updateSettings } = useAppState();
   const variants = ICON_VARIANTS[appKey] || [];
   if (variants.length < 2) return null;
   const app = APPS_BY_KEY[appKey];
   const current = iconFor(state.settings?.appIcons, appKey, app?.icon);
-  const choose = (icon) => updateSettings({ appIcons: { ...(state.settings?.appIcons || {}), [appKey]: icon } });
+  const locked = tierKey(tier) === "free";
+  const choose = (icon) => { if (!locked) updateSettings({ appIcons: { ...(state.settings?.appIcons || {}), [appKey]: icon } }); };
   return (
-    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} data-notranslate>
-      {variants.map((v) => {
-        const on = current === v.icon;
-        return (
-          <button key={v.icon} onClick={() => choose(v.icon)} title={v.label}
-            style={{ background: "none", border: `2px solid ${on ? "var(--primary)" : "var(--border)"}`, borderRadius: 14, padding: 5, cursor: "pointer", boxShadow: on ? "var(--glow)" : "none", textAlign: "center" }}>
-            <IconImg icon={v.icon} alt={v.label} style={{ width: 54, height: 54, borderRadius: 11, display: "block" }} />
-            <div style={{ fontSize: 10, marginTop: 3, color: on ? "var(--primary)" : "var(--text-light)" }}>{on ? "✓ " : ""}{v.label}</div>
-          </button>
-        );
-      })}
-    </div>
+    <>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} data-notranslate>
+        {variants.map((v) => {
+          const on = current === v.icon;
+          return (
+            <button key={v.icon} onClick={() => choose(v.icon)} title={locked ? "Premium perk" : v.label} disabled={locked}
+              style={{ background: "none", border: `2px solid ${on ? "var(--primary)" : "var(--border)"}`, borderRadius: 14, padding: 5, cursor: locked ? "not-allowed" : "pointer", boxShadow: on ? "var(--glow)" : "none", textAlign: "center", opacity: locked && !on ? 0.5 : 1, position: "relative" }}>
+              <IconImg icon={v.icon} alt={v.label} style={{ width: 54, height: 54, borderRadius: 11, display: "block" }} />
+              <div style={{ fontSize: 10, marginTop: 3, color: on ? "var(--primary)" : "var(--text-light)" }}>{on ? "✓ " : ""}{v.label}{locked && !on ? " 🔒" : ""}</div>
+            </button>
+          );
+        })}
+      </div>
+      {locked && (
+        <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>
+          🔒 Choosing app icons is a <strong>Premium</strong> perk. <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("membership")}>Upgrade to customize.</button>
+        </p>
+      )}
+    </>
   );
 }
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
@@ -1900,6 +1910,7 @@ const MEMBERSHIP_TIERS = [
       "Unlimited PickConnectZ pins",
       "OCC builds medium 2D/3D games (any engine but Unreal)",
       "5 custom GroupZ + custom group icons · 8 glow colors",
+      "🎨 Choose your app icons (e.g. LanguageZ ⇄ LinguagemZ)",
       "400MB uploads · 5GB storage",
       "LabelZ + contracts/royalty agreements",
       "Developer tax drops to 5%",
@@ -2282,7 +2293,7 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
           {Object.keys(ICON_VARIANTS).map((key) => (
             <div key={key} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{APPS_BY_KEY[key]?.emoji} {APPS_BY_KEY[key]?.name || key}</div>
-              <AppIconPicker appKey={key} />
+              <AppIconPicker appKey={key} tier={tier} onOpen={onOpen} />
             </div>
           ))}
         </div>
@@ -2675,7 +2686,7 @@ function PreferenceZPage() {
 // the languages you speak (a profile metric), location-based suggestions, and a
 // translator box. Translation is powered by the backend and charges a prompt,
 // then caches, so re-viewing the same language is free.
-function LanguageZPage({ serverOk, syncEconomy, onOpen }) {
+function LanguageZPage({ tier, serverOk, syncEconomy, onOpen }) {
   const { state, updateUser, updateSettings } = useAppState();
   const [saved, ping] = useSavedFlash();
   const uiLang = state.settings?.uiLang || "en";
@@ -2744,7 +2755,7 @@ function LanguageZPage({ serverOk, syncEconomy, onOpen }) {
       <div className="card">
         <div className="card-header">🎨 App icon</div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Pick the icon this app shows — English <strong>LanguageZ</strong> or Português <strong>LinguagemZ</strong>. Changes it everywhere: the launcher, dock, and window.</p>
-        <AppIconPicker appKey="languagez" />
+        <AppIconPicker appKey="languagez" tier={tier} onOpen={onOpen} />
       </div>
 
       <div className="card">
