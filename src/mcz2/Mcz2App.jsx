@@ -826,19 +826,57 @@ const PERSONA_CHOICES = [
   { name: "Mime", emoji: "🤹", icon: "mimez.png" },
 ];
 
-// Available skills per persona — the user picks which they've got.
+// Available skills per persona — categorized, emoji-tagged catalog modeled off
+// the instrumentDatabase from the earlier build: each persona → categories →
+// skills, each with an emoji + an "Any X" wildcard. The doc-covered personas
+// (Artist, Beat Producer, Mix Engineer, Designer, Videographer) port the doc's
+// instruments / DAWs / subgenres / vocal ranges / software verbatim, plus a
+// "Craft" category preserving the app's original abstract skills. App-only
+// personas keep their skills in the same categorized style. Selection stores the
+// skill string (with emoji) + a start date; experience math is unchanged.
 const PERSONA_SKILLS = {
-  "Independent Artist": ["Songwriting", "Vocals", "Stage Presence", "Freestyle", "Melody", "Performance", "Branding"],
-  "Beat Producer": ["Drum Programming", "Sound Design", "Sampling", "Arrangement", "Melody", "Genre Range"],
-  "Mix Engineer": ["EQ", "Compression", "Vocal Tuning", "Mastering", "Stereo Imaging", "Noise Reduction"],
-  "Designer": ["Composition & Layout", "Color Theory", "Typography", "Brand Identity", "Software Mastery", "UI/UX Prototyping", "Visual Storytelling", "Asset Production"],
-  "Videographer": ["Cinematography", "Camera Operation", "Lighting Techniques", "Audio Capture", "Video Editing", "Motion Graphics", "Storyboarding", "Social Optimization", "Music Video Production"],
-  "Manager": ["Strategic Planning", "Team Leadership", "Communication", "Conflict Resolution", "Project Management", "Decision-Making", "Performance Tracking", "Resource Management"],
-  "A&R Scout": ["Talent Spotting", "Market Trends", "Networking", "Deal Structuring", "Genre Expertise", "Analytics"],
-  "Ghostwriter": ["Lyricism", "Storytelling", "Rhyme Schemes", "Hook Writing", "Tone Matching", "Multi-Genre"],
-  "Developer": ["Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin"],
-  "Weightlifter": ["Routine Design", "Personal Training", "Powerlifting", "HIIT", "Olympic Lifting", "Nutrition Coaching", "Mobility & Recovery", "Progressive Overload"],
-  "Mime": ["Lipsync", "Selfie", "Dance", "Drama", "Comedy"],
+  "Independent Artist": {
+    "🎸 String Instruments": ["Any String 🎸", "Acoustic Guitar 🎸", "Electric Guitar 🎸", "Bass Guitar 🎸", "Ukulele 🎸", "Banjo 🪕", "Mandolin 🎸", "Violin 🎻", "Viola 🎻", "Cello 🎻", "Double Bass 🎻", "Harp 🎵"],
+    "🎹 Keyboard Instruments": ["Any Keyboard 🎹", "Acoustic Piano 🎹", "Digital Piano 🎹", "Synthesizer 🎹", "Organ 🎹", "Harpsichord 🎹", "Accordion 🪗"],
+    "🥁 Percussion": ["Any Percussion 🥁", "Drums (Snare) 🥁", "Drums (Bass) 🥁", "Drums (Bongo) 🥁", "Cymbals 🥁"],
+    "🎤 Rapping": ["Any Rapping 🎤", "Alternative Rap 🎸", "Boom Bap 🥁", "Chopper 🚁", "Cloud Rap ☁️", "Conscious Rap 🧠", "Crunk 🔥", "Drill ⚔️", "Emo Rap 🖤", "G-Funk 🌴", "Gangsta Rap ⛓️", "Hardcore Hip Hop 🎤", "Jazz Rap 🎷", "Mumble Rap 💤", "Old School 📻", "Snap 🫰", "Trap 🏚️"],
+    "🎶 Singing (range)": ["Any Singing 🎶", "Bass 🧔‍♂️", "Baritone 🎙️", "Tenor 🎤", "Countertenor 🕊️", "Contralto 🎻", "Alto 🎶", "Mezzo-Soprano 🌊", "Soprano ☀️"],
+    "✍️ Craft": ["Songwriting", "Stage Presence", "Freestyle", "Melody", "Performance", "Branding"],
+  },
+  "Beat Producer": {
+    "🎛️ Music DAWs": ["Any DAW 🎛️", "Ableton Live 🎵", "Adobe Audition 🎙️", "Audacity 🎧", "Bitwig Studio 🎚️", "Cakewalk 🎼", "Cubase 🎛️", "FL Studio 🎚️", "GarageBand 🎵", "Logic Pro 🎵", "Luna ☁️", "Mixcraft 🎚️", "PreSonus Studio One 🎛️", "Pro Tools 🎙️", "Reason 🎛️", "Reaper 🔧", "Studio One 🎛️", "Waveform Pro 📊"],
+    "🎚️ Production": ["Any Production 🎚️", "Beat Making 🎚️", "Sampling 🎵", "Sound Design 🎛️", "Arrangement 🎼", "Synthesis 🎹", "Drum Programming 🥁", "Melody 🎶", "Genre Range 🎯"],
+  },
+  "Mix Engineer": {
+    "🎛️ Music DAWs": ["Any DAW 🎛️", "Ableton Live 🎵", "Adobe Audition 🎙️", "Audacity 🎧", "Bitwig Studio 🎚️", "Cakewalk 🎼", "Cubase 🎛️", "FL Studio 🎚️", "GarageBand 🎵", "Logic Pro 🎵", "Luna ☁️", "Mixcraft 🎚️", "PreSonus Studio One 🎛️", "Pro Tools 🎙️", "Reason 🎛️", "Reaper 🔧", "Studio One 🎛️", "Waveform Pro 📊"],
+    "🎚️ Engineering Skills": ["Any Engineering 🎛️", "Mixing 🎛️", "Mastering 🎙️", "EQ 📊", "Compression 🔧", "Reverb/Effects ✨", "Vocal Tuning 🎤", "Stereo Imaging 🔊", "Noise Reduction 🔇"],
+  },
+  "Designer": {
+    "🎨 Design Software": ["Any Design Software 🎨", "Adobe Photoshop 🎨", "Adobe Illustrator 🖌️", "Figma 🎯", "Canva 🌈", "Affinity Designer ✨", "CorelDRAW 🎨", "Sketch 📐", "Adobe InDesign 📄"],
+    "🖌️ Design Skills": ["Any Design Skill 🎨", "UI/UX Design 🎯", "Graphic Design 🖌️", "Branding 🏷️", "Layout Design 📐", "Typography 🔤", "Color Theory 🌈", "Icon Design 🎭", "Visual Storytelling 📖", "Asset Production 📦"],
+  },
+  "Videographer": {
+    "🎬 Video Software": ["Any Video Software 🎬", "Adobe Premiere 🎬", "DaVinci Resolve 🎞️", "Final Cut Pro 🎥", "Sony Vegas 📹", "Filmora 🎬", "After Effects ✨", "OBS Studio 🔴"],
+    "🎥 Video Skills": ["Any Video Skill 🎬", "Editing 🎬", "Color Grading 🎨", "Motion Graphics ✨", "Cinematography 🎥", "Drone Footage 🚁", "Lighting 💡", "Sound Design 🎙️", "Storyboarding 🗂️", "Music Video Production 🎞️"],
+  },
+  "Manager": {
+    "🕴🏼 Management": ["Any Management 🕴🏼", "Strategic Planning 🗺️", "Team Leadership 👥", "Communication 💬", "Conflict Resolution 🤝", "Project Management 📋", "Decision-Making 🎯", "Performance Tracking 📈", "Resource Management 📦"],
+  },
+  "A&R Scout": {
+    "🔎 Scouting": ["Any Scouting 🔎", "Talent Spotting 👀", "Market Trends 📈", "Networking 🤝", "Deal Structuring 📝", "Genre Expertise 🎯", "Analytics 📊"],
+  },
+  "Ghostwriter": {
+    "👻 Writing": ["Any Writing 👻", "Lyricism 🖊️", "Storytelling 📖", "Rhyme Schemes 🎯", "Hook Writing 🪝", "Tone Matching 🎭", "Multi-Genre 🎶"],
+  },
+  "Developer": {
+    "👾 Languages": ["Any Language 👾", "Python 🐍", "JavaScript 📜", "TypeScript 🔷", "Java ☕", "C++ ⚙️", "C# 🎯", "Go 🐹", "Rust 🦀", "Swift 🕊️", "Kotlin 🅺"],
+  },
+  "Weightlifter": {
+    "🏋🏼 Training": ["Any Training 🏋🏼", "Routine Design 📋", "Personal Training 💪", "Powerlifting 🏋️", "HIIT ⚡", "Olympic Lifting 🥇", "Nutrition Coaching 🥗", "Mobility & Recovery 🧘", "Progressive Overload 📈"],
+  },
+  "Mime": {
+    "🤹 Performance": ["Any Performance 🤹", "Lipsync 👄", "Selfie 🤳", "Dance 💃", "Drama 🎭", "Comedy 😂"],
+  },
 };
 // Skills carry a start date so experience = years since start. Back-compat:
 // legacy plain-string skills read as name with no date.
@@ -882,23 +920,30 @@ function PersonasPage() {
         {state.personas.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No personas yet — pick some above.</p>
         ) : state.personas.map((p, i) => {
-          const pool = PERSONA_SKILLS[p.name] || [];
+          const cats = PERSONA_SKILLS[p.name] || {};
+          const poolCount = Object.values(cats).flat().length;
           const mine = p.skills || [];
           return (
             <div key={i} className="persona-card" style={{ marginBottom: 10 }}>
               <div className="persona-header">
-                <span className="persona-name">{p.emoji} {p.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {mine.length}/{pool.length} skillZ</span></span>
+                <span className="persona-name">{p.emoji} {p.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {mine.length}/{poolCount} skillZ</span></span>
                 <button className="btn btn-danger btn-small" onClick={() => removeFrom("personas", i)}>Remove</button>
               </div>
-              {pool.length > 0 && (
-                <div className="chip-wrap" style={{ marginTop: 8 }}>
-                  {pool.map((sk) => (
-                    <button key={sk} className={`heritage-chip${hasSkill(mine, sk) ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => toggleSkill(i, sk)}>
-                      {hasSkill(mine, sk) ? "✓ " : ""}{sk}
-                    </button>
-                  ))}
+              {Object.entries(cats).map(([cat, skills]) => (
+                <div key={cat} style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.95 }}>{cat}</div>
+                  <div className="chip-wrap">
+                    {skills.map((sk) => {
+                      const any = /\bany\b/i.test(sk);
+                      return (
+                        <button key={sk} className={`heritage-chip${hasSkill(mine, sk) ? " sel" : ""}`} style={{ padding: "2px 8px", ...(any ? { fontStyle: "italic", opacity: hasSkill(mine, sk) ? 1 : 0.85 } : {}) }} onClick={() => toggleSkill(i, sk)}>
+                          {hasSkill(mine, sk) ? "✓ " : ""}{sk}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              ))}
               {mine.length > 0 && (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginBottom: 4 }}>📅 Started each skill — sets your experience (years) shown to collaborators &amp; used in search.</div>
