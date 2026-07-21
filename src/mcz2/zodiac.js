@@ -1,22 +1,27 @@
 // ZodiacZ — auto-detects a user's sign from their birthday and carries a
 // Corey-voice description for each. Sign is also a filterable metric.
 
-// [name, emoji, startMonth, startDay, Corey-voice description]
-const S = (name, emoji, m, d, desc) => ({ name, emoji, m, d, desc });
+// [name, emoji, startMonth, startDay, dateRange, Corey-voice description]
+const S = (name, emoji, m, d, range, desc) => ({ name, emoji, m, d, range, desc });
 export const SIGNS = [
-  S("Capricorn", "♑", 12, 22, "The grinder. You build the empire brick by brick — disciplined, ambitious, and quietly running the label while everyone else is freestyling."),
-  S("Aquarius", "♒", 1, 20, "The visionary. Weird in the best way — genre-bending ideas nobody else hears yet. You're already three sounds ahead of the trend."),
-  S("Pisces", "♓", 2, 19, "The dreamer. Pure emotion straight to the mic — your melodies feel like water. Protect that sensitivity; it's your whole sound."),
-  S("Aries", "♈", 3, 21, "The starter. First on the beat, first in the booth, first to drop. Raw energy and zero fear — you set the tempo for the whole room."),
-  S("Taurus", "♉", 4, 20, "The craftsman. You don't rush a mix — you build a groove that lasts. Loyal, luxurious, and stubborn enough to finish the album."),
-  S("Gemini", "♊", 5, 21, "The switch-hitter. Two flows, two moods, endless bars. You rap, you sing, you produce — versatility is your signature."),
-  S("Cancer", "♋", 6, 21, "The heart. Your music hits people right in the feelings — nostalgic hooks and home-grown loyalty. You build a real fanbase, not just streams."),
-  S("Leo", "♌", 7, 23, "The star. Born for the stage — presence for days. When you perform, the spotlight was already yours. Just don't forget the team."),
-  S("Virgo", "♍", 8, 23, "The perfectionist. You hear the one frequency that's off. Clean mixes, tight edits, flawless metadata — the engineer everyone needs."),
-  S("Libra", "♎", 9, 23, "The collaborator. You balance the room and make the feature happen. Great ear for harmony, better instinct for the right partnership."),
-  S("Scorpio", "♏", 10, 23, "The intensity. Deep, magnetic, all-in. Your music has a dangerous edge people can't stop replaying. You don't do half-effort."),
-  S("Sagittarius", "♐", 11, 22, "The explorer. Global sound, restless creativity — you'd cut a track on three continents. Freedom is the whole vibe."),
+  S("Capricorn", "♑", 12, 22, "December 22 – January 19", "The grinder. You build the empire brick by brick — disciplined, ambitious, and quietly running the label while everyone else is freestyling."),
+  S("Aquarius", "♒", 1, 20, "January 20 – February 18", "The visionary. Weird in the best way — genre-bending ideas nobody else hears yet. You're already three sounds ahead of the trend."),
+  S("Pisces", "♓", 2, 19, "February 19 – March 20", "The dreamer. Pure emotion straight to the mic — your melodies feel like water. Protect that sensitivity; it's your whole sound."),
+  S("Aries", "♈", 3, 21, "March 21 – April 19", "The starter. First on the beat, first in the booth, first to drop. Raw energy and zero fear — you set the tempo for the whole room."),
+  S("Taurus", "♉", 4, 20, "April 20 – May 20", "The craftsman. You don't rush a mix — you build a groove that lasts. Loyal, luxurious, and stubborn enough to finish the album."),
+  S("Gemini", "♊", 5, 21, "May 21 – June 20", "The switch-hitter. Two flows, two moods, endless bars. You rap, you sing, you produce — versatility is your signature."),
+  S("Cancer", "♋", 6, 21, "June 21 – July 22", "The heart. Your music hits people right in the feelings — nostalgic hooks and home-grown loyalty. You build a real fanbase, not just streams."),
+  S("Leo", "♌", 7, 23, "July 23 – August 22", "The star. Born for the stage — presence for days. When you perform, the spotlight was already yours. Just don't forget the team."),
+  S("Virgo", "♍", 8, 23, "August 23 – September 22", "The perfectionist. You hear the one frequency that's off. Clean mixes, tight edits, flawless metadata — the engineer everyone needs."),
+  S("Libra", "♎", 9, 23, "September 23 – October 22", "The collaborator. You balance the room and make the feature happen. Great ear for harmony, better instinct for the right partnership."),
+  S("Scorpio", "♏", 10, 23, "October 23 – November 21", "The intensity. Deep, magnetic, all-in. Your music has a dangerous edge people can't stop replaying. You don't do half-effort."),
+  S("Sagittarius", "♐", 11, 22, "November 22 – December 21", "The explorer. Global sound, restless creativity — you'd cut a track on three continents. Freedom is the whole vibe."),
 ];
+
+// Look up a sign by name (used to open any member's detailed reading).
+export function signByName(name) {
+  return SIGNS.find((s) => s.name === name) || null;
+}
 
 // ---- Daily ZodiacZ reading (Corey voice) ----
 // Deterministic per (sign, day) so everyone with the same sign gets the same
