@@ -128,7 +128,7 @@ import {
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
-import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS, directzFormatForSec } from "./intelligence.js";
+import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS, directzFormatForSec, DIRECTZ_GENRES, TV_GENRES, MOVIE_GENRES } from "./intelligence.js";
 import "./mcz2.css";
 
 // Transparent transaction breakdown — RepostExchange-style: plain numbers,
@@ -841,6 +841,8 @@ const MOOD_EMOJI = {
 const MOOD_SKILLS = ["Any Mood 🎭", ...MOODS.map((m) => `${m} ${MOOD_EMOJI[m] || "🎭"}`)];
 const FORMAT_SKILLS = ["Any Format 🎬", ...DIRECTZ_FORMATS.map((f) => `${f.name} ${f.emoji} (${f.label})`)];
 const DIRECTING_CRAFT = ["Any Directing 🎬", "Shot Composition 🎞️", "Blocking 🚦", "Coverage 🎥", "Pacing ⏱️", "Performance Direction 🎭", "Scene Planning 🗂️", "Visual Storytelling 📖"];
+const MOVIE_GENRE_SKILLS = ["Any Movie Genre 🎬", ...MOVIE_GENRES.map((g) => `${g.name} ${g.emoji}`)];
+const TV_GENRE_SKILLS = ["Any TV Genre 📺", ...TV_GENRES.map((g) => `${g.name} ${g.emoji}`)];
 // Distinct emoji per game subgenre where recognizable; falls back to the genre's
 // emoji so every subgenre skill still carries one.
 const SUBGENRE_EMOJI = {
@@ -899,11 +901,15 @@ const PERSONA_SKILLS = {
   "Videographer": {
     "🎬 Video Software": ["Any Video Software 🎬", "Adobe Premiere 🎬", "DaVinci Resolve 🎞️", "Final Cut Pro 🎥", "Sony Vegas 📹", "Filmora 🎬", "After Effects ✨", "OBS Studio 🔴"],
     "🎥 Video Skills": ["Any Video Skill 🎬", "Editing 🎬", "Color Grading 🎨", "Motion Graphics ✨", "Cinematography 🎥", "Drone Footage 🚁", "Lighting 💡", "Sound Design 🎙️", "Storyboarding 🗂️", "Music Video Production 🎞️"],
+    "🎬 Movie Genres": MOVIE_GENRE_SKILLS,
+    "📺 TV Genres": TV_GENRE_SKILLS,
     "🎭 Moods": MOOD_SKILLS,
     "🎬 Length Formats": FORMAT_SKILLS,
   },
   "Director": {
     "🎬 Directing": DIRECTING_CRAFT,
+    "🎬 Movie Genres": MOVIE_GENRE_SKILLS,
+    "📺 TV Genres": TV_GENRE_SKILLS,
     "🎭 Moods": MOOD_SKILLS,
     "🎬 Length Formats": FORMAT_SKILLS,
   },
@@ -7541,7 +7547,7 @@ function DirectZWorkCard({ w, onRated, mine }) {
   return (
     <div className="post-card">
       <div className="post-user">{fmt?.emoji} {w.title} <span className="tag">{fmt?.name}</span></div>
-      <div className="post-meta">{w.video_type && `${w.video_type} · `}{w.mood && `🫥 ${w.mood} · `}by @{w.owner}{w.duration_sec ? ` · ${fmtDur(w.duration_sec)}` : ""}</div>
+      <div className="post-meta">{w.genre && `🎞️ ${w.genre} · `}{w.video_type && `${w.video_type} · `}{w.mood && `🫥 ${w.mood} · `}by @{w.owner}{w.duration_sec ? ` · ${fmtDur(w.duration_sec)}` : ""}</div>
       {w.media_url && <div style={{ margin: "6px 0" }}><SmartMedia url={w.media_url} type={w.media_type === "audio" ? "audio" : "video"} style={{ maxHeight: 260 }} /></div>}
       {w.description && <div className="post-content" style={{ fontSize: 12 }}>{w.description}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 0" }}>
@@ -7572,7 +7578,7 @@ function DirectZPage({ tier, serverOk }) {
   const [works, setWorks] = useState([]);
   const [msg, setMsg] = useState("");
   // create form
-  const [form, setForm] = useState({ fmt: "reelz", video_type: VIDEO_TYPES[0].name, mood: "", title: "", description: "", minutes: 2, media: null });
+  const [form, setForm] = useState({ fmt: "reelz", video_type: VIDEO_TYPES[0].name, genre: "", mood: "", title: "", description: "", minutes: 2, media: null });
   const [rows, setRows] = useState([{ id: 1, name: me, tier: tier || "free", skills: [{ name: "Direction", price: 60 }] }]);
   const setF = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
@@ -7607,7 +7613,7 @@ function DirectZPage({ tier, serverOk }) {
     setMsg("");
     if (fmtMismatch) { setMsg("⛔ The video's length doesn't fit the selected category — switch to the suggested one first."); return; }
     const contributors = rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim(), tier: r.tier, skills: r.skills.filter((s) => s.name.trim()).map((s) => ({ name: s.name.trim(), price: Number(s.price) || 0 })) }));
-    const body = { fmt: form.fmt, video_type: form.video_type, mood: form.mood, title: form.title.trim(), description: form.description.trim(), duration_sec: durationSec, media_url: form.media?.url || "", media_type: form.media?.type || "", contributors };
+    const body = { fmt: form.fmt, video_type: form.video_type, genre: form.genre, mood: form.mood, title: form.title.trim(), description: form.description.trim(), duration_sec: durationSec, media_url: form.media?.url || "", media_type: form.media?.type || "", contributors };
     try {
       const w = await createDirectzApi(body);
       setMsg(`🤖 Submitted — AI rated it ${w.rating}/10. Real user ratings take over once 3 people rate it.`);
@@ -7657,6 +7663,12 @@ function DirectZPage({ tier, serverOk }) {
             <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
             <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
               {VIDEO_TYPES.map((x) => <Pill key={x.name} active={form.video_type === x.name} onClick={() => setF("video_type", x.name)}>{x.name}</Pill>)}
+            </div>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>
+              {form.fmt === "moviez" ? "🎬 Movie genre" : form.fmt === "episodez" ? "📺 TV genre" : "🎞️ Short genre"}
+            </label>
+            <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
+              {(DIRECTZ_GENRES[form.fmt] || []).map((g) => <Pill key={g.name} active={form.genre === g.name} onClick={() => setF("genre", form.genre === g.name ? "" : g.name)}>{g.emoji} {g.name}</Pill>)}
             </div>
             <MoodPicker mood={form.mood} setMood={(m) => setF("mood", m)} />
             <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setF("title", e.target.value)} placeholder="Name your work" /></div>
