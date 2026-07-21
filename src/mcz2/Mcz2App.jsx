@@ -17,7 +17,7 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
-import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL } from "./economy.js";
 
 // Tier + Founding Member badges, reusable across profiles and member cards.
 // Tapping the tier chip (when onOpen given) jumps to MembershipZ upgrade prices.
@@ -121,7 +121,7 @@ import {
   getParcelApi, sendParcelApi,
   getAutoTopUpsApi, createAutoTopUpApi, cancelAutoTopUpApi,
   getIdentityApi, startIdentityApi,
-  getPostzApi, createPostzApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
+  getPostzApi, createPostzApi, editPostApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
   chargeAiApi, occChatApi,
@@ -222,6 +222,73 @@ function useSavedFlash() {
 }
 function SavedFlash({ saved }) {
   return <span className="tag" style={{ color: saved ? "var(--success)" : "var(--text-light)", transition: "color .2s" }}>{saved ? "✓ Saved" : "Auto-saves"}</span>;
+}
+
+// Live edit-window countdown off a created-at timestamp + the viewer's tier.
+// Returns { remaining (sec), expired }. Ticks every second while the window is open.
+function useEditWindow(createdAt) {
+  const { tier } = useLimits();
+  const windowSec = editWindowFor(tier);
+  const startMs = createdAt ? new Date(createdAt).getTime() : Date.now();
+  const calc = () => Math.max(0, Math.round(windowSec - (Date.now() - startMs) / 1000));
+  const [remaining, setRemaining] = useState(calc);
+  useEffect(() => {
+    setRemaining(calc());
+    if (windowSec >= 10 ** 8) return undefined; // owner/unlimited — no ticking
+    const t = setInterval(() => setRemaining(calc()), 1000);
+    return () => clearInterval(t);
+  }, [createdAt, windowSec]);
+  return { remaining, expired: remaining <= 0 && windowSec < 10 ** 8, unlimited: windowSec >= 10 ** 8 };
+}
+
+const fmtCountdown = (s) => {
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  if (s >= 60) return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return `${s}s`;
+};
+
+// Renders the edit affordance while the window is open, or a 🔒 + upgrade nudge
+// when it's expired. `onEdit` is the "start editing" callback; `onUpgrade` opens
+// MembershipZ. Owner/unlimited shows an infinity marker.
+function EditCountdown({ createdAt, onEdit, onUpgrade, mine }) {
+  const { remaining, expired, unlimited } = useEditWindow(createdAt);
+  const upgrade = onUpgrade || (() => { if (typeof window !== "undefined") window.location.assign("/membership"); });
+  if (!mine) return null;
+  if (unlimited) return <button className="btn-link" style={editLinkStyle} onClick={onEdit}>✏️ edit ∞</button>;
+  if (expired) {
+    return (
+      <span style={{ fontSize: 10, color: "var(--text-light)" }}>
+        🔒 edit window passed ·{" "}
+        <button className="btn-link" style={{ ...editLinkStyle, color: "var(--gold, #ffcf3f)" }} onClick={upgrade}>upgrade for longer ({EDIT_WINDOW_LABEL})</button>
+      </span>
+    );
+  }
+  return <button className="btn-link" style={editLinkStyle} onClick={onEdit}>✏️ edit · {fmtCountdown(remaining)} left</button>;
+}
+const editLinkStyle = { background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 10 };
+
+// EditZ 🕞 — expandable timestamped edit history (newest on top).
+function EditZHistory({ history, editedAt, field = "body" }) {
+  const [open, setOpen] = useState(false);
+  const rows = (history || []).slice().reverse();
+  if (!editedAt && rows.length === 0) return null;
+  return (
+    <span style={{ marginLeft: 6 }}>
+      <button className="btn-link" style={{ ...editLinkStyle, color: "var(--text-light)" }} onClick={() => setOpen((v) => !v)} title="Edit history">
+        🕞 EditZ{editedAt ? ` · edited ${new Date(editedAt).toLocaleString()}` : ""}
+      </button>
+      {open && (
+        <div style={{ marginTop: 4, padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>
+          {rows.length === 0 ? <div style={{ fontSize: 10, color: "var(--text-light)" }}>No prior versions recorded.</div>
+            : rows.map((h, i) => (
+              <div key={i} style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 3 }}>
+                <span style={{ color: "var(--gold, #ffcf3f)" }}>{h.at ? new Date(h.at).toLocaleString() : "—"}</span> · {String(h[field] ?? h.body ?? h.score ?? h.title ?? "")}
+              </div>
+            ))}
+        </div>
+      )}
+    </span>
+  );
 }
 
 // Explicit Save button + saved/unsaved cue for editable pages. Default save
@@ -367,7 +434,11 @@ function SocialBar({ id, shareText, style }) {
     if (val) addXP(1, "Rated");
     setRateOpen(false);
   };
-  const reactRate = (val) => { rateSocialApi(id, val).then(setSrv).catch(() => {}); };
+  const reactRate = (val) => {
+    rateSocialApi(id, val).then(setSrv).catch((e) => {
+      if (e?.message?.includes("window")) alert(`⏳ Rating edit window passed — upgrade for a longer window (${EDIT_WINDOW_LABEL}).`);
+    });
+  };
   const comments = s.comments || [];
   return (
     <div style={{ marginTop: 8, ...style }}>
@@ -402,6 +473,13 @@ function SocialBar({ id, shareText, style }) {
             {s.rating_count != null && <span style={{ fontSize: 10, color: "var(--text-light)" }}>· {s.rating_count} rating{s.rating_count === 1 ? "" : "s"}</span>}
             {s.my_rating ? <button className="btn-link" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0, fontSize: 10 }} onClick={() => rate(s.my_rating)}>clear mine</button> : null}
           </div>
+          {signedIn && s.my_rating ? (
+            <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10, color: "var(--text-light)" }}>You rated {s.my_rating}/10 — change it while your edit window's open:</span>
+              <EditCountdown createdAt={s.my_rating_at} mine onEdit={() => {}} />
+              <EditZHistory history={s.my_rating_history} editedAt={s.my_rating_edited_at} field="score" />
+            </div>
+          ) : null}
         </div>
       )}
       {open && (
@@ -415,11 +493,11 @@ function SocialBar({ id, shareText, style }) {
             const editing = editId === c.id;
             const saveEdit = async () => {
               try { const r = await editCommentApi(id, c.id, editDraft.trim()); setSrv(r); setEditId(null); }
-              catch (e) { alert(e?.message?.includes("window") ? "⏳ Edit window passed — upgrade for a longer edit window (Free 6m · Premium 60m · StatZ 6h)." : "Couldn't edit."); }
+              catch (e) { alert(e?.message?.includes("window") ? `⏳ Edit window passed — upgrade for a longer edit window (${EDIT_WINDOW_LABEL}).` : "Couldn't edit."); }
             };
             return (
               <div key={c.id} className="post-card" style={{ marginTop: 6 }}>
-                {c.user && <div className="post-user">@{c.user}{mine && !editing && <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 10, marginLeft: 8 }} onClick={() => { setEditId(c.id); setEditDraft(c.body); }}>✏️ edit</button>}</div>}
+                {c.user && <div className="post-user">@{c.user}{mine && !editing && <span style={{ marginLeft: 8 }}><EditCountdown createdAt={c.at} mine onEdit={() => { setEditId(c.id); setEditDraft(c.body); }} /></span>}</div>}
                 {editing ? (
                   <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                     <input value={editDraft} onChange={(e) => setEditDraft(e.target.value)} style={{ flex: 1 }} />
@@ -427,7 +505,7 @@ function SocialBar({ id, shareText, style }) {
                     <button className="btn btn-small btn-secondary" onClick={() => setEditId(null)}>✕</button>
                   </div>
                 ) : <div className="post-content">{c.body}</div>}
-                <div className="post-meta">{new Date(c.at).toLocaleString()}</div>
+                <div className="post-meta">{new Date(c.at).toLocaleString()}<EditZHistory history={c.edit_history} editedAt={c.edited_at} field="body" /></div>
               </div>
             );
           })}
@@ -435,6 +513,47 @@ function SocialBar({ id, shareText, style }) {
       )}
     </div>
   );
+}
+
+// Known platforms → brand name + emoji, matched by host substring. Any other
+// site falls back to its domain name + favicon (a real logo for any URL).
+const LINK_PLATFORMS = [
+  { host: "open.spotify.com", name: "Spotify", emoji: "🟢" }, { host: "spotify.com", name: "Spotify", emoji: "🟢" },
+  { host: "music.apple.com", name: "Apple Music", emoji: "🍎" }, { host: "itunes.apple.com", name: "Apple Music", emoji: "🍎" },
+  { host: "youtube.com", name: "YouTube", emoji: "▶️" }, { host: "youtu.be", name: "YouTube", emoji: "▶️" },
+  { host: "soundcloud.com", name: "SoundCloud", emoji: "🟠" },
+  { host: "bandcamp.com", name: "Bandcamp", emoji: "🔵" },
+  { host: "instagram.com", name: "Instagram", emoji: "📸" },
+  { host: "tiktok.com", name: "TikTok", emoji: "🎵" },
+  { host: "twitter.com", name: "X", emoji: "✖️" }, { host: "x.com", name: "X", emoji: "✖️" },
+  { host: "facebook.com", name: "Facebook", emoji: "📘" }, { host: "fb.com", name: "Facebook", emoji: "📘" },
+  { host: "twitch.tv", name: "Twitch", emoji: "🟣" },
+  { host: "audiomack.com", name: "Audiomack", emoji: "🟡" },
+  { host: "deezer.com", name: "Deezer", emoji: "🎧" },
+  { host: "tidal.com", name: "Tidal", emoji: "🌊" },
+  { host: "patreon.com", name: "Patreon", emoji: "🧡" },
+  { host: "linktr.ee", name: "Linktree", emoji: "🌳" },
+];
+// Returns { name, emoji, favicon } for a URL — a real logo (favicon) for any site.
+function detectLink(rawUrl) {
+  let host = "";
+  try { host = new URL(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`).hostname.replace(/^www\./, ""); }
+  catch { return { name: rawUrl, emoji: "🔗", favicon: "" }; }
+  const hit = LINK_PLATFORMS.find((p) => host === p.host || host.endsWith(`.${p.host}`) || host.includes(p.host.split(".")[0] + "."));
+  const favicon = `https://www.google.com/s2/favicons?sz=64&domain=${host}`;
+  if (hit) return { name: hit.name, emoji: hit.emoji, favicon };
+  // Fallback: derive a title-cased name from the domain's main label.
+  const label = host.split(".").slice(-2, -1)[0] || host;
+  return { name: label.charAt(0).toUpperCase() + label.slice(1), emoji: "🔗", favicon };
+}
+// A link's logo (favicon img, emoji fallback) + detected name, as a chip's leading glyph.
+function LinkGlyph({ url, size = 14 }) {
+  const info = detectLink(url);
+  const [broken, setBroken] = useState(false);
+  if (info.favicon && !broken) {
+    return <img src={info.favicon} alt={info.name} width={size} height={size} style={{ borderRadius: 3, verticalAlign: "middle" }} onError={() => setBroken(true)} />;
+  }
+  return <span>{info.emoji}</span>;
 }
 
 // Profile/post links — add labelled URLs; render as tappable chips.
@@ -445,20 +564,28 @@ function LinksEditor({ links, onChange }) {
   const add = () => {
     if (!url.trim()) return;
     let u = url.trim(); if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
-    onChange([...list, { id: Date.now(), label: label.trim() || u.replace(/^https?:\/\//, "").split("/")[0], url: u }]);
+    onChange([...list, { id: Date.now(), label: label.trim() || detectLink(u).name, url: u }]);
     setLabel(""); setUrl("");
   };
+  // Auto-fill the label with the detected platform name as they paste a URL.
+  const onUrl = (e) => {
+    const val = e.target.value;
+    setUrl(val);
+    if (val.trim() && (!label.trim() || label === detectLink(url).name)) setLabel(detectLink(val).name);
+  };
+  const detected = url.trim() ? detectLink(url) : null;
   return (
     <div>
       <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="label (Spotify)" style={{ flex: 1, minWidth: 90 }} />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="url" style={{ flex: 1.4, minWidth: 120 }} />
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="label (auto-detected)" style={{ flex: 1, minWidth: 90 }} />
+        <input value={url} onChange={onUrl} placeholder="paste any link — Spotify, IG, YouTube…" style={{ flex: 1.4, minWidth: 120 }} />
         <button className="btn btn-small" onClick={add} disabled={!url.trim()}>+ Link</button>
       </div>
+      {detected && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}><LinkGlyph url={url} /> Detected: <strong>{detected.name}</strong></div>}
       <div className="chip-wrap">
         {list.map((l) => (
-          <span key={l.id} className="tag" style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-            🔗 {l.label}
+          <span key={l.id} className="tag" style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+            <LinkGlyph url={l.url} /> {l.label}
             <button onClick={() => onChange(list.filter((x) => x.id !== l.id))} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>×</button>
           </span>
         ))}
@@ -515,10 +642,10 @@ function LinksRow({ links, owner = "" }) {
           const unsafe = t && t.safe === false;
           return (
             <a key={l.id || l.url} href={l.url} target="_blank" rel="noreferrer" onClick={(e) => onClick(e, l)}
-               className="tag" style={{ color: unsafe ? "var(--danger)" : "var(--accent, #22e6ff)", textDecoration: "none" }}
+               className="tag" style={{ color: unsafe ? "var(--danger)" : "var(--accent, #22e6ff)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5 }}
                title={unsafe ? `Flagged unsafe: ${t.threat}` : "Opens in a new tab · visiting a member's link earns +5⚡"}>
-              {unsafe ? "⚠️" : "🔗"} {l.label || l.url}
-              {t && t.clicks != null && <span style={{ color: "var(--text-light)", marginLeft: 4 }}>· {t.clicks} click{t.clicks === 1 ? "" : "s"}</span>}
+              {unsafe ? <span>⚠️</span> : <LinkGlyph url={l.url} />} {l.label || detectLink(l.url).name}
+              {t && t.clicks != null && <span style={{ color: "var(--text-light)" }}>· {t.clicks} click{t.clicks === 1 ? "" : "s"}</span>}
             </a>
           );
         })}
@@ -3526,7 +3653,57 @@ function useWatchGate(resetKey, rateS = 30, commentS = 60) {
 // Rate real member media — pulls PostZ that carry audio/video, plays each, and
 // rates it 1–10 via the shared SocialBar. You can also drop your own media in to
 // be rated (it posts to the feed). This is the "media upload or post to rate" ask.
+// Corey AI-rates a media post: real /10 for audio (analyzeAudioBuffer) + Corey
+// feedback via OCC (costs a prompt). Video/image get Corey feedback from context.
+function AIRateButton({ post }) {
+  const { state } = useAppState();
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState(null); // { score, text, cost }
+  const [err, setErr] = useState("");
+  const mediaUrl = post.media_url || (post.items || [])[0]?.url || "";
+  const mediaType = post.media_type || (post.items || [])[0]?.type || "";
+
+  const run = async () => {
+    setBusy(true); setErr(""); setOut(null);
+    let score = null, meterLine = "";
+    try {
+      if (mediaType !== "video" && mediaUrl) {
+        // Real audio analysis for a /10 score.
+        const blob = await fetch(mediaUrl).then((r) => r.blob());
+        const buf = await decodeBlob(blob);
+        const r = analyzeAudioBuffer(buf, "voice");
+        if (r?.ok) { score = Number(toTen(r.scores.overall)); meterLine = (r.profile?.metrics || []).filter((id) => id in r.scores).map((id) => `${id} ${toTen(r.scores[id])}/10`).join(", "); }
+      }
+    } catch { /* analysis best-effort */ }
+    const prompt = `Rate this ${mediaType || "media"} post "${post.title}"${post.description ? ` (${post.description})` : ""} out of 10 and coach the creator. ${score != null ? `Audio analysis: overall ${score}/10, ${meterLine}.` : "Judge from the title/description."} Give a score out of 10 and the top 2 things to improve. Keep it tight, Corey voice.`;
+    try {
+      const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [], suggest: !!state.occ?.settings?.suggestions });
+      setOut({ score, text: r.text, cost: r.cost_cents });
+    } catch (e) {
+      const msg = e?.message || "";
+      if (/402/.test(msg)) setErr("You're short on balance — add funds in Money (Corey GPT is the cheapest voice).");
+      else { setOut({ score, text: localCoreyFeedback({ ok: score != null, scores: {}, metrics: {}, profile: {} }, post.title), cost: 0 }); } // offline fallback, no charge
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button className="btn btn-small btn-secondary" onClick={run} disabled={busy}>{busy ? "🎤 Corey's listening…" : "🎤 AI rate (Corey · costs a prompt)"}</button>
+      {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{err}</p>}
+      {out && (
+        <div style={{ marginTop: 6, padding: 8, borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>
+          {out.score != null && <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", fontWeight: 700 }}>🎯 Corey's score: {out.score}/10</div>}
+          <p style={{ fontSize: 12, whiteSpace: "pre-wrap", margin: "4px 0 0" }}>{out.text}</p>
+          {out.cost > 0 && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>Charged {centsLabel(out.cost)} for the prompt.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RateRealMedia({ serverOk, onOpen }) {
+  const { state } = useAppState();
   const { openPost } = usePostModal();
   const [posts, setPosts] = useState(null);
   const [filter, setFilter] = useState("all"); // all | audio | video
@@ -3534,9 +3711,11 @@ function RateRealMedia({ serverOk, onOpen }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [source, setSource] = useState("new"); // new upload | existing post
+  const [mineList, setMineList] = useState([]);
 
   const hasMedia = (p) => p.media_url || (p.is_album && (p.items || []).length);
-  const load = () => { if (serverOk) getPostzApi("new").then((r) => setPosts((r.posts || []).filter(hasMedia))).catch(() => setPosts(null)); };
+  const load = () => { if (serverOk) getPostzApi("new").then((r) => { const all = (r.posts || []).filter(hasMedia); setPosts(all); setMineList(all.filter((p) => p.mine)); }).catch(() => setPosts(null)); };
   useEffect(load, [serverOk]);
 
   const post = async () => {
@@ -3548,18 +3727,44 @@ function RateRealMedia({ serverOk, onOpen }) {
     } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post.")); }
     setBusy(false);
   };
+  // Reuse an existing submission: re-post one of your media posts up for rating.
+  const putUp = async (p) => {
+    setBusy(true); setMsg("");
+    try {
+      await createPostzApi({ title: `${p.title} (rate me)`.slice(0, 160), description: "🤔 Up for rating on RateZ", media_url: p.media_url, media_type: p.media_type, visibility: "public" });
+      setMsg("✅ Your submission is up for rating."); load();
+    } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post.")); }
+    setBusy(false);
+  };
 
   if (!serverOk) return null;
   const shown = (posts || []).filter((p) => filter === "all" ? true : filter === "video" ? p.media_type === "video" || (p.items || []).some((i) => i.type === "video") : p.media_type !== "video" && !(p.items || []).some((i) => i.type === "video"));
   return (
     <div className="card">
       <div className="card-header"><span>🤔 Rate real media</span><span className="tag" style={{ color: "var(--success)" }}>● live</span></div>
-      <div className="form-group"><label>🎤 Drop your media to be rated</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name it (optional)" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
-        <MediaCapture onUploaded={setMedia} />
-        {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post for rating"}</button>}
-        {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}</p>}
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        {[["new", "🎤 New upload"], ["existing", "📁 Use one of my posts"]].map(([id, l]) => (
+          <button key={id} className={`heritage-chip${source === id ? " sel" : ""}`} onClick={() => setSource(id)}>{l}</button>
+        ))}
       </div>
+      {source === "new" ? (
+        <div className="form-group"><label>🎤 Drop your media to be rated</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name it (optional)" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+          <MediaCapture onUploaded={setMedia} />
+          {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post for rating"}</button>}
+        </div>
+      ) : (
+        <div className="form-group"><label>📁 Put one of your submissions up</label>
+          {mineList.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>You have no media posts yet — upload one.</p>
+            : mineList.map((p) => (
+              <div key={p.id} className="skill-item">
+                <span className="skill-item-name">{(p.media_type === "video") ? "📹" : "🎧"} {p.title}</span>
+                <button className="btn btn-small" onClick={() => putUp(p)} disabled={busy}>Rate this</button>
+              </div>
+            ))}
+        </div>
+      )}
+      {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginBottom: 6 }}>{msg}</p>}
       <div className="chip-wrap" style={{ marginBottom: 8 }}>
         {[["all", "All"], ["audio", "🎧 Audio"], ["video", "📹 Video"]].map(([id, l]) => (
           <button key={id} className={`heritage-chip${filter === id ? " sel" : ""}`} onClick={() => setFilter(id)}>{l}</button>
@@ -3570,9 +3775,10 @@ function RateRealMedia({ serverOk, onOpen }) {
           <div key={p.id} className="post-card">
             <div className="post-user"><span style={{ cursor: "pointer" }} onClick={() => openPost(p)}>{p.title}</span>{p.author && <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{p.author}</span>}{p.is_album ? <span className="tag">💿 album</span> : ""}</div>
             {p.is_album
-              ? (p.items || []).slice(0, 1).map((it, k) => it.type === "video" ? <video key={k} src={it.url} controls style={{ width: "100%", maxHeight: 200, borderRadius: 8 }} /> : <audio key={k} src={it.url} controls style={{ width: "100%" }} />)
-              : (p.media_type === "video" ? <video src={p.media_url} controls style={{ width: "100%", maxHeight: 220, borderRadius: 8 }} /> : <audio src={p.media_url} controls style={{ width: "100%" }} />)}
+              ? (p.items || []).slice(0, 1).map((it, k) => <SmartMedia key={k} url={it.url} type={it.type} style={{ maxHeight: 200 }} />)
+              : <SmartMedia url={p.media_url} type={p.media_type} style={{ maxHeight: 220 }} />}
             <SocialBar id={`post:${p.id}`} shareText={`${p.title} on Music ConnectZ`} />
+            <AIRateButton post={p} />
           </div>
         ))}
     </div>
@@ -3933,7 +4139,7 @@ function MessageZPage({ serverOk }) {
   };
   const saveEdit = async () => {
     try { await editMessageApi(editMsgId, editMsgDraft.trim()); setEditMsgId(null); loadThread(active); }
-    catch (e) { alert(e?.message?.includes("window") ? "⏳ Edit window passed — upgrade for a longer edit window (Free 6m · Premium 60m · StatZ 6h)." : "Couldn't edit."); }
+    catch (e) { alert(e?.message?.includes("window") ? `⏳ Edit window passed — upgrade for a longer edit window (${EDIT_WINDOW_LABEL}).` : "Couldn't edit."); }
   };
   const pick = (m) => { setComposeTo(m.username || m.display_name || m.name || ""); setActive(null); setFinding(false); };
 
@@ -3963,9 +4169,10 @@ function MessageZPage({ serverOk }) {
                         : <audio src={m.media_url} controls style={{ width: "100%" }} />}
                     </div>
                   )}
-                  <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2, display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ fontSize: 9, opacity: 0.7, marginTop: 2, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     {new Date(m.at).toLocaleString()}
-                    {m.mine && editMsgId !== m.id && <span style={{ cursor: "pointer", textDecoration: "underline" }} onClick={() => { setEditMsgId(m.id); setEditMsgDraft(m.body); }}>✏️ edit</span>}
+                    {m.mine && editMsgId !== m.id && <EditCountdown createdAt={m.at} mine onEdit={() => { setEditMsgId(m.id); setEditMsgDraft(m.body); }} />}
+                    <EditZHistory history={m.edit_history} editedAt={m.edited_at} field="body" />
                   </div>
                 </div>
               ))}
@@ -5323,16 +5530,36 @@ function OccNotes({ occ, patch, field, title, hint }) {
 
 // --- TellZ: prompts/posts log ---
 function OccTellZ({ occ }) {
+  const { state, update } = useAppState();
   const rows = occ.tell || [];
+  const [editId, setEditId] = useState(null);
+  const [draft, setDraft] = useState("");
+  const saveEdit = (x) => {
+    const tell = (state.occ?.tell || []).map((t) => t.id === x.id
+      ? { ...t, text: draft.trim(), editedAt: Date.now(), edit_history: [...(t.edit_history || []), { body: t.text, at: new Date().toISOString() }] }
+      : t);
+    update({ occ: { ...state.occ, tell } });
+    setEditId(null);
+  };
   return (
     <>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🗣️ Everything you've prompted OCC — a running record across the workspace.</p>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🗣️ Everything you've prompted OCC — a running record across the workspace. Edit a prompt while your tier's edit window is open.</p>
       {rows.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing logged yet.</p>
         : rows.map((x) => (
           <div key={x.id} className="post-card">
             <div className="post-user">{x.tab}</div>
-            <div className="post-content">{x.text}</div>
-            <div className="post-meta">{new Date(x.at).toLocaleString()}</div>
+            {editId === x.id ? (
+              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} style={{ flex: 1 }} />
+                <button className="btn btn-small btn-success" onClick={() => saveEdit(x)} disabled={!draft.trim()}>Save</button>
+                <button className="btn btn-small btn-secondary" onClick={() => setEditId(null)}>✕</button>
+              </div>
+            ) : <div className="post-content">{x.text}</div>}
+            <div className="post-meta" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {new Date(x.at).toLocaleString()}
+              {editId !== x.id && <EditCountdown createdAt={x.at} mine onEdit={() => { setEditId(x.id); setDraft(x.text); }} />}
+              <EditZHistory history={x.edit_history} editedAt={x.editedAt} field="body" />
+            </div>
           </div>
         ))}
     </>
@@ -6708,6 +6935,19 @@ function SaveTakeAsPost({ media, result, context, skill, onOpen, save, setSave }
 
 // Reusable record-or-upload → hosted URL + inline preview. Used anywhere a
 // member can attach audio/video: CollabZ, BattleZ, Social ConnectZ, MessageZ, OCC.
+// Media player that degrades gracefully — if the URL 404s (e.g. media host not
+// yet serving), it shows a note instead of a broken <video>/<img>.
+function SmartMedia({ url, type, style }) {
+  const [broken, setBroken] = useState(false);
+  if (!url) return null;
+  if (broken) {
+    return <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", padding: 8, borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>⏳ Media still processing or unavailable — refresh in a moment.</div>;
+  }
+  return type === "video"
+    ? <video src={url} controls onError={() => setBroken(true)} style={{ width: "100%", maxHeight: 260, borderRadius: 8, ...style }} />
+    : <audio src={url} controls onError={() => setBroken(true)} style={{ width: "100%", ...style }} />;
+}
+
 function MediaCapture({ onUploaded, accept = "audio/*,video/*", allowVideo = true, compact = false }) {
   const [status, setStatus] = useState("");   // "", "recording", "uploading", "denied"
   const [preview, setPreview] = useState(null); // { url, type }
@@ -6765,9 +7005,7 @@ function MediaCapture({ onUploaded, accept = "audio/*,video/*", allowVideo = tru
       {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{err}</p>}
       {preview?.url && (
         <div style={{ marginTop: 6 }}>
-          {preview.type === "video"
-            ? <video src={preview.url} controls style={{ width: "100%", maxHeight: 220, borderRadius: 8 }} />
-            : <audio src={preview.url} controls style={{ width: "100%" }} />}
+          <SmartMedia url={preview.url} type={preview.type} style={{ maxHeight: 220 }} />
           <button type="button" className="btn btn-small btn-secondary" style={{ marginTop: 4 }} onClick={() => { setPreview(null); onUploaded?.(null); }}>✕ Remove</button>
         </div>
       )}
@@ -7587,22 +7825,44 @@ function AppModal({ app, onClose, onOpen }) {
 // so it stays put regardless of navigation until you close it. Carries the
 // media + /10 score and the full SocialBar (rate 1–10 / comment / share +5⚡).
 function PostModal({ post, onClose, onOpen }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ title: "", description: "" });
+  const [live, setLive] = useState(null); // updated post after an edit
+  const p = live || post;
   if (!post) return null;
-  const v = POST_VIS.find((x) => x.id === post.visibility) || POST_VIS[0];
+  const v = POST_VIS.find((x) => x.id === (p.visibility)) || POST_VIS[0];
+  const startEdit = () => { setDraft({ title: p.title, description: p.description ?? p.desc ?? "" }); setEditing(true); };
+  const saveEdit = async () => {
+    try {
+      const r = await editPostApi(p.id, { title: draft.title.trim(), description: draft.description });
+      setLive(r); setEditing(false);
+    } catch (e) { alert(e?.message?.includes("window") ? `⏳ Edit window passed — upgrade for a longer edit window (${EDIT_WINDOW_LABEL}).` : "Couldn't save the edit."); }
+  };
   return (
     <div className="modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title"><h2>🎵 {post.title}</h2></div>
+          <div className="modal-title"><h2>🎵 {p.title}</h2></div>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
-        <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           <span className="tag" title={v.note}>{v.emoji} {v.label}</span>
-          {post.author && <> · @{post.author}</>}
-          {post.rating != null && <> · ⭐ {post.rating}/10</>}
-          {post.score?.overall != null && <> · 🎯 scored {post.score.overall}/10</>}
+          {p.author && <span>· @{p.author}</span>}
+          {p.rating != null && <span>· ⭐ {p.rating}/10</span>}
+          {p.score?.overall != null && <span>· 🎯 scored {p.score.overall}/10</span>}
+          {p.mine && !editing && p.id != null && <EditCountdown createdAt={p.created_at} mine onEdit={startEdit} />}
+          <EditZHistory history={p.edit_history} editedAt={p.edited_at} field="title" />
         </div>
-        {(post.description || post.desc) && <p className="modal-desc">{post.description ?? post.desc}</p>}
+        {editing ? (
+          <div style={{ marginBottom: 8 }}>
+            <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+            <CappedTextarea value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} style={{ width: "100%", height: 70 }} />
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <button className="btn btn-small btn-success" onClick={saveEdit} disabled={!draft.title.trim()}>💾 Save</button>
+              <button className="btn btn-small btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : (p.description || p.desc) && <p className="modal-desc">{p.description ?? p.desc}</p>}
         {post.is_album && (post.items || []).length > 0 ? (
           <div style={{ margin: "8px 0" }}>
             <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 6 }}>💿 Album · {(post.items || []).length} tracks</div>
