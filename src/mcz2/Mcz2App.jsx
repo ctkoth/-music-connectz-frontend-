@@ -4052,7 +4052,7 @@ function BattleEntryRecorder({ mode, onOpen }) {
   );
 }
 
-function BattleZPage({ tier, onOpen, serverOk }) {
+function BattleZPage({ tier, onOpen, serverOk, syncEconomy }) {
   const { state, update, updateUser, updateWallet, addTo, addXP } = useAppState();
   const idStatus = useIdentity(serverOk);
   const [mode, setMode] = useState("1v1");
@@ -4150,10 +4150,14 @@ function BattleZPage({ tier, onOpen, serverOk }) {
         const prompt = `You're judging a BattleZ music round. Rate contestant "${c.name}" (track: "${c.track}") from 1 to 10 on overall quality for a battle. Reply with ONLY the number 1-10, nothing else.`;
         const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
         const n = Math.round(parseFloat((r.text || "").match(/\d+(\.\d+)?/)?.[0] || "0"));
-        if (n >= 1) rate(side, Math.min(10, n));
-        else setAiErr("Couldn't read an AI score — try again.");
+        if (n < 1) { setAiErr("Couldn't read an AI score — try again."); setAiBusy(false); return; }
+        const clamped = Math.min(10, n);
+        // AI-score fee: rating × 10% × your skill price — PromptZ first, then money.
+        await chargeAiApi("corey-gpt", `BattleZ AI score ${clamped}/10`, aiScoreFeeCents(state, clamped));
+        syncEconomy?.();
+        rate(side, clamped);
       } catch (e) {
-        setAiErr(/402/.test(e?.message || "") ? "Short on PromptZ / balance — top up in Money." : (e?.message || "AI rating failed."));
+        setAiErr(/402/.test(e?.message || "") ? "Short on PromptZ / balance for the AI-score fee — top up in Money." : (e?.message || "AI rating failed."));
       }
       setAiBusy(false);
     };
@@ -4182,7 +4186,7 @@ function BattleZPage({ tier, onOpen, serverOk }) {
             <StarRow value={0} size={22} showEnds onRate={(n) => rate(side, n)} />
             {canAi ? (
               <button className="btn btn-small btn-secondary" style={{ marginTop: 8, display: "block" }} disabled={aiBusy} onClick={aiRate}>
-                {aiBusy ? "🤖 Corey's scoring…" : "🤖 Rate with AI (Premium · costs a prompt)"}
+                {aiBusy ? "🤖 Corey's scoring…" : "🤖 Rate with AI (Premium · 🏷️ then money)"}
               </button>
             ) : (
               <button className="btn btn-small btn-secondary" style={{ marginTop: 8, display: "block", opacity: 0.75 }} onClick={() => onOpen?.("money")} title="Premium feature — upgrade to let Corey fill a rating">
@@ -4413,12 +4417,17 @@ function AIRateButton({ post, tier }) {
         finalScore = m ? Number(m[1]) : null;
       }
       finalScore = finalScore != null ? Math.max(1, Math.min(10, Math.round(finalScore))) : null;
+      // AI-score fee: rating × 10% × your skill price — PromptZ first, then money.
+      if (finalScore != null) {
+        try { await chargeAiApi("corey-gpt", `RateZ AI score ${finalScore}/10`, aiScoreFeeCents(state, finalScore)); }
+        catch (e) { if (/402/.test(e?.message || "")) { setErr("Short on PromptZ / balance for the AI-score fee — top up in Money."); setBusy(false); return; } }
+      }
       // Premium: submit the AI score so it affects the item's community median.
       let submitted = false;
       if (finalScore != null && canCount && isSignedIn()) {
         try { await rateSocialApi(`post:${post.id}`, finalScore); submitted = true; } catch { /* edit window / retry */ }
       }
-      setOut({ score: finalScore, text: r.text, cost: r.cost_cents, submitted });
+      setOut({ score: finalScore, text: r.text, cost: r.cost_cents, submitted, fee: finalScore != null ? aiScoreFeeCents(state, finalScore) : 0 });
     } catch (e) {
       const msg = e?.message || "";
       if (/402/.test(msg)) setErr("You're short on balance — add funds in Money (Corey GPT is the cheapest voice).");
@@ -4441,7 +4450,49 @@ function AIRateButton({ post, tier }) {
           )}
           <p style={{ fontSize: 12, whiteSpace: "pre-wrap", margin: "4px 0 0" }}>{out.text}</p>
           {out.score != null && !out.submitted && !canCount && <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🔒 Premium: let Corey's score count toward the community median.</div>}
-          {out.cost > 0 && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>Charged {centsLabel(out.cost)} for the prompt.</div>}
+          {out.fee > 0 && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>AI-score fee {centsLabel(out.fee)} — 🏷️ PromptZ first, then money (rating × 10% × your skill price).</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Reusable AI score for any rate-able item (MerchZ listing, VenueZ event): Corey
+// scores it 1-10, charges the fee (rating × 10% × your skill price, PromptZ →
+// money), and — for Premium+ — submits it so it moves the item's community median.
+function AiScoreButton({ item, context, tier, syncEconomy }) {
+  const { state } = useAppState();
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState(null); // { score, submitted, fee }
+  const [err, setErr] = useState("");
+  const canCount = tierMeets(tier, "premium");
+  const run = async () => {
+    setBusy(true); setErr(""); setOut(null);
+    try {
+      const prompt = `Rate this from 1 to 10 for overall quality and appeal: ${context}. Reply with ONLY the number 1-10, nothing else.`;
+      const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
+      const n = Math.max(1, Math.min(10, Math.round(parseFloat((r.text || "").match(/\d+(\.\d+)?/)?.[0] || "0"))));
+      if (n < 1) { setErr("Couldn't read an AI score — try again."); setBusy(false); return; }
+      const fee = aiScoreFeeCents(state, n);
+      await chargeAiApi("corey-gpt", `AI score ${n}/10`, fee);
+      let submitted = false;
+      if (canCount && isSignedIn()) { try { await rateSocialApi(item, n); submitted = true; } catch { /* window/retry */ } }
+      syncEconomy?.();
+      setOut({ score: n, submitted, fee });
+    } catch (e) {
+      setErr(/402/.test(e?.message || "") ? "Short on PromptZ / balance for the AI-score fee — top up in Money." : (e?.message || "AI rating failed."));
+    }
+    setBusy(false);
+  };
+  return (
+    <div style={{ marginTop: 4 }}>
+      <button className="btn btn-small btn-secondary" onClick={run} disabled={busy}>{busy ? "🤖 Corey's scoring…" : "🤖 AI rate (🏷️ then money)"}</button>
+      {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{err}</p>}
+      {out && (
+        <div style={{ fontSize: 11, marginTop: 4 }}>
+          <span style={{ color: "var(--gold, #ffcf3f)", fontWeight: 700 }}>🎯 {out.score}/10</span>
+          {out.submitted ? <span style={{ color: "var(--success)", marginLeft: 6 }}>✓ counted toward the median</span> : !canCount ? <span style={{ color: "var(--gold, #ffcf3f)", marginLeft: 6 }}>🔒 Premium counts toward the median</span> : null}
+          {out.fee > 0 && <span style={{ color: "var(--text-light)", marginLeft: 6 }}>· fee {centsLabel(out.fee)}</span>}
         </div>
       )}
     </div>
@@ -5408,6 +5459,13 @@ function medianSkillRate(state) {
   if (!rates.length) return 5;
   const m = Math.floor(rates.length / 2);
   return Math.round(rates.length % 2 ? rates[m] : (rates[m - 1] + rates[m]) / 2);
+}
+// Cost of an AI score, in cents: rating × 10% × your skill price (median skill
+// rate, dollars → cents). Spent PromptZ-first, then money. A 10 on a $2 skill =
+// 10 × 10% × 200¢ = 20¢; a 7 on that = 14¢. Min 1¢ so a real score always costs.
+function aiScoreFeeCents(state, rating) {
+  const priceCents = medianSkillRate(state) * 100;
+  return Math.max(1, Math.round((Number(rating) || 0) * 0.10 * priceCents));
 }
 
 // Reusable: run an in-app top-up (money + tier energy) — same path as TopUpTiles.
@@ -7387,6 +7445,8 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
                     {locked ? `🔒 Needs ${v.minAttract}+ attractiveness` : v.mode === "collaborative" ? "🤝 Join & collaborate" : "🎟️ Pay & attend"}
                   </button>
                 )}
+                <SocialBar id={`venue:${v.id}`} shareText={`${v.title} on VenueZ`} />
+                <AiScoreButton item={`venue:${v.id}`} context={`${v.mode} venue event "${v.title}" (${typeLabel(v)}, host @${v.host}, attend ${money(v.hostPrice)})`} tier={tier} syncEconomy={syncEconomy} />
               </div>
             );
           })}
@@ -8284,6 +8344,8 @@ function MerchZPage({ tier, serverOk, syncEconomy }) {
                   <button className="btn btn-small" onClick={() => buy(it)}>🛒 Buy <Amount value={it.price_cents / 100} flow="out" sign={false} bold /></button>
                 </>
               )}
+              <SocialBar id={`merch:${it.id}`} shareText={`${it.title} on MerchZ`} />
+              <AiScoreButton item={`merch:${it.id}`} context={`marketplace item "${it.title}"${it.description ? ` — ${it.description}` : ""} (${catLabel(it.category)}, ${money(it.price_cents / 100)})`} tier={tier} syncEconomy={syncEconomy} />
             </div>
           ))}
         </div>
