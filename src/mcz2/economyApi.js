@@ -76,10 +76,11 @@ export const rateAttractivenessApi = (targetUsername, score) =>
 
 // FaceZ — { mine: [...], feed: [...] } (each: id, owner, name, url, median, count, my_rating, mine)
 export const getFacezApi = () => api("/api/economy/facez/");
-export const createFaceApi = (file, name = "") => {
+export const createFaceApi = (file, name = "", tagged = "") => {
   const fd = new FormData();
   fd.append("image", file);
   if (name) fd.append("name", name);
+  if (tagged) fd.append("tagged", tagged);
   return api("/api/economy/facez/", { method: "POST", body: fd });
 };
 export const rateFaceApi = (id, score) => api(`/api/economy/facez/${id}/rate/`, { method: "POST", body: { score } });
@@ -113,6 +114,12 @@ export const getSubmissionsApi = () => api("/api/economy/submissions/");
 export const clickLinkApi = (url, owner = "", activeSeconds = 0) =>
   api("/api/economy/link/click/", { method: "POST", body: { url, owner, active_seconds: activeSeconds } });
 export const getLinkTalliesApi = (owner) => api(`/api/economy/link/tallies/?owner=${encodeURIComponent(owner || "")}`);
+
+// DistributeZ import — extract audio (mp3 320k) from a video URL, and populate
+// lyrics from the description, an AI ghostwriter (Corey), or a collaborator post.
+export const transcodeApi = (url) => api("/api/economy/distributez/transcode/", { method: "POST", body: { url } });
+export const distributeLyricsApi = ({ source, description, collaboratorPostId, prompt }) =>
+  api("/api/economy/distributez/lyrics/", { method: "POST", body: { source, description, collaborator_post_id: collaboratorPostId, prompt } });
 
 // Parcel Primate — Mailchimp-style campaigns (post + DM + email channels).
 export const getParcelApi = () => api("/api/economy/parcel/");

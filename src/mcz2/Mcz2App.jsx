@@ -123,6 +123,7 @@ import {
   getIdentityApi, startIdentityApi,
   getPostzApi, createPostzApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
   clickLinkApi, getLinkTalliesApi,
+  transcodeApi, distributeLyricsApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
@@ -748,7 +749,9 @@ function PostZPage({ serverOk }) {
   const [links, setLinks] = useState([]);
   const [vis, setVis] = useState("public");
   const [skillCost, setSkillCost] = useState(0); // $ of skills used → energy cost
-  const [media, setMedia] = useState(null); // { url, type } audio/video attachment
+  const [media, setMedia] = useState(null); // { url, type } single-post attachment
+  const [isAlbum, setIsAlbum] = useState(false);
+  const [items, setItems] = useState([]); // album entries: { url, type, title }
   const [feed, setFeed] = useState(null); // server posts
   const [sort, setSort] = useState("hot");
   const [msg, setMsg] = useState("");
@@ -757,21 +760,30 @@ function PostZPage({ serverOk }) {
   const load = () => { if (serverOk) getPostzApi(sort).then((r) => setFeed(r.posts || [])).catch(() => setFeed(null)); };
   useEffect(load, [serverOk, sort]);
 
+  const addAlbumItem = (m) => { if (m?.url) setItems((xs) => [...xs, { url: m.url, type: m.type, title: `Track ${xs.length + 1}` }]); };
+
+  const reset = () => { setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0); setMedia(null); setItems([]); setIsAlbum(false); };
+
   const add = async () => {
     if (!title.trim()) return;
     setMsg("");
-    const body = { title: title.trim(), description: desc.trim(), links, visibility: vis, skill_cost_cents: Math.round((Number(skillCost) || 0) * 100), media_url: media?.url || "", media_type: media?.type || "" };
+    const body = {
+      title: title.trim(), description: desc.trim(), links, visibility: vis,
+      skill_cost_cents: Math.round((Number(skillCost) || 0) * 100),
+      media_url: isAlbum ? "" : (media?.url || ""), media_type: isAlbum ? "" : (media?.type || ""),
+      is_album: isAlbum, items: isAlbum ? items : [],
+    };
     if (serverOk) {
       try {
         const r = await createPostzApi(body);
         if (r.energy_charged) update({ energy: r.energy });
         setMsg(r.energy_charged ? `📤 Posted — ${r.energy_charged} energy spent on skills used.` : "📤 Posted.");
-        setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0); setMedia(null); load();
+        reset(); load();
         return;
       } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : "Couldn't post to the server — saved locally."); }
     }
     addTo("examples", { id: Date.now(), title: title.trim(), desc: desc.trim(), links, visibility: vis, joins: [], at: Date.now() });
-    setTitle(""); setDesc(""); setLinks([]); setVis("public"); setSkillCost(0);
+    reset();
   };
 
   const join = async (id) => {
@@ -796,7 +808,26 @@ function PostZPage({ serverOk }) {
         <div className="form-group"><label>🎯 Title</label><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., My Latest Beat" /></div>
         <div className="form-group"><label>📝 Description</label><CappedTextarea value={desc} onChange={(e) => setDesc(e.target.value)} style={{ height: 50 }} /></div>
         <div className="form-group"><label>🔗 Links (Spotify, YouTube, store…)</label><LinksEditor links={links} onChange={setLinks} /></div>
-        <div className="form-group"><label>🎙️ Attach audio/video (record or upload)</label><MediaCapture onUploaded={setMedia} /></div>
+        <div className="settings-toggle">
+          <label>💿 Album post (multiple tracks/clips)</label>
+          <div role="switch" aria-checked={isAlbum} onClick={() => setIsAlbum((v) => !v)} className={`toggle-switch${isAlbum ? " active" : ""}`} />
+        </div>
+        {isAlbum ? (
+          <div className="form-group">
+            <label>💿 Add each track/clip to the album</label>
+            {items.map((it, i) => (
+              <div key={i} className="skill-item">
+                <input value={it.title} onChange={(e) => setItems((xs) => xs.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} style={{ flex: 1 }} maxLength={160} />
+                <span className="tag">{it.type === "video" ? "🎥" : "🎧"}</span>
+                <button className="btn btn-danger btn-small" onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}>✕</button>
+              </div>
+            ))}
+            <MediaCapture onUploaded={addAlbumItem} />
+            {items.length > 0 && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 4 }}>💿 {items.length} item{items.length === 1 ? "" : "s"} in this album.</p>}
+          </div>
+        ) : (
+          <div className="form-group"><label>🎙️ Attach audio/video (record or upload)</label><MediaCapture onUploaded={setMedia} /></div>
+        )}
         <div className="form-group">
           <label>👁️ Visibility</label>
           <div className="chip-wrap">
@@ -828,7 +859,19 @@ function PostZPage({ serverOk }) {
               <div className="post-user"><span style={{ cursor: "pointer" }} title="Open post" onClick={() => openPost(ex)}>{ex.title}</span> <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
               {ex.vibe != null && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 2 }}>✨ vibe {ex.vibe > 0 ? "+" : ""}{ex.vibe} · 👍 {ex.up || 0} 👎 {ex.down || 0}{ex.rating != null ? ` · ⭐ ${ex.rating}/10` : ""}</div>}
               <div className="post-content">{ex.description ?? ex.desc}</div>
-              {ex.media_url && (
+              {ex.is_album && (ex.items || []).length > 0 ? (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 4 }}>💿 Album · {(ex.items || []).length} tracks</div>
+                  {(ex.items || []).map((it, k) => (
+                    <div key={k} style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, marginBottom: 2 }}>{k + 1}. {it.title || (it.type === "video" ? "Clip" : "Track")}</div>
+                      {it.type === "video"
+                        ? <video src={it.url} controls style={{ width: "100%", maxHeight: 220, borderRadius: 8 }} />
+                        : <audio src={it.url} controls style={{ width: "100%" }} />}
+                    </div>
+                  ))}
+                </div>
+              ) : ex.media_url && (
                 <div style={{ marginTop: 6 }}>
                   {ex.media_type === "video"
                     ? <video src={ex.media_url} controls style={{ width: "100%", maxHeight: 260, borderRadius: 8 }} />
@@ -3436,7 +3479,63 @@ function useWatchGate(resetKey, rateS = 30, commentS = 60) {
   return { sec, canRate: sec >= rateS, canComment: sec >= commentS, rateS, commentS };
 }
 
-function RateConnectZPage() {
+// Rate real member media — pulls PostZ that carry audio/video, plays each, and
+// rates it 1–10 via the shared SocialBar. You can also drop your own media in to
+// be rated (it posts to the feed). This is the "media upload or post to rate" ask.
+function RateRealMedia({ serverOk, onOpen }) {
+  const { openPost } = usePostModal();
+  const [posts, setPosts] = useState(null);
+  const [filter, setFilter] = useState("all"); // all | audio | video
+  const [media, setMedia] = useState(null);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const hasMedia = (p) => p.media_url || (p.is_album && (p.items || []).length);
+  const load = () => { if (serverOk) getPostzApi("new").then((r) => setPosts((r.posts || []).filter(hasMedia))).catch(() => setPosts(null)); };
+  useEffect(load, [serverOk]);
+
+  const post = async () => {
+    if (!media?.url) return;
+    setBusy(true); setMsg("");
+    try {
+      await createPostzApi({ title: (name || "Rate my media").slice(0, 160), description: "🤔 Up for rating on RateZ", media_url: media.url, media_type: media.type, visibility: "public" });
+      setMsg("✅ Posted for rating — others can score it 1–10."); setMedia(null); setName(""); load();
+    } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post.")); }
+    setBusy(false);
+  };
+
+  if (!serverOk) return null;
+  const shown = (posts || []).filter((p) => filter === "all" ? true : filter === "video" ? p.media_type === "video" || (p.items || []).some((i) => i.type === "video") : p.media_type !== "video" && !(p.items || []).some((i) => i.type === "video"));
+  return (
+    <div className="card">
+      <div className="card-header"><span>🤔 Rate real media</span><span className="tag" style={{ color: "var(--success)" }}>● live</span></div>
+      <div className="form-group"><label>🎤 Drop your media to be rated</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name it (optional)" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+        <MediaCapture onUploaded={setMedia} />
+        {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post for rating"}</button>}
+        {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}</p>}
+      </div>
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        {[["all", "All"], ["audio", "🎧 Audio"], ["video", "📹 Video"]].map(([id, l]) => (
+          <button key={id} className={`heritage-chip${filter === id ? " sel" : ""}`} onClick={() => setFilter(id)}>{l}</button>
+        ))}
+      </div>
+      {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No media to rate yet — be the first to drop one.</p>
+        : shown.map((p) => (
+          <div key={p.id} className="post-card">
+            <div className="post-user"><span style={{ cursor: "pointer" }} onClick={() => openPost(p)}>{p.title}</span>{p.author && <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{p.author}</span>}{p.is_album ? <span className="tag">💿 album</span> : ""}</div>
+            {p.is_album
+              ? (p.items || []).slice(0, 1).map((it, k) => it.type === "video" ? <video key={k} src={it.url} controls style={{ width: "100%", maxHeight: 200, borderRadius: 8 }} /> : <audio key={k} src={it.url} controls style={{ width: "100%" }} />)
+              : (p.media_type === "video" ? <video src={p.media_url} controls style={{ width: "100%", maxHeight: 220, borderRadius: 8 }} /> : <audio src={p.media_url} controls style={{ width: "100%" }} />)}
+            <SocialBar id={`post:${p.id}`} shareText={`${p.title} on Music ConnectZ`} />
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function RateConnectZPage({ serverOk, onOpen }) {
   const { state, update, addTo, toggleSetting, addXP } = useAppState();
   const [type, setType] = useState("image");
   const gate = useWatchGate(type); // 30s to rate, 60s to comment — resets per item
@@ -3466,6 +3565,8 @@ function RateConnectZPage() {
   };
   return (
     <>
+      <RateRealMedia serverOk={serverOk} onOpen={onOpen} />
+      <div className="card-header" style={{ borderBottom: "none", marginTop: 4 }}>🎯 Quick practice (sample items)</div>
       <div className="chip-wrap" style={{ marginBottom: 14 }}>
         {RATE_TYPES.map((x) => (
           <button key={x.id} className={`heritage-chip${type === x.id ? " sel" : ""}`} onClick={() => setType(x.id)}>{x.label}</button>
@@ -3527,7 +3628,96 @@ const DIST_TYPES = [
   { id: "text", label: "📝 Text → Lyrics" },
   { id: "album", label: "💿 Album" },
 ];
-function DistributeZPage({ tier }) {
+// Import a PostZ into a release: pull the audio out of a video (server mp3 320k)
+// and populate lyrics from the description, an AI ghostwriter (Corey), or a
+// credited collaborator's lyric post.
+function DistributeImport({ serverOk, onImported }) {
+  const [posts, setPosts] = useState(null);
+  const [pick, setPick] = useState(null); // selected post
+  const [audioUrl, setAudioUrl] = useState("");
+  const [lyrics, setLyrics] = useState("");
+  const [lyricSrc, setLyricSrc] = useState("description");
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const hasMedia = (p) => p.media_url || (p.is_album && (p.items || []).length);
+  useEffect(() => { if (serverOk) getPostzApi("new").then((r) => setPosts((r.posts || []).filter(hasMedia))).catch(() => setPosts(null)); }, [serverOk]);
+
+  const choose = (p) => {
+    setPick(p); setMsg(""); setAudioUrl("");
+    // Audio posts already give us a track; video needs a transcode.
+    const url = p.media_url || (p.items || [])[0]?.url || "";
+    const type = p.media_type || (p.items || [])[0]?.type || "";
+    if (type !== "video") setAudioUrl(url);
+    setLyrics(p.description || "");
+  };
+
+  const extract = async () => {
+    const url = pick.media_url || (pick.items || [])[0]?.url || "";
+    setBusy("audio"); setMsg("");
+    try {
+      const r = await transcodeApi(url);
+      setAudioUrl(r?.upload?.url || ""); setMsg("🎧 Audio extracted at 320k.");
+    } catch (e) {
+      setMsg(/transcode_unavailable|not enabled|ffmpeg/i.test(e?.message || "") ? "🎬 The server transcoder (ffmpeg) isn't enabled yet — video→audio goes live once it's installed." : (e?.message || "Couldn't extract audio."));
+    }
+    setBusy("");
+  };
+
+  const pullLyrics = async () => {
+    setBusy("lyrics"); setMsg("");
+    try {
+      const r = await distributeLyricsApi({ source: lyricSrc, description: pick.description || "", collaboratorPostId: lyricSrc === "collaborator" ? pick.id : undefined, prompt: pick.title });
+      setLyrics(r.lyrics || ""); setMsg(r.ghostwriter ? `✍️ Lyrics by ${r.ghostwriter}.` : "✍️ Lyrics pulled from the description.");
+    } catch (e) {
+      setMsg(/ai_unavailable|ANTHROPIC/i.test(e?.message || "") ? "🤖 The AI ghostwriter needs the backend AI key — use the description or a collaborator's lyrics for now." : (e?.message || "Couldn't get lyrics."));
+    }
+    setBusy("");
+  };
+
+  if (!serverOk) return null;
+  const pickType = pick ? (pick.media_type || (pick.items || [])[0]?.type || "") : "";
+  return (
+    <div className="card" style={{ border: "1px solid var(--primary)" }}>
+      <div className="card-header">📥 Import from a post</div>
+      {!pick ? (
+        <>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Turn any of your media posts into a release — extract the audio and pull lyrics.</p>
+          {(posts || []).length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No media posts yet.</p>
+            : (posts || []).slice(0, 20).map((p) => (
+              <div key={p.id} className="skill-item">
+                <span className="skill-item-name">{(p.media_type === "video" || (p.items || []).some((i) => i.type === "video")) ? "📹" : "🎧"} {p.title} <span style={{ color: "var(--text-light)", fontSize: 11 }}>· @{p.author}</span></span>
+                <button className="btn btn-small" onClick={() => choose(p)}>Import</button>
+              </div>
+            ))}
+        </>
+      ) : (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <strong style={{ fontSize: 13 }}>{pick.title}</strong>
+            <button className="btn btn-small btn-secondary" onClick={() => setPick(null)}>Change</button>
+          </div>
+          {pickType === "video" && !audioUrl && (
+            <button className="btn btn-small btn-success" style={{ width: "100%", marginBottom: 8 }} onClick={extract} disabled={busy === "audio"}>{busy === "audio" ? "Extracting…" : "🎬→🎧 Extract audio (mp3 320k)"}</button>
+          )}
+          {audioUrl && <div style={{ marginBottom: 8 }}><audio src={audioUrl} controls style={{ width: "100%" }} /></div>}
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>✍️ Lyrics source</label>
+          <div className="chip-wrap" style={{ margin: "4px 0 6px" }}>
+            {[["description", "📝 Description"], ["ai", "🤖 Corey (AI)"], ["collaborator", "🤝 Collaborator"]].map(([id, l]) => (
+              <button key={id} className={`heritage-chip${lyricSrc === id ? " sel" : ""}`} onClick={() => setLyricSrc(id)}>{l}</button>
+            ))}
+            <button className="btn btn-small" onClick={pullLyrics} disabled={busy === "lyrics"}>{busy === "lyrics" ? "…" : "Pull lyrics"}</button>
+          </div>
+          <CappedTextarea value={lyrics} onChange={(e) => setLyrics(e.target.value)} style={{ height: 90, width: "100%" }} placeholder="Lyrics populate here (editable)…" />
+          <button className="btn btn-success" style={{ width: "100%", marginTop: 8 }} onClick={() => { onImported({ title: pick.title, audioUrl, lyrics }); setPick(null); setAudioUrl(""); setLyrics(""); setMsg("✅ Added to your submissions below."); }}>📤 Add as submission</button>
+        </>
+      )}
+      {msg && <p style={{ fontSize: 11, color: /✅|🎧|✍️/.test(msg) ? "var(--success)" : "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+    </div>
+  );
+}
+
+function DistributeZPage({ tier, serverOk }) {
   const { state, addTo, removeFrom } = useAppState();
   const [title, setTitle] = useState("");
   const [type, setType] = useState("audio");
@@ -3543,8 +3733,13 @@ function DistributeZPage({ tier }) {
     addTo("releases", { id: Date.now(), title: title.trim(), type, licensing: isStatz && licensing, at: Date.now() });
     setTitle("");
   };
+  const importRelease = ({ title: t, audioUrl, lyrics }) => {
+    if (atFreeLimit) return;
+    addTo("releases", { id: Date.now(), title: t || "Imported release", type: "audio", audioUrl, lyrics, licensing: false, at: Date.now() });
+  };
   return (
     <>
+      {serverOk && <DistributeImport serverOk={serverOk} onImported={importRelease} />}
       <div className="card">
         <div className="card-header"><span>🎶 New Submission</span><span className="tag">{isPremium ? "Unlimited" : `${thisMonth}/1 this month`}</span></div>
         <div className="form-group"><label>Media type</label>
@@ -3562,9 +3757,13 @@ function DistributeZPage({ tier }) {
         <div className="card-header">📀 Your Submissions</div>
         {releases.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No submissions yet.</p>
           : [...releases].reverse().map((r, i) => (
-            <div key={r.id} className="skill-item">
-              <span className="skill-item-name">{DIST_TYPES.find((t) => t.id === r.type)?.label.split(" ")[0]} {r.title}{r.licensing ? " · ⚖️ licensing" : ""}</span>
-              <span className="skill-item-actions"><button className="btn btn-danger btn-small" onClick={() => removeFrom("releases", releases.length - 1 - i)}>✕</button></span>
+            <div key={r.id} className="post-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="skill-item-name">{DIST_TYPES.find((t) => t.id === r.type)?.label.split(" ")[0]} {r.title}{r.licensing ? " · ⚖️ licensing" : ""}{r.audioUrl ? " · 🎧 320k" : ""}</span>
+                <button className="btn btn-danger btn-small" onClick={() => removeFrom("releases", releases.length - 1 - i)}>✕</button>
+              </div>
+              {r.audioUrl && <audio src={r.audioUrl} controls style={{ width: "100%", marginTop: 6 }} />}
+              {r.lyrics && <details style={{ marginTop: 4 }}><summary style={{ fontSize: 11, color: "var(--text-light)", cursor: "pointer" }}>✍️ Lyrics</summary><pre style={{ fontSize: 11, whiteSpace: "pre-wrap", margin: "4px 0 0" }}>{r.lyrics}</pre></details>}
             </div>
           ))}
       </div>
@@ -5238,7 +5437,7 @@ function FaceCard({ f, live, onRate, onDelete }) {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <img src={src} alt={f.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
         <div style={{ flex: 1 }}>
-          <div className="post-user">{f.name || "Untitled face"} {live && !f.mine && <span style={{ fontSize: 11, color: "var(--text-light)" }}>· @{f.owner}</span>}</div>
+          <div className="post-user">{f.name || "Untitled face"} {live && !f.mine && <span style={{ fontSize: 11, color: "var(--text-light)" }}>· @{f.owner}</span>}{f.tagged && <span className="tag" title="Tagged member">🏷️ @{f.tagged}</span>}</div>
           <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>
             {median != null ? `💯 ${Number(median).toFixed(1)}/10` : "unrated"} <span style={{ color: "var(--text-light)" }}>· {count} rating{count === 1 ? "" : "s"}</span>
             {live && f.my_rating ? <span style={{ color: "var(--text-light)" }}> · you: {f.my_rating}</span> : null}
@@ -5264,6 +5463,7 @@ function FaceZTab({ serverOk }) {
   const { state, setList } = useAppState();
   const faces = state.facez || [];
   const [name, setName] = useState("");
+  const [tagged, setTagged] = useState("");
   const [busy, setBusy] = useState(false);
   const [server, setServer] = useState(null); // { mine, feed } when live
   const [view, setView] = useState("mine"); // mine | rate
@@ -5277,12 +5477,12 @@ function FaceZTab({ serverOk }) {
     if (!file) return;
     setBusy(true);
     try {
-      if (server) { await createFaceApi(file, name.trim()); await reload(); }
+      if (server) { await createFaceApi(file, name.trim(), tagged.trim().replace(/^@/, "")); await reload(); }
       else {
         const img = await fileToThumb(file);
-        setList("facez", [{ id: `f-${Date.now()}`, name: name.trim() || "Untitled face", img, ratings: [], at: Date.now() }, ...faces]);
+        setList("facez", [{ id: `f-${Date.now()}`, name: name.trim() || "Untitled face", tagged: tagged.trim().replace(/^@/, ""), img, ratings: [], at: Date.now() }, ...faces]);
       }
-      setName("");
+      setName(""); setTagged("");
     } catch { /* ignore bad image */ }
     setBusy(false);
   };
@@ -5301,6 +5501,8 @@ function FaceZTab({ serverOk }) {
     <>
       <div className="form-group"><label>Name this face (optional)</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., My promo look" /></div>
+      <div className="form-group"><label>🏷️ Tag the member in it (optional)</label>
+        <input value={tagged} onChange={(e) => setTagged(e.target.value)} placeholder="@username — who's in this media" /></div>
       <label className="btn" style={{ width: "100%", display: "block", textAlign: "center", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1 }}>
         {busy ? "Adding…" : "＋ Add face from your media"}
         <input type="file" accept="image/*" style={{ display: "none" }} disabled={busy} onChange={add} />
@@ -7357,7 +7559,19 @@ function PostModal({ post, onClose, onOpen }) {
           {post.score?.overall != null && <> · 🎯 scored {post.score.overall}/10</>}
         </div>
         {(post.description || post.desc) && <p className="modal-desc">{post.description ?? post.desc}</p>}
-        {post.media_url && (
+        {post.is_album && (post.items || []).length > 0 ? (
+          <div style={{ margin: "8px 0" }}>
+            <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 6 }}>💿 Album · {(post.items || []).length} tracks</div>
+            {(post.items || []).map((it, k) => (
+              <div key={k} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, marginBottom: 2 }}>{k + 1}. {it.title || (it.type === "video" ? "Clip" : "Track")}</div>
+                {it.type === "video"
+                  ? <video src={it.url} controls style={{ width: "100%", maxHeight: 300, borderRadius: 10 }} />
+                  : <audio src={it.url} controls style={{ width: "100%" }} />}
+              </div>
+            ))}
+          </div>
+        ) : post.media_url && (
           <div style={{ margin: "8px 0" }}>
             {post.media_type === "video"
               ? <video src={post.media_url} controls style={{ width: "100%", maxHeight: 340, borderRadius: 10 }} />
