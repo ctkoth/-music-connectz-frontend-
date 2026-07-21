@@ -21,8 +21,8 @@ export const getLimitsApi = () => api("/api/economy/limits/");
 
 // AI usage — charge the minimum cost to cover the model. 402 if short; owner free.
 // Returns { model, cost_cents, money_cents, money }.
-export const chargeAiApi = (model, note = "OCC AI usage") =>
-  api("/api/economy/ai/charge/", { method: "POST", body: { model, note } });
+export const chargeAiApi = (model, note = "OCC AI usage", cents = undefined) =>
+  api("/api/economy/ai/charge/", { method: "POST", body: cents == null ? { model, note } : { model, note, cents } });
 
 // OCC's real LLM reply (Corey GPT etc.). Charges the model cost on success;
 // 402 if short, 503 when the LLM backend isn't configured (fall back to local).
