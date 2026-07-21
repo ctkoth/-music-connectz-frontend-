@@ -3530,11 +3530,16 @@ function GroupZPage({ tier }) {
 }
 
 function BodieZPage({ tier, onOpen }) {
-  const { state, update, addXP } = useAppState();
+  const { state, update, addXP, setList } = useAppState();
   const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [], sessions: [] };
   const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
   const isStatz = /stat[sz]/i.test(tier || "");
   const isPremium = /premium|pro|stat[sz]/i.test(tier || "");
+  // 🌐 Cross-pollination with VenueZ: a Weightlifter (Premium) can publish their
+  // gym as a "🏋️ Lift here" venue, and every lifter can discover + rate them here.
+  const isWeightlifter = (state.personas || []).some((p) => p.name === "Weightlifter");
+  const canLift = isPremium && isWeightlifter;
+  const liftVenues = [...(state.venues || []), ...SEED_VENUES].filter((v) => v.lift || v.type === "lift");
 
   const [section, setSection] = useState("today");
   const [muscle, setMuscle] = useState("Chest");
@@ -3624,8 +3629,19 @@ function BodieZPage({ tier, onOpen }) {
     ["today", "💪 Today"],
     ...(live ? [["session", "⏱️ Session"]] : []),
     ["routines", "🧩 Routines"], ["exercises", "📚 Exercises"], ["progress", "📈 Progress"],
-    ["bodymap", "🧍 BodyMap"], ["location", "📍 Location"], ["coach", "🤖 Coach"],
+    ["bodymap", "🧍 BodyMap"], ["location", "📍 Location"], ["liftz", "🏋️ Lift Here"], ["coach", "🤖 Coach"],
   ];
+  const publishGym = () => {
+    const loc = bodiez.location === "Custom" ? "My gym" : bodiez.location;
+    const v = {
+      id: `v-${Date.now()}`, title: `${state.user?.name || "My"} Gym — Drop-in`, mode: "collaborative",
+      type: "lift", lift: true, location: loc, host: state.user?.name || "you",
+      hostPrice: 8, visitorPay: 0, hostUnit: "work", visitorUnit: "work", hours: 0,
+      minAttract: 0, equipment: avail, at: Date.now(),
+    };
+    setList("venues", [v, ...(state.venues || [])]);
+    addXP(5, "Published gym to VenueZ");
+  };
 
   return (
     <>
@@ -3666,6 +3682,32 @@ function BodieZPage({ tier, onOpen }) {
             })}
           </div>
           <ProfileSaveBar onSave={() => {}} label="Save location & gear" />
+        </div>
+      )}
+
+      {section === "liftz" && (
+        <div className="card">
+          <div className="card-header"><span>🏋️ Lift Here — train at real gyms</span><span className="tag">🌐 VenueZ</span></div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Weightlifters host their gym as a VenueZ drop-in; anyone can find, rate, and pay to train there. Cross-pollinated from VenueZ. 🌐</p>
+          {canLift ? (
+            <button className="btn btn-small btn-success" style={{ marginBottom: 10 }} onClick={publishGym}>🏋️ Publish my gym ({bodiez.location === "Custom" ? "My gym" : bodiez.location}) to VenueZ</button>
+          ) : (
+            <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 10 }}>🔒 Add the <strong>Weightlifter</strong> persona + Premium to host your gym here. <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, font: "inherit" }} onClick={() => onOpen?.("personas")}>Add persona</button></p>
+          )}
+          {liftVenues.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No lift spots yet — be the first to host one.</p>
+            : liftVenues.map((v) => (
+              <div key={v.id} className="post-card">
+                <div className="post-user">🏋️ {v.title}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
+                  {v.location && <span className="tag">📍 {v.location}</span>}
+                  <span className="tag">host @{v.host}</span>
+                  <span className="tag" style={{ color: FLOW_RED }}>drop-in {money(v.hostPrice)}</span>
+                  {(v.equipment || []).slice(0, 4).map((e) => <span key={e} className="tag">{e}</span>)}
+                </div>
+                <SocialBar id={`venue:${v.id}`} shareText={`${v.title} — lift here on Music ConnectZ`} />
+                <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => onOpen?.("venuez")}>🎟️ Open in VenueZ to join</button>
+              </div>
+            ))}
         </div>
       )}
 
@@ -5496,15 +5538,20 @@ function HabitStrip({ appKey, appName, onOpen }) {
   const { state, setList, update } = useAppState();
   const tasks = state.lilithTasks || [];
   const mine = tasks.filter((t) => t.app === appKey && isHabit(t) && t.list !== "trash");
+  const all = tasks.filter((t) => isHabit(t) && t.list !== "trash");
   const [title, setTitle] = useState("");
   const [repeat, setRepeat] = useState("weekly");
   const [metric, setMetric] = useState("");
   const [flash, setFlash] = useState("");
+  const [showAll, setShowAll] = useState(false);   // show every app's habits, not just this one
+  const [justAdded, setJustAdded] = useState(null); // highlight the freshly-added habit
   const ping = (m) => { setFlash(m); setTimeout(() => setFlash(""), 2600); };
   const add = () => {
     if (!title.trim()) { ping("⚠️ Type a habit first."); return; }
-    setList("lilithTasks", [...tasks, { id: Date.now(), title: title.trim(), list: "today", app: appKey, repeat, metric, dueAt: rollDue(repeat), energy: 2, xp: 10 }]);
+    const id = Date.now();
+    setList("lilithTasks", [...tasks, { id, title: title.trim(), list: "today", app: appKey, repeat, metric, dueAt: rollDue(repeat), energy: 2, xp: 10 }]);
     ping(`✓ “${title.trim()}” added — ${REPEAT_LABEL[repeat]} · +2⚡ when you complete it.`);
+    setJustAdded(id); setTimeout(() => setJustAdded(null), 2600);
     setTitle(""); setMetric("");
   };
   const complete = (t) => {
@@ -5512,25 +5559,43 @@ function HabitStrip({ appKey, appName, onOpen }) {
     update({ energy: (state.energy || 0) + (t.energy || 1) });
     ping(`✓ ${t.title} — +${t.energy || 1}⚡ Energy`);
   };
+  const shown = showAll ? all : mine;
   return (
     <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
-      <div className="card-header"><span>🔁 {appName} habits</span><button className="btn btn-small btn-secondary" onClick={() => onOpen?.("lilith")}>💃🏽 Lilith</button></div>
+      <div className="card-header"><span>🔁 {appName} habits {mine.length > 0 && <span className="tag">{mine.length}</span>}</span><button className="btn btn-small btn-secondary" onClick={() => onOpen?.("lilith")}>💃🏽 Lilith</button></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Weekly / monthly / annual practice habits — they earn ⚡ Energy and cross-pollinate into Lilith.</p>
-      {mine.map((t) => (
-        <div key={t.id} className="skill-item">
-          <span className="skill-item-name">{t.title}{t.metric ? <span style={{ color: "var(--text-light)" }}> · {t.metric}</span> : ""} <span style={{ color: "var(--text-light)", fontSize: 10 }}>({REPEAT_LABEL[t.repeat]} · {dueLabel(t)})</span></span>
-          <span className="skill-item-actions"><button className="btn btn-success btn-small" onClick={() => complete(t)}>✓ +{t.energy || 1}⚡</button></span>
-        </div>
-      ))}
-      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+      {/* Add row first, with a clear cue, so a new habit lands right in the list below. */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New practice habit…" onKeyDown={(e) => e.key === "Enter" && add()} style={{ flex: 1, minWidth: 120 }} />
         <select value={repeat} onChange={(e) => setRepeat(e.target.value)} style={{ width: 96 }}>{REPEAT_OPTS.filter(([id]) => id !== "none").map(([id, l]) => <option key={id} value={id}>{l}</option>)}</select>
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
         <select value={metric} onChange={(e) => setMetric(e.target.value)} style={{ flex: 1 }}><option value="">metric (optional)</option>{metricsFor(appKey).map((m) => <option key={m} value={m}>{m}</option>)}</select>
-        <button className="btn btn-small" onClick={add}>＋ Add habit</button>
+        <button className="btn btn-small btn-success" onClick={add} disabled={!title.trim()} style={!title.trim() ? { opacity: 0.55 } : { boxShadow: "0 0 10px var(--gold, #ffcf3f)" }}>＋ Add habit</button>
       </div>
-      {flash && <p style={{ fontSize: 11, color: /⚠️/.test(flash) ? "var(--danger)" : "var(--success)", marginTop: 8 }}>{flash}</p>}
+      {flash && <p style={{ fontSize: 12, color: /⚠️/.test(flash) ? "var(--danger)" : "var(--success)", marginTop: 8, fontWeight: 600 }}>{flash}</p>}
+
+      {/* Show-all toggle + the habit list. */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 700 }}>{showAll ? `🌐 All habits (${all.length})` : `${appName} habits (${mine.length})`}</span>
+        {all.length > mine.length && (
+          <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, fontSize: 11 }} onClick={() => setShowAll((v) => !v)}>
+            {showAll ? `← just ${appName}` : `🌐 Show all habitz (${all.length})`}
+          </button>
+        )}
+      </div>
+      {shown.length === 0 ? (
+        <p style={{ fontSize: 11, color: "var(--text-light)" }}>No habits yet — add one above and it shows up here (and in Lilith 💃🏽).</p>
+      ) : shown.map((t) => (
+        <div key={t.id} className="skill-item" style={justAdded === t.id ? { background: "rgba(255,207,63,0.18)", borderRadius: 8, transition: "background .4s" } : undefined}>
+          <span className="skill-item-name">
+            {showAll && <span title={APPS_BY_KEY[t.app]?.name}>{APPS_BY_KEY[t.app]?.emoji || "🔁"} </span>}
+            {t.title}{t.metric ? <span style={{ color: "var(--text-light)" }}> · {t.metric}</span> : ""} <span style={{ color: "var(--text-light)", fontSize: 10 }}>({REPEAT_LABEL[t.repeat]} · {dueLabel(t)})</span>
+            {justAdded === t.id && <span className="tag" style={{ color: "var(--success)", marginLeft: 6 }}>✓ added</span>}
+          </span>
+          <span className="skill-item-actions"><button className="btn btn-success btn-small" onClick={() => complete(t)}>✓ +{t.energy || 1}⚡</button></span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -7246,13 +7311,17 @@ const VENUE_TYPES = [
   { id: "openmic", label: "🎙️ Open mic" },
   { id: "theater", label: "🏟️ Theater" },
   { id: "show", label: "🎞️ Show" },
+  { id: "lift", label: "🏋️ Lift here" },  // Weightlifter (Premium): host your gym so others can train there
   { id: "custom", label: "❓ Custom" },
 ];
 const SEED_VENUES = [
-  { id: "v-seed-1", title: "Rooftop Cypher", mode: "collaborative", type: "openmic", host: "Kaya", hostPrice: 10, visitorPay: 8, minAttract: 6, seed: true },
-  { id: "v-seed-2", title: "Neon Nights Showcase", mode: "performance", type: "show", host: "Azrael", hostPrice: 15, minAttract: 0, seed: true },
-  { id: "v-seed-3", title: "Midnight Theater Set", mode: "performance", type: "theater", host: "Lilith", hostPrice: 25, minAttract: 7, seed: true },
+  { id: "v-seed-1", title: "Rooftop Cypher", mode: "collaborative", type: "openmic", host: "Kaya", hostPrice: 10, visitorPay: 8, minAttract: 6, location: "Brooklyn, NY", seed: true },
+  { id: "v-seed-2", title: "Neon Nights Showcase", mode: "performance", type: "show", host: "Azrael", hostPrice: 15, minAttract: 0, location: "Los Angeles, CA", seed: true },
+  { id: "v-seed-3", title: "Midnight Theater Set", mode: "performance", type: "theater", host: "Lilith", hostPrice: 25, minAttract: 7, location: "London, UK", seed: true },
+  { id: "v-seed-lift", title: "Iron Temple — Drop-in", mode: "collaborative", type: "lift", lift: true, host: "K-Oth", hostPrice: 8, visitorPay: 0, minAttract: 0, location: "Denver, CO", equipment: ["Barbell", "Dumbbells", "Rack", "Bench"], seed: true },
 ];
+// Distinct locations across the venues on screen — powers the location filter.
+const venueLocations = (venues) => Array.from(new Set(venues.map((v) => v.location).filter(Boolean))).sort();
 
 // Normalize a server venue (cents/host_price_cents) to the local shape.
 function fromServerVenue(v) {
@@ -7260,14 +7329,21 @@ function fromServerVenue(v) {
     id: v.id, title: v.title, mode: v.mode, type: v.vtype, customName: v.custom_name,
     host: v.host, mine: v.mine, hostPrice: v.host_price_cents / 100,
     visitorPay: v.visitor_pay_cents / 100, minAttract: v.min_attract, attending: v.attending, live: true,
+    location: v.location || "", lift: v.vtype === "lift" || !!v.lift, equipment: v.equipment || [],
   };
 }
 
 function VenueZPage({ tier, serverOk, syncEconomy }) {
   const { state, updateWallet, addTo, setList } = useAppState();
   const [tab, setTab] = useState("discover"); // discover | host
-  const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
+  const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", location: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
+  const [locFilter, setLocFilter] = useState(""); // discover: filter venues by location
   const [msg, setMsg] = useState("");
+  // "🏋️ Lift here" venues are a Weightlifter (Premium) perk — host your gym so
+  // others can train there. Everyone else can still discover + rate them.
+  const isPremium = /premium|pro|stat[sz]|debug/i.test(tier || "");
+  const isWeightlifter = (state.personas || []).some((p) => p.name === "Weightlifter");
+  const canLift = isPremium && isWeightlifter;
   const [serverVenues, setServerVenues] = useState(null); // null = not loaded / offline
   const [myAttractServer, setMyAttractServer] = useState(null);
 
@@ -7295,13 +7371,14 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
         await createVenueApi({
           title: form.title.trim(), mode: form.mode, vtype: form.type,
           custom_name: form.type === "custom" ? form.custom.trim() : "",
+          location: form.location.trim(),  // sent through; ignored by older backends
           host_price_cents: Math.round(hostTotal * 100),
           visitor_pay_cents: Math.round((form.mode === "collaborative" ? visitorTotal : 0) * 100),
           min_attract: Number(form.minAttract) || 0,
         });
         const r = await getVenuesApi();
         setServerVenues(r.venues.map(fromServerVenue));
-        setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
+        setForm({ title: "", mode: "collaborative", type: "party", custom: "", location: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
         setTab("discover");
         return;
       } catch (e) { setMsg(e.message || "Could not publish venue"); return; }
@@ -7309,13 +7386,14 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
     const v = {
       id: `v-${Date.now()}`, title: form.title.trim(), mode: form.mode,
       type: form.type, customName: form.type === "custom" ? form.custom.trim() : "",
+      location: form.location.trim(), lift: form.type === "lift",
       host: state.user?.name || "you", hostPrice: hostTotal,
       visitorPay: form.mode === "collaborative" ? visitorTotal : 0,
       hostUnit: form.hostUnit, visitorUnit: form.visitorUnit, hours: Number(form.hours) || 0,
       minAttract: Number(form.minAttract) || 0, at: Date.now(),
     };
     setList("venues", [v, ...(state.venues || [])]);
-    setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
+    setForm({ title: "", mode: "collaborative", type: "party", custom: "", location: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
     setTab("discover");
   };
 
@@ -7382,11 +7460,24 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
           </p>
           <label style={{ fontSize: 11, color: "var(--text-light)" }}>Type</label>
           <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
-            {VENUE_TYPES.map((t) => <button key={t.id} className={`heritage-chip${form.type === t.id ? " sel" : ""}`} onClick={() => setForm({ ...form, type: t.id })}>{t.label}</button>)}
+            {VENUE_TYPES.map((t) => {
+              const liftLocked = t.id === "lift" && !canLift;
+              return (
+                <button key={t.id} className={`heritage-chip${form.type === t.id ? " sel" : ""}`} style={liftLocked ? { opacity: 0.45 } : undefined}
+                  title={liftLocked ? "🏋️ Lift here — Weightlifter persona + Premium" : undefined}
+                  onClick={() => liftLocked ? setMsg("🏋️ “Lift here” is a Weightlifter (Premium) perk — add the Weightlifter persona and upgrade.") : setForm({ ...form, type: t.id, mode: t.id === "lift" ? "collaborative" : form.mode })}>
+                  {liftLocked ? "🔒 " : ""}{t.label}
+                </button>
+              );
+            })}
           </div>
           {form.type === "custom" && (
             <div className="form-group"><label>Custom type name</label><input value={form.custom} onChange={(e) => setForm({ ...form, custom: e.target.value })} placeholder="Name your event type" /></div>
           )}
+          {form.type === "lift" && (
+            <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 8 }}>🏋️ Hosting your gym — lifters pay the drop-in to train at your location. It cross-pollinates into BodieZ so nearby lifters find it. 🌐</p>
+          )}
+          <div className="form-group"><label>📍 Location {form.type === "lift" ? "(your gym)" : "(city / area)"}</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g., Denver, CO" /></div>
           <div className="form-group">
             <label>Host price — per work or per hour</label>
             <RatePricer value={{ rate: form.hostPrice, unit: form.hostUnit, hours: form.hours }} skillRates={mySkillRates(state)}
@@ -7420,8 +7511,17 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
             <span>🔎 Venues {serverVenues ? <span className="tag" style={{ color: "var(--success)" }}>● live</span> : <span className="tag">offline</span>}</span>
             <span className="tag">{venues.length}</span>
           </div>
+          {venueLocations(venues).length > 0 && (
+            <div className="chip-wrap" style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 11, color: "var(--text-light)", alignSelf: "center" }}>📍</span>
+              <button className={`heritage-chip${locFilter === "" ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => setLocFilter("")}>All</button>
+              {venueLocations(venues).map((loc) => (
+                <button key={loc} className={`heritage-chip${locFilter === loc ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => setLocFilter(locFilter === loc ? "" : loc)}>{loc}</button>
+              ))}
+            </div>
+          )}
           {venues.length === 0 && <p style={{ fontSize: 12, color: "var(--text-light)" }}>No venues yet — host one.</p>}
-          {venues.map((v) => {
+          {(locFilter ? venues.filter((v) => v.location === locFilter) : venues).map((v) => {
             const mine = v.live ? v.mine : !v.seed;
             const locked = !mine && myAttract != null && v.minAttract > 0 && myAttract < v.minAttract;
             return (
@@ -7429,6 +7529,7 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
                 <div className="post-user">{typeLabel(v)} · {v.title} {mine ? <span className="tag" style={{ color: "var(--success)" }}>yours</span> : ""}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
                   <span className="tag">{v.mode === "collaborative" ? "🤝 Collaborative" : "🤩 Performance"}</span>
+                  {v.location && <span className="tag">📍 {v.location}</span>}
                   <span className="tag">host @{v.host}</span>
                   <span className="tag" style={{ color: FLOW_RED }}>attend {money(v.hostPrice)}</span>
                   {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: FLOW_GREEN }}>earn {money(v.visitorPay)}</span>}
