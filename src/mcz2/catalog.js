@@ -138,7 +138,7 @@ export const CATALOG = [
       { key: "substancez", name: "SubstanceZ", emoji: "🧠", icon: "substancez.png", desc: "Declare your stance on caffeine, nicotine, alcohol, cannabis, prescriptions, and psychedelics — for sober-friendly matching and healthy spaces. A filterable metric across the platform.", fn: true },
       { key: "preferencez", name: "PreferenceZ", emoji: "💞", icon: "preferencez_partner.jpg", desc: "Your partner preference — Male, Female, or Neutral — plus the traits that matter to you. Powers compatibility and is a filterable metric across matching, collabs, and battles.", fn: true },
       { key: "zodiacz", name: "ZodiacZ", emoji: "♌", icon: "zodiacz.png", desc: "Your personal cosmic guide — auto-detects your sign from your birthday, with a Corey-voice read on all 12 signs. A filterable metric across matching, collabs, and battles.", fn: true },
-      { key: "languagez", name: "LanguageZ", emoji: "🈯", icon: "languagez.png", desc: "Speak the world — pick the languages you speak, set the language Music ConnectZ displays in (transcreated, not just translated), get language suggestions from your NationalitieZ, and translate any post into your own language.", fn: true },
+      { key: "languagez", name: "LanguageZ", emoji: "🈯", icon: "languagez_pt.png", desc: "Speak the world — pick the languages you speak, set the language Music ConnectZ displays in (transcreated, not just translated), get language suggestions from your NationalitieZ, and translate any post into your own language.", fn: true },
     ],
   },
   {
@@ -228,8 +228,8 @@ export const APPS_BY_KEY = Object.fromEntries(
 // in CUSTOM_ICONS) to make its tile art user-selectable.
 export const ICON_VARIANTS = {
   languagez: [
-    { icon: "languagez.png", label: "LanguageZ" },
     { icon: "languagez_pt.png", label: "LinguagemZ" },
+    { icon: "languagez.png", label: "LanguageZ" },
   ],
 };
 
