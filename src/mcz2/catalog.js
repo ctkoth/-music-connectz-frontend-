@@ -154,7 +154,7 @@ export const CATALOG = [
     apps: [
       { key: "spinaz", name: "SpinaZ", emoji: "🍥", icon: "spinaz.png", desc: "Your SpinAZ log — how they're earned and spent. Buy at 80% of face value ($80 = 100). Earned by streaming other users' media (seconds played − 30).", fn: true },
       { key: "energy", name: "Energy", emoji: "⚡", icon: "energy.png", desc: "Your Energy log — earned and spent. Buy at 80% of face value. Energy is earned from ratings, comments, and daily activity.", fn: true },
-      { key: "adz", name: "AdZ", emoji: "📺", icon: "spinaz.png", desc: "Watch & Earn — watch a sponsor's commercial and earn SpinAZ equal to the cents the platform is paid for your view. The owner posts commercials; genuine full watches are rewarded (daily caps apply).", fn: true },
+      { key: "adz", name: "AdZ", emoji: "📺", icon: "adz.png", desc: "Watch & Earn — watch a sponsor's commercial and earn SpinAZ equal to the cents the platform is paid for your view. The owner posts commercials; genuine full watches are rewarded (daily caps apply).", fn: true },
     ],
   },
   {
