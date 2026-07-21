@@ -916,6 +916,8 @@ const expLabel = (start) => { const y = expYears(start); return y == null ? "" :
 
 function PersonasPage() {
   const { state, addTo, removeFrom, setList } = useAppState();
+  const [openCats, setOpenCats] = useState({}); // "personaIdx:cat" -> forced open/closed
+  const toggleCat = (key) => setOpenCats((o) => ({ ...o, [key]: !o[key] }));
   const has = (name) => state.personas.some((p) => p.name === name);
   const hasSkill = (mine, sk) => (mine || []).some((s) => skillName(s) === sk);
   const toggleSkill = (i, skill) => setList("personas", state.personas.map((p, idx) =>
@@ -949,21 +951,36 @@ function PersonasPage() {
                 <span className="persona-name">{p.emoji} {p.name} <span style={{ fontSize: 11, color: "var(--text-light)" }}>· {mine.length}/{poolCount} skillZ</span></span>
                 <button className="btn btn-danger btn-small" onClick={() => removeFrom("personas", i)}>Remove</button>
               </div>
-              {Object.entries(cats).map(([cat, skills]) => (
-                <div key={cat} style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.95 }}>{cat}</div>
-                  <div className="chip-wrap">
-                    {skills.map((sk) => {
-                      const any = /\bany\b/i.test(sk);
-                      return (
-                        <button key={sk} className={`heritage-chip${hasSkill(mine, sk) ? " sel" : ""}`} style={{ padding: "2px 8px", ...(any ? { fontStyle: "italic", opacity: hasSkill(mine, sk) ? 1 : 0.85 } : {}) }} onClick={() => toggleSkill(i, sk)}>
-                          {hasSkill(mine, sk) ? "✓ " : ""}{sk}
-                        </button>
-                      );
-                    })}
+              {Object.entries(cats).map(([cat, skills]) => {
+                const key = `${i}:${cat}`;
+                const picked = skills.filter((sk) => hasSkill(mine, sk)).length;
+                // Collapsed by default; auto-open when a category holds a pick,
+                // unless the member explicitly toggled it. Many categories
+                // (e.g. Developer's game genres) stay tidy as a drill-down.
+                const manual = key in openCats;
+                const open = manual ? openCats[key] : picked > 0;
+                return (
+                  <div key={cat} style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4, opacity: 0.95, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }} onClick={() => toggleCat(key)}>
+                      <span style={{ opacity: 0.7 }}>{open ? "▾" : "▸"}</span>
+                      <span>{cat}</span>
+                      <span style={{ fontWeight: 400, color: picked ? "var(--gold, #ffcf3f)" : "var(--text-light)" }}>· {picked}/{skills.length}</span>
+                    </div>
+                    {open && (
+                      <div className="chip-wrap">
+                        {skills.map((sk) => {
+                          const any = /\bany\b/i.test(sk);
+                          return (
+                            <button key={sk} className={`heritage-chip${hasSkill(mine, sk) ? " sel" : ""}`} style={{ padding: "2px 8px", ...(any ? { fontStyle: "italic", opacity: hasSkill(mine, sk) ? 1 : 0.85 } : {}) }} onClick={() => toggleSkill(i, sk)}>
+                              {hasSkill(mine, sk) ? "✓ " : ""}{sk}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {mine.length > 0 && (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginBottom: 4 }}>📅 Started each skill — sets your experience (years) shown to collaborators &amp; used in search.</div>
