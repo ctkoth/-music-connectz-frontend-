@@ -1180,6 +1180,27 @@ function rateBasisNote({ rate, unit, hours }, currency = "$") {
     : `${currency}${total.toFixed(2)} per work`;
 }
 
+// Clear, personalized money-formula box — shows exactly how a payout is worked
+// out wherever money changes hands (CollabZ, BattleZ, MerchZ, VenueZ), with the
+// member's own tier developer tax filled in. Inset (not a full card) so it nests.
+function FormulaBox({ title = "📐 Your formula", note, lines }) {
+  return (
+    <div style={{ border: "1px dashed var(--primary)", borderRadius: 8, padding: "8px 10px", margin: "8px 0", background: "rgba(120,120,255,0.06)" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{title}</div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", padding: "2px 0", borderTop: i ? "1px solid var(--border)" : "none" }}>
+          <span style={{ fontSize: 11, color: "var(--text-light)" }}>{l.label}</span>
+          <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, color: "var(--gold, #ffcf3f)", textAlign: "right" }}>{l.expr}</span>
+        </div>
+      ))}
+      {note && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 5 }}>{note}</div>}
+    </div>
+  );
+}
+// The member's developer-tax rate as a whole-number percent + their tier emoji,
+// used to fill the formula boxes with their own numbers.
+const taxPct = (tier) => Math.round(devTaxFor(tier).rate * 100);
+
 // Reusable 2.2 skill picker — persona → collapsible category → emoji skill chips
 // (single-select) + a start-date, modeled off PersonasPage. Used anywhere a
 // collaborator enters a skill (CollabZ Split Studio, DirectZ contributors) so
@@ -4179,6 +4200,16 @@ function BattleZPage({ tier, onOpen, serverOk }) {
       {/* ---- Betting ---- */}
       <div className="card">
         <div className="card-header"><span>🎰 The Pool</span><span className="tag">🍥 {spinazPool("a") + spinazPool("b")} staked</span></div>
+        <FormulaBox
+          title="📐 Your BattleZ formula"
+          note={`Money winnings taxed at your tier — you're ${TIER_EMOJI[devTaxFor(tier).key]} ${devTaxFor(tier).label} (${taxPct(tier)}%). SpinAZ pool bets are tax-free.`}
+          lines={[
+            { label: "SpinAZ win (pool)", expr: "your bet + (your bet ÷ winning pool) × losing pool" },
+            { label: "SpinAZ tie", expr: "your bet refunded" },
+            { label: "Money win (1-v-1)", expr: `stake × 2 × (1 − ${taxPct(tier)}%)` },
+            { label: "Money lose", expr: "stake forfeited to the pool" },
+          ]}
+        />
         <div className="grid-2" style={{ marginBottom: 8 }}>
           {["a", "b"].map((side) => {
             const pool = spinazPool(side); const total = spinazPool("a") + spinazPool("b") || 1;
@@ -4908,6 +4939,18 @@ function CollabSplitStudio({ tier }) {
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>
         Add each collaborator and the skills they bring. Every person's worth is funded by the others who use it, and everyone pays for the skills they use. Developer tax comes off each payment at the payer's tier.
       </p>
+      <FormulaBox
+        title="📐 Your CollabZ formula"
+        note={`Developer tax is taken from each payment at the payer's tier — you're ${TIER_EMOJI[devTaxFor(tier).key]} ${devTaxFor(tier).label} (${taxPct(tier)}%). Free 10% · Premium 5% · StatZ 3%.`}
+        lines={[
+          { label: "Your worth", expr: "Σ (your skill $ worths)" },
+          { label: "Pot", expr: "Σ (everyone's worth)" },
+          { label: "You pay", expr: "(others' worth) ÷ (people − 1)" },
+          { label: "You receive", expr: "your worth ÷ (people − 1), each − payer's tax" },
+          { label: `Your dev tax (${taxPct(tier)}%)`, expr: `your payments × ${taxPct(tier)}%` },
+          { label: "Net", expr: "you receive − you pay" },
+        ]}
+      />
       {rows.map((r) => (
         <div key={r.id} className="post-card" style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
@@ -7251,7 +7294,16 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
             </div>
           )}
           <div className="form-group"><label>Min attractiveness filter: {form.minAttract}/10</label><input type="range" min="0" max="10" value={form.minAttract} onChange={(e) => setForm({ ...form, minAttract: e.target.value })} /></div>
-          <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>Developer tax ({devTaxFor(tier).label} {Math.round(devTaxFor(tier).rate * 100)}%) is applied to every VenueZ payment.</p>
+          <FormulaBox
+            title="📐 Your VenueZ formula"
+            note={`Developer tax on every VenueZ payment — you're ${TIER_EMOJI[devTaxFor(tier).key]} ${devTaxFor(tier).label} (${taxPct(tier)}%). Free 10% · Premium 5% · StatZ 3%.`}
+            lines={[
+              { label: "Host earns / attendee", expr: `host price × (1 − ${taxPct(tier)}%)` },
+              ...(form.mode === "collaborative" ? [{ label: "Collaborator earns", expr: `visitor payout × (1 − ${taxPct(tier)}%)` }] : []),
+              { label: `Dev tax (${taxPct(tier)}%)`, expr: `payment × ${taxPct(tier)}%` },
+              ...(Number(form.hostPrice) > 0 ? [{ label: `On ${money(hostTotal)}`, expr: `you keep ${money(splitTransaction(hostTotal, tier).net)}` }] : []),
+            ]}
+          />
           <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={create}>➕ Publish venue</button>
         </div>
       ) : (
@@ -8139,6 +8191,16 @@ function MerchZPage({ tier, serverOk, syncEconomy }) {
             {MERCH_CATS.map((c) => <button key={c.id} className={`heritage-chip${form.category === c.id ? " sel" : ""}`} onClick={() => setForm({ ...form, category: c.id })}>{c.label}</button>)}
           </div>
           <div className="form-group"><label>Price ($)</label><input type="number" min="1" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="20.00" /></div>
+          <FormulaBox
+            title="📐 Your MerchZ formula"
+            note={`You're ${TIER_EMOJI[devTaxFor(tier).key]} ${devTaxFor(tier).label} — ${taxPct(tier)}% developer tax per sale. Free 10% · Premium 5% · StatZ 3%.`}
+            lines={[
+              { label: "Buyer pays", expr: "price" },
+              { label: `Dev tax (${taxPct(tier)}%)`, expr: `price × ${taxPct(tier)}%` },
+              { label: "You earn", expr: `price × (1 − ${taxPct(tier)}%)` },
+              ...(Number(form.price) > 0 ? [{ label: `On ${money(Number(form.price))}`, expr: `you keep ${money(splitTransaction(Number(form.price), tier).net)}` }] : []),
+            ]}
+          />
           <label className="btn btn-secondary btn-small" style={{ display: "block", textAlign: "center", cursor: "pointer" }}>
             {file ? `📷 ${file.name}` : "📷 Add a photo (optional)"}
             <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => setFile(e.target.files?.[0] || null)} />
