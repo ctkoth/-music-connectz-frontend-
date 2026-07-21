@@ -66,6 +66,7 @@ const DEFAULT_STATE = {
     lightDark: "dark",
     uiLang: "en", // display language for the whole app (LanguageZ). NOTE: distinct
                   // from settings.language, which is OCC's *coding* language.
+    appIcons: {}, // per-app chosen icon overrides: { [appKey]: iconFile }
     notifications: true,
     ratezAttractiveness: true, // let RateZ ratings move your attractiveness median
     collabAlerts: true,
