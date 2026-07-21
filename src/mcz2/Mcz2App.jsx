@@ -11,7 +11,7 @@ import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
-import { SIGNS, zodiacFor, dailyReading } from "./zodiac.js";
+import { SIGNS, zodiacFor, dailyReading, signByName } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
@@ -906,12 +906,12 @@ const PERSONA_SKILLS = {
     "🎚️ Engineering Skills": ["Any Engineering 🎛️", "Mixing 🎛️", "Mastering 🎙️", "EQ 📊", "Compression 🔧", "Reverb/Effects ✨", "Vocal Tuning 🎤", "Stereo Imaging 🔊", "Noise Reduction 🔇"],
   },
   "Designer": {
-    "🎨 Design Software": ["Any Design Software 🎨", "Adobe Photoshop 🎨", "Adobe Illustrator 🖌️", "Figma 🎯", "Canva 🌈", "Affinity Designer ✨", "CorelDRAW 🎨", "Sketch 📐", "Adobe InDesign 📄"],
-    "🖌️ Design Skills": ["Any Design Skill 🎨", "UI/UX Design 🎯", "Graphic Design 🖌️", "Branding 🏷️", "Layout Design 📐", "Typography 🔤", "Color Theory 🌈", "Icon Design 🎭", "Visual Storytelling 📖", "Asset Production 📦"],
+    "🎨 Design Software": ["Any Design Software 🎨", "Adobe Photoshop 🎨", "Adobe Illustrator 🖌️", "Figma 🎯", "Blender 🧊", "Adobe After Effects ✨", "Canva 🌈", "Affinity Designer ✨", "CorelDRAW 🎨", "Sketch 📐", "Adobe InDesign 📄"],
+    "🖌️ Design Skills": ["Any Design Skill 🎨", "Composition & Layout 📐", "Color Theory 🌈", "Typography 🔤", "Brand Identity 🏷️", "UI/UX Prototyping 🎯", "Graphic Design 🖌️", "Icon Design 🎭", "Visual Storytelling 📖", "Asset Production 📦"],
   },
   "Videographer": {
     "🎬 Video Software": ["Any Video Software 🎬", "Adobe Premiere 🎬", "DaVinci Resolve 🎞️", "Final Cut Pro 🎥", "Sony Vegas 📹", "Filmora 🎬", "After Effects ✨", "OBS Studio 🔴"],
-    "🎥 Video Skills": ["Any Video Skill 🎬", "Editing 🎬", "Color Grading 🎨", "Motion Graphics ✨", "Cinematography 🎥", "Drone Footage 🚁", "Lighting 💡", "Sound Design 🎙️", "Storyboarding 🗂️", "Music Video Production 🎞️"],
+    "🎥 Video Skills": ["Any Video Skill 🎬", "Filming 🎥", "Cinematography 🎥", "Camera Operation 📷", "Lighting Techniques 💡", "Audio Capture 🎙️", "Video Editing 🎬", "Color Grading 🎨", "Motion Graphics ✨", "Storyboarding 🗂️", "Drone Footage 🚁", "Music Video Production 🎞️", "Social Optimization 📱"],
     "🎬 Movie Genres": MOVIE_GENRE_SKILLS,
     "📺 TV Genres": TV_GENRE_SKILLS,
     "🎭 Moods": MOOD_SKILLS,
@@ -1832,7 +1832,7 @@ const MEMBERSHIP_TIERS = [
     id: "premium", name: "Premium", emoji: "👑", icon: "tier_premium.png", color: "var(--gold, #ffcf3f)",
     tag: "For serious professionals",
     perks: [
-      "1,000-character limit — say more everywhere",
+      "1,500-character limit — say more everywhere",
       "SuggestionZ 😉 — AI explains what/why/how across every app",
       "Unlimited PickConnectZ pins",
       "OCC builds medium 2D/3D games (any engine but Unreal)",
@@ -2073,8 +2073,8 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
         <div className="card-header">🧾 All upgrade options</div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Everything you can upgrade or top up, in one place.</p>
         {[
-          { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "1,000-char limit · SuggestionZ 😉 · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
-          { emoji: "📊", name: "StatZ", price: "$15/mo · $120/yr", unlocks: "5,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3% · includes everything in Premium", cta: "Upgrade to StatZ", to: "membership" },
+          { emoji: "⭐", name: "Premium", price: "$10/mo · $90/yr", unlocks: "1,500-char limit · SuggestionZ 😉 · 400MB uploads / 5GB storage · LabelZ + contracts · 8 glow colors · dev tax drops to 5% · games in any language except C++", cta: "Upgrade to Premium", to: "membership" },
+          { emoji: "📊", name: "StatZ", price: "$15/mo · $150/yr", unlocks: "5,000-char limit · Automations 🤖 + CallZ ☎️ · 4GB uploads / 100GB storage · SpecZ marketplace · C++/Unreal games · dev tax drops to 3% · includes everything in Premium", cta: "Upgrade to StatZ", to: "membership" },
           { emoji: "🍥", name: "SpinAZ top-up", price: "buy at 80% ($80 = 100)", unlocks: "Subscription currency — spend on spins, boosts and premium features.", cta: "Buy SpinAZ", to: "spinaz" },
           { emoji: "⚡", name: "Energy top-up", price: "buy at 80% ($80 = 100)", unlocks: "Powers ratings, comments and daily activity when you're tapped out.", cta: "Buy Energy", to: "energy" },
           { emoji: "✴️", name: "SpecZ (StatZ only)", price: "per-item", unlocks: "Audience analytics, engagement heatmaps, genre intelligence, UGC packs.", cta: "Open SpecZ", to: "specz" },
@@ -3489,6 +3489,7 @@ function ZodiacZPage() {
   const { state } = useAppState();
   const sign = zodiacFor(state.user.birthday);
   const reading = dailyReading(sign);
+  const [openSign, setOpenSign] = useState(sign?.name || null);
   return (
     <>
       <div className="card">
@@ -3520,13 +3521,35 @@ function ZodiacZPage() {
         </div>
       )}
       <div className="card">
-        <div className="card-header">✨ All 12 Signs</div>
-        {SIGNS.map((s) => (
-          <div key={s.name} className="modal-sub-row" style={sign?.name === s.name ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
-            <span style={{ fontSize: 26, width: 40, textAlign: "center" }}>{s.emoji}</span>
-            <div><div className="s-name">{s.name}</div><div className="s-desc">{s.desc}</div></div>
-          </div>
-        ))}
+        <div className="card-header">✨ All 12 Signs <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-light)" }}>· tap a sign for its daily reading</span></div>
+        {SIGNS.map((s) => {
+          const open = openSign === s.name;
+          const r = open ? dailyReading(s) : null;
+          return (
+            <div key={s.name} className="modal-sub-row" style={{ flexDirection: "column", alignItems: "stretch", cursor: "pointer", ...(sign?.name === s.name ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : {}) }} onClick={() => setOpenSign(open ? null : s.name)}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 26, width: 40, textAlign: "center" }}>{s.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div className="s-name">{s.name} <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-light)" }}>· {s.range}</span></div>
+                  <div className="s-desc">{s.desc}</div>
+                </div>
+                <span style={{ opacity: 0.6, fontSize: 12 }}>{open ? "▾" : "🔮"}</span>
+              </div>
+              {r && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>🔮 {r.date} · daily reading, K-Oth voice</div>
+                  <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: "0 0 6px" }}>{r.vibe}</p>
+                  <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: "0 0 6px" }}><strong>🎯 Today:</strong> {r.focus}</p>
+                  <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: "0 0 8px" }}><strong>⚠️ Watch:</strong> {r.caution}</p>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <span className="tag">🔢 {r.luckyNumber}</span>
+                    <span className="tag">🎨 {r.luckyColor}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );
