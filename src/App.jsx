@@ -48,6 +48,7 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
+  "postz.png": "/icons/postz.png",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",

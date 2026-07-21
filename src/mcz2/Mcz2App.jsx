@@ -204,7 +204,7 @@ import {
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
   getAdzApi, createCommercialApi, deleteCommercialApi, rewardAdApi,
-  chargeAiApi, occChatApi, buyPromptzApi, geminiImageApi, geminiVideoApi, geminiVideoStatusApi,
+  chargeAiApi, occChatApi, buyPromptzApi, geminiImageApi, geminiVideoApi, geminiVideoStatusApi, translateApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
@@ -8231,6 +8231,14 @@ function SingZPage({ tier, onOpen }) {
       {tab === "session" && <HabitStrip appKey="singz" appName="SingZ" onOpen={onOpen} />}
 
       {tab === "session" && (
+        <div className="card" style={{ border: "1px solid var(--primary)" }}>
+          <div className="card-header"><span>🎤 Drop a take</span><span className="tag">record / upload</span></div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Sing live or upload a clip anytime — real pitch/range/breath scoring + Corey feedback, save it as a post. (Your full session is below.)</p>
+          <AudioLab context="singing take" kind="voice" onOpen={onOpen} skill="SingZ take" />
+        </div>
+      )}
+
+      {tab === "session" && (
         <>
           {recoveryMode && <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}><p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)" }}>🚨 Recovery-first mode — repeated strain detected. Stage Boss &amp; advanced range work are paused until you log a healthy check-in. Protect the voice.</p></div>}
           {!stage && (
@@ -9301,10 +9309,221 @@ function BugZPage() {
   );
 }
 
+// 🧹 CleanConnectZ — clean MusicConnectZ FileZ storage AND on-device browser
+// caches (or both). Manual delete for everyone; AI target sweep for StatZ.
+function CleanConnectZPage({ tier, serverOk, onOpen }) {
+  const [mode, setMode] = useState("both"); // filez | device | both
+  const [uploads, setUploads] = useState(null);
+  const [store, setStore] = useState(null);
+  const [target, setTarget] = useState(25);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const isStatz = /stat[sz]|debug/i.test(tier || "");
+  const bySize = (u) => Number(u.size_mb ?? u.size ?? (u.bytes ? u.bytes / 1048576 : 0) ?? 0);
+  const load = () => { if (serverOk) getUploadsApi().then((r) => { setUploads(r.uploads || []); setStore({ used: r.storage_used_mb, cap: r.storage_mb, free: r.storage_free_mb }); }).catch(() => setUploads([])); };
+  useEffect(load, [serverOk]);
+  const del = async (id) => { try { const r = await deleteUploadApi(id); setUploads((u) => (u || []).filter((x) => x.id !== id)); setStore({ used: r.storage_used_mb, cap: r.storage_mb, free: r.storage_free_mb }); } catch { /* ignore */ } };
+  const sweep = async () => {
+    const list = [...(uploads || [])].sort((a, b) => bySize(b) - bySize(a));
+    const needMb = (store?.cap || 0) * (target / 100);
+    let freed = 0, n = 0;
+    for (const u of list) { if (freed >= needMb) break; await del(u.id); freed += bySize(u); n++; }
+    setMsg((m) => `${m ? m + " · " : ""}🧹 Freed ~${freed.toFixed(0)}MB on MusicConnectZ (${n} file${n === 1 ? "" : "s"}).`);
+    load();
+  };
+  const clearDevice = async () => {
+    let before = 0, after = 0;
+    try { before = (await navigator.storage.estimate()).usage || 0; } catch { /* no api */ }
+    try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch { /* no cache api */ }
+    // Clear cache-like localStorage, never auth or core app state.
+    try { Object.keys(localStorage).forEach((k) => { if (/cache|translat|_tmp/i.test(k) && !/mcz_access|mcz_refresh|musicConnectZState/.test(k)) localStorage.removeItem(k); }); } catch { /* ignore */ }
+    try { after = (await navigator.storage.estimate()).usage || 0; } catch { /* ignore */ }
+    const freed = Math.max(0, before - after) / 1048576;
+    setMsg((m) => `${m ? m + " · " : ""}📱 Cleared device caches${freed ? ` (~${freed.toFixed(1)}MB)` : ""}.`);
+  };
+  const run = async () => { setBusy(true); setMsg(""); if (mode !== "device") await sweep(); if (mode !== "filez") await clearDevice(); setBusy(false); };
+  const pct = store?.cap ? Math.min(100, (store.used / store.cap) * 100) : 0;
+  const big = [...(uploads || [])].sort((a, b) => bySize(b) - bySize(a)).slice(0, 12);
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🧹 Clean ConnectZ</div><div className="balance-info">Free up space — MusicConnectZ storage, your device, or both.</div></div>
+      <div className="card">
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>
+          {[["filez", "💾 FileZ"], ["device", "📱 Device"], ["both", "✨ Both"]].map(([m, l]) => <button key={m} className={`heritage-chip${mode === m ? " sel" : ""}`} onClick={() => setMode(m)}>{l}</button>)}
+        </div>
+        {mode !== "device" && store && (
+          <>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>MusicConnectZ storage: <strong>{mbLabel(store.used || 0)}</strong> / {mbLabel(store.cap || 0)} · {mbLabel(store.free || 0)} free</div>
+            <div style={{ height: 8, borderRadius: 6, background: "rgba(255,255,255,0.08)", overflow: "hidden", margin: "6px 0 10px" }}><div style={{ width: `${pct}%`, height: "100%", background: pct > 85 ? "var(--danger)" : "var(--primary)" }} /></div>
+            {isStatz ? (
+              <div className="form-group"><label>🤖 AI target — free {target}% of your storage (deletes biggest first)</label><input type="range" min="5" max="90" value={target} onChange={(e) => setTarget(Number(e.target.value))} /></div>
+            ) : <p style={{ fontSize: 10, color: "var(--gold, #ffcf3f)" }}>🔒 StatZ sets an AI target that auto-clears the biggest files. You can still delete manually below.</p>}
+          </>
+        )}
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={busy} onClick={run}>{busy ? "🧹 Cleaning…" : mode === "device" ? "📱 Clear device caches" : mode === "filez" ? (isStatz ? "🧹 Run AI sweep" : "🧹 Clean biggest below") : "✨ Clean both"}</button>
+        {msg && <p style={{ fontSize: 12, color: "var(--success)", marginTop: 8, fontWeight: 600 }}>{msg}</p>}
+      </div>
+      {mode !== "device" && (
+        <div className="card">
+          <div className="card-header"><span>💾 Biggest files</span><span className="tag">{(uploads || []).length}</span></div>
+          {!serverOk ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Connect to manage FileZ storage.</p>
+            : big.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No files — nothing to clean.</p>
+              : big.map((u) => (
+                <div key={u.id} className="skill-item">
+                  <span className="skill-item-name">{u.name || u.filename || `file ${u.id}`} {bySize(u) > 0 && <span style={{ fontSize: 10, color: "var(--text-light)" }}>· {mbLabel(bySize(u))}</span>}</span>
+                  <button className="btn btn-small btn-danger" onClick={() => del(u.id)}>🗑️</button>
+                </div>
+              ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// 📸 ShotZ — shooting briefs; submit photo/video work to a brief. Free.
+const SHOT_BRIEFS = ["🎤 Live performance", "🖼️ Cover art shoot", "📸 Artist portrait", "🎬 Music video B-roll", "📱 Short-form promo", "🏙️ On-location scene"];
+function ShotZPage() {
+  const { state, setList } = useAppState();
+  const subs = state.shotzSubs || [];
+  const [brief, setBrief] = useState(SHOT_BRIEFS[0]);
+  const save = (m) => { if (m?.url) setList("shotzSubs", [{ id: Date.now(), brief, url: m.url, type: m.type, at: Date.now() }, ...subs]); };
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">📸 ShotZ</div><div className="balance-info">Shoot to a brief — capture the assignment.</div></div>
+      <div className="card">
+        <div className="card-header">🎯 Pick a brief</div>
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>{SHOT_BRIEFS.map((b) => <button key={b} className={`heritage-chip${brief === b ? " sel" : ""}`} onClick={() => setBrief(b)}>{b}</button>)}</div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>📷 Capture / upload your shot for “{brief}”</label>
+        <MediaCapture onUploaded={save} />
+      </div>
+      {subs.length > 0 && (
+        <div className="card">
+          <div className="card-header"><span>🗂️ Your shots</span><span className="tag">{subs.length}</span></div>
+          {subs.slice(0, 20).map((s) => (
+            <div key={s.id} className="post-card">
+              <div className="post-user">{s.brief}</div>
+              <SmartMedia url={s.url} type={s.type} style={{ maxHeight: 180 }} />
+              <div className="post-meta">{new Date(s.at).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// 🤹 MimeZ — record a mime/performance take against a skill. Free.
+const MIME_SKILLS = ["👄 Lipsync", "🤳 Selfie", "💃 Dance", "🎭 Drama", "😂 Comedy"];
+function MimeZPage() {
+  const { state, setList } = useAppState();
+  const takes = state.mimezTakes || [];
+  const [skill, setSkill] = useState(MIME_SKILLS[0]);
+  const save = (m) => { if (m?.url) setList("mimezTakes", [{ id: Date.now(), skill, url: m.url, type: m.type, at: Date.now() }, ...takes]); };
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🤹 MimeZ</div><div className="balance-info">Perform it — lipsync, dance, drama, comedy.</div></div>
+      <div className="card">
+        <div className="card-header">🎭 Pick a performance</div>
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>{MIME_SKILLS.map((s) => <button key={s} className={`heritage-chip${skill === s ? " sel" : ""}`} onClick={() => setSkill(s)}>{s}</button>)}</div>
+        <label style={{ fontSize: 11, color: "var(--text-light)" }}>🎬 Record / upload your “{skill}” take</label>
+        <MediaCapture onUploaded={save} accept="video/*" />
+      </div>
+      {takes.length > 0 && (
+        <div className="card">
+          <div className="card-header"><span>🎞️ Your takes</span><span className="tag">{takes.length}</span></div>
+          {takes.slice(0, 20).map((t) => (
+            <div key={t.id} className="post-card">
+              <div className="post-user">{t.skill}</div>
+              <SmartMedia url={t.url} type={t.type} style={{ maxHeight: 200 }} />
+              <div className="post-meta">{new Date(t.at).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// 📚 LessonZ — browse the four MCZ courses; learn each with OCC. Free.
+function LessonZPage({ onOpen }) {
+  const [open, setOpen] = useState(CURRICULA[0]?.id);
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">📚 LessonZ</div><div className="balance-info">Four college-level courses — taught by OCC.</div></div>
+      {CURRICULA.map((c) => (
+        <div key={c.id} className="card">
+          <div className="card-header" style={{ cursor: "pointer" }} onClick={() => setOpen(open === c.id ? null : c.id)}>
+            <span>{c.emoji} {c.name}</span><span className="tag">{open === c.id ? "▾" : "▸"}</span>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: open === c.id ? 8 : 0 }}>{c.blurb}</p>
+          {open === c.id && (
+            <>
+              {c.modules.map((m) => (
+                <div key={m.title} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>{m.title}</div>
+                  {m.lessons.map((l) => <div key={l} style={{ fontSize: 11, color: "var(--text-light)", paddingLeft: 8 }}>• {l}</div>)}
+                </div>
+              ))}
+              <button className="btn btn-success btn-small" onClick={() => onOpen?.("occ")}>🎧 Learn {c.name} with OCC</button>
+            </>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ⌨️ Key ConnectZ — dictate (speech-to-text) + translate your text. Premium.
+const KEYC_LANGS = [["es", "Spanish"], ["fr", "French"], ["pt", "Portuguese"], ["de", "German"], ["ja", "Japanese"], ["zh", "Chinese"], ["ar", "Arabic"], ["hi", "Hindi"]];
+function KeyConnectZPage({ tier, onOpen }) {
+  const [text, setText] = useState("");
+  const [rec, setRec] = useState(false);
+  const [lang, setLang] = useState("es");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const recRef = useRef(null);
+  const dictate = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setErr("Speech-to-text isn't supported in this browser."); return; }
+    if (rec) { recRef.current?.stop(); return; }
+    const r = new SR(); r.continuous = true; r.interimResults = false;
+    r.onresult = (e) => { const t = Array.from(e.results).map((x) => x[0].transcript).join(" "); setText((p) => (p ? p + " " : "") + t.trim()); };
+    r.onend = () => setRec(false); r.onerror = () => setRec(false);
+    recRef.current = r; r.start(); setRec(true);
+  };
+  const translate = async () => {
+    if (!text.trim()) return;
+    setBusy(true); setErr("");
+    try { const r = await translateApi({ texts: [text], targetLang: lang, targetName: KEYC_LANGS.find(([c]) => c === lang)?.[1] || lang }); setText((r.translations || r.texts || [text])[0] || text); }
+    catch (e) { setErr(/402/.test(e?.message || "") ? "Short on PromptZ / balance for translation." : (e?.message || "Translation failed.")); }
+    setBusy(false);
+  };
+  return (
+    <PremiumOnly tier={tier} onOpen={onOpen} name="Key ConnectZ" blurb="A smart composer: dictate with your voice and translate to any language.">
+      <div className="stripe-section"><div className="stripe-title">⌨️ Key ConnectZ</div><div className="balance-info">Speak it, translate it, use it anywhere.</div></div>
+      <div className="card">
+        <CappedTextarea value={text} onChange={(e) => setText(e.target.value)} style={{ height: 120 }} placeholder="Type, or tap 🎙️ to dictate…" />
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          <button className={`btn btn-small${rec ? " btn-danger" : " btn-secondary"}`} onClick={dictate}>{rec ? "⏹ Stop" : "🎙️ Dictate"}</button>
+          <select value={lang} onChange={(e) => setLang(e.target.value)} style={{ width: 120 }}>{KEYC_LANGS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</select>
+          <button className="btn btn-small" disabled={busy || !text.trim()} onClick={translate}>{busy ? "🌐 …" : "🌐 Translate"}</button>
+          <button className="btn btn-small btn-secondary" disabled={!text} onClick={() => navigator.clipboard?.writeText(text)}>📋 Copy</button>
+        </div>
+        {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{err}</p>}
+      </div>
+    </PremiumOnly>
+  );
+}
+
 const FN_PAGES = {
   analytics: AnalyticZPage,
   builder: BuilderPage,
   sonday: SondayPage,
+  cleanconnectz: CleanConnectZPage,
+  shotz: ShotZPage,
+  mimez: MimeZPage,
+  lessonz: LessonZPage,
+  keyconnectz: KeyConnectZPage,
   homez: HomezPage,
   moodz: MoodZPage,
   logz: LogZPage,
