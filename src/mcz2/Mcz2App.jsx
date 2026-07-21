@@ -7,7 +7,7 @@ import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
 import { CATALOG, APPS_BY_KEY } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
-import { CONTINENTS, TOP_20, flagOf } from "./nationalitiez.js";
+import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
@@ -222,6 +222,26 @@ function useSavedFlash() {
 }
 function SavedFlash({ saved }) {
   return <span className="tag" style={{ color: saved ? "var(--success)" : "var(--text-light)", transition: "color .2s" }}>{saved ? "✓ Saved" : "Auto-saves"}</span>;
+}
+
+// Explicit Save button + saved/unsaved cue for editable pages. Default save
+// persists the public profile (buildProfilePayload); pass onSave for a custom one.
+function ProfileSaveBar({ dirty, onSave, label = "Save" }) {
+  const { state } = useAppState();
+  const [saved, ping] = useSavedFlash();
+  const save = () => {
+    if (onSave) onSave();
+    else if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {});
+    ping();
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+      <button className="btn btn-success" style={{ flex: 1 }} onClick={save}>💾 {label}</button>
+      {saved ? <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✓ Saved</span>
+        : dirty ? <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Unsaved changes</span>
+        : <span style={{ fontSize: 11, color: "var(--text-light)" }}>Auto-saves</span>}
+    </div>
+  );
 }
 
 // Shared gate: business personas (Manager / A&R Scout / Label) unlock legal
@@ -729,6 +749,7 @@ function PersonasPage() {
             </div>
           );
         })}
+        <ProfileSaveBar label="Save PersonaZ" />
       </div>
     </>
   );
@@ -2018,29 +2039,36 @@ function SpecZPage({ tier, serverOk, syncEconomy, onOpen }) {
   );
 }
 
+const AZ_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 function NationalitieZPage() {
   const { state, updateUser } = useAppState();
-  const [saved, ping] = useSavedFlash();
   const [continent, setContinent] = useState(null); // gated continent id
+  const [letter, setLetter] = useState("");          // A–Z filter
   const [query, setQuery] = useState("");
+  const [dirty, setDirty] = useState(false);
   const picked = state.user.nationalities || [];
   const toggle = (v) => {
     const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
-    updateUser({ nationalities: next }); ping();
+    updateUser({ nationalities: next }); setDirty(true);
   };
   const regionOf = (cid) => REGIONS.find((r) => r.name === CONTINENTS.find((c) => c.id === cid)?.region);
   const allCountries = REGIONS.flatMap((r) => r.countries);
-  // Search across all countries; otherwise show the gated continent's countries,
-  // or the Top-20 flag grid by default.
+  // Result priority: free-text search > A–Z letter > gated continent > Top-60.
+  const base = continent ? (regionOf(continent)?.countries || allCountries) : allCountries;
   const results = query.trim()
-    ? allCountries.filter((c) => c.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60)
-    : continent ? (regionOf(continent)?.countries || []) : TOP_20;
+    ? allCountries.filter((c) => c.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 80)
+    : letter ? base.filter((c) => c.toUpperCase().startsWith(letter)).sort()
+    : continent ? (regionOf(continent)?.countries || []) : TOP_60;
+  const heading = query ? "🔎 Results"
+    : letter ? `🔤 Countries · ${letter}`
+    : continent ? `${CONTINENTS.find((c) => c.id === continent)?.emoji} Countries`
+    : "🌟 Top 60 nationalities";
 
   return (
     <>
       <div className="card">
-        <div className="card-header"><span>🌐 Your Heritage</span><span style={{ display: "flex", gap: 6 }}><span className="tag">{picked.length} selected</span><SavedFlash saved={saved} /></span></div>
-        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick a continent to see its countries, tap the Top-20 flags, or search for any country. Multi-select — also filters your CollabZ / VenueZ / search.</p>
+        <div className="card-header"><span>🌐 Your Heritage</span><span className="tag">{picked.length} selected</span></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick a continent, tap a letter, tap the Top-60 flags, or search for any country. Multi-select — also filters your CollabZ / VenueZ / search.</p>
 
         {/* Continent selectors — picking one gates its countries. */}
         <div className="chip-wrap" style={{ marginBottom: 10 }}>
@@ -2055,15 +2083,23 @@ function NationalitieZPage() {
           })}
         </div>
 
+        {/* A–Z letter filter — search by letter (composes with continent). */}
+        <div className="chip-wrap" style={{ marginBottom: 10, gap: 4, overflowX: "auto", flexWrap: "nowrap" }}>
+          {AZ_LETTERS.map((L) => (
+            <button key={L} className={`heritage-chip${letter === L ? " sel" : ""}`} style={{ padding: "2px 8px", fontSize: 12 }}
+              onClick={() => { setLetter(letter === L ? "" : L); setQuery(""); }}>{L}</button>
+          ))}
+        </div>
+
         {/* "Whole continent" quick pick when one is gated. */}
-        {continent && !query && (() => {
+        {continent && !query && !letter && (() => {
           const c = CONTINENTS.find((x) => x.id === continent); const r = REGIONS.find((x) => x.name === c.region);
           return r ? <button className={`heritage-chip any${picked.includes(r.any) ? " sel" : ""}`} style={{ marginBottom: 8 }} onClick={() => toggle(r.any)}>{c.emoji} All of {c.name} (anywhere)</button> : null;
         })()}
 
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="🔎 Search any country…" style={{ width: "100%", marginBottom: 10 }} />
+        <input value={query} onChange={(e) => { setQuery(e.target.value); if (e.target.value) setLetter(""); }} placeholder="🔎 Search any country…" style={{ width: "100%", marginBottom: 10 }} />
 
-        <div className="modal-sub-title" style={{ marginBottom: 6 }}>{query ? "🔎 Results" : continent ? `${CONTINENTS.find((c) => c.id === continent)?.emoji} Countries` : "🌟 Top 20 nationalities"}</div>
+        <div className="modal-sub-title" style={{ marginBottom: 6 }}>{heading}</div>
         <div className="chip-wrap">
           {results.map((c) => (
             <button key={c} className={`heritage-chip${picked.includes(c) ? " sel" : ""}`} onClick={() => toggle(c)}>{flagOf(c)} {c}</button>
@@ -2080,6 +2116,8 @@ function NationalitieZPage() {
             </div>
           </div>
         )}
+
+        <ProfileSaveBar dirty={dirty} onSave={() => { if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {}); setDirty(false); }} label="Save NationalitieZ" />
       </div>
     </>
   );
@@ -2170,6 +2208,7 @@ function PreferenceZPage() {
             <button key={t} className={`heritage-chip${(pref.traits || []).includes(t) ? " sel" : ""}`} onClick={() => toggleTrait(t)}>{t}</button>
           ))}
         </div>
+        <ProfileSaveBar label="Save PreferenceZ" />
       </div>
     </>
   );
@@ -2584,9 +2623,10 @@ const MBTI_BLURB = {
 function PersonalitieZTab() {
   const { state, updateUser } = useAppState();
   const [ans, setAns] = useState({});
+  const [saved, ping] = useSavedFlash();
   const done = Object.keys(ans).length === MBTI_Q.length;
   const type = MBTI_Q.map((_, i) => ans[i]).join("");
-  const save = () => updateUser({ mbti: type });
+  const save = () => { updateUser({ mbti: type }); if (isSignedIn()) saveProfileApi(buildProfilePayload({ ...state, user: { ...state.user, mbti: type } })).catch(() => {}); ping(); };
   return (
     <div className="card">
       <div className="card-header">😶 PersonalitieZ <span className="tag">MBTI</span></div>
@@ -2604,7 +2644,10 @@ function PersonalitieZTab() {
         <div style={{ marginTop: 8 }}>
           <p style={{ fontSize: 14, fontWeight: 800 }}>Your type: {type}</p>
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>{MBTI_Q.map((_, i) => MBTI_BLURB[ans[i]]).join(" · ")}</p>
-          <button className="btn" style={{ marginTop: 8 }} onClick={save}>Save to profile</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+            <button className="btn btn-success" onClick={save}>💾 Save to profile</button>
+            {saved && <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✓ Saved</span>}
+          </div>
         </div>
       )}
     </div>
@@ -2860,6 +2903,7 @@ function BodieZPage({ tier, onOpen }) {
               );
             })}
           </div>
+          <ProfileSaveBar onSave={() => {}} label="Save location & gear" />
         </div>
       )}
 
