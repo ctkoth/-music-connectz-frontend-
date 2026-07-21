@@ -8978,7 +8978,154 @@ function LegendZPage({ onOpen }) {
   );
 }
 
+// Premium gate for the premium tool apps (AnalyticZ / Builder / Sonday). Shows
+// an upgrade CTA to Free members, the real page to Premium+ (and debug/owner).
+function PremiumOnly({ tier, onOpen, name, blurb, children }) {
+  if (tierMeets(tier, "premium")) return children;
+  return (
+    <div className="card" style={{ textAlign: "center", border: "1px solid var(--gold, #ffcf3f)" }}>
+      <div className="card-header" style={{ justifyContent: "center" }}>🔒 {name} — Premium</div>
+      <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}>{blurb}</p>
+      <button className="btn btn-success" onClick={() => onOpen?.("membership")}>✨ Upgrade to Premium</button>
+    </div>
+  );
+}
+
+// 📈 AnalyticZ — "playz & wayz of payz": a real dashboard computed from your own
+// on-platform activity. Premium.
+function AnalyticZPage({ tier, onOpen }) {
+  const { state } = useAppState();
+  const prog = state.progression || { xp: 0, level: 1, xpLog: [], badges: [], streak: 0 };
+  const posts = (state.examples || []).length;
+  const habits = (state.lilithTasks || []).filter((t) => isHabit(t) && t.list !== "trash").length;
+  const done = (state.lilithTasks || []).filter((t) => t.lastDone).length;
+  const earned = Number(state.wallet?.earned || 0);
+  const tiles = [
+    { label: "Level", v: `Lv ${prog.level}`, sub: `${prog.xp} XP` },
+    { label: "Streak", v: `🔥 ${prog.streak || 0}`, sub: "days" },
+    { label: "PostZ", v: posts, sub: "published" },
+    { label: "Energy", v: `⚡ ${state.energy || 0}` },
+    { label: "SpinAZ", v: `🍥 ${state.spinaz || 0}` },
+    { label: "Lifetime earned", v: money(earned) },
+    { label: "PromptZ", v: `🏷️ ${state.promptz || 0}` },
+    { label: "Active habits", v: habits, sub: `${done} logged` },
+  ];
+  const log = (prog.xpLog || []).slice(0, 12);
+  return (
+    <PremiumOnly tier={tier} onOpen={onOpen} name="AnalyticZ" blurb="Deep-dive your plays, growth, energy and earnings across Music ConnectZ.">
+      <div className="stripe-section"><div className="stripe-title">📈 AnalyticZ</div><div className="balance-info">Playz &amp; wayz of payz — your live numbers.</div></div>
+      <div className="launch-grid" style={{ gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+        {tiles.map((t) => (
+          <div key={t.label} className="card" style={{ margin: 0, padding: 10 }}>
+            <div style={{ fontSize: 11, color: "var(--text-light)" }}>{t.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--primary)" }}>{t.v}</div>
+            {t.sub && <div style={{ fontSize: 10, color: "var(--text-light)" }}>{t.sub}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-header">🧾 Recent activity</div>
+        {log.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No activity logged yet — go make some plays.</p>
+          : log.map((x, i) => (
+            <div key={i} className="skill-item">
+              <span className="skill-item-name">{x.note || "XP"}</span>
+              <span className="skill-item-actions"><span className="tag" style={{ color: "var(--success)" }}>+{x.amount} XP</span></span>
+            </div>
+          ))}
+      </div>
+    </PremiumOnly>
+  );
+}
+
+// 🏗️ Builder — Buffer-style post queue & scheduling. Premium.
+function BuilderPage({ tier, onOpen }) {
+  const { state, setList } = useAppState();
+  const queue = state.builderQueue || [];
+  const [form, setForm] = useState({ title: "", body: "", at: "" });
+  const add = () => {
+    if (!form.title.trim()) return;
+    setList("builderQueue", [{ id: Date.now(), title: form.title.trim(), body: form.body.trim(), at: form.at, status: "queued" }, ...queue]);
+    setForm({ title: "", body: "", at: "" });
+  };
+  const mark = (id, status) => setList("builderQueue", queue.map((q) => (q.id === id ? { ...q, status } : q)));
+  const del = (id) => setList("builderQueue", queue.filter((q) => q.id !== id));
+  const sorted = [...queue].sort((a, b) => (a.at || "").localeCompare(b.at || ""));
+  return (
+    <PremiumOnly tier={tier} onOpen={onOpen} name="Builder" blurb="Queue, schedule and manage your posts across the platform, Buffer-style.">
+      <div className="stripe-section"><div className="stripe-title">🏗️ Builder</div><div className="balance-info">Post management &amp; scheduling.</div></div>
+      <div className="card">
+        <div className="card-header">➕ Queue a post</div>
+        <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Post title" /></div>
+        <div className="form-group"><label>Body</label><CappedTextarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} style={{ height: 54 }} placeholder="What's the post?" /></div>
+        <div className="form-group"><label>📅 Schedule for</label><input type="datetime-local" value={form.at} onChange={(e) => setForm({ ...form, at: e.target.value })} /></div>
+        <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={add}>＋ Add to queue</button>
+      </div>
+      <div className="card">
+        <div className="card-header"><span>🗓️ Queue</span><span className="tag">{queue.length}</span></div>
+        {sorted.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing queued — schedule your first post above.</p>
+          : sorted.map((q) => (
+            <div key={q.id} className="post-card">
+              <div className="post-user">{q.status === "posted" ? "✅ " : "🕓 "}{q.title}</div>
+              {q.body && <div className="post-content" style={{ fontSize: 12 }}>{q.body}</div>}
+              <div className="post-meta">{q.at ? new Date(q.at).toLocaleString() : "no time set"}</div>
+              <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                {q.status !== "posted" && <button className="btn btn-small btn-success" onClick={() => mark(q.id, "posted")}>Mark posted</button>}
+                <button className="btn btn-small btn-danger" onClick={() => del(q.id)}>🗑️</button>
+              </div>
+            </div>
+          ))}
+      </div>
+    </PremiumOnly>
+  );
+}
+
+// 🌞 Sonday — Monday.com-style board for your creative work. Premium.
+const SONDAY_COLS = [["ideas", "💡 Ideas"], ["doing", "🚧 Doing"], ["done", "✅ Done"]];
+function SondayPage({ tier, onOpen }) {
+  const { state, setList } = useAppState();
+  const cards = state.sondayCards || [];
+  const [title, setTitle] = useState("");
+  const add = () => { if (!title.trim()) return; setList("sondayCards", [{ id: Date.now(), title: title.trim(), col: "ideas" }, ...cards]); setTitle(""); };
+  const move = (id, dir) => setList("sondayCards", cards.map((c) => {
+    if (c.id !== id) return c;
+    const i = SONDAY_COLS.findIndex(([k]) => k === c.col);
+    const ni = Math.min(SONDAY_COLS.length - 1, Math.max(0, i + dir));
+    return { ...c, col: SONDAY_COLS[ni][0] };
+  }));
+  const del = (id) => setList("sondayCards", cards.filter((c) => c.id !== id));
+  return (
+    <PremiumOnly tier={tier} onOpen={onOpen} name="Sonday" blurb="A Monday.com-style board to plan and track your creative projects.">
+      <div className="stripe-section"><div className="stripe-title">🌞 Sonday</div><div className="balance-info">Plan your work, board-style.</div></div>
+      <div className="card">
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="New card…" style={{ flex: 1 }} />
+          <button className="btn btn-success btn-small" onClick={add}>＋ Add</button>
+        </div>
+      </div>
+      {SONDAY_COLS.map(([key, label], ci) => (
+        <div key={key} className="card">
+          <div className="card-header"><span>{label}</span><span className="tag">{cards.filter((c) => c.col === key).length}</span></div>
+          {cards.filter((c) => c.col === key).length === 0 ? <p style={{ fontSize: 11, color: "var(--text-light)" }}>Empty.</p>
+            : cards.filter((c) => c.col === key).map((c) => (
+              <div key={c.id} className="skill-item">
+                <span className="skill-item-name">{c.title}</span>
+                <span className="skill-item-actions" style={{ display: "flex", gap: 4 }}>
+                  {ci > 0 && <button className="btn btn-small btn-secondary" title="Back" onClick={() => move(c.id, -1)}>◀</button>}
+                  {ci < SONDAY_COLS.length - 1 && <button className="btn btn-small btn-secondary" title="Forward" onClick={() => move(c.id, 1)}>▶</button>}
+                  <button className="btn btn-small btn-danger" onClick={() => del(c.id)}>🗑️</button>
+                </span>
+              </div>
+            ))}
+        </div>
+      ))}
+    </PremiumOnly>
+  );
+}
+
 const FN_PAGES = {
+  analytics: AnalyticZPage,
+  builder: BuilderPage,
+  sonday: SondayPage,
   legendz: LegendZPage,
   parcel: ParcelPrimatePage,
   merchz: MerchZPage,
@@ -9487,7 +9634,8 @@ function Shell() {
                 <div className="launch-label">{group.label}</div>
                 <div className="launch-grid">
                   {group.apps.map((a) => (
-                    <button key={a.key} className="app-tile" onClick={() => openApp(a.key)}>
+                    <button key={a.key} className="app-tile" onClick={() => openApp(a.key)} style={{ position: "relative" }}>
+                      {a.premium && !tierMeets(tier, "premium") && <span style={{ position: "absolute", top: 2, right: 4, fontSize: 9, color: "var(--gold, #ffcf3f)" }} title="Premium">✦</span>}
                       <span className="tile-icon"><IconImg icon={iconFor(settings.appIcons, a.key, a.icon)} alt={a.name} /></span>
                       <span className="tile-name">{a.name}</span>
                     </button>
