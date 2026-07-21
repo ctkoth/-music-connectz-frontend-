@@ -8950,6 +8950,7 @@ function Shell() {
               <div className="balance" onClick={() => openApp("money")} title="Money">💲{balance}</div>
               <div className="balance" onClick={() => openApp("energy")} title="Energy">⚡{state.energy || 0}</div>
               <div className="balance" onClick={() => openApp("spinaz")} title="SpinAZ">🍥{state.spinaz || 0}</div>
+              <div className="balance" onClick={() => openApp("money")} title="PromptZ 🏷️ — AI prompts you can afford right now (each ~1¢). Tap to top up.">🏷️ {Math.floor(Number(wallet.balance || 0) * 100)}</div>
             </div>
             <div className="profile-pic" onClick={() => openApp("profile")}>
               {(user?.username || "?").charAt(0).toUpperCase()}
