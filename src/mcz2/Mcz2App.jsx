@@ -399,6 +399,53 @@ function ProfileSaveBar({ dirty, onSave, label = "Save" }) {
   );
 }
 
+// Metric edit gate — anchors a metric's tier edit window to when it was last
+// saved (state.metricSavedAt[mkey]). Fresh/never-saved metrics stay editable;
+// once saved, the window ticks (Free 4m · Premium 40m · StatZ 4h) and locks when
+// it passes (upgrade for a longer window). Owner/debug = unlimited.
+function useMetricGate(mkey) {
+  const { state, update } = useAppState();
+  const savedAt = state.metricSavedAt?.[mkey] || null;
+  const { remaining, expired, unlimited } = useEditWindow(savedAt);
+  const markSaved = () => update({ metricSavedAt: { ...(state.metricSavedAt || {}), [mkey]: new Date().toISOString() } });
+  return { savedAt, remaining, unlimited, locked: !!savedAt && expired && !unlimited, markSaved };
+}
+
+// Save bar for a metric under the edit window: 💾 Save while editable (with a
+// live "time left to edit" cue), or a 🔒 lock + upgrade CTA once the window
+// passes. Default save persists the public profile; pass onSave for a custom one.
+function MetricEditBar({ mkey, label = "Save", onOpen, onSave }) {
+  const { state } = useAppState();
+  const gate = useMetricGate(mkey);
+  const [saved, ping] = useSavedFlash();
+  const doSave = () => {
+    if (gate.locked) return;
+    if (onSave) onSave(); else if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {});
+    gate.markSaved(); ping();
+  };
+  if (gate.locked) {
+    return (
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: "var(--text-light)" }}>🔒 Edit window passed — this metric is locked. Upgrade for a longer edit window ({EDIT_WINDOW_LABEL}).</div>
+        <UpgradeCTA onOpen={onOpen} label="👑 Upgrade for a longer edit window" />
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+      <button className="btn btn-success" style={{ flex: 1 }} onClick={doSave}>💾 {label}</button>
+      {saved ? <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✓ Saved</span>
+        : gate.unlimited ? <span style={{ fontSize: 11, color: "var(--text-light)" }}>∞ edit</span>
+        : gate.savedAt ? <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>✏️ {fmtCountdown(gate.remaining)} left to edit</span>
+        : <span style={{ fontSize: 11, color: "var(--text-light)" }}>Save to lock it in</span>}
+    </div>
+  );
+}
+// Wrap a metric's editable controls; dims + disables them once locked.
+function MetricLockWrap({ locked, children }) {
+  return <div style={{ opacity: locked ? 0.5 : 1, pointerEvents: locked ? "none" : "auto" }}>{children}</div>;
+}
+
 // Shared gate: business personas (Manager / A&R Scout / Label) unlock legal
 // tooling like contracts and royalty agreements.
 function isBizPersona(personas) {
@@ -823,11 +870,27 @@ function SetupPage() {
   const { state, updateUser } = useAppState();
   const [form, setForm] = useState(state.user);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
   const [locBusy, setLocBusy] = useState(false);
   const [locMsg, setLocMsg] = useState("");
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setSaved(false); };
   const zsign = zodiacFor(form.birthday);
-  const save = () => { updateUser(form); setSaved(true); setTimeout(() => setSaved(false), 2500); };
+  // Profiles edit "with prompts, not timers": each save spends one prompt (like
+  // translation / AI-rate) instead of being limited by an edit window.
+  const save = async () => {
+    if (busy) return;
+    setBusy(true); setSaveMsg("");
+    try {
+      if (isSignedIn()) await chargeAiApi("corey-gpt", "Profile edit");
+      updateUser(form);
+      if (isSignedIn()) saveProfileApi(buildProfilePayload({ ...state, user: { ...state.user, ...form } })).catch(() => {});
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setSaveMsg(/40[26]|balance|afford|enough/i.test(e?.message || "") ? "💸 Editing your profile costs a prompt — add funds to save." : "Couldn't save — try again.");
+    }
+    setBusy(false);
+  };
 
   // Capture GPS → store coords for distance filtering + reverse-geocode a
   // readable location onto the profile (best-effort; falls back to coords).
@@ -887,7 +950,9 @@ function SetupPage() {
       <div className="form-group"><label>🔗 Links (Spotify, IG, YouTube, store…)</label>
         <LinksEditor links={form.links} onChange={(l) => { setForm((f) => ({ ...f, links: l })); setSaved(false); }} />
       </div>
-      <button className="btn btn-success" style={{ width: "100%" }} onClick={save}>{saved ? "✅ Profile saved!" : "💾 Save Profile"}</button>
+      <button className="btn btn-success" style={{ width: "100%" }} disabled={busy} onClick={save}>{busy ? "Saving…" : saved ? "✅ Profile saved!" : "💾 Save Profile (costs a prompt)"}</button>
+      <p style={{ fontSize: 10, color: "var(--text-light)", textAlign: "center", marginTop: 4 }}>Profiles edit with prompts, not a timer — each save spends one prompt.</p>
+      {saveMsg && <p style={{ fontSize: 11, color: "var(--danger)", textAlign: "center", marginTop: 6 }}>{saveMsg}</p>}
       {saved && <p style={{ fontSize: 11, color: "var(--success)", textAlign: "center", marginTop: 6 }}>Your profile &amp; filters are saved.</p>}
     </div>
   );
@@ -1115,8 +1180,9 @@ function rateBasisNote({ rate, unit, hours }, currency = "$") {
     : `${currency}${total.toFixed(2)} per work`;
 }
 
-function PersonasPage() {
+function PersonasPage({ onOpen }) {
   const { state, addTo, removeFrom, setList } = useAppState();
+  const gate = useMetricGate("personas");
   const [openCats, setOpenCats] = useState({}); // "personaIdx:cat" -> forced open/closed
   const toggleCat = (key) => setOpenCats((o) => ({ ...o, [key]: !o[key] }));
   const has = (name) => state.personas.some((p) => p.name === name);
@@ -1131,6 +1197,7 @@ function PersonasPage() {
   const setSkillStart = (i, skill, start) => patchSkill(i, skill, { start });
   return (
     <>
+      <MetricLockWrap locked={gate.locked}>
       <div className="card">
         <div className="card-header">🎭 Select Your PersonaZ</div>
         <div className="grid-3">
@@ -1203,8 +1270,9 @@ function PersonasPage() {
             </div>
           );
         })}
-        <ProfileSaveBar label="Save PersonaZ" />
       </div>
+      </MetricLockWrap>
+      <MetricEditBar mkey="personas" onOpen={onOpen} label="Save PersonaZ" />
     </>
   );
 }
@@ -2523,8 +2591,9 @@ function SpecZPage({ tier, serverOk, syncEconomy, onOpen }) {
 }
 
 const AZ_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-function NationalitieZPage() {
+function NationalitieZPage({ onOpen }) {
   const { state, updateUser } = useAppState();
+  const gate = useMetricGate("nationalitiez");
   const [continent, setContinent] = useState(null); // gated continent id
   const [letter, setLetter] = useState("");          // A–Z filter
   const [query, setQuery] = useState("");
@@ -2553,6 +2622,7 @@ function NationalitieZPage() {
         <div className="card-header"><span>🌐 Your Heritage</span><span className="tag">{picked.length} selected</span></div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick a continent, tap a letter, tap the Top-60 flags, or search for any country. Multi-select — also filters your CollabZ / VenueZ / search.</p>
 
+        <MetricLockWrap locked={gate.locked}>
         {/* Continent selectors — picking one gates its countries. */}
         <div className="chip-wrap" style={{ marginBottom: 10 }}>
           {CONTINENTS.map((c) => {
@@ -2599,31 +2669,26 @@ function NationalitieZPage() {
             </div>
           </div>
         )}
+        </MetricLockWrap>
 
-        <ProfileSaveBar dirty={dirty} onSave={() => { if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {}); setDirty(false); }} label="Save NationalitieZ" />
+        <MetricEditBar mkey="nationalitiez" onOpen={onOpen} label="Save NationalitieZ" onSave={() => { if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {}); setDirty(false); }} />
       </div>
     </>
   );
 }
 
-function SubstanceZPage() {
+function SubstanceZPage({ onOpen }) {
   const { state, updateUser } = useAppState();
-  const [saved, ping] = useSavedFlash();
-  const [dirty, setDirty] = useState(false);
+  const gate = useMetricGate("substancez");
   const subs = state.user.substances || {};
-  const setStance = (key, id) => { updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } }); setDirty(true); };
-  const save = () => {
-    // Persist the public profile now so the stance powers matching immediately.
-    if (isSignedIn()) saveProfileApi(buildProfilePayload(state)).catch(() => {});
-    setDirty(false); ping();
-  };
-  const declared = Object.values(subs).filter(Boolean).length;
+  const setStance = (key, id) => { updateUser({ substances: { ...subs, [key]: subs[key] === id ? "" : id } }); };
   return (
     <div className="card">
-      <div className="card-header"><span>🧠 SubstanceZ — Your Stance</span><SavedFlash saved={saved} /></div>
+      <div className="card-header"><span>🧠 SubstanceZ — Your Stance</span></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>
         Declare your relationship with each — powers sober-friendly matching and healthy spaces. Only <strong>Use</strong> and <strong>Sometimes</strong> read as active; <strong>From before</strong>, <strong>Often sober</strong>, <strong>Sober by choice</strong> and <strong>Never</strong> all read as sober-friendly.
       </p>
+      <MetricLockWrap locked={gate.locked}>
       {SUBSTANCES.map((s) => (
         <div key={s.key} className="settings-toggle" style={{ flexWrap: "wrap" }}>
           <label style={{ minWidth: 110 }}>{s.emoji} {s.name}</label>
@@ -2636,18 +2701,16 @@ function SubstanceZPage() {
           </div>
         </div>
       ))}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-        <button className="btn btn-success" style={{ flex: 1 }} onClick={save}>💾 Save stance{declared ? ` (${declared} declared)` : ""}</button>
-        {saved && <span style={{ fontSize: 12, color: "var(--success)", fontWeight: 700 }}>✅ Saved</span>}
-        {dirty && !saved && <span style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Unsaved changes</span>}
-      </div>
+      </MetricLockWrap>
+      <MetricEditBar mkey="substancez" onOpen={onOpen} label="Save stance" />
     </div>
   );
 }
 
-function PreferenceZPage() {
+function PreferenceZPage({ onOpen }) {
   const { state, updateUser } = useAppState();
   const [saved, ping] = useSavedFlash();
+  const gate = useMetricGate("preferencez");
   const pref = state.user.preferences || {};
   // Multi-select: attracted to male / female / non-binary — any one, both, or all.
   const genders = pref.partnerGenders || (pref.partnerGender ? [pref.partnerGender] : []);
@@ -2669,6 +2732,7 @@ function PreferenceZPage() {
       <div className="card">
         <div className="card-header"><span>💞 Attracted To</span><SavedFlash saved={saved} /></div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 12 }}>Pick the gender(s) you're attracted to — one, both, or all. Filterable across CollabZ, VenueZ, and Social ConnectZ.</p>
+        <MetricLockWrap locked={gate.locked}>
         <div className="grid-3">
           {PARTNER_GENDERS.map((g) => {
             const on = genders.includes(g.id) && !asexual;
@@ -2683,15 +2747,18 @@ function PreferenceZPage() {
           {asexual ? "✓ " : ""}🤍 Asexual — not sexually attracted to any gender
         </button>
         {orientation && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 8 }}>💫 Reads as <strong>{orientation}</strong>{orientation === "Pansexual" ? " — attracted to all." : orientation === "Asexual" ? "." : "."}</p>}
+        </MetricLockWrap>
       </div>
       <div className="card">
         <div className="card-header"><span>✨ Traits That Matter</span><SavedFlash saved={saved} /></div>
+        <MetricLockWrap locked={gate.locked}>
         <div className="chip-wrap">
           {TRAITS.map((t) => (
             <button key={t} className={`heritage-chip${(pref.traits || []).includes(t) ? " sel" : ""}`} onClick={() => toggleTrait(t)}>{t}</button>
           ))}
         </div>
-        <ProfileSaveBar label="Save PreferenceZ" />
+        </MetricLockWrap>
+        <MetricEditBar mkey="preferencez" onOpen={onOpen} label="Save PreferenceZ" />
       </div>
     </>
   );
@@ -2705,6 +2772,7 @@ function LanguageZPage({ tier, serverOk, syncEconomy, onOpen }) {
   const { state, updateUser, updateSettings } = useAppState();
   const [saved, ping] = useSavedFlash();
   const uiLang = state.settings?.uiLang || "en";
+  const gate = useMetricGate("languages");
   const spoken = state.user.languages || [];
   const suggested = suggestLanguages(state.user.nationalities).filter((c) => !spoken.includes(c));
   const toggleSpoken = (code) => {
@@ -2744,6 +2812,7 @@ function LanguageZPage({ tier, serverOk, syncEconomy, onOpen }) {
       <div className="card">
         <div className="card-header"><span>🗣️ Languages you speak</span><SavedFlash saved={saved} /></div>
         <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick every language you speak — shown on your profile and used to match collaborators. Multi-select.</p>
+        <MetricLockWrap locked={gate.locked}>
         {suggested.length > 0 && (
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 4 }}>📍 Suggested from your NationalitieZ:</div>
@@ -2764,7 +2833,8 @@ function LanguageZPage({ tier, serverOk, syncEconomy, onOpen }) {
         {state.user.nationalities?.length ? null : (
           <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Set your <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("nationalitiez")}>NationalitieZ</button> to get language suggestions.</p>
         )}
-        <ProfileSaveBar label="Save LanguageZ" />
+        </MetricLockWrap>
+        <MetricEditBar mkey="languages" onOpen={onOpen} label="Save LanguageZ" />
       </div>
 
       <div className="card">

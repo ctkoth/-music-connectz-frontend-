@@ -6,6 +6,9 @@ const STORE_KEY = "musicConnectZState";
 
 const DEFAULT_STATE = {
   user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, links: [], nationalities: [], languages: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
+  // When each metric was last saved (ISO), anchoring its tier edit window so a
+  // metric locks after the window passes (NationalitieZ, SubstanceZ, …).
+  metricSavedAt: {},
   // Universal social layer: likes/dislikes/comments keyed by any item id, so
   // posts, CollabZ, BattleZ, profiles — anything — is shareable/rateable/commentable.
   social: {},
