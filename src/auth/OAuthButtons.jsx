@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Apple, Facebook, Github, Instagram } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
+import { api } from "../api.js";
 
 const REDIRECT =
   import.meta.env.VITE_OAUTH_REDIRECT ||
   (typeof window !== "undefined" ? `${window.location.origin}/oauth/callback` : "");
 
-const ID = (name) => import.meta.env[`VITE_${name}_CLIENT_ID`] || "";
+// Build-time client ID from Vite env (fallback when the backend doesn't supply one).
+const ENV_ID = (name) => import.meta.env[`VITE_${name}_CLIENT_ID`] || "";
 
 /* --- inline brand glyphs (lucide lacks these) --- */
 const Spotify = (p) => (
@@ -81,10 +83,26 @@ export default function OAuthButtons({ onSuccess, onError }) {
   const { oauth } = useAuth();
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
+  const [runtimeIds, setRuntimeIds] = useState({}); // public client IDs from the backend
 
+  // Prefer the backend-configured client ID (runtime), fall back to the
+  // build-time VITE_* var. Lets a client ID set on the backend work without a
+  // frontend rebuild.
+  const idOf = (key) => runtimeIds[key.toLowerCase()] || ENV_ID(key.toUpperCase());
+
+  /* Fetch the public OAuth client IDs the backend is configured with. */
+  useEffect(() => {
+    let on = true;
+    api("/api/auth/oauth-config/", { auth: false })
+      .then((r) => on && setRuntimeIds(r || {}))
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+
+  const googleId = idOf("google");
   /* Google keeps Google Identity Services when configured */
   useEffect(() => {
-    const gid = ID("GOOGLE");
+    const gid = googleId;
     if (!gid) return;
     const s = document.createElement("script");
     s.src = "https://accounts.google.com/gsi/client";
@@ -105,15 +123,17 @@ export default function OAuthButtons({ onSuccess, onError }) {
       });
     };
     document.head.appendChild(s);
-  }, [oauth, onSuccess, onError]);
+  }, [oauth, onSuccess, onError, googleId]);
 
   async function start(p) {
-    const id = ID(p.key.toUpperCase());
+    const id = idOf(p.key);
+    const notConfigured = (label, key) =>
+      `${label} isn't configured yet — set ${key.toUpperCase()}_OAUTH_CLIENT_ID on the backend (or VITE_${key.toUpperCase()}_CLIENT_ID at build).`;
     if (p.key === "google") {
-      return onError?.(id ? "Use the Google button above." : "Google isn't configured yet (VITE_GOOGLE_CLIENT_ID).");
+      return onError?.(id ? "Use the Google button above." : notConfigured("Google", "google"));
     }
     if (p.key === "apple") {
-      if (!id) return onError?.("Apple isn't configured yet (VITE_APPLE_CLIENT_ID).");
+      if (!id) return onError?.(notConfigured("Apple", "apple"));
       try {
         setBusy("apple");
         await new Promise((res, rej) => {
@@ -130,7 +150,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
       finally { setBusy(""); }
       return;
     }
-    if (!id) return onError?.(`${p.label} isn't configured yet (VITE_${p.key.toUpperCase()}_CLIENT_ID).`);
+    if (!id) return onError?.(notConfigured(p.label, p.key));
 
     const state = rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
@@ -152,7 +172,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
         <span className="h-px flex-1 bg-white/10" /> or continue with <span className="h-px flex-1 bg-white/10" />
       </div>
 
-      {ID("GOOGLE") && <div ref={googleBtn} className="flex justify-center" />}
+      {googleId && <div ref={googleBtn} className="flex justify-center" />}
 
       <div className="grid grid-cols-5 gap-2">
         {PROVIDERS.map((p) => (
