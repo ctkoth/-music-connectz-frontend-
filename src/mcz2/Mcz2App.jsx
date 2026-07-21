@@ -128,7 +128,7 @@ import {
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
-import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS } from "./intelligence.js";
+import { IMAGE_TYPES, VIDEO_TYPES, MIX_MODES, MIX_TARGETS, MIX_EXTRAS, INSTR_GENRES, INSTR_INSTRUMENTS, KEYS, occTierFor, DOC_TYPES, INTEL_APPS, MOOD_GROUPS, MOODS, DIRECTZ_FORMATS, directzFormatForSec } from "./intelligence.js";
 import "./mcz2.css";
 
 // Transparent transaction breakdown — RepostExchange-style: plain numbers,
@@ -244,6 +244,13 @@ function useEditWindow(createdAt) {
 const fmtCountdown = (s) => {
   if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
   if (s >= 60) return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return `${s}s`;
+};
+// Human duration for media length: "1h 12m" / "45m" / "40s".
+const fmtDur = (s) => {
+  s = Math.round(s || 0);
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  if (s >= 60) return `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ""}`;
   return `${s}s`;
 };
 
@@ -6978,6 +6985,22 @@ function SmartMedia({ url, type, style }) {
     : <audio src={url} controls onError={() => setBroken(true)} style={{ width: "100%", ...style }} />;
 }
 
+// Read a media blob's duration (seconds) off a temporary element — best-effort.
+function probeDuration(blob, type) {
+  return new Promise((resolve) => {
+    try {
+      const el = document.createElement(type === "video" ? "video" : "audio");
+      el.preload = "metadata";
+      const url = URL.createObjectURL(blob);
+      const done = (d) => { URL.revokeObjectURL(url); resolve(Number.isFinite(d) && d > 0 ? d : 0); };
+      el.onloadedmetadata = () => done(el.duration);
+      el.onerror = () => done(0);
+      el.src = url;
+      setTimeout(() => done(el.duration), 4000); // safety timeout
+    } catch { resolve(0); }
+  });
+}
+
 function MediaCapture({ onUploaded, accept = "audio/*,video/*", allowVideo = true, compact = false }) {
   const [status, setStatus] = useState("");   // "", "recording", "uploading", "denied"
   const [preview, setPreview] = useState(null); // { url, type }
@@ -6987,10 +7010,11 @@ function MediaCapture({ onUploaded, accept = "audio/*,video/*", allowVideo = tru
   const upload = async (blob, type, name) => {
     setStatus("uploading"); setErr("");
     try {
+      const duration = await probeDuration(blob, type);
       const file = new File([blob], name || `clip.${type === "video" ? "webm" : "webm"}`, { type: blob.type || (type === "video" ? "video/webm" : "audio/webm") });
       const r = await uploadFileApi(file);
       const url = r?.upload?.url || r?.url || "";
-      const info = { url, type };
+      const info = { url, type, duration };
       setPreview(info); onUploaded?.(info);
     } catch (e) {
       const msg = e?.message || "";
@@ -7406,7 +7430,8 @@ function DirectZWorkCard({ w, onRated, mine }) {
   return (
     <div className="post-card">
       <div className="post-user">{fmt?.emoji} {w.title} <span className="tag">{fmt?.name}</span></div>
-      <div className="post-meta">{w.video_type && `${w.video_type} · `}{w.mood && `🫥 ${w.mood} · `}by @{w.owner}{w.duration_sec ? ` · ${Math.round(w.duration_sec / 60)}min` : ""}</div>
+      <div className="post-meta">{w.video_type && `${w.video_type} · `}{w.mood && `🫥 ${w.mood} · `}by @{w.owner}{w.duration_sec ? ` · ${fmtDur(w.duration_sec)}` : ""}</div>
+      {w.media_url && <div style={{ margin: "6px 0" }}><SmartMedia url={w.media_url} type={w.media_type === "audio" ? "audio" : "video"} style={{ maxHeight: 260 }} /></div>}
       {w.description && <div className="post-content" style={{ fontSize: 12 }}>{w.description}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 0" }}>
         <span style={{ fontSize: 16, fontWeight: 800, color: "var(--gold, #ffcf3f)" }}>⭐ {w.rating != null ? `${w.rating}/10` : "—"}</span>
@@ -7436,9 +7461,24 @@ function DirectZPage({ tier, serverOk }) {
   const [works, setWorks] = useState([]);
   const [msg, setMsg] = useState("");
   // create form
-  const [form, setForm] = useState({ fmt: "reelz", video_type: VIDEO_TYPES[0].name, mood: "", title: "", description: "", minutes: 2 });
+  const [form, setForm] = useState({ fmt: "reelz", video_type: VIDEO_TYPES[0].name, mood: "", title: "", description: "", minutes: 2, media: null });
   const [rows, setRows] = useState([{ id: 1, name: me, tier: tier || "free", skills: [{ name: "Direction", price: 60 }] }]);
   const setF = (k, v) => setForm((s) => ({ ...s, [k]: v }));
+
+  // A video's real duration drives the category. When one's attached, its length
+  // must fit the selected format's band (backend enforces too).
+  const vidDur = form.media?.duration ? Math.round(form.media.duration) : 0;
+  const detectedFmt = vidDur ? directzFormatForSec(vidDur)?.id || null : null;
+  const durationSec = vidDur || Math.round((Number(form.minutes) || 0) * 60);
+  const fmtMismatch = !!form.media && detectedFmt !== form.fmt; // includes out-of-all-bands (null)
+  const onMedia = (m) => {
+    setForm((s) => {
+      const next = { ...s, media: m };
+      if (m?.duration) { const f = directzFormatForSec(Math.round(m.duration)); if (f) next.fmt = f.id; }
+      return next;
+    });
+  };
+  const fmtRange = (id) => DIRECTZ_FORMATS.find((f) => f.id === id)?.label || "";
 
   const load = () => { if (serverOk) getDirectzApi(fmtFilter).then((r) => setWorks(r.works || [])).catch(() => setWorks([])); };
   useEffect(load, [serverOk, fmtFilter]);
@@ -7454,14 +7494,17 @@ function DirectZPage({ tier, serverOk }) {
   const submit = async () => {
     if (!form.title.trim()) return;
     setMsg("");
+    if (fmtMismatch) { setMsg("⛔ The video's length doesn't fit the selected category — switch to the suggested one first."); return; }
     const contributors = rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim(), tier: r.tier, skills: r.skills.filter((s) => s.name.trim()).map((s) => ({ name: s.name.trim(), price: Number(s.price) || 0 })) }));
-    const body = { fmt: form.fmt, video_type: form.video_type, mood: form.mood, title: form.title.trim(), description: form.description.trim(), duration_sec: Math.round((Number(form.minutes) || 0) * 60), contributors };
+    const body = { fmt: form.fmt, video_type: form.video_type, mood: form.mood, title: form.title.trim(), description: form.description.trim(), duration_sec: durationSec, media_url: form.media?.url || "", media_type: form.media?.type || "", contributors };
     try {
       const w = await createDirectzApi(body);
       setMsg(`🤖 Submitted — AI rated it ${w.rating}/10. Real user ratings take over once 3 people rate it.`);
-      setForm((s) => ({ ...s, title: "", description: "" }));
+      setForm((s) => ({ ...s, title: "", description: "", media: null }));
       setTab("feed"); load();
-    } catch { setMsg("Couldn't submit — sign in and connect to post a DirectZ work."); }
+    } catch (e) {
+      setMsg(/duration_out_of_band|doesn't fit/i.test(e?.message || "") ? (e.message || "That length doesn't fit the category.") : "Couldn't submit — sign in and connect to post a DirectZ work.");
+    }
   };
 
   const onRated = (updated) => setWorks((ws) => ws.map((w) => (w.id === updated.id ? updated : w)));
@@ -7481,10 +7524,25 @@ function DirectZPage({ tier, serverOk }) {
         <>
           <div className="card">
             <div className="card-header">🎬 New work</div>
-            <label style={{ fontSize: 11, color: "var(--text-light)" }}>Format</label>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>Category <span style={{ opacity: 0.7 }}>— each accepts a set length</span></label>
             <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
               {DIRECTZ_FORMATS.map((f) => <button key={f.id} className={`heritage-chip${form.fmt === f.id ? " sel" : ""}`} onClick={() => setF("fmt", f.id)} title={f.note}>{f.emoji} {f.name} <span style={{ opacity: 0.7 }}>({f.label})</span></button>)}
             </div>
+
+            <div className="form-group"><label>🎥 Upload the video <span style={{ color: "var(--text-light)", fontSize: 10 }}>— category is set by its length</span></label>
+              <MediaCapture onUploaded={onMedia} accept="video/*" />
+              {form.media?.url && (
+                <div style={{ fontSize: 11, marginTop: 4, color: fmtMismatch ? "var(--danger)" : "var(--success)" }}>
+                  {vidDur ? `⏱️ ${fmtDur(vidDur)} — ` : ""}
+                  {detectedFmt
+                    ? (fmtMismatch
+                        ? <>this fits <strong>{DIRECTZ_FORMATS.find((f) => f.id === detectedFmt)?.name}</strong> ({fmtRange(detectedFmt)}), not {DIRECTZ_FORMATS.find((f) => f.id === form.fmt)?.name}. <button className="btn-link" style={{ background: "none", border: "none", color: "var(--gold, #ffcf3f)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => setF("fmt", detectedFmt)}>Switch to {DIRECTZ_FORMATS.find((f) => f.id === detectedFmt)?.name}</button></>
+                        : <>✅ fits {DIRECTZ_FORMATS.find((f) => f.id === form.fmt)?.name} ({fmtRange(form.fmt)})</>)
+                    : <>⛔ {vidDur ? "outside all DirectZ length bands (30s–3h)." : "couldn't read the length — set it manually below."}</>}
+                </div>
+              )}
+            </div>
+
             <label style={{ fontSize: 11, color: "var(--text-light)" }}>Video type</label>
             <div className="chip-wrap" style={{ margin: "6px 0 10px" }}>
               {VIDEO_TYPES.map((x) => <Pill key={x.name} active={form.video_type === x.name} onClick={() => setF("video_type", x.name)}>{x.name}</Pill>)}
@@ -7492,7 +7550,7 @@ function DirectZPage({ tier, serverOk }) {
             <MoodPicker mood={form.mood} setMood={(m) => setF("mood", m)} />
             <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setF("title", e.target.value)} placeholder="Name your work" /></div>
             <div className="form-group"><label>Concept / description</label><CappedTextarea value={form.description} onChange={(e) => setF("description", e.target.value)} style={{ height: 56 }} placeholder="What's the vision? The AI rating rewards a clear, well-staffed concept." /></div>
-            <div className="form-group"><label>Length (minutes)</label><input type="number" min="0" value={form.minutes} onChange={(e) => setF("minutes", e.target.value)} style={{ width: 100 }} /></div>
+            {!form.media?.url && <div className="form-group"><label>Length (minutes) <span style={{ color: "var(--text-light)", fontSize: 10 }}>— used when no video is attached</span></label><input type="number" min="0" value={form.minutes} onChange={(e) => setF("minutes", e.target.value)} style={{ width: 100 }} /></div>}
           </div>
 
           <div className="card">
@@ -7526,7 +7584,8 @@ function DirectZPage({ tier, serverOk }) {
             )}
           </div>
 
-          <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={submit}>🤖 Submit for AI rating</button>
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim() || fmtMismatch} onClick={submit}>🤖 Submit for AI rating</button>
+          {fmtMismatch && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>⛔ Fix the category to match the video's length to submit.</p>}
           {msg && <p style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>{msg}</p>}
         </>
       ) : (
