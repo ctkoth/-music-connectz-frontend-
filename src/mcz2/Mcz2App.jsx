@@ -829,13 +829,42 @@ const PERSONA_CHOICES = [
 
 // Derived skill sets shared by Director/Videographer/Developer, built off the
 // same taxonomies the rest of the app uses (moods, DirectZ length formats, game
-// genres) so persona skills stay in sync with those catalogs.
-const MOOD_SKILLS = ["Any Mood 🎭", ...MOODS];
+// genres) so persona skills stay in sync with those catalogs. Every skill chip
+// carries an emoji — the taxonomies without per-item emojis get one here.
+const MOOD_EMOJI = {
+  Joyful: "😄", Calm: "😌", Optimistic: "🌅", Grateful: "🙏", Inspired: "💡", Confident: "😎",
+  Sad: "😢", Anxious: "😰", Frustrated: "😤", Lonely: "🥀", Angry: "😠", Overwhelmed: "🌊",
+  Indifferent: "😐", Reflective: "🤔", Curious: "🧐", Tired: "🥱", Bored: "😑",
+  Melancholic: "🖤", Moody: "🌫️", Dreamy: "💭", Aggressive: "⚡", Dark: "🌑", Hyped: "🔥",
+  Playful: "😜", Affectionate: "🥰", Awkward: "😬", Supportive: "🤝", Detached: "🧊",
+};
+const MOOD_SKILLS = ["Any Mood 🎭", ...MOODS.map((m) => `${m} ${MOOD_EMOJI[m] || "🎭"}`)];
 const FORMAT_SKILLS = ["Any Format 🎬", ...DIRECTZ_FORMATS.map((f) => `${f.name} ${f.emoji} (${f.label})`)];
 const DIRECTING_CRAFT = ["Any Directing 🎬", "Shot Composition 🎞️", "Blocking 🚦", "Coverage 🎥", "Pacing ⏱️", "Performance Direction 🎭", "Scene Planning 🗂️", "Visual Storytelling 📖"];
+// Distinct emoji per game subgenre where recognizable; falls back to the genre's
+// emoji so every subgenre skill still carries one.
+const SUBGENRE_EMOJI = {
+  Platformer: "🏃", "Hack and Slash": "⚔️", "Beat 'Em Up": "👊", "Roguelike / Roguelite": "💀", Survival: "🏕️", "Flight Combat": "✈️", "Vehicular Combat": "🚗", "Run and Gun": "🔫",
+  "Open World / Sandbox": "🌍", Metroidvania: "🗺️", Stealth: "🥷", "Linear Action-Adventure": "🎬",
+  "Point-and-Click / Graphic Adventure": "🖱️", "Visual Novel": "📖", "Walking Simulator": "🚶", "Narrative / Interactive Movie": "🎞️", "Text-Based / Interactive Fiction": "📜", "Escape Room": "🔓",
+  "First-Person Shooter (FPS)": "🔫", "Third-Person Shooter (TPS)": "🎯", "Tactical Shooter": "🪖", "Arena Shooter": "🏟️", "Hero Shooter": "🦸", "Light Gun": "🔫",
+  "Top-Down Shooter": "🚁", "Bullet Hell": "💥", "Battle Royale": "🪂",
+  "Action RPG": "⚔️", "Turn-Based RPG": "🎲", JRPG: "🗾", MMORPG: "🌐", "Tactical RPG": "♟️", "Dungeon Crawler": "🏰", Soulslike: "💀", "Sandbox / Open World RPG": "🌍",
+  "Real-Time Strategy (RTS)": "⏱️", "Real-Time Tactics (RTT)": "🎖️", "Turn-Based Strategy (TBS)": "♟️", "Turn-Based Tactics (TBT)": "🎲", "Tower Defense": "🏰", "4X": "🌌", "Grand Strategy / Wargame": "🗺️", MOBA: "⚔️", "Auto-Battler / Auto Chess": "♟️", Artillery: "💣",
+  "Life / Social Simulation": "🏡", "City Builder / Construction": "🏗️", "Vehicle Simulation": "🚚", "Flight Simulation": "✈️", "Management / Business": "💼", "Farming Simulation": "🌾", "Pet Raising": "🐾",
+  "Football / Soccer": "⚽", "American Football": "🏈", Basketball: "🏀", Baseball: "⚾", Golf: "⛳", Tennis: "🎾", Hockey: "🏒", "Boxing / Combat Sports": "🥊", "MMA / Wrestling": "🤼", "Extreme Sports": "🛹", "Olympic / Mixed Sports": "🥇",
+  "Arcade Racing": "🏎️", "Simulation Racing": "🏁", "Kart Racing": "🏎️", "Futuristic Racing": "🚀", "Combat Racing": "💥",
+  "Traditional 2D Fighter": "🥋", "3D Fighter": "🥊", "Arena Brawler / Party Fighter": "🎉", "Hack and Slash Fighter": "⚔️",
+  "Logic Puzzle": "🧠", "Physics-Based Puzzle": "⚛️", "Match-Three / Tile Matching": "🔷", "Exploration Puzzle": "🗺️", "Word Construction": "🔤", "Trivia / Quiz": "❓", "Falling Block (Tetris-style)": "🧱",
+  "Psychological Horror": "🧠", "Survival Horror": "🧟", "Stealth Horror": "👻",
+  "Peripheral-Based": "🎸", "Rhythm Action": "🎵", "Music Sandbox": "🎹",
+  "Creative Sandbox": "🧱", "Survival Sandbox": "🏕️", "Open World Survival Craft": "⛏️",
+  "Idle / Incremental": "📈", Clicker: "👆", "Hyper-Casual": "🍬", "Party Games": "🎉", "Mini-Games": "🎯", Exergames: "🏃",
+  Pinball: "🎯", "Board Game / Card Game": "🃏", "Dating Simulation": "💘", "Educational / Edutainment": "🎓", "Programming Games": "💻", "Hidden Object": "🔍",
+};
 // Each game genre becomes its own category; its subgenres are the pickable skills.
 const GAME_GENRE_CATS = Object.fromEntries(
-  GAME_GENRES.map((g) => [`${g.emoji} ${g.name}`, [`Any ${g.name} ${g.emoji}`, ...g.subgenres]]),
+  GAME_GENRES.map((g) => [`${g.emoji} ${g.name}`, [`Any ${g.name} ${g.emoji}`, ...g.subgenres.map((s) => `${s} ${SUBGENRE_EMOJI[s] || g.emoji}`)]]),
 );
 
 // Available skills per persona — categorized, emoji-tagged catalog modeled off
@@ -853,7 +882,7 @@ const PERSONA_SKILLS = {
     "🥁 Percussion": ["Any Percussion 🥁", "Drums (Snare) 🥁", "Drums (Bass) 🥁", "Drums (Bongo) 🥁", "Cymbals 🥁"],
     "🎤 Rapping": ["Any Rapping 🎤", "Alternative Rap 🎸", "Boom Bap 🥁", "Chopper 🚁", "Cloud Rap ☁️", "Conscious Rap 🧠", "Crunk 🔥", "Drill ⚔️", "Emo Rap 🖤", "G-Funk 🌴", "Gangsta Rap ⛓️", "Hardcore Hip Hop 🎤", "Jazz Rap 🎷", "Mumble Rap 💤", "Old School 📻", "Snap 🫰", "Trap 🏚️"],
     "🎶 Singing (range)": ["Any Singing 🎶", "Bass 🧔‍♂️", "Baritone 🎙️", "Tenor 🎤", "Countertenor 🕊️", "Contralto 🎻", "Alto 🎶", "Mezzo-Soprano 🌊", "Soprano ☀️"],
-    "✍️ Craft": ["Songwriting", "Stage Presence", "Freestyle", "Melody", "Performance", "Branding"],
+    "✍️ Craft": ["Songwriting ✍️", "Stage Presence 🎤", "Freestyle 🌀", "Melody 🎶", "Performance 🎭", "Branding 🏷️"],
   },
   "Beat Producer": {
     "🎛️ Music DAWs": ["Any DAW 🎛️", "Ableton Live 🎵", "Adobe Audition 🎙️", "Audacity 🎧", "Bitwig Studio 🎚️", "Cakewalk 🎼", "Cubase 🎛️", "FL Studio 🎚️", "GarageBand 🎵", "Logic Pro 🎵", "Luna ☁️", "Mixcraft 🎚️", "PreSonus Studio One 🎛️", "Pro Tools 🎙️", "Reason 🎛️", "Reaper 🔧", "Studio One 🎛️", "Waveform Pro 📊"],
@@ -4933,7 +4962,7 @@ function MoodPicker({ mood, setMood }) {
           <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 3 }}>{g.emoji} {g.group}</div>
           <div className="chip-wrap">
             {g.moods.map((m) => (
-              <button key={m.name} type="button" title={m.note} className={`heritage-chip${mood === m.name ? " sel" : ""}`} onClick={() => setMood(mood === m.name ? "" : m.name)}>{m.name}</button>
+              <button key={m.name} type="button" title={m.note} className={`heritage-chip${mood === m.name ? " sel" : ""}`} onClick={() => setMood(mood === m.name ? "" : m.name)}>{m.name} {MOOD_EMOJI[m.name] || "🎭"}</button>
             ))}
           </div>
         </div>
