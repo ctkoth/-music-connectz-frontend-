@@ -7729,7 +7729,48 @@ function CallZPage({ tier, onOpen }) {
 const TRAINING = {
   singz: { emoji: "🎤", title: "SingZ", note: "Voice health first — warm up before you belt.", drills: ["Warmups", "Range Detection", "Pitch Match", "Breath Control", "Boss SongZ"] },
   rapz: { emoji: "🎙️", title: "RapZ", note: "Flow, breath, and bars — build the combo.", drills: ["Flow Pockets", "Breath Control", "Punchlines", "Combo Meter", "Boss Mode"] },
+  drumz: { emoji: "🥁", title: "DrumZ", note: "Technique, timing, rudiments, chops & fills.", drills: ["Rudiments", "Timing / Metronome", "Fills", "Grooves", "Chops"] },
+  guitarz: { emoji: "🎸", title: "GuitarZ", note: "Chords, strumming, riffs, lead.", drills: ["Chords", "Strumming", "Riffs", "Scales", "Lead / Solos"] },
+  violinz: { emoji: "🎻", title: "ViolinZ", note: "Posture, bowing, intonation, repertoire.", drills: ["Posture", "Bowing", "Intonation", "Scales", "Repertoire"] },
+  bassz: { emoji: "🎸", title: "BassZ", note: "Groove, fingerstyle, slap, locking in.", drills: ["Fingerstyle", "Slap", "Groove Lock", "Scales", "Walking Lines"] },
+  keyz: { emoji: "🎹", title: "KeyZ", note: "Hands, chords, scales, reading.", drills: ["Hand Independence", "Chords", "Scales", "Sight Reading", "Improv"] },
+  producez: { emoji: "🎚️", title: "ProduceZ", note: "Beat construction, arrangement, sound selection, mixing.", drills: ["Beat Construction", "Arrangement", "Sound Selection", "Sampling", "Mix Fundamentals"] },
+  designz: { emoji: "🎨", title: "DesignZ", note: "Briefs with explicit goals — cover art, branding, visuals.", drills: ["Composition", "Color Theory", "Typography", "Branding", "Cover Art"] },
+  developz: { emoji: "👾", title: "DevelopZ", note: "Ship real builds — games, tools, an open-source PR.", drills: ["Fundamentals", "Data Structures", "Build a Game", "Build an API", "Open-Source PR"] },
+  managez: { emoji: "🕴🏼", title: "ManageZ", note: "Drills verified server-side — found a label, book a collab, build a roster.", drills: ["Strategy", "Outreach", "Deal Structuring", "Roster Building", "Performance Tracking"] },
 };
+// Persona-training apps link out to the pro tool where the real work happens.
+const TRAIN_LINK = { producez: ["dawz", "🎛️ Open DawZ"], designz: ["intelligence", "🧠 Open Intelligence"], developz: ["occ", "👁️‍🗨️ Open OCC"], managez: ["labelz", "🏷️ Open LabelZ"] };
+// InstrumentZ practice lab: habit strip + real audio analysis + drills.
+function InstrumentZPage({ appKey, context, onOpen }) {
+  return (
+    <>
+      <HabitStrip appKey={appKey} appName={TRAINING[appKey].title} onOpen={onOpen} />
+      <AudioLab context={context} kind="instrument" onOpen={onOpen} skill={`${TRAINING[appKey].title} take`} />
+      <TrainingZ appKey={appKey} />
+    </>
+  );
+}
+// Persona training: habit strip + drills + a jump to the pro tool.
+function PersonaTrainPage({ appKey, onOpen }) {
+  const link = TRAIN_LINK[appKey];
+  return (
+    <>
+      <HabitStrip appKey={appKey} appName={TRAINING[appKey].title} onOpen={onOpen} />
+      <TrainingZ appKey={appKey} />
+      {link && <div className="card"><button className="btn btn-success" style={{ width: "100%" }} onClick={() => onOpen?.(link[0])}>{link[1]}</button></div>}
+    </>
+  );
+}
+const DrumZPage = ({ onOpen }) => <InstrumentZPage appKey="drumz" context="drum groove" onOpen={onOpen} />;
+const GuitarZPage = ({ onOpen }) => <InstrumentZPage appKey="guitarz" context="guitar riff" onOpen={onOpen} />;
+const ViolinZPage = ({ onOpen }) => <InstrumentZPage appKey="violinz" context="violin passage" onOpen={onOpen} />;
+const BassZPage = ({ onOpen }) => <InstrumentZPage appKey="bassz" context="bass line" onOpen={onOpen} />;
+const KeyZPage = ({ onOpen }) => <InstrumentZPage appKey="keyz" context="keyboard passage" onOpen={onOpen} />;
+const ProduceZPage = ({ onOpen }) => <PersonaTrainPage appKey="producez" onOpen={onOpen} />;
+const DesignZPage = ({ onOpen }) => <PersonaTrainPage appKey="designz" onOpen={onOpen} />;
+const DevelopZPage = ({ onOpen }) => <PersonaTrainPage appKey="developz" onOpen={onOpen} />;
+const ManageZPage = ({ onOpen }) => <PersonaTrainPage appKey="managez" onOpen={onOpen} />;
 function TrainingZ({ appKey }) {
   const { state, update } = useAppState();
   const cfg = TRAINING[appKey];
@@ -9269,6 +9310,15 @@ const FN_PAGES = {
   logz: LogZPage,
   tellz: TellZPage,
   bugz: BugZPage,
+  drumz: DrumZPage,
+  guitarz: GuitarZPage,
+  violinz: ViolinZPage,
+  bassz: BassZPage,
+  keyz: KeyZPage,
+  producez: ProduceZPage,
+  designz: DesignZPage,
+  developz: DevelopZPage,
+  managez: ManageZPage,
   legendz: LegendZPage,
   parcel: ParcelPrimatePage,
   merchz: MerchZPage,
