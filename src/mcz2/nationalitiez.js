@@ -70,3 +70,16 @@ export const TOP_20 = [
   "Russia", "Mexico", "Japan", "Ethiopia", "Philippines", "Egypt", "Vietnam", "DR Congo",
   "Germany", "Iran", "Turkey", "United Kingdom",
 ];
+
+// Top 60 nationalities by population — every name exists in REGIONS (so each has
+// an ISO2 flag). The default flag grid before searching.
+export const TOP_60 = [
+  "India", "China", "United States", "Indonesia", "Pakistan", "Nigeria", "Brazil", "Bangladesh",
+  "Russia", "Mexico", "Japan", "Ethiopia", "Philippines", "Egypt", "Vietnam", "DR Congo",
+  "Turkey", "Iran", "Germany", "Thailand", "United Kingdom", "France", "Italy", "Tanzania",
+  "South Africa", "Myanmar", "Kenya", "South Korea", "Colombia", "Spain", "Uganda", "Argentina",
+  "Algeria", "Sudan", "Ukraine", "Iraq", "Afghanistan", "Poland", "Canada", "Morocco",
+  "Saudi Arabia", "Uzbekistan", "Peru", "Angola", "Malaysia", "Mozambique", "Ghana", "Yemen",
+  "Nepal", "Venezuela", "Madagascar", "Cameroon", "Côte d'Ivoire", "North Korea", "Australia",
+  "Niger", "Sri Lanka", "Mali", "Chile", "Kazakhstan",
+];
