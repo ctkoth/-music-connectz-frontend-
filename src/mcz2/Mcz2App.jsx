@@ -11,7 +11,7 @@ import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
 import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
-import { SIGNS, zodiacFor, dailyReading, signByName } from "./zodiac.js";
+import { SIGNS, zodiacFor, dailyReading, signByName, signCompatibility } from "./zodiac.js";
 import { GAME_GENRES, SEED_GAMES, subgenresFor, genreEmoji, langsForTier } from "./gamez.js";
 import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQuery } from "./aiModels.js";
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
@@ -2044,8 +2044,10 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
       {MEMBERSHIP_TIERS.map((t) => {
         const price = TIER_PRICING[t.id]?.[cycle];
         const isCur = cur === t.id;
+        const RANK = { free: 0, premium: 1, statz: 2, debug: 3 };
+        const above = (RANK[t.id] ?? 0) > (RANK[cur] ?? 0); // a tier you'd upgrade INTO
         return (
-          <div key={t.id} className="card" style={{ border: isCur ? `1px solid ${t.color}` : undefined }}>
+          <div key={t.id} className="card" style={{ border: isCur ? `1px solid ${t.color}` : above ? "1px solid var(--success)" : undefined }}>
             <div className="card-header">
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {t.icon ? <IconImg icon={t.icon} alt={t.name} style={{ width: 28, height: 28, borderRadius: 7 }} /> : <span>{t.emoji}</span>}
@@ -2054,8 +2056,9 @@ function MembershipZPage({ tier, serverOk, onTierChange, syncEconomy, isOwner, o
               <span className="tag">{price ? `${money(price)}/${cycle === "monthly" ? "mo" : "yr"}` : "Free"}</span>
             </div>
             <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{t.tag}</p>
+            {above && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--success)", margin: "0 0 6px" }}>🔓 Upgrading from {cur.toUpperCase()} unlocks:</div>}
             {t.perks.map((p, i) => (
-              <div key={i} className="skill-item"><span className="skill-item-name" style={{ fontSize: 12 }}>✓ {p}</span></div>
+              <div key={i} className="skill-item"><span className="skill-item-name" style={{ fontSize: 12, color: above ? "var(--text)" : undefined }}>{above ? "🔓" : "✓"} {p}</span></div>
             ))}
             <div style={{ marginTop: 10 }}>
               {isCur ? (
@@ -3490,6 +3493,8 @@ function ZodiacZPage() {
   const sign = zodiacFor(state.user.birthday);
   const reading = dailyReading(sign);
   const [openSign, setOpenSign] = useState(sign?.name || null);
+  const [matchSign, setMatchSign] = useState(null);
+  const compat = sign && matchSign ? signCompatibility(sign, matchSign) : null;
   return (
     <>
       <div className="card">
@@ -3518,6 +3523,28 @@ function ZodiacZPage() {
             <span className="tag">🔢 Lucky number {reading.luckyNumber}</span>
             <span className="tag">🎨 Lucky color {reading.luckyColor}</span>
           </div>
+        </div>
+      )}
+      {sign && (
+        <div className="card">
+          <div className="card-header">💞 Compatibility <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-light)" }}>· your {sign.emoji} vs…</span></div>
+          <div className="chip-wrap">
+            {SIGNS.map((s) => (
+              <button key={s.name} className={`heritage-chip${matchSign === s.name ? " sel" : ""}`} onClick={() => setMatchSign(matchSign === s.name ? null : s.name)}>{s.emoji} {s.name}</button>
+            ))}
+          </div>
+          {compat && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 24 }}>{compat.a.emoji}💞{compat.b.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <StarRow value={compat.score} size={16} />
+                  <div style={{ fontSize: 12, fontWeight: 800, color: compat.score >= 8 ? "var(--success)" : compat.score >= 6 ? "var(--gold, #ffcf3f)" : "var(--text-light)" }}>{compat.score}/10 · {compat.a.name} + {compat.b.name}</div>
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: 0 }}>{compat.note}</p>
+            </div>
+          )}
         </div>
       )}
       <div className="card">
