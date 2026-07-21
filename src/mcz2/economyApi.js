@@ -37,6 +37,11 @@ export const occChatApi = ({ model, prompt, knowledge, history, slang, acronyms,
 export const translateApi = ({ texts, targetLang, targetName, sourceLang }) =>
   api("/api/economy/translate/", { method: "POST", body: { texts, target_lang: targetLang, target_name: targetName, source_lang: sourceLang } });
 
+// Buy prepaid PromptZ at 80% of face (pay cents → get cents×1.25 PromptZ).
+// Returns { wallet, granted }. 402 when cash is short.
+export const buyPromptzApi = (cents) =>
+  api("/api/economy/promptz/buy/", { method: "POST", body: { cents } });
+
 // { items: [{ id, name, price_cents, owned }] }
 export const getSpecZApi = () => api("/api/economy/specz/");
 
