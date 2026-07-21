@@ -146,6 +146,7 @@ export const CUSTOM_ICONS = {
   "vis_private.png": "/icons/vis_private.png",
   "vis_public.png": "/icons/vis_public.png",
   "languagez.png": "/icons/languagez.png",
+  "languagez_pt.png": "/icons/languagez_pt.png",
   "vis_restricted.png": "/icons/vis_restricted.png",
   "witchcraft.png": "/icons/witchcraft.png",
   "writez.png": "/icons/writez.png",

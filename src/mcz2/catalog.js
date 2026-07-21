@@ -222,3 +222,21 @@ export const CATALOG = [
 export const APPS_BY_KEY = Object.fromEntries(
   CATALOG.flatMap((g) => g.apps).map((a) => [a.key, a]),
 );
+
+// Apps that ship more than one icon the member can choose between. The first
+// option is the default. Add an app here (with its extra icon files registered
+// in CUSTOM_ICONS) to make its tile art user-selectable.
+export const ICON_VARIANTS = {
+  languagez: [
+    { icon: "languagez.png", label: "LanguageZ" },
+    { icon: "languagez_pt.png", label: "LinguagemZ" },
+  ],
+};
+
+// Resolve the icon to show for an app: the member's chosen override, else the
+// catalog default. `overrides` is settings.appIcons ({ [key]: iconFile }).
+export function iconFor(overrides, key, fallback) {
+  const pick = overrides && overrides[key];
+  const allowed = (ICON_VARIANTS[key] || []).some((v) => v.icon === pick);
+  return allowed ? pick : fallback;
+}

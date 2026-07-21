@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { AppStateProvider, useAppState, dataThemeFor } from "./AppState.jsx";
-import { CATALOG, APPS_BY_KEY } from "./catalog.js";
+import { CATALOG, APPS_BY_KEY, ICON_VARIANTS, iconFor } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
@@ -141,6 +141,30 @@ function Translatable({ text, tag: Tag = "div", className, style, onCharge }) {
         </button>
       )}
     </>
+  );
+}
+// Lets the member choose which icon an app shows (for apps with >1 variant).
+// The choice persists in settings.appIcons and applies everywhere the tile draws.
+function AppIconPicker({ appKey }) {
+  const { state, updateSettings } = useAppState();
+  const variants = ICON_VARIANTS[appKey] || [];
+  if (variants.length < 2) return null;
+  const app = APPS_BY_KEY[appKey];
+  const current = iconFor(state.settings?.appIcons, appKey, app?.icon);
+  const choose = (icon) => updateSettings({ appIcons: { ...(state.settings?.appIcons || {}), [appKey]: icon } });
+  return (
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }} data-notranslate>
+      {variants.map((v) => {
+        const on = current === v.icon;
+        return (
+          <button key={v.icon} onClick={() => choose(v.icon)} title={v.label}
+            style={{ background: "none", border: `2px solid ${on ? "var(--primary)" : "var(--border)"}`, borderRadius: 14, padding: 5, cursor: "pointer", boxShadow: on ? "var(--glow)" : "none", textAlign: "center" }}>
+            <IconImg icon={v.icon} alt={v.label} style={{ width: 54, height: 54, borderRadius: 11, display: "block" }} />
+            <div style={{ fontSize: 10, marginTop: 3, color: on ? "var(--primary)" : "var(--text-light)" }}>{on ? "✓ " : ""}{v.label}</div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
@@ -2251,6 +2275,18 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
           ))}
         </div>
       </div>
+      {Object.keys(ICON_VARIANTS).length > 0 && (
+        <div className="card">
+          <div className="card-header">🎨 App icons</div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Choose the icon for apps that ship more than one look.</p>
+          {Object.keys(ICON_VARIANTS).map((key) => (
+            <div key={key} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{APPS_BY_KEY[key]?.emoji} {APPS_BY_KEY[key]?.name || key}</div>
+              <AppIconPicker appKey={key} />
+            </div>
+          ))}
+        </div>
+      )}
       <TierLimitsCard />
       <div className="card">
         <div className="card-header">🔔 Preferences</div>
@@ -2703,6 +2739,12 @@ function LanguageZPage({ serverOk, syncEconomy, onOpen }) {
           <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Set your <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("nationalitiez")}>NationalitieZ</button> to get language suggestions.</p>
         )}
         <ProfileSaveBar label="Save LanguageZ" />
+      </div>
+
+      <div className="card">
+        <div className="card-header">🎨 App icon</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Pick the icon this app shows — English <strong>LanguageZ</strong> or Português <strong>LinguagemZ</strong>. Changes it everywhere: the launcher, dock, and window.</p>
+        <AppIconPicker appKey="languagez" />
       </div>
 
       <div className="card">
@@ -8452,6 +8494,7 @@ function OpenModeToggle({ mode, onSetMode }) {
 
 // A functional app opened as a modal window over whatever page is underneath.
 function AppWindow({ appKey, onClose, onSetMode, pageProps }) {
+  const { state } = useAppState();
   if (!appKey) return null;
   const Page = FN_PAGES[appKey];
   if (!Page) return null;
@@ -8461,7 +8504,7 @@ function AppWindow({ appKey, onClose, onSetMode, pageProps }) {
       <div className="modal-content app-window" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
-            {app?.icon && <IconImg icon={app.icon} alt={app?.name || appKey} />}
+            {app?.icon && <IconImg icon={iconFor(state.settings?.appIcons, appKey, app.icon)} alt={app?.name || appKey} />}
             <h2>{app?.emoji} {app?.name || appKey}</h2>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -8479,13 +8522,14 @@ function AppWindow({ appKey, onClose, onSetMode, pageProps }) {
 
 // ---- App description modal (blueprint "click icon → Corey voice" pattern) ----
 function AppModal({ app, onClose, onOpen }) {
+  const { state } = useAppState();
   if (!app) return null;
   return (
     <div className="modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
-            <IconImg icon={app.icon} alt={app.name} />
+            <IconImg icon={iconFor(state.settings?.appIcons, app.key, app.icon)} alt={app.name} />
             <h2>{app.emoji} {app.name}</h2>
           </div>
           <button className="close-btn" onClick={onClose}>×</button>
@@ -8587,6 +8631,8 @@ function PostModal({ post, onClose, onOpen }) {
 
 // ---- PickConnectZ dock ----
 function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
+  const { state } = useAppState();
+  const dockIcon = (a) => iconFor(state.settings?.appIcons, a.key, a.icon);
   const [editing, setEditing] = useState(false);
   const { label: tierLabel, limit } = tierInfo(tier);
   const pinnedApps = pins.map((k) => APPS_BY_KEY[k]).filter(Boolean);
@@ -8635,13 +8681,13 @@ function Dock({ usage, pins, tier, current, onOpen, onTogglePin, onHome }) {
             <>
               {aiPicks.map((a) => (
                 <div key={a.key} className={`dock-icon${current === a.key ? " active" : ""}`} onClick={() => onOpen(a.key)} title={`${a.name} · AI pick`}>
-                  <IconImg icon={a.icon} alt={a.name} /><span className="ai-dot" />
+                  <IconImg icon={dockIcon(a)} alt={a.name} /><span className="ai-dot" />
                 </div>
               ))}
               {aiPicks.length > 0 && pinnedApps.length > 0 && <div className="dock-sep" />}
               {pinnedApps.map((a) => (
                 <div key={a.key} className={`dock-icon${current === a.key ? " active" : ""}`} onClick={() => onOpen(a.key)} title={a.name}>
-                  <IconImg icon={a.icon} alt={a.name} />
+                  <IconImg icon={dockIcon(a)} alt={a.name} />
                 </div>
               ))}
             </>
@@ -8832,7 +8878,7 @@ function Shell() {
                 <div className="launch-grid">
                   {group.apps.map((a) => (
                     <button key={a.key} className="app-tile" onClick={() => openApp(a.key)}>
-                      <span className="tile-icon"><IconImg icon={a.icon} alt={a.name} /></span>
+                      <span className="tile-icon"><IconImg icon={iconFor(settings.appIcons, a.key, a.icon)} alt={a.name} /></span>
                       <span className="tile-name">{a.name}</span>
                     </button>
                   ))}
