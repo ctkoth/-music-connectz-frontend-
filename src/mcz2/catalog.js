@@ -203,7 +203,7 @@ export const CATALOG = [
       { key: "managez", name: "ManageZ", emoji: "🕴🏼", icon: "managez.png", desc: "Management drills verified server-side: found a label, offer a contract, book a collab, build a roster, send outreach." },
       // Media editors / dashboards not built yet
       { key: "imagez", name: "ImageZ", emoji: "🖼️", icon: "imagez.png", desc: "A Photoshop-style editor — all image media opens here." },
-      { key: "analytics", name: "Analytics", emoji: "📈", icon: "analytics.png", desc: "Deep dive into your usage and performance across the platform." },
+      { key: "analytics", name: "AnalyticZ", emoji: "📈", icon: "analytics.png", desc: "Deep dive into your usage and performance across the platform." },
       { key: "facez", name: "FaceZ", emoji: "🙄", icon: "facez.png", desc: "Faces available for use in AI-generated images/videos — taggable by user profile." },
       { key: "homez", name: "Homez", emoji: "🏠", icon: "homez.png", desc: "Your home dashboard — a quick view across your MCZ activity." },
       { key: "moodz", name: "MoodZ", emoji: "😅", icon: "moodz.png", desc: "The mood you were in when posting — tracked and filterable across the platform." },
