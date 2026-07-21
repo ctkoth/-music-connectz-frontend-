@@ -4379,13 +4379,16 @@ function useWatchGate(resetKey, rateS = 30, commentS = 60) {
 // be rated (it posts to the feed). This is the "media upload or post to rate" ask.
 // Corey AI-rates a media post: real /10 for audio (analyzeAudioBuffer) + Corey
 // feedback via OCC (costs a prompt). Video/image get Corey feedback from context.
-function AIRateButton({ post }) {
+function AIRateButton({ post, tier }) {
   const { state } = useAppState();
   const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState(null); // { score, text, cost }
+  const [out, setOut] = useState(null); // { score, text, cost, submitted }
   const [err, setErr] = useState("");
   const mediaUrl = post.media_url || (post.items || [])[0]?.url || "";
   const mediaType = post.media_type || (post.items || [])[0]?.type || "";
+  // Premium+ members' AI score counts — it's submitted as a real rating so it
+  // moves the community median, exactly like a hand rating on RateZ.
+  const canCount = tierMeets(tier, "premium");
 
   const run = async () => {
     setBusy(true); setErr(""); setOut(null);
@@ -4402,11 +4405,24 @@ function AIRateButton({ post }) {
     const prompt = `Rate this ${mediaType || "media"} post "${post.title}"${post.description ? ` (${post.description})` : ""} out of 10 and coach the creator. ${score != null ? `Audio analysis: overall ${score}/10, ${meterLine}.` : "Judge from the title/description."} Give a score out of 10 and the top 2 things to improve. Keep it tight, Corey voice.`;
     try {
       const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [], suggest: !!state.occ?.settings?.suggestions });
-      setOut({ score, text: r.text, cost: r.cost_cents });
+      // Final /10: prefer the audio analysis, else read Corey's score from the reply.
+      let finalScore = score;
+      if (finalScore == null) {
+        const t = r.text || "";
+        const m = t.match(/(\d+(?:\.\d+)?)\s*\/\s*10/) || t.match(/\b(?:score|rate[d]?)\D{0,12}(\d+(?:\.\d+)?)/i);
+        finalScore = m ? Number(m[1]) : null;
+      }
+      finalScore = finalScore != null ? Math.max(1, Math.min(10, Math.round(finalScore))) : null;
+      // Premium: submit the AI score so it affects the item's community median.
+      let submitted = false;
+      if (finalScore != null && canCount && isSignedIn()) {
+        try { await rateSocialApi(`post:${post.id}`, finalScore); submitted = true; } catch { /* edit window / retry */ }
+      }
+      setOut({ score: finalScore, text: r.text, cost: r.cost_cents, submitted });
     } catch (e) {
       const msg = e?.message || "";
       if (/402/.test(msg)) setErr("You're short on balance — add funds in Money (Corey GPT is the cheapest voice).");
-      else { setOut({ score, text: localCoreyFeedback({ ok: score != null, scores: {}, metrics: {}, profile: {} }, post.title), cost: 0 }); } // offline fallback, no charge
+      else { setOut({ score, text: localCoreyFeedback({ ok: score != null, scores: {}, metrics: {}, profile: {} }, post.title), cost: 0, submitted: false }); } // offline fallback, no charge
     }
     setBusy(false);
   };
@@ -4417,8 +4433,14 @@ function AIRateButton({ post }) {
       {err && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{err}</p>}
       {out && (
         <div style={{ marginTop: 6, padding: 8, borderRadius: 8, background: "rgba(255,255,255,0.05)" }}>
-          {out.score != null && <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", fontWeight: 700 }}>🎯 Corey's score: {out.score}/10</div>}
+          {out.score != null && (
+            <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", fontWeight: 700 }}>
+              🎯 Corey's score: {out.score}/10
+              {out.submitted && <span style={{ color: "var(--success)", marginLeft: 6 }}>✓ counted toward the median</span>}
+            </div>
+          )}
           <p style={{ fontSize: 12, whiteSpace: "pre-wrap", margin: "4px 0 0" }}>{out.text}</p>
+          {out.score != null && !out.submitted && !canCount && <div style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🔒 Premium: let Corey's score count toward the community median.</div>}
           {out.cost > 0 && <div style={{ fontSize: 10, color: "var(--text-light)", marginTop: 4 }}>Charged {centsLabel(out.cost)} for the prompt.</div>}
         </div>
       )}
@@ -4426,7 +4448,7 @@ function AIRateButton({ post }) {
   );
 }
 
-function RateRealMedia({ serverOk, onOpen }) {
+function RateRealMedia({ serverOk, onOpen, tier }) {
   const { state } = useAppState();
   const { openPost } = usePostModal();
   const [posts, setPosts] = useState(null);
@@ -4502,14 +4524,14 @@ function RateRealMedia({ serverOk, onOpen }) {
               ? (p.items || []).slice(0, 1).map((it, k) => <SmartMedia key={k} url={it.url} type={it.type} style={{ maxHeight: 200 }} />)
               : <SmartMedia url={p.media_url} type={p.media_type} style={{ maxHeight: 220 }} />}
             <SocialBar id={`post:${p.id}`} shareText={`${p.title} on Music ConnectZ`} />
-            <AIRateButton post={p} />
+            <AIRateButton post={p} tier={tier} />
           </div>
         ))}
     </div>
   );
 }
 
-function RateConnectZPage({ serverOk, onOpen }) {
+function RateConnectZPage({ tier, serverOk, onOpen }) {
   const { state, update, addTo, toggleSetting, addXP } = useAppState();
   const [type, setType] = useState("image");
   const gate = useWatchGate(type); // 30s to rate, 60s to comment — resets per item
@@ -4539,7 +4561,7 @@ function RateConnectZPage({ serverOk, onOpen }) {
   };
   return (
     <>
-      <RateRealMedia serverOk={serverOk} onOpen={onOpen} />
+      <RateRealMedia serverOk={serverOk} onOpen={onOpen} tier={tier} />
       <div className="card-header" style={{ borderBottom: "none", marginTop: 4 }}>🎯 Quick practice (sample items)</div>
       <div className="chip-wrap" style={{ marginBottom: 14 }}>
         {RATE_TYPES.map((x) => (
