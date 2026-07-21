@@ -204,7 +204,7 @@ import {
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
   getAdzApi, createCommercialApi, deleteCommercialApi, rewardAdApi,
-  chargeAiApi, occChatApi, buyPromptzApi,
+  chargeAiApi, occChatApi, buyPromptzApi, geminiImageApi, geminiVideoApi, geminiVideoStatusApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
@@ -5502,7 +5502,19 @@ function ImageConnectZ({ syncEconomy }) {
   const [type, setType] = useState(IMAGE_TYPES[0].name);
   const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [img, setImg] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
   const t = IMAGE_TYPES.find((x) => x.name === type);
+  const gen = async () => {
+    setBusy(true); setMsg(""); setImg(null);
+    try { const r = await geminiImageApi(`${mood ? mood + " " : ""}${type} (${t.ratio}): ${prompt}`); setImg(r.image); syncEconomy?.(); }
+    catch (e) {
+      const m = e?.message || "";
+      setMsg(/503|configured|GEMINI/i.test(m) ? "🔌 Image generation isn't set up yet — add GEMINI_API_KEY on the backend." : /40[26]|balance|enough/i.test(m) ? "Not enough PromptZ / cash — buy PromptZ or add funds." : "Couldn't generate — try again.");
+    }
+    setBusy(false);
+  };
   return (
     <div className="card">
       <div className="card-header">🖼️ Image ConnectZ <span className="tag">{t.ratio}</span></div>
@@ -5513,7 +5525,9 @@ function ImageConnectZ({ syncEconomy }) {
       <MoodPicker mood={mood} setMood={setMood} />
       <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Uses your saved FaceZ for likeness. StatZ can lipsync the result to an audio/video track and drop it into VideoZ.</p>
-      <IntelGenerate label={`✨ Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim() || busy} onClick={gen}>{busy ? "✨ Generating with Gemini…" : `✨ Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`}</button>
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+      {img && <img src={img} alt={prompt} style={{ width: "100%", borderRadius: 10, marginTop: 8 }} />}
       <IntelNote role="Designer" />
     </div>
   );
@@ -5574,7 +5588,31 @@ function VideoConnectZ({ syncEconomy }) {
   const [type, setType] = useState(VIDEO_TYPES[0].name);
   const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [vurl, setVurl] = useState(null);
   const t = VIDEO_TYPES.find((x) => x.name === type);
+  const gen = async () => {
+    setBusy(true); setVurl(null); setMsg("🎬 Starting Veo — video takes ~1–2 min…");
+    try {
+      const start = await geminiVideoApi(`${mood ? mood + " " : ""}${type}: ${prompt}`);
+      syncEconomy?.();
+      const op = start.operation;
+      const poll = async (tries = 0) => {
+        if (tries > 24) { setMsg("Still rendering — check back shortly."); setBusy(false); return; }
+        try {
+          const s = await geminiVideoStatusApi(op);
+          if (s.done) { setVurl(s.video_url); setMsg(s.video_url ? "" : "Rendered, but no video URL returned."); setBusy(false); }
+          else setTimeout(() => poll(tries + 1), 8000);
+        } catch { setTimeout(() => poll(tries + 1), 8000); }
+      };
+      poll();
+    } catch (e) {
+      const m = e?.message || "";
+      setMsg(/503|configured|GEMINI|Veo/i.test(m) ? "🔌 Video generation isn't set up yet — add GEMINI_API_KEY on the backend." : /40[26]|balance|enough/i.test(m) ? "Not enough PromptZ / cash — buy PromptZ or add funds." : "Couldn't start — try again.");
+      setBusy(false);
+    }
+  };
   return (
     <div className="card">
       <div className="card-header">📺 Video ConnectZ <span className="tag">{t.ratio}</span></div>
@@ -5583,7 +5621,9 @@ function VideoConnectZ({ syncEconomy }) {
       <MoodPicker mood={mood} setMood={setMood} />
       <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${mood ? mood.toLowerCase() + " " : ""}${type.toLowerCase()}`} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Built from your saved FaceZ. StatZ can lipsync it to a supplied audio track and finish it in VideoZ / DirectZ (ReelZ · EpisodeZ · MovieZ).</p>
-      <IntelGenerate label={`🎬 Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim() || busy} onClick={gen}>{busy ? "🎬 Rendering with Veo…" : `🎬 Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`}</button>
+      {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+      {vurl && <SmartMedia url={vurl} type="video" style={{ marginTop: 8 }} />}
       <IntelNote role="Videographer" reusable />
     </div>
   );

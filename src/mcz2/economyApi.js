@@ -42,6 +42,15 @@ export const translateApi = ({ texts, targetLang, targetName, sourceLang }) =>
 export const buyPromptzApi = (cents) =>
   api("/api/economy/promptz/buy/", { method: "POST", body: { cents } });
 
+// Gemini generation (Image ConnectZ / Video ConnectZ). Charge the AI min
+// (PromptZ first); 503 when GEMINI_API_KEY isn't set (client falls back).
+export const geminiImageApi = (prompt) =>
+  api("/api/economy/gemini/image/", { method: "POST", body: { prompt } });
+export const geminiVideoApi = (prompt) =>
+  api("/api/economy/gemini/video/", { method: "POST", body: { prompt } });
+export const geminiVideoStatusApi = (operation) =>
+  api("/api/economy/gemini/video/status/", { method: "POST", body: { operation } });
+
 // { items: [{ id, name, price_cents, owned }] }
 export const getSpecZApi = () => api("/api/economy/specz/");
 
