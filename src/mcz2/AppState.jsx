@@ -19,6 +19,7 @@ const DEFAULT_STATE = {
   paymentHistory: [],
   energy: 0,
   spinaz: 0,
+  promptz: 0, // prepaid AI credits (1 PromptZ = 1¢ of AI spend)
   energyLog: [],
   spinazLog: [],
   // Platform State Model (blueprint): XP-driven progression shared across

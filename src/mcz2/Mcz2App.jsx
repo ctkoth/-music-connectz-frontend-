@@ -204,7 +204,7 @@ import {
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
   getAdzApi, createCommercialApi, deleteCommercialApi, rewardAdApi,
-  chargeAiApi, occChatApi,
+  chargeAiApi, occChatApi, buyPromptzApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
@@ -1827,6 +1827,34 @@ function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
   );
 }
 
+// Buy prepaid PromptZ — the currency spent on every AI action (translate, OCC,
+// profile edits, AI-rate) before cash. Bought at 80% of face (a 25% bonus).
+function PromptzBuy({ serverOk, syncEconomy }) {
+  const { state } = useAppState();
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(0);
+  const packs = [100, 500, 1000, 5000];
+  const buy = async (amt) => {
+    setBusy(amt); setMsg("");
+    try { const r = await buyPromptzApi(Math.round(amt * 0.8)); setMsg(`✓ +${r.granted} PromptZ 🏷️ added`); syncEconomy?.(); }
+    catch (e) { setMsg(/40[26]|balance|enough/i.test(e?.message || "") ? "Add funds first — PromptZ is bought with your cash balance." : "Couldn't buy — try again."); }
+    setBusy(0);
+  };
+  return (
+    <div className="card">
+      <div className="card-header"><span>🏷️ PromptZ — prepaid AI credits</span><span className="tag" style={{ color: "var(--success)" }}>{state.promptz || 0} 🏷️</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>1 PromptZ = 1¢ of AI — spent on translate, OCC, profile edits &amp; AI-rate <strong>before</strong> your cash. Buy at 80% of face (a 25% bonus), so you pay less per prompt the more you prepay.</p>
+      <div className="chip-wrap">
+        {packs.map((amt) => (
+          <button key={amt} className="btn btn-small btn-success" disabled={!serverOk || busy === amt} onClick={() => buy(amt)}>{busy === amt ? "…" : `+${amt.toLocaleString()} 🏷️ · ${money(amt * 0.8 / 100)}`}</button>
+        ))}
+      </div>
+      {msg && <p style={{ fontSize: 11, color: /✓/.test(msg) ? "var(--success)" : "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+      {!serverOk && <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 4 }}>Sign in to buy PromptZ.</p>}
+    </div>
+  );
+}
+
 function MoneyPage({ tier, serverOk, syncEconomy }) {
   const { state, update, updateWallet, addTo } = useAppState();
   const [amt, setAmt] = useState("");
@@ -1956,6 +1984,7 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
         </p>
       </div>
       <TopUpTiles serverOk={serverOk} tier={tier} syncEconomy={syncEconomy} />
+      <PromptzBuy serverOk={serverOk} syncEconomy={syncEconomy} />
       <div className="card">
         <div className="card-header">🧾 Payment History</div>
         {state.paymentHistory.length === 0 ? (
@@ -8851,7 +8880,7 @@ function Shell() {
     getWallet()
       .then((r) => {
         setServerOk(true);
-        update({ wallet: { ...state.wallet, balance: r.wallet.money }, energy: r.wallet.energy, spinaz: r.wallet.spinaz });
+        update({ wallet: { ...state.wallet, balance: r.wallet.money }, energy: r.wallet.energy, spinaz: r.wallet.spinaz, promptz: r.wallet.promptz || 0 });
       })
       .catch(() => setServerOk(false));
   };
@@ -8950,7 +8979,7 @@ function Shell() {
               <div className="balance" onClick={() => openApp("money")} title="Money">💲{balance}</div>
               <div className="balance" onClick={() => openApp("energy")} title="Energy">⚡{state.energy || 0}</div>
               <div className="balance" onClick={() => openApp("spinaz")} title="SpinAZ">🍥{state.spinaz || 0}</div>
-              <div className="balance" onClick={() => openApp("money")} title="PromptZ 🏷️ — AI prompts you can afford right now (each ~1¢). Tap to top up.">🏷️ {Math.floor(Number(wallet.balance || 0) * 100)}</div>
+              <div className="balance" onClick={() => openApp("money")} title="PromptZ 🏷️ — prepaid AI credits (1 = 1¢ of AI: translate, OCC, profile edits, AI-rate). Tap to buy more.">🏷️ {(state.promptz || 0) + Math.floor(Number(wallet.balance || 0) * 100)}</div>
             </div>
             <div className="profile-pic" onClick={() => openApp("profile")}>
               {(user?.username || "?").charAt(0).toUpperCase()}
