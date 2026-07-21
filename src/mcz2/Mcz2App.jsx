@@ -905,7 +905,7 @@ const PERSONA_CHOICES = [
   { name: "Ghostwriter", emoji: "👻", icon: "personaz_ghostwriter.png" },
   { name: "Developer", emoji: "👾", icon: "personaz_developer.png" },
   { name: "Weightlifter", emoji: "🏋🏼", icon: "personaz_weightlifter.png" },
-  { name: "Mime", emoji: "🤹", icon: "mimez.png" },
+  { name: "Mime", emoji: "🤹", icon: "personaz_mime.png" },
 ];
 
 // Derived skill sets shared by Director/Videographer/Developer, built off the
