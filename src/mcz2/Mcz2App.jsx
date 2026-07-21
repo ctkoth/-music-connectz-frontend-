@@ -3726,10 +3726,10 @@ function BattleZPage({ tier, onOpen, serverOk }) {
                   <input type="number" min="1" step="0.01" value={stakeAmt} onChange={(e) => setStakeAmt(e.target.value)} />
                 </div>
                 {Number(stakeAmt) > 0 && (() => { const s = splitTransaction(Number(stakeAmt) * 2, tier); return (
-                  <p style={{ fontSize: 11, color: "var(--text-light)" }}>Win → {money(s.net)} back (2× stake − {s.label} dev tax {Math.round(s.rate * 100)}%). Lose → forfeit to the pool.</p>
+                  <p style={{ fontSize: 11, color: "var(--text-light)" }}>Win → <Amount value={s.net} flow="in" sign bold /> back (2× stake − {s.label} dev tax {Math.round(s.rate * 100)}%). Lose → <span style={{ color: FLOW_RED }}>forfeit</span> to the pool.</p>
                 ); })()}
-                <button className="btn btn-small" disabled={Number(stakeAmt) <= 0 || Number(stakeAmt) > Number(state.wallet.balance || 0)} onClick={stakeMoney}>💰 Stake {money(Number(stakeAmt) || 0)} on yourself</button>
-                {myMoney > 0 && <p style={{ fontSize: 11, color: "var(--accent, #22e6ff)", marginTop: 6 }}>Staked {money(myMoney)} on yourself.</p>}
+                <button className="btn btn-small" disabled={Number(stakeAmt) <= 0 || Number(stakeAmt) > Number(state.wallet.balance || 0)} onClick={stakeMoney}>💸 Stake {money(Number(stakeAmt) || 0)} on yourself</button>
+                {myMoney > 0 && <p style={{ fontSize: 11, marginTop: 6 }}>Staked <Amount value={myMoney} flow="out" sign bold /> on yourself.</p>}
               </>
             )}
           </>
@@ -4505,8 +4505,8 @@ function CollabDealTracker({ me, refreshKey }) {
             <div key={p.username} style={{ display: "flex", justifyContent: "space-between" }}>
               <span>{p.username === uname ? "You" : `@${p.username}`} {p.funded ? "🔒" : ""}</span>
               <span style={{ color: "var(--text-light)" }}>
-                {Number(p.pays_cents) > 0 && <>pays {fmtAmt(p.pays_cents)} </>}
-                {Number(p.receives_cents) > 0 && <span style={{ color: "var(--success)" }}>gets {fmtAmt(p.receives_cents)}</span>}
+                {Number(p.pays_cents) > 0 && <span style={{ color: FLOW_RED }}>pays {fmtAmt(p.pays_cents)} </span>}
+                {Number(p.receives_cents) > 0 && <span style={{ color: FLOW_GREEN }}>gets {fmtAmt(p.receives_cents)}</span>}
               </span>
             </div>
           ))}
@@ -6637,8 +6637,8 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
                   <span className="tag">{v.mode === "collaborative" ? "🤝 Collaborative" : "🤩 Performance"}</span>
                   <span className="tag">host @{v.host}</span>
-                  <span className="tag">attend {money(v.hostPrice)}</span>
-                  {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: "var(--success)" }}>earn {money(v.visitorPay)}</span>}
+                  <span className="tag" style={{ color: FLOW_RED }}>attend {money(v.hostPrice)}</span>
+                  {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: FLOW_GREEN }}>earn {money(v.visitorPay)}</span>}
                   {v.minAttract > 0 && <span className="tag" style={{ color: locked ? "var(--danger)" : undefined }}>💯 {v.minAttract}+</span>}
                 </div>
                 {!mine && <CostBreakdown amount={v.hostPrice} tier={tier} recipient={`@${v.host}`} payLabel="You pay to attend" />}
@@ -7523,8 +7523,9 @@ function MerchZPage({ tier, serverOk, syncEconomy }) {
               {it.description && <div className="post-content">{it.description}</div>}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
                 <span className="tag">by @{it.seller}</span>
-                <span className="tag">{money(it.price_cents / 100)}</span>
+                <span className="tag" style={{ color: it.mine ? FLOW_GREEN : undefined }}>{money(it.price_cents / 100)}</span>
                 {it.sold > 0 && <span className="tag">🛒 {it.sold} sold</span>}
+                {it.mine && it.sold > 0 && <span className="tag">earned <Amount value={(it.price_cents / 100) * it.sold} flow="in" sign bold /></span>}
               </div>
               {it.mine ? (
                 <button className="btn btn-small btn-danger" onClick={() => del(it.id)}>🗑️ Remove</button>
@@ -7533,7 +7534,7 @@ function MerchZPage({ tier, serverOk, syncEconomy }) {
               ) : (
                 <>
                   <CostBreakdown amount={it.price_cents / 100} tier={tier} recipient={`@${it.seller}`} payLabel="You pay" />
-                  <button className="btn btn-small" onClick={() => buy(it)}>🛒 Buy {money(it.price_cents / 100)}</button>
+                  <button className="btn btn-small" onClick={() => buy(it)}>🛒 Buy <Amount value={it.price_cents / 100} flow="out" sign={false} bold /></button>
                 </>
               )}
             </div>
