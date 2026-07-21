@@ -17,6 +17,8 @@ import { AI_MODELS as OCC_AI_MODELS, aiModel, centsLabel, CURRICULA, courseForQu
 import { MEDIA_ROUTES, routeForFile, ROUTE_BY_APP, extOf } from "./mediaRouting.js";
 import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost, fmtDuration } from "./callz.js";
 import { DAWS } from "./dawz.js";
+import { LANGUAGES, langByCode, langLabel, langName, suggestLanguages } from "./languages.js";
+import { AutoTranslate, translateOne } from "./i18n.jsx";
 import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL } from "./economy.js";
 
 // Tier + Founding Member badges, reusable across profiles and member cards.
@@ -107,6 +109,39 @@ function Delta({ value, unit = "", bold = true, style }) {
   const color = n > 0 ? FLOW_GREEN : n < 0 ? FLOW_RED : "var(--text-light)";
   const sign = n > 0 ? "+" : n < 0 ? "−" : "";
   return <span style={{ color, fontWeight: bold ? 700 : "inherit", ...style }}>{sign}{Math.abs(n)}{unit ? ` ${unit}` : ""}</span>;
+}
+
+// Wraps user-generated text (post/comment) with a 🌐 Translate toggle. The text
+// is marked data-notranslate so the whole-app auto-translator leaves it alone;
+// tapping transcreates it into the viewer's display language (charges a prompt,
+// cached), and toggles back to the original.
+function Translatable({ text, tag: Tag = "div", className, style, onCharge }) {
+  const { state } = useAppState();
+  const lang = state.settings?.uiLang || "en";
+  const [out, setOut] = useState(null);
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const s = (text ?? "").toString();
+  const canT = lang !== "en" && s.trim().length > 1;
+  const toggle = async () => {
+    setErr("");
+    if (out != null) { setShow((v) => !v); return; }
+    setBusy(true);
+    try { setOut(await translateOne(s, lang, onCharge)); setShow(true); }
+    catch { setErr(" · couldn't translate"); }
+    setBusy(false);
+  };
+  return (
+    <>
+      <Tag className={className} style={style} data-notranslate>{show && out != null ? out : text}</Tag>
+      {canT && (
+        <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: "2px 0", fontSize: 10 }} onClick={toggle}>
+          {busy ? "🌐 translating…" : show ? "↩️ original" : "🌐 translate"}<span style={{ color: "var(--danger)" }}>{err}</span>
+        </button>
+      )}
+    </>
+  );
 }
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import { PostModalProvider, usePostModal } from "./PostModalContext.jsx";
@@ -215,6 +250,7 @@ function buildProfilePayload(state) {
     sign: z ? z.name : "",
     nationalities: nats,
     regions,
+    languages: u.languages || [],
     substances: subs,
     sober,
     attracted_to: pref.partnerGenders || (pref.partnerGender ? [pref.partnerGender] : []),
@@ -522,7 +558,7 @@ function SocialBar({ id, shareText, style }) {
                     <button className="btn btn-small" onClick={saveEdit} disabled={!editDraft.trim()}>Save</button>
                     <button className="btn btn-small btn-secondary" onClick={() => setEditId(null)}>✕</button>
                   </div>
-                ) : <div className="post-content">{c.body}</div>}
+                ) : <Translatable tag="div" className="post-content" text={c.body} />}
                 <div className="post-meta">{new Date(c.at).toLocaleString()}<EditZHistory history={c.edit_history} editedAt={c.edited_at} field="body" /></div>
               </div>
             );
@@ -1248,7 +1284,7 @@ function PostZPage({ serverOk }) {
             <div key={ex.id || i} className="post-card" style={ex.flagged ? { opacity: 0.6 } : undefined}>
               <div className="post-user"><span style={{ cursor: "pointer" }} title="Open post" onClick={() => openPost(ex)}>{ex.title}</span> <span className="tag" title={v.note}>{v.emoji} {v.label}</span>{ex.vibe >= 5 && sort === "hot" ? <span className="tag" style={{ color: "var(--danger)" }} title="High vibe">🔥 Trending</span> : ""}{ex.flagged ? <span className="tag" style={{ color: "var(--danger)" }} title="Heavily disliked — under review">⚠️ Flagged</span> : ""}{ex.author && !ex.mine ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · @{ex.author}</span> : ""}</div>
               {ex.vibe != null && <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 2 }}>✨ vibe {ex.vibe > 0 ? "+" : ""}{ex.vibe} · 👍 {ex.up || 0} 👎 {ex.down || 0}{ex.rating != null ? ` · ⭐ ${ex.rating}/10` : ""}</div>}
-              <div className="post-content">{ex.description ?? ex.desc}</div>
+              {(ex.description ?? ex.desc) ? <Translatable tag="div" className="post-content" text={ex.description ?? ex.desc} /> : null}
               {ex.is_album && (ex.items || []).length > 0 ? (
                 <div style={{ marginTop: 6 }}>
                   <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 4 }}>💿 Album · {(ex.items || []).length} tracks</div>
@@ -1652,6 +1688,9 @@ function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
       {/* Tapping a metric opens its selector app to make choices. */}
       <div className="form-group"><label>🌐 NationalitieZ (heritage) <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
         <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("nationalitiez")}>{(u.nationalities || []).length ? u.nationalities.map((n, i) => <span key={i} className="tag">{n}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Set NationalitieZ</span>}</div>
+      </div>
+      <div className="form-group"><label>🌐 LanguageZ (spoken) <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
+        <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("languagez")} data-notranslate>{(u.languages || []).length ? u.languages.map((c) => <span key={c} className="tag">{langLabel(c)}</span>) : <span className="tag" style={{ color: "var(--primary)" }}>+ Set languages</span>}</div>
       </div>
       <div className="form-group"><label>🧠 SubstanceZ <span style={{ fontSize: 10, color: "var(--primary)" }}>· tap to set</span></label>
         <div style={{ cursor: "pointer" }} onClick={() => onOpen?.("substancez")}>{Object.entries(u.substances || {}).filter(([, v]) => v).length
@@ -2203,6 +2242,15 @@ function SettingsPage({ tier, serverOk, onTierChange, syncEconomy, onOpen }) {
           </>
         )}
       </div>
+      <div className="card">
+        <div className="card-header"><span>🌐 Display language</span><span className="tag">{langLabel(state.settings?.uiLang || "en")}</span></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Show the app in your language (transcreated). Switching costs one prompt, then it's cached. Full options in <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("languagez")}>LanguageZ</button>.</p>
+        <div className="chip-wrap" data-notranslate>
+          {LANGUAGES.map((l) => (
+            <button key={l.code} className={`heritage-chip${(state.settings?.uiLang || "en") === l.code ? " sel" : ""}`} onClick={() => updateSettings({ uiLang: l.code })}>{l.flag} {l.endonym}</button>
+          ))}
+        </div>
+      </div>
       <TierLimitsCard />
       <div className="card">
         <div className="card-header">🔔 Preferences</div>
@@ -2292,6 +2340,7 @@ function OnboardZPage({ onOpen, serverOk, tier, syncEconomy }) {
   const explored = Object.keys(usage).some((k) => SKILL_KEYS.includes(k));
   const steps = [
     { emoji: "👤", label: "Set up your profile", hint: "Name, contact, location, bio.", done: !!state.user.name, go: "setup" },
+    { emoji: "🌐", label: "Pick your language(s)", hint: "So the app speaks your language.", done: (state.user.languages || []).length > 0, go: "languagez" },
     { emoji: "💳", label: "Top up your wallet", hint: "Add funds, SpinAZ or Energy to start transacting.", done: Number(state.wallet?.balance) > 0 || Number(state.wallet?.spinaz) > 0, go: "money" },
     { emoji: "🎭", label: "Pick a PersonaZ", hint: "Artist, Producer, Engineer, Designer…", done: state.personas.length > 0, go: "personas" },
     { emoji: "🎵", label: "Post your first work", hint: "Audio, image, or lyrics.", done: state.examples.length > 0, go: "examples" },
@@ -2581,6 +2630,100 @@ function PreferenceZPage() {
           ))}
         </div>
         <ProfileSaveBar label="Save PreferenceZ" />
+      </div>
+    </>
+  );
+}
+
+// LanguageZ — the multilingual hub: display language (whole-app transcreation),
+// the languages you speak (a profile metric), location-based suggestions, and a
+// translator box. Translation is powered by the backend and charges a prompt,
+// then caches, so re-viewing the same language is free.
+function LanguageZPage({ serverOk, syncEconomy, onOpen }) {
+  const { state, updateUser, updateSettings } = useAppState();
+  const [saved, ping] = useSavedFlash();
+  const uiLang = state.settings?.uiLang || "en";
+  const spoken = state.user.languages || [];
+  const suggested = suggestLanguages(state.user.nationalities).filter((c) => !spoken.includes(c));
+  const toggleSpoken = (code) => {
+    updateUser({ languages: spoken.includes(code) ? spoken.filter((c) => c !== code) : [...spoken, code] });
+    ping();
+  };
+  // Translator box
+  const [tText, setTText] = useState("");
+  const [tLang, setTLang] = useState("es");
+  const [tOut, setTOut] = useState("");
+  const [tBusy, setTBusy] = useState(false);
+  const [tErr, setTErr] = useState("");
+  const doTranslate = async () => {
+    if (!tText.trim()) return;
+    setTBusy(true); setTErr(""); setTOut("");
+    try { setTOut(await translateOne(tText.trim(), tLang, syncEconomy)); }
+    catch { setTErr("Translation unavailable right now (or add funds). Try again."); }
+    setTBusy(false);
+  };
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><span>🌐 Display language</span><SavedFlash saved={saved} /></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>
+          Show Music ConnectZ in your language — transcreated, not just translated (emoji &amp; app names kept). Switching costs one prompt to translate what's on screen, then it's cached and free.
+        </p>
+        <div className="chip-wrap">
+          {LANGUAGES.map((l) => (
+            <button key={l.code} className={`heritage-chip${uiLang === l.code ? " sel" : ""}`} onClick={() => updateSettings({ uiLang: l.code })}>
+              {uiLang === l.code ? "✓ " : ""}{l.flag} {l.endonym}
+            </button>
+          ))}
+        </div>
+        {uiLang !== "en" && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 8 }}>Showing in {langName(uiLang)}. Tap 🇬🇧 English to switch back anytime.</p>}
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span>🗣️ Languages you speak</span><SavedFlash saved={saved} /></div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Pick every language you speak — shown on your profile and used to match collaborators. Multi-select.</p>
+        {suggested.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 4 }}>📍 Suggested from your NationalitieZ:</div>
+            <div className="chip-wrap">
+              {suggested.map((code) => (
+                <button key={code} className="heritage-chip" onClick={() => toggleSpoken(code)}>+ {langLabel(code)}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="chip-wrap">
+          {LANGUAGES.map((l) => (
+            <button key={l.code} className={`heritage-chip${spoken.includes(l.code) ? " sel" : ""}`} onClick={() => toggleSpoken(l.code)}>
+              {spoken.includes(l.code) ? "✓ " : ""}{l.flag} {l.endonym}
+            </button>
+          ))}
+        </div>
+        {state.user.nationalities?.length ? null : (
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginTop: 8 }}>Set your <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen?.("nationalitiez")}>NationalitieZ</button> to get language suggestions.</p>
+        )}
+        <ProfileSaveBar label="Save LanguageZ" />
+      </div>
+
+      <div className="card">
+        <div className="card-header">🔤 Translator</div>
+        <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Transcreate any text into another language. Costs one prompt.</p>
+        <CappedTextarea value={tText} onChange={(e) => setTText(e.target.value)} placeholder="Type or paste text…" style={{ height: 60 }} />
+        <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "8px 0" }}>
+          <label style={{ fontSize: 11, color: "var(--text-light)" }}>Into</label>
+          <select value={tLang} onChange={(e) => setTLang(e.target.value)} style={{ flex: 1 }}>
+            {LANGUAGES.filter((l) => l.code !== "en").map((l) => <option key={l.code} value={l.code}>{l.flag} {l.name} ({l.endonym})</option>)}
+          </select>
+          <button className="btn btn-small" disabled={tBusy || !tText.trim() || !serverOk} onClick={doTranslate}>{tBusy ? "…" : "🌐 Translate"}</button>
+        </div>
+        {tErr && <p style={{ fontSize: 11, color: "var(--danger)" }}>{tErr}</p>}
+        {tOut && (
+          <div className="post-card" data-notranslate style={{ marginTop: 6 }}>
+            <div className="post-content" style={{ whiteSpace: "pre-wrap" }}>{tOut}</div>
+            <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => navigator.clipboard?.writeText(tOut)}>📋 Copy</button>
+          </div>
+        )}
+        {!serverOk && <p style={{ fontSize: 11, color: "var(--text-light)" }}>Sign in / connect to translate.</p>}
       </div>
     </>
   );
@@ -8219,6 +8362,7 @@ const FN_PAGES = {
   nationalitiez: NationalitieZPage,
   substancez: SubstanceZPage,
   preferencez: PreferenceZPage,
+  languagez: LanguageZPage,
   social_connectz: SocialConnectZPage,
   setup: SetupPage,
   personas: PersonasPage,
@@ -8408,7 +8552,7 @@ function PostModal({ post, onClose, onOpen }) {
               <button className="btn btn-small btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </div>
-        ) : (p.description || p.desc) && <p className="modal-desc">{p.description ?? p.desc}</p>}
+        ) : (p.description || p.desc) && <Translatable tag="p" className="modal-desc" text={p.description ?? p.desc} />}
         {post.is_album && (post.items || []).length > 0 ? (
           <div style={{ margin: "8px 0" }}>
             <div style={{ fontSize: 12, color: "var(--gold, #ffcf3f)", marginBottom: 6 }}>💿 Album · {(post.items || []).length} tracks</div>
@@ -8710,6 +8854,7 @@ function Shell() {
       <AppWindow appKey={windowApp} onClose={() => setWindowApp(null)} onSetMode={switchMode}
         pageProps={{ tier, onOpen: openApp, serverOk, syncEconomy, onTierChange: setTier, isOwner }} />
       <PostModal post={postModal} onClose={closePost} onOpen={openApp} />
+      <AutoTranslate uiLang={settings.uiLang} serverOk={serverOk} onCharge={syncEconomy} />
     </div>
     </LimitsProvider>
   );

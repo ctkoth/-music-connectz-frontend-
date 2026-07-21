@@ -30,6 +30,13 @@ export const chargeAiApi = (model, note = "OCC AI usage") =>
 export const occChatApi = ({ model, prompt, knowledge, history, slang, acronyms, suggest }) =>
   api("/api/economy/ai/occ/", { method: "POST", body: { model, prompt, knowledge, history, slang, acronyms, suggest } });
 
+// TranslateZ — transcreate a batch of strings into a target language. Charges
+// the model minimum once per batch on success; 402 if short, 503 when the LLM
+// backend isn't configured (caller keeps the original text, no charge).
+// Returns { translations: [str]|null, cost_cents, money }.
+export const translateApi = ({ texts, targetLang, targetName, sourceLang }) =>
+  api("/api/economy/translate/", { method: "POST", body: { texts, target_lang: targetLang, target_name: targetName, source_lang: sourceLang } });
+
 // { items: [{ id, name, price_cents, owned }] }
 export const getSpecZApi = () => api("/api/economy/specz/");
 
