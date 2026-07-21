@@ -735,9 +735,33 @@ function SetupPage() {
   const { state, updateUser } = useAppState();
   const [form, setForm] = useState(state.user);
   const [saved, setSaved] = useState(false);
+  const [locBusy, setLocBusy] = useState(false);
+  const [locMsg, setLocMsg] = useState("");
   const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setSaved(false); };
   const zsign = zodiacFor(form.birthday);
   const save = () => { updateUser(form); setSaved(true); setTimeout(() => setSaved(false), 2500); };
+
+  // Capture GPS → store coords for distance filtering + reverse-geocode a
+  // readable location onto the profile (best-effort; falls back to coords).
+  const useMyLocation = () => {
+    if (!navigator.geolocation) { setLocMsg("Geolocation isn't available on this device."); return; }
+    setLocBusy(true); setLocMsg("");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      try { await setLocationApi(true, lat, lng); } catch { /* offline — coords saved on next sync */ }
+      let label = `📍 ${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+      try {
+        const g = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept": "application/json" } }).then((r) => r.json());
+        const a = g.address || {};
+        const city = a.city || a.town || a.village || a.county || "";
+        const region = a.state || a.country || "";
+        if (city || region) label = [city, region].filter(Boolean).join(", ");
+      } catch { /* geocode best-effort */ }
+      setForm((f) => ({ ...f, location: label, lat, lng })); setSaved(false);
+      setLocMsg("📍 Location set — distance filtering is on across CollabZ, VenueZ, Social & search.");
+      setLocBusy(false);
+    }, () => { setLocMsg("Location permission denied."); setLocBusy(false); }, { enableHighAccuracy: true, timeout: 10000 });
+  };
   return (
     <div className="card">
       <div className="card-header">👤 Your Profile</div>
@@ -764,7 +788,13 @@ function SetupPage() {
           </select>
         </div>
       </div>
-      <div className="form-group"><label>📍 Location</label><input value={form.location} onChange={set("location")} placeholder="City, State or Zip" /></div>
+      <div className="form-group"><label>📍 Location</label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <input value={form.location} onChange={set("location")} placeholder="City, State or Zip" style={{ flex: 1, minWidth: 140 }} />
+          <button type="button" className="btn btn-small btn-secondary" onClick={useMyLocation} disabled={locBusy}>{locBusy ? "📍 locating…" : "📍 Use my GPS"}</button>
+        </div>
+        {locMsg && <p style={{ fontSize: 10, color: "var(--accent, #22e6ff)", marginTop: 4 }}>{locMsg}</p>}
+      </div>
       <div className="form-group"><label>📝 Bio</label><CappedTextarea value={form.bio} onChange={set("bio")} style={{ height: 60 }} /></div>
       <div className="form-group"><label>🔗 Links (Spotify, IG, YouTube, store…)</label>
         <LinksEditor links={form.links} onChange={(l) => { setForm((f) => ({ ...f, links: l })); setSaved(false); }} />
