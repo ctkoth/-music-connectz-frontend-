@@ -817,7 +817,8 @@ const PERSONA_CHOICES = [
   { name: "Beat Producer", emoji: "🎚️", icon: "personaz_producer.png" },
   { name: "Mix Engineer", emoji: "🎛️", icon: "personaz_mixengineer.png" },
   { name: "Designer", emoji: "🎨", icon: "personaz_designer.png" },
-  { name: "Videographer", emoji: "🎬", icon: "personaz_videographer.png" },
+  { name: "Videographer", emoji: "🎥", icon: "personaz_videographer.png" },
+  { name: "Director", emoji: "🎬", icon: "personaz_director.png" },
   { name: "Manager", emoji: "🕴🏼", icon: "personaz_manager.png" },
   { name: "A&R Scout", emoji: "🔎", icon: "personaz_arscout.png" },
   { name: "Ghostwriter", emoji: "👻", icon: "personaz_ghostwriter.png" },
@@ -825,6 +826,17 @@ const PERSONA_CHOICES = [
   { name: "Weightlifter", emoji: "🏋🏼", icon: "personaz_weightlifter.png" },
   { name: "Mime", emoji: "🤹", icon: "mimez.png" },
 ];
+
+// Derived skill sets shared by Director/Videographer/Developer, built off the
+// same taxonomies the rest of the app uses (moods, DirectZ length formats, game
+// genres) so persona skills stay in sync with those catalogs.
+const MOOD_SKILLS = ["Any Mood 🎭", ...MOODS];
+const FORMAT_SKILLS = ["Any Format 🎬", ...DIRECTZ_FORMATS.map((f) => `${f.name} ${f.emoji} (${f.label})`)];
+const DIRECTING_CRAFT = ["Any Directing 🎬", "Shot Composition 🎞️", "Blocking 🚦", "Coverage 🎥", "Pacing ⏱️", "Performance Direction 🎭", "Scene Planning 🗂️", "Visual Storytelling 📖"];
+// Each game genre becomes its own category; its subgenres are the pickable skills.
+const GAME_GENRE_CATS = Object.fromEntries(
+  GAME_GENRES.map((g) => [`${g.emoji} ${g.name}`, [`Any ${g.name} ${g.emoji}`, ...g.subgenres]]),
+);
 
 // Available skills per persona — categorized, emoji-tagged catalog modeled off
 // the instrumentDatabase from the earlier build: each persona → categories →
@@ -858,6 +870,13 @@ const PERSONA_SKILLS = {
   "Videographer": {
     "🎬 Video Software": ["Any Video Software 🎬", "Adobe Premiere 🎬", "DaVinci Resolve 🎞️", "Final Cut Pro 🎥", "Sony Vegas 📹", "Filmora 🎬", "After Effects ✨", "OBS Studio 🔴"],
     "🎥 Video Skills": ["Any Video Skill 🎬", "Editing 🎬", "Color Grading 🎨", "Motion Graphics ✨", "Cinematography 🎥", "Drone Footage 🚁", "Lighting 💡", "Sound Design 🎙️", "Storyboarding 🗂️", "Music Video Production 🎞️"],
+    "🎭 Moods": MOOD_SKILLS,
+    "🎬 Length Formats": FORMAT_SKILLS,
+  },
+  "Director": {
+    "🎬 Directing": DIRECTING_CRAFT,
+    "🎭 Moods": MOOD_SKILLS,
+    "🎬 Length Formats": FORMAT_SKILLS,
   },
   "Manager": {
     "🕴🏼 Management": ["Any Management 🕴🏼", "Strategic Planning 🗺️", "Team Leadership 👥", "Communication 💬", "Conflict Resolution 🤝", "Project Management 📋", "Decision-Making 🎯", "Performance Tracking 📈", "Resource Management 📦"],
@@ -869,7 +888,8 @@ const PERSONA_SKILLS = {
     "👻 Writing": ["Any Writing 👻", "Lyricism 🖊️", "Storytelling 📖", "Rhyme Schemes 🎯", "Hook Writing 🪝", "Tone Matching 🎭", "Multi-Genre 🎶"],
   },
   "Developer": {
-    "👾 Languages": ["Any Language 👾", "Python 🐍", "JavaScript 📜", "TypeScript 🔷", "Java ☕", "C++ ⚙️", "C# 🎯", "Go 🐹", "Rust 🦀", "Swift 🕊️", "Kotlin 🅺"],
+    "👾 Top 10 Languages": ["Any Language 👾", "Python 🐍", "JavaScript 📜", "TypeScript 🔷", "Java ☕", "C++ ⚙️", "C# 🎯", "Go 🐹", "Rust 🦀", "Swift 🕊️", "Kotlin 🅺"],
+    ...GAME_GENRE_CATS,
   },
   "Weightlifter": {
     "🏋🏼 Training": ["Any Training 🏋🏼", "Routine Design 📋", "Personal Training 💪", "Powerlifting 🏋️", "HIIT ⚡", "Olympic Lifting 🥇", "Nutrition Coaching 🥗", "Mobility & Recovery 🧘", "Progressive Overload 📈"],
