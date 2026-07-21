@@ -7548,6 +7548,7 @@ function SaveTakeAsPost({ media, result, context, skill, onOpen, save, setSave }
         <p style={{ fontSize: 11, color: "var(--text-light)", margin: "4px 0 8px" }}>It's on the feed now — others can rate it out of 10, comment, and share. Cross-pollinate it:</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("collabz")}>🤝 Send to CollabZ</button>}
+          {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("directz")}>🎬 Send to DirectZ</button>}
           {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("dawz")}>🎛️ Open in DAW</button>}
           {onOpen && <button className="btn btn-small btn-secondary" onClick={() => onOpen("postz")}>📣 View in PostZ</button>}
         </div>
