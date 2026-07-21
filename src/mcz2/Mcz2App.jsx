@@ -9122,10 +9122,153 @@ function SondayPage({ tier, onOpen }) {
   );
 }
 
+// 🏠 Homez — a quick dashboard across your MCZ activity + fast app launcher. Free.
+function HomezPage({ tier, onOpen }) {
+  const { state } = useAppState();
+  const prog = state.progression || { level: 1, xp: 0, streak: 0 };
+  const stats = [
+    { label: "Energy", v: `⚡ ${state.energy || 0}` },
+    { label: "SpinAZ", v: `🍥 ${state.spinaz || 0}` },
+    { label: "PromptZ", v: `🏷️ ${state.promptz || 0}` },
+    { label: "PostZ", v: (state.examples || []).length },
+  ];
+  const quick = [["personas", "🎭 PersonaZ"], ["examples", "🖼️ PostZ"], ["collabz", "🤝 CollabZ"], ["intelligence", "🧠 Intelligence"], ["analytics", "📈 AnalyticZ"], ["lilith", "💃🏽 Lilith"]];
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🏠 Homez</div><div className="balance-info">Welcome back{state.user?.name ? `, ${state.user.name}` : ""} — 🎮 Lv {prog.level} · 🔥 {prog.streak || 0} streak</div></div>
+      <div className="card">
+        <div className="card-header">⚡ Quick stats</div>
+        <div className="launch-grid" style={{ gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
+          {stats.map((s) => (
+            <div key={s.label} className="card" style={{ margin: 0, padding: 10 }}>
+              <div style={{ fontSize: 11, color: "var(--text-light)" }}>{s.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--primary)" }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header">🚀 Jump back in</div>
+        <div className="chip-wrap">{quick.map(([k, l]) => <button key={k} className="heritage-chip" onClick={() => onOpen?.(k)}>{l}</button>)}</div>
+      </div>
+    </>
+  );
+}
+
+// 😅 MoodZ — log the mood you're in; it's tracked + filterable across the app. Free.
+function MoodZPage() {
+  const { state, setList } = useAppState();
+  const log = state.moodzLog || [];
+  const [note, setNote] = useState("");
+  const add = (mood) => { setList("moodzLog", [{ id: Date.now(), mood, note: note.trim(), at: Date.now() }, ...log].slice(0, 200)); setNote(""); };
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">😅 MoodZ</div><div className="balance-info">How are you feeling? Tap to log it.</div></div>
+      <div className="card">
+        <div className="card-header">🎭 Log a mood</div>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional note…" style={{ width: "100%", marginBottom: 8 }} />
+        <div className="chip-wrap">{MOODS.map((m) => <button key={m} className="heritage-chip" style={{ padding: "2px 8px" }} onClick={() => add(m)}>{m} {MOOD_EMOJI[m] || "🎭"}</button>)}</div>
+      </div>
+      <div className="card">
+        <div className="card-header"><span>🗓️ Mood history</span><span className="tag">{log.length}</span></div>
+        {log.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No moods logged yet.</p>
+          : log.slice(0, 40).map((x) => (
+            <div key={x.id} className="skill-item">
+              <span className="skill-item-name">{x.mood} {MOOD_EMOJI[x.mood] || "🎭"}{x.note ? <span style={{ color: "var(--text-light)" }}> · {x.note}</span> : ""}</span>
+              <span className="skill-item-actions" style={{ fontSize: 10, color: "var(--text-light)" }}>{new Date(x.at).toLocaleDateString()}</span>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+}
+
+// 🪵 LogZ — your activity log by period. Premium (deep tracking, pairs with AnalyticZ).
+const LOGZ_RANGES = [["day", "Today"], ["week", "This week"], ["month", "This month"], ["all", "All"]];
+function LogZPage({ tier, onOpen }) {
+  const { state } = useAppState();
+  const [range, setRange] = useState("week");
+  const since = { day: 864e5, week: 6048e5, month: 2592e6, all: Infinity }[range];
+  const cut = Date.now() - since;
+  const rows = [
+    ...(state.progression?.xpLog || []).map((x) => ({ at: x.at, icon: "🎮", text: `${x.note || "XP"} (+${x.amount} XP)` })),
+    ...(state.paymentHistory || []).map((x) => ({ at: x.at, icon: "💸", text: `${x.note || "Payment"} ${money(Number(x.amount) || 0)}` })),
+    ...(state.energyLog || []).map((x) => ({ at: x.at, icon: "⚡", text: `${x.note || "Energy"} (+${x.amount}⚡)` })),
+    ...(state.moodzLog || []).map((x) => ({ at: x.at, icon: "😅", text: `Mood: ${x.mood}` })),
+  ].filter((r) => r.at && r.at >= cut).sort((a, b) => b.at - a.at);
+  return (
+    <PremiumOnly tier={tier} onOpen={onOpen} name="LogZ" blurb="A timestamped log of everything you do on MCZ, by day, week or month.">
+      <div className="stripe-section"><div className="stripe-title">🪵 LogZ</div><div className="balance-info">What you did — {LOGZ_RANGES.find(([r]) => r === range)[1].toLowerCase()}.</div></div>
+      <div className="card">
+        <div className="chip-wrap" style={{ marginBottom: 8 }}>{LOGZ_RANGES.map(([r, l]) => <button key={r} className={`heritage-chip${range === r ? " sel" : ""}`} onClick={() => setRange(r)}>{l}</button>)}</div>
+        {rows.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Nothing logged for this range.</p>
+          : rows.slice(0, 80).map((r, i) => (
+            <div key={i} className="skill-item">
+              <span className="skill-item-name">{r.icon} {r.text}</span>
+              <span className="skill-item-actions" style={{ fontSize: 10, color: "var(--text-light)" }}>{new Date(r.at).toLocaleString()}</span>
+            </div>
+          ))}
+      </div>
+    </PremiumOnly>
+  );
+}
+
+// 🗣️ TellZ — your prompt/post log. Free. Reuses OccTellZ.
+function TellZPage() {
+  const { state } = useAppState();
+  const occ = state.occ || { tell: [] };
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🗣️ TellZ</div><div className="balance-info">What you've input — your running prompt/post log.</div></div>
+      <div className="card"><OccTellZ occ={occ} /></div>
+    </>
+  );
+}
+
+// 🐞 BugZ — report a bug. Free.
+function BugZPage() {
+  const { state, setList } = useAppState();
+  const reports = state.bugzReports || [];
+  const [text, setText] = useState("");
+  const [flash, setFlash] = useState("");
+  const submit = () => {
+    if (!text.trim()) return;
+    setList("bugzReports", [{ id: Date.now(), text: text.trim(), at: Date.now(), status: "open" }, ...reports]);
+    setText(""); setFlash("✓ Thanks — bug logged. We're on it."); setTimeout(() => setFlash(""), 2600);
+  };
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🐞 BugZ</div><div className="balance-info">Hit something broken? Tell us.</div></div>
+      <div className="card">
+        <div className="card-header">📝 Report a bug</div>
+        <CappedTextarea value={text} onChange={(e) => setText(e.target.value)} style={{ height: 70 }} placeholder="What happened? What did you expect?" />
+        <button className="btn btn-success" style={{ width: "100%", marginTop: 6 }} disabled={!text.trim()} onClick={submit}>🐞 Submit report</button>
+        {flash && <p style={{ fontSize: 12, color: "var(--success)", marginTop: 8, fontWeight: 600 }}>{flash}</p>}
+      </div>
+      {reports.length > 0 && (
+        <div className="card">
+          <div className="card-header"><span>🗂️ Your reports</span><span className="tag">{reports.length}</span></div>
+          {reports.slice(0, 30).map((r) => (
+            <div key={r.id} className="skill-item">
+              <span className="skill-item-name">{r.text}</span>
+              <span className="skill-item-actions" style={{ fontSize: 10, color: "var(--text-light)" }}>{new Date(r.at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 const FN_PAGES = {
   analytics: AnalyticZPage,
   builder: BuilderPage,
   sonday: SondayPage,
+  homez: HomezPage,
+  moodz: MoodZPage,
+  logz: LogZPage,
+  tellz: TellZPage,
+  bugz: BugZPage,
   legendz: LegendZPage,
   parcel: ParcelPrimatePage,
   merchz: MerchZPage,
