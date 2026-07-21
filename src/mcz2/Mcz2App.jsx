@@ -5286,14 +5286,18 @@ function HabitStrip({ appKey, appName, onOpen }) {
   const [title, setTitle] = useState("");
   const [repeat, setRepeat] = useState("weekly");
   const [metric, setMetric] = useState("");
+  const [flash, setFlash] = useState("");
+  const ping = (m) => { setFlash(m); setTimeout(() => setFlash(""), 2600); };
   const add = () => {
-    if (!title.trim()) return;
+    if (!title.trim()) { ping("⚠️ Type a habit first."); return; }
     setList("lilithTasks", [...tasks, { id: Date.now(), title: title.trim(), list: "today", app: appKey, repeat, metric, dueAt: rollDue(repeat), energy: 2, xp: 10 }]);
+    ping(`✓ “${title.trim()}” added — ${REPEAT_LABEL[repeat]} · +2⚡ when you complete it.`);
     setTitle(""); setMetric("");
   };
   const complete = (t) => {
     setList("lilithTasks", (state.lilithTasks || []).map((x) => (x.id === t.id ? { ...x, dueAt: rollDue(x.repeat), lastDone: Date.now() } : x)));
     update({ energy: (state.energy || 0) + (t.energy || 1) });
+    ping(`✓ ${t.title} — +${t.energy || 1}⚡ Energy`);
   };
   return (
     <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
@@ -5313,11 +5317,12 @@ function HabitStrip({ appKey, appName, onOpen }) {
         <select value={metric} onChange={(e) => setMetric(e.target.value)} style={{ flex: 1 }}><option value="">metric (optional)</option>{metricsFor(appKey).map((m) => <option key={m} value={m}>{m}</option>)}</select>
         <button className="btn btn-small" onClick={add}>＋ Add habit</button>
       </div>
+      {flash && <p style={{ fontSize: 11, color: /⚠️/.test(flash) ? "var(--danger)" : "var(--success)", marginTop: 8 }}>{flash}</p>}
     </div>
   );
 }
 
-function LilithPage({ onOpen, tier, serverOk }) {
+function LilithPage({ onOpen, tier, serverOk, syncEconomy }) {
   const { state, setList, update } = useAppState();
   const [list, setActiveList] = useState("today");
   const [title, setTitle] = useState("");
@@ -5355,8 +5360,10 @@ function LilithPage({ onOpen, tier, serverOk }) {
       setMsg(m);
     } else if (t.promptHabit) {
       const reward = medianSkillRate(state); // recomputed — grows as you price more skills
-      update({ energy: (state.energy || 0) + reward });
-      setMsg(`🏷️ Prompt used — +${reward}⚡ (your skill median).`);
+      // Using a prompt costs 1 PromptZ 🏷️ (1¢ of AI) — spend it, then reward Energy.
+      update({ energy: (state.energy || 0) + reward, promptz: Math.max(0, (state.promptz || 0) - 1) });
+      if (isSignedIn()) chargeAiApi("corey-gpt", "Use-a-prompt habit").then(() => syncEconomy?.()).catch(() => {});
+      setMsg(`🏷️ Prompt used — −1🏷️, +${reward}⚡ (your skill median).`);
     } else {
       update({ energy: (state.energy || 0) + (t.energy || 1) });
     }
@@ -5407,8 +5414,8 @@ function LilithPage({ onOpen, tier, serverOk }) {
 
       {list === "habits" && (
         <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
-          <div className="card-header"><span>🏷️ Prompt habit</span><span className="tag" style={{ color: "var(--success)" }}>+{medianSkillRate(state)}⚡</span></div>
-          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Make using AI a habit — each completion rewards Energy equal to the <strong>median of your priced skills</strong> ({medianSkillRate(state)}⚡ right now). Price more SkillZ in PersonaZ to raise the reward.</p>
+          <div className="card-header"><span>🏷️ Prompt habit</span><span style={{ display: "inline-flex", gap: 6 }}><span className="tag" style={{ color: "var(--danger)" }}>−1🏷️</span><span className="tag" style={{ color: "var(--success)" }}>+{medianSkillRate(state)}⚡</span></span></div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Make using AI a habit — each completion spends <strong style={{ color: "var(--danger)" }}>1 PromptZ (−1🏷️)</strong> and rewards Energy equal to the <strong>median of your priced skills</strong> (+{medianSkillRate(state)}⚡ right now). Price more SkillZ in PersonaZ to raise the reward.</p>
           <button className="btn btn-success btn-small" onClick={addPromptHabit}>＋ Add "use a prompt" habit</button>
         </div>
       )}
@@ -5427,6 +5434,7 @@ function LilithPage({ onOpen, tier, serverOk }) {
                   {linked && <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: "0 0 0 6px", fontSize: 10 }} onClick={() => openApp(t.app)}>{linked.emoji} open</button>}
                 </span>
                 <span className="skill-item-actions">
+                  {t.promptHabit && !t.done && <span className="tag" style={{ color: "var(--danger)", fontSize: 10 }}>−1🏷️</span>}
                   {!t.done && list !== "trash" && <button className="btn btn-success btn-small" onClick={() => complete(t)}>✓{isHabit(t) ? ` +${t.energy || 1}⚡` : ""}</button>}
                   {list !== "trash" ? <button className="btn btn-danger btn-small" onClick={() => patch(t.id, { list: "trash", repeat: "none" })}>🚮</button>
                     : <button className="btn btn-secondary btn-small" onClick={() => patch(t.id, { list: "inbox", done: false })}>↩</button>}
