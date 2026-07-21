@@ -172,7 +172,7 @@ export const CATALOG = [
       { key: "onboardz", name: "OnboardZ", emoji: "👋", icon: "onboardz.jpg", desc: "Your guided first session — set up your profile, pick a persona, post your first work, and explore a SkillZ app. Auto-checks each step as you go.", fn: true },
       { key: "setup", name: "Setup", emoji: "⚙️", icon: "preferencez.png", desc: "Your profile basics — name, contact, location, bio, and picture.", fn: true },
       { key: "personas", name: "PersonaZ", emoji: "🎭", icon: "personaz.png", desc: "Pick your personas (Artist, Producer, Mix Engineer, Designer, Videographer, Manager, Ghostwriter, Developer, Weightlifter) and add your skills.", fn: true },
-      { key: "examples", name: "PostZ", emoji: "🎵", icon: "spinaz.png", desc: "Upload work examples — audio becomes the track, image the cover, text the lyrics — with genre, required skills, and privacy.", fn: true },
+      { key: "examples", name: "PostZ", emoji: "🎵", icon: "postz.png", desc: "Upload work examples — audio becomes the track, image the cover, text the lyrics — with genre, required skills, and privacy.", fn: true },
       { key: "profile", name: "Profile", emoji: "👤", icon: "personaz_indieartist.png", desc: "Your public profile — picture, bio, contact, and skills.", fn: true },
       { key: "money", name: "Money", emoji: "💰", icon: "energy.png", desc: "Your wallet — balance, earnings, add funds via Stripe, and payment history.", fn: true },
       { key: "membership", name: "MembershipZ", emoji: "👑", icon: "membership.png", desc: "Your tier — Free, Premium, or StatZ. Compare every perk across the platform and upgrade monthly or yearly.", fn: true },
@@ -189,8 +189,8 @@ export const CATALOG = [
     label: "🔜 Build queue (coming soon — tap to vote it up)",
     apps: [
       // SkillZ trainers not built yet (SingZ, RapZ, BodieZ, DirectZ above are live)
-      { key: "mimez", name: "MimeZ", emoji: "🕺", icon: "mimez.png", desc: "Lipsync & dance selfie challenges — capture a real performance take from your camera." },
-      { key: "lessonz", name: "LessonZ", emoji: "🎓", icon: "lessonz.png", desc: "Guided learning paths, technique breakdowns, mini-courses, and structured practice modules." },
+      { key: "mimez", name: "MimeZ", emoji: "🕺", icon: "mimez.png", desc: "Lipsync & dance selfie challenges — capture a real performance take from your camera.", fn: true },
+      { key: "lessonz", name: "LessonZ", emoji: "🎓", icon: "lessonz.png", desc: "Guided learning paths, technique breakdowns, mini-courses, and structured practice modules.", fn: true },
       { key: "drumz", name: "DrumZ", emoji: "🥁", icon: "drumz.png", desc: "Drum training — technique, timing, rudiments, chops & fills.", fn: true },
       { key: "violinz", name: "ViolinZ", emoji: "🎻", icon: "violinz.png", desc: "Violin training — posture, bowing, intonation, repertoire.", fn: true },
       { key: "guitarz", name: "GuitarZ", emoji: "🎸", icon: "guitarz.png", desc: "Guitar training — chords, strumming, riffs, lead.", fn: true },
@@ -198,7 +198,7 @@ export const CATALOG = [
       { key: "keyz", name: "KeyZ", emoji: "🎹", icon: "keyz.png", desc: "Keyboard training — hands, chords, scales, reading.", fn: true },
       { key: "producez", name: "ProduceZ", emoji: "🎚️", icon: "producez.png", desc: "Producer training — beat construction, arrangement, sound selection, mixing fundamentals.", fn: true },
       { key: "designz", name: "DesignZ", emoji: "🎨", icon: "designz.png", desc: "Design briefs with explicit goals — cover art, branding, visuals. Upload the finished work.", fn: true },
-      { key: "shotz", name: "ShotZ", emoji: "📸", icon: "shotz.png", desc: "Shooting assignments — capture photo/video work to a real brief." },
+      { key: "shotz", name: "ShotZ", emoji: "📸", icon: "shotz.png", desc: "Shooting assignments — capture photo/video work to a real brief.", fn: true },
       { key: "developz", name: "DevelopZ", emoji: "👾", icon: "developz.png", desc: "Code development training — ship real builds: an arcade game, a puzzle, an API toy, an open-source PR.", fn: true },
       { key: "managez", name: "ManageZ", emoji: "🕴🏼", icon: "managez.png", desc: "Management drills verified server-side: found a label, offer a contract, book a collab, build a roster, send outreach.", fn: true },
       // Media editors / dashboards not built yet
@@ -210,8 +210,8 @@ export const CATALOG = [
       { key: "tellz", name: "TellZ", emoji: "🗣️", icon: "tellz.png", desc: "Logs of what you've prompted/posted, selectable per tab. Detailed (word-for-word) or Summary (AI + emoji).", fn: true },
       { key: "logz", name: "LogZ", emoji: "🪵", icon: "logz.png", desc: "Logs of what was done by day, week, month, or custom range, per tab. Detailed or Summary view.", fn: true, premium: true },
       // Generic productivity knock-offs — parked well away from the music core
-      { key: "keyconnectz", name: "Key ConnectZ", emoji: "⌨️", icon: "keyconnectz.png", desc: "System keyboard on mobile, floating keyboard on desktop (Ctrl+Shift+K). Custom background image, mic speech-to-text, and translation to your desired output." },
-      { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met." },
+      { key: "keyconnectz", name: "Key ConnectZ", emoji: "⌨️", icon: "keyconnectz.png", desc: "System keyboard on mobile, floating keyboard on desktop (Ctrl+Shift+K). Custom background image, mic speech-to-text, and translation to your desired output.", fn: true, premium: true },
+      { key: "cleanconnectz", name: "Clean ConnectZ", emoji: "🧹", icon: "cleanconnectz.png", desc: "Device cleaner. StatZ users set a target percent or size; AI selects the largest, least-used files to delete first (by priority, size, or frequency) until the target is met.", fn: true },
       { key: "sonday", name: "Sonday", emoji: "🌞", icon: "sonday.png", desc: "A Monday.com-style project/board manager for your creative work.", fn: true, premium: true },
       { key: "builder", name: "Builder", emoji: "🏗️", icon: "builder.png", desc: "Buffer-style post management & scheduling — queue, schedule, and manage your posts across the platform.", fn: true, premium: true },
     ],
