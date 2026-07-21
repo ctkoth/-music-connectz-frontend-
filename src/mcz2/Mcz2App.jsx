@@ -124,6 +124,7 @@ import {
   getPostzApi, createPostzApi, editPostApi, joinPostzApi, sharePostzApi, getSubmissionsApi,
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
+  getAdzApi, createCommercialApi, deleteCommercialApi, rewardAdApi,
   chargeAiApi, occChatApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
@@ -7801,6 +7802,113 @@ function ParcelPrimatePage({ serverOk }) {
   );
 }
 
+// ---- AdZ: Watch & Earn — watch a commercial, earn SpinAZ = the cents the
+// platform is paid per view. Genuine full watches (>= min seconds) are rewarded.
+function AdWatcher({ ad, onRewarded }) {
+  const vidRef = useRef(null);
+  const [watched, setWatched] = useState(0);
+  const [msg, setMsg] = useState("");
+  const [done, setDone] = useState(false);
+  const need = ad.min_watch_seconds || 15;
+
+  const claim = async () => {
+    try {
+      const r = await rewardAdApi(ad.id, Math.round(watched));
+      if (r.rewarded) { setMsg(`✅ +${r.reward_spinaz} 🍥 — thanks for watching!`); setDone(true); onRewarded?.(r); }
+      else setMsg(r.reason === "watch_more" ? `⏳ Watch ${r.need_seconds}s to earn (you're at ${r.watched}s).`
+        : r.reason === "ad_daily_cap" ? "You've earned the daily max on this ad — come back tomorrow."
+        : r.reason === "daily_cap" ? "You've hit today's Watch & Earn cap — back tomorrow."
+        : r.reason === "own_ad" ? "You can't earn from your own ad." : "No reward this time.");
+    } catch (e) { setMsg(e?.message || "Couldn't claim — try again."); }
+  };
+
+  return (
+    <div className="post-card">
+      <div className="post-user">📺 {ad.title}{ad.sponsor ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · sponsored by {ad.sponsor}</span> : ""}</div>
+      <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 4 }}>Earn <strong>{ad.reward_spinaz} 🍥</strong> · watch {need}s</div>
+      {ad.media_type === "video"
+        ? <video ref={vidRef} src={ad.media_url} controls playsInline onTimeUpdate={(e) => setWatched(Math.max(watched, e.target.currentTime))} onError={() => setMsg("⏳ Ad unavailable right now.")} style={{ width: "100%", maxHeight: 260, borderRadius: 8 }} />
+        : <audio ref={vidRef} src={ad.media_url} controls onTimeUpdate={(e) => setWatched(Math.max(watched, e.target.currentTime))} style={{ width: "100%" }} />}
+      <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.15)", margin: "6px 0", overflow: "hidden" }}>
+        <div style={{ width: `${Math.min(100, (watched / need) * 100)}%`, height: "100%", background: watched >= need ? "var(--success)" : "var(--primary)" }} />
+      </div>
+      {ad.link_url && <a href={ad.link_url} target="_blank" rel="noreferrer" className="tag" style={{ color: "var(--accent, #22e6ff)", textDecoration: "none" }}>🔗 Visit sponsor</a>}
+      {!done && <button className="btn btn-success btn-small" style={{ width: "100%", marginTop: 6 }} disabled={watched < need} onClick={claim}>{watched < need ? `Keep watching… ${Math.floor(watched)}/${need}s` : `Claim ${ad.reward_spinaz} 🍥`}</button>}
+      {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+    </div>
+  );
+}
+
+function AdZPage({ serverOk, isOwner, syncEconomy }) {
+  const [data, setData] = useState(null);
+  const [form, setForm] = useState({ title: "", sponsor: "", link_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const setF = (k, v) => setForm((s) => ({ ...s, [k]: v }));
+
+  const load = () => { if (serverOk) getAdzApi().then(setData).catch(() => setData(null)); };
+  useEffect(load, [serverOk]);
+
+  const post = async () => {
+    if (!form.title.trim() || !form.media?.url) { setMsg("Add a title and upload the commercial."); return; }
+    setBusy(true); setMsg("");
+    try {
+      await createCommercialApi({ title: form.title.trim(), sponsor: form.sponsor.trim(), link_url: form.link_url.trim(), media_url: form.media.url, media_type: form.media.type, payout_cents: Number(form.payout_cents) || 1, min_watch_seconds: Number(form.min_watch_seconds) || 15, daily_cap_per_user: Number(form.daily_cap_per_user) || 3 });
+      setMsg("✅ Commercial posted."); setForm({ title: "", sponsor: "", link_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null }); load();
+    } catch (e) { setMsg(e?.message || "Couldn't post."); }
+    setBusy(false);
+  };
+  const remove = async (id) => { try { await deleteCommercialApi(id); load(); } catch { /* ignore */ } };
+
+  if (!serverOk) return <div className="card"><p style={{ fontSize: 12, color: "var(--text-light)" }}>📺 Sign in + connect to watch commercials and earn SpinAZ.</p></div>;
+  const ads = data?.ads || [];
+  return (
+    <>
+      <div className="stripe-section">
+        <div className="stripe-title">📺 AdZ — Watch &amp; Earn</div>
+        <div className="balance-info">Watch a sponsor's commercial → earn <strong>SpinAZ = the cents</strong> the platform is paid for your view. Full, genuine watches only; daily caps keep it fair.</div>
+      </div>
+
+      {isOwner && (
+        <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+          <div className="card-header">🛠️ Post a commercial (owner)</div>
+          {data?.owner && <p style={{ fontSize: 11, color: "var(--success)", marginBottom: 6 }}>💰 Earnings: {data.owner.total_views} rewarded views · {money((data.owner.total_cents || 0) / 100)} paid out in views</p>}
+          <div className="form-group"><label>Title</label><input value={form.title} onChange={(e) => setF("title", e.target.value)} placeholder="Commercial title" /></div>
+          <div className="grid-2">
+            <div className="form-group"><label>Sponsor</label><input value={form.sponsor} onChange={(e) => setF("sponsor", e.target.value)} placeholder="Brand" /></div>
+            <div className="form-group"><label>Sponsor link</label><input value={form.link_url} onChange={(e) => setF("link_url", e.target.value)} placeholder="https://…" /></div>
+          </div>
+          <div className="grid-3">
+            <div className="form-group"><label>Payout ¢/view = 🍥</label><input type="number" min="0" value={form.payout_cents} onChange={(e) => setF("payout_cents", e.target.value)} /></div>
+            <div className="form-group"><label>Min watch (s)</label><input type="number" min="1" value={form.min_watch_seconds} onChange={(e) => setF("min_watch_seconds", e.target.value)} /></div>
+            <div className="form-group"><label>Daily cap/user</label><input type="number" min="1" value={form.daily_cap_per_user} onChange={(e) => setF("daily_cap_per_user", e.target.value)} /></div>
+          </div>
+          <div className="form-group"><label>🎬 Upload the commercial</label><MediaCapture onUploaded={(m) => setF("media", m)} accept="video/*" /></div>
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={busy} onClick={post}>{busy ? "Posting…" : "📤 Post commercial"}</button>
+          {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}</p>}
+          {(data?.owner?.mine || []).length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div className="modal-sub-title" style={{ marginBottom: 4 }}>Your commercials</div>
+              {data.owner.mine.map((a) => (
+                <div key={a.id} className="skill-item">
+                  <span className="skill-item-name">📺 {a.title} · {a.reward_spinaz}🍥/view</span>
+                  <button className="btn btn-danger btn-small" onClick={() => remove(a.id)}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-header">🎬 Commercials</div>
+        {ads.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No commercials to watch right now — check back soon.</p>
+          : ads.map((a) => <AdWatcher key={a.id} ad={a} onRewarded={() => syncEconomy?.()} />)}
+      </div>
+    </>
+  );
+}
+
 // ---- LegendZ: "what every indicator means" in Corey voice ----
 function LegendZRow({ emoji, term, children, cta, onOpen }) {
   return (
@@ -7919,6 +8027,7 @@ const FN_PAGES = {
   battlez: BattleZPage,
   spinaz: SpinaZPage,
   energy: EnergyPage,
+  adz: AdZPage,
   ratez: RateConnectZPage,
   distributez: DistributeZPage,
   royaltiez: RoyaltieZPage,

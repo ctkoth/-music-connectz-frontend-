@@ -120,6 +120,12 @@ export const getLinkTalliesApi = (owner) => api(`/api/economy/link/tallies/?owne
 // DistributeZ import — extract audio (mp3 320k) from a video URL, and populate
 // lyrics from the description, an AI ghostwriter (Corey), or a collaborator post.
 export const transcodeApi = (url) => api("/api/economy/distributez/transcode/", { method: "POST", body: { url } });
+
+// AdZ — Watch & Earn. Viewers earn SpinAZ = the ad's per-view cents payout.
+export const getAdzApi = () => api("/api/economy/adz/");
+export const createCommercialApi = (ad) => api("/api/economy/adz/", { method: "POST", body: ad });
+export const deleteCommercialApi = (id) => api(`/api/economy/adz/${id}/`, { method: "DELETE" });
+export const rewardAdApi = (id, watchedSeconds) => api(`/api/economy/adz/${id}/reward/`, { method: "POST", body: { watched_seconds: watchedSeconds } });
 export const distributeLyricsApi = ({ source, description, collaboratorPostId, prompt }) =>
   api("/api/economy/distributez/lyrics/", { method: "POST", body: { source, description, collaborator_post_id: collaboratorPostId, prompt } });
 
