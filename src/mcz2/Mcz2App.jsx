@@ -7867,6 +7867,10 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
       <div className="stripe-section">
         <div className="stripe-title">📺 AdZ — Watch &amp; Earn</div>
         <div className="balance-info">Watch a sponsor's commercial → earn <strong>SpinAZ = the cents</strong> the platform is paid for your view. Full, genuine watches only; daily caps keep it fair.</div>
+        <div style={{ marginTop: 6, fontSize: 13 }}>
+          <span style={{ color: "var(--success)", fontWeight: 800 }}>🍥 {data?.earned || 0}</span>
+          <span style={{ color: "var(--text-light)", fontSize: 11 }}> SpinAZ earned watching{data?.earned_today ? ` · +${data.earned_today} today` : ""}</span>
+        </div>
       </div>
 
       {isOwner && (
@@ -7903,7 +7907,7 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
       <div className="card">
         <div className="card-header">🎬 Commercials</div>
         {ads.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No commercials to watch right now — check back soon.</p>
-          : ads.map((a) => <AdWatcher key={a.id} ad={a} onRewarded={() => syncEconomy?.()} />)}
+          : ads.map((a) => <AdWatcher key={a.id} ad={a} onRewarded={() => { syncEconomy?.(); load(); }} />)}
       </div>
     </>
   );
