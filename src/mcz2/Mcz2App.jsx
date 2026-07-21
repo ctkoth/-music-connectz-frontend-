@@ -98,6 +98,16 @@ function Amount({ value, flow, sign = false, bold = false }) {
   const prefix = sign ? (flow === "out" ? "−" : flow === "in" ? "+" : "") : "";
   return <span style={{ color, fontWeight: bold ? 700 : "inherit" }}>{prefix}{money(Math.abs(Number(value) || 0))}</span>;
 }
+
+// Canonical earned/lost paradigm for INTEGER currencies (SpinAZ, Energy, XP,
+// counts) across every Music ConnectZ app: earned shows as a green +N, lost as a
+// red −N. `unit` is an optional trailing emoji (🍥/⚡/…). Money uses <Amount>.
+function Delta({ value, unit = "", bold = true, style }) {
+  const n = Math.round(Number(value) || 0);
+  const color = n > 0 ? FLOW_GREEN : n < 0 ? FLOW_RED : "var(--text-light)";
+  const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+  return <span style={{ color, fontWeight: bold ? 700 : "inherit", ...style }}>{sign}{Math.abs(n)}{unit ? ` ${unit}` : ""}</span>;
+}
 import { LimitsProvider, useLimits } from "./LimitsContext.jsx";
 import { PostModalProvider, usePostModal } from "./PostModalContext.jsx";
 import {
@@ -1719,7 +1729,7 @@ function MoneyPage({ tier, serverOk, syncEconomy }) {
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No transactions yet.</p>
         ) : [...state.paymentHistory].reverse().map((p, i) => (
           <div key={i} className="skill-item">
-            <span className="skill-item-name">{p.amount >= 0 ? "+" : ""}{money(p.amount)} {p.note ? `· ${p.note}` : ""}</span>
+            <span className="skill-item-name"><Amount value={p.amount} flow={p.amount >= 0 ? "in" : "out"} sign bold /> {p.note ? `· ${p.note}` : ""}</span>
             <span className="skill-item-exp">{p.dev ? `tax ${money(p.dev)} · ` : ""}{new Date(p.at).toLocaleDateString()}</span>
           </div>
         ))}
@@ -3744,7 +3754,7 @@ function BattleZPage({ tier, onOpen, serverOk }) {
   );
 }
 
-function LedgerPage({ emoji, title, balance, log, note }) {
+function LedgerPage({ emoji, title, balance, log, note, unit = "" }) {
   return (
     <>
       <div className="stripe-section">
@@ -3757,7 +3767,7 @@ function LedgerPage({ emoji, title, balance, log, note }) {
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No activity yet.</p>
         ) : [...log].reverse().map((e, i) => (
           <div key={i} className="skill-item">
-            <span className="skill-item-name" style={{ color: e.amount >= 0 ? "var(--success)" : "var(--danger)" }}>{e.amount >= 0 ? "+" : ""}{e.amount} · {e.note}</span>
+            <span className="skill-item-name"><Delta value={e.amount} unit={unit} /> <span style={{ color: "var(--text)" }}>· {e.note}</span></span>
             <span className="skill-item-exp">{new Date(e.at).toLocaleString()}</span>
           </div>
         ))}
@@ -3769,7 +3779,7 @@ function SpinaZPage() {
   const { state } = useAppState();
   return (
     <>
-      <LedgerPage emoji="🍥" title="SpinAZ" balance={state.spinaz || 0} log={state.spinazLog} note={`In-app currency · $1 = ${SPINAZ_PER_DOLLAR} SpinAZ.`} />
+      <LedgerPage emoji="🍥" title="SpinAZ" balance={state.spinaz || 0} log={state.spinazLog} unit="🍥" note={`In-app currency · $1 = ${SPINAZ_PER_DOLLAR} SpinAZ.`} />
       <div className="card">
         <div className="card-header">💰 How you earn SpinAZ</div>
         {SPINAZ_EARNINGS.map((e) => (
@@ -3784,7 +3794,7 @@ function SpinaZPage() {
 }
 function EnergyPage() {
   const { state } = useAppState();
-  return <LedgerPage emoji="⚡" title="Energy" balance={state.energy || 0} log={state.energyLog} note="Earn from ratings, comments, and daily activity." />;
+  return <LedgerPage emoji="⚡" title="Energy" balance={state.energy || 0} log={state.energyLog} unit="⚡" note="Earn from ratings, comments, and daily activity." />;
 }
 
 const RATE_TYPES = [
@@ -4250,7 +4260,7 @@ function RoyaltieZPage({ tier, serverOk, syncEconomy }) {
           <p style={{ fontSize: 12, color: "var(--text-light)" }}>No royalty activity yet.</p>
         ) : [...log].reverse().map((e, i) => (
           <div key={i} className="skill-item">
-            <span className="skill-item-name" style={{ color: e.amount >= 0 ? "var(--success)" : "var(--danger)" }}>{e.amount >= 0 ? "+" : ""}{money(e.amount)} · {e.note}</span>
+            <span className="skill-item-name"><Amount value={e.amount} flow={e.amount >= 0 ? "in" : "out"} sign bold /> · {e.note}</span>
             <span className="skill-item-exp">{new Date(e.at).toLocaleString()}</span>
           </div>
         ))}
