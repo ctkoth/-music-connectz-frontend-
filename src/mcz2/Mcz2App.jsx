@@ -19,7 +19,7 @@ import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost
 import { DAWS } from "./dawz.js";
 import { LANGUAGES, langByCode, langLabel, langName, suggestLanguages } from "./languages.js";
 import { AutoTranslate, translateOne } from "./i18n.jsx";
-import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, tierMeets, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL } from "./economy.js";
 
 // Tier + Founding Member badges, reusable across profiles and member cards.
 // Tapping the tier chip (when onOpen given) jumps to MembershipZ upgrade prices.
@@ -4139,6 +4139,24 @@ function BattleZPage({ tier, onOpen, serverOk }) {
   const Contestant = ({ side }) => {
     const c = battle[side]; const s = stat(side); const mine = mineFor(side);
     const win = winner === side;
+    // Premium perk: let Corey GPT judge the round and fill your one rating. Costs
+    // a prompt (charged server-side); Free tier sees the upgrade prompt instead.
+    const canAi = tierMeets(tier, "premium");
+    const [aiBusy, setAiBusy] = useState(false);
+    const [aiErr, setAiErr] = useState("");
+    const aiRate = async () => {
+      setAiBusy(true); setAiErr("");
+      try {
+        const prompt = `You're judging a BattleZ music round. Rate contestant "${c.name}" (track: "${c.track}") from 1 to 10 on overall quality for a battle. Reply with ONLY the number 1-10, nothing else.`;
+        const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
+        const n = Math.round(parseFloat((r.text || "").match(/\d+(\.\d+)?/)?.[0] || "0"));
+        if (n >= 1) rate(side, Math.min(10, n));
+        else setAiErr("Couldn't read an AI score — try again.");
+      } catch (e) {
+        setAiErr(/402/.test(e?.message || "") ? "Short on PromptZ / balance — top up in Money." : (e?.message || "AI rating failed."));
+      }
+      setAiBusy(false);
+    };
     return (
       <div className="card" style={win ? { borderColor: "var(--primary)", boxShadow: "var(--glow)" } : undefined}>
         <div className="card-header">
@@ -4162,6 +4180,16 @@ function BattleZPage({ tier, onOpen, serverOk }) {
           <div>
             <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 4 }}>Rate this contestant:</div>
             <StarRow value={0} size={22} showEnds onRate={(n) => rate(side, n)} />
+            {canAi ? (
+              <button className="btn btn-small btn-secondary" style={{ marginTop: 8, display: "block" }} disabled={aiBusy} onClick={aiRate}>
+                {aiBusy ? "🤖 Corey's scoring…" : "🤖 Rate with AI (Premium · costs a prompt)"}
+              </button>
+            ) : (
+              <button className="btn btn-small btn-secondary" style={{ marginTop: 8, display: "block", opacity: 0.75 }} onClick={() => onOpen?.("money")} title="Premium feature — upgrade to let Corey fill a rating">
+                🔒 Rate with AI — Premium
+              </button>
+            )}
+            {aiErr && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{aiErr}</p>}
             <button className="btn-link" style={{ background: "none", border: "none", color: "var(--text-light)", cursor: "pointer", padding: 0, fontSize: 11, marginTop: 6, display: "block" }} onClick={() => skip(side)}>Skip</button>
           </div>
         ) : (
