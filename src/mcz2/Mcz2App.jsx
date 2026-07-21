@@ -949,6 +949,25 @@ const PERSONA_SKILLS = {
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const skillName = (s) => (typeof s === "string" ? s : s?.name || "");
 const skillStart = (s) => (typeof s === "string" ? "" : s?.start || "");
+// A skill can carry a price the member sets: a flat rate "per work" (per
+// project/deliverable) OR "per hour". Both are valid anywhere money changes
+// hands by agreement — CollabZ, BattleZ, VenueZ. Back-compat: no rate = unset.
+const skillRate = (s) => (typeof s === "string" ? 0 : Number(s?.rate) || 0);
+const skillRateUnit = (s) => (typeof s === "string" ? "work" : s?.rateUnit === "hour" ? "hour" : "work");
+const rateUnitLabel = (u) => (u === "hour" ? "per hour" : "per work");
+// Flatten a member's priced skills → [{name, rate, unit}] for quick-fill.
+function mySkillRates(state) {
+  const out = [];
+  (state?.personas || []).forEach((p) => (p.skills || []).forEach((s) => {
+    if (skillRate(s) > 0) out.push({ name: skillName(s), rate: skillRate(s), unit: skillRateUnit(s) });
+  }));
+  return out;
+}
+// Given a rate basis, the agreed total: flat per work, or rate × hours.
+function rateTotal({ rate, unit, hours }) {
+  const r = Number(rate) || 0;
+  return unit === "hour" ? r * (Number(hours) || 0) : r;
+}
 function expYears(start) {
   if (!start) return null;
   const [y, m, d] = String(start).split("-").map(Number);
@@ -960,6 +979,57 @@ function expYears(start) {
 }
 const expLabel = (start) => { const y = expYears(start); return y == null ? "" : y === 0 ? "<1y" : `${y}y`; };
 
+// Shared pricer: name a price per work (flat) OR per hour × hours, and
+// optionally quick-fill from your own priced skillZ. Used wherever money is
+// agreed — CollabZ offers, VenueZ host/visitor pay, BattleZ contributor pay.
+// Controlled: value = { rate, unit, hours }; onChange gets the whole basis.
+function RatePricer({ value, onChange, skillRates = [], currency = "$", label = "Rate", compact = false }) {
+  const rate = value?.rate ?? "";
+  const unit = value?.unit === "hour" ? "hour" : "work";
+  const hours = value?.hours ?? "";
+  const set = (patch) => onChange({ rate, unit, hours, ...patch });
+  const total = rateTotal({ rate, unit, hours });
+  return (
+    <div style={{ margin: compact ? "4px 0" : "6px 0" }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {!compact && <label style={{ fontSize: 11, color: "var(--text-light)" }}>{label} ({currency})</label>}
+        <input type="number" min="0" step="0.01" value={rate} placeholder="0.00" onChange={(e) => set({ rate: e.target.value })} style={{ width: 88 }} />
+        <div className="chip-wrap">
+          <button type="button" className={`heritage-chip${unit === "work" ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => set({ unit: "work" })}>per work</button>
+          <button type="button" className={`heritage-chip${unit === "hour" ? " sel" : ""}`} style={{ padding: "2px 8px" }} onClick={() => set({ unit: "hour" })}>per hour</button>
+        </div>
+        {unit === "hour" && (
+          <>
+            <span style={{ fontSize: 11, color: "var(--text-light)" }}>× hrs</span>
+            <input type="number" min="0" step="0.25" value={hours} placeholder="1" onChange={(e) => set({ hours: e.target.value })} style={{ width: 60 }} />
+          </>
+        )}
+      </div>
+      {skillRates.length > 0 && (
+        <div className="chip-wrap" style={{ marginTop: 4 }}>
+          <span style={{ fontSize: 10, color: "var(--text-light)" }}>from your skillZ:</span>
+          {skillRates.map((sr) => (
+            <button type="button" key={sr.name} className="heritage-chip" style={{ padding: "2px 8px" }} title={`Use your ${sr.name} rate`} onClick={() => set({ rate: sr.rate, unit: sr.unit })}>
+              {sr.name} {currency}{sr.rate}/{sr.unit === "hour" ? "hr" : "work"}
+            </button>
+          ))}
+        </div>
+      )}
+      {unit === "hour" && (
+        <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 2 }}>= {currency}{total.toFixed(2)} total ({currency}{Number(rate) || 0}/hr × {Number(hours) || 0}h)</div>
+      )}
+    </div>
+  );
+}
+// Human-readable agreement note for a rate basis, e.g. "$40/hr × 2h = $80" or
+// "$120 per work" — recorded in terms so both sides see how the price was set.
+function rateBasisNote({ rate, unit, hours }, currency = "$") {
+  const total = rateTotal({ rate, unit, hours });
+  return unit === "hour"
+    ? `${currency}${Number(rate) || 0}/hr × ${Number(hours) || 0}h = ${currency}${total.toFixed(2)}`
+    : `${currency}${total.toFixed(2)} per work`;
+}
+
 function PersonasPage() {
   const { state, addTo, removeFrom, setList } = useAppState();
   const [openCats, setOpenCats] = useState({}); // "personaIdx:cat" -> forced open/closed
@@ -968,8 +1038,12 @@ function PersonasPage() {
   const hasSkill = (mine, sk) => (mine || []).some((s) => skillName(s) === sk);
   const toggleSkill = (i, skill) => setList("personas", state.personas.map((p, idx) =>
     idx === i ? { ...p, skills: hasSkill(p.skills, skill) ? (p.skills || []).filter((s) => skillName(s) !== skill) : [...(p.skills || []), { name: skill, start: todayISO() }] } : p));
-  const setSkillStart = (i, skill, start) => setList("personas", state.personas.map((p, idx) =>
-    idx === i ? { ...p, skills: (p.skills || []).map((s) => (skillName(s) === skill ? { name: skill, start } : s)) } : p));
+  // Patch a single skill's fields (start date, price, rate unit) without
+  // dropping the others — every skill is { name, start, rate, rateUnit }.
+  const patchSkill = (i, skill, patch) => setList("personas", state.personas.map((p, idx) =>
+    idx === i ? { ...p, skills: (p.skills || []).map((s) => (skillName(s) === skill
+      ? { name: skillName(s), start: skillStart(s), rate: skillRate(s), rateUnit: skillRateUnit(s), ...patch } : s)) } : p));
+  const setSkillStart = (i, skill, start) => patchSkill(i, skill, { start });
   return (
     <>
       <div className="card">
@@ -1029,11 +1103,14 @@ function PersonasPage() {
               })}
               {mine.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginBottom: 4 }}>📅 Started each skill — sets your experience (years) shown to collaborators &amp; used in search.</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginBottom: 4 }}>📅 Start date sets your experience (years). 💲 Set a price per skill — <strong>per work</strong> or <strong>per hour</strong> — used across CollabZ, BattleZ &amp; VenueZ by agreement.</div>
                   {mine.map((s) => (
-                    <div key={skillName(s)} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4, fontSize: 11 }}>
-                      <span style={{ flex: 1 }}>{skillName(s)} {skillStart(s) && <span style={{ color: "var(--gold, #ffcf3f)" }}>· {expLabel(skillStart(s))} exp</span>}</span>
-                      <input type="date" max={todayISO()} value={skillStart(s)} onChange={(e) => setSkillStart(i, skillName(s), e.target.value)} style={{ width: 140, fontSize: 11 }} />
+                    <div key={skillName(s)} style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginBottom: 6 }}>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
+                        <span style={{ flex: 1 }}>{skillName(s)} {skillStart(s) && <span style={{ color: "var(--gold, #ffcf3f)" }}>· {expLabel(skillStart(s))} exp</span>}{skillRate(s) > 0 && <span style={{ color: "var(--success)" }}> · {money(skillRate(s))}/{skillRateUnit(s) === "hour" ? "hr" : "work"}</span>}</span>
+                        <input type="date" max={todayISO()} value={skillStart(s)} onChange={(e) => setSkillStart(i, skillName(s), e.target.value)} style={{ width: 140, fontSize: 11 }} />
+                      </div>
+                      <RatePricer compact value={{ rate: skillRate(s) || "", unit: skillRateUnit(s), hours: "" }} onChange={(v) => patchSkill(i, skillName(s), { rate: v.rate, rateUnit: v.unit })} />
                     </div>
                   ))}
                 </div>
@@ -3732,6 +3809,10 @@ function BattleZPage({ tier, onOpen, serverOk }) {
                 {myMoney > 0 && <p style={{ fontSize: 11, marginTop: 6 }}>Staked <Amount value={myMoney} flow="out" sign bold /> on yourself.</p>}
               </>
             )}
+            <div className="modal-sub-title" style={{ margin: "12px 0 6px" }}>🤝 Agreed contributor pay</div>
+            <p style={{ fontSize: 11, color: "var(--text-light)" }}>Bringing other personas into this battle (a cypher, a hook, production)? Agree what each is paid — <strong>per work</strong> or <strong>per hour</strong>.</p>
+            <RatePricer value={bets.helperPay || { rate: "", unit: "work", hours: "" }} skillRates={mySkillRates(state)} onChange={(v) => setBets({ helperPay: v })} />
+            {rateTotal(bets.helperPay || {}) > 0 && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Agreed: {rateBasisNote(bets.helperPay)} per contributor.</p>}
           </>
         )}
 
@@ -4539,6 +4620,8 @@ function CollabZPage({ tier, serverOk, onOpen }) {
   const { state, addTo } = useAppState();
   const [target, setTarget] = useState(null);
   const [offer, setOffer] = useState("");
+  const [offerUnit, setOfferUnit] = useState("work");
+  const [offerHours, setOfferHours] = useState("");
   const [terms, setTerms] = useState("");
   const [stake, setStake] = useState(0);
   const [collabCur, setCollabCur] = useState("money");
@@ -4546,35 +4629,47 @@ function CollabZPage({ tier, serverOk, onOpen }) {
   const [escrowMsg, setEscrowMsg] = useState("");
   const [escrowBusy, setEscrowBusy] = useState(false);
   const requests = state.collabRequests || [];
+  const offerBasis = { rate: offer, unit: offerUnit, hours: offerHours };
+  const offerTotal = rateTotal(offerBasis);
+  const cur = collabCur === "spinaz" ? "🍥" : "$";
+  // Fold the agreed basis (per work / per hour) into the recorded terms.
+  const termsWithBasis = () => {
+    const note = `Agreed: ${rateBasisNote(offerBasis, cur)}`;
+    return terms.trim() ? `${terms.trim()}\n(${note})` : note;
+  };
+  const resetOffer = () => { setTarget(null); setOffer(""); setOfferUnit("work"); setOfferHours(""); setTerms(""); setStake(0); };
   const submit = () => {
-    if (!target || !(Number(offer) > 0)) return;
+    if (!target || !(offerTotal > 0)) return;
     addTo("collabRequests", {
       id: Date.now(),
       who: target.username || target.display_name || target.name,
-      amount: Number(offer),
-      terms: terms.trim(),
+      amount: offerTotal,
+      rateUnit: offerUnit,
+      hours: Number(offerHours) || 0,
+      terms: termsWithBasis(),
       status: "sent",
       at: Date.now(),
     });
-    setTarget(null); setOffer(""); setTerms("");
+    resetOffer();
   };
   // Turn an offer into a real escrow deal: I pay the offer, my collaborator
   // delivers; the money is held until I approve. Requires a real member target.
   const startEscrow = async () => {
-    if (!target?.username || !(Number(offer) > 0)) return;
+    if (!target?.username || !(offerTotal > 0)) return;
     setEscrowBusy(true); setEscrowMsg("");
     try {
+      const basis = rateBasisNote(offerBasis, cur);
       await createCollabApi({
-        title: terms.trim() ? terms.trim().slice(0, 80) : `Collab with @${target.username}`,
+        title: (terms.trim() ? terms.trim() : `Collab with @${target.username}`).slice(0, 62) + ` · ${basis}`.slice(0, 18),
         currency: collabCur,
         stake_spinaz: Number(stake) || 0,
         participants: [
           { username: state.user?.username, worth_cents: 0 },
-          { username: target.username, worth_cents: Math.round(Number(offer) * (collabCur === "spinaz" ? 1 : 100)) },
+          { username: target.username, worth_cents: Math.round(offerTotal * (collabCur === "spinaz" ? 1 : 100)) },
         ],
       });
-      setEscrowMsg("🔒 Escrow deal created — fund your share below to hold the money safe.");
-      setTarget(null); setOffer(""); setTerms(""); setStake(0);
+      setEscrowMsg(`🔒 Escrow deal created (${basis}) — fund your share below to hold the money safe.`);
+      resetOffer();
       setDealKey((k) => k + 1);
     } catch (e) { setEscrowMsg(e?.message || "Couldn't create the escrow deal — is your collaborator a signed-in member?"); }
     setEscrowBusy(false);
@@ -4600,10 +4695,14 @@ function CollabZPage({ tier, serverOk, onOpen }) {
       {target ? (
         <div className="card" style={{ border: "1px solid var(--primary)" }}>
           <div className="card-header"><span>🤝 Offer to {target.username ? `@${target.username}` : (target.display_name || target.name)}</span><button className="btn btn-small btn-secondary" onClick={() => setTarget(null)}>Change</button></div>
-          <div className="form-group"><label>💵 Offer ($)</label><input type="number" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="0.00" /></div>
+          <div className="form-group"><label>💵 Offer — pay per work or per hour, as you agree</label>
+            <RatePricer value={offerBasis} currency={cur} skillRates={mySkillRates(state)}
+              onChange={(v) => { setOffer(v.rate); setOfferUnit(v.unit); setOfferHours(v.hours); }} />
+            {offerTotal > 0 && <div style={{ fontSize: 12, fontWeight: 700 }}>Agreed total: <span style={{ color: "var(--success)" }}>{cur === "🍥" ? `${offerTotal} 🍥` : money(offerTotal)}</span></div>}
+          </div>
           <div className="form-group"><label>Terms</label><CappedTextarea value={terms} onChange={(e) => setTerms(e.target.value)} style={{ height: 56 }} placeholder="What are you collaborating on? Deliverables, splits, deadline…" /></div>
           <div className="form-group"><label>🎧 Attach a reference sample (record/upload)</label><MediaCapture onUploaded={(m) => { if (m?.url) setTerms((t) => `${t}${t ? "\n" : ""}🎧 Sample: ${m.url}`); }} /></div>
-          {Number(offer) > 0 && collabCur === "money" && (() => { const s = splitTransaction(Number(offer), tier); return (
+          {offerTotal > 0 && collabCur === "money" && (() => { const s = splitTransaction(offerTotal, tier); return (
             <p style={{ fontSize: 11, color: "var(--text-light)" }}>Developer tax ({s.label} {Math.round(s.rate * 100)}%): {money(s.dev)} · your collaborator receives {money(s.net)}.</p>
           ); })()}
           {serverOk && target.username && (
@@ -4619,11 +4718,11 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           )}
           {serverOk && target.username ? (
             <>
-              <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0) || escrowBusy} onClick={startEscrow}>{escrowBusy ? "Creating…" : "🔒 Start escrow deal (held until you approve)"}</button>
-              <button className="btn btn-secondary btn-small" style={{ width: "100%", marginTop: 6 }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send informal offer (no escrow)</button>
+              <button className="btn btn-success" style={{ width: "100%" }} disabled={!(offerTotal > 0) || escrowBusy} onClick={startEscrow}>{escrowBusy ? "Creating…" : "🔒 Start escrow deal (held until you approve)"}</button>
+              <button className="btn btn-secondary btn-small" style={{ width: "100%", marginTop: 6 }} disabled={!(offerTotal > 0)} onClick={submit}>📤 Send informal offer (no escrow)</button>
             </>
           ) : (
-            <button className="btn btn-success" style={{ width: "100%" }} disabled={!(Number(offer) > 0)} onClick={submit}>📤 Send collab offer</button>
+            <button className="btn btn-success" style={{ width: "100%" }} disabled={!(offerTotal > 0)} onClick={submit}>📤 Send collab offer</button>
           )}
         </div>
       ) : (
@@ -4635,7 +4734,7 @@ function CollabZPage({ tier, serverOk, onOpen }) {
           <div className="card-header">📤 Your collab offers</div>
           {[...requests].reverse().map((r) => (
             <div key={r.id} className="post-card">
-              <div className="post-user">To: {r.who} · {money(r.amount)} <span className="tag">{r.status}</span></div>
+              <div className="post-user">To: {r.who} · {money(r.amount)}{r.rateUnit === "hour" && r.hours ? ` (per hour × ${r.hours}h)` : r.rateUnit === "work" ? " (per work)" : ""} <span className="tag">{r.status}</span></div>
               <SocialBar id={`collab:${r.id}`} shareText={`Collab offer to ${r.who}`} />
               {r.terms && <div className="post-content">{r.terms}</div>}
               <div className="post-meta">{new Date(r.at).toLocaleString()}</div>
@@ -6495,7 +6594,7 @@ function fromServerVenue(v) {
 function VenueZPage({ tier, serverOk, syncEconomy }) {
   const { state, updateWallet, addTo, setList } = useAppState();
   const [tab, setTab] = useState("discover"); // discover | host
-  const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+  const [form, setForm] = useState({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
   const [msg, setMsg] = useState("");
   const [serverVenues, setServerVenues] = useState(null); // null = not loaded / offline
   const [myAttractServer, setMyAttractServer] = useState(null);
@@ -6515,6 +6614,8 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
 
   const venues = serverVenues ? serverVenues : [...(state.venues || []), ...SEED_VENUES];
 
+  const hostTotal = rateTotal({ rate: form.hostPrice, unit: form.hostUnit, hours: form.hours });
+  const visitorTotal = rateTotal({ rate: form.visitorPay, unit: form.visitorUnit, hours: form.hours });
   const create = async () => {
     if (!form.title.trim()) return;
     if (serverVenues) {
@@ -6522,13 +6623,13 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
         await createVenueApi({
           title: form.title.trim(), mode: form.mode, vtype: form.type,
           custom_name: form.type === "custom" ? form.custom.trim() : "",
-          host_price_cents: Math.round((Number(form.hostPrice) || 0) * 100),
-          visitor_pay_cents: Math.round((Number(form.visitorPay) || 0) * 100),
+          host_price_cents: Math.round(hostTotal * 100),
+          visitor_pay_cents: Math.round((form.mode === "collaborative" ? visitorTotal : 0) * 100),
           min_attract: Number(form.minAttract) || 0,
         });
         const r = await getVenuesApi();
         setServerVenues(r.venues.map(fromServerVenue));
-        setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+        setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
         setTab("discover");
         return;
       } catch (e) { setMsg(e.message || "Could not publish venue"); return; }
@@ -6536,12 +6637,13 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
     const v = {
       id: `v-${Date.now()}`, title: form.title.trim(), mode: form.mode,
       type: form.type, customName: form.type === "custom" ? form.custom.trim() : "",
-      host: state.user?.name || "you", hostPrice: Number(form.hostPrice) || 0,
-      visitorPay: form.mode === "collaborative" ? Number(form.visitorPay) || 0 : 0,
+      host: state.user?.name || "you", hostPrice: hostTotal,
+      visitorPay: form.mode === "collaborative" ? visitorTotal : 0,
+      hostUnit: form.hostUnit, visitorUnit: form.visitorUnit, hours: Number(form.hours) || 0,
       minAttract: Number(form.minAttract) || 0, at: Date.now(),
     };
     setList("venues", [v, ...(state.venues || [])]);
-    setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, visitorPay: 5, minAttract: 0 });
+    setForm({ title: "", mode: "collaborative", type: "party", custom: "", hostPrice: 10, hostUnit: "work", visitorPay: 5, visitorUnit: "work", hours: "", minAttract: 0 });
     setTab("discover");
   };
 
@@ -6613,10 +6715,20 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
           {form.type === "custom" && (
             <div className="form-group"><label>Custom type name</label><input value={form.custom} onChange={(e) => setForm({ ...form, custom: e.target.value })} placeholder="Name your event type" /></div>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <div className="form-group" style={{ flex: 1 }}><label>Host price ($)</label><input type="number" min="0" value={form.hostPrice} onChange={(e) => setForm({ ...form, hostPrice: e.target.value })} /></div>
-            {form.mode === "collaborative" && <div className="form-group" style={{ flex: 1 }}><label>Visitor payout ($)</label><input type="number" min="0" value={form.visitorPay} onChange={(e) => setForm({ ...form, visitorPay: e.target.value })} /></div>}
+          <div className="form-group">
+            <label>Host price — per work or per hour</label>
+            <RatePricer value={{ rate: form.hostPrice, unit: form.hostUnit, hours: form.hours }} skillRates={mySkillRates(state)}
+              onChange={(v) => setForm({ ...form, hostPrice: v.rate, hostUnit: v.unit, hours: v.hours })} />
+            {form.hostUnit === "hour" && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Attendees pay {money(hostTotal)} total.</div>}
           </div>
+          {form.mode === "collaborative" && (
+            <div className="form-group">
+              <label>Visitor payout — per work or per hour</label>
+              <RatePricer value={{ rate: form.visitorPay, unit: form.visitorUnit, hours: form.hours }} skillRates={mySkillRates(state)}
+                onChange={(v) => setForm({ ...form, visitorPay: v.rate, visitorUnit: v.unit, hours: v.hours })} />
+              {form.visitorUnit === "hour" && <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)" }}>Collaborators earn {money(visitorTotal)} total.</div>}
+            </div>
+          )}
           <div className="form-group"><label>Min attractiveness filter: {form.minAttract}/10</label><input type="range" min="0" max="10" value={form.minAttract} onChange={(e) => setForm({ ...form, minAttract: e.target.value })} /></div>
           <p style={{ fontSize: 10, color: "var(--text-light)", marginBottom: 8 }}>Developer tax ({devTaxFor(tier).label} {Math.round(devTaxFor(tier).rate * 100)}%) is applied to every VenueZ payment.</p>
           <button className="btn btn-success" style={{ width: "100%" }} disabled={!form.title.trim()} onClick={create}>➕ Publish venue</button>
@@ -6639,6 +6751,7 @@ function VenueZPage({ tier, serverOk, syncEconomy }) {
                   <span className="tag">host @{v.host}</span>
                   <span className="tag" style={{ color: FLOW_RED }}>attend {money(v.hostPrice)}</span>
                   {v.mode === "collaborative" && v.visitorPay > 0 && <span className="tag" style={{ color: FLOW_GREEN }}>earn {money(v.visitorPay)}</span>}
+                  {(v.hostUnit === "hour" || v.visitorUnit === "hour") && v.hours > 0 && <span className="tag" title="Priced per hour">⏱️ {v.hours}h</span>}
                   {v.minAttract > 0 && <span className="tag" style={{ color: locked ? "var(--danger)" : undefined }}>💯 {v.minAttract}+</span>}
                 </div>
                 {!mine && <CostBreakdown amount={v.hostPrice} tier={tier} recipient={`@${v.host}`} payLabel="You pay to attend" />}
