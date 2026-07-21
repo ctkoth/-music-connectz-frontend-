@@ -5245,6 +5245,16 @@ const APP_METRICS = {
 };
 const metricsFor = (k) => [...(APP_METRICS[k] || []), ...GLOBAL_METRICS];
 
+// Median of a member's priced skill rates — the Energy reward for the "use a
+// prompt" habit (rewards people who've set up valuable skills). Defaults to 5⚡
+// when no skills are priced yet.
+function medianSkillRate(state) {
+  const rates = mySkillRates(state).map((s) => Number(s.rate) || 0).filter((n) => n > 0).sort((a, b) => a - b);
+  if (!rates.length) return 5;
+  const m = Math.floor(rates.length / 2);
+  return Math.round(rates.length % 2 ? rates[m] : (rates[m - 1] + rates[m]) / 2);
+}
+
 // Reusable: run an in-app top-up (money + tier energy) — same path as TopUpTiles.
 function useTopUp({ serverOk, tier }) {
   const { state, update, updateWallet, addTo } = useAppState();
@@ -5335,10 +5345,18 @@ function LilithPage({ onOpen, tier, serverOk }) {
     setList("lilithTasks", [...tasks, { id: Date.now(), title: `Top up $${topupAmt}`, list: "today", app: "money", repeat: topupRepeat, dueAt: rollDue(topupRepeat), topupAmount: Number(topupAmt), energy: 2, xp: 10 }]);
     setMsg(`💳 Top-up habit added — $${topupAmt} ${topupRepeat}. Complete it to fund + earn energy.`);
   };
+  const addPromptHabit = () => {
+    setList("lilithTasks", [...tasks, { id: Date.now(), title: "Use a prompt 🏷️", list: "today", app: "occ", repeat: "daily", dueAt: rollDue("daily"), promptHabit: true, energy: medianSkillRate(state), xp: 10 }]);
+    setMsg(`🏷️ Prompt habit added — complete it after using a prompt to earn ⚡ = your skill median (${medianSkillRate(state)}⚡).`);
+  };
   const complete = async (t) => {
     if (t.app === "money" && t.topupAmount) {
       const m = await runTopUp(t.topupAmount);
       setMsg(m);
+    } else if (t.promptHabit) {
+      const reward = medianSkillRate(state); // recomputed — grows as you price more skills
+      update({ energy: (state.energy || 0) + reward });
+      setMsg(`🏷️ Prompt used — +${reward}⚡ (your skill median).`);
     } else {
       update({ energy: (state.energy || 0) + (t.energy || 1) });
     }
@@ -5384,6 +5402,14 @@ function LilithPage({ onOpen, tier, serverOk }) {
             <button className="btn btn-success btn-small" onClick={addTopUpHabit}>＋ Add top-up habit</button>
           </div>
           <AutoTopUpManager serverOk={serverOk} />
+        </div>
+      )}
+
+      {list === "habits" && (
+        <div className="card" style={{ border: "1px solid var(--gold, #ffcf3f)" }}>
+          <div className="card-header"><span>🏷️ Prompt habit</span><span className="tag" style={{ color: "var(--success)" }}>+{medianSkillRate(state)}⚡</span></div>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Make using AI a habit — each completion rewards Energy equal to the <strong>median of your priced skills</strong> ({medianSkillRate(state)}⚡ right now). Price more SkillZ in PersonaZ to raise the reward.</p>
+          <button className="btn btn-success btn-small" onClick={addPromptHabit}>＋ Add "use a prompt" habit</button>
         </div>
       )}
 
