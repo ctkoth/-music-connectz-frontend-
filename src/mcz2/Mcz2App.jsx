@@ -5473,7 +5473,32 @@ function MoodPicker({ mood, setMood }) {
   );
 }
 
-function ImageConnectZ() {
+// Intelligence generate button that charges the AI-cost minimum (to cover the
+// owner's model spend) — spends PromptZ first, then cash. Corey GPT is the
+// cheapest voice, so Intelligence bills at that floor (1¢).
+function IntelGenerate({ label, disabled, syncEconomy }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const go = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await chargeAiApi("corey-gpt", `Intelligence: ${label}`);
+      setMsg(`✨ Generating… charged ${r.cost_cents}🏷️ (PromptZ first).`);
+      syncEconomy?.();
+    } catch (e) {
+      setMsg(/40[26]|balance|enough/i.test(e?.message || "") ? "Not enough PromptZ/cash — buy PromptZ or add funds." : "Couldn't generate — try again.");
+    }
+    setBusy(false);
+  };
+  return (
+    <>
+      <button className="btn" style={{ width: "100%" }} disabled={disabled || busy} onClick={go}>{busy ? "…" : label}</button>
+      {msg && <p style={{ fontSize: 11, color: /✨/.test(msg) ? "var(--success)" : "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+    </>
+  );
+}
+
+function ImageConnectZ({ syncEconomy }) {
   const [type, setType] = useState(IMAGE_TYPES[0].name);
   const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -5488,13 +5513,13 @@ function ImageConnectZ() {
       <MoodPicker mood={mood} setMood={setMood} />
       <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Uses your saved FaceZ for likeness. StatZ can lipsync the result to an audio/video track and drop it into VideoZ.</p>
-      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✨ Generate {mood ? `${mood} ` : ""}{type} ({t.ratio})</button>
+      <IntelGenerate label={`✨ Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
       <IntelNote role="Designer" />
     </div>
   );
 }
 
-function InstrumentalConnectZ({ tier }) {
+function InstrumentalConnectZ({ tier, syncEconomy }) {
   const isStatz = /stat[sz]/i.test(tier || "");
   const [genre, setGenre] = useState(INSTR_GENRES[0]);
   const [inst, setInst] = useState(["808 / Bass", "Drums"]);
@@ -5518,13 +5543,13 @@ function InstrumentalConnectZ({ tier }) {
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Key</label>
       <div className="chip-wrap" style={{ margin: "6px 0 8px" }}>{keyList.map((k, i) => <Pill key={k.key} active={keyIdx === i} onClick={() => setKeyIdx(i)}>{k.key}</Pill>)}</div>
       <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 10 }}><strong>{chosen.key}</strong> — {chosen.mood}</p>
-      <button className="btn" style={{ width: "100%" }}>🎼 Generate MIDI · {genre} · {bpm} BPM · {chosen.key}</button>
+      <IntelGenerate label={`🎼 Generate MIDI · ${genre} · ${bpm} BPM · ${chosen.key}`} syncEconomy={syncEconomy} />
       <IntelNote role="Beat Producer" reusable />
     </div>
   );
 }
 
-function MixConnectZ() {
+function MixConnectZ({ syncEconomy }) {
   const [mode, setMode] = useState(MIX_MODES[2]);
   const [target, setTarget] = useState(MIX_TARGETS[0].name);
   const [extras, setExtras] = useState(["Vocal tuning"]);
@@ -5539,13 +5564,13 @@ function MixConnectZ() {
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{MIX_TARGETS.map((x) => <Pill key={x.name} active={target === x.name} onClick={() => setTarget(x.name)}>{x.name} · {x.lufs}</Pill>)}</div>
       <label style={{ fontSize: 11, color: "var(--text-light)" }}>Enhancements</label>
       <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>{MIX_EXTRAS.map((e) => <Pill key={e} active={extras.includes(e)} onClick={() => toggle(e)}>{e}</Pill>)}</div>
-      <button className="btn" style={{ width: "100%" }}>🎛️ {mode} → {tg.lufs}</button>
+      <IntelGenerate label={`🎛️ ${mode} → ${tg.lufs}`} syncEconomy={syncEconomy} />
       <IntelNote role="Mix Engineer" />
     </div>
   );
 }
 
-function VideoConnectZ() {
+function VideoConnectZ({ syncEconomy }) {
   const [type, setType] = useState(VIDEO_TYPES[0].name);
   const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -5558,13 +5583,13 @@ function VideoConnectZ() {
       <MoodPicker mood={mood} setMood={setMood} />
       <div className="form-group"><label>Concept</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`Concept for your ${mood ? mood.toLowerCase() + " " : ""}${type.toLowerCase()}`} /></div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Built from your saved FaceZ. StatZ can lipsync it to a supplied audio track and finish it in VideoZ / DirectZ (ReelZ · EpisodeZ · MovieZ).</p>
-      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>🎬 Generate {mood ? `${mood} ` : ""}{type} ({t.ratio})</button>
+      <IntelGenerate label={`🎬 Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
       <IntelNote role="Videographer" reusable />
     </div>
   );
 }
 
-function SentenceConnectZ() {
+function SentenceConnectZ({ syncEconomy }) {
   const { state } = useAppState();
   // Contracts & royalty agreements are gated to Manager / A&R Scout personas.
   const isBiz = isBizPersona(state.personas);
@@ -5603,7 +5628,7 @@ function SentenceConnectZ() {
       )}
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Written in Corey voice · toggles for language, Explicit / Slang / Emoji.</p>
       {isLegal && <LegalDisclaimer />}
-      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim()}>✍️ Generate {doc}</button>
+      <IntelGenerate label={`✍️ Generate ${doc}`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
       <IntelNote role="Ghostwriter" reusable />
     </div>
   );
