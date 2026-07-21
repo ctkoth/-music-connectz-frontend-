@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const STORE_KEY = "musicConnectZState";
 
 const DEFAULT_STATE = {
-  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, links: [], nationalities: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
+  user: { name: "", email: "", phone: "", birthday: "", gender: "", location: "", bio: "", profilePic: null, verified18: false, links: [], nationalities: [], languages: [], substances: {}, preferences: { partnerGender: "", traits: [] } },
   // Universal social layer: likes/dislikes/comments keyed by any item id, so
   // posts, CollabZ, BattleZ, profiles — anything — is shareable/rateable/commentable.
   social: {},
@@ -64,6 +64,8 @@ const DEFAULT_STATE = {
     theme: "neon-cyan",
     accent: "#22e6ff", // tab-highlight glow color (premium/statz customizable)
     lightDark: "dark",
+    uiLang: "en", // display language for the whole app (LanguageZ). NOTE: distinct
+                  // from settings.language, which is OCC's *coding* language.
     notifications: true,
     ratezAttractiveness: true, // let RateZ ratings move your attractiveness median
     collabAlerts: true,
