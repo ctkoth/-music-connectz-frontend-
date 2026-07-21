@@ -23,6 +23,41 @@ export function signByName(name) {
   return SIGNS.find((s) => s.name === name) || null;
 }
 
+// ---- Sign compatibility (Corey voice) ----
+// Elements + modalities drive the classic read: same element flows, Fire↔Air and
+// Earth↔Water complement, Fire↔Water and Earth↔Air clash. A same-modality clash
+// (two cardinals butting heads) nudges it down; opposite signs get a spark bump.
+const ELEMENT = {
+  Aries: "Fire", Leo: "Fire", Sagittarius: "Fire",
+  Taurus: "Earth", Virgo: "Earth", Capricorn: "Earth",
+  Gemini: "Air", Libra: "Air", Aquarius: "Air",
+  Cancer: "Water", Scorpio: "Water", Pisces: "Water",
+};
+const COMPLEMENT = { Fire: "Air", Air: "Fire", Earth: "Water", Water: "Earth" };
+
+export function signCompatibility(a, b) {
+  const A = typeof a === "string" ? signByName(a) : a;
+  const B = typeof b === "string" ? signByName(b) : b;
+  if (!A || !B) return null;
+  const ea = ELEMENT[A.name]; const eb = ELEMENT[B.name];
+  let score;
+  let note;
+  if (A.name === B.name) {
+    score = 8; note = "Two of the same sign — instant understanding, but you'll double each other's blind spots. Mirror energy: powerful when aligned, loud when not.";
+  } else if (ea === eb) {
+    score = 9; note = `Same element (${ea}) — you move at the same tempo and just get each other. Natural creative chemistry; watch that you challenge, not just echo.`;
+  } else if (COMPLEMENT[ea] === eb) {
+    score = 8; note = `${ea} + ${eb} complement — opposite strengths that cover each other's gaps. This is the collab that actually finishes the album.`;
+  } else {
+    score = 5; note = `${ea} + ${eb} clash — different speeds and priorities. Real sparks either way; make the friction the sound instead of the argument.`;
+  }
+  // Opposite signs (6 apart) add a magnetic spark.
+  const ia = SIGNS.findIndex((s) => s.name === A.name);
+  const ib = SIGNS.findIndex((s) => s.name === B.name);
+  if (Math.abs(ia - ib) === 6) score = Math.min(10, score + 1);
+  return { score, note, a: A, b: B };
+}
+
 // ---- Daily ZodiacZ reading (Corey voice) ----
 // Deterministic per (sign, day) so everyone with the same sign gets the same
 // reading each day, and it refreshes at midnight.
