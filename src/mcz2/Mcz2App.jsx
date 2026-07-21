@@ -924,6 +924,17 @@ const FORMAT_SKILLS = ["Any Format 🎬", ...DIRECTZ_FORMATS.map((f) => `${f.nam
 const DIRECTING_CRAFT = ["Any Directing 🎬", "Shot Composition 🎞️", "Blocking 🚦", "Coverage 🎥", "Pacing ⏱️", "Performance Direction 🎭", "Scene Planning 🗂️", "Visual Storytelling 📖"];
 const MOVIE_GENRE_SKILLS = ["Any Movie Genre 🎬", ...MOVIE_GENRES.map((g) => `${g.name} ${g.emoji}`)];
 const TV_GENRE_SKILLS = ["Any TV Genre 📺", ...TV_GENRES.map((g) => `${g.name} ${g.emoji}`)];
+// Music genres + subgenres (emoji-tagged) shared by the music-making personas
+// so Artist / Beat Producer / Mix Engineer all carry (sub)genre skills.
+const MUSIC_GENRE_SKILLS = [
+  "Any Genre 🎶", "Hip-Hop 🎤", "Trap 🏚️", "Boom Bap 🥁", "Drill ⚔️", "Cloud Rap ☁️",
+  "R&B 💜", "Neo-Soul 🌙", "Soul 💛", "Funk 🕺", "Pop 🌟", "Synth-Pop 🎹", "Hyperpop 💊",
+  "Rock 🎸", "Alternative 🎸", "Punk 🤘", "Metal 🤘", "Indie 🎧",
+  "EDM 🎛️", "House 🏠", "Deep House 🌊", "Techno 🔊", "Dubstep 🔉", "Trance 🌀", "Drum & Bass 🥁", "Hyphy 🔥",
+  "Jazz 🎷", "Blues 🎸", "Classical 🎻", "Lo-Fi 🌫️", "Ambient 🌊",
+  "Gospel 🙏", "Country 🤠", "Folk 🪕", "Reggae 🇯🇲", "Dancehall 🔥",
+  "Afrobeats 🥁", "Amapiano 🎹", "Latin 💃", "Reggaeton 🔥", "K-Pop 🇰🇷", "World 🌍",
+];
 // Distinct emoji per game subgenre where recognizable; falls back to the genre's
 // emoji so every subgenre skill still carries one.
 const SUBGENRE_EMOJI = {
@@ -965,15 +976,18 @@ const PERSONA_SKILLS = {
     "🥁 Percussion": ["Any Percussion 🥁", "Drums (Snare) 🥁", "Drums (Bass) 🥁", "Drums (Bongo) 🥁", "Cymbals 🥁"],
     "🎤 Rapping": ["Any Rapping 🎤", "Alternative Rap 🎸", "Boom Bap 🥁", "Chopper 🚁", "Cloud Rap ☁️", "Conscious Rap 🧠", "Crunk 🔥", "Drill ⚔️", "Emo Rap 🖤", "G-Funk 🌴", "Gangsta Rap ⛓️", "Hardcore Hip Hop 🎤", "Jazz Rap 🎷", "Mumble Rap 💤", "Old School 📻", "Snap 🫰", "Trap 🏚️"],
     "🎶 Singing (range)": ["Any Singing 🎶", "Bass 🧔‍♂️", "Baritone 🎙️", "Tenor 🎤", "Countertenor 🕊️", "Contralto 🎻", "Alto 🎶", "Mezzo-Soprano 🌊", "Soprano ☀️"],
+    "🎶 Genres & Subgenres": MUSIC_GENRE_SKILLS,
     "✍️ Craft": ["Songwriting ✍️", "Stage Presence 🎤", "Freestyle 🌀", "Melody 🎶", "Performance 🎭", "Branding 🏷️"],
   },
   "Beat Producer": {
     "🎛️ Music DAWs": ["Any DAW 🎛️", "Ableton Live 🎵", "Adobe Audition 🎙️", "Audacity 🎧", "Bitwig Studio 🎚️", "Cakewalk 🎼", "Cubase 🎛️", "FL Studio 🎚️", "GarageBand 🎵", "Logic Pro 🎵", "Luna ☁️", "Mixcraft 🎚️", "PreSonus Studio One 🎛️", "Pro Tools 🎙️", "Reason 🎛️", "Reaper 🔧", "Studio One 🎛️", "Waveform Pro 📊"],
     "🎚️ Production": ["Any Production 🎚️", "Beat Making 🎚️", "Sampling 🎵", "Sound Design 🎛️", "Arrangement 🎼", "Synthesis 🎹", "Drum Programming 🥁", "Melody 🎶", "Genre Range 🎯"],
+    "🎶 Genres & Subgenres": MUSIC_GENRE_SKILLS,
   },
   "Mix Engineer": {
     "🎛️ Music DAWs": ["Any DAW 🎛️", "Ableton Live 🎵", "Adobe Audition 🎙️", "Audacity 🎧", "Bitwig Studio 🎚️", "Cakewalk 🎼", "Cubase 🎛️", "FL Studio 🎚️", "GarageBand 🎵", "Logic Pro 🎵", "Luna ☁️", "Mixcraft 🎚️", "PreSonus Studio One 🎛️", "Pro Tools 🎙️", "Reason 🎛️", "Reaper 🔧", "Studio One 🎛️", "Waveform Pro 📊"],
     "🎚️ Engineering Skills": ["Any Engineering 🎛️", "Mixing 🎛️", "Mastering 🎙️", "EQ 📊", "Compression 🔧", "Reverb/Effects ✨", "Vocal Tuning 🎤", "Stereo Imaging 🔊", "Noise Reduction 🔇"],
+    "🎶 Genres & Subgenres": MUSIC_GENRE_SKILLS,
   },
   "Designer": {
     "🎨 Design Software": ["Any Design Software 🎨", "Adobe Photoshop 🎨", "Adobe Illustrator 🖌️", "Figma 🎯", "Blender 🧊", "Adobe After Effects ✨", "Canva 🌈", "Affinity Designer ✨", "CorelDRAW 🎨", "Sketch 📐", "Adobe InDesign 📄"],
@@ -1002,6 +1016,7 @@ const PERSONA_SKILLS = {
   },
   "Ghostwriter": {
     "👻 Writing": ["Any Writing 👻", "Lyricism 🖊️", "Storytelling 📖", "Rhyme Schemes 🎯", "Hook Writing 🪝", "Tone Matching 🎭", "Multi-Genre 🎶"],
+    "🎶 Genres & Subgenres": MUSIC_GENRE_SKILLS,
   },
   "Developer": {
     "👾 Top 10 Languages": ["Any Language 👾", "Python 🐍", "JavaScript 📜", "TypeScript 🔷", "Java ☕", "C++ ⚙️", "C# 🎯", "Go 🐹", "Rust 🦀", "Swift 🕊️", "Kotlin 🅺"],
