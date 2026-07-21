@@ -137,6 +137,18 @@
 .mcz2-root .modal-sub-row .s-name { font-weight: 700; font-size: 12px; }
 .mcz2-root .modal-sub-row .s-desc { font-size: 11px; color: var(--text-light); }
 
+/* App-as-window: a functional app opened over the current page as a modal
+   window (vs. a full tab). Wider/taller than a description modal, with a sticky
+   header so the mode toggle + close stay reachable while the app scrolls. */
+.mcz2-root .modal-content.app-window { max-width: 760px; max-height: 92vh; padding: 14px 16px 18px; }
+.mcz2-root .app-window > .modal-header { position: sticky; top: -14px; background: var(--surface); z-index: 3; padding: 10px 0 8px; margin: -4px 0 6px; border-bottom: 1px solid var(--border); }
+.mcz2-root .app-window .modal-title h2 { font-size: 16px; }
+.mcz2-root .app-window .modal-title img { width: 34px; height: 34px; border-radius: 10px; }
+.mcz2-root .app-window-body { min-height: 40px; }
+.mcz2-root .open-mode-toggle { display: inline-flex; gap: 4px; }
+.mcz2-root .open-mode-toggle button { font-size: 10px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-light); cursor: pointer; white-space: nowrap; }
+.mcz2-root .open-mode-toggle button.sel { border-color: var(--primary); color: var(--text); box-shadow: var(--glow); }
+
 /* Theme swatches + settings toggles. */
 .mcz2-root .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
 .mcz2-root .theme-option { padding: 12px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; text-align: center; font-weight: 700; font-size: 11px; color: #04121a; transition: all 0.2s; }

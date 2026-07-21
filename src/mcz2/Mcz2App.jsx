@@ -8259,6 +8259,53 @@ function NotificationsBell({ serverOk, onOpen }) {
   );
 }
 
+// Where an app opens: a floating "window" (modal over the current page) or a
+// full "tab" (its own page). These fn apps default to a full tab because they're
+// immersive workspaces; every other fn app defaults to a window. Users override
+// per app and it's remembered.
+const TAB_DEFAULT = new Set([
+  "directz", "singz", "rapz", "bodiez", "dawz", "sentencez", "videoz", "gamez",
+  "intelligence", "occ", "collabz", "battlez", "venuez", "social_connectz", "onboardz",
+]);
+const OPEN_MODE_KEY = "mcz2_open_mode";
+
+// Segmented Window/Tab control — lets the user pick how any app opens.
+function OpenModeToggle({ mode, onSetMode }) {
+  return (
+    <div className="open-mode-toggle" title="Open this app as a floating window or a full tab">
+      <button type="button" className={mode === "modal" ? "sel" : ""} onClick={() => onSetMode("modal")}>🪟 Window</button>
+      <button type="button" className={mode === "tab" ? "sel" : ""} onClick={() => onSetMode("tab")}>📑 Tab</button>
+    </div>
+  );
+}
+
+// A functional app opened as a modal window over whatever page is underneath.
+function AppWindow({ appKey, onClose, onSetMode, pageProps }) {
+  if (!appKey) return null;
+  const Page = FN_PAGES[appKey];
+  if (!Page) return null;
+  const app = APPS_BY_KEY[appKey];
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="modal-content app-window" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title">
+            {app?.icon && <IconImg icon={app.icon} alt={app?.name || appKey} />}
+            <h2>{app?.emoji} {app?.name || appKey}</h2>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <OpenModeToggle mode="modal" onSetMode={(m) => onSetMode(appKey, m)} />
+            <button className="close-btn" onClick={onClose}>×</button>
+          </div>
+        </div>
+        <div className="app-window-body">
+          <Page {...pageProps} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- App description modal (blueprint "click icon → Corey voice" pattern) ----
 function AppModal({ app, onClose, onOpen }) {
   if (!app) return null;
@@ -8473,9 +8520,14 @@ function Shell() {
     if (v) setTab(v);
   }, [tab]);
   const [modalApp, setModalApp] = useState(null);
+  const [windowApp, setWindowApp] = useState(null); // fn app open as a floating window
   const { post: postModal, closePost } = usePostModal();
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
+  const [openMode, setOpenMode] = useState(() => readStore(OPEN_MODE_KEY) || {});
+  // How an app opens: user override, else the sensible default (window unless it's an immersive workspace).
+  const openModeFor = (key) => openMode[key] || (TAB_DEFAULT.has(key) ? "tab" : "modal");
+  const setAppMode = (key, mode) => setOpenMode((m) => { const next = { ...m, [key]: mode }; writeStore(OPEN_MODE_KEY, next); return next; });
   // Dev default StatZ (editable in Settings); the server's real tier overrides on load.
   const [tier, setTier] = useState("statz");
   const [serverOk, setServerOk] = useState(false);
@@ -8516,18 +8568,30 @@ function Shell() {
       return next;
     });
 
+  // Open a functional app either as a floating window (over the current page) or
+  // as its own full tab, per the user's per-app preference.
+  const openFn = (key) => {
+    recordUsage(key);
+    setModalApp(null);
+    if (openModeFor(key) === "modal") { setWindowApp(key); }
+    else { setWindowApp(null); navigate(`/${key}`); }
+  };
   const openApp = (key) => {
     const app = APPS_BY_KEY[key];
     if (!app) {
-      // Functional pages without a launcher tile (e.g. legalz) open on their URL.
-      if (FN_PAGES[key]) { recordUsage(key); setModalApp(null); navigate(`/${key}`); }
+      // Functional pages without a launcher tile (e.g. legalz) obey the same mode.
+      if (FN_PAGES[key]) openFn(key);
       return;
     }
-    recordUsage(key);
-    setModalApp(null);
-    // Functional apps get their own URL; description-only apps open a modal overlay.
-    if (app.fn) navigate(`/${key}`);
-    else setModalApp(app);
+    // Functional apps open as window/tab; description-only apps open the info modal.
+    if (app.fn) openFn(key);
+    else { setModalApp(app); }
+  };
+  // Flip an app between window and tab, remember it, and re-present accordingly.
+  const switchMode = (key, mode) => {
+    setAppMode(key, mode);
+    if (mode === "tab") { setWindowApp(null); navigate(`/${key}`); }
+    else { setWindowApp(key); if (view === key) navigate("/"); }
   };
 
   const togglePin = (key) =>
@@ -8537,7 +8601,7 @@ function Shell() {
       return next;
     });
 
-  const goHome = () => { setModalApp(null); navigate("/"); };
+  const goHome = () => { setModalApp(null); setWindowApp(null); navigate("/"); };
   const FnPage = view ? FN_PAGES[view] : null;
   const activeApp = view ? APPS_BY_KEY[view] : null;
   const balance = Number(wallet.balance || 0).toFixed(2);
@@ -8584,7 +8648,10 @@ function Shell() {
           {FnPage ? (
             <>
               <button className="btn btn-secondary btn-small" onClick={goHome} style={{ marginBottom: 12 }}>‹ Home</button>
-              <div className="card-header" style={{ borderBottom: "none" }}>{activeApp?.emoji} {activeApp?.name}</div>
+              <div className="card-header" style={{ borderBottom: "none" }}>
+                <span>{activeApp?.emoji} {activeApp?.name}</span>
+                {FN_PAGES[view] && <OpenModeToggle mode="tab" onSetMode={(m) => switchMode(view, m)} />}
+              </div>
               <FnPage tier={tier} onOpen={openApp} serverOk={serverOk} syncEconomy={syncEconomy} onTierChange={setTier} isOwner={isOwner} />
             </>
           ) : (
@@ -8613,6 +8680,8 @@ function Shell() {
       </div>
 
       <AppModal app={modalApp} onClose={() => setModalApp(null)} onOpen={openApp} />
+      <AppWindow appKey={windowApp} onClose={() => setWindowApp(null)} onSetMode={switchMode}
+        pageProps={{ tier, onOpen: openApp, serverOk, syncEconomy, onTierChange: setTier, isOwner }} />
       <PostModal post={postModal} onClose={closePost} onOpen={openApp} />
     </div>
     </LimitsProvider>
