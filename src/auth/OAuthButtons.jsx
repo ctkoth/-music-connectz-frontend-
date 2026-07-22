@@ -84,6 +84,10 @@ export default function OAuthButtons({ onSuccess, onError }) {
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
   const [runtimeIds, setRuntimeIds] = useState({}); // public client IDs from the backend
+  const [err, setErr] = useState("");
+  // Provider errors are transient — they clear themselves so a stray message
+  // never camps on the login screen (and never clobbers the form's own error).
+  const flash = (m) => { setErr(m || ""); if (m) setTimeout(() => setErr(""), 6000); };
 
   // Prefer the backend-configured client ID (runtime), fall back to the
   // build-time VITE_* var. Lets a client ID set on the backend work without a
@@ -115,7 +119,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
           try {
             setBusy("google");
             onSuccess?.(await oauth("google", { credential: resp.credential }));
-          } catch (e) { onError?.(e.message); } finally { setBusy(""); }
+          } catch (e) { flash(e.message); } finally { setBusy(""); }
         },
       });
       window.google.accounts.id.renderButton(googleBtn.current, {
@@ -127,13 +131,12 @@ export default function OAuthButtons({ onSuccess, onError }) {
 
   async function start(p) {
     const id = idOf(p.key);
-    const notConfigured = (label, key) =>
-      `${label} isn't configured yet — set ${key.toUpperCase()}_OAUTH_CLIENT_ID on the backend (or VITE_${key.toUpperCase()}_CLIENT_ID at build).`;
+    // Unconfigured providers aren't rendered, so this is a safety net only.
+    if (!id) return flash(`${p.label} sign-in isn't available yet.`);
     if (p.key === "google") {
-      return onError?.(id ? "Use the Google button above." : notConfigured("Google", "google"));
+      return flash("Use the Google button above.");
     }
     if (p.key === "apple") {
-      if (!id) return onError?.(notConfigured("Apple", "apple"));
       try {
         setBusy("apple");
         await new Promise((res, rej) => {
@@ -146,11 +149,10 @@ export default function OAuthButtons({ onSuccess, onError }) {
         window.AppleID.auth.init({ clientId: id, scope: "name email", redirectURI: REDIRECT, usePopup: true });
         const data = await window.AppleID.auth.signIn();
         onSuccess?.(await oauth("apple", { id_token: data?.authorization?.id_token }));
-      } catch (e) { onError?.(e.message || "Apple sign-in was cancelled."); }
+      } catch (e) { flash(e.message || "Apple sign-in was cancelled."); }
       finally { setBusy(""); }
       return;
     }
-    if (!id) return onError?.(notConfigured(p.label, p.key));
 
     const state = rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
@@ -166,31 +168,44 @@ export default function OAuthButtons({ onSuccess, onError }) {
     window.location.href = p.auth(encodeURIComponent(id), state, challenge);
   }
 
+  // Only show providers the backend (or a build-time VITE_* var) has actually
+  // configured. Google has its own rendered button, so it's not in the grid.
+  const gridProviders = PROVIDERS.filter((p) => p.key !== "google" && idOf(p.key));
+  const googleReady = !!googleId;
+
+  // Nothing configured → no OAuth section at all (keeps the login clean instead
+  // of a wall of buttons that all error). Any transient message still shows.
+  if (!googleReady && gridProviders.length === 0) {
+    return err ? <p className="pt-1 text-center text-xs text-mcz-pink">{err}</p> : null;
+  }
+
+  const names = [googleReady && "Google", ...gridProviders.map((p) => p.label)].filter(Boolean);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 text-xs text-white/40">
         <span className="h-px flex-1 bg-white/10" /> or continue with <span className="h-px flex-1 bg-white/10" />
       </div>
 
-      {googleId && <div ref={googleBtn} className="flex justify-center" />}
+      {googleReady && <div ref={googleBtn} className="flex justify-center" />}
 
-      <div className="grid grid-cols-5 gap-2">
-        {PROVIDERS.map((p) => (
-          <button
-            key={p.key}
-            title={p.label}
-            aria-label={`Continue with ${p.label}`}
-            onClick={() => start(p)}
-            disabled={busy === p.key}
-            className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/85 transition hover:bg-white/10 hover:text-white active:scale-95"
-          >
-            <p.Icon size={20} />
-          </button>
-        ))}
-      </div>
-      <p className="text-center text-[11px] text-white/35">
-        Google · Apple · Spotify · Microsoft · GitHub · X · SoundCloud · Instagram · Facebook · TikTok
-      </p>
+      {gridProviders.length > 0 && (
+        <div className="grid grid-cols-5 gap-2">
+          {gridProviders.map((p) => (
+            <button
+              key={p.key}
+              title={p.label}
+              aria-label={`Continue with ${p.label}`}
+              onClick={() => start(p)}
+              disabled={busy === p.key}
+              className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/85 transition hover:bg-white/10 hover:text-white active:scale-95"
+            >
+              <p.Icon size={20} />
+            </button>
+          ))}
+        </div>
+      )}
+      {err && <p className="text-center text-xs text-mcz-pink">{err}</p>}
+      <p className="text-center text-[11px] text-white/35">{names.join(" · ")}</p>
     </div>
   );
 }
