@@ -8,7 +8,7 @@ import { CATALOG, APPS_BY_KEY, ICON_VARIANTS, iconFor } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
-import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment, availableMuscles, presetEquipment } from "./bodiez.js";
+import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment, availableMuscles, presetEquipment, locName } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
 import { SIGNS, zodiacFor, dailyReading, signByName, signCompatibility } from "./zodiac.js";
@@ -3565,6 +3565,39 @@ function BodieZPage({ tier, onOpen }) {
     locationEquipment: { ...(bodiez.locationEquipment || {}), [bodiez.location]: presetEquipment(bodiez.location, bodiez) },
     locationMuscles: { ...(bodiez.locationMuscles || {}), [bodiez.location]: MUSCLE_GROUPS },
   });
+  // Premium: custom-named locations + a photo per location. Custom locations are
+  // extra keys; their name/pic (and every location's) live in locationMeta.
+  const locKeys = [...Object.keys(LOCATIONS), ...(bodiez.customLocations || [])];
+  const locPic = (key) => bodiez.locationMeta?.[key]?.pic || "";
+  const setLocMeta = (key, patch) => setBodiez({ locationMeta: { ...(bodiez.locationMeta || {}), [key]: { ...(bodiez.locationMeta?.[key] || {}), ...patch } } });
+  const addCustomLocation = () => {
+    const key = `loc-${Date.now()}`;
+    setBodiez({
+      customLocations: [...(bodiez.customLocations || []), key],
+      locationMeta: { ...(bodiez.locationMeta || {}), [key]: { name: "My Gym" } },
+      locationEquipment: { ...(bodiez.locationEquipment || {}), [key]: ["Bodyweight"] },
+      location: key,
+    });
+  };
+  const removeCustomLocation = (key) => {
+    const meta = { ...(bodiez.locationMeta || {}) }; delete meta[key];
+    const eq = { ...(bodiez.locationEquipment || {}) }; delete eq[key];
+    const mu = { ...(bodiez.locationMuscles || {}) }; delete mu[key];
+    setBodiez({ customLocations: (bodiez.customLocations || []).filter((k) => k !== key), locationMeta: meta, locationEquipment: eq, locationMuscles: mu, location: "Gym" });
+  };
+  // Downscale a chosen photo to a small data URL so it's cheap to store.
+  const pickLocPic = (key, file) => {
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const max = 480, s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      setLocMeta(key, { pic: c.toDataURL("image/jpeg", 0.82) });
+    };
+    img.src = URL.createObjectURL(file);
+  };
+  const isCustomLoc = (bodiez.customLocations || []).includes(bodiez.location);
   const routines = bodiez.routines || [];
   const sessions = bodiez.sessions || [];
   const editing = routines.find((r) => r.id === editingId);
@@ -3650,10 +3683,11 @@ function BodieZPage({ tier, onOpen }) {
     ["bodymap", "🧍 BodyMap"], ["location", "📍 Location"], ["liftz", "🏋️ Lift Here"], ["coach", "🤖 Coach"],
   ];
   const publishGym = () => {
-    const loc = bodiez.location === "Custom" ? "My gym" : bodiez.location;
+    const nm = locName(bodiez, bodiez.location);
+    const loc = nm === "Custom" ? "My gym" : nm;
     const v = {
-      id: `v-${Date.now()}`, title: `${state.user?.name || "My"} Gym — Drop-in`, mode: "collaborative",
-      type: "lift", lift: true, location: loc, host: state.user?.name || "you",
+      id: `v-${Date.now()}`, title: `${loc} — Drop-in`, mode: "collaborative",
+      type: "lift", lift: true, location: loc, image: locPic(bodiez.location), host: state.user?.name || "you",
       hostPrice: 8, visitorPay: 0, hostUnit: "work", visitorUnit: "work", hours: 0,
       minAttract: 0, equipment: avail, at: Date.now(),
     };
@@ -3675,22 +3709,36 @@ function BodieZPage({ tier, onOpen }) {
         <div className="card">
           <div className="card-header"><span>📍 Training Location</span>{!isPremium && <span className="tag">🔒 Premium</span>}</div>
           <div className="chip-wrap" style={{ marginBottom: 12 }}>
-            {Object.keys(LOCATIONS).map((loc) => (
+            {locKeys.map((loc) => (
               <button key={loc} className={`heritage-chip${bodiez.location === loc ? " sel" : ""}`}
                 disabled={!isPremium && loc !== "Gym"}
                 style={!isPremium && loc !== "Gym" ? { opacity: 0.4 } : undefined}
-                onClick={() => isPremium || loc === "Gym" ? setBodiez({ location: loc }) : null}>{loc}</button>
+                onClick={() => isPremium || loc === "Gym" ? setBodiez({ location: loc }) : null}>{locPic(loc) ? "🖼️ " : ""}{locName(bodiez, loc)}</button>
             ))}
+            {isPremium && <button className="heritage-chip" onClick={addCustomLocation}>＋ Add location</button>}
           </div>
-          {!isPremium && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Premium unlocks Home / Travel / Custom locations — routines adapt to whatever gear you have.</p>}
-          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>🏋️ Available equipment at {bodiez.location} — tap to (un)select</label>
+          {!isPremium && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Premium unlocks Home / Travel / Custom locations, custom-named gyms with photos — routines adapt to whatever gear you have.</p>}
+
+          {/* Premium: name + photo for the active location. */}
+          {isPremium && (
+            <div style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 8, marginBottom: 12 }}>
+              {locPic(bodiez.location) && <img src={locPic(bodiez.location)} alt="" style={{ width: "100%", maxHeight: 150, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                <input value={locName(bodiez, bodiez.location)} onChange={(e) => setLocMeta(bodiez.location, { name: e.target.value })} placeholder="Location name" style={{ flex: 1, minWidth: 120 }} />
+                <label className="btn btn-small btn-secondary" style={{ cursor: "pointer" }}>{locPic(bodiez.location) ? "🖼️ Change photo" : "📷 Add photo"}<input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { pickLocPic(bodiez.location, e.target.files?.[0]); e.target.value = ""; }} /></label>
+                {locPic(bodiez.location) && <button className="btn btn-small btn-secondary" onClick={() => setLocMeta(bodiez.location, { pic: "" })}>✕ photo</button>}
+                {isCustomLoc && <button className="btn btn-small btn-danger" onClick={() => removeCustomLocation(bodiez.location)}>🗑️ Delete location</button>}
+              </div>
+            </div>
+          )}
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>🏋️ Available equipment at {locName(bodiez, bodiez.location)} — tap to (un)select</label>
           <div className="chip-wrap">
             {EQUIPMENT.map((eq) => {
               const on = avail.includes(eq);
               return <button key={eq} className={`heritage-chip${on ? " sel" : ""}`} onClick={() => toggleLocEquip(eq)}>{on ? "✓ " : ""}{eq}</button>;
             })}
           </div>
-          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", margin: "12px 0 6px" }}>💪 Muscles you train at {bodiez.location} — tap to (un)select</label>
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", margin: "12px 0 6px" }}>💪 Muscles you train at {locName(bodiez, bodiez.location)} — tap to (un)select</label>
           <div className="chip-wrap">
             {MUSCLE_GROUPS.map((m) => {
               const on = muscOpts.includes(m);
@@ -3698,7 +3746,7 @@ function BodieZPage({ tier, onOpen }) {
             })}
           </div>
           <div style={{ marginTop: 8 }}>
-            <button className="btn btn-small btn-secondary" onClick={resetLoc}>↺ Reset {bodiez.location} to default</button>
+            <button className="btn btn-small btn-secondary" onClick={resetLoc}>↺ Reset {locName(bodiez, bodiez.location)} to default</button>
           </div>
           <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Each location remembers its own gear + muscles — the Exercise Library and RoutineZ only show what you can train here. 📍</p>
           <ProfileSaveBar onSave={() => {}} label="Save location & gear" />
@@ -3718,6 +3766,7 @@ function BodieZPage({ tier, onOpen }) {
             : liftVenues.map((v) => (
               <div key={v.id} className="post-card">
                 <div className="post-user">🏋️ {v.title}</div>
+                {v.image && <img src={v.image} alt="" style={{ width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 8, margin: "4px 0" }} />}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "6px 0" }}>
                   {v.location && <span className="tag">📍 {v.location}</span>}
                   <span className="tag">host @{v.host}</span>

@@ -113,14 +113,19 @@ export function availableEquipment(bodiez) {
   // A per-location override (set by (un)selecting equipment) wins for any location.
   const override = bodiez.locationEquipment?.[loc];
   if (override) return override;
-  if (loc === "Custom") return bodiez.customEquipment || ["Bodyweight"];
-  return LOCATIONS[loc] || LOCATIONS.Gym;
+  return presetEquipment(loc, bodiez);
 }
 
 // The preset equipment a location starts from (before any user override).
 export function presetEquipment(loc, bodiez) {
   if (loc === "Custom") return bodiez?.customEquipment || ["Bodyweight"];
-  return LOCATIONS[loc] || LOCATIONS.Gym;
+  if (LOCATIONS[loc]) return LOCATIONS[loc];
+  return ["Bodyweight"]; // a user-created location starts minimal
+}
+
+// Display name for a location key (Premium can rename any location).
+export function locName(bodiez, key) {
+  return bodiez?.locationMeta?.[key]?.name || key;
 }
 
 // Muscle groups the current location covers — a per-location (un)select, or all.
