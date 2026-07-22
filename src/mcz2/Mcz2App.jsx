@@ -9515,10 +9515,202 @@ function KeyConnectZPage({ tier, onOpen }) {
   );
 }
 
+// 🖼️ ImageZ — a Photoshop-style single-layer canvas editor. Load an image, apply
+// non-destructive adjustments + destructive tools (transform/brush/text/crop),
+// then download or save as a PostZ. Free.
+const IMAGEZ_ADJ0 = { brightness: 100, contrast: 100, saturate: 100, hue: 0, blur: 0, grayscale: 0, sepia: 0, invert: 0 };
+const IMAGEZ_PRESETS = {
+  "None": IMAGEZ_ADJ0,
+  "B&W": { ...IMAGEZ_ADJ0, grayscale: 100, contrast: 110 },
+  "Vintage": { ...IMAGEZ_ADJ0, sepia: 60, contrast: 95, saturate: 85, brightness: 105 },
+  "Cool": { ...IMAGEZ_ADJ0, hue: 200, saturate: 115 },
+  "Warm": { ...IMAGEZ_ADJ0, hue: 350, saturate: 120, brightness: 105 },
+  "Punch": { ...IMAGEZ_ADJ0, contrast: 130, saturate: 140 },
+};
+const imagezFilter = (a) => `brightness(${a.brightness}%) contrast(${a.contrast}%) saturate(${a.saturate}%) hue-rotate(${a.hue}deg) blur(${a.blur}px) grayscale(${a.grayscale}%) sepia(${a.sepia}%) invert(${a.invert}%)`;
+function ImageZPage({ serverOk }) {
+  const baseRef = useRef(document.createElement("canvas")); // full-res pixel content
+  const dispRef = useRef(null);                             // visible canvas
+  const histRef = useRef([]);                               // undo snapshots (dataURLs)
+  const origRef = useRef(null);                             // original for reset
+  const [loaded, setLoaded] = useState(false);
+  const [adj, setAdj] = useState(IMAGEZ_ADJ0);
+  const [tool, setTool] = useState("adjust");               // adjust | brush | text | crop
+  const [color, setColor] = useState("#22e6ff");
+  const [brush, setBrush] = useState(8);
+  const [text, setText] = useState("");
+  const [urlIn, setUrlIn] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState(null);
+  const draw = useRef({ on: false, x: 0, y: 0 });
+  const crop = useRef(null);
+
+  const render = () => {
+    const disp = dispRef.current, base = baseRef.current;
+    if (!disp || !base.width) return;
+    const maxW = 520, scale = Math.min(1, maxW / base.width);
+    disp.width = Math.round(base.width * scale); disp.height = Math.round(base.height * scale);
+    const ctx = disp.getContext("2d");
+    ctx.clearRect(0, 0, disp.width, disp.height);
+    ctx.filter = imagezFilter(adj);
+    ctx.drawImage(base, 0, 0, disp.width, disp.height);
+    ctx.filter = "none";
+    if (crop.current) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.setLineDash([5, 4]); const c = crop.current; ctx.strokeRect(c.x, c.y, c.w, c.h); ctx.setLineDash([]); }
+  };
+  useEffect(render, [adj, loaded]);
+
+  const snapshot = () => { try { histRef.current = [...histRef.current, baseRef.current.toDataURL()].slice(-10); } catch { /* tainted */ } };
+  const setBaseFromImg = (img, isNew) => {
+    const b = baseRef.current; b.width = img.naturalWidth || img.width; b.height = img.naturalHeight || img.height;
+    b.getContext("2d").drawImage(img, 0, 0);
+    if (isNew) { origRef.current = b.toDataURL(); histRef.current = []; setAdj(IMAGEZ_ADJ0); }
+    setLoaded(true); setSaved(null); setTimeout(render, 0);
+  };
+  const loadFile = (e) => {
+    const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+    const img = new Image(); img.onload = () => setBaseFromImg(img, true); img.src = URL.createObjectURL(f);
+  };
+  const loadUrl = () => {
+    if (!urlIn.trim()) return;
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = () => { setBaseFromImg(img, true); setMsg(""); };
+    img.onerror = () => setMsg("Couldn't load that URL (blocked or not an image).");
+    img.src = urlIn.trim();
+  };
+
+  // Destructive ops bake onto base at full res.
+  const bake = (fn) => { snapshot(); fn(baseRef.current); setTimeout(render, 0); };
+  const rotate = (dir) => bake((b) => {
+    const c = document.createElement("canvas"); c.width = b.height; c.height = b.width;
+    const ctx = c.getContext("2d"); ctx.translate(c.width / 2, c.height / 2); ctx.rotate(dir * Math.PI / 2);
+    ctx.drawImage(b, -b.width / 2, -b.height / 2); b.width = c.width; b.height = c.height; b.getContext("2d").drawImage(c, 0, 0);
+  });
+  const flip = (h) => bake((b) => {
+    const c = document.createElement("canvas"); c.width = b.width; c.height = b.height; const ctx = c.getContext("2d");
+    ctx.translate(h ? b.width : 0, h ? 0 : b.height); ctx.scale(h ? -1 : 1, h ? 1 : -1); ctx.drawImage(b, 0, 0);
+    b.getContext("2d").clearRect(0, 0, b.width, b.height); b.getContext("2d").drawImage(c, 0, 0);
+  });
+  const undo = () => { const h = histRef.current; if (!h.length) return; const d = h[h.length - 1]; histRef.current = h.slice(0, -1); const img = new Image(); img.onload = () => setBaseFromImg(img, false); img.src = d; };
+  const reset = () => { if (!origRef.current) return; const img = new Image(); img.onload = () => { setBaseFromImg(img, false); setAdj(IMAGEZ_ADJ0); }; img.src = origRef.current; };
+
+  // Pointer → base coords.
+  const toBase = (e) => {
+    const disp = dispRef.current, r = disp.getBoundingClientRect();
+    const sx = baseRef.current.width / disp.width, sy = baseRef.current.height / disp.height;
+    const px = (e.touches ? e.touches[0].clientX : e.clientX) - r.left, py = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return { x: px * (disp.width / r.width) * sx, y: py * (disp.height / r.height) * sy, dx: px * (disp.width / r.width), dy: py * (disp.height / r.height) };
+  };
+  const down = (e) => {
+    if (!loaded) return;
+    const p = toBase(e);
+    if (tool === "brush") { snapshot(); draw.current = { on: true, x: p.x, y: p.y }; }
+    else if (tool === "crop") { crop.current = { x: p.dx, y: p.dy, w: 0, h: 0, bx: p.x, by: p.y }; draw.current = { on: true }; }
+    else if (tool === "text" && text.trim()) { snapshot(); const ctx = baseRef.current.getContext("2d"); ctx.fillStyle = color; ctx.font = `${brush * 4}px sans-serif`; ctx.textBaseline = "top"; ctx.fillText(text, p.x, p.y); setTimeout(render, 0); }
+  };
+  const moveP = (e) => {
+    if (!draw.current.on) return; e.preventDefault(); const p = toBase(e);
+    if (tool === "brush") { const ctx = baseRef.current.getContext("2d"); ctx.strokeStyle = color; ctx.lineWidth = brush; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(draw.current.x, draw.current.y); ctx.lineTo(p.x, p.y); ctx.stroke(); draw.current.x = p.x; draw.current.y = p.y; render(); }
+    else if (tool === "crop") { const c = crop.current; c.w = p.dx - c.x; c.h = p.dy - c.y; render(); }
+  };
+  const up = () => { draw.current.on = false; };
+  const doCrop = () => {
+    const c = crop.current; if (!c || Math.abs(c.w) < 4) return;
+    bake((b) => {
+      const disp = dispRef.current, sx = b.width / disp.width, sy = b.height / disp.height;
+      let x = Math.min(c.x, c.x + c.w) * sx, y = Math.min(c.y, c.y + c.h) * sy, w = Math.abs(c.w) * sx, h = Math.abs(c.h) * sy;
+      const out = document.createElement("canvas"); out.width = Math.round(w); out.height = Math.round(h);
+      out.getContext("2d").drawImage(b, x, y, w, h, 0, 0, out.width, out.height);
+      b.width = out.width; b.height = out.height; b.getContext("2d").drawImage(out, 0, 0);
+    });
+    crop.current = null;
+  };
+
+  const exportCanvas = () => {
+    const b = baseRef.current, out = document.createElement("canvas"); out.width = b.width; out.height = b.height;
+    const ctx = out.getContext("2d"); ctx.filter = imagezFilter(adj); ctx.drawImage(b, 0, 0);
+    return out;
+  };
+  const download = () => exportCanvas().toBlob((blob) => { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "imagez.png"; a.click(); }, "image/png");
+  const savePost = () => {
+    setBusy(true); setMsg("");
+    exportCanvas().toBlob(async (blob) => {
+      try {
+        const up2 = await uploadFileApi(new File([blob], "imagez.png", { type: "image/png" }));
+        const url = up2?.upload?.url || up2?.url || "";
+        const post = await createPostzApi({ title: "ImageZ edit", description: "🖼️ Edited in ImageZ", media_url: url, media_type: "image", visibility: "public" });
+        setSaved({ url }); setMsg("✅ Saved as a PostZ.");
+      } catch (e) { setMsg(e?.message || "Save failed."); }
+      setBusy(false);
+    }, "image/png");
+  };
+
+  const A = (k, min, max, step = 1) => (
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}><span style={{ textTransform: "capitalize" }}>{k}</span><span>{adj[k]}</span></div>
+      <input type="range" min={min} max={max} step={step} value={adj[k]} onChange={(e) => setAdj((s) => ({ ...s, [k]: Number(e.target.value) }))} style={{ width: "100%" }} />
+    </div>
+  );
+  return (
+    <>
+      <div className="stripe-section"><div className="stripe-title">🖼️ ImageZ</div><div className="balance-info">A Photoshop-style editor — load, edit, export.</div></div>
+      <div className="card">
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          <label className="btn btn-small btn-success" style={{ cursor: "pointer" }}>📁 Open image<input type="file" accept="image/*" onChange={loadFile} style={{ display: "none" }} /></label>
+          <input value={urlIn} onChange={(e) => setUrlIn(e.target.value)} placeholder="…or paste an image URL" style={{ flex: 1, minWidth: 120 }} />
+          <button className="btn btn-small btn-secondary" onClick={loadUrl} disabled={!urlIn.trim()}>Load</button>
+        </div>
+        {!loaded ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>Open an image to start editing.</p> : (
+          <>
+            <div style={{ textAlign: "center", background: "rgba(0,0,0,0.25)", borderRadius: 10, padding: 8, touchAction: "none" }}>
+              <canvas ref={dispRef} onMouseDown={down} onMouseMove={moveP} onMouseUp={up} onMouseLeave={up} onTouchStart={down} onTouchMove={moveP} onTouchEnd={up} style={{ maxWidth: "100%", borderRadius: 6, cursor: tool === "adjust" ? "default" : "crosshair" }} />
+            </div>
+            <div className="chip-wrap" style={{ margin: "8px 0" }}>
+              {[["adjust", "🎚️ Adjust"], ["brush", "🖌️ Brush"], ["text", "🔤 Text"], ["crop", "✂️ Crop"]].map(([t, l]) => <button key={t} className={`heritage-chip${tool === t ? " sel" : ""}`} onClick={() => setTool(t)}>{l}</button>)}
+            </div>
+
+            {tool === "adjust" && (
+              <div>
+                <div className="chip-wrap" style={{ marginBottom: 8 }}>{Object.keys(IMAGEZ_PRESETS).map((p) => <button key={p} className="heritage-chip" style={{ padding: "2px 8px" }} onClick={() => setAdj(IMAGEZ_PRESETS[p])}>{p}</button>)}</div>
+                {A("brightness", 0, 200)}{A("contrast", 0, 200)}{A("saturate", 0, 200)}{A("hue", 0, 360)}{A("blur", 0, 12)}{A("sepia", 0, 100)}{A("grayscale", 0, 100)}{A("invert", 0, 100)}
+                <button className="btn btn-small btn-secondary" onClick={() => setAdj(IMAGEZ_ADJ0)}>Reset adjustments</button>
+              </div>
+            )}
+            {(tool === "brush" || tool === "text") && (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+                <span style={{ fontSize: 11 }}>size</span><input type="range" min="1" max="48" value={brush} onChange={(e) => setBrush(Number(e.target.value))} />
+                {tool === "text" && <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Text — then tap the image" style={{ flex: 1, minWidth: 120 }} />}
+              </div>
+            )}
+            {tool === "crop" && <button className="btn btn-small" onClick={doCrop}>✂️ Crop to selection</button>}
+
+            <div className="chip-wrap" style={{ marginTop: 10 }}>
+              <button className="btn btn-small btn-secondary" onClick={() => rotate(-1)}>↺ 90°</button>
+              <button className="btn btn-small btn-secondary" onClick={() => rotate(1)}>↻ 90°</button>
+              <button className="btn btn-small btn-secondary" onClick={() => flip(true)}>⇋ Flip H</button>
+              <button className="btn btn-small btn-secondary" onClick={() => flip(false)}>⇅ Flip V</button>
+              <button className="btn btn-small btn-secondary" onClick={undo} disabled={!histRef.current.length}>↩ Undo</button>
+              <button className="btn btn-small btn-secondary" onClick={reset}>🔄 Reset</button>
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+              <button className="btn btn-small" onClick={download}>⬇️ Download PNG</button>
+              {isSignedIn() && serverOk && <button className="btn btn-small btn-success" onClick={savePost} disabled={busy}>{busy ? "Saving…" : "💾 Save as PostZ"}</button>}
+            </div>
+            {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}</p>}
+            {saved && <div style={{ marginTop: 8 }}><SmartMedia url={saved.url} type="image" style={{ maxHeight: 160 }} /></div>}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 const FN_PAGES = {
   analytics: AnalyticZPage,
   builder: BuilderPage,
   sonday: SondayPage,
+  imagez: ImageZPage,
   cleanconnectz: CleanConnectZPage,
   shotz: ShotZPage,
   mimez: MimeZPage,
