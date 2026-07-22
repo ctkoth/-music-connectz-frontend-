@@ -3634,6 +3634,35 @@ function BodieZPage({ tier, onOpen, serverOk }) {
     } catch (e) { setLocMsg(e?.message || "Share failed."); }
     setLocBusy("");
   };
+  // StatZ AI Coach — Corey reads your logged sessions + location gear.
+  const [coachBusy, setCoachBusy] = useState("");
+  const [coachText, setCoachText] = useState("");
+  const askCoach = async () => {
+    setCoachBusy("advice"); setCoachText("");
+    try {
+      const sess = bodiez.sessions || [];
+      const summary = sess.slice(0, 6).map((s) => `${new Date(s.at).toLocaleDateString()} ${s.name} vol${s.volume}: ${(s.entries || []).slice(0, 6).map((e) => `${e.name} ${(e.best?.w) || 0}x${(e.best?.r) || 0}`).join(", ")}`).join(" | ");
+      const prompt = `You're my strength coach. Recent BodieZ sessions: ${summary || "none logged yet"}. I train at "${locName(bodiez, bodiez.location)}" with: ${availableEquipment(bodiez).join(", ")}. Give progressive-overload guidance — which lifts to add weight, repeat, or deload — plus 2 priorities. Keep it tight and practical.`;
+      const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: true, acronyms: [], suggest: false });
+      setCoachText(r.text);
+    } catch (e) { setCoachText(/402/.test(e?.message || "") ? "Short on PromptZ / balance for the coach." : (e?.message || "Coach unavailable.")); }
+    setCoachBusy("");
+  };
+  const genRoutine = async () => {
+    setCoachBusy("gen"); setCoachText("");
+    try {
+      const availEx = EXERCISES.filter((e) => availableMuscles(bodiez).includes(e.muscle) && isAvailable(e, availableEquipment(bodiez)));
+      const prompt = `Build a balanced strength routine for "${locName(bodiez, bodiez.location)}". Pick 6-7 exercises ONLY from this exact list, and reply with ONLY their names, comma-separated, exactly as written: ${availEx.map((e) => e.name).join(", ")}.`;
+      const r = await occChatApi({ model: "corey-gpt", prompt, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
+      const txt = (r.text || "").toLowerCase();
+      const picked = availEx.filter((e) => txt.includes(e.name.toLowerCase())).slice(0, 8);
+      if (!picked.length) { setCoachText("Couldn't build a routine — add more gear/muscles at this location."); setCoachBusy(""); return; }
+      const id = Date.now();
+      setBodiez({ routines: [...(bodiez.routines || []), { id, name: `AI · ${locName(bodiez, bodiez.location)}`, exercises: picked.map((e) => ({ ...e, sets: 3, reps: 10, weight: 0, rest: 90, superset: false })) }] });
+      setEditingId(id); setSection("routines");
+    } catch (e) { setCoachText(/402/.test(e?.message || "") ? "Short on PromptZ / balance." : (e?.message || "Couldn't generate.")); }
+    setCoachBusy("");
+  };
   const routines = bodiez.routines || [];
   const sessions = bodiez.sessions || [];
   const editing = routines.find((r) => r.id === editingId);
@@ -4036,10 +4065,14 @@ function BodieZPage({ tier, onOpen, serverOk }) {
             </div>
           )}
           {isStatz ? (
-            <p style={{ fontSize: 12, color: "var(--text-light)" }}>
-              StatZ personal trainer: progressive-overload suggestions, routine generation, and access to other users' routines.
-              Coach reads your logged sessions to recommend when to add weight, repeat, deload, or rest.
-            </p>
+            <>
+              <p style={{ fontSize: 12, color: "var(--text-light)", marginBottom: 8 }}>Corey reads your logged sessions + {locName(bodiez, bodiez.location)}'s gear to coach progression and build routines. Each costs a prompt.</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button className="btn btn-small btn-success" disabled={!!coachBusy} onClick={askCoach}>{coachBusy === "advice" ? "🤖 Thinking…" : "🤖 Ask Corey to coach me"}</button>
+                <button className="btn btn-small btn-secondary" disabled={!!coachBusy} onClick={genRoutine}>{coachBusy === "gen" ? "🧩 Building…" : "🧩 Generate a routine"}</button>
+              </div>
+              {coachText && <p style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 10, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 10 }}>{coachText}</p>}
+            </>
           ) : (
             <p style={{ fontSize: 12, color: "var(--text-light)" }}>🔒 The AI Coach — personal-trainer routine creator, progression logic, and shared user routines — is a <strong>StatZ</strong> feature.</p>
           )}
