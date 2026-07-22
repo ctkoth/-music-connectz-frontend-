@@ -8,7 +8,7 @@ import { CATALOG, APPS_BY_KEY, ICON_VARIANTS, iconFor } from "./catalog.js";
 import { accentStyle, accentOptionsFor } from "./colors.js";
 import { REGIONS } from "./heritage.js";
 import { CONTINENTS, TOP_60, flagOf } from "./nationalitiez.js";
-import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment } from "./bodiez.js";
+import { MUSCLE_GROUPS, EQUIPMENT, LOCATIONS, EXERCISES, isAvailable, availableEquipment, availableMuscles, presetEquipment } from "./bodiez.js";
 import { RANGE_CLASSES, GOAL_PATHS, DIFFICULTIES, SCORE_METERS, SKILLS as SINGZ_SKILLS, CHECKIN, simScore, wellnessOf } from "./singz.js";
 import { decodeBlob, analyzeAudioBuffer } from "./audioLab.js";
 import { SIGNS, zodiacFor, dailyReading, signByName, signCompatibility } from "./zodiac.js";
@@ -3547,6 +3547,24 @@ function BodieZPage({ tier, onOpen }) {
   const [live, setLive] = useState(null); // active workout being logged
 
   const avail = availableEquipment(bodiez);
+  const muscOpts = availableMuscles(bodiez);
+  const muscSel = muscOpts.includes(muscle) ? muscle : (muscOpts[0] || "Chest");
+  // Toggle a piece of equipment for the CURRENT location (seed from its preset).
+  const toggleLocEquip = (eq) => {
+    const cur = availableEquipment(bodiez);
+    const next = cur.includes(eq) ? cur.filter((x) => x !== eq) : [...cur, eq];
+    setBodiez({ locationEquipment: { ...(bodiez.locationEquipment || {}), [bodiez.location]: next } });
+  };
+  // Toggle a muscle group for the current location (default = all).
+  const toggleLocMuscle = (m) => {
+    const cur = availableMuscles(bodiez);
+    const next = cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m];
+    setBodiez({ locationMuscles: { ...(bodiez.locationMuscles || {}), [bodiez.location]: next.length ? next : MUSCLE_GROUPS } });
+  };
+  const resetLoc = () => setBodiez({
+    locationEquipment: { ...(bodiez.locationEquipment || {}), [bodiez.location]: presetEquipment(bodiez.location, bodiez) },
+    locationMuscles: { ...(bodiez.locationMuscles || {}), [bodiez.location]: MUSCLE_GROUPS },
+  });
   const routines = bodiez.routines || [];
   const sessions = bodiez.sessions || [];
   const editing = routines.find((r) => r.id === editingId);
@@ -3623,7 +3641,7 @@ function BodieZPage({ tier, onOpen }) {
   };
   const patchEx = (i, patch) => patchRoutine(editing.id, { exercises: editing.exercises.map((e, idx) => (idx === i ? { ...e, ...patch } : e)) });
 
-  const shown = EXERCISES.filter((e) => e.muscle === muscle && isAvailable(e, avail));
+  const shown = EXERCISES.filter((e) => e.muscle === muscSel && isAvailable(e, avail));
 
   const SECTIONS = [
     ["today", "💪 Today"],
@@ -3665,22 +3683,24 @@ function BodieZPage({ tier, onOpen }) {
             ))}
           </div>
           {!isPremium && <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Premium unlocks Home / Travel / Custom locations — routines adapt to whatever gear you have.</p>}
-          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>Available equipment{bodiez.location === "Custom" ? " (toggle)" : ` at ${bodiez.location}`}</label>
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>🏋️ Available equipment at {bodiez.location} — tap to (un)select</label>
           <div className="chip-wrap">
             {EQUIPMENT.map((eq) => {
               const on = avail.includes(eq);
-              const editable = bodiez.location === "Custom" && isPremium;
-              return (
-                <button key={eq} className={`heritage-chip${on ? " sel" : ""}`}
-                  style={editable ? undefined : { cursor: "default" }}
-                  onClick={() => {
-                    if (!editable) return;
-                    const ce = bodiez.customEquipment || [];
-                    setBodiez({ customEquipment: ce.includes(eq) ? ce.filter((x) => x !== eq) : [...ce, eq] });
-                  }}>{eq}</button>
-              );
+              return <button key={eq} className={`heritage-chip${on ? " sel" : ""}`} onClick={() => toggleLocEquip(eq)}>{on ? "✓ " : ""}{eq}</button>;
             })}
           </div>
+          <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", margin: "12px 0 6px" }}>💪 Muscles you train at {bodiez.location} — tap to (un)select</label>
+          <div className="chip-wrap">
+            {MUSCLE_GROUPS.map((m) => {
+              const on = muscOpts.includes(m);
+              return <button key={m} className={`heritage-chip${on ? " sel" : ""}`} onClick={() => toggleLocMuscle(m)}>{on ? "✓ " : ""}{m}</button>;
+            })}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button className="btn btn-small btn-secondary" onClick={resetLoc}>↺ Reset {bodiez.location} to default</button>
+          </div>
+          <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 8 }}>Each location remembers its own gear + muscles — the Exercise Library and RoutineZ only show what you can train here. 📍</p>
           <ProfileSaveBar onSave={() => {}} label="Save location & gear" />
         </div>
       )}
@@ -3715,12 +3735,12 @@ function BodieZPage({ tier, onOpen }) {
         <div className="card">
           <div className="card-header">📚 Exercise Library</div>
           <div className="form-group"><label>Muscle group (Jefit)</label>
-            <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
-              {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+            <select value={muscSel} onChange={(e) => setMuscle(e.target.value)}>
+              {muscOpts.map((m) => <option key={m}>{m}</option>)}
             </select>
           </div>
-          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Showing only exercises you can do at <strong>{bodiez.location}</strong>.</p>
-          {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No {muscle} exercises with your current equipment.</p>
+          <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>📍 Showing only exercises you can do at <strong>{bodiez.location}</strong> · {shown.length} available.</p>
+          {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No {muscSel} exercises with {bodiez.location}'s equipment.</p>
             : shown.map((ex) => (
               <div key={ex.name} className="skill-item">
                 <span className="skill-item-name">{ex.name}</span>
@@ -3762,13 +3782,13 @@ function BodieZPage({ tier, onOpen }) {
             </div>
           </div>
           <div className="card">
-            <div className="card-header">➕ Add exercises ({muscle})</div>
+            <div className="card-header"><span>➕ Add exercises ({muscSel})</span><span className="tag">📍 {bodiez.location} · {shown.length}</span></div>
             <div className="form-group"><label>Muscle group</label>
-              <select value={muscle} onChange={(e) => setMuscle(e.target.value)}>
-                {MUSCLE_GROUPS.map((m) => <option key={m}>{m}</option>)}
+              <select value={muscSel} onChange={(e) => setMuscle(e.target.value)}>
+                {muscOpts.map((m) => <option key={m}>{m}</option>)}
               </select>
             </div>
-            {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>None available at {bodiez.location}.</p>
+            {shown.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No {muscSel} exercises available at {bodiez.location} — add gear in 📍 Location.</p>
               : shown.map((ex) => (
                 <div key={ex.name} className="skill-item">
                   <span className="skill-item-name">{ex.name}</span>

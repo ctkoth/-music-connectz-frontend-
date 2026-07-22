@@ -61,7 +61,7 @@ const DEFAULT_STATE = {
   // SingZ vocal game: onboarding, sessions, quests, badges, strain safety.
   singz: { onboarded: false, range: "", goalRange: "", goalPath: "strengthen", difficulty: "starter", sessions: [], badges: [], strain: 0, questDay: "", quests: {} },
   groups: [],
-  bodiez: { location: "Gym", customEquipment: ["Bodyweight"], routines: [] },
+  bodiez: { location: "Gym", customEquipment: ["Bodyweight"], locationEquipment: {}, locationMuscles: {}, routines: [] },
   onboardDismissed: false,
   currentTab: "setup",
   settings: {
