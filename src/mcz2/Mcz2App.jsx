@@ -3529,7 +3529,7 @@ function GroupZPage({ tier }) {
   );
 }
 
-function BodieZPage({ tier, onOpen }) {
+function BodieZPage({ tier, onOpen, serverOk }) {
   const { state, update, addXP, setList } = useAppState();
   const bodiez = state.bodiez || { location: "Gym", customEquipment: ["Bodyweight"], routines: [], sessions: [] };
   const setBodiez = (patch) => update({ bodiez: { ...bodiez, ...patch } });
@@ -3598,6 +3598,42 @@ function BodieZPage({ tier, onOpen }) {
     img.src = URL.createObjectURL(file);
   };
   const isCustomLoc = (bodiez.customLocations || []).includes(bodiez.location);
+  // Per-location default routine — auto-suggested on the Today tab.
+  const locRoutineId = bodiez.locationRoutine?.[bodiez.location] || "";
+  const setLocRoutine = (id) => setBodiez({ locationRoutine: { ...(bodiez.locationRoutine || {}), [bodiez.location]: id } });
+  const [locBusy, setLocBusy] = useState("");   // "gear" | "share"
+  const [locMsg, setLocMsg] = useState("");
+  // StatZ: Corey scans the location photo and sets the equipment it can see.
+  const detectGear = async () => {
+    const pic = locPic(bodiez.location);
+    if (!pic) { setLocMsg("Add a photo first."); return; }
+    setLocBusy("gear"); setLocMsg("");
+    try {
+      const prompt = `This is a photo of a gym / training space. From EXACTLY this list, reply with ONLY the equipment visible in the photo, comma-separated, nothing else: ${EQUIPMENT.join(", ")}.`;
+      const r = await occChatApi({ model: "standard", prompt, image: pic, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
+      const found = EQUIPMENT.filter((eq) => new RegExp(`\\b${eq.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i").test(r.text || ""));
+      const next = Array.from(new Set([...found, "Bodyweight"]));
+      setBodiez({ locationEquipment: { ...(bodiez.locationEquipment || {}), [bodiez.location]: next } });
+      setLocMsg(`🤖 Detected: ${next.join(", ")}`);
+    } catch (e) { setLocMsg(/402/.test(e?.message || "") ? "Short on PromptZ / balance for the scan." : (e?.message || "Couldn't read the photo.")); }
+    setLocBusy("");
+  };
+  // Share this location's setup as a PostZ.
+  const shareLocation = async () => {
+    if (!(isSignedIn() && serverOk)) { setLocMsg("Sign in to share."); return; }
+    setLocBusy("share"); setLocMsg("");
+    try {
+      let url = ""; const pic = locPic(bodiez.location);
+      if (pic && pic.startsWith("data:")) {
+        const blob = await (await fetch(pic)).blob();
+        const up = await uploadFileApi(new File([blob], "location.jpg", { type: blob.type || "image/jpeg" }));
+        url = up?.upload?.url || up?.url || "";
+      }
+      await createPostzApi({ title: `🏋️ ${locName(bodiez, bodiez.location)}`, description: `My training setup — ${availableEquipment(bodiez).join(", ")}`, media_url: url, media_type: url ? "image" : "", visibility: "public" });
+      setLocMsg("✅ Shared to PostZ.");
+    } catch (e) { setLocMsg(e?.message || "Share failed."); }
+    setLocBusy("");
+  };
   const routines = bodiez.routines || [];
   const sessions = bodiez.sessions || [];
   const editing = routines.find((r) => r.id === editingId);
@@ -3703,6 +3739,16 @@ function BodieZPage({ tier, onOpen }) {
         ))}
       </div>
 
+      {section === "today" && (() => {
+        const r = (bodiez.routines || []).find((x) => x.id === locRoutineId);
+        return r ? (
+          <div className="card" style={{ border: "1px solid var(--primary)" }}>
+            <div className="card-header"><span>📍 {locName(bodiez, bodiez.location)}</span><span className="tag">default routine</span></div>
+            <p style={{ fontSize: 12, marginBottom: 8 }}>📋 <strong>{r.name}</strong> · {r.exercises.length} exercises</p>
+            <button className="btn btn-success" style={{ width: "100%" }} disabled={!r.exercises.length} onClick={() => startSession(r)}>▶️ Start {r.name}</button>
+          </div>
+        ) : null;
+      })()}
       {section === "today" && <HabitStrip appKey="bodiez" appName="BodieZ" onOpen={onOpen} />}
 
       {section === "location" && (
@@ -3729,6 +3775,20 @@ function BodieZPage({ tier, onOpen }) {
                 {locPic(bodiez.location) && <button className="btn btn-small btn-secondary" onClick={() => setLocMeta(bodiez.location, { pic: "" })}>✕ photo</button>}
                 {isCustomLoc && <button className="btn btn-small btn-danger" onClick={() => removeCustomLocation(bodiez.location)}>🗑️ Delete location</button>}
               </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                {isStatz && <button className="btn btn-small btn-secondary" disabled={locBusy === "gear" || !locPic(bodiez.location)} onClick={detectGear}>{locBusy === "gear" ? "🤖 Scanning…" : "🤖 Detect gear from photo"}</button>}
+                <button className="btn btn-small btn-secondary" disabled={locBusy === "share"} onClick={shareLocation}>{locBusy === "share" ? "Sharing…" : "📣 Share location"}</button>
+              </div>
+              {!isStatz && <p style={{ fontSize: 10, color: "var(--gold, #ffcf3f)", marginTop: 4 }}>🔒 StatZ: let Corey scan a gym photo and set your equipment automatically.</p>}
+              {/* Per-location default routine */}
+              <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11, color: "var(--text-light)" }}>📋 Default routine here</span>
+                <select value={locRoutineId} onChange={(e) => setLocRoutine(e.target.value)} style={{ flex: 1, minWidth: 120 }}>
+                  <option value="">None</option>
+                  {(bodiez.routines || []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+              {locMsg && <p style={{ fontSize: 11, color: /✅|🤖/.test(locMsg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{locMsg}</p>}
             </div>
           )}
           <label style={{ fontSize: 11, color: "var(--text-light)", display: "block", marginBottom: 6 }}>🏋️ Available equipment at {locName(bodiez, bodiez.location)} — tap to (un)select</label>
