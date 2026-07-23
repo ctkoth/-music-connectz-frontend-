@@ -35,7 +35,7 @@ export default function Register() {
     <AuthShell title="Create your account" subtitle="Join Music ConnectZ — train, create, climb the SkillZ board.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
-          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — they earn 300 SpinaZ when you join.
+          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
         </div>
       )}
       <form onSubmit={submit} className="space-y-3">

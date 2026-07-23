@@ -53,12 +53,16 @@ class ReferralTests(APITestCase):
             body["ref"] = ref
         return self.client.post("/api/auth/register/", body, format="json")
 
-    def test_legit_join_rewards_referrer_300(self):
+    def test_legit_join_rewards_both_sides(self):
         from apps.accounts.models import Profile
         self._register("hostz", "h@x.com")
         base = Profile.objects.get(user__username="hostz").spinaz
-        self._register("newbie", "n@x.com", ref="hostz")
+        r = self._register("newbie", "n@x.com", ref="hostz")
+        # referrer +300
         self.assertEqual(Profile.objects.get(user__username="hostz").spinaz, base + 300)
+        # invited user gets the +100 welcome bonus on top of the signup default
+        joinee = Profile.objects.get(user__username="newbie")
+        self.assertEqual(joinee.spinaz, 25 + 100)
 
     def test_referrals_endpoint_lists_members(self):
         h = self._register("host2", "h2@x.com")
@@ -80,11 +84,38 @@ class ReferralTests(APITestCase):
         from apps.accounts.models import Profile, Referral
         self._register("sybil", "same@x.com")
         base = Profile.objects.get(user__username="sybil").spinaz
-        # A second account can't share the email (unique), so use a self-ref
-        # attempt: registering with ref == own new username is impossible, but a
-        # different account sharing email is blocked at the email-unique layer.
-        # Here we assert a normal distinct join still credits, proving the guard
-        # is scoped to the sybil case only.
         self._register("friend", "friend@x.com", ref="sybil")
         self.assertEqual(Profile.objects.get(user__username="sybil").spinaz, base + 300)
         self.assertTrue(Referral.objects.filter(referred__username="friend").exists())
+
+
+class OnboardCompleteTests(APITestCase):
+    def _register(self, username, email):
+        return self.client.post("/api/auth/register/", {
+            "username": username, "email": email, "password": "pw12345678",
+        }, format="json")
+
+    def test_complete_grants_once(self):
+        from apps.accounts.models import Profile
+        r = self._register("obuser", "ob@x.com")
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {r.data['access']}"}
+        base = Profile.objects.get(user__username="obuser")
+        s0, e0 = base.spinaz, base.energy
+
+        first = self.client.post("/api/auth/onboard/complete/", **auth)
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(first.data["granted"])
+        self.assertEqual(first.data["spinaz"], s0 + 150)
+        self.assertEqual(first.data["energy"], e0 + 50)
+
+        # Second call is idempotent — no double reward.
+        second = self.client.post("/api/auth/onboard/complete/", **auth)
+        self.assertFalse(second.data["granted"])
+        self.assertEqual(second.data["spinaz"], s0 + 150)
+
+    def test_me_exposes_onboarded_flag(self):
+        r = self._register("obuser2", "ob2@x.com")
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {r.data['access']}"}
+        self.assertFalse(self.client.get("/api/auth/me/", **auth).data["onboarded"])
+        self.client.post("/api/auth/onboard/complete/", **auth)
+        self.assertTrue(self.client.get("/api/auth/me/", **auth).data["onboarded"])

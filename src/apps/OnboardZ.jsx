@@ -15,6 +15,7 @@ export default function OnboardZ() {
   const [ref, setRef] = useState(null);
   const [done, setDone] = useState(loadDone);
   const [copied, setCopied] = useState(false);
+  const [claim, setClaim] = useState(null); // OnboardZ completion reward result
 
   useEffect(() => {
     api("/api/auth/me/").then(setMe).catch(() => setMe({}));
@@ -56,6 +57,14 @@ export default function OnboardZ() {
   const complete = steps.filter((s) => s.done).length;
   const allDone = complete === steps.length;
 
+  // Claim the one-time completion reward the moment every step is done.
+  useEffect(() => {
+    if (allDone && me && !me.onboarded && !claim) {
+      api("/api/auth/onboard/complete/", { method: "POST" })
+        .then(setClaim).catch(() => {});
+    }
+  }, [allDone, me, claim]);
+
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
@@ -74,7 +83,10 @@ export default function OnboardZ() {
 
       {allDone && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
-          <PartyPopper size={16} /> You're all set — welcome to Music ConnectZ.
+          <PartyPopper size={16} />
+          {claim?.granted
+            ? <span>You're all set — <span className="font-semibold">+{claim.reward_spinaz} SpinaZ · +{claim.reward_energy} Energy</span> claimed!</span>
+            : <span>You're all set — welcome to Music ConnectZ.</span>}
         </div>
       )}
 

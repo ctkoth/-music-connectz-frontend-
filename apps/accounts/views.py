@@ -105,7 +105,7 @@ class MeView(APIView):
             data.update({
                 "energy": prof.energy, "spinaz": prof.spinaz, "tier": prof.tier,
                 "zodiac": prof.zodiac, "birthday": prof.birthday, "personas": prof.personas,
-                "nationalities": prof.nationalities,
+                "nationalities": prof.nationalities, "onboarded": prof.onboarded,
             })
         return data
 
@@ -189,6 +189,16 @@ class ReferralView(APIView):
             "spinaz_earned": earned,
             "members": members,
         })
+
+
+class OnboardCompleteView(APIView):
+    """POST /api/auth/onboard/complete/ — claim the one-time OnboardZ reward."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from .models import complete_onboarding
+        return Response(complete_onboarding(request.user))
 
 
 class OAuthConfigView(APIView):

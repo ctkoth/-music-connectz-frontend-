@@ -272,12 +272,20 @@ const TAB_ABOUT = {
 
 function Home() {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState("postz");
+  const [tab, setTab] = useState(null); // decided from onboarded state below
   const [infoKey, setInfoKey] = useState(null);
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
   const today = new Date().toLocaleDateString();
+
+  if (!tab) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
 
   const go = (delta) => {
     const n = (idx + delta + TABS.length) % TABS.length;
@@ -295,6 +303,13 @@ function Home() {
     };
     window.addEventListener("mcz-goto-tab", h);
     return () => window.removeEventListener("mcz-goto-tab", h);
+  }, []);
+
+  // New users land on OnboardZ until they've completed it; returning users on PostZ.
+  useEffect(() => {
+    api("/api/auth/me/")
+      .then((m) => setTab(m?.onboarded ? "postz" : "onboardz"))
+      .catch(() => setTab("postz"));
   }, []);
 
   return (

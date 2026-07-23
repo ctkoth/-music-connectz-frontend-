@@ -28,6 +28,7 @@ class Profile(models.Model):
     birthday = models.DateField(null=True, blank=True)
     personas = models.JSONField(default=list, blank=True)  # e.g. ["producer","ghostwriter"]
     nationalities = models.JSONField(default=list, blank=True)  # NationalitieZ heritage
+    onboarded = models.BooleanField(default=False)  # OnboardZ completion (one-time reward)
     last_refill = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -135,7 +136,27 @@ ALLOWED_NATIONALITIES_SET = set(ALLOWED_NATIONALITIES)
 
 REFILL_BY_TIER = {"free": 25, "premium": 50, "statz": 100}
 
-REFERRAL_REWARD = 300  # SpinaZ paid to the referrer per legit join
+REFERRAL_REWARD = 300         # SpinaZ paid to the referrer per legit join
+REFERRAL_JOINEE_BONUS = 100   # SpinaZ welcome bonus for the invited user (two-sided)
+ONBOARD_REWARD_SPINAZ = 150   # one-time OnboardZ completion reward
+ONBOARD_REWARD_ENERGY = 50
+
+
+def complete_onboarding(user):
+    """Grant the one-time OnboardZ completion reward. Returns a dict describing
+    what happened (granted=False if already claimed)."""
+    prof, _ = Profile.objects.get_or_create(user=user)
+    if prof.onboarded:
+        return {"granted": False, "spinaz": prof.spinaz, "energy": prof.energy,
+                "reward_spinaz": 0, "reward_energy": 0, "onboarded": True}
+    prof.onboarded = True
+    prof.save(update_fields=["onboarded"])
+    grant_spinaz(user, ONBOARD_REWARD_SPINAZ)
+    grant_energy(user, ONBOARD_REWARD_ENERGY)
+    prof.refresh_from_db()
+    return {"granted": True, "spinaz": prof.spinaz, "energy": prof.energy,
+            "reward_spinaz": ONBOARD_REWARD_SPINAZ, "reward_energy": ONBOARD_REWARD_ENERGY,
+            "onboarded": True}
 
 
 class Referral(models.Model):
@@ -176,6 +197,8 @@ def record_referral(ref_code, new_user):
     r = Referral.objects.create(referrer=referrer, referred=new_user,
                                 reward=REFERRAL_REWARD, credited=True)
     grant_spinaz(referrer, REFERRAL_REWARD)
+    # Two-sided: the invited user gets a welcome bonus too.
+    grant_spinaz(new_user, REFERRAL_JOINEE_BONUS)
     return r
 
 
