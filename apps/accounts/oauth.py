@@ -1,14 +1,19 @@
 """
-Server-side OAuth verification for Google, GitHub, and Apple.
+Server-side OAuth for all ten providers (Google, Apple, GitHub, Spotify,
+Microsoft, Facebook, Instagram, SoundCloud, TikTok, Twitter/X).
 
-Each verifier returns a normalized dict:
+Each verifier/exchanger returns a normalized dict:
     {"provider", "uid", "email", "name", "avatar_url"}
 or raises OAuthError with a user-safe message.
 
-Env vars expected (set on Render):
+Enable a provider by setting its keys on the backend (Render). Either naming is
+accepted: <PROVIDER>_OAUTH_CLIENT_ID or <PROVIDER>_CLIENT_ID (and the matching
+..._CLIENT_SECRET). google/apple need only a client id (ID-token verify),
+twitter uses PKCE; the rest also need a client secret. Examples:
     GOOGLE_OAUTH_CLIENT_ID
-    GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET
-    APPLE_OAUTH_CLIENT_ID         (the Services ID / audience)
+    GITHUB_OAUTH_CLIENT_ID + GITHUB_OAUTH_CLIENT_SECRET
+    SPOTIFY_OAUTH_CLIENT_ID + SPOTIFY_OAUTH_CLIENT_SECRET
+GET /api/auth/oauth/config/ reports which providers are configured + `ready`.
 """
 import os
 
@@ -23,31 +28,47 @@ def _env(name):
     return os.environ.get(name, "").strip()
 
 
-# Public client-id env var per provider. Client IDs are PUBLIC (they ride in the
-# browser's authorize redirect); secrets never leave the server. The frontend
-# reads this via GET /api/auth/oauth/config/ so it needs no VITE_* build vars.
-PROVIDER_CLIENT_ID_ENV = {
-    "google": "GOOGLE_OAUTH_CLIENT_ID",
-    "apple": "APPLE_OAUTH_CLIENT_ID",
-    "github": "GITHUB_OAUTH_CLIENT_ID",
-    "spotify": "SPOTIFY_OAUTH_CLIENT_ID",
-    "microsoft": "MICROSOFT_OAUTH_CLIENT_ID",
-    "facebook": "FACEBOOK_OAUTH_CLIENT_ID",
-    "instagram": "INSTAGRAM_OAUTH_CLIENT_ID",
-    "soundcloud": "SOUNDCLOUD_OAUTH_CLIENT_ID",
-    "tiktok": "TIKTOK_OAUTH_CLIENT_ID",
-    "twitter": "TWITTER_OAUTH_CLIENT_ID",
-}
+def _first_env(*names):
+    for n in names:
+        v = os.environ.get(n, "").strip()
+        if v:
+            return v
+    return ""
+
+
+def _cid(provider_upper):
+    """Public client id — accepts <P>_OAUTH_CLIENT_ID or <P>_CLIENT_ID so keys
+    named either way on the backend are picked up."""
+    return _first_env(f"{provider_upper}_OAUTH_CLIENT_ID", f"{provider_upper}_CLIENT_ID")
+
+
+def _secret(provider_upper):
+    return _first_env(f"{provider_upper}_OAUTH_CLIENT_SECRET", f"{provider_upper}_CLIENT_SECRET")
+
+
+# Every provider we support. Client IDs are PUBLIC (they ride in the browser's
+# authorize redirect); secrets never leave the server. The frontend reads this
+# via GET /api/auth/oauth/config/ so it needs no VITE_* build vars.
+PROVIDERS_ALL = ["google", "apple", "github", "spotify", "microsoft",
+                 "facebook", "instagram", "soundcloud", "tiktok", "twitter"]
+# Providers whose server-side code exchange needs a client secret. google/apple
+# verify an ID token (no secret); twitter uses PKCE (public client).
+NEEDS_SECRET = {"github", "spotify", "microsoft", "facebook", "instagram",
+                "soundcloud", "tiktok"}
 
 
 def public_oauth_config():
-    """Providers configured on the server + their PUBLIC client IDs (no secrets).
-    Used to drive the frontend's social buttons at runtime."""
-    return [
-        {"key": key, "client_id": cid}
-        for key, env in PROVIDER_CLIENT_ID_ENV.items()
-        if (cid := _env(env))
-    ]
+    """Configured providers + PUBLIC client IDs (never secrets). `ready` is true
+    when the server has everything it needs to complete sign-in (client id, plus
+    a secret for the providers that require one)."""
+    out = []
+    for key in PROVIDERS_ALL:
+        cid = _cid(key.upper())
+        if not cid:
+            continue
+        ready = key not in NEEDS_SECRET or bool(_secret(key.upper()))
+        out.append({"key": key, "client_id": cid, "ready": ready})
+    return out
 
 
 # ---------------------------------------------------------------- Google ----
@@ -55,7 +76,7 @@ def verify_google(credential: str):
     """Verify a Google ID token (the `credential` from Google Identity Services)."""
     if not credential:
         raise OAuthError("Missing Google credential.")
-    client_id = _env("GOOGLE_OAUTH_CLIENT_ID")
+    client_id = _cid("GOOGLE")
     try:
         resp = requests.get(
             "https://oauth2.googleapis.com/tokeninfo",
@@ -85,8 +106,8 @@ def exchange_github(code: str, redirect_uri: str = ""):
     """Exchange a GitHub OAuth `code` for an access token, then load the user."""
     if not code:
         raise OAuthError("Missing GitHub code.")
-    client_id = _env("GITHUB_OAUTH_CLIENT_ID")
-    client_secret = _env("GITHUB_OAUTH_CLIENT_SECRET")
+    client_id = _cid("GITHUB")
+    client_secret = _secret("GITHUB")
     if not client_id or not client_secret:
         raise OAuthError("GitHub sign-in is not configured on the server.")
 
@@ -142,7 +163,7 @@ def verify_apple(id_token: str):
     except Exception:
         raise OAuthError("Apple sign-in requires PyJWT on the server.")
 
-    client_id = _env("APPLE_OAUTH_CLIENT_ID")
+    client_id = _cid("APPLE")
     try:
         jwk_client = PyJWKClient("https://appleid.apple.com/auth/keys")
         signing_key = jwk_client.get_signing_key_from_jwt(id_token)
@@ -203,7 +224,7 @@ def _get_json(url, token, params=None):
 
 
 def exchange_spotify(code, redirect_uri):
-    cid, sec = _env("SPOTIFY_OAUTH_CLIENT_ID"), _env("SPOTIFY_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("SPOTIFY"), _secret("SPOTIFY")
     if not cid or not sec:
         raise OAuthError("Spotify sign-in isn't configured on the server.")
     tok = _post_token(
@@ -218,7 +239,7 @@ def exchange_spotify(code, redirect_uri):
 
 
 def exchange_microsoft(code, redirect_uri):
-    cid, sec = _env("MICROSOFT_OAUTH_CLIENT_ID"), _env("MICROSOFT_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("MICROSOFT"), _secret("MICROSOFT")
     if not cid or not sec:
         raise OAuthError("Microsoft sign-in isn't configured on the server.")
     tok = _post_token(
@@ -233,7 +254,7 @@ def exchange_microsoft(code, redirect_uri):
 
 
 def exchange_facebook(code, redirect_uri):
-    cid, sec = _env("FACEBOOK_OAUTH_CLIENT_ID"), _env("FACEBOOK_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("FACEBOOK"), _secret("FACEBOOK")
     if not cid or not sec:
         raise OAuthError("Facebook sign-in isn't configured on the server.")
     tok = _post_token(
@@ -247,7 +268,7 @@ def exchange_facebook(code, redirect_uri):
 
 
 def exchange_instagram(code, redirect_uri):
-    cid, sec = _env("INSTAGRAM_OAUTH_CLIENT_ID"), _env("INSTAGRAM_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("INSTAGRAM"), _secret("INSTAGRAM")
     if not cid or not sec:
         raise OAuthError("Instagram sign-in isn't configured on the server.")
     try:
@@ -267,7 +288,7 @@ def exchange_instagram(code, redirect_uri):
 
 
 def exchange_soundcloud(code, redirect_uri):
-    cid, sec = _env("SOUNDCLOUD_OAUTH_CLIENT_ID"), _env("SOUNDCLOUD_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("SOUNDCLOUD"), _secret("SOUNDCLOUD")
     if not cid or not sec:
         raise OAuthError("SoundCloud sign-in isn't configured on the server.")
     tok = _post_token(
@@ -281,7 +302,7 @@ def exchange_soundcloud(code, redirect_uri):
 
 
 def exchange_tiktok(code, redirect_uri):
-    cid, sec = _env("TIKTOK_OAUTH_CLIENT_ID"), _env("TIKTOK_OAUTH_CLIENT_SECRET")
+    cid, sec = _cid("TIKTOK"), _secret("TIKTOK")
     if not cid or not sec:
         raise OAuthError("TikTok sign-in isn't configured on the server.")
     tok = _post_token(
@@ -299,8 +320,8 @@ def exchange_tiktok(code, redirect_uri):
 
 
 def exchange_twitter(code, redirect_uri, code_verifier=""):
-    cid = _env("TWITTER_OAUTH_CLIENT_ID")
-    sec = _env("TWITTER_OAUTH_CLIENT_SECRET")
+    cid = _cid("TWITTER")
+    sec = _secret("TWITTER")
     if not cid:
         raise OAuthError("Twitter/X sign-in isn't configured on the server.")
     if not code_verifier:

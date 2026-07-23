@@ -9,11 +9,28 @@ class OAuthConfigTests(APITestCase):
     def test_empty_when_nothing_configured(self):
         with mock.patch.dict(os.environ, {}, clear=False):
             for k in list(os.environ):
-                if k.endswith("_OAUTH_CLIENT_ID"):
+                if k.endswith("_CLIENT_ID"):  # covers _OAUTH_CLIENT_ID too
                     os.environ.pop(k, None)
             r = self.client.get("/api/auth/oauth/config/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["providers"], [])
+
+    def test_ready_flag_reflects_secret(self):
+        # GitHub needs a secret to be ready; Google does not.
+        with mock.patch.dict(os.environ, {
+            "GOOGLE_OAUTH_CLIENT_ID": "g.apps",
+            "GITHUB_OAUTH_CLIENT_ID": "gh",  # no secret
+        }, clear=False):
+            r = self.client.get("/api/auth/oauth/config/")
+        by = {p["key"]: p for p in r.data["providers"]}
+        self.assertTrue(by["google"]["ready"])       # id-token verify, no secret
+        self.assertFalse(by["github"]["ready"])       # missing GITHUB secret
+
+    def test_accepts_alternate_env_naming(self):
+        # Keys named <P>_CLIENT_ID (without _OAUTH_) are still picked up.
+        with mock.patch.dict(os.environ, {"SPOTIFY_CLIENT_ID": "sp"}, clear=False):
+            r = self.client.get("/api/auth/oauth/config/")
+        self.assertIn("spotify", {p["key"] for p in r.data["providers"]})
 
     def test_lists_only_configured_providers_with_public_ids(self):
         with mock.patch.dict(os.environ, {
