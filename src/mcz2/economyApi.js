@@ -44,8 +44,8 @@ export const buyPromptzApi = (cents) =>
 
 // Gemini generation (Image ConnectZ / Video ConnectZ). Charge the AI min
 // (PromptZ first); 503 when GEMINI_API_KEY isn't set (client falls back).
-export const geminiImageApi = (prompt) =>
-  api("/api/economy/gemini/image/", { method: "POST", body: { prompt } });
+export const geminiImageApi = (prompt, reference) =>
+  api("/api/economy/gemini/image/", { method: "POST", body: reference ? { prompt, reference } : { prompt } });
 export const geminiVideoApi = (prompt) =>
   api("/api/economy/gemini/video/", { method: "POST", body: { prompt } });
 export const geminiVideoStatusApi = (operation) =>
