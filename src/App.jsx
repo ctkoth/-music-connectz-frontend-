@@ -21,6 +21,7 @@ import BugZ from "./apps/BugZ.jsx";
 import PostZ from "./apps/PostZ.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
+import OnboardZ from "./apps/OnboardZ.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -153,6 +154,7 @@ export function IconImg({ icon, alt = "", className = "" }) {
 }
 
 const TABS = [
+  { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
@@ -245,6 +247,7 @@ function CommunityBar() {
 // Corey-voice tab descriptions (blueprint Global Rule: "clicking the tab icon
 // opens a modal showing the Corey voice description with emoji").
 const TAB_ABOUT = {
+  onboardz: "👋 OnboardZ — your guided first session. Set up your ProfileZ, drop your first PostZ, rate a few tracks, and refer a friend for 300 SpinaZ.",
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
@@ -281,6 +284,18 @@ function Home() {
     setTab(TABS[n].key);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Lets any tab (e.g. OnboardZ steps) jump to another tab.
+  useEffect(() => {
+    const h = (e) => {
+      if (TABS.some((t) => t.key === e.detail)) {
+        setTab(e.detail);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    window.addEventListener("mcz-goto-tab", h);
+    return () => window.removeEventListener("mcz-goto-tab", h);
+  }, []);
 
   return (
     <div className="min-h-screen">
