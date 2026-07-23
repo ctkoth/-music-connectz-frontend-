@@ -86,6 +86,13 @@ def grant_energy(user, amount):
     return amount
 
 
+def char_limit_for(user, default=1000):
+    """Platform-wide per-tier character ceiling, applied across all appz.
+    StatZ is unlimited (returns None); every other tier gets `default`."""
+    prof = getattr(user, "profile", None)
+    return None if getattr(prof, "tier", "free") == "statz" else default
+
+
 def spend_spinaz(user, amount):
     """Atomic SpinaZ debit (SpecZ purchases). Returns True only if the balance
     covered the cost — the WHERE spinaz>=amount makes it race-safe."""

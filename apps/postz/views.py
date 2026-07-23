@@ -88,7 +88,7 @@ class PostListCreateView(APIView):
         if not content:
             return Response({"detail": "content required."}, status=400)
         limit = char_limit_for(request.user)
-        if len(content) > limit:
+        if limit is not None and len(content) > limit:
             return Response({"detail": f"content must be <= {limit} chars."}, status=400)
         skills = d.get("skills") or []
         if not isinstance(skills, list):
@@ -149,7 +149,7 @@ class PostCommentView(APIView):
         if not text:
             return Response({"detail": "text required."}, status=400)
         limit = char_limit_for(request.user)
-        if len(text) > limit:
+        if limit is not None and len(text) > limit:
             return Response({"detail": f"text must be <= {limit} chars."}, status=400)
 
         left = COMMENT_WINDOW_SEC - _age_sec(post)

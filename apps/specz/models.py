@@ -22,8 +22,10 @@ class SpecEntry(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                               related_name="specz")
     app = models.CharField(max_length=40)
-    label = models.CharField(max_length=80)
-    value = models.CharField(max_length=280)
+    # SpecZ is a StatZ-only purchase, and StatZ is unlimited across all appz,
+    # so label/value are TextFields with no hard cap.
+    label = models.TextField()
+    value = models.TextField()
     price_spinaz = models.PositiveIntegerField(default=SPEC_PRICE)
     created_at = models.DateTimeField(auto_now_add=True)
 

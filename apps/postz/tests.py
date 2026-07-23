@@ -136,7 +136,7 @@ class PostZTests(APITestCase):
         r = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "x" * 1001}, format="json")
         self.assertEqual(r.status_code, 400)
 
-    def test_statz_user_char_limit_50000(self):
+    def test_statz_user_char_limit_unlimited(self):
         statz = _mkuser("statz")
         statz.profile.tier = "statz"
         statz.profile.save()
@@ -145,16 +145,16 @@ class PostZTests(APITestCase):
         # 1001 chars — blocked for free, allowed for StatZ
         r = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "x" * 1001}, format="json")
         self.assertEqual(r.status_code, 201)
-        # 50001 chars — over the StatZ ceiling
-        r2 = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "y" * 50001}, format="json")
-        self.assertEqual(r2.status_code, 400)
+        # Way over the old ceiling — StatZ is unlimited now.
+        r2 = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "y" * 100000}, format="json")
+        self.assertEqual(r2.status_code, 201)
 
-    def test_statz_post_content_50000(self):
+    def test_statz_post_content_unlimited(self):
         statz = _mkuser("statz2")
         statz.profile.tier = "statz"
         statz.profile.save()
         self.client.force_authenticate(statz)
-        r = self.client.post("/api/postz/", {"content": "z" * 20000}, format="json")
+        r = self.client.post("/api/postz/", {"content": "z" * 200000}, format="json")
         self.assertEqual(r.status_code, 201)
 
     # ---- deferred reward job ------------------------------------------

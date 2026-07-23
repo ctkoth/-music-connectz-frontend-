@@ -28,7 +28,9 @@ class DirectMessage(models.Model):
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="dms_received"
     )
-    body = models.CharField(max_length=1000)
+    # TextField so StatZ (unlimited) messages fit; the per-tier ceiling is
+    # enforced in the send view via accounts.char_limit_for.
+    body = models.TextField()
     cost_energy = models.PositiveIntegerField(default=0)
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

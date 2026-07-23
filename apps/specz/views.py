@@ -49,7 +49,7 @@ class SpecListCreateView(APIView):
             return Response({"detail": "Not enough SpinaZ."}, status=402)
 
         spec = SpecEntry.objects.create(
-            owner=request.user, app=app, label=label[:80], value=value[:280],
+            owner=request.user, app=app, label=label, value=value,
             price_spinaz=SPEC_PRICE)
         # Return the fresh balance so the UI can update immediately.
         new_balance = Profile.objects.values_list("spinaz", flat=True).get(user=request.user)

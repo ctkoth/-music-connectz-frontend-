@@ -20,15 +20,15 @@ RATE_WINDOW_SEC = 30
 COMMENT_WINDOW_SEC = 60
 MAX_STARS = 10
 
-# Per-tier character limit for post content and comments. StatZ gets the
-# expanded ceiling (blueprint: "StatZ users get expanded content, limits").
+# Per-tier character limit for post content and comments. StatZ is unlimited
+# (blueprint: "StatZ users get expanded content, limits"); this is the
+# platform-wide policy in apps.accounts.char_limit_for.
 CHAR_LIMIT_DEFAULT = 1000
-CHAR_LIMIT_STATZ = 50000
 
 
 def char_limit_for(user):
-    prof = getattr(user, "profile", None)
-    return CHAR_LIMIT_STATZ if getattr(prof, "tier", "free") == "statz" else CHAR_LIMIT_DEFAULT
+    from apps.accounts.models import char_limit_for as _limit
+    return _limit(user, CHAR_LIMIT_DEFAULT)  # None => unlimited (StatZ)
 
 
 class Post(models.Model):

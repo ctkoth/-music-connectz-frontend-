@@ -38,11 +38,10 @@ function mapPost(s) {
   };
 }
 
-// Per-tier character limit — StatZ gets the expanded ceiling (mirrors the
-// server's char_limit_for). The backend is the source of truth; this drives the
-// input maxLength and the transparency copy.
+// Per-tier character limit — StatZ is unlimited (mirrors the server's
+// char_limit_for). The backend is the source of truth; this drives the input
+// maxLength and the transparency copy.
 const CHAR_LIMIT_DEFAULT = 1000;
-const CHAR_LIMIT_STATZ = 50000;
 
 export default function PostZ() {
   const now = useNow();
@@ -55,7 +54,8 @@ export default function PostZ() {
   const [refreshing, setRefreshing] = useState(false);
   const [tier, setTier] = useState("free");
   const commentDraft = useRef({});
-  const charLimit = tier === "statz" ? CHAR_LIMIT_STATZ : CHAR_LIMIT_DEFAULT;
+  // null => unlimited (StatZ).
+  const charLimit = tier === "statz" ? null : CHAR_LIMIT_DEFAULT;
 
   useEffect(() => {
     api("/api/auth/me/").then((m) => setTier(m.tier || "free")).catch(() => {});
@@ -164,13 +164,13 @@ export default function PostZ() {
         <textarea
           className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
           rows={3}
-          maxLength={charLimit}
+          maxLength={charLimit ?? undefined}
           placeholder="Drop your track, bars, cover art or collab call…"
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
         <div className="text-right text-[10px] text-white/35">
-          {content.length.toLocaleString()} / {charLimit.toLocaleString()}
+          {content.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -188,8 +188,8 @@ export default function PostZ() {
           (other users only) · comments unlock <span className="text-white/70">{COMMENT_WINDOW_SEC}s</span> after posting.
           Every rating you give earns you <span className="text-mcz-ember">+1 Energy</span>.
           {tier === "statz"
-            ? <> · <span className="text-mcz-ember">StatZ</span> char limit: <span className="text-white/70">50,000</span>.</>
-            : <> · Char limit: <span className="text-white/70">1,000</span> — <span className="text-mcz-ember">StatZ</span> unlocks 50,000.</>}
+            ? <> · <span className="text-mcz-ember">StatZ</span> char limit: <span className="text-white/70">Unlimited</span>.</>
+            : <> · Char limit: <span className="text-white/70">1,000</span> — <span className="text-mcz-ember">StatZ</span> unlocks unlimited.</>}
         </p>
       </div>
 
@@ -311,7 +311,7 @@ function PostCard({ post, now, onRate, onComment, commentDraft, charLimit }) {
             <input
               className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
               placeholder="What did you like about the track?"
-              maxLength={charLimit}
+              maxLength={charLimit ?? undefined}
               defaultValue={commentDraft.current[post.id] || ""}
               onChange={(e) => (commentDraft.current[post.id] = e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onComment(post.id)}

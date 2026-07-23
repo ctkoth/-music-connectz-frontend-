@@ -27,6 +27,10 @@ class SendView(APIView):
         body = (data.get("body") or "").strip()
         if not to or not body:
             return Response({"detail": "Both 'to' and 'body' are required."}, status=400)
+        from apps.accounts.models import char_limit_for
+        limit = char_limit_for(request.user)  # None => unlimited (StatZ)
+        if limit is not None and len(body) > limit:
+            return Response({"detail": f"Message must be <= {limit} chars."}, status=400)
         recipient = User.objects.filter(username__iexact=to).first()
         if not recipient or recipient.id == request.user.id:
             return Response({"detail": "Recipient not found."}, status=404)
