@@ -103,6 +103,19 @@ def spend_spinaz(user, amount):
     return bool(updated)
 
 
+def grant_spinaz(user, amount):
+    """Additive SpinaZ award (referral rewards, etc.)."""
+    from django.db.models import F
+
+    if not amount:
+        return 0
+    try:
+        Profile.objects.filter(user=user).update(spinaz=F("spinaz") + amount)
+    except Exception:
+        return 0
+    return amount
+
+
 # NationalitieZ — user-selected heritage/ancestry. Kept in sync with the
 # frontend list in src/apps/socialData.js; used to validate profile writes and
 # to power the Social ConnectZ heritage filter.
@@ -121,6 +134,49 @@ ALLOWED_NATIONALITIES = [
 ALLOWED_NATIONALITIES_SET = set(ALLOWED_NATIONALITIES)
 
 REFILL_BY_TIER = {"free": 25, "premium": 50, "statz": 100}
+
+REFERRAL_REWARD = 300  # SpinaZ paid to the referrer per legit join
+
+
+class Referral(models.Model):
+    """One row per referred user. The OneToOne on `referred` guarantees a user
+    can be referred (and rewarded) at most once."""
+
+    referrer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                 related_name="referrals_made")
+    referred = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                    related_name="referral_source")
+    reward = models.PositiveIntegerField(default=REFERRAL_REWARD)
+    credited = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
+def record_referral(ref_code, new_user):
+    """Credit a referrer for a *legit* join. Guards against self-referral,
+    double-crediting, and the same-email sybil case. Returns the Referral or
+    None. The referral code is the referrer's username."""
+    from django.contrib.auth import get_user_model
+
+    code = (ref_code or "").strip()
+    if not code:
+        return None
+    User = get_user_model()
+    referrer = User.objects.filter(username__iexact=code, is_active=True).first()
+    if not referrer or referrer.id == new_user.id:
+        return None
+    if Referral.objects.filter(referred=new_user).exists():
+        return None
+    # Same email => same person; don't reward self-cloning.
+    if (referrer.email and new_user.email
+            and referrer.email.lower() == new_user.email.lower()):
+        return None
+    r = Referral.objects.create(referrer=referrer, referred=new_user,
+                                reward=REFERRAL_REWARD, credited=True)
+    grant_spinaz(referrer, REFERRAL_REWARD)
+    return r
 
 
 def daily_refill(user):

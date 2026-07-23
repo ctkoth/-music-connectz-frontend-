@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
@@ -28,6 +28,8 @@ export default function ProfileZ() {
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
+  const [ref, setRef] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -36,7 +38,17 @@ export default function ProfileZ() {
       setMe(d); setSel(d.personas || []); setBirthday(d.birthday || "");
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
+    api("/api/auth/referrals/").then(setRef).catch(() => {});
   }, []);
+
+  const refLink = ref ? `${window.location.origin}/register?ref=${encodeURIComponent(ref.code)}` : "";
+  function copyRef() {
+    if (!refLink) return;
+    navigator.clipboard?.writeText(refLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    }).catch(() => {});
+  }
 
   function toggle(key) {
     setSel((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));
@@ -85,6 +97,45 @@ export default function ProfileZ() {
           </p>
         </div>
       </header>
+
+      {/* ReferZ — invite links + referred members */}
+      <div className="neon-frame space-y-3 p-4">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <Gift size={13} className="text-mcz-ember" /> ReferZ
+          <span className="ml-auto flex items-center gap-1 text-mcz-pink">
+            <IconImg icon="spinaz.png" alt="" className="h-4 w-4 rounded-full" />
+            +{ref?.reward_per_join ?? 300} SpinaZ / legit join
+          </span>
+        </p>
+        <p className="text-[11px] text-white/40">Share your link. You earn SpinaZ every time someone new joins with it.</p>
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={refLink || "Loading your link…"}
+            onFocus={(e) => e.target.select()}
+            className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none"
+          />
+          <button className="re-btn !w-auto px-3" onClick={copyRef} disabled={!refLink}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="pill"><Users size={11} className="inline" /> {ref?.count ?? 0} referred</span>
+          <span className="pill !text-mcz-pink"><Star size={11} className="inline" /> {ref?.spinaz_earned ?? 0} SpinaZ earned</span>
+        </div>
+        {ref?.members?.length > 0 && (
+          <div className="space-y-1 border-t border-white/[0.06] pt-2">
+            {ref.members.map((m) => (
+              <div key={m.username} className="flex items-center justify-between text-sm">
+                <span className="text-white/80">{m.username}</span>
+                <span className="text-[11px] text-white/40">
+                  {new Date(m.joined).toLocaleDateString()} · +{m.reward} SpinaZ
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="neon-frame space-y-2 p-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-white/45">ZodiacZ — birthday</p>

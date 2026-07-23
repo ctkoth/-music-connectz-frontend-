@@ -6,7 +6,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import OAuthIdentity, Profile, daily_refill, touch_presence
+from .models import (OAuthIdentity, Profile, daily_refill, record_referral,
+                     touch_presence)
 from .oauth import CODE_EXCHANGERS, OAuthError, verify_apple, verify_google
 from .serializers import (
     LoginSerializer,
@@ -67,6 +68,8 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        # Credit the referrer (if any) for this legit join.
+        record_referral((request.data or {}).get("ref"), user)
         tokens = issue_tokens(user)
         return Response(
             {"user": PublicUserSerializer(user).data, **tokens},
@@ -160,6 +163,31 @@ class StatsView(APIView):
             "online_members": [p.user.username for p in online_qs.order_by("-last_seen")[:12]],
             "my_energy": getattr(prof, "energy", 0) if prof else 0,
             "refilled_today": refilled,
+        })
+
+
+class ReferralView(APIView):
+    """GET /api/auth/referrals/ — my referral code + the members I've brought in."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import REFERRAL_REWARD, Referral
+        made = (Referral.objects.filter(referrer=request.user)
+                .select_related("referred"))
+        members = [{
+            "username": r.referred.username,
+            "joined": r.created_at,
+            "reward": r.reward,
+            "credited": r.credited,
+        } for r in made]
+        earned = sum(r.reward for r in made if r.credited)
+        return Response({
+            "code": request.user.username,       # referral code = username
+            "reward_per_join": REFERRAL_REWARD,
+            "count": len(members),
+            "spinaz_earned": earned,
+            "members": members,
         })
 
 
