@@ -129,6 +129,34 @@ class PostZTests(APITestCase):
         r = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "   "}, format="json")
         self.assertEqual(r.status_code, 400)
 
+    # ---- per-tier character limit -------------------------------------
+    def test_free_user_char_limit_1000(self):
+        p = self._post(age=61)
+        self.client.force_authenticate(self.rater)  # free tier
+        r = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "x" * 1001}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_statz_user_char_limit_50000(self):
+        statz = _mkuser("statz")
+        statz.profile.tier = "statz"
+        statz.profile.save()
+        p = self._post(age=61)
+        self.client.force_authenticate(statz)
+        # 1001 chars — blocked for free, allowed for StatZ
+        r = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "x" * 1001}, format="json")
+        self.assertEqual(r.status_code, 201)
+        # 50001 chars — over the StatZ ceiling
+        r2 = self.client.post(f"/api/postz/{p.id}/comment/", {"text": "y" * 50001}, format="json")
+        self.assertEqual(r2.status_code, 400)
+
+    def test_statz_post_content_50000(self):
+        statz = _mkuser("statz2")
+        statz.profile.tier = "statz"
+        statz.profile.save()
+        self.client.force_authenticate(statz)
+        r = self.client.post("/api/postz/", {"content": "z" * 20000}, format="json")
+        self.assertEqual(r.status_code, 201)
+
     # ---- deferred reward job ------------------------------------------
     def test_settle_comment_rewards(self):
         from django.core.management import call_command
