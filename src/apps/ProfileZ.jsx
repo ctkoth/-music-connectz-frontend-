@@ -4,10 +4,9 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
-// Fourth field flags a premium PersonaZ (shows a PREMIUM badge).
 const PERSONAS = [
   ["arscout", "A&R Scout", "personaz_arscout.png"],
-  ["designer", "Designer", "personaz_designer.png", true],
+  ["designer", "Designer", "personaz_designer.png"],
   ["developer", "Developer", "personaz_developer.png"],
   ["director", "Director", "personaz_director.webp"],
   ["ghostwriter", "GhostWriter", "personaz_ghostwriter.png"],
@@ -20,6 +19,9 @@ const PERSONAS = [
 ];
 const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
+
+// Premium ICONS (cosmetic art), independent of whether the PersonaZ is premium.
+const PREMIUM_ICONS = new Set(["personaz_designer.png"]);
 
 export default function ProfileZ() {
   const [me, setMe] = useState(null);
@@ -95,19 +97,21 @@ export default function ProfileZ() {
           Your PersonaZ — pick every role you play ({sel.length} selected)
         </p>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {PERSONAS.map(([key, label, icon, premium]) => (
+          {PERSONAS.map(([key, label, icon]) => (
             <button key={key} onClick={() => toggle(key)}
-              className={`relative flex flex-col items-center gap-2 rounded-2xl border p-3 transition ${
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition ${
                 sel.includes(key)
                   ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
                   : "border-white/10 bg-black/30 hover:bg-white/5"
               }`}>
-              {premium && (
-                <span className="absolute right-1 top-1 rounded-md bg-mcz-ember px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white shadow-neon">
-                  Premium
-                </span>
-              )}
-              <IconImg icon={icon} alt={label} className="h-14 w-14 rounded-full object-cover" />
+              <span className="relative">
+                <IconImg icon={icon} alt={label} className="h-14 w-14 rounded-full object-cover" />
+                {PREMIUM_ICONS.has(icon) && (
+                  <span className="absolute -bottom-1 -right-1 rounded-md bg-mcz-ember px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white shadow-neon">
+                    Premium
+                  </span>
+                )}
+              </span>
               <span className="text-xs">{label}</span>
             </button>
           ))}
