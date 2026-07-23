@@ -92,7 +92,11 @@ class CollabInterestView(APIView):
             return Response({"detail": "Post not found."}, status=404)
         if p.author_id == request.user.id:
             return Response({"detail": "It's your post."}, status=400)
+        note = (request.data or {}).get("note", "") or ""
+        from apps.accounts.models import char_limit_for
+        limit = char_limit_for(request.user, 280)  # None => unlimited (StatZ)
+        if limit is not None and len(note) > limit:
+            return Response({"detail": f"note must be <= {limit} chars."}, status=400)
         _, created = CollabInterest.objects.get_or_create(
-            post=p, user=request.user,
-            defaults={"note": (request.data or {}).get("note", "")[:280]})
+            post=p, user=request.user, defaults={"note": note})
         return Response(_ser(p, request.user), status=201 if created else 200)

@@ -34,7 +34,9 @@ class CollabInterest(models.Model):
     post = models.ForeignKey(CollabPost, on_delete=models.CASCADE, related_name="interests")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                              related_name="collab_interests")
-    note = models.CharField(max_length=280, blank=True, default="")
+    # TextField so StatZ (unlimited) notes fit; the per-tier ceiling is enforced
+    # in the view via accounts.char_limit_for.
+    note = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
