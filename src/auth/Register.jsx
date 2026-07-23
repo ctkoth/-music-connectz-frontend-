@@ -83,7 +83,7 @@ export function AuthShell({ title, subtitle, children }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
-        <img src="/mcz-logo-v4.png" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
+        <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}
