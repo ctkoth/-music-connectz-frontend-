@@ -5946,18 +5946,27 @@ function IntelGenerate({ label, disabled, syncEconomy }) {
   );
 }
 
-function ImageConnectZ({ syncEconomy }) {
+function ImageConnectZ({ syncEconomy, tier, onOpen }) {
+  const { state } = useAppState();
+  const faces = state.facez || [];
   const [type, setType] = useState(IMAGE_TYPES[0].name);
   const [mood, setMood] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [faceId, setFaceId] = useState("");
   const [img, setImg] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const isStatz = /stat[sz]/i.test(tier || "");
   const t = IMAGE_TYPES.find((x) => x.name === type);
+  const face = faces.find((f) => f.id === faceId);
+  const faceRef = face?.img || face?.url || "";
   const gen = async () => {
     setBusy(true); setMsg(""); setImg(null);
-    try { const r = await geminiImageApi(`${mood ? mood + " " : ""}${type} (${t.ratio}): ${prompt}`); setImg(r.image); syncEconomy?.(); }
-    catch (e) {
+    try {
+      const p = `${mood ? mood + " " : ""}${type} (${t.ratio}): ${prompt}${faceRef ? " — feature this person's likeness from the reference photo" : ""}`;
+      const r = await geminiImageApi(p, faceRef && faceRef.startsWith("data:") ? faceRef : undefined);
+      setImg(r.image); syncEconomy?.();
+    } catch (e) {
       const m = e?.message || "";
       setMsg(/503|configured|GEMINI/i.test(m) ? "🔌 Image generation isn't set up yet — add GEMINI_API_KEY on the backend." : /40[26]|balance|enough/i.test(m) ? "Not enough PromptZ / cash — buy PromptZ or add funds." : "Couldn't generate — try again.");
     }
@@ -5971,11 +5980,23 @@ function ImageConnectZ({ syncEconomy }) {
         {IMAGE_TYPES.map((x) => <Pill key={x.name} active={type === x.name} onClick={() => setType(x.name)}>{x.name}</Pill>)}
       </div>
       <MoodPicker mood={mood} setMood={setMood} />
+      {/* Pick a saved FaceZ — its photo is sent as a likeness reference. */}
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>🙂 Use a saved FaceZ (likeness)</label>
+      <div className="chip-wrap" style={{ margin: "6px 0 12px" }}>
+        <Pill active={!faceId} onClick={() => setFaceId("")}>None</Pill>
+        {faces.map((f) => <Pill key={f.id} active={faceId === f.id} onClick={() => setFaceId(f.id)}>{f.name || "Face"}</Pill>)}
+      </div>
+      {faceRef && <img src={faceRef} alt="reference face" style={{ height: 54, borderRadius: 8, marginBottom: 8 }} />}
       <div className="form-group"><label>Describe it</label><CappedTextarea value={prompt} onChange={(e) => setPrompt(e.target.value)} style={{ height: 56 }} placeholder={`e.g., neon skyline for a ${type.toLowerCase()}`} /></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>🙂 Uses your saved FaceZ for likeness. StatZ can lipsync the result to an audio/video track and drop it into VideoZ.</p>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>{faceRef ? "🙂 Generating from your FaceZ likeness." : "Pick a FaceZ above to use your likeness."} StatZ can lipsync the result to an audio/video track in VideoZ.</p>
       <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim() || busy} onClick={gen}>{busy ? "✨ Generating with Gemini…" : `✨ Generate ${mood ? `${mood} ` : ""}${type} (${t.ratio})`}</button>
       {msg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
-      {img && <img src={img} alt={prompt} style={{ width: "100%", borderRadius: 10, marginTop: 8 }} />}
+      {img && (
+        <>
+          <img src={img} alt={prompt} style={{ width: "100%", borderRadius: 10, marginTop: 8 }} />
+          {isStatz && <button className="btn btn-small btn-secondary" style={{ marginTop: 6 }} onClick={() => onOpen?.("videoz")}>🎬 Lipsync to a track in VideoZ</button>}
+        </>
+      )}
       <IntelNote role="Designer" />
     </div>
   );
