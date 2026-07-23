@@ -35,11 +35,13 @@ export function AuthProvider({ children }) {
     return res.user;
   }
 
-  async function register({ username, email, phone, password }) {
+  async function register({ username, email, phone, password, birthday }) {
     const res = await api("/api/auth/register/", {
       method: "POST",
       auth: false,
-      body: { username, email, phone, password },
+      // birthday is optional but was previously dropped here, so ZodiacZ never
+      // got set at signup — pass it through when present.
+      body: { username, email, phone, password, birthday: birthday || null },
     });
     return persist(res);
   }

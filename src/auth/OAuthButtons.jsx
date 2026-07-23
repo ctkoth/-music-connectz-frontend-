@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Apple, Facebook, Github, Instagram } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
+import { api } from "../api.js";
 
 const REDIRECT =
   import.meta.env.VITE_OAUTH_REDIRECT ||
   (typeof window !== "undefined" ? `${window.location.origin}/oauth/callback` : "");
 
-const ID = (name) => import.meta.env[`VITE_${name}_CLIENT_ID`] || "";
+// Optional build-time fallback; the primary source is the backend config below.
+const VITE_ID = (key) => import.meta.env[`VITE_${key.toUpperCase()}_CLIENT_ID`] || "";
 
 /* --- inline brand glyphs (lucide lacks these) --- */
 const Spotify = (p) => (
@@ -81,16 +83,33 @@ export default function OAuthButtons({ onSuccess, onError }) {
   const { oauth } = useAuth();
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
+  // Provider client IDs served by the backend (GET /api/auth/oauth/config/).
+  // null while loading; {} means "loaded, nothing configured".
+  const [cfg, setCfg] = useState(null);
 
-  /* Google keeps Google Identity Services when configured */
+  const clientId = (key) => (cfg && cfg[key]) || VITE_ID(key);
+
+  // Pull the configured providers from the backend so no VITE_* build vars are
+  // required — configure OAuth once on the server and it just works here.
   useEffect(() => {
-    const gid = ID("GOOGLE");
-    if (!gid) return;
-    const s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true;
-    s.onload = () => {
-      if (!window.google || !googleBtn.current) return;
+    let on = true;
+    api("/api/auth/oauth/config/", { auth: false })
+      .then((d) => {
+        if (!on) return;
+        const map = {};
+        (d.providers || []).forEach((p) => { map[p.key] = p.client_id; });
+        setCfg(map);
+      })
+      .catch(() => on && setCfg({})); // backend unreachable → fall back to VITE
+    return () => { on = false; };
+  }, []);
+
+  /* Google Identity Services button, rendered once its client_id is known. */
+  useEffect(() => {
+    const gid = clientId("google");
+    if (!gid || !googleBtn.current) return;
+    const render = () => {
+      if (!window.google?.accounts?.id || !googleBtn.current) return;
       window.google.accounts.id.initialize({
         client_id: gid,
         callback: async (resp) => {
@@ -104,16 +123,30 @@ export default function OAuthButtons({ onSuccess, onError }) {
         theme: "filled_black", size: "large", shape: "pill", text: "continue_with", width: 280,
       });
     };
-    document.head.appendChild(s);
-  }, [oauth, onSuccess, onError]);
+    if (window.google?.accounts?.id) return render();
+    let poll;
+    if (!document.getElementById("gsi-js")) {
+      const s = document.createElement("script");
+      s.id = "gsi-js";
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.onload = render;
+      document.head.appendChild(s);
+    } else {
+      poll = setInterval(() => {
+        if (window.google?.accounts?.id) { clearInterval(poll); render(); }
+      }, 200);
+    }
+    return () => poll && clearInterval(poll);
+  }, [cfg, oauth, onSuccess, onError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(p) {
-    const id = ID(p.key.toUpperCase());
+    const id = clientId(p.key);
     if (p.key === "google") {
-      return onError?.(id ? "Use the Google button above." : "Google isn't configured yet (VITE_GOOGLE_CLIENT_ID).");
+      return onError?.("Use the Google button above.");
     }
     if (p.key === "apple") {
-      if (!id) return onError?.("Apple isn't configured yet (VITE_APPLE_CLIENT_ID).");
+      if (!id) return onError?.("Apple sign-in isn't available right now.");
       try {
         setBusy("apple");
         await new Promise((res, rej) => {
@@ -130,7 +163,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
       finally { setBusy(""); }
       return;
     }
-    if (!id) return onError?.(`${p.label} isn't configured yet (VITE_${p.key.toUpperCase()}_CLIENT_ID).`);
+    if (!id) return onError?.(`${p.label} sign-in isn't available right now.`);
 
     const state = rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
@@ -146,31 +179,40 @@ export default function OAuthButtons({ onSuccess, onError }) {
     window.location.href = p.auth(encodeURIComponent(id), state, challenge);
   }
 
+  // Only show providers the server (or a VITE fallback) actually configured.
+  // Google renders as its own GIS button, so it's excluded from the icon grid.
+  const hasGoogle = !!clientId("google");
+  const grid = PROVIDERS.filter((p) => p.key !== "google" && clientId(p.key));
+
+  // Still loading, or nothing configured → render no OAuth section at all, so
+  // the signup form stays clean instead of showing dead buttons.
+  if (cfg === null) return null;
+  if (!hasGoogle && grid.length === 0) return null;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 text-xs text-white/40">
         <span className="h-px flex-1 bg-white/10" /> or continue with <span className="h-px flex-1 bg-white/10" />
       </div>
 
-      {ID("GOOGLE") && <div ref={googleBtn} className="flex justify-center" />}
+      {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
 
-      <div className="grid grid-cols-5 gap-2">
-        {PROVIDERS.map((p) => (
-          <button
-            key={p.key}
-            title={p.label}
-            aria-label={`Continue with ${p.label}`}
-            onClick={() => start(p)}
-            disabled={busy === p.key}
-            className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/85 transition hover:bg-white/10 hover:text-white active:scale-95"
-          >
-            <p.Icon size={20} />
-          </button>
-        ))}
-      </div>
-      <p className="text-center text-[11px] text-white/35">
-        Google · Apple · Spotify · Microsoft · GitHub · X · SoundCloud · Instagram · Facebook · TikTok
-      </p>
+      {grid.length > 0 && (
+        <div className="grid grid-cols-5 gap-2">
+          {grid.map((p) => (
+            <button
+              key={p.key}
+              title={p.label}
+              aria-label={`Continue with ${p.label}`}
+              onClick={() => start(p)}
+              disabled={busy === p.key}
+              className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/85 transition hover:bg-white/10 hover:text-white active:scale-95"
+            >
+              <p.Icon size={20} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

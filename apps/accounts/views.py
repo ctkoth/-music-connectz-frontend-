@@ -163,6 +163,18 @@ class StatsView(APIView):
         })
 
 
+class OAuthConfigView(APIView):
+    """GET /api/auth/oauth/config/ — which social providers are configured on the
+    server, with their PUBLIC client IDs. Lets the frontend render only working
+    buttons without any VITE_* build-time env vars."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .oauth import public_oauth_config
+        return Response({"providers": public_oauth_config()})
+
+
 class OAuthLoginView(APIView):
     """POST /api/auth/oauth/<provider>/ — verify provider token, return JWT."""
 

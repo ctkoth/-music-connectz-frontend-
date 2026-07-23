@@ -23,6 +23,33 @@ def _env(name):
     return os.environ.get(name, "").strip()
 
 
+# Public client-id env var per provider. Client IDs are PUBLIC (they ride in the
+# browser's authorize redirect); secrets never leave the server. The frontend
+# reads this via GET /api/auth/oauth/config/ so it needs no VITE_* build vars.
+PROVIDER_CLIENT_ID_ENV = {
+    "google": "GOOGLE_OAUTH_CLIENT_ID",
+    "apple": "APPLE_OAUTH_CLIENT_ID",
+    "github": "GITHUB_OAUTH_CLIENT_ID",
+    "spotify": "SPOTIFY_OAUTH_CLIENT_ID",
+    "microsoft": "MICROSOFT_OAUTH_CLIENT_ID",
+    "facebook": "FACEBOOK_OAUTH_CLIENT_ID",
+    "instagram": "INSTAGRAM_OAUTH_CLIENT_ID",
+    "soundcloud": "SOUNDCLOUD_OAUTH_CLIENT_ID",
+    "tiktok": "TIKTOK_OAUTH_CLIENT_ID",
+    "twitter": "TWITTER_OAUTH_CLIENT_ID",
+}
+
+
+def public_oauth_config():
+    """Providers configured on the server + their PUBLIC client IDs (no secrets).
+    Used to drive the frontend's social buttons at runtime."""
+    return [
+        {"key": key, "client_id": cid}
+        for key, env in PROVIDER_CLIENT_ID_ENV.items()
+        if (cid := _env(env))
+    ]
+
+
 # ---------------------------------------------------------------- Google ----
 def verify_google(credential: str):
     """Verify a Google ID token (the `credential` from Google Identity Services)."""
