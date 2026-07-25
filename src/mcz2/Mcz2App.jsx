@@ -9131,6 +9131,108 @@ function ParcelPrimatePage({ serverOk }) {
 
 // ---- AdZ: Watch & Earn — watch a commercial, earn SpinAZ = the cents the
 // platform is paid per view. Genuine full watches (>= min seconds) are rewarded.
+
+// VastAdPlayer: plays a programmatic VAST ad via Google IMA SDK and rewards on
+// completion. The owner supplies a VAST tag URL from any paying ad network
+// (Google Ad Manager, SpotX/Magnite, PubMatic, Xandr, etc.). The IMA SDK
+// fetches the creative from the network, plays it, and fires the standard
+// impression/completion beacons so the platform earns real CPM revenue.
+function VastAdPlayer({ ad, onRewarded }) {
+  const containerRef = useRef(null);
+  const videoRef = useRef(null);
+  const [sdkReady, setSdkReady] = useState(!!window.google?.ima);
+  const [playing, setPlaying] = useState(false);
+  const [done, setDone] = useState(false);
+  const [msg, setMsg] = useState("");
+  const adsManagerRef = useRef(null);
+
+  // Lazy-load the IMA SDK once
+  useEffect(() => {
+    if (window.google?.ima) { setSdkReady(true); return; }
+    const existing = document.querySelector('script[src*="imasdk.googleapis.com"]');
+    if (existing) { existing.addEventListener("load", () => setSdkReady(true)); return; }
+    const s = document.createElement("script");
+    s.src = "https://imasdk.googleapis.com/js/sdkloader/ima3.js";
+    s.async = true;
+    s.onload = () => setSdkReady(true);
+    s.onerror = () => setMsg("⚠️ Ad SDK unavailable — try again later.");
+    document.head.appendChild(s);
+    return () => { adsManagerRef.current?.destroy(); };
+  }, []);
+
+  const startAd = () => {
+    if (!window.google?.ima) { setMsg("⚠️ Ad SDK not ready yet."); return; }
+    const container = containerRef.current;
+    const video = videoRef.current;
+    const ima = window.google.ima;
+
+    const adDisplayContainer = new ima.AdDisplayContainer(container, video);
+    adDisplayContainer.initialize();
+
+    const adsLoader = new ima.AdsLoader(adDisplayContainer);
+
+    adsLoader.addEventListener(ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, (e) => {
+      const mgr = e.getAdsManager(video);
+      adsManagerRef.current = mgr;
+
+      mgr.addEventListener(ima.AdEvent.Type.COMPLETE, async () => {
+        try {
+          const r = await rewardAdApi(ad.id, (ad.min_watch_seconds || 15) + 1);
+          if (r.rewarded) { setMsg(`✅ +${r.reward_spinaz} 🍥 — thanks for watching!`); setDone(true); onRewarded?.(r); }
+          else setMsg(
+            r.reason === "ad_daily_cap" ? "You've earned the daily max on this ad — come back tomorrow."
+            : r.reason === "daily_cap" ? "You've hit today's Watch & Earn cap — back tomorrow."
+            : r.reason === "own_ad" ? "You can't earn from your own ad." : "No reward this time."
+          );
+        } catch { setMsg("Couldn't claim reward — try again."); }
+        setPlaying(false);
+      });
+      mgr.addEventListener(ima.AdEvent.Type.ALL_ADS_COMPLETED, () => setPlaying(false));
+      mgr.addEventListener(ima.AdErrorEvent.Type.AD_ERROR, (ev) => {
+        setMsg(`⚠️ Ad error: ${ev.getError().getMessage()}`);
+        setPlaying(false);
+      });
+
+      try {
+        mgr.init(container.offsetWidth || 400, 260, ima.ViewMode.NORMAL);
+        mgr.start();
+        setPlaying(true);
+      } catch { setMsg("Couldn't start ad."); }
+    });
+
+    adsLoader.addEventListener(ima.AdErrorEvent.Type.AD_ERROR, () => {
+      setMsg("⚠️ Ad unavailable right now — try again soon.");
+    });
+
+    const req = new ima.AdsRequest();
+    req.adTagUrl = ad.media_url;
+    req.linearAdSlotWidth = container.offsetWidth || 400;
+    req.linearAdSlotHeight = 260;
+    adsLoader.requestAds(req);
+  };
+
+  return (
+    <div className="post-card">
+      <div className="post-user">
+        📡 {ad.title}
+        {ad.sponsor ? <span style={{ fontSize: 11, color: "var(--text-light)" }}> · sponsored by {ad.sponsor}</span> : ""}
+        <span style={{ fontSize: 10, color: "var(--text-light)", marginLeft: 6 }}>programmatic</span>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginBottom: 4 }}>Earn <strong>{ad.reward_spinaz} 🍥</strong> · watch the full ad</div>
+      <div ref={containerRef} style={{ position: "relative", width: "100%", minHeight: 260, background: "#000", borderRadius: 8, overflow: "hidden" }}>
+        <video ref={videoRef} style={{ width: "100%", height: 260, display: "block" }} playsInline />
+      </div>
+      {ad.link_url && <a href={ad.link_url} target="_blank" rel="noreferrer" className="tag" style={{ color: "var(--accent, #22e6ff)", textDecoration: "none" }}>🔗 Visit sponsor</a>}
+      {!playing && !done && (
+        <button className="btn btn-success btn-small" style={{ width: "100%", marginTop: 6 }} disabled={!sdkReady} onClick={startAd}>
+          {sdkReady ? `▶ Watch ad & earn ${ad.reward_spinaz} 🍥` : "Loading ad…"}
+        </button>
+      )}
+      {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--gold, #ffcf3f)", marginTop: 6 }}>{msg}</p>}
+    </div>
+  );
+}
+
 function AdWatcher({ ad, onRewarded }) {
   const vidRef = useRef(null);
   const [watched, setWatched] = useState(0);
@@ -9168,7 +9270,7 @@ function AdWatcher({ ad, onRewarded }) {
 
 function AdZPage({ serverOk, isOwner, syncEconomy }) {
   const [data, setData] = useState(null);
-  const [form, setForm] = useState({ title: "", sponsor: "", link_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null });
+  const [form, setForm] = useState({ title: "", sponsor: "", link_url: "", vast_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const setF = (k, v) => setForm((s) => ({ ...s, [k]: v }));
@@ -9177,11 +9279,12 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
   useEffect(load, [serverOk]);
 
   const post = async () => {
-    if (!form.title.trim() || !form.media?.url) { setMsg("Add a title and upload the commercial."); return; }
+    const isVast = !!form.vast_url.trim();
+    if (!form.title.trim() || (!isVast && !form.media?.url)) { setMsg("Add a title and either a VAST tag URL or upload the commercial."); return; }
     setBusy(true); setMsg("");
     try {
-      await createCommercialApi({ title: form.title.trim(), sponsor: form.sponsor.trim(), link_url: form.link_url.trim(), media_url: form.media.url, media_type: form.media.type, payout_cents: Number(form.payout_cents) || 1, min_watch_seconds: Number(form.min_watch_seconds) || 15, daily_cap_per_user: Number(form.daily_cap_per_user) || 3 });
-      setMsg("✅ Commercial posted."); setForm({ title: "", sponsor: "", link_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null }); load();
+      await createCommercialApi({ title: form.title.trim(), sponsor: form.sponsor.trim(), link_url: form.link_url.trim(), media_url: isVast ? form.vast_url.trim() : form.media.url, media_type: isVast ? "vast" : form.media.type, payout_cents: Number(form.payout_cents) || 1, min_watch_seconds: Number(form.min_watch_seconds) || 15, daily_cap_per_user: Number(form.daily_cap_per_user) || 3 });
+      setMsg("✅ Commercial posted."); setForm({ title: "", sponsor: "", link_url: "", vast_url: "", payout_cents: 1, min_watch_seconds: 15, daily_cap_per_user: 3, media: null }); load();
     } catch (e) { setMsg(e?.message || "Couldn't post."); }
     setBusy(false);
   };
@@ -9214,15 +9317,22 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
             <div className="form-group"><label>Min watch (s)</label><input type="number" min="1" value={form.min_watch_seconds} onChange={(e) => setF("min_watch_seconds", e.target.value)} /></div>
             <div className="form-group"><label>Daily cap/user</label><input type="number" min="1" value={form.daily_cap_per_user} onChange={(e) => setF("daily_cap_per_user", e.target.value)} /></div>
           </div>
-          <div className="form-group"><label>🎬 Upload the commercial</label><MediaCapture onUploaded={(m) => setF("media", m)} accept="video/*" /></div>
-          <button className="btn btn-success" style={{ width: "100%" }} disabled={busy} onClick={post}>{busy ? "Posting…" : "📤 Post commercial"}</button>
+          <div className="form-group">
+            <label>📡 VAST Ad Tag URL <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-light)" }}>(programmatic — earns real CPM)</span></label>
+            <input value={form.vast_url} onChange={(e) => setF("vast_url", e.target.value)} placeholder="https://pubads.g.doubleclick.net/gampad/ads?…" />
+            <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 3 }}>
+              Paste a VAST tag URL from a paying network. Google Ad Manager (free) → <em>Ad Manager → New Ad Unit → Generate tags → VAST</em>. Other supported networks: SpotX/Magnite, PubMatic, OpenX, Xandr. Leave blank to upload a video file instead.
+            </p>
+          </div>
+          {!form.vast_url.trim() && <div className="form-group"><label>🎬 Upload the commercial</label><MediaCapture onUploaded={(m) => setF("media", m)} accept="video/*" /></div>}
+          <button className="btn btn-success" style={{ width: "100%" }} disabled={busy} onClick={post}>{busy ? "Posting…" : form.vast_url.trim() ? "📡 Post programmatic ad" : "📤 Post commercial"}</button>
           {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}</p>}
           {(data?.owner?.mine || []).length > 0 && (
             <div style={{ marginTop: 8 }}>
               <div className="modal-sub-title" style={{ marginBottom: 4 }}>Your commercials</div>
               {data.owner.mine.map((a) => (
                 <div key={a.id} className="skill-item">
-                  <span className="skill-item-name">📺 {a.title} · {a.reward_spinaz}🍥/view</span>
+                  <span className="skill-item-name">{a.media_type === "vast" ? "📡" : "📺"} {a.title} · {a.reward_spinaz}🍥/view{a.media_type === "vast" ? " · programmatic" : ""}</span>
                   <button className="btn btn-danger btn-small" onClick={() => remove(a.id)}>✕</button>
                 </div>
               ))}
@@ -9234,7 +9344,9 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
       <div className="card">
         <div className="card-header">🎬 Commercials</div>
         {ads.length === 0 ? <p style={{ fontSize: 12, color: "var(--text-light)" }}>No commercials to watch right now — check back soon.</p>
-          : ads.map((a) => <AdWatcher key={a.id} ad={a} onRewarded={() => { syncEconomy?.(); load(); }} />)}
+          : ads.map((a) => a.media_type === "vast"
+            ? <VastAdPlayer key={a.id} ad={a} onRewarded={() => { syncEconomy?.(); load(); }} />
+            : <AdWatcher key={a.id} ad={a} onRewarded={() => { syncEconomy?.(); load(); }} />)}
       </div>
     </>
   );
