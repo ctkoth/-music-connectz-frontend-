@@ -4231,6 +4231,7 @@ const BATTLE_SEED_POOLS = {
 // PostZ others can rate out of 10, comment on, and share.
 const BATTLE_ENTRY_MAX_TITLE_LENGTH = 160;
 const BATTLE_ENTRY_TITLE_SUFFIX = " (BattleZ)";
+const BATTLE_ENTRY_MAX_OPPONENT_OPTIONS = 50;
 const inferBattleMediaType = (url = "") => {
   if (/\.(mp4|mov|m4v|avi|webm)(?:$|\?)/i.test(url)) return "video";
   if (/\.(mp3|wav|ogg|m4a|aac|flac)(?:$|\?)/i.test(url)) return "audio";
@@ -4256,7 +4257,8 @@ function BattleEntryRecorder({ mode, onOpen }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
-  const opponentHandle = (post) => post?.author || post?.username || post?.display_name || post?.name || "member";
+  const getOpponentName = (post) => [post?.author, post?.username, post?.display_name, post?.name].find(Boolean) || "member";
+  const pickValidOpponentId = (prevId, opponents) => (prevId && opponents.some((p) => String(p.id) === String(prevId)) ? prevId : "");
   const loadMine = () => {
     setLoadingMine(true);
     getPostzApi("new")
@@ -4266,10 +4268,13 @@ function BattleEntryRecorder({ mode, onOpen }) {
           const picked = pickBattleMedia(post);
           return !!picked.media_url && isBattleMediaType(picked.media_type);
         });
-        const mine = list.filter((post) => post.mine);
-        const opponents = list.filter((post) => !post.mine);
+        const { mine, opponents } = list.reduce((acc, post) => {
+          if (post.mine) acc.mine.push(post);
+          else acc.opponents.push(post);
+          return acc;
+        }, { mine: [], opponents: [] });
         setOpponentList(opponents);
-        setOpponentId((prev) => (prev && opponents.some((p) => String(p.id) === String(prev)) ? prev : ""));
+        setOpponentId((prev) => pickValidOpponentId(prev, opponents));
         setMineList(mine);
         setLoadErr("");
       })
@@ -4282,7 +4287,9 @@ function BattleEntryRecorder({ mode, onOpen }) {
   };
   useEffect(loadMine, []);
   const selectedOpponent = opponentList.find((p) => String(p.id) === String(opponentId));
-  const battleDescription = `🪖 BattleZ ${mode} entry${selectedOpponent ? ` vs @${opponentHandle(selectedOpponent)}` : ""}`;
+  const shownOpponents = opponentList.slice(0, BATTLE_ENTRY_MAX_OPPONENT_OPTIONS);
+  const opponentMention = selectedOpponent ? ` vs @${getOpponentName(selectedOpponent)}` : "";
+  const battleDescription = `🪖 BattleZ ${mode} entry${opponentMention}`;
   const post = async () => {
     if (!media?.url) return;
     setBusy(true); setMsg("");
@@ -4327,12 +4334,17 @@ function BattleEntryRecorder({ mode, onOpen }) {
         ) : (
           <select value={opponentId} onChange={(e) => setOpponentId(e.target.value)} style={{ width: "100%" }}>
             <option value="">Open challenge (anyone can respond)</option>
-            {opponentList.slice(0, 50).map((p) => (
+            {shownOpponents.map((p) => (
               <option key={p.id} value={String(p.id)}>
-                @{opponentHandle(p)} · {p.title}
+                @{getOpponentName(p)} · {p.title}
               </option>
             ))}
           </select>
+        )}
+        {opponentList.length > shownOpponents.length && (
+          <p style={{ fontSize: 11, color: "var(--text-light)", margin: "4px 0 0" }}>
+            Showing the first {shownOpponents.length} battle targets.
+          </p>
         )}
       </div>
       <div className="chip-wrap" style={{ marginBottom: 8 }}>
