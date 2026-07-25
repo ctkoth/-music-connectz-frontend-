@@ -4229,8 +4229,8 @@ const BATTLE_SEED_POOLS = {
 
 // Drop your own battle entry — record/upload, then it posts to the feed as a
 // PostZ others can rate out of 10, comment on, and share.
-const BATTLE_ENTRY_MAX_TITLE = 160;
-const BATTLE_ENTRY_SUFFIX = " (BattleZ)";
+const BATTLE_ENTRY_MAX_TITLE_LENGTH = 160;
+const BATTLE_ENTRY_TITLE_SUFFIX = " (BattleZ)";
 const inferBattleMediaType = (url = "") => {
   if (/\.(mp4|mov|m4v|avi|webm)(?:$|\?)/i.test(url)) return "video";
   if (/\.(mp3|wav|ogg|m4a|aac|flac)(?:$|\?)/i.test(url)) return "audio";
@@ -4277,7 +4277,7 @@ function BattleEntryRecorder({ mode, onOpen }) {
     if (!media?.url) return;
     setBusy(true); setMsg("");
     try {
-      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, BATTLE_ENTRY_MAX_TITLE), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
+      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, BATTLE_ENTRY_MAX_TITLE_LENGTH), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
       setMsg("✅ Entry posted to the feed — others can rate it 1–10, comment & share.");
       setMedia(null); setName("");
       loadMine();
@@ -4290,7 +4290,7 @@ function BattleEntryRecorder({ mode, onOpen }) {
     if (!isBattleMediaType(picked.media_type)) { setMsg("BattleZ supports audio/video entries only."); return; }
     setBusy(true); setMsg("");
     const base = (p.title?.trim() || `BattleZ ${mode} entry`);
-    const title = `${base.slice(0, BATTLE_ENTRY_MAX_TITLE - BATTLE_ENTRY_SUFFIX.length)}${BATTLE_ENTRY_SUFFIX}`;
+    const title = `${base.slice(0, BATTLE_ENTRY_MAX_TITLE_LENGTH - BATTLE_ENTRY_TITLE_SUFFIX.length)}${BATTLE_ENTRY_TITLE_SUFFIX}`;
     try {
       await createPostzApi({
         title,
