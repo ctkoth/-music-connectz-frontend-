@@ -8245,10 +8245,12 @@ function probeDuration(blob, type) {
       const el = mediaType === "video" ? document.createElement("video") : new Audio();
       el.preload = "metadata";
       const url = URL.createObjectURL(blob);
+      const safeUrl = encodeURI(url);
       const done = (d) => { URL.revokeObjectURL(url); resolve(Number.isFinite(d) && d > 0 ? d : 0); };
       el.onloadedmetadata = () => done(el.duration);
       el.onerror = () => done(0);
-      el.src = url;
+      if (!safeUrl.startsWith("blob:")) { done(0); return; }
+      el.src = safeUrl;
       setTimeout(() => done(el.duration), 4000); // safety timeout
     } catch { resolve(0); }
   });

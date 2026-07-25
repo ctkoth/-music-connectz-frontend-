@@ -40,6 +40,7 @@ let refreshInFlight = null;
  * Exchanges the stored refresh token for a new access token.
  * Reuses one in-flight refresh promise so concurrent 401 retries
  * share a single refresh request instead of stampeding the endpoint.
+ * Returns an empty string when refresh fails so callers can force re-login.
  */
 async function refreshAccess() {
   const refresh = tokenStore.getRefresh();
