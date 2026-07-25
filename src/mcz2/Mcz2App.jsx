@@ -4248,36 +4248,46 @@ const pickBattleMedia = (post) => {
 function BattleEntryRecorder({ mode, onOpen }) {
   const [source, setSource] = useState("new"); // new upload | existing post
   const [mineList, setMineList] = useState([]);
+  const [opponentList, setOpponentList] = useState([]);
+  const [opponentId, setOpponentId] = useState("");
   const [loadingMine, setLoadingMine] = useState(false);
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
+  const opponentHandle = (post) => post?.author || post?.username || post?.display_name || post?.name || "member";
   const loadMine = () => {
     setLoadingMine(true);
     getPostzApi("new")
       .then((r) => {
-        const mine = (r.posts || []).filter((post) => {
-          if (!post.mine || !postHasMedia(post)) return false;
+        const list = (r.posts || []).filter((post) => {
+          if (!postHasMedia(post)) return false;
           const picked = pickBattleMedia(post);
           return !!picked.media_url && isBattleMediaType(picked.media_type);
         });
+        const mine = list.filter((post) => post.mine);
+        const opponents = list.filter((post) => !post.mine);
+        setOpponentList(opponents);
+        setOpponentId((prev) => (prev && opponents.some((p) => String(p.id) === String(prev)) ? prev : ""));
         setMineList(mine);
         setLoadErr("");
       })
       .catch(() => {
         setMineList([]);
+        setOpponentList([]);
         setLoadErr("Couldn't load your existing media yet — try again in a moment.");
       })
       .finally(() => setLoadingMine(false));
   };
   useEffect(loadMine, []);
+  const selectedOpponent = opponentList.find((p) => String(p.id) === String(opponentId));
+  const battleDescription = `🪖 BattleZ ${mode} entry${selectedOpponent ? ` vs @${opponentHandle(selectedOpponent)}` : ""}`;
   const post = async () => {
     if (!media?.url) return;
     setBusy(true); setMsg("");
     try {
-      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, BATTLE_ENTRY_MAX_TITLE_LENGTH), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
+      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, BATTLE_ENTRY_MAX_TITLE_LENGTH), description: battleDescription, media_url: media.url, media_type: media.type, visibility: "public" });
       setMsg("✅ Entry posted to the feed — others can rate it 1–10, comment & share.");
       setMedia(null); setName("");
       loadMine();
@@ -4294,7 +4304,7 @@ function BattleEntryRecorder({ mode, onOpen }) {
     try {
       await createPostzApi({
         title,
-        description: `🪖 BattleZ ${mode} entry`,
+        description: battleDescription,
         media_url: picked.media_url,
         media_type: picked.media_type,
         visibility: "public",
@@ -4308,6 +4318,23 @@ function BattleEntryRecorder({ mode, onOpen }) {
     <div className="card">
       <div className="card-header">🎤 Drop your entry</div>
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Use a new upload or reuse media you've already posted.</p>
+      <div className="form-group" style={{ marginBottom: 8 }}>
+        <label>⚔️ Battle against (optional)</label>
+        {loadErr ? (
+          <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 0" }}>{loadErr}</p>
+        ) : loadingMine ? (
+          <p style={{ fontSize: 12, color: "var(--text-light)", margin: "4px 0 0" }}>Loading battle targets…</p>
+        ) : (
+          <select value={opponentId} onChange={(e) => setOpponentId(e.target.value)} style={{ width: "100%" }}>
+            <option value="">Open challenge (anyone can respond)</option>
+            {opponentList.slice(0, 50).map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                @{opponentHandle(p)} · {p.title}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="chip-wrap" style={{ marginBottom: 8 }}>
         {[["new", "🎤 New upload"], ["existing", "📁 Use my existing media"]].map(([id, label]) => (
           <button key={id} className={`heritage-chip${source === id ? " sel" : ""}`} onClick={() => setSource(id)}>{label}</button>
