@@ -4229,35 +4229,38 @@ const BATTLE_SEED_POOLS = {
 
 // Drop your own battle entry — record/upload, then it posts to the feed as a
 // PostZ others can rate out of 10, comment on, and share.
+const BATTLE_ENTRY_MAX_TITLE = 160;
+const BATTLE_ENTRY_SUFFIX = " (BattleZ)";
+const inferBattleMediaType = (url = "") => {
+  if (/\.(mp4|mov|m4v|avi|webm)(?:$|\?)/i.test(url)) return "video";
+  if (/\.(mp3|wav|ogg|m4a|aac|flac)(?:$|\?)/i.test(url)) return "audio";
+  return "";
+};
+const isBattleMediaType = (t) => t === "audio" || t === "video";
+const postHasMedia = (post) => post.media_url || (post.is_album && (post.items || []).length);
+const pickBattleMedia = (post) => {
+  if (!post) return { media_url: "", media_type: "" };
+  if (post.media_url) return { media_url: post.media_url, media_type: post.media_type || inferBattleMediaType(post.media_url) };
+  const it = (post.items || [])[0] || {};
+  return { media_url: it.url || "", media_type: it.type || inferBattleMediaType(it.url || "") };
+};
+
 function BattleEntryRecorder({ mode, onOpen }) {
-  const MAX_TITLE_LENGTH = 160;
-  const BATTLE_SUFFIX = " (BattleZ)";
   const [source, setSource] = useState("new"); // new upload | existing post
   const [mineList, setMineList] = useState([]);
+  const [loadingMine, setLoadingMine] = useState(false);
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [loadErr, setLoadErr] = useState("");
-  const inferMediaType = (url = "") => {
-    if (/\.(mp4|mov|m4v|avi|webm)(?:$|\?)/i.test(url)) return "video";
-    if (/\.(mp3|wav|ogg|m4a|aac|flac)(?:$|\?)/i.test(url)) return "audio";
-    return "";
-  };
-  const isBattleMediaType = (t) => t === "audio" || t === "video";
-  const postHasMedia = (post) => post.media_url || (post.is_album && (post.items || []).length);
-  const pickMedia = (post) => {
-    if (!post) return { media_url: "", media_type: "" };
-    if (post.media_url) return { media_url: post.media_url, media_type: post.media_type || inferMediaType(post.media_url) };
-    const it = (post.items || [])[0] || {};
-    return { media_url: it.url || "", media_type: it.type || inferMediaType(it.url || "") };
-  };
   const loadMine = () => {
+    setLoadingMine(true);
     getPostzApi("new")
       .then((r) => {
         const mine = (r.posts || []).filter((post) => {
           if (!post.mine || !postHasMedia(post)) return false;
-          const picked = pickMedia(post);
+          const picked = pickBattleMedia(post);
           return !!picked.media_url && isBattleMediaType(picked.media_type);
         });
         setMineList(mine);
@@ -4266,14 +4269,15 @@ function BattleEntryRecorder({ mode, onOpen }) {
       .catch(() => {
         setMineList([]);
         setLoadErr("Couldn't load your existing media yet — try again in a moment.");
-      });
+      })
+      .finally(() => setLoadingMine(false));
   };
   useEffect(loadMine, []);
   const post = async () => {
     if (!media?.url) return;
     setBusy(true); setMsg("");
     try {
-      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, MAX_TITLE_LENGTH), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
+      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, BATTLE_ENTRY_MAX_TITLE), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
       setMsg("✅ Entry posted to the feed — others can rate it 1–10, comment & share.");
       setMedia(null); setName("");
       loadMine();
@@ -4281,12 +4285,12 @@ function BattleEntryRecorder({ mode, onOpen }) {
     setBusy(false);
   };
   const postExisting = async (p) => {
-    const picked = pickMedia(p);
+    const picked = pickBattleMedia(p);
     if (!picked.media_url) { setMsg("This post has no usable media to share yet."); return; }
     if (!isBattleMediaType(picked.media_type)) { setMsg("BattleZ supports audio/video entries only."); return; }
     setBusy(true); setMsg("");
     const base = (p.title?.trim() || `BattleZ ${mode} entry`);
-    const title = `${base.slice(0, MAX_TITLE_LENGTH - BATTLE_SUFFIX.length)}${BATTLE_SUFFIX}`;
+    const title = `${base.slice(0, BATTLE_ENTRY_MAX_TITLE - BATTLE_ENTRY_SUFFIX.length)}${BATTLE_ENTRY_SUFFIX}`;
     try {
       await createPostzApi({
         title,
@@ -4303,7 +4307,7 @@ function BattleEntryRecorder({ mode, onOpen }) {
   return (
     <div className="card">
       <div className="card-header">🎤 Drop your entry</div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Use a new upload or share media you already made in another app.</p>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Use a new upload or reuse media you've already posted.</p>
       <div className="chip-wrap" style={{ marginBottom: 8 }}>
         {[["new", "🎤 New upload"], ["existing", "📁 Use my existing media"]].map(([id, label]) => (
           <button key={id} className={`heritage-chip${source === id ? " sel" : ""}`} onClick={() => setSource(id)}>{label}</button>
@@ -4317,12 +4321,15 @@ function BattleEntryRecorder({ mode, onOpen }) {
         </>
       ) : (
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label>📁 Share media created/edited in another app</label>
-          {loadErr && <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 6px" }}>{loadErr}</p>}
-          {mineList.length === 0 ? (
-            <p style={{ fontSize: 12, color: "var(--text-light)" }}>You have no media posts yet — upload or save one from another app first.</p>
+          <label>📁 Pick one of your audio/video posts</label>
+          {loadErr ? (
+            <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 6px" }}>{loadErr} <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={loadMine}>Retry</button></p>
+          ) : loadingMine ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>Loading your media…</p>
+          ) : mineList.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>You have no audio/video posts yet — upload one first.</p>
           ) : mineList.map((p) => {
-            const picked = pickMedia(p);
+            const picked = pickBattleMedia(p);
             return (
               <div key={p.id} className="skill-item">
                 <span className="skill-item-name">{picked.media_type === "video" ? "📹" : "🎧"} {p.title}</span>
