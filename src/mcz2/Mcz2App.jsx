@@ -9145,6 +9145,8 @@ function VastAdPlayer({ ad, onRewarded }) {
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState("");
   const adsManagerRef = useRef(null);
+  const adsLoaderRef = useRef(null);
+  const watchedSecondsRef = useRef(0);
 
   // Lazy-load the IMA SDK once
   useEffect(() => {
@@ -9157,7 +9159,12 @@ function VastAdPlayer({ ad, onRewarded }) {
     s.onload = () => setSdkReady(true);
     s.onerror = () => setMsg("⚠️ Ad SDK unavailable — try again later.");
     document.head.appendChild(s);
-    return () => { adsManagerRef.current?.destroy(); };
+  }, []);
+
+  // Destroy adsManager and adsLoader on unmount
+  useEffect(() => () => {
+    adsManagerRef.current?.destroy();
+    adsLoaderRef.current?.destroy?.();
   }, []);
 
   const startAd = () => {
@@ -9165,19 +9172,26 @@ function VastAdPlayer({ ad, onRewarded }) {
     const container = containerRef.current;
     const video = videoRef.current;
     const ima = window.google.ima;
+    watchedSecondsRef.current = 0;
 
     const adDisplayContainer = new ima.AdDisplayContainer(container, video);
     adDisplayContainer.initialize();
 
     const adsLoader = new ima.AdsLoader(adDisplayContainer);
+    adsLoaderRef.current = adsLoader;
 
     adsLoader.addEventListener(ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, (e) => {
       const mgr = e.getAdsManager(video);
       adsManagerRef.current = mgr;
 
+      mgr.addEventListener(ima.AdEvent.Type.AD_PROGRESS, (ev) => {
+        const p = ev.getAdData();
+        if (p && p.currentTime != null) watchedSecondsRef.current = Math.max(watchedSecondsRef.current, p.currentTime);
+      });
       mgr.addEventListener(ima.AdEvent.Type.COMPLETE, async () => {
         try {
-          const r = await rewardAdApi(ad.id, (ad.min_watch_seconds || 15) + 1);
+          const watched = Math.round(watchedSecondsRef.current) || (ad.min_watch_seconds || 15) + 1;
+          const r = await rewardAdApi(ad.id, watched);
           if (r.rewarded) { setMsg(`✅ +${r.reward_spinaz} 🍥 — thanks for watching!`); setDone(true); onRewarded?.(r); }
           else setMsg(
             r.reason === "ad_daily_cap" ? "You've earned the daily max on this ad — come back tomorrow."
@@ -9281,6 +9295,9 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
   const post = async () => {
     const isVast = !!form.vast_url.trim();
     if (!form.title.trim() || (!isVast && !form.media?.url)) { setMsg("Add a title and either a VAST tag URL or upload the commercial."); return; }
+    if (isVast) {
+      try { new URL(form.vast_url.trim()); } catch { setMsg("VAST tag URL doesn't look valid — paste the full https:// URL from your ad network."); return; }
+    }
     setBusy(true); setMsg("");
     try {
       await createCommercialApi({ title: form.title.trim(), sponsor: form.sponsor.trim(), link_url: form.link_url.trim(), media_url: isVast ? form.vast_url.trim() : form.media.url, media_type: isVast ? "vast" : form.media.type, payout_cents: Number(form.payout_cents) || 1, min_watch_seconds: Number(form.min_watch_seconds) || 15, daily_cap_per_user: Number(form.daily_cap_per_user) || 3 });
@@ -9321,7 +9338,7 @@ function AdZPage({ serverOk, isOwner, syncEconomy }) {
             <label>📡 VAST Ad Tag URL <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-light)" }}>(programmatic — earns real CPM)</span></label>
             <input value={form.vast_url} onChange={(e) => setF("vast_url", e.target.value)} placeholder="https://pubads.g.doubleclick.net/gampad/ads?…" />
             <p style={{ fontSize: 10, color: "var(--text-light)", marginTop: 3 }}>
-              Paste a VAST tag URL from a paying network. Google Ad Manager (free) → <em>Ad Manager → New Ad Unit → Generate tags → VAST</em>. Other supported networks: SpotX/Magnite, PubMatic, OpenX, Xandr. Leave blank to upload a video file instead.
+              Paste a VAST tag URL from a paying network. Google Ad Manager (free) → <em>New Ad Unit → Generate tags → VAST</em>. Other supported networks: SpotX/Magnite, PubMatic, OpenX, Xandr. Leave blank to upload a video file instead.
             </p>
           </div>
           {!form.vast_url.trim() && <div className="form-group"><label>🎬 Upload the commercial</label><MediaCapture onUploaded={(m) => setF("media", m)} accept="video/*" /></div>}
