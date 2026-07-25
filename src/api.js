@@ -36,6 +36,11 @@ function buildUrl(path) {
 // access token, or "" if refresh isn't possible (forces a re-login). A single
 // in-flight refresh is shared so a burst of 401s doesn't stampede the endpoint.
 let refreshInFlight = null;
+/**
+ * Exchanges the stored refresh token for a new access token.
+ * Reuses one in-flight refresh promise so concurrent 401 retries
+ * share a single refresh request instead of stampeding the endpoint.
+ */
 async function refreshAccess() {
   const refresh = tokenStore.getRefresh();
   if (!refresh) return "";
