@@ -1,0 +1,25 @@
+{
+  "name": "music-connectz-desktop",
+  "version": "1.0.0",
+  "description": "Music ConnectZ desktop wrapper",
+  "main": "main.cjs",
+  "scripts": {
+    "dist": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "net.musicconnectz.desktop",
+    "productName": "Music ConnectZ",
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "MusicConnectZ-Setup.${ext}"
+    }
+  }
+}

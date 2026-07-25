@@ -1,0 +1,197 @@
+// Intelligence ConnectZ — AI creation suite data. Categories filled in with
+// sensible, real-world options. Everything created here attributes Corey Knap
+// to the applicable role, watermarks output, and (for reusable media) charges
+// a 10% K-Oth royalty when used on DistributeZ / CollabZ / BattleZ.
+
+// Image ConnectZ — user's types plus the ones creators actually use.
+export const IMAGE_TYPES = [
+  { name: "Song Cover", ratio: "1:1" },
+  { name: "Album Cover", ratio: "1:1" },
+  { name: "Playlist Cover", ratio: "1:1" },
+  { name: "Profile Picture", ratio: "1:1" },
+  { name: "Promotional Picture", ratio: "4:5" },
+  { name: "Banner", ratio: "3:1" },
+  { name: "Desktop Background", ratio: "16:9" },
+  { name: "Phone Background", ratio: "9:19.5" },
+  { name: "Video Thumbnail", ratio: "16:9" },
+  { name: "Story / Reel", ratio: "9:16" },
+  { name: "Lyric Card", ratio: "1:1" },
+  { name: "Logo", ratio: "1:1" },
+  { name: "Merch Print", ratio: "4:5" },
+];
+
+// Shared MOOD taxonomy — used by ShotZ (image), DirectZ (video), Instrumental
+// key-by-mood, and search/collab filters. Grouped so pickers can section them.
+export const MOOD_GROUPS = [
+  {
+    group: "Positive / Uplifting", emoji: "😌",
+    moods: [
+      { name: "Joyful", note: "light, bright, energized happiness" },
+      { name: "Calm", note: "peaceful, steady, grounded" },
+      { name: "Optimistic", note: "hopeful, future-focused" },
+      { name: "Grateful", note: "appreciative, warm, connected" },
+      { name: "Inspired", note: "creative spark, motivation" },
+      { name: "Confident", note: "self-assured, ready, locked-in" },
+    ],
+  },
+  {
+    group: "Negative / Heavy", emoji: "😔",
+    moods: [
+      { name: "Sad", note: "low energy, emotional heaviness" },
+      { name: "Anxious", note: "worried, tense, restless" },
+      { name: "Frustrated", note: "blocked, irritated, stuck" },
+      { name: "Lonely", note: "disconnected, isolated" },
+      { name: "Angry", note: "heated, reactive, intense" },
+      { name: "Overwhelmed", note: "too much input, too little bandwidth" },
+    ],
+  },
+  {
+    group: "Neutral / Transitional", emoji: "😶",
+    moods: [
+      { name: "Indifferent", note: "detached, unbothered" },
+      { name: "Reflective", note: "thoughtful, introspective" },
+      { name: "Curious", note: "open, exploring, questioning" },
+      { name: "Tired", note: "low energy, drained" },
+      { name: "Bored", note: "unstimulated, waiting for something to hit" },
+    ],
+  },
+  {
+    group: "Creative / Artistic", emoji: "🔥",
+    moods: [
+      { name: "Melancholic", note: "sad but beautiful, nostalgic" },
+      { name: "Moody", note: "shifting emotions, atmospheric" },
+      { name: "Dreamy", note: "floaty, surreal, imaginative" },
+      { name: "Aggressive", note: "sharp, intense, confrontational" },
+      { name: "Dark", note: "shadowy, brooding, heavy" },
+      { name: "Hyped", note: "energized, ready to move" },
+    ],
+  },
+  {
+    group: "Social / Interpersonal", emoji: "🎭",
+    moods: [
+      { name: "Playful", note: "joking, lighthearted" },
+      { name: "Affectionate", note: "warm, caring" },
+      { name: "Awkward", note: "unsure, socially tense" },
+      { name: "Supportive", note: "encouraging, present" },
+      { name: "Detached", note: "emotionally distant" },
+    ],
+  },
+];
+// Flat list of mood names for quick chip filters.
+export const MOODS = MOOD_GROUPS.flatMap((g) => g.moods.map((m) => m.name));
+
+// Video ConnectZ — user's three plus common creator formats.
+export const VIDEO_TYPES = [
+  { name: "Music Video", ratio: "16:9" },
+  { name: "Bio Video", ratio: "16:9" },
+  { name: "Promotional Video", ratio: "1:1" },
+  { name: "Lyric Video", ratio: "16:9" },
+  { name: "Visualizer", ratio: "1:1" },
+  { name: "Teaser / Trailer", ratio: "9:16" },
+  { name: "Shorts / Reel", ratio: "9:16" },
+  { name: "Behind-the-Scenes", ratio: "16:9" },
+];
+
+// DirectZ — video works by length. Each is its own app/feed. Videos carry a
+// video type + mood, and are collab-able, shareable, cross-pollinated, and
+// rateable/likeable/commentable like everything else on the platform.
+export const DIRECTZ_FORMATS = [
+  { id: "reelz", name: "ReelZ", emoji: "🎞️", icon: "reelz.png", minSec: 30, maxSec: 30 * 60, label: "30 sec – 30 min", note: "Shorts, visualizers, teasers." },
+  { id: "episodez", name: "EpisodeZ", emoji: "📺", icon: "episodez.png", minSec: 30 * 60, maxSec: 60 * 60, label: "30 – 60 min", note: "Episodic series, docs, sessions." },
+  { id: "moviez", name: "MovieZ", emoji: "🎬", icon: "moviez.png", minSec: 60 * 60, maxSec: 3 * 3600, label: "1 – 3 hours", note: "Features, concert films, long-form." },
+];
+
+// Genres per DirectZ format, TV-guide style: ReelZ = short-form, EpisodeZ = TV
+// genres, MovieZ = film genres. Used in DirectZ Create + Director/Videographer
+// persona skills so a video's genre matches its length format.
+export const MOVIE_GENRES = [
+  { name: "Action", emoji: "💥" }, { name: "Adventure", emoji: "🗺️" }, { name: "Comedy", emoji: "😂" },
+  { name: "Drama", emoji: "🎭" }, { name: "Horror", emoji: "👻" }, { name: "Thriller", emoji: "🔪" },
+  { name: "Sci-Fi", emoji: "🚀" }, { name: "Fantasy", emoji: "🐉" }, { name: "Romance", emoji: "💘" },
+  { name: "Mystery", emoji: "🕵️" }, { name: "Crime", emoji: "🚔" }, { name: "Documentary", emoji: "🎞️" },
+  { name: "Animation", emoji: "✏️" }, { name: "Musical", emoji: "🎵" }, { name: "Western", emoji: "🤠" },
+  { name: "War", emoji: "⚔️" }, { name: "Family", emoji: "👨‍👩‍👧" }, { name: "Biopic", emoji: "👤" },
+  { name: "Sports", emoji: "🏆" }, { name: "Concert Film", emoji: "🎤" },
+];
+export const TV_GENRES = [
+  { name: "Sitcom", emoji: "😂" }, { name: "Drama Series", emoji: "🎭" }, { name: "Reality TV", emoji: "📹" },
+  { name: "Docuseries", emoji: "🎞️" }, { name: "News", emoji: "📰" }, { name: "Talk Show", emoji: "🎙️" },
+  { name: "Game Show", emoji: "🎯" }, { name: "Soap Opera", emoji: "💔" }, { name: "Miniseries", emoji: "📺" },
+  { name: "Anime", emoji: "🎌" }, { name: "Cartoon", emoji: "🧑‍🎨" }, { name: "Variety Show", emoji: "🎪" },
+  { name: "Sports Broadcast", emoji: "🏟️" }, { name: "True Crime", emoji: "🔍" }, { name: "Cooking Show", emoji: "🍳" },
+  { name: "Educational", emoji: "🎓" }, { name: "Kids / Family", emoji: "🧸" }, { name: "Late Night", emoji: "🌙" },
+];
+export const SHORT_GENRES = [
+  { name: "Visualizer", emoji: "🌀" }, { name: "Teaser", emoji: "🎬" }, { name: "Vlog", emoji: "📹" },
+  { name: "Skit", emoji: "🎭" }, { name: "Tutorial", emoji: "🛠️" }, { name: "Behind-the-Scenes", emoji: "🎥" },
+  { name: "Lyric", emoji: "📝" }, { name: "Challenge", emoji: "🏁" }, { name: "Reaction", emoji: "😲" },
+  { name: "Dance", emoji: "💃" }, { name: "Comedy", emoji: "😂" }, { name: "Highlight", emoji: "✨" },
+];
+export const DIRECTZ_GENRES = { reelz: SHORT_GENRES, episodez: TV_GENRES, moviez: MOVIE_GENRES };
+export function directzFormatForSec(sec) {
+  return DIRECTZ_FORMATS.find((f) => sec >= f.minSec && sec <= f.maxSec) || null;
+}
+
+// Mix ConnectZ — AI mix/master.
+export const MIX_MODES = ["Mix", "Master", "Mix + Master"];
+export const MIX_TARGETS = [
+  { name: "Streaming", lufs: "-14 LUFS" },
+  { name: "Club / DJ", lufs: "-8 LUFS" },
+  { name: "Broadcast", lufs: "-16 LUFS" },
+  { name: "CD / Loud", lufs: "-9 LUFS" },
+];
+export const MIX_EXTRAS = ["Vocal tuning", "De-ess", "Stereo widen", "Stem separation", "Noise reduction", "Analog warmth"];
+
+// Instrumental ConnectZ — MIDI generation.
+export const INSTR_GENRES = ["Trap", "Boom Bap", "Drill", "R&B", "Pop", "House", "Afrobeats", "Lo-Fi", "Rock", "Jazz", "Cinematic", "Reggaeton"];
+export const INSTR_INSTRUMENTS = ["808 / Bass", "Drums", "Piano / Keys", "Guitar", "Synth Lead", "Strings", "Brass", "Pads", "Bells", "Flute", "Choir", "Pluck"];
+// Keys with a Corey-voice read on their mood. StatZ can search key by mood.
+export const KEYS = [
+  { key: "C major", mood: "Bright and open — nothing to hide." },
+  { key: "A minor", mood: "The natural ache — melancholy that feels like home." },
+  { key: "G major", mood: "Friendly, campfire-honest, easy to love." },
+  { key: "E minor", mood: "Restless longing — the guitar's favorite heartbreak." },
+  { key: "D major", mood: "Triumphant, top-down energy, chest out." },
+  { key: "D minor", mood: "The saddest key — pure, dignified tears." },
+  { key: "F major", mood: "Warm and pastoral — a soft place to land." },
+  { key: "F minor", mood: "Obsessive and aching — can't let it go." },
+  { key: "Bb minor", mood: "Midnight trap — cold, luxurious, dangerous." },
+  { key: "A major", mood: "Confident and sunlit — the anthem key." },
+  { key: "B minor", mood: "Solitary, introspective, staring out the window." },
+  { key: "Eb major", mood: "Bold and heroic — brass-band proud." },
+];
+
+// Ocular Code ConnectZ — AI game generation, tier-gated languages + complexity.
+export const OCC_TIERS = {
+  free: { label: "Free", complexity: "Basic", desc: "Simple browser games — one mechanic, no build pipeline.", languages: ["JavaScript / HTML5", "Python"] },
+  premium: { label: "Premium", complexity: "Medium", desc: "Full 2D/3D games in any engine except Unreal.", languages: ["JavaScript / HTML5", "Python", "C#", "GDScript (Godot)", "Lua", "TypeScript", "Java"] },
+  statz: { label: "StatZ", complexity: "Advanced", desc: "Any language including C++/Unreal, plus systems languages.", languages: ["C++ (Unreal)", "Rust", "C#", "GDScript (Godot)", "Lua", "TypeScript", "Java", "Python", "JavaScript / HTML5"] },
+};
+export function occTierFor(tier) {
+  const t = (tier || "").toLowerCase();
+  if (t.includes("statz") || t.includes("stats")) return OCC_TIERS.statz;
+  if (t.includes("premium") || t.includes("pro")) return OCC_TIERS.premium;
+  return OCC_TIERS.free;
+}
+
+// Sentence ConnectZ — document types. `gated` docs (contracts, royalty
+// agreements) are only offered to Manager / A&R Scout personas.
+export const DOC_TYPES = [
+  { name: "Lyrics", gated: false },
+  { name: "Essay", gated: false },
+  { name: "Instagram Caption", gated: false },
+  { name: "Social Media Post", gated: false },
+  { name: "Artist Contract", gated: true },
+  { name: "Royalties Agreement", gated: true },
+];
+
+// Intelligence sub-apps for the hub tabs.
+export const INTEL_APPS = [
+  { id: "facez", name: "FaceZ", emoji: "🙂", icon: "facez.png", role: "Face Bank" },
+  { id: "image", name: "Image ConnectZ", emoji: "🖼️", icon: "imageconnectz.png", role: "Designer" },
+  { id: "instrumental", name: "Instrumental ConnectZ", emoji: "🎹", icon: "instrumentalconnectz.png", role: "Beat Producer" },
+  { id: "mix", name: "Mix ConnectZ", emoji: "🎚️", icon: "mixez.png", role: "Mix Engineer" },
+  { id: "video", name: "Video ConnectZ", emoji: "📺", icon: "videoz.png", role: "Videographer" },
+  { id: "sentence", name: "Sentence ConnectZ", emoji: "📃", icon: "sentencez.png", role: "Ghostwriter" },
+  { id: "occ", name: "Ocular Code ConnectZ", emoji: "👁️‍🗨️", icon: "occ.png", role: "Developer" },
+];

@@ -1,0 +1,44 @@
+name: Build Windows EXE
+
+# Builds the Music ConnectZ desktop installer (Electron) on a Windows runner and
+# publishes it to the "exe-latest" GitHub Release, so the OnboardZ "Download for
+# Windows" button always points at a fresh installer. The desktop shell loads the
+# live site, so it doesn't depend on the web build here.
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/windows-exe.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install desktop deps
+        working-directory: desktop
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: desktop
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Collect installer
+        shell: bash
+        run: cp desktop/dist/MusicConnectZ-Setup.exe "$GITHUB_WORKSPACE/MusicConnectZ-Setup.exe"
+
+      - name: Publish to the exe-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: exe-latest
+          name: Music ConnectZ — Windows installer
+          body: "Auto-built Windows installer (.exe). SmartScreen: More info → Run anyway (unsigned). Built from ${{ github.sha }}."
+          files: MusicConnectZ-Setup.exe

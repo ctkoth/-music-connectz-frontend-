@@ -1,0 +1,60 @@
+name: Build Android APK
+
+# Builds a debug APK from the Vite app via Capacitor and publishes it to the
+# "apk-latest" GitHub Release, so the OnboardZ "Download the app" button always
+# points at a fresh build. Runs on pushes to main (that touch the app) and on
+# demand. Debug APK is unsigned/sideloadable — good for direct download; a
+# Play Store build would add signing + `assembleRelease`.
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "public/**", "index.html", "capacitor.config.json", "package.json", "resources/**", ".github/workflows/android-apk.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+
+      - name: Add Android platform
+        run: npx --yes cap add android
+
+      - name: Generate app icon + splash from the logo
+        run: npx --yes @capacitor/assets generate --android --iconBackgroundColor "#07060d" --splashBackgroundColor "#07060d" || echo "asset gen skipped"
+
+      - name: Sync web assets into Android
+        run: npx --yes cap sync android
+
+      - name: Assemble debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/MusicConnectZ.apk"
+
+      - name: Publish to the apk-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Music ConnectZ — latest APK
+          body: "Auto-built debug APK. Sideload on Android (allow installs from this source). Built from ${{ github.sha }}."
+          files: MusicConnectZ.apk
