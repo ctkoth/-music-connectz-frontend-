@@ -882,7 +882,15 @@ function SetupPage() {
     if (busy) return;
     setBusy(true); setSaveMsg("");
     try {
-      if (isSignedIn()) await chargeAiApi("corey-gpt", "Profile edit");
+      // Charging a prompt is best-effort: only a real insufficient-funds (402)
+      // should block the save. A missing/unreachable economy backend must never
+      // stop the profile from saving locally.
+      if (isSignedIn()) {
+        try { await chargeAiApi("corey-gpt", "Profile edit"); }
+        catch (e) {
+          if (/40[26]|balance|afford|enough/i.test(e?.message || "")) throw e;
+        }
+      }
       updateUser(form);
       if (isSignedIn()) saveProfileApi(buildProfilePayload({ ...state, user: { ...state.user, ...form } })).catch(() => {});
       setSaved(true); setTimeout(() => setSaved(false), 2500);
@@ -1811,8 +1819,25 @@ function Verify18({ serverOk }) {
   );
 }
 
+// Resize an image file to a square-ish data URL small enough for localStorage.
+function fileToAvatarDataUrl(file, max = 256) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
-  const { state } = useAppState();
+  const { state, updateUser } = useAppState();
   const u = state.user;
   const skills = state.personas.flatMap((p) => p.skills || []);
   const zsign = zodiacFor(u.birthday);
@@ -1827,16 +1852,24 @@ function ProfilePage({ onOpen, tier, serverOk, syncEconomy }) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
     setUploading(true);
-    try { const r = await uploadAvatarApi(file); setMe((s) => ({ ...(s || {}), avatar: r.avatar })); } catch { /* offline */ }
+    // Save locally first so the pic changes and persists even without a backend.
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      updateUser({ profilePic: dataUrl });
+      setMe((s) => ({ ...(s || {}), avatar: dataUrl }));
+    } catch { /* not an image */ }
+    // Best-effort server upload (no-op if the economy backend isn't there).
+    try { const r = await uploadAvatarApi(file); if (r?.avatar) setMe((s) => ({ ...(s || {}), avatar: r.avatar })); } catch { /* offline */ }
     setUploading(false);
   };
+  const avatarSrc = me?.avatar || u.profilePic || "";
   return (
     <div className="card">
       <div className="card-header">👤 Your Public Profile</div>
       <div style={{ textAlign: "center", padding: 14 }}>
         <label style={{ cursor: "pointer", display: "inline-block" }} title="Change profile picture">
-          {me?.avatar
-            ? <img src={me.avatar} alt="You" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", margin: "0 auto 6px", display: "block", border: "2px solid var(--primary)" }} />
+          {avatarSrc
+            ? <img src={avatarSrc} alt="You" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", margin: "0 auto 6px", display: "block", border: "2px solid var(--primary)" }} />
             : <div className="profile-pic" style={{ width: 72, height: 72, margin: "0 auto 6px", fontSize: 28 }}>{(u.name || "?").charAt(0).toUpperCase()}</div>}
           <input type="file" accept="image/*" onChange={onAvatar} style={{ display: "none" }} />
         </label>
