@@ -19,7 +19,7 @@ import { AI_MODELS, CALLABLE_USERS, AI_UNIT_SECONDS, USER_UNIT_SECONDS, callCost
 import { DAWS } from "./dawz.js";
 import { LANGUAGES, langByCode, langLabel, langName, suggestLanguages } from "./languages.js";
 import { AutoTranslate, translateOne } from "./i18n.jsx";
-import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, tierMeets, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL } from "./economy.js";
+import { devTaxFor, splitTransaction, splitCashout, collabSettlement, money, mbLabel, TIER_PRICING, TIER_EMOJI, tierKey, tierLabel, tierMeets, FLOW_GREEN, FLOW_RED, SPINAZ_PER_DOLLAR, SPINAZ_EARNINGS, energyRatePerHour, editWindowFor, EDIT_WINDOW_LABEL, promptAllowanceFor } from "./economy.js";
 
 // Tier + Founding Member badges, reusable across profiles and member cards.
 // Tapping the tier chip (when onOpen given) jumps to MembershipZ upgrade prices.
@@ -1955,8 +1955,8 @@ function PromptzBuy({ serverOk, syncEconomy }) {
   };
   return (
     <div className="card">
-      <div className="card-header"><span>🏷️ PromptZ — prepaid AI credits</span><span className="tag" style={{ color: "var(--success)" }}>{state.promptz || 0} 🏷️</span></div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>1 PromptZ = 1¢ of AI — spent on translate, OCC, profile edits &amp; AI-rate <strong>before</strong> your cash. Buy at 80% of face (a 25% bonus), so you pay less per prompt the more you prepay.</p>
+      <div className="card-header"><span>🏷️ PromptZ — prepaid AI credits</span><span className="tag" style={{ color: "var(--success)" }}>{(state.dailyPromptz || 0) + (state.promptz || 0)} 🏷️</span></div>
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 8 }}>Your tier includes <strong>{state.dailyPromptz || 0}</strong> free prompt{(state.dailyPromptz || 0) === 1 ? "" : "s"} today (free 1 · premium 5 · statZ 20) — these reset daily and don't stack. 1 PromptZ = 1¢ of AI — spent on translate, OCC, profile edits &amp; AI-rate <strong>before</strong> your cash. Buy at 80% of face (a 25% bonus), so you pay less per prompt the more you prepay.</p>
       <div className="chip-wrap">
         {packs.map((amt) => (
           <button key={amt} className="btn btn-small btn-success" disabled={!serverOk || busy === amt} onClick={() => buy(amt)}>{busy === amt ? "…" : `+${amt.toLocaleString()} 🏷️ · ${money(amt * 0.8 / 100)}`}</button>
@@ -5833,8 +5833,14 @@ function LilithPage({ onOpen, tier, serverOk, syncEconomy }) {
       setMsg(m);
     } else if (t.promptHabit) {
       const reward = medianSkillRate(state); // recomputed — grows as you price more skills
-      // Using a prompt costs 1 PromptZ 🏷️ (1¢ of AI) — spend it, then reward Energy.
-      update({ energy: (state.energy || 0) + reward, promptz: Math.max(0, (state.promptz || 0) - 1) });
+      // Using a prompt costs 1 PromptZ 🏷️ (1¢ of AI) — spend the day's free
+      // allowance first, then prepaid credits — then reward Energy.
+      const useDaily = (state.dailyPromptz || 0) > 0;
+      update({
+        energy: (state.energy || 0) + reward,
+        dailyPromptz: useDaily ? (state.dailyPromptz || 0) - 1 : (state.dailyPromptz || 0),
+        promptz: useDaily ? (state.promptz || 0) : Math.max(0, (state.promptz || 0) - 1),
+      });
       if (isSignedIn()) chargeAiApi("corey-gpt", "Use-a-prompt habit").then(() => syncEconomy?.()).catch(() => {});
       setMsg(`🏷️ Prompt used — −1🏷️, +${reward}⚡ (your skill median).`);
     } else {
@@ -9362,7 +9368,7 @@ function AnalyticZPage({ tier, onOpen }) {
     { label: "Energy", v: `⚡ ${state.energy || 0}` },
     { label: "SpinAZ", v: `🍥 ${state.spinaz || 0}` },
     { label: "Lifetime earned", v: money(earned) },
-    { label: "PromptZ", v: `🏷️ ${state.promptz || 0}` },
+    { label: "PromptZ", v: `🏷️ ${(state.dailyPromptz || 0) + (state.promptz || 0)}` },
     { label: "Active habits", v: habits, sub: `${done} logged` },
   ];
   const log = (prog.xpLog || []).slice(0, 12);
@@ -9484,7 +9490,7 @@ function HomezPage({ tier, onOpen }) {
   const stats = [
     { label: "Energy", v: `⚡ ${state.energy || 0}` },
     { label: "SpinAZ", v: `🍥 ${state.spinaz || 0}` },
-    { label: "PromptZ", v: `🏷️ ${state.promptz || 0}` },
+    { label: "PromptZ", v: `🏷️ ${(state.dailyPromptz || 0) + (state.promptz || 0)}` },
     { label: "PostZ", v: (state.examples || []).length },
   ];
   const quick = [["personas", "🎭 PersonaZ"], ["examples", "🖼️ PostZ"], ["collabz", "🤝 CollabZ"], ["intelligence", "🧠 Intelligence"], ["analytics", "📈 AnalyticZ"], ["lilith", "💃🏽 Lilith"]];
@@ -10436,6 +10442,18 @@ function Shell() {
     return () => { on = false; };
   }, []);
 
+  // Daily free-prompt reset. Each tier gets a fresh allowance every day (free 1 /
+  // premium 5 / statz 20) that does NOT stack — the balance is SET to the day's
+  // allowance, never added. Re-grants when the day rolls over OR the tier changes,
+  // which also self-corrects the dev-default "statz" once the real tier loads.
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const allow = promptAllowanceFor(tier);
+    if (state.promptDay !== today || state.promptGrant !== allow) {
+      update({ dailyPromptz: allow, promptDay: today, promptGrant: allow });
+    }
+  }, [tier, state.promptDay, state.promptGrant]);
+
   // Auto-publish the public profile to the backend (debounced) so other members
   // can view and search you. Fires when profile/personas change while signed in.
   useEffect(() => {
@@ -10520,7 +10538,7 @@ function Shell() {
               <div className="balance" onClick={() => openApp("money")} title="Money">💲{balance}</div>
               <div className="balance" onClick={() => openApp("energy")} title="Energy">⚡{state.energy || 0}</div>
               <div className="balance" onClick={() => openApp("spinaz")} title="SpinAZ">🍥{state.spinaz || 0}</div>
-              <div className="balance" onClick={() => openApp("money")} title="PromptZ 🏷️ — prepaid AI credits (1 = 1¢ of AI: translate, OCC, profile edits, AI-rate). Tap to buy more.">🏷️ {(state.promptz || 0) + Math.floor(Number(wallet.balance || 0) * 100)}</div>
+              <div className="balance" onClick={() => openApp("money")} title="PromptZ 🏷️ — free daily allowance + prepaid AI credits (1 = 1¢ of AI: translate, OCC, profile edits, AI-rate). Tap to buy more.">🏷️ {(state.dailyPromptz || 0) + (state.promptz || 0) + Math.floor(Number(wallet.balance || 0) * 100)}</div>
             </div>
             <div className="profile-pic" onClick={() => openApp("profile")}>
               {(user?.username || "?").charAt(0).toUpperCase()}
