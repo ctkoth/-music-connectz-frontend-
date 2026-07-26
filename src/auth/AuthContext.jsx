@@ -35,11 +35,13 @@ export function AuthProvider({ children }) {
     return res.user;
   }
 
-  async function register({ username, email, phone, password }) {
+  async function register({ username, email, phone, password, birthday, ref }) {
     const res = await api("/api/auth/register/", {
       method: "POST",
       auth: false,
-      body: { username, email, phone, password },
+      // birthday is optional but was previously dropped here, so ZodiacZ never
+      // got set at signup. `ref` credits the inviter 300 SpinaZ on a legit join.
+      body: { username, email, phone, password, birthday: birthday || null, ref: ref || "" },
     });
     return persist(res);
   }

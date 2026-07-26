@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { AtSign, Loader2, Phone, User } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { AtSign, Gift, Loader2, Phone, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
@@ -8,6 +8,8 @@ import OAuthButtons from "./OAuthButtons.jsx";
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const ref = (params.get("ref") || "").trim();
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", password2: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -20,7 +22,7 @@ export default function Register() {
     if (form.password !== form.password2) return setError("Passwords don't match.");
     setBusy(true);
     try {
-      await register({ ...form, birthday: form.birthday || null });
+      await register({ ...form, birthday: form.birthday || null, ref });
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -31,6 +33,11 @@ export default function Register() {
 
   return (
     <AuthShell title="Create your account" subtitle="Join Music ConnectZ — train, create, climb the SkillZ board.">
+      {ref && (
+        <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
+          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-3">
         <Field icon={User} placeholder="Username" value={form.username} onChange={set("username")} autoComplete="username" />
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
@@ -76,7 +83,7 @@ export function AuthShell({ title, subtitle, children }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
-        <img src="/mcz-logo-v4.png" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
+        <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}

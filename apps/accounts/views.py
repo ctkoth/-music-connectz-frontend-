@@ -6,7 +6,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import OAuthIdentity, Profile, daily_refill, touch_presence
+from .models import (OAuthIdentity, Profile, daily_refill, record_referral,
+                     touch_presence)
 from .oauth import CODE_EXCHANGERS, OAuthError, verify_apple, verify_google
 from .serializers import (
     LoginSerializer,
@@ -67,6 +68,8 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        # Credit the referrer (if any) for this legit join.
+        record_referral((request.data or {}).get("ref"), user)
         tokens = issue_tokens(user)
         return Response(
             {"user": PublicUserSerializer(user).data, **tokens},
@@ -95,11 +98,14 @@ class MeView(APIView):
     @staticmethod
     def _payload(user):
         data = PublicUserSerializer(user).data
-        prof = getattr(user, "profile", None)
+        # Re-fetch the profile so a PATCH in the same request reflects the saved
+        # row (the reverse `user.profile` may be cached with pre-save values).
+        prof = Profile.objects.filter(user=user).first()
         if prof:
             data.update({
                 "energy": prof.energy, "spinaz": prof.spinaz, "tier": prof.tier,
                 "zodiac": prof.zodiac, "birthday": prof.birthday, "personas": prof.personas,
+                "nationalities": prof.nationalities, "onboarded": prof.onboarded,
             })
         return data
 
@@ -118,6 +124,14 @@ class MeView(APIView):
                        "indieartist","manager","mime","mixengineer","producer","videographer"}
             personas = [p for p in (data["personas"] or []) if p in allowed]
             prof.personas = personas[:11]
+        if "nationalities" in data:
+            from .models import ALLOWED_NATIONALITIES_SET
+            nats, seen = [], set()
+            for n in (data["nationalities"] or []):
+                if n in ALLOWED_NATIONALITIES_SET and n not in seen:
+                    seen.add(n)
+                    nats.append(n)
+            prof.nationalities = nats[:10]
         prof.save()
         return Response(self._payload(request.user))
 
@@ -150,6 +164,53 @@ class StatsView(APIView):
             "my_energy": getattr(prof, "energy", 0) if prof else 0,
             "refilled_today": refilled,
         })
+
+
+class ReferralView(APIView):
+    """GET /api/auth/referrals/ — my referral code + the members I've brought in."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import REFERRAL_REWARD, Referral
+        made = (Referral.objects.filter(referrer=request.user)
+                .select_related("referred"))
+        members = [{
+            "username": r.referred.username,
+            "joined": r.created_at,
+            "reward": r.reward,
+            "credited": r.credited,
+        } for r in made]
+        earned = sum(r.reward for r in made if r.credited)
+        return Response({
+            "code": request.user.username,       # referral code = username
+            "reward_per_join": REFERRAL_REWARD,
+            "count": len(members),
+            "spinaz_earned": earned,
+            "members": members,
+        })
+
+
+class OnboardCompleteView(APIView):
+    """POST /api/auth/onboard/complete/ — claim the one-time OnboardZ reward."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from .models import complete_onboarding
+        return Response(complete_onboarding(request.user))
+
+
+class OAuthConfigView(APIView):
+    """GET /api/auth/oauth/config/ — which social providers are configured on the
+    server, with their PUBLIC client IDs. Lets the frontend render only working
+    buttons without any VITE_* build-time env vars."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .oauth import public_oauth_config
+        return Response({"providers": public_oauth_config()})
 
 
 class OAuthLoginView(APIView):

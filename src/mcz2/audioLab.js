@@ -17,8 +17,8 @@ function hzToMidi(hz) {
   return hz > 0 ? 69 + 12 * Math.log2(hz / 440) : 0;
 }
 
-// Vocal range classes by comfortable center pitch (Hz). Used to detect or
-// confirm a singer's range class from the median of a take.
+// Vocal range classes keyed to reference center frequencies (Hz). `centerHz`
+// values are anchor pitches used to classify a singer by nearest median pitch.
 const VOCAL_CLASSES = [
   { name: "Bass", emoji: "🧔‍♂️", centerHz: 147 },        // ~D3
   { name: "Baritone", emoji: "🎙️", centerHz: 185 },      // ~F#3

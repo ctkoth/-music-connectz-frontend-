@@ -38,4 +38,7 @@ urlpatterns = [
     path("api/rapz/", include("apps.rapz.urls")),
     path("api/groupz/", include("apps.groupz.urls")),
     path("api/bugz/", include("apps.bugz.urls")),
+    path("api/postz/", include("apps.postz.urls")),
+    path("api/social/", include("apps.social.urls")),
+    path("api/specz/", include("apps.specz.urls")),
 ]

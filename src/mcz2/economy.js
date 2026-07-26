@@ -156,7 +156,7 @@ export function mbLabel(mb) {
 // ---------------------------------------------------------------------------
 export const TIER_PRICING = {
   premium: { monthly: 10, yearly: 90, addon: false },
-  statz: { monthly: 15, yearly: 150, addon: false }, // full StatZ price (includes Premium)
+  statz: { monthly: 15, yearly: 150, addon: true }, // StatZ add-on price (Premium required)
 };
 
 // Promo ladder for a lower-tier active user: 20% → (15m warning) 40% → 80% FINAL (60s).

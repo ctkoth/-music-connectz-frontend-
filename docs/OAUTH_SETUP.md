@@ -46,7 +46,7 @@ GITHUB_OAUTH_CLIENT_SECRET=<client secret>
 
 ---
 
-## 3.  Apple Sign In  (required by Apple if you offer any other social login)
+## 3. 🍎 Apple Sign In (required by Apple if you offer any other social login)
 **Console:** https://developer.apple.com/account/resources
 1. **Identifiers → +** → **App IDs** → App → bundle id `net.musicconnectz.app`, enable **Sign In with Apple**.
 2. **Identifiers → +** → **Services IDs** → e.g. `net.musicconnectz.web` → enable **Sign In with Apple → Configure**:

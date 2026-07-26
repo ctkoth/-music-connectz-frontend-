@@ -27,6 +27,8 @@ class Profile(models.Model):
                             choices=[(TIER_FREE, "Free"), (TIER_PREMIUM, "Premium"), (TIER_STATZ, "StatZ")])
     birthday = models.DateField(null=True, blank=True)
     personas = models.JSONField(default=list, blank=True)  # e.g. ["producer","ghostwriter"]
+    nationalities = models.JSONField(default=list, blank=True)  # NationalitieZ heritage
+    onboarded = models.BooleanField(default=False)  # OnboardZ completion (one-time reward)
     last_refill = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -71,7 +73,133 @@ class OAuthIdentity(models.Model):
         return f"{self.provider}:{self.provider_uid}"
 
 
+def grant_energy(user, amount):
+    """Additive Energy award (PostZ ratings, comment-reward job, etc.).
+    Uses an F() update so concurrent awards don't clobber each other."""
+    from django.db.models import F
+
+    if not amount:
+        return 0
+    try:
+        Profile.objects.filter(user=user).update(energy=F("energy") + amount)
+    except Exception:
+        return 0
+    return amount
+
+
+def char_limit_for(user, default=1000):
+    """Platform-wide per-tier character ceiling, applied across all appz.
+    StatZ is unlimited (returns None); every other tier gets `default`."""
+    prof = getattr(user, "profile", None)
+    return None if getattr(prof, "tier", "free") == "statz" else default
+
+
+def spend_spinaz(user, amount):
+    """Atomic SpinaZ debit (SpecZ purchases). Returns True only if the balance
+    covered the cost — the WHERE spinaz>=amount makes it race-safe."""
+    from django.db.models import F
+
+    updated = Profile.objects.filter(user=user, spinaz__gte=amount).update(
+        spinaz=F("spinaz") - amount)
+    return bool(updated)
+
+
+def grant_spinaz(user, amount):
+    """Additive SpinaZ award (referral rewards, etc.)."""
+    from django.db.models import F
+
+    if not amount:
+        return 0
+    try:
+        Profile.objects.filter(user=user).update(spinaz=F("spinaz") + amount)
+    except Exception:
+        return 0
+    return amount
+
+
+# NationalitieZ — user-selected heritage/ancestry. Kept in sync with the
+# frontend list in src/apps/socialData.js; used to validate profile writes and
+# to power the Social ConnectZ heritage filter.
+ALLOWED_NATIONALITIES = [
+    "African American", "Nigerian", "Ghanaian", "Ethiopian", "South African",
+    "Kenyan", "Egyptian", "Moroccan", "American", "Canadian", "Mexican",
+    "Brazilian", "Jamaican", "Haitian", "Dominican", "Puerto Rican", "Cuban",
+    "Colombian", "Argentine", "Peruvian", "British", "Irish", "French",
+    "German", "Italian", "Spanish", "Portuguese", "Greek", "Polish",
+    "Ukrainian", "Russian", "Swedish", "Dutch", "Turkish", "Israeli",
+    "Lebanese", "Saudi", "Iranian", "Indian", "Pakistani", "Bangladeshi",
+    "Chinese", "Japanese", "Korean", "Vietnamese", "Filipino", "Thai",
+    "Indonesian", "Australian", "Māori / NZ", "Pacific Islander",
+    "Native American",
+]
+ALLOWED_NATIONALITIES_SET = set(ALLOWED_NATIONALITIES)
+
 REFILL_BY_TIER = {"free": 25, "premium": 50, "statz": 100}
+
+REFERRAL_REWARD = 300         # SpinaZ paid to the referrer per legit join
+REFERRAL_JOINEE_BONUS = 100   # SpinaZ welcome bonus for the invited user (two-sided)
+ONBOARD_REWARD_SPINAZ = 150   # one-time OnboardZ completion reward
+ONBOARD_REWARD_ENERGY = 50
+
+
+def complete_onboarding(user):
+    """Grant the one-time OnboardZ completion reward. Returns a dict describing
+    what happened (granted=False if already claimed)."""
+    prof, _ = Profile.objects.get_or_create(user=user)
+    if prof.onboarded:
+        return {"granted": False, "spinaz": prof.spinaz, "energy": prof.energy,
+                "reward_spinaz": 0, "reward_energy": 0, "onboarded": True}
+    prof.onboarded = True
+    prof.save(update_fields=["onboarded"])
+    grant_spinaz(user, ONBOARD_REWARD_SPINAZ)
+    grant_energy(user, ONBOARD_REWARD_ENERGY)
+    prof.refresh_from_db()
+    return {"granted": True, "spinaz": prof.spinaz, "energy": prof.energy,
+            "reward_spinaz": ONBOARD_REWARD_SPINAZ, "reward_energy": ONBOARD_REWARD_ENERGY,
+            "onboarded": True}
+
+
+class Referral(models.Model):
+    """One row per referred user. The OneToOne on `referred` guarantees a user
+    can be referred (and rewarded) at most once."""
+
+    referrer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                 related_name="referrals_made")
+    referred = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                    related_name="referral_source")
+    reward = models.PositiveIntegerField(default=REFERRAL_REWARD)
+    credited = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
+def record_referral(ref_code, new_user):
+    """Credit a referrer for a *legit* join. Guards against self-referral,
+    double-crediting, and the same-email sybil case. Returns the Referral or
+    None. The referral code is the referrer's username."""
+    from django.contrib.auth import get_user_model
+
+    code = (ref_code or "").strip()
+    if not code:
+        return None
+    User = get_user_model()
+    referrer = User.objects.filter(username__iexact=code, is_active=True).first()
+    if not referrer or referrer.id == new_user.id:
+        return None
+    if Referral.objects.filter(referred=new_user).exists():
+        return None
+    # Same email => same person; don't reward self-cloning.
+    if (referrer.email and new_user.email
+            and referrer.email.lower() == new_user.email.lower()):
+        return None
+    r = Referral.objects.create(referrer=referrer, referred=new_user,
+                                reward=REFERRAL_REWARD, credited=True)
+    grant_spinaz(referrer, REFERRAL_REWARD)
+    # Two-sided: the invited user gets a welcome bonus too.
+    grant_spinaz(new_user, REFERRAL_JOINEE_BONUS)
+    return r
 
 
 def daily_refill(user):
