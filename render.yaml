@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: music-connectz-backend
+    name: music-connectz-backend-v2
     runtime: python
     buildCommand: "bash build.sh"
     # Runs migrate + seed_skillz BEFORE gunicorn (see start.sh). This is what
