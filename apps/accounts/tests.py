@@ -136,3 +136,14 @@ class OnboardCompleteTests(APITestCase):
         self.assertFalse(self.client.get("/api/auth/me/", **auth).data["onboarded"])
         self.client.post("/api/auth/onboard/complete/", **auth)
         self.assertTrue(self.client.get("/api/auth/me/", **auth).data["onboarded"])
+
+
+class AccountDeletionTests(APITestCase):
+    def test_delete_account(self):
+        r = self.client.post("/api/auth/register/", {
+            "username": "delme", "email": "delme@x.com", "password": "pw12345678",
+        }, format="json")
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {r.data['access']}"}
+        self.assertEqual(self.client.delete("/api/auth/me/", **auth).status_code, 204)
+        # token no longer resolves to a user
+        self.assertEqual(self.client.get("/api/auth/me/", **auth).status_code, 401)
