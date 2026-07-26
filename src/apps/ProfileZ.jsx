@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users } from "lucide-react";
-import { api } from "../api.js";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2 } from "lucide-react";
+import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
@@ -32,6 +32,20 @@ export default function ProfileZ() {
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteAccount() {
+    if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      await api("/api/auth/me/", { method: "DELETE" });
+      tokenStore.clear();
+      window.location.href = "/login";
+    } catch (e) {
+      setMsg(e.message || "Couldn't delete account.");
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
@@ -198,6 +212,22 @@ export default function ProfileZ() {
       <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
         {busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save ProfileZ
       </button>
+
+      {/* Danger zone — permanent account deletion */}
+      <div className="mt-8 rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-300/80">Danger zone</p>
+        <p className="mb-3 text-xs text-white/50">
+          Permanently delete your account and all your data (posts, referrals, messages, SpinaZ). This can't be undone.
+        </p>
+        <button
+          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+          disabled={deleting}
+          onClick={deleteAccount}
+        >
+          {deleting ? <Loader2 className="mr-1 inline animate-spin" size={14} /> : <Trash2 className="mr-1 inline" size={14} />}
+          Delete my account
+        </button>
+      </div>
     </div>
   );
 }

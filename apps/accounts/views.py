@@ -68,8 +68,13 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        # Credit the referrer (if any) for this legit join.
-        record_referral((request.data or {}).get("ref"), user)
+        # Referral credit must NEVER break signup — a missing migration, a bad
+        # ref code, or any error here should not stop the account from being
+        # created. Swallow everything.
+        try:
+            record_referral((request.data or {}).get("ref"), user)
+        except Exception:
+            pass
         tokens = issue_tokens(user)
         return Response(
             {"user": PublicUserSerializer(user).data, **tokens},
@@ -134,6 +139,12 @@ class MeView(APIView):
             prof.nationalities = nats[:10]
         prof.save()
         return Response(self._payload(request.user))
+
+    def delete(self, request):
+        """Permanently delete the signed-in account and all its data.
+        Cascades to Profile, posts, referrals, messages, etc."""
+        request.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 ONLINE_WINDOW_MIN = 5
