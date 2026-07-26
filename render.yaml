@@ -13,8 +13,14 @@ services:
         generateValue: true
       - key: DEBUG
         value: "0"
+      # Fresh database, auto-wired from the `databases:` block below. The
+      # Blueprint provisions Postgres and injects its connection string — no
+      # manual DATABASE_URL needed. (To reuse an external DB instead, replace
+      # this with `sync: false` and set DATABASE_URL by hand.)
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: mcz-db-v2
+          property: connectionString
       - key: GOOGLE_OAUTH_CLIENT_ID
         sync: false
       - key: GITHUB_OAUTH_CLIENT_ID
@@ -23,3 +29,12 @@ services:
         sync: false
       - key: APPLE_OAUTH_CLIENT_ID
         sync: false
+
+databases:
+  # Fresh Postgres for the consolidated backend. NOTE: Render's `free` database
+  # is removed ~90 days after creation — switch to a paid plan (`basic-256mb`
+  # or higher) before launch so production data isn't dropped.
+  - name: mcz-db-v2
+    plan: free
+    databaseName: mcz
+    user: mcz
