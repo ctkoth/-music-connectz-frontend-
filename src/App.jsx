@@ -22,6 +22,7 @@ import PostZ from "./apps/PostZ.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
+import PublicPost from "./apps/PublicPost.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -459,6 +460,8 @@ export default function App() {
       <Route path="/forgot" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
+      {/* Public — viewable without an account (records a view, rewards owner). */}
+      <Route path="/p/:id" element={<PublicPost />} />
       <Route
         path="/"
         element={

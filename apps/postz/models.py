@@ -39,6 +39,7 @@ class Post(models.Model):
     skills = models.JSONField(default=list, blank=True)
     media_url = models.URLField(blank=True, default="")
     is_active = models.BooleanField(default=True)
+    view_count = models.PositiveIntegerField(default=0)
     comment_reward_settled = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -48,6 +49,55 @@ class Post(models.Model):
 
     def __str__(self):
         return f"Post<{self.author}:{self.pk}>"
+
+
+# Public visibility — pages are viewable without an account. Each unique view
+# rewards the CONTENT OWNER Energy by THEIR tier (free +1 / premium +5 / statZ
+# +20). Dedup is one reward per viewer (logged-in) or per anonymous IP, per post.
+VIEW_REWARD = {"free": 1, "premium": 5, "statz": 20}
+
+
+class PostView(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="viewz")
+    key = models.CharField(max_length=80)  # "u:<user_id>" or "a:<ip_hash>"
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("post", "key")
+
+
+def _client_ip(request):
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "") or ""
+
+
+def record_view(post, request):
+    """Count a unique view and reward the owner by their tier. Returns True if
+    this was a new unique view (counted), False if a repeat."""
+    import hashlib
+    from apps.accounts.models import grant_energy
+
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        key = f"u:{user.id}"
+        is_owner = user.id == post.author_id
+    else:
+        ip = _client_ip(request)
+        key = "a:" + hashlib.sha256(f"{ip}|mcz-view".encode()).hexdigest()[:40]
+        is_owner = False
+
+    _, created = PostView.objects.get_or_create(post=post, key=key)
+    if not created:
+        return False
+    from django.db.models import F
+    Post.objects.filter(pk=post.pk).update(view_count=F("view_count") + 1)
+    post.view_count += 1
+    if not is_owner:
+        prof = getattr(post.author, "profile", None)
+        grant_energy(post.author, VIEW_REWARD.get(getattr(prof, "tier", "free"), 1))
+    return True
 
 
 class Rating(models.Model):

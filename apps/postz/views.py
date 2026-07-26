@@ -5,14 +5,14 @@ apps/collabz/views.py). All window/authorization rules are re-checked here so th
 server, not the device clock, is the source of truth.
 """
 from django.utils import timezone
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import grant_energy
 
 from .models import (COMMENT_WINDOW_SEC, MAX_STARS, RATE_WINDOW_SEC,
-                     Comment, Post, Rating, char_limit_for)
+                     Comment, Post, Rating, char_limit_for, record_view)
 
 
 def _age_sec(post, now=None):
@@ -54,8 +54,10 @@ def _ser(post, me=None, with_comments=True, comment_limit=None):
         "comment_count": post.comments.count(),
         "my_rating": my_rating,
         "is_mine": is_mine,
-        "can_rate": age >= RATE_WINDOW_SEC and not is_mine and post.is_active,
-        "can_comment": age >= COMMENT_WINDOW_SEC and post.is_active,
+        "view_count": post.view_count,
+        # Read-only for anonymous viewers (me is None) — they must sign in.
+        "can_rate": bool(me) and age >= RATE_WINDOW_SEC and not is_mine and post.is_active,
+        "can_comment": bool(me) and age >= COMMENT_WINDOW_SEC and post.is_active,
         "rate_opens_in_sec": max(0, RATE_WINDOW_SEC - age),
         "comment_opens_in_sec": max(0, COMMENT_WINDOW_SEC - age),
     }
@@ -64,23 +66,32 @@ def _ser(post, me=None, with_comments=True, comment_limit=None):
     return data
 
 
+def _me(request):
+    """The authenticated user, or None for anonymous (public) viewers."""
+    u = getattr(request, "user", None)
+    return u if (u and getattr(u, "is_authenticated", False)) else None
+
+
 class PostListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    # Public read (feed viewable without an account); auth required to post.
+    def get_permissions(self):
+        return [IsAuthenticated()] if self.request.method == "POST" else [AllowAny()]
 
     def get(self, request):
         qp = request.query_params
         qs = (Post.objects.filter(is_active=True)
               .select_related("author")
               .prefetch_related("ratings", "comments"))
-        if qp.get("mine") in ("1", "true"):
-            qs = qs.filter(author=request.user)
+        me = _me(request)
+        if qp.get("mine") in ("1", "true") and me:
+            qs = qs.filter(author=me)
         if qp.get("author"):
             qs = qs.filter(author__username__iexact=qp["author"].strip())
         if qp.get("genre"):
             qs = qs.filter(genre__iexact=qp["genre"].strip())
         rows = list(qs[:100])
         # Cap embedded comments on the list view to keep the payload small.
-        return Response([_ser(p, request.user, comment_limit=3) for p in rows])
+        return Response([_ser(p, me, comment_limit=3) for p in rows])
 
     def post(self, request):
         d = request.data or {}
@@ -101,6 +112,24 @@ class PostListCreateView(APIView):
             media_url=(d.get("media_url") or "").strip(),
         )
         return Response(_ser(p, request.user), status=201)
+
+
+class PostDetailView(APIView):
+    """GET /api/postz/<id>/ — public post page (no account needed). Records a
+    unique view and rewards the owner by tier."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            post = (Post.objects.select_related("author")
+                    .prefetch_related("ratings", "comments").get(pk=pk, is_active=True))
+        except Post.DoesNotExist:
+            return Response({"detail": "Post not found."}, status=404)
+        try:
+            record_view(post, request)
+        except Exception:
+            pass  # a view-tracking hiccup must never break the page
+        return Response(_ser(post, _me(request)))
 
 
 class PostRateView(APIView):
