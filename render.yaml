@@ -2,8 +2,12 @@ services:
   - type: web
     name: music-connectz-backend
     runtime: python
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn music_connectz.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+    buildCommand: "bash build.sh"
+    # Runs migrate + seed_skillz BEFORE gunicorn (see start.sh). This is what
+    # applies new migrations on every deploy — a bare gunicorn command here
+    # skips migrations, which leaves tables/columns missing (register/login 500,
+    # "no members"). Use `bash` so it works regardless of the file's exec bit.
+    startCommand: "bash start.sh"
     envVars:
       - key: SECRET_KEY
         generateValue: true
