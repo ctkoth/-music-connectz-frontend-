@@ -20,6 +20,11 @@ const DEFAULT_STATE = {
   energy: 0,
   spinaz: 0,
   promptz: 0, // prepaid AI credits (1 PromptZ = 1¢ of AI spend)
+  // Free daily prompt allowance by tier (free 1 / premium 5 / statz 20). Resets
+  // each day — it does NOT stack. Prepaid `promptz` is separate and persists.
+  dailyPromptz: 0,
+  promptDay: "",
+  promptGrant: -1, // allowance last granted (re-grants on day or tier change)
   energyLog: [],
   spinazLog: [],
   // Platform State Model (blueprint): XP-driven progression shared across

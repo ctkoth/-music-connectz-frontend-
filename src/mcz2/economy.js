@@ -69,6 +69,14 @@ export function tierLabel(tier) {
 }
 export const TIER_EMOJI = { free: "🤗", premium: "🥇", statz: "📈", debug: "🛠️" };
 
+// Free daily AI-prompt allowance by tier. Resets each day — it does NOT stack.
+// Prepaid PromptZ credits are separate and persist. Debug/owner mirrors StatZ.
+export const PROMPT_ALLOWANCE = { free: 1, premium: 5, statz: 20, debug: 20 };
+
+export function promptAllowanceFor(tier) {
+  return PROMPT_ALLOWANCE[tierKey(tier)] ?? 1;
+}
+
 // ---------------------------------------------------------------------------
 // Developer tax — platform cut on every transaction (skill sales, media, etc).
 // Free 10% · Premium 5% · StatZ 3% · Debug/owner 0%.
