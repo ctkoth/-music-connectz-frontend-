@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Send, Lock, Flame, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Send, Lock, Flame, RefreshCw, AlertCircle, Eye, Share2, Check as CheckIcon } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { RATE_WINDOW_SEC, COMMENT_WINDOW_SEC } from "./socialData.js";
@@ -32,6 +32,7 @@ function mapPost(s) {
     avg: s.avg_rating || 0,
     ratingCount: s.rating_count || 0,
     commentCount: s.comment_count || 0,
+    viewCount: s.view_count || 0,
     myStars: s.my_rating || 0,
     isMine: s.is_mine,
     comments: (s.comments || []).map((c) => ({ user: c.user, text: c.text })),
@@ -227,6 +228,13 @@ export default function PostZ() {
 
 function PostCard({ post, now, onRate, onComment, commentDraft, charLimit }) {
   const [skipped, setSkipped] = useState(false);
+  const [shared, setShared] = useState(false);
+  function share() {
+    const url = `${window.location.origin}/p/${post.id}`;
+    navigator.clipboard?.writeText(url).then(() => {
+      setShared(true); setTimeout(() => setShared(false), 1800);
+    }).catch(() => {});
+  }
   const ageSec = Math.max(0, Math.floor((now - post.createdAt) / 1000));
   const isMine = post.isMine;
   const rateLeft = Math.max(0, RATE_WINDOW_SEC - ageSec);
@@ -246,13 +254,21 @@ function PostCard({ post, now, onRate, onComment, commentDraft, charLimit }) {
           <div className="text-sm font-bold text-white">
             {post.author}{isMine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
-          <div className="text-[11px] text-white/40">{relTime} · {post.genre}</div>
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
-            <Flame size={14} /> {avg ? avg.toFixed(1) : "—"}<span className="text-white/35">/10</span>
+          <div className="flex items-center gap-2 text-[11px] text-white/40">
+            <span>{relTime} · {post.genre}</span>
+            <span className="flex items-center gap-1"><Eye size={11} /> {post.viewCount}</span>
           </div>
-          <div className="text-[10px] text-white/35">{post.ratingCount} rating{post.ratingCount !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="flex items-start gap-2">
+          <button onClick={share} title="Copy public link" className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+            {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
+          </button>
+          <div className="text-right">
+            <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
+              <Flame size={14} /> {avg ? avg.toFixed(1) : "—"}<span className="text-white/35">/10</span>
+            </div>
+            <div className="text-[10px] text-white/35">{post.ratingCount} rating{post.ratingCount !== 1 ? "s" : ""}</div>
+          </div>
         </div>
       </div>
 

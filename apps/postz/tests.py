@@ -169,3 +169,48 @@ class PostZTests(APITestCase):
         self.assertEqual(commenter.profile.energy, 108)   # +median(8)
         p.refresh_from_db()
         self.assertTrue(p.comment_reward_settled)
+
+
+class PublicViewTests(APITestCase):
+    def _post_by(self, name, tier="free"):
+        u = _mkuser(name)
+        u.profile.tier = tier; u.profile.save()
+        p = Post.objects.create(author=u, content="public post")
+        return u, p
+
+    def test_public_can_read_without_account(self):
+        _, p = self._post_by("creator")
+        # No auth header at all
+        r = self.client.get(f"/api/postz/{p.id}/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["can_rate"], False)      # read-only for anon
+        self.assertEqual(r.data["view_count"], 1)
+
+    def test_view_rewards_owner_by_tier(self):
+        from apps.accounts.models import Profile
+        owner, p = self._post_by("statzowner", tier="statz")
+        e0 = Profile.objects.get(user=owner).energy
+        viewer = _mkuser("viewer")
+        self.client.force_authenticate(viewer)
+        self.client.get(f"/api/postz/{p.id}/")
+        self.assertEqual(Profile.objects.get(user=owner).energy, e0 + 20)  # statZ +20
+
+    def test_repeat_view_not_double_counted(self):
+        from apps.accounts.models import Profile
+        owner, p = self._post_by("owner2", tier="premium")
+        viewer = _mkuser("v2")
+        self.client.force_authenticate(viewer)
+        self.client.get(f"/api/postz/{p.id}/")
+        e1 = Profile.objects.get(user=owner).energy
+        self.client.get(f"/api/postz/{p.id}/")  # same viewer again
+        self.assertEqual(Profile.objects.get(user=owner).energy, e1)  # no extra reward
+        p.refresh_from_db()
+        self.assertEqual(p.view_count, 1)
+
+    def test_owner_view_no_self_reward(self):
+        from apps.accounts.models import Profile
+        owner, p = self._post_by("owner3")
+        e0 = Profile.objects.get(user=owner).energy
+        self.client.force_authenticate(owner)
+        self.client.get(f"/api/postz/{p.id}/")
+        self.assertEqual(Profile.objects.get(user=owner).energy, e0)  # no self-reward
