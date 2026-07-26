@@ -204,7 +204,7 @@ import {
   clickLinkApi, getLinkTalliesApi,
   transcodeApi, distributeLyricsApi,
   getAdzApi, createCommercialApi, deleteCommercialApi, rewardAdApi,
-  chargeAiApi, occChatApi, buyPromptzApi, geminiImageApi, geminiVideoApi, geminiVideoStatusApi, translateApi,
+  chargeAiApi, occChatApi, shareToPostzApi, buyPromptzApi, geminiImageApi, geminiVideoApi, geminiVideoStatusApi, translateApi,
   getSocialApi, reactSocialApi, commentSocialApi, rateSocialApi, editCommentApi,
   editMessageApi,
 } from "./economyApi.js";
@@ -6131,6 +6131,72 @@ function VideoConnectZ({ syncEconomy }) {
   );
 }
 
+// Local Corey-voice document generator — produces a real, shareable text doc
+// with no backend. When the AI backend is live, occChatApi output is used
+// instead (see the generate handler).
+function buildCoreyDoc(docType, prompt, { genre, rhyme, isLyrics }) {
+  const topic = (prompt || "").trim();
+  const words = topic.split(/\s+/).filter(Boolean);
+  if (isLyrics) {
+    const hook = `Yeah — ${topic || "this one's for the real ones"}, that's the vibe (${genre})`;
+    const line = (n) => `Line ${n}: ${words.slice((n * 2) % Math.max(1, words.length)).slice(0, 6).join(" ") || topic} — locked, ${rhyme}-syllable rhyme`;
+    return [
+      `🎤 ${genre} · Corey voice`,
+      "", "[Hook]", hook, hook, "",
+      "[Verse 1]", line(1), line(2), line(3), line(4), "",
+      "[Hook]", hook, "",
+      "[Verse 2]", line(5), line(6), line(7), line(8), "",
+      "[Outro]", `${topic || "MusicConnectZ"} — out.`,
+    ].join("\n");
+  }
+  if (docType === "Instagram Caption" || docType === "Social Media Post") {
+    return `${topic || "New drop"} 🔥\n\nReal work, no shortcuts. This is what it sounds like when you put the time in.\n\n#MusicConnectZ #${genre.replace(/\s+/g, "")} #CreateThroughMusic`;
+  }
+  if (docType === "Artist Contract" || docType === "Royalties Agreement") {
+    return `${docType.toUpperCase()}\n\nThis agreement between the parties covers: ${topic || "the work"}.\n\n1. Scope of work\n2. Compensation & royalty splits\n3. Ownership & credit\n4. Term & termination\n5. Dispute resolution (Music ConnectZ LLC)\n\n[Draft — review with a lawyer before signing.]`;
+  }
+  // Essay / default
+  return [
+    `${topic ? topic[0].toUpperCase() + topic.slice(1) : "Untitled"}`,
+    "",
+    `Here's the real of it: ${topic || "this subject"} matters more than people give it credit for.`,
+    `First, the foundation — you can't skip the reps. Second, the craft — that's where ${topic || "it"} separates the serious from the casual. Third, the follow-through — shipping beats perfect every time.`,
+    `Bottom line: put the work in, stay consistent, and let the results speak.`,
+  ].join("\n");
+}
+
+// Renders a generated document with Copy + "Share as PostZ" (which drops it into
+// the community feed for rating/comments/views, returning a public link).
+function ShareableDoc({ text }) {
+  const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState("");
+  const [msg, setMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const r = await shareToPostzApi(text, "Document");
+      setLink(`${window.location.origin}/p/${r.id}`);
+      setMsg("📤 Shared — get it rated, (dis)liked & commented:");
+    } catch (e) {
+      setMsg(/401|sign|auth/i.test(e?.message || "") ? "Sign in to share to the feed." : "Couldn't share — try again.");
+    }
+    setBusy(false);
+  };
+  const copy = () => navigator.clipboard?.writeText(link || text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
+  return (
+    <div style={{ marginTop: 12 }}>
+      <label style={{ fontSize: 11, color: "var(--text-light)" }}>📄 Your document</label>
+      <textarea readOnly value={text} style={{ width: "100%", height: 160, fontSize: 12, marginTop: 4 }} onFocus={(e) => e.target.select()} />
+      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-small btn-secondary" onClick={copy}>{copied ? "✅ Copied" : "📋 Copy"}</button>
+        <button className="btn btn-small" disabled={busy} onClick={share}>{busy ? "…" : "📤 Share as PostZ"}</button>
+      </div>
+      {msg && <p style={{ fontSize: 11, color: "var(--success)", marginTop: 6 }}>{msg}{link && <> <a href={link} style={{ color: "var(--primary)" }}>{link}</a></>}</p>}
+    </div>
+  );
+}
+
 function SentenceConnectZ({ syncEconomy }) {
   const { state } = useAppState();
   // Contracts & royalty agreements are gated to Manager / A&R Scout personas.
@@ -6139,8 +6205,26 @@ function SentenceConnectZ({ syncEconomy }) {
   const [rhyme, setRhyme] = useState(2);
   const [genre, setGenre] = useState(INSTR_GENRES[0]);
   const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [genMsg, setGenMsg] = useState("");
   const isLyrics = doc === "Lyrics";
   const isLegal = DOC_TYPES.find((d) => d.name === doc)?.gated;
+  const generate = async () => {
+    setBusy(true); setGenMsg("");
+    // Charge best-effort; only real insufficient-funds blocks.
+    try { await chargeAiApi("corey-gpt", `Intelligence: ${doc}`); syncEconomy?.(); }
+    catch (e) { if (/40[26]|balance|enough/i.test(e?.message || "")) { setGenMsg("Not enough PromptZ/cash — buy PromptZ or add funds."); setBusy(false); return; } }
+    // Try the real AI; fall back to the local Corey-voice generator offline.
+    let text = "";
+    try {
+      const brief = `${doc}${isLyrics ? ` (${genre}, ${rhyme}-syllable rhyme)` : ""}: ${prompt}`;
+      const r = await occChatApi({ model: "corey-gpt", prompt: brief, knowledge: [], history: [], slang: false, acronyms: [], suggest: false });
+      text = r?.text || "";
+    } catch { /* backend missing — use local */ }
+    if (!text) text = buildCoreyDoc(doc, prompt, { genre, rhyme, isLyrics });
+    setResult(text); setBusy(false);
+  };
   return (
     <div className="card">
       <div className="card-header">📃 Sentence ConnectZ <span className="tag">Corey voice</span></div>
@@ -6170,7 +6254,9 @@ function SentenceConnectZ({ syncEconomy }) {
       )}
       <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 10 }}>Written in Corey voice · toggles for language, Explicit / Slang / Emoji.</p>
       {isLegal && <LegalDisclaimer />}
-      <IntelGenerate label={`✍️ Generate ${doc}`} disabled={!prompt.trim()} syncEconomy={syncEconomy} />
+      <button className="btn" style={{ width: "100%" }} disabled={!prompt.trim() || busy} onClick={generate}>{busy ? "…" : `✍️ Generate ${doc}`}</button>
+      {genMsg && <p style={{ fontSize: 11, color: "var(--gold, #ffcf3f)", marginTop: 6 }}>{genMsg}</p>}
+      {result && <ShareableDoc text={result} />}
       <IntelNote role="Ghostwriter" reusable />
     </div>
   );

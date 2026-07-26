@@ -174,7 +174,7 @@ export const CATALOG = [
       { key: "personas", name: "PersonaZ", emoji: "🎭", icon: "personaz.png", desc: "Pick your personas (Artist, Producer, Mix Engineer, Designer, Videographer, Manager, Ghostwriter, Developer, Weightlifter) and add your skills.", fn: true },
       { key: "examples", name: "PostZ", emoji: "🎵", icon: "postz.png", desc: "Upload work examples — audio becomes the track, image the cover, text the lyrics — with genre, required skills, and privacy.", fn: true },
       { key: "profile", name: "Profile", emoji: "👤", icon: "personaz_indieartist.png", desc: "Your public profile — picture, bio, contact, and skills.", fn: true },
-      { key: "money", name: "Money", emoji: "💰", icon: "energy.png", desc: "Your wallet — balance, earnings, add funds via Stripe, and payment history.", fn: true },
+      { key: "money", name: "Money", emoji: "💰", icon: "money.png", desc: "Your wallet — balance, earnings, add funds via Stripe, and payment history.", fn: true },
       { key: "membership", name: "MembershipZ", emoji: "👑", icon: "membership.png", desc: "Your tier — Free, Premium, or StatZ. Compare every perk across the platform and upgrade monthly or yearly.", fn: true },
       { key: "merchz", name: "MerchZ", emoji: "🛍️", icon: "merchz.png", desc: "The creator marketplace — sell and buy legal goods: apparel, art, beats, sample packs, accessories, digital downloads. Every sale runs the developer tax; substances aren't a category.", fn: true },
       { key: "legendz", name: "LegendZ", emoji: "🗺️", icon: "intuition.png", desc: "What every indicator means, in plain English — 🔥 Streak, 📏 reach median, ⚡ Energy, ⭐ ratings, 🔒 escrow, tiers — with the move to make.", fn: true },

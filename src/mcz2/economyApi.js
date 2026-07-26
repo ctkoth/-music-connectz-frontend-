@@ -271,3 +271,9 @@ export const capturePaypalOrder = (orderId) =>
 export const getFoundingApi = () => api("/api/economy/founding/");
 export const claimFoundingApi = () => api("/api/economy/founding/claim/", { method: "POST" });
 export const foundingCheckoutApi = (plan = "lifetime") => api("/api/economy/founding/checkout/", { method: "POST", body: { plan } });
+
+// Cross-pollination — share any text (SentenceZ/Intelligence results, lyrics,
+// etc.) into the community PostZ feed, where it gets a public link and can be
+// rated 1–10, commented, and viewed. Returns the created post ({ id, ... }).
+export const shareToPostzApi = (content, genre = "Document") =>
+  api("/api/postz/", { method: "POST", body: { content, genre } });

@@ -90,6 +90,7 @@ export const CUSTOM_ICONS = {
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
   "offerz.png": "/icons/offerz.png",
+  "money.png": "/icons/money.png",
   // New editions — neon signage dropped in Jul 16.
   "specz.png": "/icons/specz.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
