@@ -13,7 +13,12 @@ export default function AdZ() {
 
   useEffect(() => {
     api("/api/economy/adz/admob-config/").then(setCfg).catch(() => setCfg({ enabled: false }));
-    api("/api/economy/adz/").then(setStats).catch(() => setStats(null));
+    const loadStats = () => api("/api/economy/adz/").then(setStats).catch(() => setStats(null));
+    loadStats();
+    // A rewarded ad just paid out (via server-side verification) — refresh.
+    const onReward = () => setTimeout(loadStats, 1500);
+    window.addEventListener("mcz-ad-rewarded", onReward);
+    return () => window.removeEventListener("mcz-ad-rewarded", onReward);
   }, []);
 
   const isNative = typeof window !== "undefined" && !!window.Capacitor;

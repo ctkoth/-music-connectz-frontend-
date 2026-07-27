@@ -31,6 +31,21 @@ npx cap add android                # first time only (generates android/)
 npx cap sync android               # copies dist/ + plugins into android/
 ```
 
+## 3b. AdMob (rewarded ads) — one-time native config
+The `@capacitor-community/admob` plugin is already a dependency and the JS is
+wired (`src/admob.js`). After `npx cap add android`, add your **AdMob App ID**
+to `android/app/src/main/AndroidManifest.xml`, inside `<application>`:
+```xml
+<meta-data
+    android:name="com.google.android.gms.ads.APPLICATION_ID"
+    android:value="ca-app-pub-3658889039365644~9083203545"/>
+```
+Then `npx cap sync android`. The **rewarded unit id**
+(`ca-app-pub-3658889039365644/7551318384`) is served from the backend
+(`ADMOB_REWARDED_UNIT_ID`), so you don't hard-code it here. Also set, in Render:
+`ADMOB_APP_ID` and `ADMOB_REWARDED_UNIT_ID`, and point AdMob's **SSV callback**
+at `https://admin.musicconnectz.net/api/economy/adz/admob-ssv/`.
+
 ## 4. Point Gradle at your keystore
 Create `android/keystore.properties` (do **not** commit it):
 ```
