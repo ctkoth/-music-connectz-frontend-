@@ -34,8 +34,8 @@ Create an account or sign in with Google, GitHub, or Apple. You can view content
 without an account, and delete your account anytime.
 ```
 
-**App icon**: 512×512 PNG (32-bit, ≤1 MB). Use the Music ConnectZ logo on a solid background.
-**Feature graphic**: 1024×500 PNG/JPG (required — shown at the top of the listing).
+**App icon**: `store/play-icon-512.png` — 512×512 PNG (wordless neon handshake mark; text-free so it stays legible at launcher size).
+**Feature graphic**: `store/play-feature-1024x500.png` — 1024×500 PNG (mark + "Music ConnectZ" wordmark on the neon backdrop).
 **Phone screenshots**: 2–8, PNG/JPG, 16:9 or 9:16, min 320px side (e.g. PostZ, ProfileZ, MembershipZ, a training screen).
 (Optional but nice: 7-inch and 10-inch tablet screenshots.)
 
