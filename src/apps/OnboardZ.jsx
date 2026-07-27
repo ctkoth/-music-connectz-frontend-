@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper } from "lucide-react";
+import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 
@@ -16,11 +16,23 @@ export default function OnboardZ() {
   const [done, setDone] = useState(loadDone);
   const [copied, setCopied] = useState(false);
   const [claim, setClaim] = useState(null); // OnboardZ completion reward result
+  const [bday, setBday] = useState("");
+  const [savingBday, setSavingBday] = useState(false);
 
   useEffect(() => {
-    api("/api/auth/me/").then(setMe).catch(() => setMe({}));
+    api("/api/auth/me/").then((d) => { setMe(d); setBday(d?.birthday || ""); }).catch(() => setMe({}));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
   }, []);
+
+  async function saveBday() {
+    if (!bday) return;
+    setSavingBday(true);
+    try {
+      const d = await api("/api/auth/me/", { method: "PATCH", body: { birthday: bday } });
+      setMe(d);
+    } catch { /* ignore — the field stays for a retry */ }
+    setSavingBday(false);
+  }
 
   function mark(k) {
     const d = { ...loadDone(), [k]: true };
@@ -40,6 +52,9 @@ export default function OnboardZ() {
     { key: "profile", icon: <User size={18} />, title: "Set up your ProfileZ",
       desc: "Pick every PersonaZ you play and set your ZodiacZ.",
       done: (me?.personas?.length || 0) > 0, cta: "Open ProfileZ", act: () => goTo("profilez") },
+    { key: "birthday", icon: <Cake size={18} />, title: "Add your birthday", bday: true,
+      desc: "Sets your ZodiacZ and keeps ads age-appropriate. You must be 13+ to use Music ConnectZ.",
+      done: !!me?.birthday },
     { key: "heritage", icon: <IconImg icon="nationalitiez.png" alt="" className="h-5 w-5 rounded" />,
       title: "Add your NationalitieZ",
       desc: "Represent your ancestry — it makes you findable on Social ConnectZ.",
@@ -127,8 +142,23 @@ export default function OnboardZ() {
                   </div>
                 )}
 
+                {/* Birthday step: inline date picker + save */}
+                {s.bday && !s.done && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input type="date" value={bday} max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setBday(e.target.value)}
+                      className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
+                    <button className="re-btn !w-auto px-3" onClick={saveBday} disabled={!bday || savingBday}>
+                      {savingBday ? "…" : "Save"}
+                    </button>
+                  </div>
+                )}
+                {s.bday && s.done && me?.zodiac && (
+                  <p className="mt-1 text-[11px] text-mcz-ember">Your ZodiacZ: {me.zodiac}</p>
+                )}
+
                 {/* Action steps */}
-                {!s.refer && !s.done && (
+                {!s.refer && !s.bday && !s.done && (
                   <button className="mt-2 flex items-center gap-1 text-xs font-semibold text-mcz-ember hover:brightness-125"
                           onClick={s.act}>
                     {s.cta} <ArrowRight size={13} />
