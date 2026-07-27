@@ -93,12 +93,10 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // required — configure OAuth once on the server and it just works here.
   useEffect(() => {
     let on = true;
-    api("/api/auth/oauth/config/", { auth: false })
+    api("/api/auth/oauth-config/", { auth: false })
       .then((d) => {
-        if (!on) return;
-        const map = {};
-        (d.providers || []).forEach((p) => { map[p.key] = p.client_id; });
-        setCfg(map);
+        // Backend returns a flat map: { google: "<client_id>", github: "…", … }.
+        if (on) setCfg(d && typeof d === "object" ? d : {});
       })
       .catch(() => on && setCfg({})); // backend unreachable → fall back to VITE
     return () => { on = false; };
