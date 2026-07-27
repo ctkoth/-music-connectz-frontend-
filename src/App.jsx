@@ -298,14 +298,6 @@ function Home() {
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
   const today = new Date().toLocaleDateString();
 
-  if (!tab) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-white/50">
-        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
-      </div>
-    );
-  }
-
   const go = (delta) => {
     const n = (idx + delta + TABS.length) % TABS.length;
     setTab(TABS[n].key);
@@ -335,6 +327,19 @@ function Home() {
       .then((m) => setTab(m?.onboarded ? "postz" : "onboardz"))
       .catch(() => setTab("postz"));
   }, []);
+
+  // Gate AFTER the hooks above, never before them. `tab` starts null, so an
+  // early return here used to skip both useEffect calls on the very first
+  // render — including the one that picks the tab — leaving nothing to ever
+  // call setTab. The app sat on this spinner forever, with no request made
+  // and nothing logged to the console.
+  if (!tab) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
