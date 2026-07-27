@@ -226,6 +226,12 @@ function CommunityBar() {
         </span>
         <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
         <span className="pill !text-mcz-pink">✦ {stats.my_spinaz} SpinaZ</span>
+        {stats.my_promptz_daily != null && (
+          <span className="pill !text-mcz-cyan"
+                title={`Free AI prompts today (free 1 · premium 5 · statZ 20) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+            🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
+          </span>
+        )}
         <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
       </div>
