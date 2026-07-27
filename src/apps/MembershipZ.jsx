@@ -52,10 +52,10 @@ export default function MembershipZ() {
   const seatsLeft = founding?.remaining ?? null;
   const soldOut = !!founding?.sold_out;
 
-  async function buyFounding(plan) {
-    setMsg(""); setBusy(plan);
+  async function checkout(endpoint, plan, key) {
+    setMsg(""); setBusy(key);
     try {
-      const r = await api("/api/economy/founding/checkout/", { method: "POST", body: { plan } });
+      const r = await api(endpoint, { method: "POST", body: { plan } });
       if (r?.url) { window.location.href = r.url; return; }
       setMsg("Couldn't start checkout — please try again.");
     } catch (e) {
@@ -66,6 +66,8 @@ export default function MembershipZ() {
     }
     setBusy("");
   }
+  const buyFounding = (plan) => checkout("/api/economy/founding/checkout/", plan, plan);
+  const buyPremium = (plan) => checkout("/api/economy/premium/checkout/", plan, "prem_" + plan);
 
   if (!me) {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading membership…</p>;
@@ -146,14 +148,23 @@ export default function MembershipZ() {
         </table>
       </div>
 
-      {/* Premium — perks live now; dedicated checkout is a fast follow-up. */}
-      <div className="re-card space-y-2">
-        <span className="re-label flex items-center gap-2"><Zap size={13} className="text-mcz-cyan" /> Premium — $6/mo</span>
-        <p className="text-xs text-white/60">
-          Half the platform fee, double energy, and 5 AI prompts a day. A dedicated Premium checkout is coming next —
-          for now, <span className="text-white/85">Founding StatZ gives you everything Premium does and more, at a locked-in discount.</span>
-        </p>
-        <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Lock size={11} /> Premium billing coming soon.</p>
+      {/* Premium — mid tier, buyable now. */}
+      <div className="re-card space-y-3">
+        <span className="re-label flex items-center gap-2"><Zap size={13} className="text-mcz-cyan" /> Premium</span>
+        <p className="text-xs text-white/60">Half the platform fee, double energy per top-up, and 5 AI prompts a day.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine !== "free"} onClick={() => buyPremium("month")}>
+            <span className="text-sm font-bold">{busy === "prem_month" ? "…" : "$6/mo"}</span>
+            <span className="text-[10px] font-normal opacity-70">billed monthly</span>
+          </button>
+          <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine !== "free"} onClick={() => buyPremium("year")}>
+            <span className="text-sm font-bold">{busy === "prem_year" ? "…" : "$48/yr"}</span>
+            <span className="text-[10px] font-normal opacity-70">2 months free</span>
+          </button>
+        </div>
+        {mine === "premium" && <p className="text-[11px] text-emerald-300">You're on Premium. 🎉</p>}
+        {mine === "statz" && <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Lock size={11} /> You're already on StatZ, which includes everything in Premium.</p>}
+        {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
       </div>
 
       <p className="flex items-center gap-1.5 text-[11px] text-white/40">

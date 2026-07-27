@@ -1,8 +1,61 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2 } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
+
+// 18+ age verification via Stripe Identity. Government ID + selfie; the backend
+// webhook flips the flag only if the verified DOB proves 18+. Gates money
+// betting (BattleZ) and adult content.
+function Verify18Card() {
+  const [st, setSt] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    // A verify return (?verify=done) — refetch status and acknowledge.
+    if (new URLSearchParams(window.location.search).get("verify") === "done") {
+      setMsg("Thanks! If your ID cleared, your 18+ badge appears within a minute.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
+  }, []);
+
+  async function start() {
+    setBusy(true); setMsg("");
+    try {
+      const r = await api("/api/economy/identity/", { method: "POST", body: {} });
+      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); return; }
+      if (r?.url) { window.location.href = r.url; return; }
+      setMsg("Couldn't start verification — try again.");
+    } catch (e) {
+      setMsg(/503|not configured/i.test(e?.message || "") ? "ID verification isn't switched on yet." : "Couldn't start verification — try again.");
+    }
+    setBusy(false);
+  }
+
+  if (!st) return null;
+  const verified = !!st.verified_18plus;
+  return (
+    <div className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
+      </p>
+      {verified ? (
+        <p className="flex items-center gap-2 text-sm text-emerald-300"><Check size={15} /> You're verified 18+ — money betting &amp; adult features are unlocked.</p>
+      ) : (
+        <>
+          <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : "Verify I'm 18+"}
+          </button>
+          {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
+        </>
+      )}
+      {msg && <p className="text-[11px] text-white/70">{msg}</p>}
+    </div>
+  );
+}
 
 const PERSONAS = [
   ["arscout", "A&R Scout", "personaz_arscout.png"],
@@ -111,6 +164,8 @@ export default function ProfileZ() {
           </p>
         </div>
       </header>
+
+      <Verify18Card />
 
       {/* ReferZ — invite links + referred members */}
       <div className="neon-frame space-y-3 p-4">

@@ -22,6 +22,8 @@ import PostZ from "./apps/PostZ.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
 import MembershipZ from "./apps/MembershipZ.jsx";
+import AdZ from "./apps/AdZ.jsx";
+import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 
@@ -91,6 +93,7 @@ export const CUSTOM_ICONS = {
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
   "offerz.png": "/icons/offerz.png",
+  "adz.png": "/icons/adz.png",
   "money.png": "/icons/money.png",
   // New editions — neon signage dropped in Jul 16.
   "specz.png": "/icons/specz.png",
@@ -164,6 +167,8 @@ const TABS = [
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
+  { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
+  { key: "offerz", label: "OfferZ", icon: "offerz.png", el: <OfferZ /> },
   { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
   { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
   { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
@@ -264,6 +269,8 @@ const TAB_ABOUT = {
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
   membershipz: "💳 MembershipZ — upgrade your tier for lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Founding members lock in 50% off for life.",
+  adz: "📺 AdZ — watch a short rewarded ad and earn SpinaZ. Ads play in the mobile app via AdMob; your reward lands automatically when the ad finishes.",
+  offerz: "🎁 OfferZ — complete offers (surveys, sign-ups, installs) on the offerwall and earn SpinaZ, credited automatically once the provider confirms.",
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
   directz: "🎬 DirectZ — directing tools and guided sessions.",
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
