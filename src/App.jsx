@@ -21,6 +21,7 @@ import BugZ from "./apps/BugZ.jsx";
 import PostZ from "./apps/PostZ.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
+import MembershipZ from "./apps/MembershipZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 
@@ -162,6 +163,7 @@ const TABS = [
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
+  { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
   { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
   { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
@@ -261,6 +263,7 @@ const TAB_ABOUT = {
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
+  membershipz: "💳 MembershipZ — upgrade your tier for lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Founding members lock in 50% off for life.",
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
   directz: "🎬 DirectZ — directing tools and guided sessions.",
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
@@ -315,7 +318,12 @@ function Home() {
   }, []);
 
   // New users land on OnboardZ until they've completed it; returning users on PostZ.
+  // A checkout return (?checkout=…) lands on MembershipZ so the result is shown.
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("checkout")) {
+      setTab("membershipz");
+      return;
+    }
     api("/api/auth/me/")
       .then((m) => setTab(m?.onboarded ? "postz" : "onboardz"))
       .catch(() => setTab("postz"));
