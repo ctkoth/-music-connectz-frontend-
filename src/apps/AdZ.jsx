@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, PlayCircle, Smartphone, Star } from "lucide-react";
+import { Loader2, PlayCircle, Smartphone, Star, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 
@@ -38,23 +38,36 @@ export default function AdZ() {
       )}
 
       <div className="re-card space-y-3">
-        {!cfg.enabled ? (
+        {cfg.allowed === false ? (
+          <p className="flex items-start gap-2 text-sm text-white/70">
+            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-mcz-ember" />
+            AdZ is available to members aged {cfg.min_age ?? 13} and up. Your profile lists an age under {cfg.min_age ?? 13}, so rewarded ads are turned off for your account.
+          </p>
+        ) : !cfg.enabled ? (
           <p className="text-sm text-white/60">Rewarded ads are being switched on — check back soon.</p>
         ) : isNative ? (
           <>
             <p className="text-sm text-white/70">Rewarded ads are live. Watch a short clip to earn SpinaZ — your reward is credited automatically once the ad completes.</p>
             <button
               className="re-btn !w-auto px-5"
-              onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id } }))}
+              onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
             >
               <PlayCircle size={15} /> Watch an ad
             </button>
+            {!cfg.personalized && (
+              <p className="text-[11px] text-white/40">You'll see family-friendly, non-personalized ads.{cfg.age == null ? " Add your birthday in ProfileZ for age-appropriate settings." : ""}</p>
+            )}
           </>
         ) : (
-          <p className="flex items-start gap-2 text-sm text-white/60">
-            <Smartphone size={16} className="mt-0.5 shrink-0 text-mcz-cyan" />
-            Rewarded ads play in the Music ConnectZ mobile app. Install it to watch ads and earn SpinaZ — your balance syncs here automatically.
-          </p>
+          <>
+            <p className="flex items-start gap-2 text-sm text-white/60">
+              <Smartphone size={16} className="mt-0.5 shrink-0 text-mcz-cyan" />
+              Rewarded ads play in the Music ConnectZ mobile app. Install it to watch ads and earn SpinaZ — your balance syncs here automatically.
+            </p>
+            {cfg.age == null && (
+              <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Cake size={11} /> Add your birthday in ProfileZ so ads match your age.</p>
+            )}
+          </>
         )}
       </div>
     </div>
