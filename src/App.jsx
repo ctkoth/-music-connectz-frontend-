@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
@@ -430,18 +430,51 @@ function OAuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
+  const ran = useRef(false);
+
   useEffect(() => {
+    if (ran.current) return; // StrictMode double-invokes; the values below are single-use
+    ran.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    const provider = sessionStorage.getItem("mcz_oauth_provider") || "github";
+    const returnedState = params.get("state");
+
+    // Read then immediately clear: each of these belongs to exactly one
+    // sign-in attempt and must not be reusable by the next request.
+    const provider = sessionStorage.getItem("mcz_oauth_provider");
+    const expectedState = sessionStorage.getItem("mcz_oauth_state");
+    const verifier = sessionStorage.getItem("mcz_oauth_verifier");
+    sessionStorage.removeItem("mcz_oauth_provider");
+    sessionStorage.removeItem("mcz_oauth_state");
+    sessionStorage.removeItem("mcz_oauth_verifier");
+
+    const denied = params.get("error_description") || params.get("error");
+    if (denied) {
+      setError(denied);
+      return;
+    }
     if (!code) {
       navigate("/login", { replace: true });
       return;
     }
+    // The state check is what stops someone handing you a link that finishes
+    // THEIR sign-in in YOUR browser. It was generated and stored in start(),
+    // but nothing verified it came back, which left the flow open to CSRF.
+    // A missing provider means this tab never began a sign-in at all — don't
+    // guess one, or a stray code gets replayed against the wrong provider.
+    if (!provider || !expectedState) {
+      setError("This sign-in didn't start in this tab. Please try again from the login screen.");
+      return;
+    }
+    if (returnedState !== expectedState) {
+      setError("Sign-in couldn't be verified. Please start again from the login screen.");
+      return;
+    }
+
     const redirect =
       import.meta.env.VITE_OAUTH_REDIRECT || `${window.location.origin}/oauth/callback`;
     const body = { code, redirect_uri: redirect };
-    const verifier = sessionStorage.getItem("mcz_oauth_verifier");
     if (verifier) body.code_verifier = verifier;
     oauth(provider, body)
       .then(() => navigate("/", { replace: true }))
