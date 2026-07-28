@@ -74,7 +74,10 @@ const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"�
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
 
 // Premium ICONS (cosmetic art), independent of whether the PersonaZ is premium.
-const PREMIUM_ICONS = new Set(["personaz_designer.png"]);
+// Only the manga-styled alternate art is premium. Every PersonaZ in the grid —
+// Designer included — is free to pick and shows its standard icon here, so no
+// tile in this grid carries the Premium badge today.
+const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
 
 export default function ProfileZ() {
   const [me, setMe] = useState(null);
