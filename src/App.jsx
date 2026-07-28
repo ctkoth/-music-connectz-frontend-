@@ -172,18 +172,6 @@ const TABS = [
   { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
   { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
   { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
-  { key: "drumz", label: "DrumZ", icon: "drumz.png",
-    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#4da6ff"
-        tagline="Drum training — technique, timing, rudiments, chops & fills." /> },
-  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
-    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#c084fc"
-        tagline="Violin training — posture, bowing, intonation, repertoire." /> },
-  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
-    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#4ade80"
-        tagline="Guitar training — chords, strumming, riffs, lead." /> },
-  { key: "bassz", label: "BassZ", icon: "bassz.png",
-    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#fb923c"
-        tagline="Bass training — groove, fingerstyle, slap, locking in." /> },
   { key: "singz", label: "SingZ", icon: "singz.png",
     el: <InstrumentZ appKey="singz" icon="singz.png" title="SingZ" accent="#f472b6"
         tagline="Vocal training game — range detection, quests, Boss SongZ, voice health first." /> },
@@ -196,9 +184,6 @@ const TABS = [
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
-  { key: "keyz", label: "KeyZ", icon: "keyz.png",
-    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#22e6ff"
-        tagline="Keyboard training — hands, chords, scales, reading." /> },
 ];
 
 function RequireAuth({ children }) {
@@ -274,13 +259,8 @@ const TAB_ABOUT = {
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
   directz: "🎬 DirectZ — directing tools and guided sessions.",
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
-  drumz: "🥁 DrumZ — drum training: technique, timing, rudiments, chops & fills.",
-  violinz: "🎻 ViolinZ — violin training: posture, bowing, intonation, repertoire.",
-  guitarz: "🎸 GuitarZ — guitar training: chords, strumming, riffs, lead.",
-  bassz: "🎸 BassZ — bass training: groove, fingerstyle, slap, locking in.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
-  keyz: "🎹 KeyZ — keyboard training: hands, chords, scales, reading.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
