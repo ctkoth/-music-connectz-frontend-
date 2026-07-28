@@ -26,6 +26,7 @@ import AdZ from "./apps/AdZ.jsx";
 import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
+import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -280,6 +281,13 @@ function Home() {
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
   const today = new Date().toLocaleDateString();
+  // PickConnectZ dock — pinned apps + the ones this member opens most.
+  const { usage, pins, togglePin } = usePickConnectZ(tab);
+
+  const openTab = (key) => {
+    setTab(key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const go = (delta) => {
     const n = (idx + delta + TABS.length) % TABS.length;
@@ -389,7 +397,8 @@ function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-5">
+      {/* pb leaves room for the fixed PickConnectZ dock */}
+      <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
@@ -418,6 +427,16 @@ function Home() {
           </div>
         </div>
       )}
+
+      <Dock
+        apps={TABS}
+        usage={usage}
+        pins={pins}
+        tier={user?.tier}
+        current={tab}
+        onOpen={openTab}
+        onTogglePin={togglePin}
+      />
     </div>
   );
 }
