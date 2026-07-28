@@ -103,6 +103,9 @@ export const CUSTOM_ICONS = {
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
+  // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
+  // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
+  "personaz_designer_manga.png": "/icons/personaz_designer_manga.png",
   "personaz_developer.png": "/icons/personaz_developer.png",
   "personaz_director.png": "/icons/personaz_director.png",
   "personaz_director.webp": "/icons/personaz_director.webp",
