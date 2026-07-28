@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Apple, Facebook, Github, Instagram } from "lucide-react";
+import { Apple, Facebook, Github } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
 
@@ -35,11 +35,6 @@ const XTwitter = (p) => (
     <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7 3.9H5.2L17.8 20z"/>
   </svg>
 );
-const TikTok = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <path d="M19.6 6.7a5.6 5.6 0 0 1-3.4-3.5c-.1-.4-.2-.8-.2-1.2h-3.5v13.6a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9.2a6.4 6.4 0 1 0 5.5 6.3V9.7a9 9 0 0 0 4.6 1.3V7.5c-.3 0-.7 0-1-.1z"/>
-  </svg>
-);
 const SoundCloud = (p) => (
   <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
     <path d="M1 14.5v2.9c0 .2.2.4.4.4s.4-.2.4-.4v-2.9c0-.2-.2-.4-.4-.4s-.4.2-.4.4zm2.2-1.2v5.2c0 .3.2.5.5.5s.5-.2.5-.5v-5.2c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.3-1.6v6.9c0 .3.2.5.5.5s.5-.2.5-.5v-6.9c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.3-.9v7.8c0 .3.2.5.5.5s.5-.2.5-.5V10.8c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.4-1.9v9.7c0 .3.2.5.5.5h.1c.2 0 .4-.2.4-.5V8.9c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm10.1 3.4c-.4 0-.8.1-1.2.2A5.5 5.5 0 0 0 13.9 7c-.5 0-1 .1-1.4.2-.2.1-.3.2-.3.4v10.6c0 .2.2.4.4.4h7.7a3.2 3.2 0 0 0 0-6.3z"/>
@@ -60,13 +55,13 @@ const PROVIDERS = [
     auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
   { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
     auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&state=${s}` },
-  { key: "instagram",  label: "Instagram",  Icon: Instagram,  color: "#E4405F",
-    auth: (id, s) => `https://api.instagram.com/oauth/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=user_profile&state=${s}` },
   { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2",
     auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=email,public_profile&state=${s}` },
-  { key: "tiktok",     label: "TikTok",     Icon: TikTok,     color: "#25F4EE",
-    auth: (id, s) => `https://www.tiktok.com/v2/auth/authorize/?response_type=code&client_key=${id}&redirect_uri=${REDIRECT}&scope=user.info.basic&state=${s}` },
 ];
+// Instagram and TikTok are deliberately absent. The backend can only complete a
+// sign-in for google/github/apple plus its OAUTH2_PROVIDERS registry (spotify,
+// microsoft, facebook, soundcloud, twitter); anything else comes back as an
+// unsupported provider. Only re-add a button here alongside a backend handler.
 
 function rand() {
   const a = new Uint8Array(32);
