@@ -7,7 +7,7 @@
 // Pin allowance follows the blueprint: Free pins 2 and lets the picks fill the
 // rest, Premium and StatZ pin as many as they like.
 import { useCallback, useEffect, useState } from "react";
-import { Home, Pin, Settings2, Sparkles, X } from "lucide-react";
+import { Home, LayoutGrid, Pin, Sparkles, X } from "lucide-react";
 import { IconImg } from "./App.jsx";
 
 const USAGE_KEY = "mcz_app_usage";
@@ -89,7 +89,7 @@ function DockButton({ app, active, badge, onClick }) {
 }
 
 export default function Dock({ apps, usage, pins, tier, current, onOpen, onTogglePin }) {
-  const [editing, setEditing] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const { label: tierLabel, limit } = tierInfo(tier);
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
@@ -102,19 +102,23 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-4xl p-2">
-      {editing && (
-        <div className="neon-frame mb-2 max-h-[45vh] overflow-y-auto bg-mcz-bg/95 p-3 backdrop-blur">
+      {/* The drawer is the full app list — this is how every app stays
+          reachable now that the header tab bar is gone. Tapping a tile opens
+          the app; the corner pin button adds it to the dock instead. */}
+      {drawer && (
+        <div className="neon-frame mb-2 max-h-[55vh] overflow-y-auto bg-mcz-bg/95 p-3 backdrop-blur">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[11px] text-white/55">
+              All apps ·{" "}
               {limit === Infinity
                 ? `${tierLabel} · unlimited pins (${pinnedApps.length})`
                 : `${tierLabel} · ${pinnedApps.length}/${limit} pinned`}
               {atLimit && limit !== Infinity && " · upgrade for more"}
             </span>
             <button
-              onClick={() => setEditing(false)}
+              onClick={() => setDrawer(false)}
               className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
-              title="Done"
+              title="Close"
             >
               <X size={16} />
             </button>
@@ -122,29 +126,40 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
             {apps.map((a) => {
               const pinned = pins.includes(a.key);
-              const disabled = !pinned && atLimit;
+              const pinDisabled = !pinned && atLimit;
               return (
-                <button
-                  key={a.key}
-                  onClick={() => !disabled && onTogglePin(a.key)}
-                  disabled={disabled}
-                  title={disabled ? `${tierLabel} pins ${limit} apps — upgrade for more` : a.label}
-                  className={`relative flex flex-col items-center gap-1 rounded-xl border p-2 transition ${
-                    pinned
-                      ? "border-mcz-gold/70 bg-mcz-gold/10"
-                      : disabled
-                      ? "border-white/5 opacity-35"
-                      : "border-white/10 hover:bg-white/5"
-                  }`}
-                >
-                  <IconImg icon={a.icon} alt={a.label} className="h-8 w-8 rounded-lg object-cover" />
-                  <span className="w-full truncate text-[9px] text-white/60">{a.label}</span>
-                  {pinned && (
-                    <span className="absolute -right-1 -top-1 rounded-full bg-mcz-gold p-0.5 text-black">
-                      <Pin size={9} />
-                    </span>
-                  )}
-                </button>
+                <div key={a.key} className="relative">
+                  <button
+                    onClick={() => { onOpen(a.key); setDrawer(false); }}
+                    title={`Open ${a.label}`}
+                    className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 transition ${
+                      current === a.key
+                        ? "border-mcz-ember bg-white/[0.08] shadow-neon"
+                        : "border-white/10 hover:bg-white/5"
+                    }`}
+                  >
+                    <IconImg icon={a.icon} alt={a.label} className="h-8 w-8 rounded-lg object-cover" />
+                    <span className="w-full truncate text-[9px] text-white/60">{a.label}</span>
+                  </button>
+                  <button
+                    onClick={() => !pinDisabled && onTogglePin(a.key)}
+                    disabled={pinDisabled}
+                    title={
+                      pinDisabled
+                        ? `${tierLabel} pins ${limit} apps — upgrade for more`
+                        : pinned ? `Unpin ${a.label}` : `Pin ${a.label} to the dock`
+                    }
+                    className={`absolute -right-1 -top-1 rounded-full p-1 transition ${
+                      pinned
+                        ? "bg-mcz-gold text-black"
+                        : pinDisabled
+                        ? "bg-white/5 text-white/20"
+                        : "bg-black/70 text-white/45 hover:text-white"
+                    }`}
+                  >
+                    <Pin size={9} />
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -166,7 +181,7 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
           {aiPicks.length === 0 && pinnedApps.length === 0 ? (
             <span className="px-2 text-[11px] text-white/35">
-              Open apps to build your quick nav, or tap ⚙ to pin →
+              Tap ⊞ for every app — your most-used ones land here →
             </span>
           ) : (
             <>
@@ -207,13 +222,13 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
         </div>
 
         <button
-          onClick={() => setEditing((v) => !v)}
-          title="Customize your dock"
+          onClick={() => setDrawer((v) => !v)}
+          title="All apps"
           className={`shrink-0 rounded-xl p-2 transition ${
-            editing ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/10 hover:text-white"
+            drawer ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/10 hover:text-white"
           }`}
         >
-          <Settings2 size={16} />
+          <LayoutGrid size={16} />
         </button>
       </div>
     </div>

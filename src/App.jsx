@@ -373,28 +373,8 @@ function Home() {
           </button>
         </div>
 
-        {/* Tab bar */}
-        <div className="mx-auto max-w-4xl overflow-x-auto px-2 pb-2">
-          <div className="flex gap-1.5">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                // Blueprint Global Rule: clicking a tab selects it; clicking the
-                // tab you're already on opens its Corey-voice description modal.
-                onClick={() => (tab === t.key ? setInfoKey(t.key) : setTab(t.key))}
-                title={tab === t.key ? "About this tab" : t.label}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-3 py-2 text-xs font-semibold transition hover:text-white hover:shadow-neon ${
-                  tab === t.key
-                    ? "border-mcz-ember bg-white/[0.06] text-white shadow-neon"
-                    : "border-transparent text-white/50 hover:bg-white/[0.06]"
-                }`}
-              >
-                <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* No tab bar: PickConnectZ at the foot of the screen is the primary
+            nav. Its ⊞ drawer lists every app, so nothing is unreachable. */}
       </header>
 
       {/* pb leaves room for the fixed PickConnectZ dock */}
