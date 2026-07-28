@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { isPremiumTier } from "../PickConnectZ.jsx";
+import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
@@ -89,6 +91,10 @@ export default function ProfileZ() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Chosen PersonaZ artwork, and which persona's icon picker is open.
+  const [icons, setIcons] = useState(loadPersonaIcons);
+  const [pickingIcon, setPickingIcon] = useState(null);
+  const premium = isPremiumTier(me?.tier);
 
   async function deleteAccount() {
     if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
@@ -220,24 +226,39 @@ export default function ProfileZ() {
           Your PersonaZ — pick every role you play ({sel.length} selected)
         </p>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {PERSONAS.map(([key, label, icon]) => (
-            <button key={key} onClick={() => toggle(key)}
-              className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition ${
-                sel.includes(key)
-                  ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
-                  : "border-white/10 bg-black/30 hover:bg-white/5"
-              }`}>
-              <span className="relative">
-                <IconImg icon={icon} alt={label} className="h-14 w-14 rounded-full object-cover" />
-                {PREMIUM_ICONS.has(icon) && (
-                  <span className="absolute -bottom-1 -right-1 rounded-md bg-mcz-ember px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white shadow-neon">
-                    Premium
+          {PERSONAS.map(([key, label, icon]) => {
+            const shown = personaIcon(key, icon, icons);
+            const hasVariants = (PERSONA_ICON_VARIANTS[key] || []).length > 1;
+            return (
+              <div key={key} className="relative">
+                <button onClick={() => toggle(key)}
+                  className={`flex w-full flex-col items-center gap-2 rounded-2xl border p-3 transition ${
+                    sel.includes(key)
+                      ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
+                      : "border-white/10 bg-black/30 hover:bg-white/5"
+                  }`}>
+                  <span className="relative">
+                    <IconImg icon={shown} alt={label} className="h-14 w-14 rounded-full object-cover" />
+                    {PREMIUM_ICONS.has(shown) && (
+                      <span className="absolute -bottom-1 -right-1 rounded-md bg-mcz-ember px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white shadow-neon">
+                        Premium
+                      </span>
+                    )}
                   </span>
+                  <span className="text-xs">{label}</span>
+                </button>
+                {hasVariants && (
+                  <button
+                    onClick={() => setPickingIcon(key)}
+                    title={`Change the ${label} icon`}
+                    className="absolute right-1 top-1 rounded-lg border border-white/10 bg-black/60 p-1 text-white/60 transition hover:text-white"
+                  >
+                    <Palette size={12} />
+                  </button>
                 )}
-              </span>
-              <span className="text-xs">{label}</span>
-            </button>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -286,6 +307,59 @@ export default function ProfileZ() {
           Delete my account
         </button>
       </div>
+
+      {/* PersonaZ icon picker — the art only; the PersonaZ itself is always free. */}
+      {pickingIcon && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setPickingIcon(null)}
+        >
+          <div className="neon-frame w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-lg font-extrabold">
+                {(PERSONAS.find(([k]) => k === pickingIcon) || [])[1]} icon
+              </h3>
+              <button onClick={() => setPickingIcon(null)} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {(PERSONA_ICON_VARIANTS[pickingIcon] || []).map((v) => {
+                const locked = v.premium && !premium;
+                const current = personaIcon(pickingIcon, (PERSONA_ICON_VARIANTS[pickingIcon] || [])[0]?.icon, icons) === v.icon;
+                return (
+                  <button
+                    key={v.icon}
+                    disabled={locked}
+                    onClick={() => { setIcons(setPersonaIcon(pickingIcon, v.icon)); setPickingIcon(null); }}
+                    title={locked ? "Premium members can use this artwork" : v.label}
+                    className={`relative flex flex-col items-center gap-2 rounded-2xl border p-3 transition ${
+                      current
+                        ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
+                        : locked
+                        ? "border-white/5 opacity-45"
+                        : "border-white/10 bg-black/30 hover:bg-white/5"
+                    }`}
+                  >
+                    <IconImg icon={v.icon} alt={v.label} className="h-20 w-20 rounded-2xl object-cover" />
+                    <span className="text-xs">{v.label}</span>
+                    {v.premium && (
+                      <span className="absolute right-1 top-1 flex items-center gap-0.5 rounded-md bg-mcz-ember px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white">
+                        {locked && <Lock size={7} />} Premium
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {!premium && (
+              <p className="mt-4 text-[11px] text-white/45">
+                The PersonaZ is free for everyone — only the alternate artwork needs Premium. Upgrade in MembershipZ to unlock it.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -26,6 +26,8 @@ import AdZ from "./apps/AdZ.jsx";
 import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
+import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -280,6 +282,13 @@ function Home() {
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
   const today = new Date().toLocaleDateString();
+  // PickConnectZ dock — pinned apps + the ones this member opens most.
+  const { usage, pins, togglePin } = usePickConnectZ(tab);
+
+  const openTab = (key) => {
+    setTab(key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const go = (delta) => {
     const n = (idx + delta + TABS.length) % TABS.length;
@@ -365,36 +374,20 @@ function Home() {
           </button>
         </div>
 
-        {/* Tab bar */}
-        <div className="mx-auto max-w-4xl overflow-x-auto px-2 pb-2">
-          <div className="flex gap-1.5">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                // Blueprint Global Rule: clicking a tab selects it; clicking the
-                // tab you're already on opens its Corey-voice description modal.
-                onClick={() => (tab === t.key ? setInfoKey(t.key) : setTab(t.key))}
-                title={tab === t.key ? "About this tab" : t.label}
-                className={`flex shrink-0 items-center gap-2 rounded-lg border-b-2 px-3 py-2 text-xs font-semibold transition hover:text-white hover:shadow-neon ${
-                  tab === t.key
-                    ? "border-mcz-ember bg-white/[0.06] text-white shadow-neon"
-                    : "border-transparent text-white/50 hover:bg-white/[0.06]"
-                }`}
-              >
-                <IconImg icon={t.icon} alt="" className="h-5 w-5 rounded" />
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* No tab bar: PickConnectZ at the foot of the screen is the primary
+            nav. Its ⊞ drawer lists every app, so nothing is unreachable. */}
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-5">
+      {/* pb leaves room for the fixed PickConnectZ dock */}
+      <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
         <CommunityBar />
-        {active?.el}
+        {/* keyed by tab so switching apps clears a previous app's crash */}
+        <ErrorBoundary key={tab} label={active?.label}>
+          {active?.el}
+        </ErrorBoundary>
       </main>
 
       {/* Tab description modal — opened by clicking the active tab / its icon. */}
@@ -418,6 +411,16 @@ function Home() {
           </div>
         </div>
       )}
+
+      <Dock
+        apps={TABS}
+        usage={usage}
+        pins={pins}
+        tier={user?.tier}
+        current={tab}
+        onOpen={openTab}
+        onTogglePin={togglePin}
+      />
     </div>
   );
 }
