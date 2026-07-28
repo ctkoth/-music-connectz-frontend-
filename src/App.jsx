@@ -27,6 +27,7 @@ import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -383,7 +384,10 @@ function Home() {
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
         <CommunityBar />
-        {active?.el}
+        {/* keyed by tab so switching apps clears a previous app's crash */}
+        <ErrorBoundary key={tab} label={active?.label}>
+          {active?.el}
+        </ErrorBoundary>
       </main>
 
       {/* Tab description modal — opened by clicking the active tab / its icon. */}
