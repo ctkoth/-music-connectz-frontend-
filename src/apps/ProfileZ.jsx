@@ -96,13 +96,24 @@ export default function ProfileZ() {
   const [pickingIcon, setPickingIcon] = useState(null);
   const [natQuery, setNatQuery] = useState("");
   const premium = isPremiumTier(me?.tier);
-  // Selected entries are always kept in the list — a filter that hides your own
-  // choices makes them look lost and invites double-picking.
-  const natMatches = NATIONALITIES.filter(
-    ([, name]) =>
-      nats.includes(name) ||
-      name.toLowerCase().includes(natQuery.trim().toLowerCase())
-  );
+  // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
+  // Indian — not every name with an i buried in it. Word starts count too, so
+  // "rican" still finds Puerto Rican and "islander" finds Pacific Islander;
+  // whole-name matches sort above word matches so the obvious answer leads.
+  // Selected entries are always kept — a filter that hides your own choices
+  // makes them look lost and invites picking the same heritage twice.
+  const natMatches = (() => {
+    const q = natQuery.trim().toLowerCase();
+    if (!q) return NATIONALITIES;
+    const rank = ([, name]) => {
+      const n = name.toLowerCase();
+      if (n.startsWith(q)) return 0;                                   // Irish
+      if (n.split(/[^a-zà-ÿ]+/).some((w) => w.startsWith(q))) return 1; // Puerto Rican
+      return nats.includes(name) ? 2 : 3;                              // kept / dropped
+    };
+    return NATIONALITIES.filter((row) => rank(row) < 3)
+                        .sort((a, b) => rank(a) - rank(b));
+  })();
 
   async function deleteAccount() {
     if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
@@ -287,7 +298,7 @@ export default function ProfileZ() {
           <input
             value={natQuery}
             onChange={(e) => setNatQuery(e.target.value)}
-            placeholder="Type to find your heritage…"
+            placeholder="Start typing — i shows Irish, Italian, Indian…"
             className="neon-input !py-2 pl-9 pr-8 text-xs"
           />
           {natQuery && (
