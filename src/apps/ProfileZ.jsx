@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Search } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -94,7 +94,15 @@ export default function ProfileZ() {
   // Chosen PersonaZ artwork, and which persona's icon picker is open.
   const [icons, setIcons] = useState(loadPersonaIcons);
   const [pickingIcon, setPickingIcon] = useState(null);
+  const [natQuery, setNatQuery] = useState("");
   const premium = isPremiumTier(me?.tier);
+  // Selected entries are always kept in the list — a filter that hides your own
+  // choices makes them look lost and invites double-picking.
+  const natMatches = NATIONALITIES.filter(
+    ([, name]) =>
+      nats.includes(name) ||
+      name.toLowerCase().includes(natQuery.trim().toLowerCase())
+  );
 
   async function deleteAccount() {
     if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
@@ -270,8 +278,29 @@ export default function ProfileZ() {
         <p className="mb-2 text-[11px] text-white/40">
           Represent your ancestry. Selections become a filterable metric on Social ConnectZ.
         </p>
+
+        {/* 62 entries is a wall to scan. Type to narrow it; anything already
+            selected stays visible regardless of the query, so filtering can
+            never hide a choice you have made. */}
+        <div className="relative mb-2">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <input
+            value={natQuery}
+            onChange={(e) => setNatQuery(e.target.value)}
+            placeholder="Type to find your heritage…"
+            className="neon-input !py-2 pl-9 pr-8 text-xs"
+          />
+          {natQuery && (
+            <button onClick={() => setNatQuery("")}
+              title="Clear"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/40 hover:text-white">
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          {NATIONALITIES.map(([flag, name]) => (
+          {natMatches.map(([flag, name]) => (
             <button
               key={name}
               onClick={() => toggleNat(name)}
@@ -285,6 +314,13 @@ export default function ProfileZ() {
             </button>
           ))}
         </div>
+        {natQuery && (
+          <p className="mt-2 text-[11px] text-white/35">
+            {natMatches.length === 0
+              ? <>Nothing matches “{natQuery}”. Try a shorter word.</>
+              : <>{natMatches.length} of {NATIONALITIES.length} shown{nats.length > 0 && " · your selections stay visible"}.</>}
+          </p>
+        )}
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
