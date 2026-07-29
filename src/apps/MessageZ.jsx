@@ -11,7 +11,7 @@ export default function MessageZ() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    api("/api/messagez/inbox/").then(setData).catch((e) => setMsg(e.message));
+    api("/api/economy/messages/").then(setData).catch((e) => setMsg(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -19,7 +19,7 @@ export default function MessageZ() {
     e.preventDefault();
     setBusy(true); setMsg("");
     try {
-      const r = await api("/api/messagez/send/", { method: "POST", body: { to, body } });
+      const r = await api("/api/economy/messages/", { method: "POST", body: { to, body } });
       setMsg(r.cost_energy ? `Sent · −${r.cost_energy} ⚡ Energy` : "Sent · reply = free ⚡");
       setBody(""); load();
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
@@ -32,7 +32,9 @@ export default function MessageZ() {
         <div>
           <h2 className="font-display text-3xl font-extrabold text-mcz-purple" style={{color:"#a855f7"}}>MessageZ</h2>
           <p className="text-sm text-white/60">
-            Cold DMs cost {data?.dm_cost_energy ?? 1} <Zap size={12} className="inline text-mcz-gold" /> Energy — replies are always free.
+            {data?.dm_cost_energy
+              ? <>Cold DMs cost {data.dm_cost_energy} <Zap size={12} className="inline text-mcz-gold" /> Energy — replies are always free.</>
+              : <>Direct messages are free — say something worth their time.</>}
           </p>
         </div>
       </header>
