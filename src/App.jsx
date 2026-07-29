@@ -28,6 +28,7 @@ import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import MemberProfile from "./apps/MemberProfile.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -203,7 +204,7 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-function CommunityBar() {
+function CommunityBar({ onOpenMember }) {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     let on = true;
@@ -235,9 +236,14 @@ function CommunityBar() {
       {stats.online_members?.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {stats.online_members.map((u) => (
-            <span key={u} className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
+            <button
+              key={u}
+              onClick={() => onOpenMember?.(u)}
+              title={`View ${u}'s profile`}
+              className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:shadow-neon active:scale-95"
+            >
               ● {u}
-            </span>
+            </button>
           ))}
         </div>
       )}
@@ -278,6 +284,7 @@ function Home() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState(null); // decided from onboarded state below
   const [infoKey, setInfoKey] = useState(null);
+  const [memberKey, setMemberKey] = useState(null); // username whose profile is open
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
@@ -383,7 +390,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar />
+        <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
           {active?.el}
@@ -410,6 +417,10 @@ function Home() {
             <button className="re-btn mt-5" onClick={() => setInfoKey(null)}>Got it</button>
           </div>
         </div>
+      )}
+
+      {memberKey && (
+        <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
       )}
 
       <Dock
