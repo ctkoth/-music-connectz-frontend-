@@ -164,6 +164,7 @@ export default function PostZ() {
       <div className="re-card space-y-3">
         <div className="re-label">Create a PostZ</div>
         <textarea
+          data-tour="composer"
           className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
           rows={3}
           maxLength={charLimit ?? undefined}

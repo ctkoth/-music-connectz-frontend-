@@ -495,7 +495,7 @@ export default function ProfileZ() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           Your PersonaZ — pick every role you play ({sel.length} selected)
         </p>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        <div data-tour="personas" className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {PERSONAS.map(([key, label, icon]) => {
             const shown = personaIcon(key, icon, icons);
             const hasVariants = (PERSONA_ICON_VARIANTS[key] || []).length > 1;
@@ -524,6 +524,7 @@ export default function ProfileZ() {
                 </button>
                 {hasPersona(key) && (
                   <button onClick={() => setPickingSkills(key)}
+                    data-tour="skills"
                     className="mt-1 w-full rounded-lg border border-mcz-cyan/30 py-1 text-[10px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/10">
                     + Skills
                   </button>
@@ -604,7 +605,7 @@ export default function ProfileZ() {
         {/* 62 entries is a wall to scan. Type to narrow it; anything already
             selected stays visible regardless of the query, so filtering can
             never hide a choice you have made. */}
-        <div className="relative mb-2">
+        <div data-tour="nationalities" className="relative mb-2">
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
           <input
             value={natQuery}
@@ -646,7 +647,7 @@ export default function ProfileZ() {
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
-      <div className="flex flex-wrap items-center gap-3">
+      <div data-tour="save" className="flex flex-wrap items-center gap-3">
         <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
           {busy ? <Loader2 className="animate-spin" size={16} />
                 : saved ? <Check size={16} />

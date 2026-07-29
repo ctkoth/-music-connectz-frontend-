@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown } from "lucide-react";
+import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown, Compass } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { startTour } from "../Tour.jsx";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -181,6 +182,12 @@ export default function OnboardZ() {
 
       <SystemCard />
 
+      <button onClick={startTour}
+        className="neon-btn-primary !w-auto px-5"
+        title="Walk me through it">
+        <Compass size={16} /> Take the guided tour
+      </button>
+
       {/* Progress */}
       <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
         <div className="h-full rounded-full bg-mcz-ember transition-all"
@@ -254,7 +261,7 @@ export default function OnboardZ() {
 
                 {/* Birthday step: inline date picker + save */}
                 {s.bday && !s.done && (
-                  <div className="mt-2 flex items-center gap-2">
+                  <div data-tour="birthday" className="mt-2 flex items-center gap-2">
                     <input type="date" value={bday} max={new Date().toISOString().slice(0, 10)}
                       onChange={(e) => setBday(e.target.value)}
                       className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
