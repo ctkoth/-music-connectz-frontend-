@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info } from "lucide-react";
+import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 
@@ -9,6 +9,57 @@ import { IconImg } from "../App.jsx";
 const OB_KEY = "mcz_onboard_v1";
 const loadDone = () => { try { return JSON.parse(localStorage.getItem(OB_KEY)) || {}; } catch { return {}; } };
 const goTo = (k) => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: k }));
+
+// The framing. Music ConnectZ is not RPG-themed — it is built on RPG
+// mechanics, and every line below describes something the server actually
+// computes. Saying so up front is what makes the rest of OnboardZ make sense.
+const SYSTEM = [
+  ["PersonaZ are your classes",
+   "And multiclass is the point. Producer and GhostWriter and Mix Engineer — every class you claim is another way somebody finds you. One class is a smaller surface, not a purer one."],
+  ["Experience is time served, not grind",
+   "Each skill on a PersonaZ carries the date you started it. Your experience is measured from that date, so it counts the years you have genuinely put in. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
+  ["Energy is mana, and it regenerates",
+   "Hourly, on its own, at your median reach divided by your tier — Free ÷10, Premium ÷5, StatZ ÷1. Energy runs the AI tools. Rating other people's work tops it up on top of that."],
+  ["SpinaZ is coin",
+   "Earned by rating, referring, and watching AdZ or clearing OfferZ. Spent on the things tiers gate."],
+  ["SkillZ are the skill trees",
+   "SingZ and RapZ each track a level, XP, a daily streak and badges, with their own leaderboard. Drills are the quests."],
+  ["Your tier is your rank",
+   "Free → Premium → StatZ. It buys lower platform fees, faster Energy, and daily AI prompts — 1, then 5, then 20."],
+  ["ZodiacZ and NationalitieZ are your origin",
+   "Neither is cosmetic. Both are live filters on Social ConnectZ, which makes them how your people find you."],
+  ["BattleZ is PvP, CollabZ is co-op, GroupZ and LabelZ are guilds",
+   "And your ratings are your visible stats — given by other players, never by you. You cannot score your own work."],
+];
+
+function SystemCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="re-card">
+      <button className="flex w-full items-start gap-3 text-left" onClick={() => setOpen((v) => !v)}>
+        <Swords size={18} className="mt-0.5 shrink-0 text-mcz-ember" />
+        <span className="flex-1">
+          <span className="block text-sm font-bold text-white">
+            Music ConnectZ runs like an RPG
+          </span>
+          <span className="block text-[12px] text-white/50">
+            Not as a theme — as the actual system. Here's the map.
+          </span>
+        </span>
+        <ChevronDown size={16} className={`mt-1 shrink-0 text-white/40 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2.5 border-l-2 border-mcz-ember/30 pl-3">
+          {SYSTEM.map(([term, body]) => (
+            <p key={term} className="text-[12px] leading-relaxed text-white/60">
+              <span className="font-bold text-mcz-ember">{term}.</span> {body}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Detail({ label, children }) {
   return (
@@ -65,15 +116,15 @@ export default function OnboardZ() {
   const steps = [
     { key: "profile", icon: <User size={18} />, title: "Set up your ProfileZ",
       desc: "Pick every PersonaZ you play and set your ZodiacZ.",
-      what: "Every PersonaZ you actually play — Producer, GhostWriter, Mix Engineer, A&R Scout, Director, all of them.",
-      why: "PersonaZ is how the right people find you. Somebody hunting a mix engineer filters for one — if you never claimed it, you don't exist to them. Claim every hat you wear. Nobody on here is only one thing, and pretending you are just costs you work.",
-      how: "Open ProfileZ, tap every PersonaZ that fits, tap again to drop one. Premium members can swap the artwork too — the PersonaZ itself is free either way.",
+      what: "Your classes. Every PersonaZ you actually play — Producer, GhostWriter, Mix Engineer, A&R Scout, Director, all of them.",
+      why: "This is character creation, and multiclass is the point. Somebody hunting a mix engineer filters for that class — if you never claimed it, you do not exist to them. Each skill you add carries a start date, and that date is where your experience comes from, so claiming a class you have played for a decade is worth a decade. Claim every hat you wear.",
+      how: "Open ProfileZ, tap every PersonaZ that fits, tap again to drop one. Date the skills under each one — that is what turns a class into years of experience. Premium can swap the artwork; the class itself is free either way.",
       done: (me?.personas?.length || 0) > 0, cta: "Open ProfileZ", act: () => goTo("profilez") },
 
     { key: "birthday", icon: <Cake size={18} />, title: "Add your birthday", bday: true,
       desc: "Sets your ZodiacZ and keeps ads age-appropriate. You must be 13+ to use Music ConnectZ.",
       what: "Your date of birth, entered once.",
-      why: "Two jobs. It sets your ZodiacZ, which is a real filter on Social ConnectZ — people do search by sign. And it keeps AdZ honest: 13+ to be here at all, 18+ before any ad gets personalized. Only your sign is public. The date itself stays yours.",
+      why: "Your origin, and two real jobs. It sets your ZodiacZ, which is a live filter on Social ConnectZ — people genuinely search by sign. And it keeps AdZ honest: 13+ to be here at all, 18+ before any ad gets personalized. Only the sign is public. The date itself stays yours.",
       how: "Pick the date below and hit Save. Your ZodiacZ shows up the second it lands.",
       done: !!me?.birthday },
 
@@ -81,28 +132,28 @@ export default function OnboardZ() {
       title: "Add your NationalitieZ",
       desc: "Represent your ancestry — it makes you findable on Social ConnectZ.",
       what: "The heritage you represent. As many as are genuinely yours — mixed is normal here.",
-      why: "It's a filter on Social ConnectZ, which makes it a way to find your people. Diaspora finds diaspora, and collabs come out of that. This is about representation, not gatekeeping — nobody is checking your paperwork.",
+      why: "The other half of your origin, and a live filter on Social ConnectZ — which makes it a way to find your people. Diaspora finds diaspora, and collabs come out of that. This is representation, not gatekeeping. Nobody is checking your paperwork.",
       how: "ProfileZ, scroll to NationalitieZ, tap every flag that's yours.",
       done: (me?.nationalities?.length || 0) > 0, cta: "Open ProfileZ", act: () => goTo("profilez") },
 
     { key: "post", icon: <Send size={18} />, title: "Drop your first PostZ",
       desc: "Share a track, bars or cover — the community rates it after 30s.",
       what: "Your first piece of work on the platform. A track, bars, cover art, a collab call — whatever you've got.",
-      why: "PostZ is the front door. Everything else on here hangs off your posts. Rating opens 30 seconds after you post and comments at 60 — that delay exists so nobody can dogpile something they haven't listened to yet. And you can't rate your own, so the number means something.",
+      why: "PostZ is the front door, and your posts are what everything else hangs off. Rating opens 30 seconds after you post and comments at 60 — that delay exists so nobody can dogpile a track they have not listened to yet. You cannot score your own, which is the whole reason the number is worth anything.",
       how: "PostZ tab, drop it in the box, pick a genre, hit Post. Your char limit goes up with your tier.",
       done: !!done.post, cta: "Go to PostZ", act: () => { mark("post"); goTo("postz"); } },
 
     { key: "rate", icon: <Star size={18} />, title: "Rate 3 tracks",
       desc: "Every rating you give earns +1 Energy.",
       what: "Score three other people's PostZ, 1 to 10.",
-      why: "+1 Energy each, and Energy is what runs the AI tools. But that's the small reason. The real one: ratings are only worth anything if people actually give them. A feed where everybody posts and nobody scores is just noise. Rate honestly and you get rated honestly.",
+      why: "+1 Energy each — mana, on top of what regenerates hourly, and Energy is what runs the AI tools. But that is the small reason. The real one: stats only exist because other players hand them out. A feed where everybody posts and nobody scores is just noise. Rate honestly and you get rated honestly.",
       how: "PostZ tab, find any post that isn't yours and is at least 30 seconds old, tap the score.",
       done: !!done.rate, cta: "Rate now", act: () => { mark("rate"); goTo("postz"); } },
 
     { key: "refer", icon: <Gift size={18} />, title: "Refer a friend", refer: true,
       desc: `Earn ${ref?.reward_per_join ?? 300} SpinaZ for every legit join.`,
       what: "Your personal invite link. Your username is the code.",
-      why: `${ref?.reward_per_join ?? 300} SpinaZ every time someone joins on it, and they land with a welcome drop too — both sides come out ahead. A platform this size is worth exactly as much as the people on it, so bringing one real person is worth more than any grind.`,
+      why: `${ref?.reward_per_join ?? 300} SpinaZ every time someone joins on it, and they land with a welcome drop too — both sides come out ahead. A world is worth exactly as much as the people in it, so bringing one real person beats any amount of grinding.`,
       how: "Copy the link below and send it. The SpinaZ credit when they finish signing up — legit joins only, so don't bother with burner accounts.",
       done: (ref?.count || 0) > 0 || !!done.refer },
   ];
@@ -127,6 +178,8 @@ export default function OnboardZ() {
           <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
       </header>
+
+      <SystemCard />
 
       {/* Progress */}
       <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
