@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
@@ -28,6 +28,7 @@ import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -285,6 +286,10 @@ function Home() {
   const [tab, setTab] = useState(null); // decided from onboarded state below
   const [infoKey, setInfoKey] = useState(null);
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
+  const [tourMe, setTourMe] = useState(null); // account state the tour gates on
+  const refreshTourMe = useCallback(() => {
+    api("/api/auth/me/").then(setTourMe).catch(() => {});
+  }, []);
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
@@ -422,6 +427,8 @@ function Home() {
       {memberKey && (
         <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
       )}
+
+      <Tour me={tourMe} onRefreshMe={refreshTourMe} />
 
       <Dock
         apps={TABS}
