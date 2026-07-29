@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Send, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { useCharLimit } from "../limits.js";
+import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 
 export default function MessageZ() {
@@ -9,6 +11,7 @@ export default function MessageZ() {
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const cl = useCharLimit();
 
   const load = useCallback(() => {
     api("/api/economy/messages/").then(setData).catch((e) => setMsg(e.message));
@@ -41,7 +44,11 @@ export default function MessageZ() {
 
       <form onSubmit={send} className="neon-frame space-y-3 p-4">
         <input className="neon-input" placeholder="To (username)" value={to} onChange={(e) => setTo(e.target.value)} required />
-        <textarea className="neon-input" rows={2} placeholder="Say something worth their time…" value={body} onChange={(e) => setBody(e.target.value)} required />
+        <textarea className="neon-input" rows={2} placeholder="Say something worth their time…"
+          value={body} maxLength={cl.unlimited ? undefined : cl.limit}
+          onChange={(e) => setBody(cl.clamp(e.target.value))} required />
+        <CharLimit cl={cl} value={body} />
+        <TierCharTable current={cl.tier} />
         {msg && <p className="text-sm text-mcz-gold">{msg}</p>}
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send
