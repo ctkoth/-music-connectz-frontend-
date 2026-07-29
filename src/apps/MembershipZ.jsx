@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { APP_BENEFITS, TIER_BLURB, TIER_MATRIX, TIER_ORDER } from "../tierBenefits.js";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, "")}`;
 
@@ -146,6 +147,72 @@ export default function MembershipZ() {
             ))}
           </tbody>
         </table>
+      </div>
+
+
+      {/* What each tier actually buys, app by app. Blueprint-sourced. */}
+      <div className="space-y-3">
+        <div>
+          <p className="re-label flex items-center gap-2">
+            <Sparkles size={13} className="text-mcz-gold" /> What each tier buys you
+          </p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {TIER_ORDER.map((t) => (
+              <div key={t}
+                className={`rounded-xl border p-3 ${
+                  t === mine ? "border-mcz-ember/60 bg-mcz-ember/10" : "border-white/10 bg-black/30"}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${t === mine ? "text-mcz-ember" : "text-white/70"}`}>
+                  {t === "statz" ? "StatZ" : t === "premium" ? "Premium" : "Free"}
+                  {t === mine && <span className="ml-1 text-[9px] font-normal">· yours</span>}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-white/55">{TIER_BLURB[t]}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-[11px]">
+            <thead className="text-white/40">
+              <tr><th className="py-1">&nbsp;</th><th className="py-1 text-center">Free</th>
+                  <th className="py-1 text-center">Premium</th><th className="py-1 text-center">StatZ</th></tr>
+            </thead>
+            <tbody>
+              {TIER_MATRIX.map(([label, f, pr, st]) => (
+                <tr key={label} className="border-t border-white/[0.06]">
+                  <td className="py-1.5 pr-2 text-white/65">{label}</td>
+                  {[["free", f], ["premium", pr], ["statz", st]].map(([tier, v]) => (
+                    <td key={tier} className={`py-1.5 text-center ${
+                      tier === mine ? "font-semibold text-mcz-ember" : v === "—" ? "text-white/20" : "text-white/60"}`}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <details className="re-card">
+          <summary className="cursor-pointer text-xs font-semibold text-white/70">
+            App by app — what changes where
+          </summary>
+          <div className="mt-3 space-y-3">
+            {APP_BENEFITS.map((a) => (
+              <div key={a.app}>
+                <p className="flex items-center gap-2 text-[11px] font-bold text-white">
+                  <IconImg icon={a.icon} alt="" className="h-4 w-4 rounded" /> {a.app}
+                </p>
+                {TIER_ORDER.map((t) => a[t] === "—" ? null : (
+                  <p key={t} className="pl-6 text-[11px] leading-relaxed text-white/55">
+                    <span className={`mr-1 font-semibold ${t === mine ? "text-mcz-ember" : "text-white/40"}`}>
+                      {t === "statz" ? "StatZ" : t === "premium" ? "Premium" : "Free"}
+                    </span>
+                    {a[t]}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </details>
       </div>
 
       {/* Premium — mid tier, buyable now. */}
