@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Upload, Image as ImageIcon } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -80,6 +80,115 @@ const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"�
 // Designer included — is free to pick and shows its standard icon here, so no
 // tile in this grid carries the Premium badge today.
 const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
+
+// Profile picture — view what you have, pick a new one, preview it, save.
+// The picture lives on the economy profile (/api/economy/profile/), not on
+// /api/auth/me/, so this reads its own copy rather than threading it through.
+const AVATAR_MAX_MB = 8;
+
+function AvatarCard() {
+  const [url, setUrl] = useState(null);       // what's saved on the server
+  const [preview, setPreview] = useState(""); // local object URL, pre-save
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const input = useRef(null);
+
+  useEffect(() => {
+    api("/api/economy/profile/").then((d) => setUrl(d?.avatar || null)).catch(() => {});
+  }, []);
+
+  // Revoke the object URL when it changes or the card unmounts, or every pick
+  // leaks a blob for the life of the page.
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  function pick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked after a cancel
+    if (!f) return;
+    setMsg("");
+    if (!f.type.startsWith("image/")) return setMsg("That file isn't an image. Use a JPG, PNG, WebP or GIF.");
+    if (f.size > AVATAR_MAX_MB * 1024 * 1024) return setMsg(`That image is too big — keep it under ${AVATAR_MAX_MB}MB.`);
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  function discard() {
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(""); setFile(null); setMsg("");
+  }
+
+  async function save() {
+    if (!file) return;
+    setBusy(true); setMsg("");
+    try {
+      const body = new FormData();
+      body.append("avatar", file);
+      const d = await api("/api/economy/profile/avatar/", { method: "POST", body });
+      setUrl(d?.avatar || null);
+      discard();
+      setMsg("Profile picture saved.");
+    } catch (e) { setMsg(e.message || "Couldn't save that picture."); }
+    finally { setBusy(false); }
+  }
+
+  async function remove() {
+    if (!window.confirm("Remove your profile picture?")) return;
+    setBusy(true); setMsg("");
+    try {
+      const d = await api("/api/economy/profile/avatar/", { method: "DELETE" });
+      setUrl(d?.avatar || null);
+      discard();
+      setMsg("Picture removed.");
+    } catch (e) { setMsg(e.message || "Couldn't remove it."); }
+    finally { setBusy(false); }
+  }
+
+  const shown = preview || url;
+  return (
+    <div className="neon-frame space-y-3 p-4">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <ImageIcon size={13} className="text-mcz-ember" /> Profile picture
+      </p>
+      <div className="flex items-center gap-4">
+        {shown ? (
+          <img src={shown} alt="Your profile picture"
+               className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-neon" />
+        ) : (
+          <IconImg icon="personaz.png" alt="" className="h-20 w-20 shrink-0 rounded-2xl opacity-60" />
+        )}
+        <div className="flex-1 space-y-2">
+          <p className="text-[11px] text-white/45">
+            {preview ? "Preview — not saved yet."
+                     : url ? "This is what other members see."
+                           : "No picture yet — you're showing the default PersonaZ art."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input ref={input} type="file" accept="image/*" onChange={pick} className="hidden" />
+            <button className="re-btn !w-auto px-4" onClick={() => input.current?.click()} disabled={busy}>
+              <Upload size={14} /> {shown ? "Change" : "Choose"}
+            </button>
+            {preview && (
+              <>
+                <button className="neon-btn-primary !w-auto px-4" onClick={save} disabled={busy}>
+                  {busy ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Save
+                </button>
+                <button className="re-btn !w-auto px-3" onClick={discard} disabled={busy}>Cancel</button>
+              </>
+            )}
+            {url && !preview && (
+              <button className="re-btn !w-auto px-3 !text-red-300" onClick={remove} disabled={busy}>
+                <Trash2 size={14} /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {msg && <p className="text-[11px] text-mcz-gold">{msg}</p>}
+    </div>
+  );
+}
 
 export default function ProfileZ() {
   const [me, setMe] = useState(null);
@@ -173,6 +282,8 @@ export default function ProfileZ() {
           </p>
         </div>
       </header>
+
+      <AvatarCard />
 
       <Verify18Card />
 
