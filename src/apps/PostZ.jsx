@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Send, Lock, Flame, RefreshCw, AlertCircle, Eye, Share2, Check as CheckIcon } from "lucide-react";
 import { api } from "../api.js";
+import { useCharLimit } from "../limits.js";
+import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { RATE_WINDOW_SEC, COMMENT_WINDOW_SEC } from "./socialData.js";
 
@@ -39,10 +41,8 @@ function mapPost(s) {
   };
 }
 
-// Per-tier character limit — StatZ is unlimited (mirrors the server's
-// char_limit_for). The backend is the source of truth; this drives the input
-// maxLength and the transparency copy.
-const CHAR_LIMIT_DEFAULT = 1000;
+// Character limits come from /api/economy/limits/ via useCharLimit. This file
+// used to carry its own 1,000 — which matched no tier the server enforces.
 
 export default function PostZ() {
   const now = useNow();
@@ -56,7 +56,8 @@ export default function PostZ() {
   const [tier, setTier] = useState("free");
   const commentDraft = useRef({});
   // null => unlimited (StatZ).
-  const charLimit = tier === "statz" ? null : CHAR_LIMIT_DEFAULT;
+  const cl = useCharLimit();
+  const charLimit = cl.unlimited ? null : cl.limit;
 
   useEffect(() => {
     api("/api/auth/me/").then((m) => setTier(m.tier || "free")).catch(() => {});
@@ -168,7 +169,7 @@ export default function PostZ() {
           maxLength={charLimit ?? undefined}
           placeholder="Drop your track, bars, cover art or collab call…"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => setContent(cl.clamp(e.target.value))}
         />
         <div className="text-right text-[10px] text-white/35">
           {content.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
@@ -188,10 +189,9 @@ export default function PostZ() {
           Transparency: rating unlocks <span className="text-white/70">{RATE_WINDOW_SEC}s</span> after posting
           (other users only) · comments unlock <span className="text-white/70">{COMMENT_WINDOW_SEC}s</span> after posting.
           Every rating you give earns you <span className="text-mcz-ember">+1 Energy</span>.
-          {tier === "statz"
-            ? <> · <span className="text-mcz-ember">StatZ</span> char limit: <span className="text-white/70">Unlimited</span>.</>
-            : <> · Char limit: <span className="text-white/70">1,000</span> — <span className="text-mcz-ember">StatZ</span> unlocks unlimited.</>}
         </p>
+        <CharLimit cl={cl} value={content} />
+        <TierCharTable current={cl.tier} />
       </div>
 
       {toast && (

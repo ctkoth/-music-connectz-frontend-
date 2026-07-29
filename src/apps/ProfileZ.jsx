@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
+import { PERSONA_SKILLS, skillYears } from "../personaSkills.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
@@ -72,6 +73,41 @@ const PERSONAS = [
   ["producer", "Producer", "personaz_producer.png"],
   ["videographer", "Videographer", "personaz_videographer.png"],
 ];
+
+// SubstanceZ — what a member uses, declared by them. A profile metric, so it is
+// filterable on Social ConnectZ like every other one. Order runs legal → heavy;
+// the copy stays non-judgemental because honest data beats flattering data.
+const SUBSTANCES = [
+  ["cigarettes", "Cigarettes", "🚬"],
+  ["caffeine", "Caffeine", "☕"],
+  ["alcohol", "Alcohol", "🍺"],
+  ["thc", "THC", "🍃"],
+  ["dxm", "DXM", "🧴"],
+  ["adderall", "Adderall", "💊"],
+  ["benzos", "Benzos", "💊"],
+  ["opioids", "Opioids", "💊"],
+  ["heroin", "Heroin", "💉"],
+  ["crack", "Crack", "💎"],
+  ["meth", "Meth", "💎"],
+];
+
+// PreferenceZ — the genders a member is attracted to. Any one, any mix, or all.
+const PARTNER_GENDERS = [
+  ["male", "Male", "♂"],
+  ["female", "Female", "♀"],
+  ["nonbinary", "Non-binary", "⚧"],
+];
+
+// ZodiacZ — the canonical date ranges. Shown so a member can see why their sign
+// is what it is; the sign itself is derived server-side from the birthday.
+const ZODIAC_RANGES = {
+  Aries: "March 21 – April 19", Taurus: "April 20 – May 20", Gemini: "May 21 – June 20",
+  Cancer: "June 21 – July 22", Leo: "July 23 – August 22", Virgo: "August 23 – September 22",
+  Libra: "September 23 – October 22", Scorpio: "October 23 – November 21",
+  Sagittarius: "November 22 – December 21", Capricorn: "December 22 – January 19",
+  Aquarius: "January 20 – February 18", Pisces: "February 19 – March 20",
+};
+
 const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
 
@@ -81,11 +117,198 @@ const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"�
 // tile in this grid carries the Premium badge today.
 const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
 
+
+// Skill picker for one PersonaZ — 2.2's openSkillModal, with the start date it
+// never had. The date is the point: the server derives a member's experience
+// from the earliest one across all their skills, so an undated skill is a claim
+// and a dated one is years served.
+function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
+  const cats = PERSONA_SKILLS[personaKey] || {};
+  const picked = Object.fromEntries((skills || []).map((s) => [s.name, s.start || ""]));
+
+  function toggle(label) {
+    const next = { ...picked };
+    if (label in next) delete next[label]; else next[label] = "";
+    onChange(Object.entries(next).map(([name, start]) => (start ? { name, start } : { name })));
+  }
+  function setStart(label, start) {
+    const next = { ...picked, [label]: start };
+    onChange(Object.entries(next).map(([name, st]) => (st ? { name, start: st } : { name })));
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+         onClick={onClose}>
+      <div className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold">{personaLabel} skills</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="mb-4 text-[11px] text-white/45">
+          Pick what you actually do. Date a skill and it counts as experience — the years come from when you
+          started, so there's nothing to farm.
+        </p>
+
+        {Object.entries(cats).map(([cat, entries]) => (
+          <div key={cat} className="mb-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-mcz-ember">{cat}</p>
+            <div className="space-y-1.5">
+              {Object.entries(entries).map(([key, label]) => {
+                const on = label in picked;
+                return (
+                  <div key={key}>
+                    <button onClick={() => toggle(label)}
+                      className={`w-full rounded-lg border px-3 py-1.5 text-left text-xs transition ${
+                        on ? "border-mcz-gold/70 bg-mcz-gold/10 text-white"
+                           : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+                      {on && <Check size={11} className="mr-1 inline text-mcz-gold" />}{label}
+                    </button>
+                    {on && (
+                      <div className="mt-1 flex items-center gap-2 pl-3">
+                        <span className="text-[10px] text-white/40">Started</span>
+                        <input type="date" value={picked[label] || ""}
+                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setStart(label, e.target.value)}
+                          className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
+                        {skillYears(picked[label]) != null && (
+                          <span className="text-[10px] text-mcz-cyan">
+                            {skillYears(picked[label])} yr{skillYears(picked[label]) === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <button className="re-btn !w-auto px-5" onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+// Profile picture — view what you have, pick a new one, preview it, save.
+// The picture lives on the economy profile (/api/economy/profile/), not on
+// /api/auth/me/, so this reads its own copy rather than threading it through.
+const AVATAR_MAX_MB = 8;
+
+function AvatarCard() {
+  const [url, setUrl] = useState(null);       // what's saved on the server
+  const [preview, setPreview] = useState(""); // local object URL, pre-save
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const input = useRef(null);
+
+  useEffect(() => {
+    api("/api/economy/profile/").then((d) => setUrl(d?.avatar || null)).catch(() => {});
+  }, []);
+
+  // Revoke the object URL when it changes or the card unmounts, or every pick
+  // leaks a blob for the life of the page.
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  function pick(e) {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked after a cancel
+    if (!f) return;
+    setMsg("");
+    if (!f.type.startsWith("image/")) return setMsg("That file isn't an image. Use a JPG, PNG, WebP or GIF.");
+    if (f.size > AVATAR_MAX_MB * 1024 * 1024) return setMsg(`That image is too big — keep it under ${AVATAR_MAX_MB}MB.`);
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  function discard() {
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(""); setFile(null); setMsg("");
+  }
+
+  async function save() {
+    if (!file) return;
+    setBusy(true); setMsg("");
+    try {
+      const body = new FormData();
+      body.append("avatar", file);
+      const d = await api("/api/economy/profile/avatar/", { method: "POST", body });
+      setUrl(d?.avatar || null);
+      discard();
+      setMsg("Profile picture saved.");
+    } catch (e) { setMsg(e.message || "Couldn't save that picture."); }
+    finally { setBusy(false); }
+  }
+
+  async function remove() {
+    if (!window.confirm("Remove your profile picture?")) return;
+    setBusy(true); setMsg("");
+    try {
+      const d = await api("/api/economy/profile/avatar/", { method: "DELETE" });
+      setUrl(d?.avatar || null);
+      discard();
+      setMsg("Picture removed.");
+    } catch (e) { setMsg(e.message || "Couldn't remove it."); }
+    finally { setBusy(false); }
+  }
+
+  const shown = preview || url;
+  return (
+    <div className="neon-frame space-y-3 p-4">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <ImageIcon size={13} className="text-mcz-ember" /> Profile picture
+      </p>
+      <div className="flex items-center gap-4">
+        {shown ? (
+          <img src={shown} alt="Your profile picture"
+               className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-neon" />
+        ) : (
+          <IconImg icon="personaz.png" alt="" className="h-20 w-20 shrink-0 rounded-2xl opacity-60" />
+        )}
+        <div className="flex-1 space-y-2">
+          <p className="text-[11px] text-white/45">
+            {preview ? "Preview — not saved yet."
+                     : url ? "This is what other members see."
+                           : "No picture yet — you're showing the default PersonaZ art."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input ref={input} type="file" accept="image/*" onChange={pick} className="hidden" />
+            <button className="re-btn !w-auto px-4" onClick={() => input.current?.click()} disabled={busy}>
+              <Upload size={14} /> {shown ? "Change" : "Choose"}
+            </button>
+            {preview && (
+              <>
+                <button className="neon-btn-primary !w-auto px-4" onClick={save} disabled={busy}>
+                  {busy ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Save
+                </button>
+                <button className="re-btn !w-auto px-3" onClick={discard} disabled={busy}>Cancel</button>
+              </>
+            )}
+            {url && !preview && (
+              <button className="re-btn !w-auto px-3 !text-red-300" onClick={remove} disabled={busy}>
+                <Trash2 size={14} /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {msg && <p className="text-[11px] text-mcz-gold">{msg}</p>}
+    </div>
+  );
+}
+
 export default function ProfileZ() {
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
+  const [subs, setSubs] = useState([]);        // SubstanceZ keys
+  const [partners, setPartners] = useState([]); // PreferenceZ keys
+  const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState("");
@@ -94,6 +317,7 @@ export default function ProfileZ() {
   // Chosen PersonaZ artwork, and which persona's icon picker is open.
   const [icons, setIcons] = useState(loadPersonaIcons);
   const [pickingIcon, setPickingIcon] = useState(null);
+  const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
   const premium = isPremiumTier(me?.tier);
   // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
@@ -130,10 +354,18 @@ export default function ProfileZ() {
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
-      setMe(d); setSel(d.personas || []); setBirthday(d.birthday || "");
+      setMe(d); setBirthday(d.birthday || "");
+      // Server may hold the old string form or the dict form — normalize once.
+      setSel((d.personas || []).map((x) =>
+        typeof x === "string" ? { key: x, name: x, skills: [] }
+                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
+    api("/api/economy/profile/").then((d) => {
+      setSubs(Array.isArray(d?.substances) ? d.substances : Object.keys(d?.substances || {}));
+      setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
+    }).catch(() => {});
   }, []);
 
   const refLink = ref ? `${window.location.origin}/register?ref=${encodeURIComponent(ref.code)}` : "";
@@ -145,8 +377,15 @@ export default function ProfileZ() {
     }).catch(() => {});
   }
 
-  function toggle(key) {
-    setSel((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));
+  const hasPersona = (key) => sel.some((x) => x.key === key);
+  function toggle(key, label) {
+    setSel((cur) => cur.some((x) => x.key === key)
+      ? cur.filter((x) => x.key !== key)
+      : [...cur, { key, name: label, skills: [] }]);
+  }
+  const skillsOf = (key) => (sel.find((x) => x.key === key)?.skills) || [];
+  function setSkills(key, skills) {
+    setSel((cur) => cur.map((x) => (x.key === key ? { ...x, skills } : x)));
   }
 
   function toggleNat(name) {
@@ -154,7 +393,7 @@ export default function ProfileZ() {
   }
 
   async function save() {
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setSaved(false);
     // Mirror the public profile into the shared social store so Social ConnectZ
     // can surface & heritage-filter this user immediately.
     saveSocial({
@@ -165,14 +404,24 @@ export default function ProfileZ() {
       },
     });
     try {
+      // Two writes: identity fields on the account, metrics on the searchable
+      // economy profile. Both must land before this reports success.
       const d = await api("/api/auth/me/", {
         method: "PATCH",
         body: { personas: sel, birthday: birthday || null, nationalities: nats },
       });
-      setMe(d); setMsg("Saved! PersonaZ, ZodiacZ & NationalitieZ are set.");
+      await api("/api/economy/profile/", {
+        method: "POST",
+        body: { substances: subs, attracted_to: partners, nationalities: nats },
+      });
+      setMe(d);
+      setSaved(true);
+      setMsg("Saved. PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
+      setTimeout(() => setSaved(false), 4000);
     } catch (e) {
-      // Backend may not persist nationalities yet — local heritage still saved.
-      setMsg("Saved locally. NationalitieZ now filterable on Social ConnectZ.");
+      // Previously this swallowed every failure and answered "Saved locally",
+      // so a profile that never reached the server looked saved.
+      setMsg(e.message || "Couldn't save your profile — nothing was changed.");
     } finally { setBusy(false); }
   }
 
@@ -192,6 +441,8 @@ export default function ProfileZ() {
           </p>
         </div>
       </header>
+
+      <AvatarCard />
 
       <Verify18Card />
 
@@ -250,9 +501,9 @@ export default function ProfileZ() {
             const hasVariants = (PERSONA_ICON_VARIANTS[key] || []).length > 1;
             return (
               <div key={key} className="relative">
-                <button onClick={() => toggle(key)}
+                <button onClick={() => toggle(key, label)}
                   className={`flex w-full flex-col items-center gap-2 rounded-2xl border p-3 transition ${
-                    sel.includes(key)
+                    hasPersona(key)
                       ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
                       : "border-white/10 bg-black/30 hover:bg-white/5"
                   }`}>
@@ -265,7 +516,18 @@ export default function ProfileZ() {
                     )}
                   </span>
                   <span className="text-xs">{label}</span>
+                  {hasPersona(key) && (
+                    <span className="text-[9px] text-mcz-cyan">
+                      {skillsOf(key).length} skill{skillsOf(key).length === 1 ? "" : "s"}
+                    </span>
+                  )}
                 </button>
+                {hasPersona(key) && (
+                  <button onClick={() => setPickingSkills(key)}
+                    className="mt-1 w-full rounded-lg border border-mcz-cyan/30 py-1 text-[10px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/10">
+                    + Skills
+                  </button>
+                )}
                 {hasVariants && (
                   <button
                     onClick={() => setPickingIcon(key)}
@@ -279,6 +541,55 @@ export default function ProfileZ() {
             );
           })}
         </div>
+      </div>
+
+      {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <Heart size={13} className="text-mcz-pink" /> PreferenceZ — partner genderZ ({partners.length} selected)
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          Who you're attracted to. Pick one, pick two, pick all three — it becomes a filter on Social ConnectZ.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {PARTNER_GENDERS.map(([key, label, glyph]) => (
+            <button key={key}
+              onClick={() => setPartners((v) => v.includes(key) ? v.filter((x) => x !== key) : [...v, key])}
+              className={`rounded-full border px-4 py-2 text-sm transition ${
+                partners.includes(key)
+                  ? "border-mcz-pink/70 bg-mcz-pink/10 text-white shadow-neon"
+                  : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+              <span className="mr-1.5">{glyph}</span>{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SubstanceZ — declared use, another searchable metric. */}
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
+          SubstanceZ ({subs.length} selected)
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          What you actually use. Honest beats flattering — it's a filter, so it puts you with people who live the
+          same way. Select none and you read as sober.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SUBSTANCES.map(([key, label, glyph]) => (
+            <button key={key}
+              onClick={() => setSubs((v) => v.includes(key) ? v.filter((x) => x !== key) : [...v, key])}
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                subs.includes(key)
+                  ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
+                  : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+              <span className="mr-1">{glyph}</span>{label}
+            </button>
+          ))}
+        </div>
+        {subs.length === 0 && (
+          <p className="mt-2 text-[11px] text-emerald-300/70">Nothing selected — your profile reads sober.</p>
+        )}
       </div>
 
       <div>
@@ -335,9 +646,19 @@ export default function ProfileZ() {
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
-      <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
-        {busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save ProfileZ
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
+          {busy ? <Loader2 className="animate-spin" size={16} />
+                : saved ? <Check size={16} />
+                : <Save size={16} />}
+          {busy ? "Saving…" : saved ? "Saved" : "Save ProfileZ"}
+        </button>
+        {saved && (
+          <span className="flex items-center gap-1 text-xs text-emerald-300">
+            <Check size={13} /> Your profile is live.
+          </span>
+        )}
+      </div>
 
       {/* Danger zone — permanent account deletion */}
       <div className="mt-8 rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
@@ -354,6 +675,16 @@ export default function ProfileZ() {
           Delete my account
         </button>
       </div>
+
+      {pickingSkills && (
+        <SkillModal
+          personaKey={pickingSkills}
+          personaLabel={(PERSONAS.find(([k]) => k === pickingSkills) || [])[1] || pickingSkills}
+          skills={skillsOf(pickingSkills)}
+          onChange={(sk) => setSkills(pickingSkills, sk)}
+          onClose={() => setPickingSkills(null)}
+        />
+      )}
 
       {/* PersonaZ icon picker — the art only; the PersonaZ itself is always free. */}
       {pickingIcon && (
