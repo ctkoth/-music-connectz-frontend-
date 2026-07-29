@@ -4,6 +4,7 @@ import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
+import { PERSONA_SKILLS, skillYears } from "../personaSkills.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
@@ -81,6 +82,81 @@ const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"�
 // tile in this grid carries the Premium badge today.
 const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
 
+
+// Skill picker for one PersonaZ — 2.2's openSkillModal, with the start date it
+// never had. The date is the point: the server derives a member's experience
+// from the earliest one across all their skills, so an undated skill is a claim
+// and a dated one is years served.
+function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
+  const cats = PERSONA_SKILLS[personaKey] || {};
+  const picked = Object.fromEntries((skills || []).map((s) => [s.name, s.start || ""]));
+
+  function toggle(label) {
+    const next = { ...picked };
+    if (label in next) delete next[label]; else next[label] = "";
+    onChange(Object.entries(next).map(([name, start]) => (start ? { name, start } : { name })));
+  }
+  function setStart(label, start) {
+    const next = { ...picked, [label]: start };
+    onChange(Object.entries(next).map(([name, st]) => (st ? { name, start: st } : { name })));
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+         onClick={onClose}>
+      <div className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold">{personaLabel} skills</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="mb-4 text-[11px] text-white/45">
+          Pick what you actually do. Date a skill and it counts as experience — the years come from when you
+          started, so there's nothing to farm.
+        </p>
+
+        {Object.entries(cats).map(([cat, entries]) => (
+          <div key={cat} className="mb-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-mcz-ember">{cat}</p>
+            <div className="space-y-1.5">
+              {Object.entries(entries).map(([key, label]) => {
+                const on = label in picked;
+                return (
+                  <div key={key}>
+                    <button onClick={() => toggle(label)}
+                      className={`w-full rounded-lg border px-3 py-1.5 text-left text-xs transition ${
+                        on ? "border-mcz-gold/70 bg-mcz-gold/10 text-white"
+                           : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+                      {on && <Check size={11} className="mr-1 inline text-mcz-gold" />}{label}
+                    </button>
+                    {on && (
+                      <div className="mt-1 flex items-center gap-2 pl-3">
+                        <span className="text-[10px] text-white/40">Started</span>
+                        <input type="date" value={picked[label] || ""}
+                          max={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setStart(label, e.target.value)}
+                          className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
+                        {skillYears(picked[label]) != null && (
+                          <span className="text-[10px] text-mcz-cyan">
+                            {skillYears(picked[label])} yr{skillYears(picked[label]) === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <button className="re-btn !w-auto px-5" onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileZ() {
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
@@ -94,6 +170,7 @@ export default function ProfileZ() {
   // Chosen PersonaZ artwork, and which persona's icon picker is open.
   const [icons, setIcons] = useState(loadPersonaIcons);
   const [pickingIcon, setPickingIcon] = useState(null);
+  const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const premium = isPremiumTier(me?.tier);
 
   async function deleteAccount() {
@@ -111,7 +188,11 @@ export default function ProfileZ() {
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
-      setMe(d); setSel(d.personas || []); setBirthday(d.birthday || "");
+      setMe(d); setBirthday(d.birthday || "");
+      // Server may hold the old string form or the dict form — normalize once.
+      setSel((d.personas || []).map((x) =>
+        typeof x === "string" ? { key: x, name: x, skills: [] }
+                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
@@ -126,8 +207,15 @@ export default function ProfileZ() {
     }).catch(() => {});
   }
 
-  function toggle(key) {
-    setSel((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));
+  const hasPersona = (key) => sel.some((x) => x.key === key);
+  function toggle(key, label) {
+    setSel((cur) => cur.some((x) => x.key === key)
+      ? cur.filter((x) => x.key !== key)
+      : [...cur, { key, name: label, skills: [] }]);
+  }
+  const skillsOf = (key) => (sel.find((x) => x.key === key)?.skills) || [];
+  function setSkills(key, skills) {
+    setSel((cur) => cur.map((x) => (x.key === key ? { ...x, skills } : x)));
   }
 
   function toggleNat(name) {
@@ -231,9 +319,9 @@ export default function ProfileZ() {
             const hasVariants = (PERSONA_ICON_VARIANTS[key] || []).length > 1;
             return (
               <div key={key} className="relative">
-                <button onClick={() => toggle(key)}
+                <button onClick={() => toggle(key, label)}
                   className={`flex w-full flex-col items-center gap-2 rounded-2xl border p-3 transition ${
-                    sel.includes(key)
+                    hasPersona(key)
                       ? "border-mcz-gold/70 bg-mcz-gold/10 shadow-neon"
                       : "border-white/10 bg-black/30 hover:bg-white/5"
                   }`}>
@@ -246,7 +334,18 @@ export default function ProfileZ() {
                     )}
                   </span>
                   <span className="text-xs">{label}</span>
+                  {hasPersona(key) && (
+                    <span className="text-[9px] text-mcz-cyan">
+                      {skillsOf(key).length} skill{skillsOf(key).length === 1 ? "" : "s"}
+                    </span>
+                  )}
                 </button>
+                {hasPersona(key) && (
+                  <button onClick={() => setPickingSkills(key)}
+                    className="mt-1 w-full rounded-lg border border-mcz-cyan/30 py-1 text-[10px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/10">
+                    + Skills
+                  </button>
+                )}
                 {hasVariants && (
                   <button
                     onClick={() => setPickingIcon(key)}
@@ -307,6 +406,16 @@ export default function ProfileZ() {
           Delete my account
         </button>
       </div>
+
+      {pickingSkills && (
+        <SkillModal
+          personaKey={pickingSkills}
+          personaLabel={(PERSONAS.find(([k]) => k === pickingSkills) || [])[1] || pickingSkills}
+          skills={skillsOf(pickingSkills)}
+          onChange={(sk) => setSkills(pickingSkills, sk)}
+          onClose={() => setPickingSkills(null)}
+        />
+      )}
 
       {/* PersonaZ icon picker — the art only; the PersonaZ itself is always free. */}
       {pickingIcon && (
