@@ -22,6 +22,20 @@ export const tokenStore = {
   },
 };
 
+// Readable stand-ins for when the server sends no usable JSON detail — the
+// common case being an HTML error page, whose markup must never reach the UI.
+const STATUS_MESSAGE = {
+  400: "That request wasn't accepted. Check the details and try again.",
+  401: "Please sign in again.",
+  403: "You don't have access to that.",
+  404: "That isn't available yet.",
+  429: "Too many requests — give it a moment.",
+  500: "Something went wrong on our side. Try again shortly.",
+  502: "The server is unreachable right now. Try again shortly.",
+  503: "That service is temporarily unavailable.",
+  504: "The server took too long to respond.",
+};
+
 function buildUrl(path) {
   if (/^https?:\/\//.test(path)) return path;
   const clean = path.startsWith("/") ? path : `/${path}`;
@@ -102,7 +116,12 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
     try {
       data = JSON.parse(text);
     } catch {
-      data = { detail: text };
+      // Not JSON. A server error page is HTML, and putting its markup in
+      // `detail` meant components rendered a whole "<!doctype html>… Not
+      // Found …" document as their error message. Keep non-JSON text only
+      // when it is short and plainly not markup.
+      const looksLikeMarkup = /^\s*</.test(text);
+      data = looksLikeMarkup || text.length > 200 ? null : { detail: text.trim() };
     }
   }
 
@@ -114,6 +133,7 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
             .flat()
             .filter((v) => typeof v === "string")
             .join(" "))) ||
+      STATUS_MESSAGE[res.status] ||
       `Request failed (${res.status})`;
     throw new Error(msg);
   }
