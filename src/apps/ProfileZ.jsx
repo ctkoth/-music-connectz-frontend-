@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -318,7 +318,26 @@ export default function ProfileZ() {
   const [icons, setIcons] = useState(loadPersonaIcons);
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
+  const [natQuery, setNatQuery] = useState("");
   const premium = isPremiumTier(me?.tier);
+  // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
+  // Indian — not every name with an i buried in it. Word starts count too, so
+  // "rican" still finds Puerto Rican and "islander" finds Pacific Islander;
+  // whole-name matches sort above word matches so the obvious answer leads.
+  // Selected entries are always kept — a filter that hides your own choices
+  // makes them look lost and invites picking the same heritage twice.
+  const natMatches = (() => {
+    const q = natQuery.trim().toLowerCase();
+    if (!q) return NATIONALITIES;
+    const rank = ([, name]) => {
+      const n = name.toLowerCase();
+      if (n.startsWith(q)) return 0;                                   // Irish
+      if (n.split(/[^a-zà-ÿ]+/).some((w) => w.startsWith(q))) return 1; // Puerto Rican
+      return nats.includes(name) ? 2 : 3;                              // kept / dropped
+    };
+    return NATIONALITIES.filter((row) => rank(row) < 3)
+                        .sort((a, b) => rank(a) - rank(b));
+  })();
 
   async function deleteAccount() {
     if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
@@ -581,8 +600,29 @@ export default function ProfileZ() {
         <p className="mb-2 text-[11px] text-white/40">
           Represent your ancestry. Selections become a filterable metric on Social ConnectZ.
         </p>
+
+        {/* 62 entries is a wall to scan. Type to narrow it; anything already
+            selected stays visible regardless of the query, so filtering can
+            never hide a choice you have made. */}
+        <div className="relative mb-2">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <input
+            value={natQuery}
+            onChange={(e) => setNatQuery(e.target.value)}
+            placeholder="Start typing — i shows Irish, Italian, Indian…"
+            className="neon-input !py-2 pl-9 pr-8 text-xs"
+          />
+          {natQuery && (
+            <button onClick={() => setNatQuery("")}
+              title="Clear"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/40 hover:text-white">
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          {NATIONALITIES.map(([flag, name]) => (
+          {natMatches.map(([flag, name]) => (
             <button
               key={name}
               onClick={() => toggleNat(name)}
@@ -596,6 +636,13 @@ export default function ProfileZ() {
             </button>
           ))}
         </div>
+        {natQuery && (
+          <p className="mt-2 text-[11px] text-white/35">
+            {natMatches.length === 0
+              ? <>Nothing matches “{natQuery}”. Try a shorter word.</>
+              : <>{natMatches.length} of {NATIONALITIES.length} shown{nats.length > 0 && " · your selections stay visible"}.</>}
+          </p>
+        )}
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
