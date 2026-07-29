@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Upload, Image as ImageIcon } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -72,6 +72,41 @@ const PERSONAS = [
   ["producer", "Producer", "personaz_producer.png"],
   ["videographer", "Videographer", "personaz_videographer.png"],
 ];
+
+// SubstanceZ — what a member uses, declared by them. A profile metric, so it is
+// filterable on Social ConnectZ like every other one. Order runs legal → heavy;
+// the copy stays non-judgemental because honest data beats flattering data.
+const SUBSTANCES = [
+  ["cigarettes", "Cigarettes", "🚬"],
+  ["caffeine", "Caffeine", "☕"],
+  ["alcohol", "Alcohol", "🍺"],
+  ["thc", "THC", "🍃"],
+  ["dxm", "DXM", "🧴"],
+  ["adderall", "Adderall", "💊"],
+  ["benzos", "Benzos", "💊"],
+  ["opioids", "Opioids", "💊"],
+  ["heroin", "Heroin", "💉"],
+  ["crack", "Crack", "💎"],
+  ["meth", "Meth", "💎"],
+];
+
+// PreferenceZ — the genders a member is attracted to. Any one, any mix, or all.
+const PARTNER_GENDERS = [
+  ["male", "Male", "♂"],
+  ["female", "Female", "♀"],
+  ["nonbinary", "Non-binary", "⚧"],
+];
+
+// ZodiacZ — the canonical date ranges. Shown so a member can see why their sign
+// is what it is; the sign itself is derived server-side from the birthday.
+const ZODIAC_RANGES = {
+  Aries: "March 21 – April 19", Taurus: "April 20 – May 20", Gemini: "May 21 – June 20",
+  Cancer: "June 21 – July 22", Leo: "July 23 – August 22", Virgo: "August 23 – September 22",
+  Libra: "September 23 – October 22", Scorpio: "October 23 – November 21",
+  Sagittarius: "November 22 – December 21", Capricorn: "December 22 – January 19",
+  Aquarius: "January 20 – February 18", Pisces: "February 19 – March 20",
+};
+
 const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
 
@@ -195,6 +230,9 @@ export default function ProfileZ() {
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
+  const [subs, setSubs] = useState([]);        // SubstanceZ keys
+  const [partners, setPartners] = useState([]); // PreferenceZ keys
+  const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState("");
@@ -224,6 +262,10 @@ export default function ProfileZ() {
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
+    api("/api/economy/profile/").then((d) => {
+      setSubs(Array.isArray(d?.substances) ? d.substances : Object.keys(d?.substances || {}));
+      setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
+    }).catch(() => {});
   }, []);
 
   const refLink = ref ? `${window.location.origin}/register?ref=${encodeURIComponent(ref.code)}` : "";
@@ -244,7 +286,7 @@ export default function ProfileZ() {
   }
 
   async function save() {
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setSaved(false);
     // Mirror the public profile into the shared social store so Social ConnectZ
     // can surface & heritage-filter this user immediately.
     saveSocial({
@@ -255,14 +297,24 @@ export default function ProfileZ() {
       },
     });
     try {
+      // Two writes: identity fields on the account, metrics on the searchable
+      // economy profile. Both must land before this reports success.
       const d = await api("/api/auth/me/", {
         method: "PATCH",
         body: { personas: sel, birthday: birthday || null, nationalities: nats },
       });
-      setMe(d); setMsg("Saved! PersonaZ, ZodiacZ & NationalitieZ are set.");
+      await api("/api/economy/profile/", {
+        method: "POST",
+        body: { substances: subs, attracted_to: partners, nationalities: nats },
+      });
+      setMe(d);
+      setSaved(true);
+      setMsg("Saved. PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
+      setTimeout(() => setSaved(false), 4000);
     } catch (e) {
-      // Backend may not persist nationalities yet — local heritage still saved.
-      setMsg("Saved locally. NationalitieZ now filterable on Social ConnectZ.");
+      // Previously this swallowed every failure and answered "Saved locally",
+      // so a profile that never reached the server looked saved.
+      setMsg(e.message || "Couldn't save your profile — nothing was changed.");
     } finally { setBusy(false); }
   }
 
@@ -373,6 +425,55 @@ export default function ProfileZ() {
         </div>
       </div>
 
+      {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <Heart size={13} className="text-mcz-pink" /> PreferenceZ — partner genderZ ({partners.length} selected)
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          Who you're attracted to. Pick one, pick two, pick all three — it becomes a filter on Social ConnectZ.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {PARTNER_GENDERS.map(([key, label, glyph]) => (
+            <button key={key}
+              onClick={() => setPartners((v) => v.includes(key) ? v.filter((x) => x !== key) : [...v, key])}
+              className={`rounded-full border px-4 py-2 text-sm transition ${
+                partners.includes(key)
+                  ? "border-mcz-pink/70 bg-mcz-pink/10 text-white shadow-neon"
+                  : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+              <span className="mr-1.5">{glyph}</span>{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SubstanceZ — declared use, another searchable metric. */}
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
+          SubstanceZ ({subs.length} selected)
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          What you actually use. Honest beats flattering — it's a filter, so it puts you with people who live the
+          same way. Select none and you read as sober.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SUBSTANCES.map(([key, label, glyph]) => (
+            <button key={key}
+              onClick={() => setSubs((v) => v.includes(key) ? v.filter((x) => x !== key) : [...v, key])}
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                subs.includes(key)
+                  ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
+                  : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+              <span className="mr-1">{glyph}</span>{label}
+            </button>
+          ))}
+        </div>
+        {subs.length === 0 && (
+          <p className="mt-2 text-[11px] text-emerald-300/70">Nothing selected — your profile reads sober.</p>
+        )}
+      </div>
+
       <div>
         <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <IconImg icon="nationalitiez.png" alt="" className="h-5 w-5 rounded" />
@@ -399,9 +500,19 @@ export default function ProfileZ() {
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
-      <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
-        {busy ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save ProfileZ
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
+          {busy ? <Loader2 className="animate-spin" size={16} />
+                : saved ? <Check size={16} />
+                : <Save size={16} />}
+          {busy ? "Saving…" : saved ? "Saved" : "Save ProfileZ"}
+        </button>
+        {saved && (
+          <span className="flex items-center gap-1 text-xs text-emerald-300">
+            <Check size={13} /> Your profile is live.
+          </span>
+        )}
+      </div>
 
       {/* Danger zone — permanent account deletion */}
       <div className="mt-8 rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
