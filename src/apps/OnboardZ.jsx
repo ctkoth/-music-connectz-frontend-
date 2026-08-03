@@ -23,7 +23,7 @@ const SYSTEM = [
   ["PersonaZ are your classes",
    "And multiclass is the point. Producer and GhostWriter and Mix Engineer — every class you claim is another way somebody finds you. One class is a smaller surface, not a purer one."],
   ["Experience is time served, not grind",
-   "Each skill on a PersonaZ carries the date you started it. Your experience is measured from that date, so it counts the years you have genuinely put in. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
+   "Each skill carries the stretches you actually played it — start, and end if you stopped. Your experience is the SUM of those, so quitting for ten years does not quietly count as ten years of practice. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
   ["Energy is mana, and it regenerates",
    "Hourly, on its own, at your median reach divided by your tier — Free ÷10, Premium ÷5, StatZ ÷1. Energy runs the AI tools. Rating other people's work tops it up on top of that."],
   ["SpinaZ is coin",
