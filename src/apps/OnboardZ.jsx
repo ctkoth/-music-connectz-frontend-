@@ -3,13 +3,18 @@ import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Inf
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
+import { goToSpot } from "../goto.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
 // completion locally.
+//
+// Every step carries `tab` + `target`: the app it's done in and the data-tour
+// anchor on the exact control. Its link opens that app and lands on the field,
+// so "add your NationalitieZ" ends on the NationalitieZ search box rather than
+// at the top of ProfileZ with the member left to find it.
 const OB_KEY = "mcz_onboard_v1";
 const loadDone = () => { try { return JSON.parse(localStorage.getItem(OB_KEY)) || {}; } catch { return {}; } };
-const goTo = (k) => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: k }));
 
 // The framing. Music ConnectZ is not RPG-themed — it is built on RPG
 // mechanics, and every line below describes something the server actually
@@ -120,14 +125,16 @@ export default function OnboardZ() {
       what: "Your classes. Every PersonaZ you actually play — Producer, GhostWriter, Mix Engineer, A&R Scout, Director, all of them.",
       why: "This is character creation, and multiclass is the point. Somebody hunting a mix engineer filters for that class — if you never claimed it, you do not exist to them. Each skill you add carries a start date, and that date is where your experience comes from, so claiming a class you have played for a decade is worth a decade. Claim every hat you wear.",
       how: "Open ProfileZ, tap every PersonaZ that fits, tap again to drop one. Date the skills under each one — that is what turns a class into years of experience. Premium can swap the artwork; the class itself is free either way.",
-      done: (me?.personas?.length || 0) > 0, cta: "Open ProfileZ", act: () => goTo("profilez") },
+      done: (me?.personas?.length || 0) > 0,
+      tab: "profilez", target: "personas", cta: "Open the PersonaZ picker" },
 
     { key: "birthday", icon: <Cake size={18} />, title: "Add your birthday", bday: true,
       desc: "Sets your ZodiacZ and keeps ads age-appropriate. You must be 13+ to use Music ConnectZ.",
       what: "Your date of birth, entered once.",
       why: "Your origin, and two real jobs. It sets your ZodiacZ, which is a live filter on Social ConnectZ — people genuinely search by sign. And it keeps AdZ honest: 13+ to be here at all, 18+ before any ad gets personalized. Only the sign is public. The date itself stays yours.",
       how: "Pick the date below and hit Save. Your ZodiacZ shows up the second it lands.",
-      done: !!me?.birthday },
+      done: !!me?.birthday,
+      tab: "onboardz", target: "birthday", cta: "Jump to the date picker" },
 
     { key: "heritage", icon: <IconImg icon="nationalitiez.png" alt="" className="h-5 w-5 rounded" />,
       title: "Add your NationalitieZ",
@@ -135,29 +142,38 @@ export default function OnboardZ() {
       what: "The heritage you represent. As many as are genuinely yours — mixed is normal here.",
       why: "The other half of your origin, and a live filter on Social ConnectZ — which makes it a way to find your people. Diaspora finds diaspora, and collabs come out of that. This is representation, not gatekeeping. Nobody is checking your paperwork.",
       how: "ProfileZ, scroll to NationalitieZ, tap every flag that's yours.",
-      done: (me?.nationalities?.length || 0) > 0, cta: "Open ProfileZ", act: () => goTo("profilez") },
+      done: (me?.nationalities?.length || 0) > 0,
+      tab: "profilez", target: "nationalities", cta: "Open NationalitieZ" },
 
     { key: "post", icon: <Send size={18} />, title: "Drop your first PostZ",
       desc: "Share a track, bars or cover — the community rates it after 30s.",
       what: "Your first piece of work on the platform. A track, bars, cover art, a collab call — whatever you've got.",
       why: "PostZ is the front door, and your posts are what everything else hangs off. Rating opens 30 seconds after you post and comments at 60 — that delay exists so nobody can dogpile a track they have not listened to yet. You cannot score your own, which is the whole reason the number is worth anything.",
       how: "PostZ tab, drop it in the box, pick a genre, hit Post. Your char limit goes up with your tier.",
-      done: !!done.post, cta: "Go to PostZ", act: () => { mark("post"); goTo("postz"); } },
+      done: !!done.post,
+      tab: "postz", target: "composer", cta: "Open the PostZ composer",
+      onGo: () => mark("post") },
 
     { key: "rate", icon: <Star size={18} />, title: "Rate 3 tracks",
       desc: "Every rating you give earns +1 Energy.",
       what: "Score three other people's PostZ, 1 to 10.",
       why: "+1 Energy each — mana, on top of what regenerates hourly, and Energy is what runs the AI tools. But that is the small reason. The real one: stats only exist because other players hand them out. A feed where everybody posts and nobody scores is just noise. Rate honestly and you get rated honestly.",
       how: "PostZ tab, find any post that isn't yours and is at least 30 seconds old, tap the score.",
-      done: !!done.rate, cta: "Rate now", act: () => { mark("rate"); goTo("postz"); } },
+      done: !!done.rate,
+      tab: "postz", target: "feed", cta: "Open the feed and rate",
+      onGo: () => mark("rate") },
 
     { key: "refer", icon: <Gift size={18} />, title: "Refer a friend", refer: true,
       desc: `Earn ${ref?.reward_per_join ?? 300} SpinaZ for every legit join.`,
       what: "Your personal invite link. Your username is the code.",
       why: `${ref?.reward_per_join ?? 300} SpinaZ every time someone joins on it, and they land with a welcome drop too — both sides come out ahead. A world is worth exactly as much as the people in it, so bringing one real person beats any amount of grinding.`,
       how: "Copy the link below and send it. The SpinaZ credit when they finish signing up — legit joins only, so don't bother with burner accounts.",
-      done: (ref?.count || 0) > 0 || !!done.refer },
+      done: (ref?.count || 0) > 0 || !!done.refer,
+      tab: "onboardz", target: "refer", cta: "Jump to your invite link" },
   ];
+
+  // Every step's link opens the app the task lives in and lands on the control.
+  const go = (s) => { s.onGo?.(); goToSpot(s.tab, s.target); };
 
   const complete = steps.filter((s) => s.done).length;
   const allDone = complete === steps.length;
@@ -244,7 +260,7 @@ export default function OnboardZ() {
 
                 {/* Refer step: inline invite link + stats */}
                 {s.refer && (
-                  <div className="mt-2 space-y-2">
+                  <div data-tour="refer" className="mt-2 space-y-2">
                     <div className="flex items-center gap-2">
                       <input readOnly value={refLink || "Loading your link…"}
                         onFocus={(e) => e.target.select()}
@@ -259,26 +275,35 @@ export default function OnboardZ() {
                   </div>
                 )}
 
-                {/* Birthday step: inline date picker + save */}
-                {s.bday && !s.done && (
-                  <div data-tour="birthday" className="mt-2 flex items-center gap-2">
-                    <input type="date" value={bday} max={new Date().toISOString().slice(0, 10)}
-                      onChange={(e) => setBday(e.target.value)}
-                      className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
-                    <button className="re-btn !w-auto px-3" onClick={saveBday} disabled={!bday || savingBday}>
-                      {savingBday ? "…" : "Save"}
-                    </button>
+                {/* Birthday step: inline date picker + save. The anchor wraps
+                    both states so its link still has something to land on
+                    once the date is saved. */}
+                {s.bday && (
+                  <div data-tour="birthday">
+                    {!s.done ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input type="date" value={bday} max={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setBday(e.target.value)}
+                          className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
+                        <button className="re-btn !w-auto px-3" onClick={saveBday} disabled={!bday || savingBday}>
+                          {savingBday ? "…" : "Save"}
+                        </button>
+                      </div>
+                    ) : me?.zodiac ? (
+                      <p className="mt-1 text-[11px] text-mcz-ember">Your ZodiacZ: {me.zodiac}</p>
+                    ) : null}
                   </div>
                 )}
-                {s.bday && s.done && me?.zodiac && (
-                  <p className="mt-1 text-[11px] text-mcz-ember">Your ZodiacZ: {me.zodiac}</p>
-                )}
 
-                {/* Action steps */}
-                {!s.refer && !s.bday && !s.done && (
-                  <button className="mt-2 flex items-center gap-1 text-xs font-semibold text-mcz-ember hover:brightness-125"
-                          onClick={s.act}>
-                    {s.cta} <ArrowRight size={13} />
+                {/* The link to where the task is actually done. It stays after
+                    the step is finished — a done step is still somewhere you
+                    go back to — just dimmed so it reads as optional. */}
+                {s.tab && (
+                  <button
+                    className={`mt-2 flex items-center gap-1 text-xs font-semibold hover:brightness-125 ${
+                      s.done ? "text-white/40 hover:text-mcz-ember" : "text-mcz-ember"}`}
+                    onClick={() => go(s)}>
+                    {s.done ? "Open it again" : s.cta} <ArrowRight size={13} />
                   </button>
                 )}
               </div>
