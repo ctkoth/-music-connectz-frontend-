@@ -30,6 +30,30 @@ const SCORE_LABEL = { pitch: "Pitch 🎯", tone: "Tone 🌈", breath: "Breath �
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
 
+/** What this take costs, stated before it is sent.
+ *
+ * Red minus for what leaves, green plus for what a free allowance covers —
+ * never a bare number, and never only after the fact. */
+function Cost({ price }) {
+  if (!price) return null;
+  if (price.free_today) {
+    return (
+      <span className="text-[11px] text-emerald-300">
+        +1 🏷️ free today · {price.daily_remaining} left
+      </span>
+    );
+  }
+  const fromPromptz = price.promptz >= price.cost_cents;
+  return (
+    <span className="text-[11px] text-mcz-ember">
+      −{price.cost_cents} 🏷️{" "}
+      <span className="text-white/35">
+        from your {fromPromptz ? `${price.promptz} PromptZ` : "balance"} — no free prompts left today
+      </span>
+    </span>
+  );
+}
+
 export default function BossTake() {
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
@@ -42,9 +66,14 @@ export default function BossTake() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [msg, setMsg] = useState("");
+  // What this take costs, read BEFORE anything is sent. A price you only see
+  // in the response is a bill, not a price.
+  const [price, setPrice] = useState(null);
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
+
+  useEffect(() => { api("/api/singz/coach/").then(setPrice).catch(() => {}); }, []);
 
   // Object URLs must be revoked or every take leaks for the life of the page.
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -179,10 +208,18 @@ export default function BossTake() {
       {url && !recording && (
         <div className="space-y-2">
           <audio src={url} controls className="w-full" />
-          <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
-            {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-            {busy ? "Coaching your take…" : "Send it to the coach"}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
+              {busy ? "Coaching your take…" : "Send it to the coach"}
+            </button>
+            <Cost price={price} />
+          </div>
+          {price && (
+            <p className="text-[11px] text-white/35">
+              A take the coach can't read isn't charged.
+            </p>
+          )}
         </div>
       )}
 
@@ -238,6 +275,12 @@ export default function BossTake() {
               <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
             </p>
           )}
+
+          <p className="text-[11px]">
+            {result.cost_cents
+              ? <span className="text-mcz-ember">−{result.cost_cents} 🏷️ spent</span>
+              : <span className="text-emerald-300">Free — a daily prompt covered it 🏷️</span>}
+          </p>
 
           <p className="text-[10px] text-white/30">
             Pitch, tone, breath, range and agility are what one take can show. Consistency, voice health and
