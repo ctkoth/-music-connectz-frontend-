@@ -5,6 +5,7 @@ import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { RATE_WINDOW_SEC, COMMENT_WINDOW_SEC } from "./socialData.js";
+import { GENRES } from "../genres.js";
 
 // A live 1-second clock so every card's rating/comment countdown ticks.
 function useNow() {
@@ -16,8 +17,7 @@ function useNow() {
   return now;
 }
 
-const GENRES = ["Trap", "Drill", "Boom Bap", "Cloud Rap", "R&B", "Pop", "House",
-  "Hip Hop", "Soul", "Jazz", "Lo-Fi", "Afrobeat"];
+
 
 // Map a server post (_ser) to the local card shape. We derive a synthetic
 // createdAt from the server's age_sec so the countdowns tick from SERVER time,
