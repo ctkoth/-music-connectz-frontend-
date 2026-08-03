@@ -1,6 +1,7 @@
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import { RapzProfilePanel, SingzProfilePanel } from "./GameProfilePanel.jsx";
 import { IconImg } from "../App.jsx";
+import BossTake from "./BossTake.jsx";
 
 // Generic SkillZ instrument app view — one component powers DrumZ/ViolinZ/
 // GuitarZ/BassZ/KeyZ (and any future instrument) via props.
@@ -22,6 +23,8 @@ export default function InstrumentZ({ appKey, icon, title, tagline, accent }) {
       </header>
       {appKey === "rapz" && <RapzProfilePanel />}
       {appKey === "singz" && <SingzProfilePanel />}
+      {/* Boss Take is SingZ-only — /api/singz/coach/ scores vocal takes. */}
+      {appKey === "singz" && <BossTake />}
       <SkillZPanel basePath={`/api/${appKey}`} accent={accent} />
     </div>
   );
