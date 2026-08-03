@@ -3,6 +3,7 @@ import { Loader2, Lock, Plus, Sparkles, Tag } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, isStatZ, SPEC_APPS } from "./socialData.js";
+import { SPINAZ } from "../resources.js";
 
 // SpecZ price in SpinaZ (blueprint economy currency).
 const SPEC_PRICE = 250;
@@ -49,7 +50,7 @@ export default function SpecZ() {
     };
     persist([spec, ...specs]);
     setLabel(""); setValue("");
-    setMsg(`✨ SpecZ purchased for ${SPEC_PRICE} SpinaZ and attached to ${app}.`);
+    setMsg(`✨ SpecZ purchased for ${SPEC_PRICE} ${SPINAZ} and attached to ${app}.`);
     setTimeout(() => setMsg(""), 3200);
   }
 
@@ -97,7 +98,7 @@ export default function SpecZ() {
               <input className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60" placeholder="e.g. 140–150, dark strings, halftime hats" value={value} onChange={(e) => setValue(e.target.value)} />
             </div>
             <button className="re-btn !w-auto px-5" onClick={buySpec}>
-              <Plus size={15} /> Purchase for {SPEC_PRICE} SpinaZ
+              <Plus size={15} /> Purchase for −{SPEC_PRICE} {SPINAZ}
             </button>
           </>
         ) : (

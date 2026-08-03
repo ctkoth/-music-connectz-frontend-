@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Star } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { SPINAZ } from "../resources.js";
 
 // OfferZ — offerwall. Complete an offer (sign-ups, surveys, installs) on the
 // provider's wall; their server calls the backend callback and SpinAZ lands in
@@ -26,7 +27,7 @@ export default function OfferZ() {
       </header>
 
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="pill !text-mcz-pink"><Star size={11} className="inline" /> {data.earned_spinaz ?? 0} SpinaZ earned</span>
+        <span className="pill !text-mcz-pink">{SPINAZ} {data.earned_spinaz ?? 0} earned</span>
       </div>
 
       <div className="re-card space-y-3">

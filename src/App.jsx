@@ -30,6 +30,7 @@ import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
+import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -224,7 +225,7 @@ function CommunityBar({ onOpenMember }) {
           {stats.online_now} online now
         </span>
         <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">✦ {stats.my_spinaz} SpinaZ</span>
+        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
         {stats.my_promptz_daily != null && (
           <span className="pill !text-mcz-cyan"
                 title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>

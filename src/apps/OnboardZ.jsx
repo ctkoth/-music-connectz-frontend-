@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
+import { SPINAZ } from "../resources.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -26,7 +27,7 @@ const SYSTEM = [
    "Each skill on a PersonaZ carries the date you started it. Your experience is measured from that date, so it counts the years you have genuinely put in. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
   ["Energy is mana, and it regenerates",
    "Hourly, on its own, at your median reach divided by your tier — Free ÷10, Premium ÷5, StatZ ÷1. Energy runs the AI tools. Rating other people's work tops it up on top of that."],
-  ["SpinaZ is coin",
+  [`SpinaZ ${SPINAZ} is coin`,
    "Earned by rating, referring, and watching AdZ or clearing OfferZ. Spent on the things tiers gate."],
   ["SkillZ are the skill trees",
    "SingZ and RapZ each track a level, XP, a daily streak and badges, with their own leaderboard. Drills are the quests."],
@@ -164,7 +165,7 @@ export default function OnboardZ() {
       onGo: () => mark("rate") },
 
     { key: "refer", icon: <Gift size={18} />, title: "Refer a friend", refer: true,
-      desc: `Earn ${ref?.reward_per_join ?? 300} SpinaZ for every legit join.`,
+      desc: `Earn +${ref?.reward_per_join ?? 300} ${SPINAZ} for every legit join.`,
       what: "Your personal invite link. Your username is the code.",
       why: `${ref?.reward_per_join ?? 300} SpinaZ every time someone joins on it, and they land with a welcome drop too — both sides come out ahead. A world is worth exactly as much as the people in it, so bringing one real person beats any amount of grinding.`,
       how: "Copy the link below and send it. The SpinaZ credit when they finish signing up — legit joins only, so don't bother with burner accounts.",
@@ -214,7 +215,7 @@ export default function OnboardZ() {
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
           <PartyPopper size={16} />
           {claim?.granted
-            ? <span>You're all set — <span className="font-semibold">+{claim.reward_spinaz} SpinaZ · +{claim.reward_energy} Energy</span> claimed!</span>
+            ? <span>You're all set — <span className="font-semibold">+{claim.reward_spinaz} {SPINAZ} · +{claim.reward_energy} Energy</span> claimed!</span>
             : <span>You're all set — welcome to Music ConnectZ.</span>}
         </div>
       )}
@@ -270,7 +271,7 @@ export default function OnboardZ() {
                       </button>
                     </div>
                     <div className="text-[11px] text-white/45">
-                      {ref?.count ?? 0} joined · {ref?.spinaz_earned ?? 0} SpinaZ earned
+                      {ref?.count ?? 0} joined · {ref?.spinaz_earned ?? 0} {SPINAZ} earned
                     </div>
                   </div>
                 )}

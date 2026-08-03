@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bug, Loader2, Star } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { SPINAZ } from "../resources.js";
 
 const STATUS_STYLE = {
   open: "!text-mcz-cyan", in_progress: "!text-mcz-gold", squashed: "!text-emerald-300",
@@ -24,7 +25,7 @@ export default function BugZ() {
     try {
       await api("/api/bugz/", { method: "POST", body: form });
       setForm({ title: "", body: "" });
-      setMsg("Reported! If the team squashes it, you earn ✦200 SpinaZ.");
+      setMsg(`Reported! If the team squashes it, you earn +200 ${SPINAZ}.`);
       load();
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
   }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Loader2, PlayCircle, Smartphone, Star, ShieldAlert, Cake } from "lucide-react";
+import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { SPINAZ } from "../resources.js";
 
 // AdZ — Google AdMob rewarded video. The actual ad plays through the AdMob SDK
 // in the native (Capacitor) app; Google then calls the backend SSV endpoint to
@@ -38,7 +39,7 @@ export default function AdZ() {
       {stats?.mine != null && (
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="pill"><PlayCircle size={11} className="inline" /> {stats.mine?.count ?? 0} watched</span>
-          <span className="pill !text-mcz-pink"><Star size={11} className="inline" /> {stats.mine?.spinaz ?? 0} SpinaZ earned</span>
+          <span className="pill !text-mcz-pink">{SPINAZ} {stats.mine?.spinaz ?? 0} earned</span>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Save, Star, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -8,6 +8,7 @@ import { PERSONA_SKILLS, skillYears } from "../personaSkills.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
+import { SPINAZ } from "../resources.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -442,7 +443,7 @@ export default function ProfileZ() {
             <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
             {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}
             <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
-            <span className="pill !text-mcz-pink"><Star size={11} className="inline" /> {me.spinaz} SpinaZ</span>
+            <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
           </p>
         </div>
       </header>
@@ -456,8 +457,7 @@ export default function ProfileZ() {
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Gift size={13} className="text-mcz-ember" /> ReferZ
           <span className="ml-auto flex items-center gap-1 text-mcz-pink">
-            <IconImg icon="spinaz.png" alt="" className="h-4 w-4 rounded-full" />
-            +{ref?.reward_per_join ?? 300} SpinaZ / legit join
+            +{ref?.reward_per_join ?? 300} {SPINAZ} / legit join
           </span>
         </p>
         <p className="text-[11px] text-white/40">Share your link. You earn SpinaZ every time someone new joins with it.</p>
@@ -474,7 +474,7 @@ export default function ProfileZ() {
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="pill"><Users size={11} className="inline" /> {ref?.count ?? 0} referred</span>
-          <span className="pill !text-mcz-pink"><Star size={11} className="inline" /> {ref?.spinaz_earned ?? 0} SpinaZ earned</span>
+          <span className="pill !text-mcz-pink">{SPINAZ} {ref?.spinaz_earned ?? 0} earned</span>
         </div>
         {ref?.members?.length > 0 && (
           <div className="space-y-1 border-t border-white/[0.06] pt-2">
@@ -482,7 +482,7 @@ export default function ProfileZ() {
               <div key={m.username} className="flex items-center justify-between text-sm">
                 <span className="text-white/80">{m.username}</span>
                 <span className="text-[11px] text-white/40">
-                  {new Date(m.joined).toLocaleDateString()} · +{m.reward} SpinaZ
+                  {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
                 </span>
               </div>
             ))}
