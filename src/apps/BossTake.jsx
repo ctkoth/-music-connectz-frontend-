@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload } from "lucide-react";
 import { api } from "../api.js";
+import { GENRES } from "../genres.js";
 
 // The eight range classes, straight from the blueprint's Gamified Vocal Range Logic.
 const RANGES = [
@@ -21,8 +22,7 @@ const DIFFICULTIES = [
   ["performer", "Performer 🌟"], ["stageboss", "Stage Boss 👑"],
 ];
 
-const GENRES = ["R&B", "Pop", "Soul", "Gospel", "Rock", "Trap", "Drill", "Boom Bap",
-  "Cloud Rap", "House", "Afrobeats", "Country", "Jazz", "Musical Theatre", "Opera"];
+
 
 const SCORE_LABEL = { pitch: "Pitch 🎯", tone: "Tone 🌈", breath: "Breath 🫁",
   range: "Range 📏", agility: "Agility 🌪️" };

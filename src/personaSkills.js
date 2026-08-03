@@ -43,8 +43,86 @@ const VIDEO_SOFTWARE = {
   obs: "OBS Studio 🔴",
 };
 
+// ---- The `artist` tree from musicconnectz_code_2.2, carried over whole.
+// It was missing entirely: no instruments, no rap styles, no vocal ranges —
+// 50 skills, and the reason an instrumentalist had nothing true to claim.
+// Keys stay stable; labels carry 2.2's emoji.
+
+const STRINGS = {
+  any_string: "Any String 🎸",
+  acoustic_guitar: "Acoustic Guitar 🎸",
+  electric_guitar: "Electric Guitar 🎸",
+  bass_guitar: "Bass Guitar 🎸",
+  ukulele: "Ukulele 🎸",
+  banjo: "Banjo 🎸",
+  mandolin: "Mandolin 🎸",
+  violin: "Violin 🎻",
+  viola: "Viola 🎻",
+  cello: "Cello 🎻",
+  double_bass: "Double Bass 🎻",
+  harp: "Harp 🎵",
+};
+
+const KEYBOARDS = {
+  any_keyboard: "Any Keyboard 🎹",
+  acoustic_piano: "Acoustic Piano 🎹",
+  digital_piano: "Digital Piano 🎹",
+  synthesizer: "Synthesizer 🎹",
+  organ: "Organ 🎹",
+  harpsichord: "Harpsichord 🎹",
+  accordion: "Accordion 🎹",
+};
+
+const PERCUSSION = {
+  any_percussion: "Any Percussion 🥁",
+  drums_snare: "Drums (Snare) 🥁",
+  drums_bass: "Drums (Bass) 🥁",
+  drums_bongo: "Drums (Bongo) 🥁",
+  cymbals: "Cymbals 🥁",
+};
+
+// The blueprint's rap style tracks — the same 17 RapZ is built around.
+const RAPPING = {
+  any_rapping: "Any Rapping 🎤",
+  alternative_rap: "Alternative Rap 🎸",
+  boom_bap: "Boom Bap 🥁",
+  chopper: "Chopper 🚁",
+  cloud_rap: "Cloud Rap ☁️",
+  conscious_rap: "Conscious Rap 🧠",
+  crunk: "Crunk 🔥",
+  drill: "Drill ⚔️",
+  emo_rap: "Emo Rap 🖤",
+  g_funk: "G-Funk 🌴",
+  gangsta_rap: "Gangsta Rap ⛓️",
+  hardcore_hip_hop: "Hardcore Hip Hop 🎤",
+  jazz_rap: "Jazz Rap 🎷",
+  mumble_rap: "Mumble Rap 💤",
+  old_school: "Old School 📻",
+  snap: "Snap 🫰",
+  trap: "Trap 🏚️",
+};
+
+// The eight range classes, matching the blueprint's Gamified Vocal Range Logic
+// and the target-range picker in the SingZ Boss Take.
+const SINGING = {
+  any_singing: "Any Singing 🎶",
+  bass: "Bass 🧔‍♂️",
+  baritone: "Baritone 🎙️",
+  tenor: "Tenor 🎤",
+  countertenor: "Countertenor 🕊️",
+  contralto: "Contralto 🎻",
+  alto: "Alto 🎶",
+  mezzo_soprano: "Mezzo-Soprano 🌊",
+  soprano: "Soprano ☀️",
+};
+
 export const PERSONA_SKILLS = {
   indieartist: {
+    "String Instruments": STRINGS,
+    "Keyboard Instruments": KEYBOARDS,
+    "Percussion Instruments": PERCUSSION,
+    "Rapping": RAPPING,
+    "Singing": SINGING,
     "Performance": {
       any_performance: "Any Performance 🎤",
       songwriting: "Songwriting ✍️",
@@ -117,6 +195,7 @@ export const PERSONA_SKILLS = {
     },
     "Design Skills": {
       any_design_skill: "Any Design Skill 🎨",
+      graphic_design: "Graphic Design 🖌️",
       composition: "Composition & Layout 📐",
       color_theory: "Color Theory 🌈",
       typography: "Typography 🔤",
