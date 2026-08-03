@@ -8,11 +8,11 @@ const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, ""
 
 // Real tier perks, mirrored from the backend economy constants:
 //   DEV_TAX 10/5/3% · ENERGY_TOPUP_MULT 1×/2×/4× · SUBMISSION_DAILY_CAP 5/15/50
-//   PROMPT_ALLOWANCE 1/5/20 · SpecZ marketplace is StatZ-only.
+//   PROMPT_ALLOWANCE 1/5/10 · SpecZ marketplace is StatZ-only.
 const PERKS = [
   { label: "Platform fee on your sales", free: "10%", premium: "5%", statz: "3%" },
   { label: "Energy per $1 topped up", free: "1×", premium: "2×", statz: "4×" },
-  { label: "Daily free AI prompts", free: "1", premium: "5", statz: "20" },
+  { label: "Daily free AI prompts", free: "1", premium: "5", statz: "10" },
   { label: "Scored submissions / day", free: "5", premium: "15", statz: "50" },
   { label: "SpecZ marketplace", free: false, premium: false, statz: true },
 ];

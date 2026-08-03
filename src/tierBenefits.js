@@ -21,7 +21,7 @@ export const TIER_BLURB = {
 export const TIER_MATRIX = [
   ["Character limit — posts, DMs, comments, prompts", "400", "1,500", "Unlimited"],
   ["Energy per hour", "reach ÷ 10", "reach ÷ 5", "reach ÷ 1"],
-  ["Free AI prompts a day", "1", "5", "20"],
+  ["Free AI prompts a day", "1", "5", "10"],
   ["Per-upload size", "40 MB", "400 MB", "4 GB"],
   ["Storage", "400 MB", "5 GB", "100 GB"],
   ["Edit window on anything you post", "4 min", "40 min", "4 hours"],
