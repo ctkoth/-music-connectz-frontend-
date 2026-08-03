@@ -5,6 +5,8 @@ import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
 import { PERSONA_SKILLS, skillYears } from "../personaSkills.js";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
@@ -319,6 +321,8 @@ export default function ProfileZ() {
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
+  const [bio, setBio] = useState("");
+  const cl = useCharLimit();
   const premium = isPremiumTier(me?.tier);
   // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
   // Indian — not every name with an i buried in it. Word starts count too, so
@@ -363,6 +367,7 @@ export default function ProfileZ() {
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
     api("/api/economy/profile/").then((d) => {
+      setBio(d?.bio || "");
       setSubs(Array.isArray(d?.substances) ? d.substances : Object.keys(d?.substances || {}));
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
     }).catch(() => {});
@@ -412,11 +417,11 @@ export default function ProfileZ() {
       });
       await api("/api/economy/profile/", {
         method: "POST",
-        body: { substances: subs, attracted_to: partners, nationalities: nats },
+        body: { bio, substances: subs, attracted_to: partners, nationalities: nats },
       });
       setMe(d);
       setSaved(true);
-      setMsg("Saved. PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -591,6 +596,25 @@ export default function ProfileZ() {
         {subs.length === 0 && (
           <p className="mt-2 text-[11px] text-emerald-300/70">Nothing selected — your profile reads sober.</p>
         )}
+      </div>
+
+      {/* Your bio. It already rendered on member profiles with no way to
+          write one — the field existed everywhere except where you type it. */}
+      <div data-tour="bio">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          Bio — who you are
+        </p>
+        <p className="mb-2 text-[11px] text-white/40">
+          The first thing anyone reads on your profile. What you make, who you want to work with.
+        </p>
+        <textarea
+          value={bio}
+          rows={4}
+          onChange={(e) => setBio(cl.clamp(e.target.value))}
+          placeholder="Producer out of Denver. Trap and drill, mostly. Looking for vocalists who write their own hooks."
+          className="neon-input resize-y text-sm"
+        />
+        <CharLimit cl={cl} value={bio} className="mt-1" />
       </div>
 
       <div>
