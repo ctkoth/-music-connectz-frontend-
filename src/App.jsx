@@ -227,7 +227,7 @@ function CommunityBar({ onOpenMember }) {
         <span className="pill !text-mcz-pink">✦ {stats.my_spinaz} SpinaZ</span>
         {stats.my_promptz_daily != null && (
           <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 20) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
           </span>
         )}

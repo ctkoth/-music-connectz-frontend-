@@ -31,7 +31,7 @@ const SYSTEM = [
   ["SkillZ are the skill trees",
    "SingZ and RapZ each track a level, XP, a daily streak and badges, with their own leaderboard. Drills are the quests."],
   ["Your tier is your rank",
-   "Free → Premium → StatZ. It buys lower platform fees, faster Energy, and daily AI prompts — 1, then 5, then 20."],
+   "Free → Premium → StatZ. It buys lower platform fees, faster Energy, and daily AI prompts — 1, then 5, then 10."],
   ["ZodiacZ and NationalitieZ are your origin",
    "Neither is cosmetic. Both are live filters on Social ConnectZ, which makes them how your people find you."],
   ["BattleZ is PvP, CollabZ is co-op, GroupZ and LabelZ are guilds",
