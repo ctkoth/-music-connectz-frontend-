@@ -9,11 +9,10 @@
 // highlights the live control rather than a picture of one.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
+import { goToTab } from "./goto.js";
 
 export const TOUR_EVENT = "mcz-start-tour";
 export const startTour = () => window.dispatchEvent(new CustomEvent(TOUR_EVENT));
-
-const goToTab = (key) => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: key }));
 
 // Each step names the app it lives in, the element it points at, and — when it
 // needs something from the member — a `requires` predicate read off /me.

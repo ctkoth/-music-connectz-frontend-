@@ -215,7 +215,8 @@ export default function PostZ() {
         <p className="text-sm text-white/45">No PostZ yet — be the first to post.</p>
       )}
 
-      <div className="space-y-3">
+      {/* Anchor for the OnboardZ "rate 3 tracks" link and the guided tour. */}
+      <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
           <PostCard
             key={p.id} post={p} now={now}

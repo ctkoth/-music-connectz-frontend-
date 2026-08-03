@@ -75,6 +75,25 @@ body {
   .re-scale-on {
     @apply bg-mcz-ember text-white;
   }
+  /* Flashed on the control an OnboardZ link just sent you to, so you land on
+     the actual field rather than somewhere near it. Removed after ~2s. */
+  .mcz-spot {
+    @apply rounded-xl;
+    /* The ring is a plain box-shadow so it still shows under
+       prefers-reduced-motion, where the fade animation is disabled. */
+    box-shadow: 0 0 0 3px #ff5500, 0 0 22px rgba(255, 85, 0, 0.55);
+    animation: mcz-spot 2.2s ease-out;
+  }
+}
+
+@keyframes mcz-spot {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px #ff5500, 0 0 22px rgba(255, 85, 0, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(255, 85, 0, 0), 0 0 22px rgba(255, 85, 0, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
