@@ -3,6 +3,7 @@ import { Loader2, Star, Swords, Timer } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { SPINAZ } from "../resources.js";
 
 function MoneyPoll() {
   const [poll, setPoll] = useState(null);
@@ -59,7 +60,7 @@ export default function BattleZ() {
         <div>
           <h2 className="font-display text-3xl font-extrabold" style={{ color: "#ef4444" }}>BattleZ</h2>
           <p className="text-sm text-white/60">
-            Post vs post. The community rates each contestant /10 — 3+ ratings to qualify, highest average wins when the window closes. Spectators wager ✦SpinaZ.
+            Post vs post. The community rates each contestant /10 — 3+ ratings to qualify, highest average wins when the window closes. Spectators wager SpinaZ {SPINAZ}.
           </p>
           <span className="pill mt-1 inline-block">SpinaZ edition · money battles coming after legal clearance</span>
         </div>
@@ -101,7 +102,7 @@ export default function BattleZ() {
             <p className="text-xs text-white/50">
               Ratings — {b.challenger}: {b.ratings.challenger.avg ?? "—"} ({b.ratings.challenger.n}/{b.min_ratings})
               · {b.opponent}: {b.ratings.opponent.avg ?? "—"} ({b.ratings.opponent.n}/{b.min_ratings})
-              &nbsp;|&nbsp; ✦Pools — {b.spinaz_pools.challenger} vs {b.spinaz_pools.opponent}
+              &nbsp;|&nbsp; {SPINAZ} Pools — {b.spinaz_pools.challenger} vs {b.spinaz_pools.opponent}
               {b.status === "active" && b.ends_at && (
                 <> &nbsp;|&nbsp; <Timer size={11} className="inline" /> closes {new Date(b.ends_at).toLocaleString()}</>
               )}
@@ -141,7 +142,7 @@ export default function BattleZ() {
                   <option value="challenger">{b.challenger}</option>
                   <option value="opponent">{b.opponent}</option>
                 </select>
-                <input className="neon-input !w-20 !py-2 text-xs" placeholder="✦" inputMode="numeric"
+                <input className="neon-input !w-20 !py-2 text-xs" placeholder={SPINAZ} inputMode="numeric"
                        value={wager[b.id]?.amount || ""} onChange={(e) => setWager({ ...wager, [b.id]: { ...wager[b.id], amount: e.target.value } })} />
                 <button className="neon-btn-primary !w-auto px-3 py-2 text-xs" onClick={() => placeWager(b)}>
                   <Star size={12} /> Wager

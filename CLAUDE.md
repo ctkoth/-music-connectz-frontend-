@@ -17,12 +17,12 @@ its resource emoji.
 - Always the **resource emoji**, never a bare number
 - **Up front.** A price discovered by paying it is not a price, it's a bill.
 
-### Resource emoji — already established, do not invent new ones
+### Resource emoji — import from `src/resources.js`, never retype the character
 
 | Resource | Emoji | Notes |
 |---|---|---|
 | Energy | ⚡ | mana; regenerates hourly at reach ÷ tier |
-| SpinaZ | ✦ | coin; earned by rating, referring, AdZ/OfferZ |
+| SpinaZ | 🍥 | coin; earned by rating, referring, AdZ/OfferZ |
 | PromptZ | 🏷️ | prepaid AI credits; the daily free allowance is separate |
 | Money | 💵 | real cash balance |
 | XP | ⭐ | SkillZ progression |
@@ -34,7 +34,7 @@ its resource emoji.
 - Free actions that *earn* still show the gain — `+1 ⚡` on a rating is the
   whole reason anyone rates.
 - Say whether a **failed** attempt is charged. Usually it should not be.
-- Two-sided rewards show both sides (a referral is `+300 ✦` / `+100 ✦`).
+- Two-sided rewards show both sides (a referral is `+300 🍥` / `+100 🍥`).
 
 ### Known violations, not yet fixed
 
