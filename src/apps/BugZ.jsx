@@ -3,6 +3,7 @@ import { Bug, Loader2, Star } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
+import { asList } from "../shape.js";
 
 const STATUS_STYLE = {
   open: "!text-mcz-cyan", in_progress: "!text-mcz-gold", squashed: "!text-emerald-300",
@@ -15,7 +16,7 @@ export default function BugZ() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    api("/api/bugz/").then(setBugs).catch((e) => setMsg(e.message));
+    api("/api/bugz/").then((d) => setBugs(asList(d))).catch((e) => setMsg(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
 

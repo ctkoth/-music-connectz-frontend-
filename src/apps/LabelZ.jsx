@@ -36,7 +36,13 @@ export default function LabelZ() {
   }
 
   if (!data) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
-  const myLabels = data.labels.filter((l) => l.i_own);
+  // Never index into a response shape. A 200 that omits a key is not an
+  // exceptional case — it is what a partially-built endpoint returns, and it
+  // should not take a whole tab into the error boundary.
+  const labels = Array.isArray(data.labels) ? data.labels : [];
+  const asArtist = Array.isArray(contracts?.as_artist) ? contracts.as_artist : [];
+  const asOwner = Array.isArray(contracts?.as_owner) ? contracts.as_owner : [];
+  const myLabels = labels.filter((l) => l.i_own);
 
   return (
     <div className="space-y-6">
@@ -68,14 +74,14 @@ export default function LabelZ() {
       <div>
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">Labels</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          {data.labels.map((l) => (
+          {labels.map((l) => (
             <div key={l.id} className="neon-frame p-4">
               <p className="font-semibold">{l.name} {l.i_own && <span className="pill ml-1 text-[10px]">yours</span>}</p>
               <p className="text-xs text-white/55">by {l.owner} · {l.member_count} member{l.member_count === 1 ? "" : "s"}</p>
               {l.bio && <p className="mt-1 text-sm text-white/60">{l.bio}</p>}
             </div>
           ))}
-          {data.labels.length === 0 && <p className="text-sm text-white/45">No labels yet — found the first one.</p>}
+          {labels.length === 0 && <p className="text-sm text-white/45">No labels yet — found the first one.</p>}
         </div>
       </div>
 
@@ -100,7 +106,7 @@ export default function LabelZ() {
       {contracts && (
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">My contracts</h3>
-          {[...contracts.as_artist, ...contracts.as_owner.filter((c) => !contracts.as_artist.find((a) => a.id === c.id))].map((c) => (
+          {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
               <div className="flex items-start justify-between">
                 <p className="font-medium">{c.title} <span className="text-xs text-white/40">· {c.label} → {c.artist}</span></p>
@@ -113,7 +119,7 @@ export default function LabelZ() {
                 {c.owner_signed_name && <> Label signed: {c.owner_signed_name}</>}
                 {c.artist_signed_name && <> · Artist signed: {c.artist_signed_name}</>}
               </p>
-              {c.status === "offered" && contracts.as_artist.find((a) => a.id === c.id) && (
+              {c.status === "offered" && asArtist.find((a) => a.id === c.id) && (
                 <div className="flex flex-wrap gap-2">
                   <input className="neon-input !w-64 !py-2 text-xs" placeholder="Type your full legal name"
                          value={signName[c.id] || ""} onChange={(e) => setSignName({ ...signName, [c.id]: e.target.value })} />

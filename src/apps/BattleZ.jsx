@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { SPINAZ } from "../resources.js";
+import { asList } from "../shape.js";
 
 function MoneyPoll() {
   const [poll, setPoll] = useState(null);
@@ -33,7 +34,7 @@ export default function BattleZ() {
   const [wager, setWager] = useState({});
 
   const load = useCallback(() => {
-    api("/api/battlez/").then(setBattles).catch((e) => setMsg(e.message));
+    api("/api/battlez/").then((d) => setBattles(asList(d))).catch((e) => setMsg(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
 

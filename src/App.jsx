@@ -237,7 +237,7 @@ function CommunityBar({ onOpenMember }) {
       </div>
       {stats.online_members?.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {stats.online_members.map((u) => (
+          {(stats.online_members || []).map((u) => (
             <button
               key={u}
               onClick={() => onOpenMember?.(u)}
