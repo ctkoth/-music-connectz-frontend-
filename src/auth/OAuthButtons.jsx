@@ -81,6 +81,12 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // Provider client IDs served by the backend (GET /api/auth/oauth/config/).
   // null while loading; {} means "loaded, nothing configured".
   const [cfg, setCfg] = useState(null);
+  // "loading" | "ok" | "failed". Google Identity Services reports a refused
+  // origin, a blocked script and third-party-cookie trouble to the CONSOLE and
+  // then renders nothing. Setting a client ID also removes the generic Google
+  // button from the grid below, so a failure left the member with no Google
+  // option and no explanation — the button simply was not there.
+  const [gsi, setGsi] = useState("loading");
 
   const clientId = (key) => (cfg && cfg[key]) || VITE_ID(key);
 
@@ -112,25 +118,39 @@ export default function OAuthButtons({ onSuccess, onError }) {
           } catch (e) { onError?.(e.message); } finally { setBusy(""); }
         },
       });
-      window.google.accounts.id.renderButton(googleBtn.current, {
-        theme: "filled_black", size: "large", shape: "pill", text: "continue_with", width: 280,
-      });
+      try {
+        window.google.accounts.id.renderButton(googleBtn.current, {
+          theme: "filled_black", size: "large", shape: "pill", text: "continue_with", width: 280,
+        });
+      } catch {
+        return setGsi("failed");
+      }
+      // renderButton does not throw on a refused origin — it just leaves the
+      // container empty. Whether a button actually exists is the only honest
+      // signal, so check for one rather than assuming the call worked.
+      setTimeout(() => {
+        setGsi(googleBtn.current?.childElementCount ? "ok" : "failed");
+      }, 2500);
     };
     if (window.google?.accounts?.id) return render();
     let poll;
+    // The script itself can be blocked outright — by an extension, a strict
+    // network, or an offline device. Give up loudly rather than spinning.
+    const giveUp = setTimeout(() => setGsi((v) => (v === "loading" ? "failed" : v)), 8000);
     if (!document.getElementById("gsi-js")) {
       const s = document.createElement("script");
       s.id = "gsi-js";
       s.src = "https://accounts.google.com/gsi/client";
       s.async = true;
       s.onload = render;
+      s.onerror = () => setGsi("failed");
       document.head.appendChild(s);
     } else {
       poll = setInterval(() => {
         if (window.google?.accounts?.id) { clearInterval(poll); render(); }
       }, 200);
     }
-    return () => poll && clearInterval(poll);
+    return () => { clearTimeout(giveUp); poll && clearInterval(poll); };
   }, [cfg, oauth, onSuccess, onError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start(p) {
@@ -176,7 +196,11 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // the grid like the rest. All provider logos are always visible so the
   // login/register screen presents the full set of social options.
   const hasGoogle = !!clientId("google");
-  const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle));
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  // Only hide the generic Google button once GSI has actually put one on the
+  // screen. Hiding it on `hasGoogle` alone meant configuring Google could
+  // REMOVE the member's only way to use it.
+  const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
 
   return (
     <div className="space-y-3">
@@ -185,6 +209,20 @@ export default function OAuthButtons({ onSuccess, onError }) {
       </div>
 
       {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
+
+      {/* Say what went wrong, and print the origin Google has to be told about
+          — that is the fix in almost every case, and it is not guessable. */}
+      {hasGoogle && gsi === "failed" && (
+        <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
+          <p className="font-semibold">Google sign-in didn't load.</p>
+          <p className="mt-1 text-mcz-ember/80">
+            Use email, or another provider below. If you run this site: add{" "}
+            <code className="rounded bg-black/40 px-1 text-white/80">{origin}</code> to the OAuth
+            client's <span className="font-semibold">Authorized JavaScript origins</span> in the
+            Google Console. An ad blocker or blocked third-party cookies will also do this.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-5 gap-2">
         {grid.map((p) => (
