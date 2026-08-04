@@ -9,23 +9,16 @@ import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload } from "lucid
 import { api } from "../api.js";
 import { GENRES } from "../genres.js";
 
-// The eight range classes, straight from the blueprint's Gamified Vocal Range Logic.
-const RANGES = [
-  ["bass", "Bass 🧔‍♂️"], ["baritone", "Baritone 🎙️"], ["tenor", "Tenor 🎤"],
-  ["countertenor", "Countertenor 🕊️"], ["contralto", "Contralto 🎻"], ["alto", "Alto 🎶"],
-  ["mezzo-soprano", "Mezzo-Soprano 🌊"], ["soprano", "Soprano ☀️"],
-];
-
-// Blueprint difficulty ladder.
-const DIFFICULTIES = [
-  ["starter", "Starter 🌱"], ["builder", "Builder 🧩"],
-  ["performer", "Performer 🌟"], ["stageboss", "Stage Boss 👑"],
-];
+// Ranges, difficulties, score dimensions and the honest-scope footnote all
+// come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
+// take has no "breath" and a drummer has no vocal range — and keeping a copy
+// here would let the chips disagree with what the model was asked to score.
+const DIFFICULTY_LABEL = {
+  starter: "Starter 🌱", builder: "Builder 🧩",
+  performer: "Performer 🌟", stageboss: "Stage Boss 👑",
+};
 
 
-
-const SCORE_LABEL = { pitch: "Pitch 🎯", tone: "Tone 🌈", breath: "Breath 🫁",
-  range: "Range 📏", agility: "Agility 🌪️" };
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -54,7 +47,7 @@ function Cost({ price }) {
   );
 }
 
-export default function BossTake() {
+export default function BossTake({ appKey = "singz" }) {
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
   const [difficulty, setDifficulty] = useState("builder");
@@ -73,7 +66,7 @@ export default function BossTake() {
   const chunks = useRef([]);
   const fileInput = useRef(null);
 
-  useEffect(() => { api("/api/singz/coach/").then(setPrice).catch(() => {}); }, []);
+  useEffect(() => { api(`/api/${appKey}/coach/`).then(setPrice).catch(() => {}); }, [appKey]);
 
   // Object URLs must be revoked or every take leaks for the life of the page.
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -136,7 +129,7 @@ export default function BossTake() {
       body.append("genre", genre);
       body.append("range", range);
       body.append("difficulty", difficulty);
-      setResult(await api("/api/singz/coach/", { method: "POST", body }));
+      setResult(await api(`/api/${appKey}/coach/`, { method: "POST", body }));
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
     } finally { setBusy(false); }
@@ -148,11 +141,11 @@ export default function BossTake() {
     <div className="neon-frame space-y-4 p-4">
       <div>
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
-          👑 Boss Take — AI Vocal Coach
+          👑 Boss Take — {price?.label || "AI"} Coach
         </p>
         <p className="mt-1 text-[11px] text-white/45">
-          Record one take and have it scored. You'll get what actually worked, what to fix, and a drill to
-          run before the next one.
+          Record one take, or upload a file, and have it scored. You'll get what actually worked, what to fix,
+          and a drill to run before the next one.
         </p>
       </div>
 
@@ -163,16 +156,19 @@ export default function BossTake() {
             {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         </label>
-        <label className="text-[11px] text-white/50">
-          Target range
-          <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
-            {RANGES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </label>
+        {price?.range_label && (
+          <label className="text-[11px] text-white/50">
+            {price.range_label}
+            <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
+              {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+          </label>
+        )}
         <label className="text-[11px] text-white/50">
           Difficulty
           <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
-            {DIFFICULTIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
+              .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>
         </label>
       </div>
@@ -239,7 +235,7 @@ export default function BossTake() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {Object.entries(SCORE_LABEL).map(([k, label]) => (
+            {Object.entries(price?.scores || {}).map(([k, label]) => (
               <span key={k} className="pill">
                 {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
                   {result.scores?.[k] ?? "—"}
@@ -282,10 +278,7 @@ export default function BossTake() {
               : <span className="text-emerald-300">Free — a daily prompt covered it 🏷️</span>}
           </p>
 
-          <p className="text-[10px] text-white/30">
-            Pitch, tone, breath, range and agility are what one take can show. Consistency, voice health and
-            goal match come from your history, not a single clip.
-          </p>
+          <p className="text-[10px] text-white/30">{price?.caveat}</p>
         </div>
       )}
     </div>
