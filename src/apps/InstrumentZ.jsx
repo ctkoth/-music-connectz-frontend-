@@ -23,8 +23,10 @@ export default function InstrumentZ({ appKey, icon, title, tagline, accent }) {
       </header>
       {appKey === "rapz" && <RapzProfilePanel />}
       {appKey === "singz" && <SingzProfilePanel />}
-      {/* Boss Take is SingZ-only — /api/singz/coach/ scores vocal takes. */}
-      {appKey === "singz" && <BossTake />}
+      {/* Every InstrumentZ app takes a scored Boss Take — record in the
+          browser or upload a file. The dimensions differ per instrument and
+          come from /api/<appKey>/coach/. */}
+      <BossTake appKey={appKey} />
       <SkillZPanel basePath={`/api/${appKey}`} accent={accent} />
     </div>
   );

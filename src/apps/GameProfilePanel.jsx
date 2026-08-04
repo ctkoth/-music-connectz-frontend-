@@ -10,7 +10,10 @@ export function RapzProfilePanel() {
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/rapz/profile/").then(setP).catch(() => {}); }, []);
   if (!p) return null;
-  const toggle = (s) => setP({ ...p, top_styles: p.top_styles.includes(s) ? p.top_styles.filter((x) => x !== s) : [...p.top_styles, s].slice(0, 3) });
+  // Never trust the response shape. A profile missing top_styles took the whole
+  // RapZ tab down on `p.top_styles.length` — one absent field for a dead app.
+  const styles = Array.isArray(p.top_styles) ? p.top_styles : [];
+  const toggle = (s) => setP({ ...p, top_styles: styles.includes(s) ? styles.filter((x) => x !== s) : [...styles, s].slice(0, 3) });
   async function save() {
     try { setP(await api("/api/rapz/profile/", { method: "PATCH", body: p })); setMsg("RapZ profile saved."); }
     catch (e) { setMsg(e.message); }
@@ -18,18 +21,18 @@ export function RapzProfilePanel() {
   return (
     <div className="neon-frame space-y-3 p-4">
       <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Your RapZ game profile {p.boss_unlocked && "· 👑 BOSS"}</p>
-      <p className="text-xs text-white/50">Top 3 styles ({p.top_styles.length}/3):</p>
+      <p className="text-xs text-white/50">Top 3 styles ({styles.length}/3):</p>
       <p className="flex flex-wrap gap-1">
         {RAP_STYLES.map((s) => (
           <button key={s} onClick={() => toggle(s)}
-            className={`pill text-[10px] ${p.top_styles.includes(s) ? "!border-mcz-gold/60 !text-mcz-gold" : ""}`}>{s}</button>
+            className={`pill text-[10px] ${styles.includes(s) ? "!border-mcz-gold/60 !text-mcz-gold" : ""}`}>{s}</button>
         ))}
       </p>
       <div className="flex items-center gap-2 text-sm">
         <span className="text-white/50">BPM comfort:</span>
-        <input className="neon-input !w-20 !py-1.5 text-center" inputMode="numeric" value={p.bpm_min} onChange={(e) => setP({ ...p, bpm_min: +e.target.value || 0 })} />
+        <input className="neon-input !w-20 !py-1.5 text-center" inputMode="numeric" value={p.bpm_min ?? ""} onChange={(e) => setP({ ...p, bpm_min: +e.target.value || 0 })} />
         <span>—</span>
-        <input className="neon-input !w-20 !py-1.5 text-center" inputMode="numeric" value={p.bpm_max} onChange={(e) => setP({ ...p, bpm_max: +e.target.value || 0 })} />
+        <input className="neon-input !w-20 !py-1.5 text-center" inputMode="numeric" value={p.bpm_max ?? ""} onChange={(e) => setP({ ...p, bpm_max: +e.target.value || 0 })} />
       </div>
       {msg && <p className="text-xs text-mcz-gold">{msg}</p>}
       <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={save}><Save size={14} /> Save</button>
