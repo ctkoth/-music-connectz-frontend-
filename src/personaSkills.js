@@ -314,13 +314,69 @@ export function skillLabel(personaKey, skillKey) {
 }
 
 /** Whole years from a YYYY-MM-DD start date — mirrors the server's _skill_years. */
-export function skillYears(start) {
-  if (!start) return null;
-  const [y, m, d] = String(start).split("-").map(Number);
+// ---- Experience is time SERVED, not time elapsed.
+//
+// A skill carries stints: [{start, end}], where end omitted means "still doing
+// it". Experience is the SUM of them. The old rule was `today - start`, so
+// someone who played 1999-2013 and stopped read 26 years instead of 14 — a
+// number nobody could have earned, printed next to their name.
+//
+// Back-compat: a skill with a bare `start` and no `periods` is one open stint,
+// so nothing anyone already saved changes meaning until they add an end date.
+// Mirrors _periods_of / _skill_years / skill_activity in apps/economy/social.py.
+
+export function periodsOf(skill) {
+  if (!skill || typeof skill !== "object") return [];
+  if (Array.isArray(skill.periods) && skill.periods.length) {
+    return skill.periods.filter((p) => p && p.start);
+  }
+  return skill.start ? [{ start: skill.start }] : [];
+}
+
+const asDate = (v) => {
+  const [y, m, d] = String(v || "").split("-").map(Number);
   if (!y || !m || !d) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return Number.isNaN(dt.getTime()) ? null : dt;
+};
+
+/** Whole calendar years from a to b, plus leftover days. Day-count division
+ *  under-reports an exact anniversary — nine years can be 3287 days, and
+ *  3287 / 365.2425 is 8.9995, so someone hitting nine today would read eight. */
+function yearsAndDays(a, b) {
+  let years = b.getUTCFullYear() - a.getUTCFullYear();
+  const bmd = (b.getUTCMonth() + 1) * 100 + b.getUTCDate();
+  const amd = (a.getUTCMonth() + 1) * 100 + a.getUTCDate();
+  if (bmd < amd) years -= 1;
+  const anniv = new Date(Date.UTC(a.getUTCFullYear() + years, a.getUTCMonth(), a.getUTCDate()));
+  return [years, Math.round((b - anniv) / 86400000)];
+}
+
+/** Total years served on a skill — the sum of its stints. null if undated. */
+export function skillYears(skill) {
+  // Tolerate a bare date string, which is how this used to be called.
+  const sk = typeof skill === "string" ? { start: skill } : skill;
   const today = new Date();
-  let years = today.getFullYear() - y;
-  const md = (today.getMonth() + 1) * 100 + today.getDate();
-  if (md < m * 100 + d) years -= 1;
-  return years >= 0 ? years : null;
+  const now = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  let years = 0, days = 0, counted = false;
+  for (const p of periodsOf(sk)) {
+    const a = asDate(p.start);
+    if (!a) continue;
+    let b = asDate(p.end) || now;
+    if (b > now) b = now;
+    if (b <= a) continue;
+    const [y, d] = yearsAndDays(a, b);
+    years += y; days += d; counted = true;
+  }
+  if (!counted) return null;
+  return years + Math.floor(days / 365);
+}
+
+/** { active, lastPlayed } — 14 years still going is not 14 years that stopped
+ *  in 2013, and a collaborator is choosing between those two. */
+export function skillActivity(skill) {
+  const periods = periodsOf(typeof skill === "string" ? { start: skill } : skill);
+  if (!periods.length) return { active: false, lastPlayed: null };
+  if (periods.some((p) => !p.end)) return { active: true, lastPlayed: null };
+  return { active: false, lastPlayed: periods.map((p) => p.end).sort().pop() };
 }

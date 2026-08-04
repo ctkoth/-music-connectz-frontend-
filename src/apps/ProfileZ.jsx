@@ -4,7 +4,7 @@ import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
-import { PERSONA_SKILLS, skillYears } from "../personaSkills.js";
+import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears } from "../personaSkills.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
@@ -127,16 +127,38 @@ const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
 // and a dated one is years served.
 function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
   const cats = PERSONA_SKILLS[personaKey] || {};
-  const picked = Object.fromEntries((skills || []).map((s) => [s.name, s.start || ""]));
+  const today = new Date().toISOString().slice(0, 10);
+  // name -> skill object, so a skill carries its stints rather than one date.
+  const picked = Object.fromEntries((skills || []).map((s) => [s.name, s]));
+
+  // Rows being edited live here, not in the saved value. A blank stint you are
+  // about to type into has no start yet, and the saved value drops startless
+  // periods — so emitting straight through deleted the row the moment "picked
+  // it back up" created it, making a second stint impossible to add.
+  const [draft, setDraft] = useState({});
+  const rowsFor = (label) => draft[label] ?? (periodsOf(picked[label]).length ? periodsOf(picked[label]) : [{ start: "" }]);
+
+  // Drop stints with no start on the way out — a period without one is not a
+  // period, and storing it would look like dated experience that isn't there.
+  const clean = (rows) => rows.filter((p) => p.start)
+    .map((p) => (p.end ? { start: p.start, end: p.end } : { start: p.start }));
 
   function toggle(label) {
     const next = { ...picked };
-    if (label in next) delete next[label]; else next[label] = "";
-    onChange(Object.entries(next).map(([name, start]) => (start ? { name, start } : { name })));
+    if (label in next) {
+      delete next[label];
+      setDraft(({ [label]: _drop, ...rest }) => rest);
+    } else {
+      next[label] = { name: label };
+      setDraft((d) => ({ ...d, [label]: [{ start: "" }] }));
+    }
+    onChange(Object.values(next));
   }
-  function setStart(label, start) {
-    const next = { ...picked, [label]: start };
-    onChange(Object.entries(next).map(([name, st]) => (st ? { name, start: st } : { name })));
+
+  function setPeriods(label, rows) {
+    setDraft((d) => ({ ...d, [label]: rows }));
+    const c = clean(rows);
+    onChange(Object.values({ ...picked, [label]: c.length ? { name: label, periods: c } : { name: label } }));
   }
 
   return (
@@ -151,8 +173,8 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
           </button>
         </div>
         <p className="mb-4 text-[11px] text-white/45">
-          Pick what you actually do. Date a skill and it counts as experience — the years come from when you
-          started, so there's nothing to farm.
+          Pick what you actually do, then say when. Experience is the time you <em>served</em> — if you stopped,
+          add the end date and the years you were away don't count. Picked it back up? Add another stretch.
         </p>
 
         {Object.entries(cats).map(([cat, entries]) => (
@@ -161,6 +183,9 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
             <div className="space-y-1.5">
               {Object.entries(entries).map(([key, label]) => {
                 const on = label in picked;
+                const rows = on ? rowsFor(label) : [];
+                const total = on ? skillYears(picked[label]) : null;
+                const act = on ? skillActivity(picked[label]) : null;
                 return (
                   <div key={key}>
                     <button onClick={() => toggle(label)}
@@ -169,18 +194,54 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                            : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
                       {on && <Check size={11} className="mr-1 inline text-mcz-gold" />}{label}
                     </button>
+
                     {on && (
-                      <div className="mt-1 flex items-center gap-2 pl-3">
-                        <span className="text-[10px] text-white/40">Started</span>
-                        <input type="date" value={picked[label] || ""}
-                          max={new Date().toISOString().slice(0, 10)}
-                          onChange={(e) => setStart(label, e.target.value)}
-                          className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
-                        {skillYears(picked[label]) != null && (
-                          <span className="text-[10px] text-mcz-cyan">
-                            {skillYears(picked[label])} yr{skillYears(picked[label]) === 1 ? "" : "s"}
-                          </span>
-                        )}
+                      <div className="mt-1 space-y-1 pl-3">
+                        {rows.map((pr, i) => (
+                          <div key={i} className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] text-white/40">{i === 0 ? "Started" : "Again"}</span>
+                            <input type="date" value={pr.start || ""} max={today}
+                              onChange={(e) => setPeriods(label, rows.map((r, j) => j === i ? { ...r, start: e.target.value } : r))}
+                              className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
+                            {pr.end ? (
+                              <>
+                                <span className="text-[10px] text-white/40">until</span>
+                                <input type="date" value={pr.end} max={today} min={pr.start || undefined}
+                                  onChange={(e) => setPeriods(label, rows.map((r, j) => j === i ? { ...r, end: e.target.value } : r))}
+                                  className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
+                                <button title="Still doing it"
+                                  onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { start: r.start } : r))}
+                                  className="text-[10px] text-white/35 hover:text-mcz-cyan">still going</button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { ...r, end: today } : r))}
+                                className="text-[10px] text-white/35 hover:text-mcz-ember">
+                                I stopped
+                              </button>
+                            )}
+                            {rows.length > 1 && (
+                              <button title="Remove this stretch"
+                                onClick={() => setPeriods(label, rows.filter((_, j) => j !== i))}
+                                className="text-[10px] text-red-300/60 hover:text-red-300">×</button>
+                            )}
+                          </div>
+                        ))}
+
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          {rows.every((r) => r.end) && rows.some((r) => r.start) && (
+                            <button onClick={() => setPeriods(label, [...rows, { start: "" }])}
+                              className="text-[10px] text-mcz-cyan hover:brightness-125">+ picked it back up</button>
+                          )}
+                          {total != null && (
+                            <span className="text-[10px] text-mcz-cyan">
+                              {total} yr{total === 1 ? "" : "s"} total
+                              {act?.active
+                                ? <span className="text-emerald-300"> · active</span>
+                                : act?.lastPlayed && <span className="text-white/35"> · last played {act.lastPlayed.slice(0, 4)}</span>}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
