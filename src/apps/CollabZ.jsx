@@ -3,6 +3,7 @@ import { Handshake, Loader2, MapPin } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import OfferMap from "./OfferMap.jsx";
+import { asList } from "../shape.js";
 
 const KINDS = [["", "All"], ["original", "OriginalZ ✍️"], ["cover", "CoverZ 🎵"], ["remix", "RemixeZ 🎛️"]];
 const ROLES = ["indieartist","producer","mixengineer","ghostwriter","videographer","designer","director","manager","arscout"];
@@ -23,7 +24,7 @@ export default function CollabZ() {
       const p = new URLSearchParams();
       if (kind) p.set("kind", kind);
       if (coords && maxKm) { p.set("lat", coords.lat); p.set("lng", coords.lng); p.set("max_km", maxKm); }
-      setPosts(await api(`/api/collabz/?${p.toString()}`));
+      setPosts(asList(await api(`/api/collabz/?${p.toString()}`)));
     } catch (e) { setMsg(e.message); } finally { setLoading(false); }
   }, [kind, coords, maxKm]);
   useEffect(() => { load(); }, [load]);

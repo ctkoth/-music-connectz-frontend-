@@ -3,6 +3,7 @@ import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi } from "lucide-
 import { api } from "../api.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import OfferMap from "./OfferMap.jsx";
+import { asList } from "../shape.js";
 
 const SKILLS = ["mimez", "directz", "singz", "rapz", "dawz", "designz", "shotz", "writez",
   "guitar", "piano", "vocals", "drums", "bass", "violin", "saxophone", "dj"];
@@ -74,7 +75,7 @@ function Browse() {
         p.set("lng", coords.lng);
         p.set("max_km", filters.max_km);
       }
-      setOffers(await api(`/api/lessonz/offers/?${p.toString()}`));
+      setOffers(asList(await api(`/api/lessonz/offers/?${p.toString()}`)));
     } catch (e) {
       setMsg(e.message);
     } finally {
@@ -342,7 +343,7 @@ function Posts() {
     try {
       const p = new URLSearchParams();
       if (skill) p.set("skill", skill);
-      setPosts(await api(`/api/lessonz/posts/?${p.toString()}`));
+      setPosts(asList(await api(`/api/lessonz/posts/?${p.toString()}`)));
     } catch (e) { setMsg(e.message); } finally { setLoading(false); }
   }, [skill]);
   useEffect(() => { load(); }, [load]);

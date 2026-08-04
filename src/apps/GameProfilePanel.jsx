@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 
 const RAP_STYLES = ["boom-bap","trap","chopper","drill","conscious","emo","melodic","grime",
   "west-coast","east-coast","dirty-south","lofi","hyperpop","freestyle","battle","storytelling"];
@@ -11,8 +12,8 @@ export function RapzProfilePanel() {
   useEffect(() => { api("/api/rapz/profile/").then(setP).catch(() => {}); }, []);
   if (!p) return null;
   // Never trust the response shape. A profile missing top_styles took the whole
-  // RapZ tab down on `p.top_styles.length` — one absent field for a dead app.
-  const styles = Array.isArray(p.top_styles) ? p.top_styles : [];
+  // RapZ tab down on `p.top_styles.length` — one absent key for a dead app.
+  const styles = asList(p.top_styles);
   const toggle = (s) => setP({ ...p, top_styles: styles.includes(s) ? styles.filter((x) => x !== s) : [...styles, s].slice(0, 3) });
   async function save() {
     try { setP(await api("/api/rapz/profile/", { method: "PATCH", body: p })); setMsg("RapZ profile saved."); }

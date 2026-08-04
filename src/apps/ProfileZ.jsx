@@ -472,7 +472,11 @@ export default function ProfileZ() {
     saveSocial({
       ...loadSocial(),
       profile: {
-        user: me?.username, persona: sel[0] || "Creator",
+        // The NAME, not the persona object. sel[0] is {key, name, skills};
+        // storing it whole put an object where Social ConnectZ renders a
+        // string, and React refuses to render an object as a child — the
+        // whole tab died with "Objects are not valid as a React child".
+        user: me?.username, persona: sel[0]?.name || sel[0]?.key || "Creator",
         icon: "personaz.png", nationalities: nats, looking: "collab",
       },
     });

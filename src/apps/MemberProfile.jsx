@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { personaName } from "./socialData.js";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -103,7 +104,12 @@ export default function MemberProfile({ username, onClose }) {
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">PersonaZ</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.personas.map((p) => <Pill key={p}>{p}</Pill>)}
+                  {/* A persona is {key, name, skills} since the skill picker
+                      landed. Rendering it raw put an object where React wants
+                      a child and took every member profile down. */}
+                  {data.personas.map((p, i) => (
+                    <Pill key={(p && p.key) || personaName(p) || i}>{personaName(p)}</Pill>
+                  ))}
                 </div>
               </div>
             )}

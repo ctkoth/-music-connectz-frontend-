@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, UserMinus, UserPlus } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { asList } from "../shape.js";
 
 const KINDS = [
   ["friends", "FriendZ", "groupz_friendz.png"],
@@ -18,7 +19,7 @@ export default function GroupZ() {
   const [customTitle, setCustomTitle] = useState("");
 
   const load = useCallback(() => {
-    api("/api/groupz/").then(setGroups).catch((e) => setMsg(e.message));
+    api("/api/groupz/").then((d) => setGroups(asList(d))).catch((e) => setMsg(e.message));
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -38,7 +39,7 @@ export default function GroupZ() {
   }
 
   const byKind = {};
-  (groups || []).forEach((g) => { (byKind[g.kind] ||= []).push(g); });
+  asList(groups).forEach((g) => { (byKind[g.kind] ||= []).push(g); });
 
   return (
     <div className="space-y-6">

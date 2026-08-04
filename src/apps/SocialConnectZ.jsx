@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MapPin, Search, Heart } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
-import { loadSocial, NATIONALITIES } from "./socialData.js";
+import { personaName, loadSocial, NATIONALITIES } from "./socialData.js";
 
 const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
 
@@ -45,7 +45,7 @@ export default function SocialConnectZ() {
   const filtered = useMemo(() => {
     return dir.filter((m) => {
       const natMatch = !nat || (m.nationalities || []).includes(nat);
-      const text = `${m.user} ${m.persona} ${m.location}`.toLowerCase();
+      const text = `${m.user} ${personaName(m.persona)} ${m.location}`.toLowerCase();
       const qMatch = !q || text.includes(q.toLowerCase());
       return natMatch && qMatch;
     });
@@ -92,7 +92,7 @@ export default function SocialConnectZ() {
                 <div className="text-sm font-bold text-white">
                   {m.user}{m.self && <span className="ml-2 text-[10px] text-mcz-ember">you</span>}
                 </div>
-                <div className="text-[11px] text-white/50">{m.persona}</div>
+                <div className="text-[11px] text-white/50">{personaName(m.persona)}</div>
               </div>
               {m.looking === "romance"
                 ? <span className="pill !border-mcz-pink/40 !text-mcz-pink"><Heart size={10} className="inline" /> Romance</span>
