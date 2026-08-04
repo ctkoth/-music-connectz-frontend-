@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
+import { asList } from "../shape.js";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -59,8 +60,8 @@ export default function MessageZ() {
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          <MsgList title="Inbox" rows={data.inbox} who="from" />
-          <MsgList title="Sent" rows={data.sent} who="to" />
+          <MsgList title="Inbox" rows={asList(data.inbox)} who="from" />
+          <MsgList title="Sent" rows={asList(data.sent)} who="to" />
         </div>
       )}
     </div>

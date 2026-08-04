@@ -5,13 +5,31 @@
 
 const KEY = "mcz_social_v1";
 
+/** A persona is a display string here. ProfileZ used to store the whole
+ *  {key, name, skills} object, which React refuses to render as a child. */
+const personaName = (p) =>
+  (p && typeof p === "object" ? (p.name || p.key || "") : p) || "";
+
 export function loadSocial() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || {};
+    const raw = JSON.parse(localStorage.getItem(KEY)) || {};
+    // Repair on read. The bad shape is already sitting in people's browsers,
+    // so fixing only the write path would leave them crashing until they
+    // happened to save their profile again.
+    if (raw.profile && typeof raw.profile.persona === "object") {
+      raw.profile = { ...raw.profile, persona: personaName(raw.profile.persona) };
+    }
+    if (Array.isArray(raw.members)) {
+      raw.members = raw.members.map((m) =>
+        m && typeof m.persona === "object" ? { ...m, persona: personaName(m.persona) } : m);
+    }
+    return raw;
   } catch {
     return {};
   }
 }
+
+export { personaName };
 
 export function saveSocial(next) {
   localStorage.setItem(KEY, JSON.stringify(next));

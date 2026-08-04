@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, Flame, Loader2, Star, Trophy, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -19,9 +20,9 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
       api(`${basePath}/skillz/leaderboard/?limit=10`),
     ]);
     setProfile(p);
-    setDrills(d);
-    setBadges(b);
-    setBoard(l);
+    setDrills(asList(d));
+    setBadges(asList(b));
+    setBoard(asList(l));
   }, [basePath]);
 
   useEffect(() => {
@@ -53,8 +54,8 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
         api(`${basePath}/skillz/badges/`),
         api(`${basePath}/skillz/leaderboard/?limit=10`),
       ]);
-      setBadges(b);
-      setBoard(l);
+      setBadges(asList(b));
+      setBoard(asList(l));
     } catch (e) {
       setFlash(e.message);
     } finally {
