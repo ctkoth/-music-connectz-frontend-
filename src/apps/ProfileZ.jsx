@@ -370,7 +370,8 @@ export default function ProfileZ() {
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
-  const [subs, setSubs] = useState([]);        // SubstanceZ keys
+  const [subs, setSubs] = useState({});        // SubstanceZ: {key: "sometimes"|"often"}
+  const [sober, setSober] = useState(false);   // sober BY CHOICE — a claim, not a blank
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -430,7 +431,12 @@ export default function ProfileZ() {
     api("/api/auth/referrals/").then(setRef).catch(() => {});
     api("/api/economy/profile/").then((d) => {
       setBio(d?.bio || "");
-      setSubs(Array.isArray(d?.substances) ? d.substances : Object.keys(d?.substances || {}));
+      // Older saves are a bare list of keys with no frequency. Read them as
+      // declared-but-unspecified rather than inventing a frequency for someone.
+      setSubs(Array.isArray(d?.substances)
+        ? Object.fromEntries(d.substances.map((k) => [k, "yes"]))
+        : (d?.substances || {}));
+      setSober(!!d?.sober);
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
     }).catch(() => {});
   }, []);
@@ -479,7 +485,7 @@ export default function ProfileZ() {
       });
       await api("/api/economy/profile/", {
         method: "POST",
-        body: { bio, substances: subs, attracted_to: partners, nationalities: nats },
+        body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners, nationalities: nats },
       });
       setMe(d);
       setSaved(true);
@@ -632,31 +638,65 @@ export default function ProfileZ() {
         </div>
       </div>
 
-      {/* SubstanceZ — declared use, another searchable metric. */}
+      {/* SubstanceZ — declared use and how often, another searchable metric. */}
       <div>
         <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
-          SubstanceZ ({subs.length} selected)
+          SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})
         </p>
         <p className="mb-2 text-[11px] text-white/40">
-          What you actually use. Honest beats flattering — it's a filter, so it puts you with people who live the
-          same way. Select none and you read as sober.
+          What you actually use, and how often — sometimes and often are different lives. Honest beats
+          flattering; it's a filter, so it puts you with people who live the same way. Tap once for
+          sometimes, twice for often, again to clear.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {SUBSTANCES.map(([key, label, glyph]) => (
-            <button key={key}
-              onClick={() => setSubs((v) => v.includes(key) ? v.filter((x) => x !== key) : [...v, key])}
-              className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                subs.includes(key)
-                  ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
+
+        {/* Sober BY CHOICE is a claim. An empty list only means you didn't say. */}
+        <button
+          onClick={() => { setSober((v) => !v); if (!sober) setSubs({}); }}
+          className={`mb-3 rounded-full border px-3 py-1.5 text-xs transition ${
+            sober ? "border-emerald-300/70 bg-emerald-300/10 text-emerald-200 shadow-neon"
                   : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
-              <span className="mr-1">{glyph}</span>{label}
-            </button>
-          ))}
+          <span className="mr-1">🚫</span>Sober by choice
+        </button>
+
+        <div className={`flex flex-wrap gap-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
+          {SUBSTANCES.map(([key, label, glyph]) => {
+            const stance = subs[key];
+            return (
+              <button key={key}
+                onClick={() => setSubs((v) => {
+                  const next = { ...v };
+                  if (!next[key]) next[key] = "sometimes";
+                  else if (next[key] === "sometimes") next[key] = "often";
+                  else delete next[key];
+                  return next;
+                })}
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  stance === "often"
+                    ? "border-mcz-ember/80 bg-mcz-ember/15 text-white shadow-neon"
+                    : stance
+                      ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
+                      : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+                <span className="mr-1">{glyph}</span>{label}
+                {stance && (
+                  <span className={`ml-1.5 text-[10px] ${stance === "often" ? "text-mcz-ember" : "text-mcz-cyan"}`}>
+                    · {stance === "yes" ? "declared" : stance}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        {subs.length === 0 && (
-          <p className="mt-2 text-[11px] text-emerald-300/70">Nothing selected — your profile reads sober.</p>
-        )}
+
+        {sober ? (
+          <p className="mt-2 text-[11px] text-emerald-300/80">
+            Sober by choice — you'll show up for people filtering for that, which an empty list can't do.
+          </p>
+        ) : Object.keys(subs).length === 0 ? (
+          <p className="mt-2 text-[11px] text-white/40">
+            Nothing declared. That reads as "didn't say", not as sober — use the button above if you mean sober.
+          </p>
+        ) : null}
       </div>
 
       {/* Your bio. It already rendered on member profiles with no way to
