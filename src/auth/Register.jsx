@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AtSign, Gift, Loader2, Phone, User } from "lucide-react";
+import { AtSign, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
+import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const ref = (params.get("ref") || "").trim();
+  // A take they had scored at the door, before they had an account to put it
+  // in. Registering with the token attaches it — otherwise the trial was a
+  // dead end, and the one thing that made them sign up is thrown away.
+  const trialToken = storedTrialToken();
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", password2: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,7 +27,8 @@ export default function Register() {
     if (form.password !== form.password2) return setError("Passwords don't match.");
     setBusy(true);
     try {
-      await register({ ...form, birthday: form.birthday || null, ref });
+      await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
+      clearTrialToken();
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -36,6 +42,11 @@ export default function Register() {
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
+        </div>
+      )}
+      {trialToken && (
+        <div className="flex items-center gap-2 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-sm text-mcz-cyan">
+          <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
         </div>
       )}
       <form onSubmit={submit} className="space-y-3">

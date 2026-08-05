@@ -27,8 +27,13 @@ const scoreColor = (n) =>
  *
  * Red minus for what leaves, green plus for what a free allowance covers —
  * never a bare number, and never only after the fact. */
-function Cost({ price }) {
+function Cost({ price, trial }) {
   if (!price) return null;
+  // The trial spends nothing the visitor owns — they have no wallet yet. Say
+  // that up front too: a free thing whose price is unstated still reads risky.
+  if (trial) {
+    return <span className="text-[11px] text-emerald-300">Free — no account, nothing to pay</span>;
+  }
   if (price.free_today) {
     return (
       <span className="text-[11px] text-emerald-300">
@@ -47,7 +52,11 @@ function Cost({ price }) {
   );
 }
 
-export default function BossTake({ appKey = "singz" }) {
+// `trial` swaps the member coach for the no-account door. Same recorder, same
+// rubric, same score chips — the only differences are the endpoint, the price
+// line, and what happens after the score.
+export default function BossTake({ appKey = "singz", trial = false, onResult }) {
+  const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
   const [difficulty, setDifficulty] = useState("builder");
@@ -66,7 +75,7 @@ export default function BossTake({ appKey = "singz" }) {
   const chunks = useRef([]);
   const fileInput = useRef(null);
 
-  useEffect(() => { api(`/api/${appKey}/coach/`).then(setPrice).catch(() => {}); }, [appKey]);
+  useEffect(() => { api(path, { auth: !trial }).then(setPrice).catch(() => {}); }, [path, trial]);
 
   // Object URLs must be revoked or every take leaks for the life of the page.
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -129,7 +138,9 @@ export default function BossTake({ appKey = "singz" }) {
       body.append("genre", genre);
       body.append("range", range);
       body.append("difficulty", difficulty);
-      setResult(await api(`/api/${appKey}/coach/`, { method: "POST", body }));
+      const out = await api(path, { method: "POST", body, auth: !trial });
+      setResult(out);
+      onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
     } finally { setBusy(false); }
@@ -209,7 +220,7 @@ export default function BossTake({ appKey = "singz" }) {
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
               {busy ? "Coaching your take…" : "Send it to the coach"}
             </button>
-            <Cost price={price} />
+            <Cost price={price} trial={trial} />
           </div>
           {price && (
             <p className="text-[11px] text-white/35">
@@ -272,11 +283,13 @@ export default function BossTake({ appKey = "singz" }) {
             </p>
           )}
 
-          <p className="text-[11px]">
-            {result.cost_cents
-              ? <span className="text-mcz-ember">−{result.cost_cents} 🏷️ spent</span>
-              : <span className="text-emerald-300">Free — a daily prompt covered it 🏷️</span>}
-          </p>
+          {!trial && (
+            <p className="text-[11px]">
+              {result.cost_cents
+                ? <span className="text-mcz-ember">−{result.cost_cents} 🏷️ spent</span>
+                : <span className="text-emerald-300">Free — a daily prompt covered it 🏷️</span>}
+            </p>
+          )}
 
           <p className="text-[10px] text-white/30">{price?.caveat}</p>
         </div>

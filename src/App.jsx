@@ -26,6 +26,8 @@ import AdZ from "./apps/AdZ.jsx";
 import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
+import PublicProfile from "./apps/PublicProfile.jsx";
+import TrialTake from "./apps/TrialTake.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -530,8 +532,12 @@ export default function App() {
       <Route path="/forgot" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
-      {/* Public — viewable without an account (records a view, rewards owner). */}
+      {/* Public — readable with no account. By link, never by browse: there is
+          no anonymous feed and no anonymous member search. */}
       <Route path="/p/:id" element={<PublicPost />} />
+      <Route path="/u/:username" element={<PublicProfile />} />
+      <Route path="/try" element={<TrialTake />} />
+      <Route path="/try/:appKey" element={<TrialTake />} />
       <Route
         path="/"
         element={
