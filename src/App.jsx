@@ -30,6 +30,7 @@ import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
+import LogZ from "./apps/LogZ.jsx";
 import HabitZ from "./apps/HabitZ.jsx";
 import { SPINAZ } from "./resources.js";
 
@@ -188,6 +189,7 @@ const TABS = [
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
+  { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
