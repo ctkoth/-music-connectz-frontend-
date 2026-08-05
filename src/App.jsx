@@ -31,6 +31,7 @@ import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
 import LogZ from "./apps/LogZ.jsx";
+import HabitZ from "./apps/HabitZ.jsx";
 import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -189,6 +190,7 @@ const TABS = [
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
+  { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
