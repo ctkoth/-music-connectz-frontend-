@@ -9,8 +9,8 @@
 // through the same counter a ProfileZ link does.
 import { useEffect, useState } from "react";
 import {
-  ArrowDown, ArrowUp, Check, Copy, ExternalLink, Link2, Loader2, Music,
-  Plus, Trash2,
+  ArrowDown, ArrowUp, Check, Copy, ExternalLink, Link2, Loader2, LogOut, Music,
+  Plus, Trash2, UserPlus, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -32,7 +32,7 @@ const VISIBILITIES = [
   ["private", "Just me"],
 ];
 
-function Row({ item, onUp, onDown, onRemove, editable }) {
+function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
   const isPost = item.kind === "post";
   const open = () => {
     if (isPost) return goToSpot("social", "social-feed");
@@ -64,6 +64,8 @@ function Row({ item, onUp, onDown, onRemove, editable }) {
               : null}
           {!isPost && item.clicks > 0 && <span>{item.clicks} clicks</span>}
           {item.rating != null && <span className="text-mcz-ember">{item.rating}/10</span>}
+          {/* On a shared list, "who put this here" is the first question. */}
+          {shared && item.added_by && <span>added by @{item.added_by}</span>}
           {!item.available && <span className="text-mcz-ember">post deleted</span>}
         </span>
       </button>
@@ -73,13 +75,19 @@ function Row({ item, onUp, onDown, onRemove, editable }) {
           <ExternalLink size={13} />
         </a>
       )}
-      {editable && (
-        <span className="flex shrink-0 items-center gap-1">
-          <button onClick={onUp} className="text-white/25 hover:text-white" title="Move up"><ArrowUp size={13} /></button>
-          <button onClick={onDown} className="text-white/25 hover:text-white" title="Move down"><ArrowDown size={13} /></button>
+      <span className="flex shrink-0 items-center gap-1">
+        {canReorder && (
+          <>
+            <button onClick={onUp} className="text-white/25 hover:text-white" title="Move up"><ArrowUp size={13} /></button>
+            <button onClick={onDown} className="text-white/25 hover:text-white" title="Move down"><ArrowDown size={13} /></button>
+          </>
+        )}
+        {/* The server decides this, not the client: the owner may remove
+            anything, a collaborator only what they put in. */}
+        {item.can_remove && (
           <button onClick={onRemove} className="text-white/25 hover:text-red-300" title="Remove"><Trash2 size={13} /></button>
-        </span>
-      )}
+        )}
+      </span>
     </li>
   );
 }
@@ -153,6 +161,78 @@ function AddTrack({ playlistId, onAdded }) {
   );
 }
 
+function Collaborators({ pl, onChanged }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const path = `/api/economy/playlistz/${pl.id}/collaborators/`;
+  const mates = asList(pl.collaborators);
+
+  async function invite() {
+    if (!name.trim()) return;
+    setBusy(true); setMsg("");
+    try {
+      await api(path, { method: "POST", body: { username: name.trim() } });
+      setName("");
+      onChanged();
+    } catch (e) { setMsg(e.message || "Couldn't add them."); }
+    finally { setBusy(false); }
+  }
+
+  async function remove(username) {
+    await api(`${path}${username ? `?username=${encodeURIComponent(username)}` : ""}`,
+              { method: "DELETE" }).catch(() => {});
+    onChanged();
+  }
+
+  // A collaborator sees who else is on it and a way off. Being stuck on
+  // somebody else's list with no exit is not a feature.
+  if (!pl.mine) {
+    if (!pl.can_add) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
+        <Users size={12} /> You're a collaborator here — add tracks, and @{pl.owner} sets the order.
+        <button className="pill !text-red-300" onClick={() => remove("")}>
+          <LogOut size={11} className="inline" /> Leave
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+        <Users size={12} /> Collaborators
+      </p>
+      {mates.length === 0 ? (
+        <p className="text-[11px] text-white/35">
+          Just you. Invite someone and they can add tracks — you still set the running order.
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {mates.map((u) => (
+            <li key={u} className="pill flex items-center gap-1">
+              @{u}
+              <button onClick={() => remove(u)} className="text-white/30 hover:text-red-300" title="Remove collaborator">
+                <X size={10} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-2">
+        <input className="neon-input !w-auto flex-1 !py-1.5 text-[11px]" placeholder="Username to invite"
+               value={name} onChange={(e) => setName(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && invite()} />
+        <button className="re-btn !w-auto px-3 text-xs" onClick={invite} disabled={busy || !name.trim()}>
+          {busy ? <Loader2 className="animate-spin" size={13} /> : <UserPlus size={13} />} Invite
+        </button>
+      </div>
+      {msg && <p className="text-[11px] text-mcz-ember">{msg}</p>}
+    </div>
+  );
+}
+
 function Detail({ id, onBack, onChanged }) {
   const [pl, setPl] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -201,7 +281,8 @@ function Detail({ id, onBack, onChanged }) {
       <div>
         <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
         <p className="text-[11px] text-white/40">
-          {pl.post_count} from Music ConnectZ · {pl.link_count} outside
+          by @{pl.owner} · {pl.post_count} from Music ConnectZ · {pl.link_count} outside
+          {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
           {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
         </p>
         {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
@@ -226,13 +307,17 @@ function Detail({ id, onBack, onChanged }) {
       ) : (
         <ol className="space-y-1.5">
           {items.map((it, i) => (
-            <Row key={it.id} item={it} editable={pl.mine}
+            <Row key={it.id} item={it} canReorder={pl.can_reorder}
+                 shared={pl.collaborators?.length > 0}
                  onUp={() => move(i, -1)} onDown={() => move(i, 1)} onRemove={() => remove(it.id)} />
           ))}
         </ol>
       )}
 
-      {pl.mine && <AddTrack playlistId={id} onAdded={() => { load(); onChanged?.(); }} />}
+      <Collaborators pl={pl} onChanged={() => { load(); onChanged?.(); }} />
+
+      {/* can_add, not `mine` — a collaborator contributes to a list they don't own. */}
+      {pl.can_add && <AddTrack playlistId={id} onAdded={() => { load(); onChanged?.(); }} />}
     </div>
   );
 }
@@ -301,6 +386,8 @@ export default function PlaylistZ() {
                       <span className="block truncate text-[13px] text-white/85">{pl.title}</span>
                       <span className="block text-[10px] text-white/35">
                         @{pl.owner} · {pl.count} track{pl.count === 1 ? "" : "s"}
+                        {pl.collaborators?.length > 0 && <> · shared with {pl.collaborators.length}</>}
+                        {!pl.mine && pl.can_add && <span className="text-mcz-cyan"> · you can add</span>}
                         {pl.rating != null && <span className="text-mcz-ember"> · {pl.rating}/10</span>}
                       </span>
                     </span>
