@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import EarnInstead from "../EarnInstead.jsx";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 
@@ -39,7 +40,10 @@ export default function OfferZ() {
             </a>
           </>
         ) : (
-          <p className="text-sm text-white/60">The offerwall is being switched on — check back soon.</p>
+          <>
+            <p className="text-sm text-white/60">The offerwall is being switched on — check back soon.</p>
+            <EarnInstead exclude={["offerz"]} title="In the meantime, these do pay" />
+          </>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
+import EarnInstead from "../EarnInstead.jsx";
 
 // AdZ — Google AdMob rewarded video. The actual ad plays through the AdMob SDK
 // in the native (Capacitor) app; Google then calls the backend SSV endpoint to
@@ -50,7 +51,11 @@ export default function AdZ() {
             AdZ is available to members aged {cfg.min_age ?? 13} and up. Your profile lists an age under {cfg.min_age ?? 13}, so rewarded ads are turned off for your account.
           </p>
         ) : !cfg.enabled ? (
-          <p className="text-sm text-white/60">Rewarded ads are being switched on — check back soon.</p>
+          <>
+            <p className="text-sm text-white/60">Rewarded ads are being switched on — check back soon.</p>
+            {/* Never leave them here. A member who came to AdZ came to earn. */}
+            <EarnInstead exclude={["adz"]} title="In the meantime, these do pay" />
+          </>
         ) : isNative ? (
           <>
             <p className="text-sm text-white/70">Rewarded ads are live. Watch a short clip to earn SpinaZ — your reward is credited automatically once the ad completes.</p>
