@@ -3254,6 +3254,22 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
         {/* Range gates — a set range excludes anyone outside it. */}
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 8, marginTop: 4 }}>
           <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>🎚️ Range filters <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(exclusive — gates who qualifies)</span></div>
+          {/* Skill rating and skill price were the two ranges the blueprint
+              asked for that search never had — the server takes them now. */}
+          <RangeRow label="Skill rating (/10)" emoji="⭐" minKey="rating_min" maxKey="rating_max" rng={rng} setR={setR} min={1} max={10} />
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: 11, color: "var(--text-light)" }}>💵 Skill price — their cheapest skill, per hour</label>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+              <input type="number" min={0} value={rng.price_min == null || rng.price_min === "" ? "" : rng.price_min / 100} placeholder="$ min"
+                     onChange={(e) => setR("price_min", e.target.value === "" ? "" : Math.round(Number(e.target.value) * 100))}
+                     style={{ width: 90 }} />
+              <span style={{ fontSize: 11, color: "var(--text-light)" }}>–</span>
+              <input type="number" min={0} value={rng.price_max == null || rng.price_max === "" ? "" : rng.price_max / 100} placeholder="$ max"
+                     onChange={(e) => setR("price_max", e.target.value === "" ? "" : Math.round(Number(e.target.value) * 100))}
+                     style={{ width: 90 }} />
+              <span style={{ fontSize: 10, color: "var(--text-light)" }}>per hour</span>
+            </div>
+          </div>
           <RangeRow label="Attractiveness (/10)" emoji="💯" minKey="attr_min" maxKey="attr_max" rng={rng} setR={setR} min={1} max={10} />
           <RangeRow label="Age (years)" emoji="🎂" minKey="age_min" maxKey="age_max" rng={rng} setR={setR} min={13} max={99} />
           <div style={{ marginBottom: 8 }}>
