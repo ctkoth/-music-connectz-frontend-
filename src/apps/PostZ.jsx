@@ -26,7 +26,8 @@ import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
-import { GENRES } from "../genres.js";
+import { GENRE_GROUPS, genreLabel } from "../genres.js";
+import SkillsUsed from "../SkillsUsed.jsx";
 import { ENERGY } from "../resources.js";
 import { goToSpot } from "../goto.js";
 
@@ -53,6 +54,7 @@ export default function PostZ() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [genre, setGenre] = useState("Trap");
+  const [skillsUsed, setSkillsUsed] = useState([]);
   const [visibility, setVisibility] = useState("public");
   const [toast, setToast] = useState("");
   const [posting, setPosting] = useState(false);
@@ -89,10 +91,10 @@ export default function PostZ() {
     try {
       const s = await api("/api/economy/postz/", {
         method: "POST",
-        body: { title: t, description: description.trim(), genre, visibility },
+        body: { title: t, description: description.trim(), genre, visibility, skills_used: skillsUsed },
       });
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription("");
+      setTitle(""); setDescription(""); setSkillsUsed([]);
       flash("Posted. Rating opens in 30s, comments in 60s.");
     } catch (e) {
       flash(e.message || "Couldn't post.");
@@ -143,7 +145,13 @@ export default function PostZ() {
         <div className="flex flex-wrap items-center gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
-            {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            {GENRE_GROUPS.map((grp) => (
+              <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                {grp.genres.map(([name, emoji]) => (
+                  <option key={name} value={name}>{name} {emoji}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={visibility} onChange={(e) => setVisibility(e.target.value)}>
@@ -155,6 +163,10 @@ export default function PostZ() {
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Post
           </button>
         </div>
+        {/* 2.2 required this on every example, and it's what makes a post
+            matchable to the people who have those skills. */}
+        <SkillsUsed value={skillsUsed} onChange={setSkillsUsed} label="Skills used on this" />
+
         <p className="text-[11px] leading-relaxed text-white/40">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
           comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
@@ -285,7 +297,7 @@ function PostCard({ post, now, charLimit, onFlash }) {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
-            {post.genre && <span>· {post.genre}</span>}
+            {post.genre && <span>· {genreLabel(post.genre)}</span>}
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
             )}

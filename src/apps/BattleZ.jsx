@@ -20,7 +20,7 @@ import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
-import { GENRES } from "../genres.js";
+import { GENRE_GROUPS } from "../genres.js";
 
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
@@ -516,7 +516,13 @@ export default function BattleZ() {
             <div className="grid gap-2 sm:grid-cols-2">
               <select className="neon-input !py-2 text-xs" value={form.genre}
                       onChange={(e) => setForm({ ...form, genre: e.target.value })}>
-                {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+                {GENRE_GROUPS.map((grp) => (
+              <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                {grp.genres.map(([name, emoji]) => (
+                  <option key={name} value={name}>{name} {emoji}</option>
+                ))}
+              </optgroup>
+            ))}
               </select>
               <input className="neon-input !py-2 text-xs" inputMode="numeric"
                      placeholder="Entry fee in SpinaZ (0 = free)"

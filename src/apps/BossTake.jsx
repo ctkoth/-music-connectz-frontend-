@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload } from "lucide-react";
 import { api } from "../api.js";
-import { GENRES } from "../genres.js";
+import { GENRE_GROUPS } from "../genres.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -164,7 +164,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         <label className="text-[11px] text-white/50">
           Genre
           <select value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
-            {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            {GENRE_GROUPS.map((grp) => (
+              <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                {grp.genres.map(([name, emoji]) => (
+                  <option key={name} value={name}>{name} {emoji}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </label>
         {price?.range_label && (

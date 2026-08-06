@@ -380,3 +380,19 @@ export function skillActivity(skill) {
   if (periods.some((p) => !p.end)) return { active: true, lastPlayed: null };
   return { active: false, lastPlayed: periods.map((p) => p.end).sort().pop() };
 }
+
+/** Persona key → the label a member reads. 2.2 rendered these with an emoji on
+ *  the button ("🎤 Independent Artist"), so they carry one here too. */
+export const PERSONA_LABELS = {
+  indieartist: "🎤 Independent Artist",
+  producer: "🎚️ Beat Producer",
+  mixengineer: "🎛️ Mix / Master Engineer",
+  ghostwriter: "✍️ Ghost Writer",
+  designer: "🎨 Designer",
+  videographer: "🎬 Videographer",
+  developer: "💻 Developer",
+  mime: "🤡 Mime",
+  director: "🎬 Director",
+  manager: "📋 Manager",
+  arscout: "🔎 A&R Scout",
+};
