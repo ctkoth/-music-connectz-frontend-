@@ -19,6 +19,7 @@ import BattleZ from "./apps/BattleZ.jsx";
 import LabelZ from "./apps/LabelZ.jsx";
 import BugZ from "./apps/BugZ.jsx";
 import PostZ from "./apps/PostZ.jsx";
+import KeyConnectZ from "./apps/KeyConnectZ.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
 import MembershipZ from "./apps/MembershipZ.jsx";
@@ -189,6 +190,7 @@ const TABS = [
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
+  { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
