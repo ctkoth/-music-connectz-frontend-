@@ -16,11 +16,13 @@
 import { useEffect, useState } from "react";
 import {
   AlertTriangle, Check, ChevronDown, ChevronRight, Loader2, Lock, Plus,
-  RotateCcw, Trash2, X,
+  RotateCcw, Send, Star, Trash2, Undo2, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
+import MediaFields from "../MediaFields.jsx";
+import { goToSpot } from "../goto.js";
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -117,6 +119,93 @@ function Task({ task, onAdvance, onUndo, onCancel }) {
   );
 }
 
+// The price, before the button. `−N ⚡` on the control itself, never in the
+// response — a price discovered by paying it is a bill.
+function Price({ cents }) {
+  return cents > 0
+    ? <span className="text-mcz-ember">−{cents} ⚡</span>
+    : <span className="text-emerald-300">Free</span>;
+}
+
+function Work({ work, onShare, onUnshare, onDelete, busy }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex items-start justify-between gap-2">
+        <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(!open)}>
+          <p className="truncate text-[13px] text-white/85">{work.title}</p>
+          <p className="text-[10px] text-white/35">
+            {work.shared ? (
+              <span className="text-emerald-300">Posted</span>
+            ) : (
+              <span>Not posted yet</span>
+            )}
+            {work.media_type && <> · {work.media_type}</>}
+            {work.tab && <> · {work.tab}</>}
+            {work.shared && work.rating != null && <> · {work.rating}/10 ⭐</>}
+          </p>
+        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {!work.shared ? (
+            <button className="neon-btn-primary !w-auto px-3 !py-1 text-[11px]"
+                    onClick={() => onShare(work)} disabled={busy}
+                    title="Post it — that's what makes it rateable">
+              <Send size={11} /> Post it <Price cents={work.share_cost?.amount || 0} />
+            </button>
+          ) : (
+            <button className="text-white/30 hover:text-mcz-gold" onClick={() => onUnshare(work)}
+                    title="Unlink the post (the post stays up)">
+              <Undo2 size={13} />
+            </button>
+          )}
+          <button className="text-white/30 hover:text-red-300" onClick={() => onDelete(work)} title="Delete">
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="space-y-2 text-[11px]">
+          {work.input_text && (
+            <p className="rounded border border-white/10 bg-black/20 p-2 text-white/50">
+              <span className="text-mcz-cyan">You asked · </span>{work.input_text}
+            </p>
+          )}
+          {work.description && (
+            <p className="whitespace-pre-wrap rounded border border-white/10 bg-black/20 p-2 text-white/70">
+              {work.description}
+            </p>
+          )}
+          {work.media_url && <audio controls src={work.media_url} className="w-full" />}
+          {work.image_url && <img src={work.image_url} alt="" className="max-h-40 rounded" />}
+
+          {/* Nothing is a dead end. Every place this can go, and honestly
+              whether it can go there yet. */}
+          <div className="flex flex-wrap gap-1.5">
+            {asList(work.send_to).map((t) => {
+              const blocked = t.needs_share && !work.shared;
+              return (
+                <button key={t.key} title={t.note} disabled={blocked}
+                        className={`pill !text-[10px] ${blocked ? "!text-white/25" : "hover:!text-white"}`}
+                        onClick={() => goToSpot(t.tab, t.target)}>
+                  {blocked && <Lock size={9} className="mr-0.5 inline" />}{t.label}
+                </button>
+              );
+            })}
+          </div>
+          {!work.shared && (
+            <p className="text-[10px] text-white/35">
+              <Star size={9} className="mr-0.5 inline" />
+              Posting is what makes it rateable — likes, dislikes, comments and a
+              rating all land on the post.
+            </p>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 export default function OCC() {
   const [spec, setSpec] = useState(null);
   const [settings, setSettings] = useState(null);
@@ -125,14 +214,21 @@ export default function OCC() {
   const [title, setTitle] = useState("");
   const [openGenre, setOpenGenre] = useState("");
   const [showTabs, setShowTabs] = useState(true);
+  const [works, setWorks] = useState(null);
+  const [draft, setDraft] = useState({ title: "", input_text: "", description: "" });
+  const [work, setWork] = useState({});      // the attachment, MediaFields' shape
+  const [busy, setBusy] = useState(false);
 
   const loadTasks = () => api("/api/economy/occ/taskz/")
     .then((d) => setTasks(asList(d?.tasks))).catch(() => setTasks([]));
+  const loadWorks = () => api("/api/economy/occ/workz/")
+    .then((d) => setWorks(asList(d?.works))).catch(() => setWorks([]));
 
   useEffect(() => {
     api("/api/economy/occ/spec/").then(setSpec).catch((e) => setMsg(e.message));
     api("/api/economy/occ/settings/").then(setSettings).catch(() => {});
     loadTasks();
+    loadWorks();
   }, []);
 
   if (!spec) {
@@ -168,6 +264,59 @@ export default function OCC() {
     await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }).catch(() => {});
     loadTasks();
   };
+
+  const canKeep = draft.title.trim() || draft.input_text.trim()
+    || draft.description.trim() || work.media_url || work.image_url;
+
+  async function keepWork() {
+    if (!canKeep) return;
+    setBusy(true);
+    try {
+      await api("/api/economy/occ/workz/", {
+        method: "POST",
+        body: {
+          title: draft.title.trim(),
+          input_text: draft.input_text.trim(),
+          description: draft.description.trim(),
+          // Blobs stay local until there's an upload endpoint for them, exactly
+          // as CollabZ does it — a hosted link works today either way.
+          media_type: work.media_blob ? "" : (work.media_type || ""),
+          media_url: work.media_blob ? "" : (work.media_url || ""),
+          image_url: work.image_blob ? "" : (work.image_url || ""),
+          lyrics: work.lyrics || "",
+        },
+      });
+      setDraft({ title: "", input_text: "", description: "" });
+      setWork({});
+      loadWorks();
+    } catch (e) { flash(e.message || "Couldn't keep that."); }
+    finally { setBusy(false); }
+  }
+
+  async function share(w) {
+    setBusy(true);
+    try {
+      const r = await api(`/api/economy/occ/workz/${w.id}/share/`, { method: "POST", body: {} });
+      flash(r.energy_charged
+        ? `Posted — charged ${r.energy_charged} ⚡. It can be rated and commented on now.`
+        : "Posted — it can be rated and commented on now.");
+      loadWorks();
+    } catch (e) { flash(e.message || "Couldn't post that."); }
+    finally { setBusy(false); }
+  }
+
+  async function unshare(w) {
+    try {
+      await api(`/api/economy/occ/workz/${w.id}/unshare/`, { method: "POST", body: {} });
+      flash("Unlinked. The post is still up — delete it in PostZ if you want it gone.");
+      loadWorks();
+    } catch (e) { flash(e.message || "Couldn't unlink that."); }
+  }
+
+  async function removeWork(w) {
+    await api(`/api/economy/occ/workz/${w.id}/`, { method: "DELETE" }).catch(() => {});
+    loadWorks();
+  }
 
   return (
     <div className="space-y-5">
@@ -210,6 +359,53 @@ export default function OCC() {
           <ul className="space-y-2">
             {tasks.map((t) => (
               <Task key={t.id} task={t} onAdvance={advance} onUndo={undo} onCancel={cancel} />
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* WorkZ — what you gave OCC and what it gave back, in the PostZ format.
+          An answer you can't show anyone, rate, or carry anywhere is a dead end
+          with a scrollbar, and nothing here is allowed to be one. */}
+      <div className="re-card space-y-3" data-tour="occ-workz">
+        <div className="re-label">🧾 WorkZ</div>
+        <p className="text-[11px] leading-relaxed text-white/45">
+          Text and attachments in, work out. Post it and it's rated, liked,
+          disliked and commented on like anything else — or take it straight
+          into another app.
+        </p>
+
+        <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+          <input className="neon-input !py-2 text-xs" placeholder="Call it something"
+                 value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <textarea className="neon-input !py-2 text-xs" rows={2}
+                    placeholder="What you asked OCC for"
+                    value={draft.input_text}
+                    onChange={(e) => setDraft({ ...draft, input_text: e.target.value })} />
+          <textarea className="neon-input !py-2 text-xs" rows={3}
+                    placeholder="What came back"
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          <MediaFields value={work} onChange={setWork} label="Attachment" />
+          <button className="neon-btn-primary !w-auto px-4" onClick={keepWork}
+                  disabled={!canKeep || busy}>
+            <Plus size={14} /> Keep it <span className="text-emerald-300">Free</span>
+          </button>
+          <p className="text-[10px] text-white/35">
+            Keeping is free. Posting later costs the combined price of the skills
+            you put on it — the row says how much before you press it.
+          </p>
+        </div>
+
+        {works === null ? (
+          <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+        ) : works.length === 0 ? (
+          <p className="text-[12px] text-white/40">Nothing kept yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {works.map((w) => (
+              <Work key={w.id} work={w} onShare={share} onUnshare={unshare}
+                    onDelete={removeWork} busy={busy} />
             ))}
           </ul>
         )}
