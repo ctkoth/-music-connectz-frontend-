@@ -4263,27 +4263,108 @@ const BATTLE_SEED_POOLS = {
 // Drop your own battle entry — record/upload, then it posts to the feed as a
 // PostZ others can rate out of 10, comment on, and share.
 function BattleEntryRecorder({ mode, onOpen }) {
+  const MAX_TITLE_LENGTH = 160;
+  const BATTLE_SUFFIX = " (BattleZ)";
+  const [source, setSource] = useState("new"); // new upload | existing post
+  const [mineList, setMineList] = useState([]);
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [loadErr, setLoadErr] = useState("");
+  const inferMediaType = (url = "") => {
+    if (/\.(mp4|mov|m4v|avi|webm)(?:$|\?)/i.test(url)) return "video";
+    if (/\.(mp3|wav|ogg|m4a|aac|flac)(?:$|\?)/i.test(url)) return "audio";
+    return "";
+  };
+  const isBattleMediaType = (t) => t === "audio" || t === "video";
+  const postHasMedia = (post) => post.media_url || (post.is_album && (post.items || []).length);
+  const pickMedia = (post) => {
+    if (!post) return { media_url: "", media_type: "" };
+    if (post.media_url) return { media_url: post.media_url, media_type: post.media_type || inferMediaType(post.media_url) };
+    const it = (post.items || [])[0] || {};
+    return { media_url: it.url || "", media_type: it.type || inferMediaType(it.url || "") };
+  };
+  const loadMine = () => {
+    getPostzApi("new")
+      .then((r) => {
+        const mine = (r.posts || []).filter((post) => {
+          if (!post.mine || !postHasMedia(post)) return false;
+          const picked = pickMedia(post);
+          return !!picked.media_url && isBattleMediaType(picked.media_type);
+        });
+        setMineList(mine);
+        setLoadErr("");
+      })
+      .catch(() => {
+        setMineList([]);
+        setLoadErr("Couldn't load your existing media yet — try again in a moment.");
+      });
+  };
+  useEffect(loadMine, []);
   const post = async () => {
     if (!media?.url) return;
     setBusy(true); setMsg("");
     try {
-      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, 160), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
+      await createPostzApi({ title: (name || `BattleZ ${mode} entry`).slice(0, MAX_TITLE_LENGTH), description: `🪖 BattleZ ${mode} entry`, media_url: media.url, media_type: media.type, visibility: "public" });
       setMsg("✅ Entry posted to the feed — others can rate it 1–10, comment & share.");
       setMedia(null); setName("");
+      loadMine();
+    } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post your entry.")); }
+    setBusy(false);
+  };
+  const postExisting = async (p) => {
+    const picked = pickMedia(p);
+    if (!picked.media_url) { setMsg("This post has no usable media to share yet."); return; }
+    if (!isBattleMediaType(picked.media_type)) { setMsg("BattleZ supports audio/video entries only."); return; }
+    setBusy(true); setMsg("");
+    const base = (p.title?.trim() || `BattleZ ${mode} entry`);
+    const title = `${base.slice(0, MAX_TITLE_LENGTH - BATTLE_SUFFIX.length)}${BATTLE_SUFFIX}`;
+    try {
+      await createPostzApi({
+        title,
+        description: `🪖 BattleZ ${mode} entry`,
+        media_url: picked.media_url,
+        media_type: picked.media_type,
+        visibility: "public",
+      });
+      setMsg("✅ Existing media shared to BattleZ — others can rate it 1–10, comment & share.");
+      loadMine();
     } catch (e) { setMsg(/limit|429/i.test(e?.message || "") ? "Daily submission limit reached — upgrade for more submits." : (e?.message || "Couldn't post your entry.")); }
     setBusy(false);
   };
   return (
     <div className="card">
       <div className="card-header">🎤 Drop your entry</div>
-      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Record or upload your round — it posts to the feed where the community rates it out of 10.</p>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name your entry" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
-      <MediaCapture onUploaded={setMedia} />
-      {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post my entry"}</button>}
+      <p style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 6 }}>Use a new upload or share media you already made in another app.</p>
+      <div className="chip-wrap" style={{ marginBottom: 8 }}>
+        {[["new", "🎤 New upload"], ["existing", "📁 Use my existing media"]].map(([id, label]) => (
+          <button key={id} className={`heritage-chip${source === id ? " sel" : ""}`} onClick={() => setSource(id)}>{label}</button>
+        ))}
+      </div>
+      {source === "new" ? (
+        <>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name your entry" style={{ width: "100%", marginBottom: 6 }} maxLength={160} />
+          <MediaCapture onUploaded={setMedia} />
+          {media?.url && <button className="btn btn-small btn-success" style={{ width: "100%", marginTop: 6 }} onClick={post} disabled={busy}>{busy ? "Posting…" : "📤 Post my entry"}</button>}
+        </>
+      ) : (
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>📁 Share media created/edited in another app</label>
+          {loadErr && <p style={{ fontSize: 11, color: "var(--danger)", margin: "4px 0 6px" }}>{loadErr}</p>}
+          {mineList.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--text-light)" }}>You have no media posts yet — upload or save one from another app first.</p>
+          ) : mineList.map((p) => {
+            const picked = pickMedia(p);
+            return (
+              <div key={p.id} className="skill-item">
+                <span className="skill-item-name">{picked.media_type === "video" ? "📹" : "🎧"} {p.title}</span>
+                <button className="btn btn-small" onClick={() => postExisting(p)} disabled={busy}>Share to BattleZ</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {msg && <p style={{ fontSize: 11, color: /✅/.test(msg) ? "var(--success)" : "var(--danger)", marginTop: 6 }}>{msg}{/✅/.test(msg) && onOpen && <> <button className="btn-link" style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", padding: 0, textDecoration: "underline", font: "inherit" }} onClick={() => onOpen("postz")}>View feed</button></>}</p>}
     </div>
   );
