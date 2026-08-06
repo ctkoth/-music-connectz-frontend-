@@ -1,13 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Send, Lock, Flame, RefreshCw, AlertCircle, Eye, Share2, Check as CheckIcon } from "lucide-react";
+// PostZ — the feed, wired to the API that exists.
+//
+// This tab was written against an imagined backend. It fetched `/api/postz/`
+// (a root path that only ever served ONE post by id), read `content`, `genre`,
+// `view_count`, `avg_rating`, `comment_count` — fields a Post has never had —
+// and posted to `/api/postz/{id}/rate/` and `/{id}/comment/`, neither of which
+// exists. So the tab loaded, said "No PostZ yet", and every action failed.
+//
+// The real shapes:
+//   GET  /api/economy/postz/?sort=hot          → { posts: [...] }
+//   POST /api/economy/postz/                   → { title, description, genre, visibility }
+//   GET  /api/economy/social/?item=post:<id>   → reactions, comments, my rating
+//   POST /api/economy/social/rate/             → { item, action:"rate", score }
+//   POST /api/economy/social/comment/          → { item, body }
+//
+// The unlock countdowns tick from the SERVER's `age_sec`, and the unlock
+// lengths come from the server too — a phone an hour fast used to show a post
+// as rateable the moment it landed.
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertCircle, Check as CheckIcon, Flame, Loader2, Lock, RefreshCw, Send,
+  Share2, ThumbsDown, ThumbsUp,
+} from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
-import { RATE_WINDOW_SEC, COMMENT_WINDOW_SEC } from "./socialData.js";
 import { GENRES } from "../genres.js";
+import { ENERGY } from "../resources.js";
 
-// A live 1-second clock so every card's rating/comment countdown ticks.
+const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
+
+// One 1s clock for the whole feed, so every countdown ticks together.
 function useNow() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -17,61 +41,31 @@ function useNow() {
   return now;
 }
 
-
-
-// Map a server post (_ser) to the local card shape. We derive a synthetic
-// createdAt from the server's age_sec so the countdowns tick from SERVER time,
-// not the device clock — this stays in sync with the API's window checks.
-function mapPost(s) {
-  return {
-    id: s.id,
-    author: s.author,
-    authorIcon: s.is_mine ? "personaz.png" : "personaz_producer.png",
-    content: s.content,
-    genre: s.genre,
-    skills: s.skills || [],
-    createdAt: Date.now() - (s.age_sec || 0) * 1000,
-    avg: s.avg_rating || 0,
-    ratingCount: s.rating_count || 0,
-    commentCount: s.comment_count || 0,
-    viewCount: s.view_count || 0,
-    myStars: s.my_rating || 0,
-    isMine: s.is_mine,
-    comments: (s.comments || []).map((c) => ({ user: c.user, text: c.text })),
-  };
-}
-
-// Character limits come from /api/economy/limits/ via useCharLimit. This file
-// used to carry its own 1,000 — which matched no tier the server enforces.
+// Server age → a local reference point, so countdowns run off the API's clock.
+const mapPost = (s) => ({ ...s, localCreated: Date.now() - (s.age_sec || 0) * 1000 });
 
 export default function PostZ() {
   const now = useNow();
   const [posts, setPosts] = useState(null);
+  const [sort, setSort] = useState("hot");
   const [loadErr, setLoadErr] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [genre, setGenre] = useState("Trap");
+  const [visibility, setVisibility] = useState("public");
   const [toast, setToast] = useState("");
   const [posting, setPosting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [tier, setTier] = useState("free");
-  const commentDraft = useRef({});
-  // null => unlimited (StatZ).
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
-
-  useEffect(() => {
-    api("/api/auth/me/").then((m) => setTier(m.tier || "free")).catch(() => {});
-  }, []);
 
   async function load({ quiet } = {}) {
     if (!quiet) setRefreshing(true);
     try {
-      const data = await api("/api/postz/");
-      setPosts(Array.isArray(data) ? data.map(mapPost) : []);
+      const data = await api(`/api/economy/postz/?sort=${sort}`);
+      setPosts(asList(data?.posts).map(mapPost));
       setLoadErr("");
     } catch (e) {
-      // Only surface a hard error on the initial load; keep the feed on a
-      // failed background refresh.
       if (posts === null) setLoadErr(e.message || "Couldn't load PostZ.");
     } finally {
       setRefreshing(false);
@@ -80,63 +74,29 @@ export default function PostZ() {
 
   useEffect(() => {
     load();
-    // Light background refresh so ratings/comments from other users show up.
     const t = setInterval(() => load({ quiet: true }), 30000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sort]);
 
-  function flash(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 2800);
-  }
-
-  // Replace one post in state from a server _ser response.
-  function applyServerPost(s) {
-    const mapped = mapPost(s);
-    setPosts((cur) => (cur || []).map((p) => (p.id === mapped.id ? mapped : p)));
-  }
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3200); };
 
   async function createPost() {
-    const text = content.trim();
-    if (!text || posting) return;
+    const t = title.trim();
+    if (!t || posting) return;
     setPosting(true);
     try {
-      const s = await api("/api/postz/", { method: "POST", body: { content: text, genre } });
+      const s = await api("/api/economy/postz/", {
+        method: "POST",
+        body: { title: t, description: description.trim(), genre, visibility },
+      });
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setContent("");
-      flash("Post is live — rating opens in 30s, comments in 60s.");
+      setTitle(""); setDescription("");
+      flash("Posted. Rating opens in 30s, comments in 60s.");
     } catch (e) {
       flash(e.message || "Couldn't post.");
     } finally {
       setPosting(false);
-    }
-  }
-
-  async function ratePost(id, stars) {
-    try {
-      const s = await api(`/api/postz/${id}/rate/`, { method: "POST", body: { stars } });
-      applyServerPost(s);
-      flash(`Rated ${stars}/10 · +1 Energy earned`);
-    } catch (e) {
-      // 409 (too early) / 403 (own post) / 400 (range) → show the server reason
-      // and re-sync this post's timers from the server.
-      flash(e.message || "Couldn't rate.");
-      load({ quiet: true });
-    }
-  }
-
-  async function addComment(id) {
-    const text = (commentDraft.current[id] || "").trim();
-    if (!text) return;
-    try {
-      const s = await api(`/api/postz/${id}/comment/`, { method: "POST", body: { text } });
-      applyServerPost(s);
-      commentDraft.current[id] = "";
-      flash("Comment posted.");
-    } catch (e) {
-      flash(e.message || "Couldn't comment.");
-      load({ quiet: true });
     }
   }
 
@@ -152,53 +112,67 @@ export default function PostZ() {
           <h2 className="font-display text-xl font-extrabold">PostZ</h2>
           <p className="text-xs text-white/45">Community rating &amp; comments open on a timer.</p>
         </div>
-        <button
-          className="rounded-lg p-2 text-white/50 hover:bg-white/[0.06] hover:text-white"
-          onClick={() => load()} title="Refresh feed"
-        >
+        <button className="rounded-lg p-2 text-white/50 hover:bg-white/[0.06] hover:text-white"
+                onClick={() => load()} title="Refresh feed">
           <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
         </button>
       </header>
 
-      {/* Composer */}
       <div className="re-card space-y-3">
         <div className="re-label">Create a PostZ</div>
-        <textarea
+        <input
           data-tour="composer"
+          className="w-full rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+          placeholder="Title — the track, the bars, the call"
+          maxLength={160}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
           className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
           rows={3}
           maxLength={charLimit ?? undefined}
-          placeholder="Drop your track, bars, cover art or collab call…"
-          value={content}
-          onChange={(e) => setContent(cl.clamp(e.target.value))}
+          placeholder="Say more about it…"
+          value={description}
+          onChange={(e) => setDescription(cl.clamp(e.target.value))}
         />
         <div className="text-right text-[10px] text-white/35">
-          {content.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
+          {description.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
-            value={genre} onChange={(e) => setGenre(e.target.value)}
-          >
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                  value={genre} onChange={(e) => setGenre(e.target.value)}>
             {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
-          <button className="re-btn !w-auto px-6" onClick={createPost} disabled={posting}>
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                  value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+            <option value="public">Public</option>
+            <option value="restricted">Members only</option>
+            <option value="private">Just me</option>
+          </select>
+          <button className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Post
           </button>
         </div>
         <p className="text-[11px] leading-relaxed text-white/40">
-          Transparency: rating unlocks <span className="text-white/70">{RATE_WINDOW_SEC}s</span> after posting
-          (other users only) · comments unlock <span className="text-white/70">{COMMENT_WINDOW_SEC}s</span> after posting.
-          Every rating you give earns you <span className="text-mcz-ember">+1 Energy</span>.
+          Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
+          comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
+          you <span className="text-mcz-ember">+1 {ENERGY}</span>.
         </p>
-        <CharLimit cl={cl} value={content} />
+        <CharLimit cl={cl} value={description} />
         <TierCharTable current={cl.tier} />
       </div>
 
+      <div className="flex gap-2">
+        {SORTS.map(([k, label]) => (
+          <button key={k} className={`pill ${sort === k ? "!text-mcz-ember" : ""}`} onClick={() => setSort(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {toast && (
-        <div className="rounded-lg border border-mcz-ember/40 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
-          {toast}
-        </div>
+        <div className="rounded-lg border border-mcz-ember/40 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">{toast}</div>
       )}
 
       {loadErr && (
@@ -215,86 +189,142 @@ export default function PostZ() {
         <p className="text-sm text-white/45">No PostZ yet — be the first to post.</p>
       )}
 
-      {/* Anchor for the OnboardZ "rate 3 tracks" link and the guided tour. */}
       <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
-          <PostCard
-            key={p.id} post={p} now={now}
-            onRate={ratePost} onComment={addComment} commentDraft={commentDraft} charLimit={charLimit}
-          />
+          <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash} />
         ))}
       </div>
     </div>
   );
 }
 
-function PostCard({ post, now, onRate, onComment, commentDraft, charLimit }) {
-  const [skipped, setSkipped] = useState(false);
+function PostCard({ post, now, charLimit, onFlash }) {
+  // Reactions, comments and my own rating live in the shared item space, keyed
+  // `post:<id>` — the same space playlists and works use.
+  const [social, setSocial] = useState(null);
   const [shared, setShared] = useState(false);
-  function share() {
-    const url = `${window.location.origin}/p/${post.id}`;
-    navigator.clipboard?.writeText(url).then(() => {
-      setShared(true); setTimeout(() => setShared(false), 1800);
-    }).catch(() => {});
-  }
-  const ageSec = Math.max(0, Math.floor((now - post.createdAt) / 1000));
-  const isMine = post.isMine;
-  const rateLeft = Math.max(0, RATE_WINDOW_SEC - ageSec);
-  const commentLeft = Math.max(0, COMMENT_WINDOW_SEC - ageSec);
-  const canRate = rateLeft === 0 && !isMine;
-  const canComment = commentLeft === 0;
+  const [skipped, setSkipped] = useState(false);
+  const draft = useRef("");
+  const item = `post:${post.id}`;
 
-  const avg = post.avg;
-  const myStars = post.myStars;
+  const loadSocial = () => api(`/api/economy/social/?item=${encodeURIComponent(item)}`)
+    .then(setSocial).catch(() => setSocial(null));
+  useEffect(() => { loadSocial(); /* eslint-disable-next-line */ }, [post.id]);
+
+  const ageSec = Math.max(0, Math.floor((now - post.localCreated) / 1000));
+  const rateLeft = Math.max(0, (post.rate_unlock_sec ?? 30) - ageSec);
+  const commentLeft = Math.max(0, (post.comment_unlock_sec ?? 60) - ageSec);
+  const canRate = rateLeft === 0 && !post.mine;
+  const canComment = commentLeft === 0;
   const relTime = ageSec < 60 ? `${ageSec}s ago` : `${Math.floor(ageSec / 60)}m ago`;
+
+  function share() {
+    navigator.clipboard?.writeText(`${window.location.origin}/p/${post.id}`)
+      .then(() => { setShared(true); setTimeout(() => setShared(false), 1800); })
+      .catch(() => {});
+  }
+
+  async function rate(score) {
+    try {
+      setSocial(await api("/api/economy/social/rate/",
+                          { method: "POST", body: { item, action: "rate", score } }));
+      onFlash(`Rated ${score}/10 · +1 ${ENERGY}`);
+    } catch (e) {
+      // The server owns the window — if it says no, believe it and re-read.
+      onFlash(e.message || "Couldn't rate.");
+      loadSocial();
+    }
+  }
+
+  async function react(value) {
+    try {
+      setSocial(await api("/api/economy/social/react/",
+                          { method: "POST", body: { item, value } }));
+    } catch (e) { onFlash(e.message || "Couldn't react."); }
+  }
+
+  async function comment() {
+    const body = draft.current.trim();
+    if (!body) return;
+    try {
+      setSocial(await api("/api/economy/social/comment/", { method: "POST", body: { item, body } }));
+      draft.current = "";
+      onFlash("Comment posted.");
+    } catch (e) {
+      onFlash(e.message || "Couldn't comment.");
+      loadSocial();
+    }
+  }
+
+  const comments = asList(social?.comments);
+  const myRating = social?.my_rating || 0;
+  const rating = social?.rating ?? post.rating;
 
   return (
     <div className="re-card">
       <div className="mb-3 flex items-center gap-3">
-        <IconImg icon={post.authorIcon} alt="" className="h-10 w-10 rounded-lg object-cover" />
-        <div className="flex-1">
-          <div className="text-sm font-bold text-white">
-            {post.author}{isMine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
+        <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
+                 className="h-10 w-10 rounded-lg object-cover" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-bold text-white">
+            {post.author}{post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-white/40">
-            <span>{relTime} · {post.genre}</span>
-            <span className="flex items-center gap-1"><Eye size={11} /> {post.viewCount}</span>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
+            <span>{relTime}</span>
+            {post.genre && <span>· {post.genre}</span>}
+            {post.visibility !== "public" && (
+              <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
+            )}
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <button onClick={share} title="Copy public link" className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+          <button onClick={share} title="Copy public link"
+                  className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
             {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
           </button>
           <div className="text-right">
             <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
-              <Flame size={14} /> {avg ? avg.toFixed(1) : "—"}<span className="text-white/35">/10</span>
+              <Flame size={14} /> {rating != null ? rating : "—"}<span className="text-white/35">/10</span>
             </div>
-            <div className="text-[10px] text-white/35">{post.ratingCount} rating{post.ratingCount !== 1 ? "s" : ""}</div>
+            <div className="text-[10px] text-white/35">
+              {social?.rating_count ?? 0} rating{(social?.rating_count ?? 0) !== 1 ? "s" : ""}
+            </div>
           </div>
         </div>
       </div>
 
-      <p className="mb-3 whitespace-pre-wrap text-sm text-white/85">{post.content}</p>
-      {post.skills?.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1">
-          {post.skills.map((s) => <span key={s} className="pill">{s}</span>)}
-        </div>
+      <p className="text-sm font-semibold text-white">{post.title}</p>
+      {post.description && (
+        <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{post.description}</p>
+      )}
+      {post.media_url && (
+        post.media_type === "video" ? <video src={post.media_url} controls className="mt-3 w-full rounded-lg" />
+          : post.media_type === "audio" ? <audio src={post.media_url} controls className="mt-3 w-full" />
+          : <img src={post.media_url} alt="" className="mt-3 w-full rounded-lg" />
       )}
 
-      {/* Rating — RepostExchange 1–10 scale, anonymous. */}
-      <div className="border-t border-white/[0.06] pt-3">
+      <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
+        <button onClick={() => react(social?.my === 1 ? 0 : 1)}
+                className={`flex items-center gap-1 ${social?.my === 1 ? "text-emerald-300" : "text-white/40 hover:text-white"}`}>
+          <ThumbsUp size={13} /> {social?.up ?? 0}
+        </button>
+        <button onClick={() => react(social?.my === -1 ? 0 : -1)}
+                className={`flex items-center gap-1 ${social?.my === -1 ? "text-mcz-ember" : "text-white/40 hover:text-white"}`}>
+          <ThumbsDown size={13} /> {social?.down ?? 0}
+        </button>
+      </div>
+
+      <div className="mt-3 border-t border-white/[0.06] pt-3">
         {canRate && !skipped ? (
           <div className="space-y-2">
             <div className="re-label">Rate this track</div>
-            <p className="text-[11px] text-white/40">Ratings are anonymous and help curate the ChartZ. +1 Energy per rating.</p>
-            <div className="flex items-center gap-1">
+            <p className="text-[11px] text-white/40">
+              Anonymous, and it curates the ChartZ. +1 {ENERGY} per rating.
+            </p>
+            <div className="flex flex-wrap items-center gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  onClick={() => onRate(post.id, n)}
-                  className={`re-scale ${n <= myStars ? "re-scale-on" : ""}`}
-                  title={`Rate ${n}/10`}
-                >
+                <button key={n} onClick={() => rate(n)}
+                        className={`re-scale ${n <= myRating ? "re-scale-on" : ""}`} title={`Rate ${n}/10`}>
                   {n}
                 </button>
               ))}
@@ -309,34 +339,31 @@ function PostCard({ post, now, onRate, onComment, commentDraft, charLimit }) {
           <div className="re-label flex items-center gap-1.5 !text-white/40">
             <Lock size={12} />
             {skipped ? "Rating skipped"
-              : isMine ? "You can't rate your own track"
-              : (<span>Rating opens in <span className="text-mcz-ember">{rateLeft}s</span></span>)}
+              : post.mine ? "You can't rate your own post"
+              : <span>Rating opens in <span className="text-mcz-ember">{rateLeft}s</span></span>}
           </div>
         )}
       </div>
 
-      {/* Comments */}
       <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
-        <div className="re-label">Comments · {post.commentCount}</div>
-        {post.comments.map((c, i) => (
-          <div key={i} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
+        <div className="re-label">Comments · {comments.length}</div>
+        {comments.map((c) => (
+          <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
             <span className="font-semibold text-mcz-ember">{c.user}</span>{" "}
-            <span className="text-white/80">{c.text}</span>
+            <span className="text-white/80">{c.body}</span>
           </div>
         ))}
         {canComment ? (
           <div className="flex items-center gap-2">
             <input
               className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
-              placeholder="What did you like about the track?"
+              placeholder="What did you like about it?"
               maxLength={charLimit ?? undefined}
-              defaultValue={commentDraft.current[post.id] || ""}
-              onChange={(e) => (commentDraft.current[post.id] = e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onComment(post.id)}
+              defaultValue=""
+              onChange={(e) => (draft.current = e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && comment()}
             />
-            <button className="re-btn !w-auto px-3" onClick={() => onComment(post.id)}>
-              <Send size={14} />
-            </button>
+            <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
           </div>
         ) : (
           <div className="re-label flex items-center gap-1.5 !text-white/40">
