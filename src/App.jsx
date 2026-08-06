@@ -186,17 +186,41 @@ export const CUSTOM_ICONS = {
   "tier_statz.png": "/icons/tier_statz.png",
   "videoz.png": "/icons/videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
+  // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
+  // until the art exists; the keys are registered now so dropping the file
+  // into public/icons/ is the whole job — nothing here has to change. Missing
+  // files fall back to the tab's emoji, not to the logo (see IconImg).
+  "editor.png": "/icons/editor.png",
+  "taskz.png": "/icons/taskz.png",
+  "codez.png": "/icons/codez.png",
+  "mistakez.png": "/icons/mistakez.png",
+  "characterz.png": "/icons/characterz.png",
+  "console.png": "/icons/console.png",
+  "search.png": "/icons/search.png",
+  "welcome.png": "/icons/welcome.png",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
 // falls back to the MCZ logo instead of a broken image.
-export function IconImg({ icon, alt = "", className = "" }) {
+export function IconImg({ icon, alt = "", className = "", fallback = null }) {
+  // A key can be registered before its artwork lands — that is deliberate, so
+  // dropping the file into public/icons/ is the only step needed to light it
+  // up. Until it does, the file 404s, and `fallback` is what the caller wants
+  // shown instead of the MCZ logo (OCC passes the tab's emoji, which still
+  // means the right thing where a generic logo would mean nothing).
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [icon]);
+  if (failed && fallback !== null) return fallback;
   return (
     <img
       src={CUSTOM_ICONS[icon] || "/mcz-logo-v4.png"}
       alt={alt}
       className={className}
       onError={(e) => {
+        if (fallback !== null) {
+          setFailed(true);
+          return;
+        }
         if (!e.currentTarget.dataset.fbk) {
           e.currentTarget.dataset.fbk = "1";
           e.currentTarget.src = "/mcz-logo-v4.png";

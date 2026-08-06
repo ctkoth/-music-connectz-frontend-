@@ -526,7 +526,8 @@ export default function OCC() {
                       step — and when they are, the emoji still means the right
                       thing where a fallback logo would mean nothing. */}
                   {CUSTOM_ICONS[tab.icon] ? (
-                    <IconImg icon={tab.icon} alt="" className="h-5 w-5 shrink-0 rounded" />
+                    <IconImg icon={tab.icon} alt="" className="h-5 w-5 shrink-0 rounded"
+                             fallback={<span>{tab.emoji}</span>} />
                   ) : (
                     <span>{tab.emoji}</span>
                   )}
