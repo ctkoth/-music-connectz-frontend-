@@ -28,6 +28,8 @@ import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
 import PublicProfile from "./apps/PublicProfile.jsx";
 import TrialTake from "./apps/TrialTake.jsx";
+import PublicPlaylist from "./apps/PublicPlaylist.jsx";
+import PlaylistZ from "./apps/PlaylistZ.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -139,6 +141,7 @@ export const CUSTOM_ICONS = {
   "social_connectz.png": "/icons/social_connectz.png",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
+  "playlistz.png": "/icons/playlistz.png",
   "spinaz.png": "/icons/spinaz.png",
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
@@ -175,6 +178,7 @@ export function IconImg({ icon, alt = "", className = "" }) {
 const TABS = [
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
+  { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
@@ -538,6 +542,7 @@ export default function App() {
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
+      <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route
         path="/"
         element={
