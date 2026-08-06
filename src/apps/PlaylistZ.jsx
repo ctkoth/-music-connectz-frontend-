@@ -9,8 +9,8 @@
 // through the same counter a ProfileZ link does.
 import { useEffect, useState } from "react";
 import {
-  ArrowDown, ArrowUp, Check, Copy, ExternalLink, Link2, Loader2, LogOut, Music,
-  Plus, Trash2, UserPlus, Users, X,
+  ArrowDown, ArrowUp, Check, Copy, ExternalLink, Eye, EyeOff, Link2, Loader2,
+  LogOut, Music, Plus, Trash2, UserPlus, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -322,9 +322,88 @@ function Detail({ id, onBack, onChanged }) {
   );
 }
 
+// Where my own work has been picked up by other people.
+//
+// The consent model here is opt-out, not an approval queue: a public post is
+// already public, anyone refused could paste its /p/ link back in as an outside
+// link anyway, and a pending-approval inbox nobody drains just leaves holes in
+// other people's running orders. So the author gets levers instead of a
+// gatekeeper — and this panel is where they're aimed.
+function Appearances({ onOpen }) {
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState("");
+
+  const load = () => api("/api/economy/playlistz/appearances/")
+    .then((d) => setRows(asList(d?.appearances)))
+    .catch(() => setRows([]));
+  useEffect(() => { load(); }, []);
+
+  async function pull(row) {
+    setBusy(`i${row.item_id}`);
+    await api(`/api/economy/playlistz/${row.playlist_id}/items/${row.item_id}/`,
+              { method: "DELETE" }).catch(() => {});
+    setBusy(""); load();
+  }
+
+  async function setAllowed(row, allowed) {
+    setBusy(`p${row.post_id}`);
+    await api("/api/economy/postz/", {
+      method: "POST", body: { edit_id: row.post_id, allow_in_playlists: allowed },
+    }).catch(() => {});
+    setBusy(""); load();
+  }
+
+  if (rows === null) {
+    return <p className="flex items-center gap-2 text-[11px] text-white/40">
+      <Loader2 className="animate-spin" size={12} /> Checking…
+    </p>;
+  }
+  if (!rows.length) {
+    return <p className="text-[11px] text-white/35">
+      None of your work is in anyone else's set yet. When it is, it shows up here —
+      with a way to pull it back out.
+    </p>;
+  }
+
+  return (
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li key={r.item_id}
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] text-white/85">{r.post}</span>
+            <span className="block truncate text-[10px] text-white/35">
+              in “{r.playlist}” by @{r.owner}
+              {r.added_by && r.added_by !== r.owner && <> · added by @{r.added_by}</>}
+              {" · "}{r.visibility}
+            </span>
+          </span>
+          <button
+            className={`pill !px-2 !py-0.5 !text-[10px] ${r.allow_in_playlists ? "" : "!text-mcz-ember"}`}
+            onClick={() => setAllowed(r, !r.allow_in_playlists)}
+            disabled={busy === `p${r.post_id}`}
+            title={r.allow_in_playlists
+              ? "Others may add this track — click to stop future adds"
+              : "Others can't add this track — click to allow again"}
+          >
+            {r.allow_in_playlists ? <Eye size={10} className="inline" /> : <EyeOff size={10} className="inline" />}
+            {r.allow_in_playlists ? " open" : " closed"}
+          </button>
+          <button className="shrink-0 text-white/25 hover:text-red-300"
+                  onClick={() => pull(r)} disabled={busy === `i${r.item_id}`}
+                  title="Take it out of this playlist">
+            {busy === `i${r.item_id}` ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function PlaylistZ() {
   const [lists, setLists] = useState(null);
   const [open, setOpen] = useState(null);
+  const [view, setView] = useState("lists");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -357,8 +436,21 @@ export default function PlaylistZ() {
         </div>
       </header>
 
+      {!open && (
+        <div className="flex gap-2">
+          <button className={`pill ${view === "lists" ? "!text-mcz-ember" : ""}`} onClick={() => setView("lists")}>
+            Playlists
+          </button>
+          <button className={`pill ${view === "appearances" ? "!text-mcz-ember" : ""}`} onClick={() => setView("appearances")}>
+            My work in other sets
+          </button>
+        </div>
+      )}
+
       {open ? (
         <Detail id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} />
+      ) : view === "appearances" ? (
+        <Appearances onOpen={setOpen} />
       ) : (
         <>
           <div className="re-card flex flex-wrap items-center gap-2">
