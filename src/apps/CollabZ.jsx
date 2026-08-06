@@ -15,13 +15,16 @@
 // cost/gain rule — a price you discover by paying it is a bill.
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight, Check, Handshake, Loader2, Music, Plus, Send, ShieldCheck, X,
+  ArrowRight, Check, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
+  Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
 import { MONEY, SPINAZ } from "../resources.js";
+import RangeGates from "../RangeGates.jsx";
+import MediaFields from "../MediaFields.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -36,7 +39,7 @@ function Amount({ cents, currency }) {
     : <span>{money(cents)} {MONEY}</span>;
 }
 
-function Deal({ deal, onAction, busy }) {
+function Deal({ deal, onAction, onRate, busy }) {
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
   const held = cur === "spinaz" ? deal.held_spinaz : deal.held_cents;
@@ -77,6 +80,41 @@ function Deal({ deal, onAction, busy }) {
         </button>
       )}
 
+      {/* The work. A deal you can't hear is a settlement about nothing. */}
+      {(deal.media_url || deal.image_url || deal.description || deal.lyrics) && (
+        <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+          {deal.description && <p className="text-[12px] text-white/70">{deal.description}</p>}
+          {deal.media_url && (
+            deal.media_type === "video"
+              ? <video src={deal.media_url} controls className="w-full rounded-lg" />
+              : <audio src={deal.media_url} controls className="w-full" />
+          )}
+          {deal.image_url && <img src={deal.image_url} alt="" className="w-full rounded-lg" />}
+          {deal.lyrics && (
+            <details>
+              <summary className="cursor-pointer text-[11px] text-white/45">Lyrics / script</summary>
+              <p className="mt-1 whitespace-pre-wrap text-[12px] text-white/70">{deal.lyrics}</p>
+            </details>
+          )}
+        </div>
+      )}
+
+      {deal.split_mode === "rating" && (
+        <div className="rounded-lg border border-mcz-gold/25 bg-mcz-gold/5 px-3 py-2">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-mcz-gold">
+            <Scale size={12} /> Split by contribution rating
+          </p>
+          <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+            At release the pot is re-cut by what people outside the deal judged each person
+            contributed. It needs {deal.rating_min_raters} raters — under that it pays the agreed
+            worth instead. Nobody on the deal can rate it.
+          </p>
+          {deal.split_snapshot?.reason && (
+            <p className="mt-1 text-[10px] text-white/60">{deal.split_snapshot.reason}</p>
+          )}
+        </div>
+      )}
+
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
@@ -89,6 +127,14 @@ function Deal({ deal, onAction, busy }) {
                 <span className="text-emerald-300">+<Amount cents={p.receives_cents} currency={cur} /></span>
               )}
               {p.funded && <Check size={11} className="text-emerald-300" />}
+              {/* Rate what they did — but only if you're not on the deal. */}
+              {deal.split_mode === "rating" && !deal.i_am_participant && deal.rating_keys?.[p.username] && (
+                <button className="text-white/30 hover:text-mcz-gold"
+                        title={`Rate @${p.username}'s contribution`}
+                        onClick={() => onRate(deal.rating_keys[p.username], p.username)}>
+                  <Star size={11} />
+                </button>
+              )}
             </span>
           </li>
         ))}
@@ -128,7 +174,10 @@ export default function CollabZ() {
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "" });
+  const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
+                                     description: "", split_mode: "worth" });
+  const [work, setWork] = useState({});
+  const [gates, setGates] = useState({});
 
   const load = useCallback(async () => {
     try {
@@ -144,6 +193,19 @@ export default function CollabZ() {
     api("/api/auth/me/").then((m) => setMe(m?.username || "")).catch(() => {});
     load();
   }, [load]);
+
+  async function rateContributor(itemKey, username) {
+    const raw = window.prompt(`Rate @${username}'s contribution 1–10`);
+    const score = Number(raw);
+    if (!raw || !Number.isFinite(score) || score < 1 || score > 10) return;
+    try {
+      await api("/api/economy/social/rate/", {
+        method: "POST", body: { item: itemKey, action: "rate", score: Math.round(score) },
+      });
+      setMsg(`Rated @${username} ${Math.round(score)}/10.`);
+      load();
+    } catch (e) { setMsg(e.message || "Couldn't rate that."); }
+  }
 
   async function action(id, verb) {
     setBusy(true); setMsg("");
@@ -163,13 +225,24 @@ export default function CollabZ() {
         body: {
           title: form.title.trim(),
           currency: form.currency,
+          description: form.description.trim(),
+          split_mode: form.split_mode,
+          gates,
+          // Blobs stay local until there's an upload endpoint for them; the
+          // URLs are sent as-is so a hosted link works today and a recorded
+          // take slots in the moment uploads land.
+          media_type: work.media_blob ? "" : (work.media_type || ""),
+          media_url: work.media_blob ? "" : (work.media_url || ""),
+          image_url: work.image_blob ? "" : (work.image_url || ""),
+          lyrics: work.lyrics || "",
           participants: [
             { username: me, worth_cents: cents(form.mine) },
             { username: form.partner.trim(), worth_cents: cents(form.theirs) },
           ],
         },
       });
-      setForm({ ...form, title: "", partner: "", mine: "", theirs: "" });
+      setForm({ ...form, title: "", partner: "", mine: "", theirs: "", description: "" });
+      setWork({}); setGates({});
       setMsg("Deal drafted — fund your share to put it in escrow.");
       load();
     } catch (e) { setMsg(e.message || "Couldn't create that deal."); }
@@ -199,7 +272,7 @@ export default function CollabZ() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {deals.map((d) => (
-            <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} busy={busy} />
+            <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor} busy={busy} />
           ))}
         </div>
       )}
@@ -225,7 +298,27 @@ export default function CollabZ() {
                  value={form.mine} onChange={(e) => setForm({ ...form, mine: e.target.value })} />
           <input className="neon-input" inputMode="decimal" placeholder="Theirs is worth"
                  value={form.theirs} onChange={(e) => setForm({ ...form, theirs: e.target.value })} />
+          <textarea className="neon-input sm:col-span-2" rows={2} placeholder="What's the brief?"
+                    value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </div>
+
+        {/* The work, in the same format PostZ uses. */}
+        <MediaFields value={work} onChange={setWork} label="The work" />
+
+        {/* Who can be on it — the same five ranges search and BattleZ use. */}
+        <RangeGates value={gates} onChange={setGates} title="Who can be on this deal" />
+
+        <label className="flex items-start gap-2 text-[11px] text-white/55">
+          <input type="checkbox" className="mt-0.5"
+                 checked={form.split_mode === "rating"}
+                 onChange={(e) => setForm({ ...form, split_mode: e.target.checked ? "rating" : "worth" })} />
+          <span>
+            Split the pot by <span className="text-mcz-gold">contribution rating</span> instead of the
+            agreed worth. At release it's re-cut by what people outside the deal judged each person
+            did — and if too few of them rated, it pays the agreed worth instead. Nobody on the deal
+            can rate it.
+          </span>
+        </label>
         <button className="neon-btn-primary !w-auto px-6" onClick={create}
                 disabled={busy || !form.partner.trim()}>
           {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Draft the deal
