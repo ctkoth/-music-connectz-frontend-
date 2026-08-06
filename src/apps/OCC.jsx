@@ -16,7 +16,7 @@
 import { useEffect, useState } from "react";
 import {
   AlertTriangle, Check, ChevronDown, ChevronRight, Loader2, Lock, Plus,
-  RotateCcw, Send, Star, Trash2, Undo2, X,
+  Play, RotateCcw, Send, Star, Trash2, Undo2, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -218,6 +218,9 @@ export default function OCC() {
   const [draft, setDraft] = useState({ title: "", input_text: "", description: "" });
   const [work, setWork] = useState({});      // the attachment, MediaFields' shape
   const [busy, setBusy] = useState(false);
+  const [lang, setLang] = useState("python");
+  const [source, setSource] = useState("");
+  const [ran, setRan] = useState(null);
 
   const loadTasks = () => api("/api/economy/occ/taskz/")
     .then((d) => setTasks(asList(d?.tasks))).catch(() => setTasks([]));
@@ -293,6 +296,23 @@ export default function OCC() {
     finally { setBusy(false); }
   }
 
+  async function runCode() {
+    if (!source.trim()) return;
+    setBusy(true); setRan(null);
+    try {
+      const r = await api("/api/economy/occ/run/", {
+        method: "POST", body: { language: lang, source },
+      });
+      setRan(r);
+      loadTasks();
+      loadWorks();
+      // The ceiling and what's left today move with every run, so re-read them
+      // rather than letting the button quote a number that has since changed.
+      api("/api/economy/occ/spec/").then(setSpec).catch(() => {});
+    } catch (e) { flash(e.message || "That run didn't happen — you weren't charged."); }
+    finally { setBusy(false); }
+  }
+
   async function share(w) {
     setBusy(true);
     try {
@@ -364,11 +384,69 @@ export default function OCC() {
         )}
       </div>
 
+      {/* The sandbox. Shown to everyone, and honest about why it's off when it
+          is — a locked surface teaches more than a missing one, and a Run
+          button that does nothing teaches the wrong thing entirely. */}
+      {spec.execute && (
+        <div className="re-card space-y-3" data-tour="occ-run">
+          <div className="re-label">▶️ Run it</div>
+          {!spec.can_execute ? (
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
+              <Lock size={12} className="mt-0.5 shrink-0 text-mcz-ember" />
+              {spec.execute_note}
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] leading-relaxed text-white/45">
+                A fresh container per run, no network out.{" "}
+                <span className="text-mcz-ember">−1 ⚡ per second</span>, charged for
+                the seconds it actually ran — a run that never starts costs nothing.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <select className="neon-input !w-auto !py-1.5 text-xs" value={lang}
+                        onChange={(e) => setLang(e.target.value)}>
+                  {asList(spec.execute.languages).map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
+                <span className="text-[10px] text-white/35">
+                  Up to {spec.execute.per_run_seconds}s a run ·{" "}
+                  {spec.execute.seconds_left_today}s left today
+                </span>
+              </div>
+              <textarea className="neon-input !py-2 font-mono text-xs" rows={6}
+                        placeholder="Paste the code you want run"
+                        value={source} onChange={(e) => setSource(e.target.value)} />
+              <button className="neon-btn-primary !w-auto px-4" onClick={runCode}
+                      disabled={!source.trim() || busy}>
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                {" "}Run{" "}
+                <span className="text-mcz-ember">
+                  up to −{spec.execute.max_cost_per_run} ⚡
+                </span>
+              </button>
+              {ran && (
+                <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-white/10 bg-black/40 p-2 font-mono text-[11px] text-white/70">
+                  {ran.stdout || ran.stderr || "(no output)"}
+                </pre>
+              )}
+              {ran && (
+                <p className="text-[10px] text-white/35">
+                  exit {ran.exit_code} · {ran.seconds}s ·{" "}
+                  <span className="text-mcz-ember">−{ran.charged} ⚡</span> · kept in
+                  WorkZ below, ready to post.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* WorkZ — what you gave OCC and what it gave back, in the PostZ format.
           An answer you can't show anyone, rate, or carry anywhere is a dead end
           with a scrollbar, and nothing here is allowed to be one. */}
       <div className="re-card space-y-3" data-tour="occ-workz">
-        <div className="re-label">🧾 WorkZ</div>
+        <div className="re-label flex items-center gap-2">
+          <IconImg icon="workz.png" alt="" className="h-5 w-5 rounded" /> WorkZ
+        </div>
         <p className="text-[11px] leading-relaxed text-white/45">
           Text and attachments in, work out. Post it and it's rated, liked,
           disliked and commented on like anything else — or take it straight

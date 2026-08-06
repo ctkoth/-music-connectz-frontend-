@@ -156,6 +156,35 @@ export const CUSTOM_ICONS = {
   "vis_restricted.png": "/icons/vis_restricted.png",
   "witchcraft.png": "/icons/witchcraft.png",
   "writez.png": "/icons/writez.png",
+  // Live surfaces whose art was on disk but never registered — so they were
+  // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
+  "workz.png": "/icons/workz.png",
+  "habitz.png": "/icons/habitz.png",
+  "logz.png": "/icons/logz.png",
+  // Registered ahead of the MCZ2 surface being wired up, so its rows don't
+  // land as logos the day it is.
+  "analytics.png": "/icons/analytics.png",
+  "builder.png": "/icons/builder.png",
+  "filez.png": "/icons/filez.png",
+  "gamez.png": "/icons/gamez.png",
+  "gitz.png": "/icons/gitz.png",
+  "pathz.png": "/icons/pathz.png",
+  "imageconnectz.png": "/icons/imageconnectz.png",
+  "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
+  "languagez.png": "/icons/languagez.png",
+  "languagez_pt.png": "/icons/languagez_pt.png",
+  "membership.png": "/icons/membership.png",
+  "merchz.png": "/icons/merchz.png",
+  "moodz.png": "/icons/moodz.png",
+  "onboardz.jpg": "/icons/onboardz.jpg",
+  "parcel.png": "/icons/parcel.png",
+  "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
+  "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
+  "sentencez_editor.png": "/icons/sentencez_editor.png",
+  "tellz.png": "/icons/tellz.png",
+  "tier_premium.png": "/icons/tier_premium.png",
+  "tier_statz.png": "/icons/tier_statz.png",
+  "videoz.png": "/icons/videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
 };
 
