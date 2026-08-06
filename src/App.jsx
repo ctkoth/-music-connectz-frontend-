@@ -20,6 +20,7 @@ import LabelZ from "./apps/LabelZ.jsx";
 import BugZ from "./apps/BugZ.jsx";
 import PostZ from "./apps/PostZ.jsx";
 import KeyConnectZ from "./apps/KeyConnectZ.jsx";
+import OCC from "./apps/OCC.jsx";
 import SocialConnectZ from "./apps/SocialConnectZ.jsx";
 import SpecZ from "./apps/SpecZ.jsx";
 import MembershipZ from "./apps/MembershipZ.jsx";
@@ -197,6 +198,7 @@ const TABS = [
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
