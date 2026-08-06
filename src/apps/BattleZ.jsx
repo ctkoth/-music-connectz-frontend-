@@ -11,7 +11,8 @@
 //   * judging rides the shared RateZ item space, not a second rating system.
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Loader2, Lock, Plus, Star, Swords, Trophy, Users,
+  ArrowLeft, Check, Coins, Crown, Loader2, Lock, Plus, Star, Swords, Timer,
+  Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -41,11 +42,80 @@ function Work({ item }) {
   );
 }
 
+// Real-money wagering is regulated gambling in most places. Counting who wants
+// it is honest; shipping it on a show of hands would not be — so this measures
+// demand and says so.
+function MoneyPoll() {
+  const [poll, setPoll] = useState(null);
+  useEffect(() => {
+    api("/api/economy/battlez/moneyvote/").then(setPoll).catch(() => {});
+  }, []);
+  if (!poll) return null;
+  return (
+    <div className="neon-frame flex flex-wrap items-center justify-between gap-2 p-4">
+      <p className="text-sm text-white/70">
+        💵 <b>Real-money battles?</b> {poll.votes} vote{poll.votes === 1 ? "" : "s"} so far.
+        <span className="block text-[10px] text-white/40">{poll.note}</span>
+      </p>
+      <button
+        className={`neon-btn-${poll.my_vote ? "primary" : "ghost"} !w-auto px-4 py-2 text-xs`}
+        onClick={async () => setPoll(await api("/api/economy/battlez/moneyvote/", { method: "POST", body: {} }))}
+      >
+        {poll.my_vote ? "You voted YES ✓ (tap to undo)" : "Vote YES"}
+      </button>
+    </div>
+  );
+}
+
+// One contestant's column: their take, their score, and whether the room has
+// judged enough of them for it to count.
+function Side({ side, board, battle, onRate, onSubmit }) {
+  const s = board?.[side];
+  if (!s) return null;
+  const isWinner = battle.winner && battle.winner === s.username;
+  const entry = (battle.entries || []).find((e) => e.user === s.username);
+  const mine = battle.my_side === side;
+  return (
+    <div className={`neon-frame space-y-2 p-3 ${isWinner ? "!border-mcz-gold/60" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-[13px] font-semibold text-white/85">
+          {isWinner && <Crown size={12} className="mr-1 inline text-mcz-gold" />}@{s.username}
+        </span>
+        <span className="shrink-0 text-[12px] font-bold text-mcz-ember">
+          {s.median != null ? s.median : "—"}<span className="text-white/30">/10</span>
+        </span>
+      </div>
+      <p className="text-[10px] text-white/35">
+        {s.count}/{battle.min_ratings} ratings
+        {!s.qualified && <span className="text-mcz-ember"> · not enough to qualify yet</span>}
+      </p>
+      {entry ? <Work item={entry} /> : (
+        <p className="text-[11px] text-white/35">
+          {mine ? "You haven't put your take up yet." : "No take yet."}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {battle.status === "open" && mine && !entry && (
+          <button className="re-btn !w-auto px-3 text-xs" onClick={onSubmit}>
+            <Swords size={12} /> Put your take up
+          </button>
+        )}
+        {battle.status === "open" && entry && !mine && !battle.i_am_contestant && (
+          <button className="re-btn !w-auto px-3 text-xs" onClick={() => onRate(entry)}>
+            <Star size={12} /> Rate it
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Detail({ id, onBack, onFlash }) {
   const [b, setB] = useState(null);
   const [work, setWork] = useState({});
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showEntry, setShowEntry] = useState(false);
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -64,7 +134,7 @@ function Detail({ id, onBack, onFlash }) {
                 media_url: work.media_blob ? "" : (work.media_url || ""),
                 image_url: work.image_blob ? "" : (work.image_url || "") },
       });
-      setTitle(""); setWork({});
+      setTitle(""); setWork({}); setShowEntry(false);
       onFlash("You're in.");
       load();
     } catch (e) { onFlash(e.message || "Couldn't enter."); }
@@ -86,6 +156,33 @@ function Detail({ id, onBack, onFlash }) {
   async function close() {
     await api(`/api/economy/battlez/${id}/`, { method: "PATCH", body: { status: "closed" } })
       .then(setB).catch((e) => onFlash(e.message));
+  }
+
+  const is1v1 = b.mode === "1v1";
+
+  async function respond(accept) {
+    try {
+      setB(await api(`/api/economy/battlez/${id}/respond/`, { method: "POST", body: { accept } }));
+      onFlash(accept ? "It's on." : "Declined.");
+    } catch (e) { onFlash(e.message || "Couldn't answer that."); }
+  }
+
+  async function wager(side) {
+    const raw = window.prompt(`How many SpinaZ on @${b.scoreboard?.[side]?.username}?`);
+    const amount = Number(raw);
+    if (!raw || !Number.isFinite(amount) || amount <= 0) return;
+    try {
+      setB(await api(`/api/economy/battlez/${id}/wager/`,
+                     { method: "POST", body: { side, amount: Math.round(amount) } }));
+      onFlash(`−${Math.round(amount)} ${SPINAZ} staked. It's held until the result.`);
+    } catch (e) { onFlash(e.message || "Couldn't place that."); }
+  }
+
+  async function settle() {
+    try {
+      setB(await api(`/api/economy/battlez/${id}/settle/`, { method: "POST", body: {} }));
+      onFlash("Settled.");
+    } catch (e) { onFlash(e.message || "Couldn't settle it."); }
   }
 
   return (
@@ -119,7 +216,96 @@ function Detail({ id, onBack, onFlash }) {
         )}
       </div>
 
-      <div>
+      {is1v1 && (
+        <>
+          {b.status === "pending" && (
+            <div className="neon-frame flex flex-wrap items-center gap-2 p-3">
+              <p className="flex-1 text-[12px] text-white/70">
+                {b.my_side === "opponent"
+                  ? `@${b.host} called you out.`
+                  : `Waiting on @${b.opponent} to answer.`}
+              </p>
+              {b.my_side === "opponent" && (
+                <>
+                  <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={() => respond(true)}>
+                    <Check size={13} /> Accept
+                  </button>
+                  <button className="re-btn !w-auto px-4 py-2 text-xs" onClick={() => respond(false)}>
+                    <X size={13} /> Decline
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {b.status === "open" && b.ends_at && (
+            <p className="flex items-center gap-1.5 text-[11px] text-white/45">
+              <Timer size={12} /> Closes {new Date(b.ends_at).toLocaleString()} — it settles itself then.
+            </p>
+          )}
+          {b.status === "settled" && (
+            <p className="flex items-center gap-1.5 text-[12px] text-mcz-gold">
+              <Crown size={13} /> {b.winner ? `@${b.winner} took it.` : "Draw — every wager was refunded."}
+            </p>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Side side="host" board={b.scoreboard} battle={{ ...b, entries }}
+                  onRate={rate} onSubmit={() => setShowEntry(true)} />
+            <Side side="opponent" board={b.scoreboard} battle={{ ...b, entries }}
+                  onRate={rate} onSubmit={() => setShowEntry(true)} />
+          </div>
+
+          {/* The pool. Every figure is stated before the button that moves it. */}
+          <div className="neon-frame space-y-2 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+              <Coins size={12} /> Wagers — {b.pool_total || 0} {SPINAZ} in the pot
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {["host", "opponent"].map((side) => (
+                <span key={side} className="pill">
+                  @{b.scoreboard?.[side]?.username} · {b.pools?.[side] || 0} {SPINAZ}
+                </span>
+              ))}
+            </div>
+            {b.my_wager ? (
+              <p className="text-[11px] text-white/60">
+                You staked {b.my_wager.amount} {SPINAZ} on @{b.scoreboard?.[b.my_wager.side]?.username}.
+                {b.status === "settled" && (
+                  <span className={b.my_wager.paid_out > b.my_wager.amount ? " text-emerald-300" : " text-mcz-ember"}>
+                    {" "}Paid out {b.my_wager.paid_out} {SPINAZ}.
+                  </span>
+                )}
+              </p>
+            ) : b.status === "open" && !b.i_am_contestant ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {["host", "opponent"].map((side) => (
+                    <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}>
+                      Back @{b.scoreboard?.[side]?.username}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-white/35">
+                  Your stake leaves your wallet now and is held until the result. Winners split the
+                  whole pot in proportion to what they staked — no house cut. A draw, or too few
+                  judges, refunds everybody.
+                </p>
+              </>
+            ) : b.i_am_contestant ? (
+              <p className="text-[10px] text-white/35">You're in this one — you can't wager on it.</p>
+            ) : null}
+          </div>
+
+          {b.status === "open" && b.i_am_contestant && (
+            <button className="re-btn !w-auto px-4 py-2 text-xs" onClick={settle}>
+              <Trophy size={13} /> Settle it
+            </button>
+          )}
+        </>
+      )}
+
+      <div className={is1v1 ? "hidden" : ""}>
         <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
           <Trophy size={12} /> Leaderboard
         </p>
@@ -156,7 +342,7 @@ function Detail({ id, onBack, onFlash }) {
         )}
       </div>
 
-      {b.status === "open" && !b.mine && !b.entered && (
+      {b.status === "open" && (is1v1 ? showEntry : (!b.mine && !b.entered)) && (
         <div className="neon-frame space-y-3 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Enter</p>
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
@@ -189,6 +375,8 @@ export default function BattleZ() {
   const [form, setForm] = useState({ title: "", description: "", genre: "Trap", entry_spinaz: "" });
   const [work, setWork] = useState({});
   const [gates, setGates] = useState({});
+  const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
+  const [duelGates, setDuelGates] = useState({});
 
   const load = () => api("/api/economy/battlez/")
     .then((d) => setList(asList(d?.battles)))
@@ -196,6 +384,22 @@ export default function BattleZ() {
   useEffect(() => { load(); }, []);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3200); };
+
+  async function challenge() {
+    if (!duel.opponent.trim()) return;
+    setBusy(true);
+    try {
+      const b = await api("/api/economy/battlez/challenge/", {
+        method: "POST",
+        body: { ...duel, opponent: duel.opponent.trim(), gates: duelGates },
+      });
+      setDuel({ ...duel, opponent: "", title: "" });
+      setDuelGates({});
+      await load();
+      setOpen(b.id);
+    } catch (e) { flash(e.message || "Couldn't send that challenge."); }
+    finally { setBusy(false); }
+  }
 
   async function create() {
     if (!form.title.trim()) return;
@@ -233,6 +437,8 @@ export default function BattleZ() {
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
 
+      {!open && <MoneyPoll />}
+
       {open ? (
         <Detail id={open} onBack={() => { setOpen(null); load(); }} onFlash={flash} />
       ) : (
@@ -250,15 +456,19 @@ export default function BattleZ() {
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] text-white/85">{b.title}</span>
                       <span className="block text-[10px] text-white/35">
-                        @{b.host} · {b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
+                        {b.mode === "1v1"
+                          ? <>@{b.host} vs @{b.opponent}{b.pool_total > 0 && <> · {b.pool_total} {SPINAZ} pot</>}</>
+                          : <>@{b.host} · {b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}</>}
                         {b.genre && <> · {b.genre}</>}
-                        {b.entry_spinaz > 0 && <> · {b.entry_spinaz} {SPINAZ} to enter</>}
+                        {b.mode !== "1v1" && b.entry_spinaz > 0 && <> · {b.entry_spinaz} {SPINAZ} to enter</>}
                         {Object.keys(b.gates || {}).length > 0 && <> · gated</>}
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2 text-[11px]">
-                      {b.status === "closed"
-                        ? <span className="pill !px-2 !py-0.5 !text-[10px]">closed</span>
+                      {["closed", "settled", "declined", "pending"].includes(b.status)
+                        ? <span className="pill !px-2 !py-0.5 !text-[10px]">
+                            {b.status === "settled" && b.winner ? `👑 ${b.winner}` : b.status}
+                          </span>
                         : <Users size={12} className="text-white/25" />}
                     </span>
                   </button>
@@ -267,8 +477,38 @@ export default function BattleZ() {
             </ul>
           )}
 
+          {/* 1v1 is what people mean by a battle: name somebody, they answer. */}
           <div className="neon-frame space-y-3 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Host a battle</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+              Throw down a challenge
+            </p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <input className="neon-input !py-2 text-xs" placeholder="Opponent username"
+                     value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
+              <select className="neon-input !py-2 text-xs" value={duel.kind}
+                      onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>
+                <option value="1v1">1v1 ⚔️</option>
+                <option value="freestyle">Freestyle 🎤</option>
+                <option value="cypher">Battle Cypher 🔥</option>
+              </select>
+              <input className="neon-input !py-2 text-xs" placeholder="Title (optional)"
+                     value={duel.title} onChange={(e) => setDuel({ ...duel, title: e.target.value })} />
+            </div>
+            <RangeGates value={duelGates} onChange={setDuelGates} title="Who you're allowed to call out" />
+            <button className="neon-btn-primary !w-auto px-5" onClick={challenge}
+                    disabled={busy || !duel.opponent.trim()}>
+              {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
+            </button>
+            <p className="text-[10px] text-white/35">
+              Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
+              wager on your own battle.
+            </p>
+          </div>
+
+          <div className="neon-frame space-y-3 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+              Or host an open challenge
+            </p>
             <input className="neon-input !py-2 text-xs" placeholder="The challenge"
                    value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="Rules, brief, what you want back"
