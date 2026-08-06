@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { IconImg } from "../App.jsx";
+import { CUSTOM_ICONS, IconImg } from "../App.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { goToSpot } from "../goto.js";
 
@@ -520,7 +520,17 @@ export default function OCC() {
                   className={`rounded-lg border px-3 py-2 ${tab.allowed
                     ? "border-white/10 bg-white/[0.03]" : "border-white/5 bg-white/[0.01] opacity-60"}`}>
                 <p className="flex items-center gap-1.5 text-[12px] text-white/80">
-                  <span>{tab.emoji}</span>{tab.name}
+                  {/* The server names the artwork; we use it only if our own
+                      registry actually has that file. The frontend deploys
+                      itself and the backend doesn't, so the two WILL be out of
+                      step — and when they are, the emoji still means the right
+                      thing where a fallback logo would mean nothing. */}
+                  {CUSTOM_ICONS[tab.icon] ? (
+                    <IconImg icon={tab.icon} alt="" className="h-5 w-5 shrink-0 rounded" />
+                  ) : (
+                    <span>{tab.emoji}</span>
+                  )}
+                  {tab.name}
                   {!tab.allowed && <Lock size={10} className="text-mcz-ember" />}
                 </p>
                 <p className="text-[10px] leading-relaxed text-white/35">{tab.desc}</p>
