@@ -18,8 +18,8 @@
 // as rateable the moment it landed.
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertCircle, Check as CheckIcon, Flame, Loader2, Lock, RefreshCw, Send,
-  Share2, ThumbsDown, ThumbsUp,
+  AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
+  Send, Share2, ThumbsDown, ThumbsUp,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -28,6 +28,7 @@ import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRES } from "../genres.js";
 import { ENERGY } from "../resources.js";
+import { goToSpot } from "../goto.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -243,6 +244,19 @@ function PostCard({ post, now, charLimit, onFlash }) {
     } catch (e) { onFlash(e.message || "Couldn't react."); }
   }
 
+  // PostZ is for show; CollabZ is for collaboration. This is the seam: the
+  // post seeds the deal's title and puts its author in the room, so nobody has
+  // to retype the thing they were just looking at.
+  async function takeToCollabZ() {
+    try {
+      await api("/api/economy/collab/", {
+        method: "POST", body: { from_post: post.id, currency: "money" },
+      });
+      onFlash(`Draft deal started on "${post.title}" — open CollabZ to set the worth.`);
+      goToSpot("collabz", "");
+    } catch (e) { onFlash(e.message || "Couldn't start that collab."); }
+  }
+
   async function comment() {
     const body = draft.current.trim();
     if (!body) return;
@@ -312,6 +326,21 @@ function PostCard({ post, now, charLimit, onFlash }) {
                 className={`flex items-center gap-1 ${social?.my === -1 ? "text-mcz-ember" : "text-white/40 hover:text-white"}`}>
           <ThumbsDown size={13} /> {social?.down ?? 0}
         </button>
+
+        {/* Drafting is free and moves nothing — say so, since every other
+            button in the app that touches money states its price. */}
+        <button onClick={takeToCollabZ}
+                className="ml-auto flex items-center gap-1 text-white/40 hover:text-mcz-gold"
+                title="Start a CollabZ deal from this post — drafting costs nothing">
+          <Handshake size={13} /> Take it to CollabZ
+        </button>
+        {post.collab_count > 0 && (
+          <button onClick={() => goToSpot("collabz", "")}
+                  className="text-white/35 hover:text-mcz-gold"
+                  title="Deals that grew out of this post">
+            {post.collab_count} collab{post.collab_count === 1 ? "" : "s"}
+          </button>
+        )}
       </div>
 
       <div className="mt-3 border-t border-white/[0.06] pt-3">
