@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Apple, Facebook, Github } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 
 const REDIRECT =
   import.meta.env.VITE_OAUTH_REDIRECT ||
@@ -212,6 +213,16 @@ export default function OAuthButtons({ onSuccess, onError }) {
 
       {/* Say what went wrong, and print the origin Google has to be told about
           — that is the fix in almost every case, and it is not guessable. */}
+      {/* The server can see something the browser can't: a client ID that
+          isn't shaped like one. Show that FIRST — it's a different fix from
+          the origins list, and guessing between them costs an afternoon. */}
+      {asList(cfg?.warnings).map((w) => (
+        <div key={w} className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-gold">
+          <p className="font-semibold">Sign-in is misconfigured on the server.</p>
+          <p className="mt-1 text-mcz-gold/80">{w}</p>
+        </div>
+      ))}
+
       {hasGoogle && gsi === "failed" && (
         <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
           <p className="font-semibold">Google sign-in didn't load.</p>
