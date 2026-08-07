@@ -1,14 +1,21 @@
 // The PostZ format, wherever work is attached.
 //
-// A post, a CollabZ deal and a BattleZ challenge all carry the same thing:
-// audio or video (recorded here or uploaded), an image, and the lyrics or
-// script. Repeating that per app is how three composers end up accepting three
+// A post, a CollabZ deal and a BattleZ challenge all carry the same thing, and
+// they carry ONE OF EACH: an audio track, a video, an image, and the lyrics or
+// script — together. Audio and video used to share a slot and overwrite each
+// other, so a track and its video could never post as the one piece of work
+// they are.
+//
+// Repeating this per app is how three composers end up accepting three
 // different shapes; this is one, so they can't drift.
 //
 // Recording is offered first because it's the thing people actually do on a
 // phone, and falls back to attaching a file when the browser can't record.
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
+
+// One of each — the order they preview in. The tag is how each renders.
+const SLOTS = [["audio", "audio"], ["video", "video"], ["image", "img"]];
 
 export default function MediaFields({ value, onChange, label = "The work" }) {
   const v = value || {};
@@ -17,13 +24,17 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
   const [msg, setMsg] = useState("");
-  const [localUrl, setLocalUrl] = useState("");
+  const [localUrls, setLocalUrls] = useState({});
   const rec = useRef(null);
   const chunks = useRef([]);
-  const fileInput = useRef(null);
+  const audioInput = useRef(null);
+  const videoInput = useRef(null);
   const imageInput = useRef(null);
 
-  useEffect(() => () => { if (localUrl) URL.revokeObjectURL(localUrl); }, [localUrl]);
+  // Every object URL this component minted gets revoked on unmount — one per
+  // slot now, so they're tracked by slot rather than singly.
+  useEffect(() => () => Object.values(localUrls).forEach((u) => u && URL.revokeObjectURL(u)),
+            [localUrls]);
   useEffect(() => {
     if (!recording) return;
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
@@ -32,11 +43,26 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
 
   // The blob lives here as an object URL until the caller uploads it — this
   // component doesn't own an upload endpoint and shouldn't pretend to.
-  function attach(blob, type) {
-    if (localUrl) URL.revokeObjectURL(localUrl);
+  //
+  // `slot` is one of audio | video | image. Replacing what's in a slot revokes
+  // only that slot's URL, so attaching a video no longer silently discards the
+  // audio the member just recorded.
+  function attach(blob, slot) {
+    setLocalUrls((cur) => {
+      if (cur[slot]) URL.revokeObjectURL(cur[slot]);
+      return { ...cur, [slot]: URL.createObjectURL(blob) };
+    });
     const url = URL.createObjectURL(blob);
-    setLocalUrl(url);
-    set({ media_type: type, media_url: url, media_blob: blob });
+    set({ [`${slot}_url`]: url, [`${slot}_blob`]: blob });
+  }
+
+  function discardSlot(slot) {
+    setLocalUrls((cur) => {
+      if (cur[slot]) URL.revokeObjectURL(cur[slot]);
+      const next = { ...cur }; delete next[slot]; return next;
+    });
+    set({ [`${slot}_url`]: "", [`${slot}_blob`]: null });
+    if (slot === "audio") setSecs(0);
   }
 
   async function startRec() {
@@ -67,13 +93,6 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
     setRecording(false);
   }
 
-  function discard() {
-    if (localUrl) URL.revokeObjectURL(localUrl);
-    setLocalUrl("");
-    set({ media_type: "", media_url: "", media_blob: null });
-    setSecs(0);
-  }
-
   const mmss = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
 
   return (
@@ -83,36 +102,31 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
       <div className="flex flex-wrap items-center gap-2">
         {!recording ? (
           <button type="button" className="re-btn !w-auto px-3 text-xs" onClick={startRec}>
-            <Mic size={13} /> {v.media_url ? "Record again" : "Record"}
+            <Mic size={13} /> {v.audio_url ? "Record again" : "Record"}
           </button>
         ) : (
           <button type="button" className="neon-btn-primary !w-auto px-3 text-xs" onClick={stopRec}>
             <Square size={12} /> Stop · {mmss}
           </button>
         )}
-        <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
-               onChange={(e) => {
-                 const f = e.target.files?.[0]; e.target.value = "";
-                 if (f) attach(f, f.type.startsWith("video/") ? "video" : "audio");
-               }} />
+        <input ref={audioInput} type="file" accept="audio/*" className="hidden"
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "audio"); }} />
         <button type="button" className="re-btn !w-auto px-3 text-xs"
-                onClick={() => fileInput.current?.click()} disabled={recording}>
-          <Upload size={13} /> Audio / video
+                onClick={() => audioInput.current?.click()} disabled={recording}>
+          <Upload size={13} /> Audio
+        </button>
+        <input ref={videoInput} type="file" accept="video/*" className="hidden"
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "video"); }} />
+        <button type="button" className="re-btn !w-auto px-3 text-xs"
+                onClick={() => videoInput.current?.click()} disabled={recording}>
+          <Film size={13} /> Video
         </button>
         <input ref={imageInput} type="file" accept="image/*" className="hidden"
-               onChange={(e) => {
-                 const f = e.target.files?.[0]; e.target.value = "";
-                 if (f) set({ image_url: URL.createObjectURL(f), image_blob: f });
-               }} />
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "image"); }} />
         <button type="button" className="re-btn !w-auto px-3 text-xs"
                 onClick={() => imageInput.current?.click()}>
           <ImageIcon size={13} /> Image
         </button>
-        {v.media_url && (
-          <button type="button" className="re-btn !w-auto px-2 text-xs !text-red-300" onClick={discard}>
-            <Trash2 size={12} />
-          </button>
-        )}
       </div>
 
       {recording && (
@@ -121,12 +135,21 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
         </p>
       )}
 
-      {v.media_url && !recording && (
-        v.media_type === "video"
-          ? <video src={v.media_url} controls className="w-full rounded-lg" />
-          : <audio src={v.media_url} controls className="w-full" />
-      )}
-      {v.image_url && <img src={v.image_url} alt="" className="w-full rounded-lg" />}
+      {/* Each slot previews with its own remove control, so clearing the
+          video can't take the audio with it. */}
+      {SLOTS.map(([slot, Tag]) => v[`${slot}_url`] && !recording && (
+        <div key={slot} className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-widest text-white/35">{slot}</span>
+            <button type="button" className="text-white/30 hover:text-red-300"
+                    onClick={() => discardSlot(slot)} title={`Remove the ${slot}`}>
+              <Trash2 size={12} />
+            </button>
+          </div>
+          <Tag src={v[`${slot}_url`]} controls={slot !== "image"} alt=""
+               className={slot === "audio" ? "w-full" : "w-full rounded-lg"} />
+        </div>
+      ))}
 
       <textarea className="neon-input !py-2 text-xs" rows={3}
                 placeholder="Lyrics or script (optional)"

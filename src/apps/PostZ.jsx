@@ -30,7 +30,7 @@ import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
-import { hasBlobs, storageNote, uploadWork } from "../uploadWork.js";
+import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
 import { goToSpot } from "../goto.js";
 
@@ -106,16 +106,12 @@ export default function PostZ() {
         body: {
           title: t, description: description.trim(), genre, visibility,
           skills_used: skillsUsed,
-          media_type: hosted.media_type || "",
-          media_url: hosted.media_url || "",
-          // A post has one media slot, so the cover art and the lyrics ride as
-          // album entries rather than being dropped on the way over.
-          items: [
-            ...(hosted.image_url
-              ? [{ url: hosted.image_url, type: "image", title: `${t} (image)`, lyrics: "" }] : []),
-            ...(hosted.lyrics
-              ? [{ url: "", type: "text", title: `${t} (script)`, lyrics: hosted.lyrics }] : []),
-          ],
+          // One of each: audio, video, image and script all ride together.
+          // The primary slot is what the feed plays inline; `items` carries
+          // every attachment, one per kind, and the server refuses a second of
+          // any kind unless the post is explicitly an album.
+          ...primaryMedia(hosted),
+          items: mediaItems(hosted, t),
         },
       });
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
@@ -354,11 +350,26 @@ function PostCard({ post, now, charLimit, onFlash }) {
       {post.description && (
         <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{post.description}</p>
       )}
-      {post.media_url && (
-        post.media_type === "video" ? <video src={post.media_url} controls className="mt-3 w-full rounded-lg" />
-          : post.media_type === "audio" ? <audio src={post.media_url} controls className="mt-3 w-full" />
-          : <img src={post.media_url} alt="" className="mt-3 w-full rounded-lg" />
-      )}
+      {/* One of each: the server resolves the primary slot and the album
+          entries into `media`, so every attachment renders instead of only the
+          one that happened to be primary. Falls back to the old single-slot
+          fields for a post made before the slots existed. */}
+      {(() => {
+        const m = post.media || (post.media_url
+          ? { [post.media_type || "audio"]: post.media_url } : {});
+        return (
+          <>
+            {m.audio && <audio src={m.audio} controls className="mt-3 w-full" />}
+            {m.video && <video src={m.video} controls className="mt-3 w-full rounded-lg" />}
+            {m.image && <img src={m.image} alt="" className="mt-3 w-full rounded-lg" />}
+            {m.text && (
+              <p className="mt-3 whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/20 p-3 text-[13px] leading-relaxed text-white/70">
+                {m.text}
+              </p>
+            )}
+          </>
+        );
+      })()}
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}

@@ -134,8 +134,7 @@ function Detail({ id, onBack, onFlash }) {
       await api(`/api/economy/battlez/${id}/enter/`, {
         method: "POST",
         body: { title: title.trim(), lyrics: hosted.lyrics || "",
-                media_type: hosted.media_type || "",
-                media_url: hosted.media_url || "",
+                ...primaryMedia(hosted),
                 image_url: hosted.image_url || "" },
       });
       setTitle(""); setWork({}); setShowEntry(false);
@@ -418,8 +417,7 @@ export default function BattleZ() {
           entry_spinaz: Number(form.entry_spinaz || 0),
           gates,
           lyrics: hosted.lyrics || "",
-          media_type: hosted.media_type || "",
-          media_url: hosted.media_url || "",
+          ...primaryMedia(hosted),
           image_url: hosted.image_url || "",
         },
       });

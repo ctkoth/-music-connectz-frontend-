@@ -56,26 +56,46 @@ export async function uploadWork(value) {
   const out = { ...v };
   let storage = null;
 
-  if (v.media_blob) {
-    const r = await uploadBlob(v.media_blob, v.media_type || "audio");
-    out.media_url = r.url;
+  // One of each: audio, video and image are separate slots and upload
+  // independently. They used to share one, so attaching a video threw away the
+  // audio the member had just recorded.
+  for (const slot of ["audio", "video", "image"]) {
+    if (!v[`${slot}_blob`]) continue;
+    const r = await uploadBlob(v[`${slot}_blob`], slot);
+    out[`${slot}_url`] = r.url;
     storage = r.storage;
+    // The blob is the local copy. Past this point the hosted URL is the truth,
+    // and keeping it would let a stale one be re-uploaded on the next submit.
+    delete out[`${slot}_blob`];
   }
-  if (v.image_blob) {
-    const r = await uploadBlob(v.image_blob, "image");
-    out.image_url = r.url;
-    storage = r.storage;
-  }
-
-  // The blobs are the local copy. Past this point the hosted URL is the truth,
-  // and keeping them would let a stale one be re-uploaded on the next submit.
-  delete out.media_blob;
-  delete out.image_blob;
   return { work: out, storage };
 }
 
+/** The one attachment an app with a single media slot should carry.
+ *
+ * CollabZ, BattleZ and OCC store one media_type/media_url pair, so they take
+ * the video if there is one and the audio otherwise — stated here rather than
+ * guessed three times.
+ */
+export function primaryMedia(v = {}) {
+  if (v.video_url) return { media_type: "video", media_url: v.video_url };
+  if (v.audio_url) return { media_type: "audio", media_url: v.audio_url };
+  return { media_type: "", media_url: "" };
+}
+
+/** The attachments as PostZ album entries — one per kind, empties dropped. */
+export function mediaItems(v = {}, title = "") {
+  const rows = [];
+  if (v.audio_url) rows.push({ url: v.audio_url, type: "audio", title: `${title} (audio)`, lyrics: "" });
+  if (v.video_url) rows.push({ url: v.video_url, type: "video", title: `${title} (video)`, lyrics: "" });
+  if (v.image_url) rows.push({ url: v.image_url, type: "image", title: `${title} (image)`, lyrics: "" });
+  if (v.lyrics) rows.push({ url: "", type: "text", title: `${title} (script)`, lyrics: v.lyrics });
+  return rows;
+}
+
 /** True when there is anything to upload — for a "Uploading…" label. */
-export const hasBlobs = (v) => Boolean(v && (v.media_blob || v.image_blob));
+export const hasBlobs = (v) =>
+  Boolean(v && (v.audio_blob || v.video_blob || v.image_blob));
 
 /** How much room is left, phrased for a member rather than for a log. */
 export function storageNote(s) {

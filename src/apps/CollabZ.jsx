@@ -239,8 +239,7 @@ export default function CollabZ() {
           // Uploaded above, so these are hosted URLs. They used to be blanked
           // whenever a blob was present — a recorded take was captured, shown
           // back, and then silently dropped on submit.
-          media_type: hosted.media_type || "",
-          media_url: hosted.media_url || "",
+          ...primaryMedia(hosted),
           image_url: hosted.image_url || "",
           lyrics: hosted.lyrics || "",
           participants: [

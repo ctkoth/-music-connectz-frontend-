@@ -23,7 +23,7 @@ import { asList } from "../shape.js";
 import { CUSTOM_ICONS, IconImg } from "../App.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { goToSpot } from "../goto.js";
-import { hasBlobs, uploadWork } from "../uploadWork.js";
+import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -284,8 +284,7 @@ export default function OCC() {
           title: draft.title.trim(),
           input_text: draft.input_text.trim(),
           description: draft.description.trim(),
-          media_type: hosted.media_type || "",
-          media_url: hosted.media_url || "",
+          ...primaryMedia(hosted),
           image_url: hosted.image_url || "",
           lyrics: hosted.lyrics || "",
         },
