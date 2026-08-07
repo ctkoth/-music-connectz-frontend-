@@ -8,7 +8,8 @@
 //
 // The real shapes:
 //   GET  /api/economy/postz/?sort=hot          → { posts: [...] }
-//   POST /api/economy/postz/                   → { title, description, genre, visibility }
+//   POST /api/economy/postz/                   → { title, description, genre, visibility, media }
+//   POST /api/economy/uploads/                 → hosts a recording, returns its URL
 //   GET  /api/economy/social/?item=post:<id>   → reactions, comments, my rating
 //   POST /api/economy/social/rate/             → { item, action:"rate", score }
 //   POST /api/economy/social/comment/          → { item, body }
@@ -28,6 +29,8 @@ import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import SkillsUsed from "../SkillsUsed.jsx";
+import MediaFields from "../MediaFields.jsx";
+import { hasBlobs, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
 import { goToSpot } from "../goto.js";
 
@@ -58,6 +61,8 @@ export default function PostZ() {
   const [visibility, setVisibility] = useState("public");
   const [toast, setToast] = useState("");
   const [posting, setPosting] = useState(false);
+  const [work, setWork] = useState({});      // MediaFields' shape
+  const [storage, setStorage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
@@ -89,12 +94,32 @@ export default function PostZ() {
     if (!t || posting) return;
     setPosting(true);
     try {
+      // A recording lives in the tab as a blob: URL, which is dead the moment
+      // anybody else opens the post. Host it FIRST, and if that fails, fail the
+      // whole post — a post that quietly lost its audio is worse than no post.
+      if (hasBlobs(work)) flash("Uploading…");
+      const { work: hosted, storage: st } = await uploadWork(work);
+      if (st) setStorage(st);
+
       const s = await api("/api/economy/postz/", {
         method: "POST",
-        body: { title: t, description: description.trim(), genre, visibility, skills_used: skillsUsed },
+        body: {
+          title: t, description: description.trim(), genre, visibility,
+          skills_used: skillsUsed,
+          media_type: hosted.media_type || "",
+          media_url: hosted.media_url || "",
+          // A post has one media slot, so the cover art and the lyrics ride as
+          // album entries rather than being dropped on the way over.
+          items: [
+            ...(hosted.image_url
+              ? [{ url: hosted.image_url, type: "image", title: `${t} (image)`, lyrics: "" }] : []),
+            ...(hosted.lyrics
+              ? [{ url: "", type: "text", title: `${t} (script)`, lyrics: hosted.lyrics }] : []),
+          ],
+        },
       });
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription(""); setSkillsUsed([]);
+      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
       flash("Posted. Rating opens in 30s, comments in 60s.");
     } catch (e) {
       flash(e.message || "Couldn't post.");
@@ -160,9 +185,15 @@ export default function PostZ() {
             <option value="private">Just me</option>
           </select>
           <button className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
-            {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Post
+            {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            {posting && hasBlobs(work) ? " Uploading…" : " Post"}
           </button>
         </div>
+
+        {/* Record it or attach it. The same component CollabZ and BattleZ use,
+            so the three composers can't drift apart. */}
+        <MediaFields value={work} onChange={setWork} label="Audio, video, image or lyrics" />
+        {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
         {/* 2.2 required this on every example, and it's what makes a post
             matchable to the people who have those skills. */}
         <SkillsUsed value={skillsUsed} onChange={setSkillsUsed} label="Skills used on this" />

@@ -127,12 +127,16 @@ function Detail({ id, onBack, onFlash }) {
   async function enter() {
     setBusy(true);
     try {
+      // Host the take before the entry is written. It used to be blanked
+      // whenever a blob was present, so a recorded entry went in silent.
+      if (hasBlobs(work)) onFlash("Uploading your take…");
+      const { work: hosted } = await uploadWork(work);
       await api(`/api/economy/battlez/${id}/enter/`, {
         method: "POST",
-        body: { title: title.trim(), lyrics: work.lyrics || "",
-                media_type: work.media_blob ? "" : (work.media_type || ""),
-                media_url: work.media_blob ? "" : (work.media_url || ""),
-                image_url: work.image_blob ? "" : (work.image_url || "") },
+        body: { title: title.trim(), lyrics: hosted.lyrics || "",
+                media_type: hosted.media_type || "",
+                media_url: hosted.media_url || "",
+                image_url: hosted.image_url || "" },
       });
       setTitle(""); setWork({}); setShowEntry(false);
       onFlash("You're in.");
@@ -405,16 +409,18 @@ export default function BattleZ() {
     if (!form.title.trim()) return;
     setBusy(true);
     try {
+      if (hasBlobs(work)) flash("Uploading the work…");
+      const { work: hosted } = await uploadWork(work);
       const b = await api("/api/economy/battlez/", {
         method: "POST",
         body: {
           ...form,
           entry_spinaz: Number(form.entry_spinaz || 0),
           gates,
-          lyrics: work.lyrics || "",
-          media_type: work.media_blob ? "" : (work.media_type || ""),
-          media_url: work.media_blob ? "" : (work.media_url || ""),
-          image_url: work.image_blob ? "" : (work.image_url || ""),
+          lyrics: hosted.lyrics || "",
+          media_type: hosted.media_type || "",
+          media_url: hosted.media_url || "",
+          image_url: hosted.image_url || "",
         },
       });
       setForm({ ...form, title: "", description: "", entry_spinaz: "" });

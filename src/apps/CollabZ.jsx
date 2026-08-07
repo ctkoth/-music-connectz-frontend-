@@ -21,6 +21,7 @@ import {
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { hasBlobs, storageNote, uploadWork } from "../uploadWork.js";
 import { IconImg } from "../App.jsx";
 import { MONEY, SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
@@ -177,6 +178,7 @@ export default function CollabZ() {
   const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
                                      description: "", split_mode: "worth" });
   const [work, setWork] = useState({});
+  const [storage, setStorage] = useState(null);
   const [gates, setGates] = useState({});
 
   const load = useCallback(async () => {
@@ -220,6 +222,12 @@ export default function CollabZ() {
     setBusy(true); setMsg("");
     try {
       const cents = (v) => Math.max(0, Math.round(Number(v || 0) * 100));
+      // Host the recording before the deal is written, and let a refused
+      // upload fail the whole thing — a deal whose work went missing is worse
+      // than a deal that wasn't created.
+      if (hasBlobs(work)) setMsg("Uploading the work…");
+      const { work: hosted, storage: st } = await uploadWork(work);
+      if (st) setStorage(st);
       await api("/api/economy/collab/", {
         method: "POST",
         body: {
@@ -228,13 +236,13 @@ export default function CollabZ() {
           description: form.description.trim(),
           split_mode: form.split_mode,
           gates,
-          // Blobs stay local until there's an upload endpoint for them; the
-          // URLs are sent as-is so a hosted link works today and a recorded
-          // take slots in the moment uploads land.
-          media_type: work.media_blob ? "" : (work.media_type || ""),
-          media_url: work.media_blob ? "" : (work.media_url || ""),
-          image_url: work.image_blob ? "" : (work.image_url || ""),
-          lyrics: work.lyrics || "",
+          // Uploaded above, so these are hosted URLs. They used to be blanked
+          // whenever a blob was present — a recorded take was captured, shown
+          // back, and then silently dropped on submit.
+          media_type: hosted.media_type || "",
+          media_url: hosted.media_url || "",
+          image_url: hosted.image_url || "",
+          lyrics: hosted.lyrics || "",
           participants: [
             { username: me, worth_cents: cents(form.mine) },
             { username: form.partner.trim(), worth_cents: cents(form.theirs) },
@@ -304,6 +312,7 @@ export default function CollabZ() {
 
         {/* The work, in the same format PostZ uses. */}
         <MediaFields value={work} onChange={setWork} label="The work" />
+        {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
 
         {/* Who can be on it — the same five ranges search and BattleZ use. */}
         <RangeGates value={gates} onChange={setGates} title="Who can be on this deal" />

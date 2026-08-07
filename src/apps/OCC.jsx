@@ -23,6 +23,7 @@ import { asList } from "../shape.js";
 import { CUSTOM_ICONS, IconImg } from "../App.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { goToSpot } from "../goto.js";
+import { hasBlobs, uploadWork } from "../uploadWork.js";
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -275,18 +276,18 @@ export default function OCC() {
     if (!canKeep) return;
     setBusy(true);
     try {
+      if (hasBlobs(work)) flash("Uploading…");
+      const { work: hosted } = await uploadWork(work);
       await api("/api/economy/occ/workz/", {
         method: "POST",
         body: {
           title: draft.title.trim(),
           input_text: draft.input_text.trim(),
           description: draft.description.trim(),
-          // Blobs stay local until there's an upload endpoint for them, exactly
-          // as CollabZ does it — a hosted link works today either way.
-          media_type: work.media_blob ? "" : (work.media_type || ""),
-          media_url: work.media_blob ? "" : (work.media_url || ""),
-          image_url: work.image_blob ? "" : (work.image_url || ""),
-          lyrics: work.lyrics || "",
+          media_type: hosted.media_type || "",
+          media_url: hosted.media_url || "",
+          image_url: hosted.image_url || "",
+          lyrics: hosted.lyrics || "",
         },
       });
       setDraft({ title: "", input_text: "", description: "" });
