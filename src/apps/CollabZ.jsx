@@ -15,13 +15,14 @@
 // cost/gain rule — a price you discover by paying it is a bill.
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight, Check, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
+  ArrowRight, Check, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
   Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
-import { hasBlobs, storageNote, uploadWork } from "../uploadWork.js";
+import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
+import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
 import { MONEY, SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
@@ -40,7 +41,7 @@ function Amount({ cents, currency }) {
     : <span>{money(cents)} {MONEY}</span>;
 }
 
-function Deal({ deal, onAction, onRate, busy }) {
+function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
   const held = cur === "spinaz" ? deal.held_spinaz : deal.held_cents;
@@ -114,6 +115,17 @@ function Deal({ deal, onAction, onRate, busy }) {
             <p className="mt-1 text-[10px] text-white/60">{deal.split_snapshot.reason}</p>
           )}
         </div>
+      )}
+
+      {/* v1 down, v2 up — the deal is where the work actually passes. */}
+      {deal.i_am_participant && <CollabFiles dealId={deal.id} onFlash={onFlash} />}
+
+      {deal.i_am_participant && (deal.media_url || deal.image_url) && (
+        <button className="flex items-center gap-1.5 text-[11px] text-white/45 hover:text-mcz-cyan"
+                onClick={() => onDistribute(deal.id)}
+                title="Fill a release from this deal — the master, cover and lyrics are already here">
+          <Disc3 size={12} /> Distribute this
+        </button>
       )}
 
       <ul className="space-y-1">
@@ -209,6 +221,17 @@ export default function CollabZ() {
     } catch (e) { setMsg(e.message || "Couldn't rate that."); }
   }
 
+  // "CollabZ needs distribution most" — a deal is where the finished master
+  // usually lands, so the release is filled from it rather than retyped.
+  async function distribute(id) {
+    try {
+      const r = await api(`/api/economy/collab/${id}/distribute/`, { method: "POST", body: {} });
+      setMsg(r.ready
+        ? `Release ready — "${r.title}" by ${r.artist_name}, filled in from this deal.`
+        : `Release started. It still needs ${r.missing.join(", ")}.`);
+    } catch (e) { setMsg(e.message || "Couldn't start that release."); }
+  }
+
   async function action(id, verb) {
     setBusy(true); setMsg("");
     try {
@@ -279,7 +302,8 @@ export default function CollabZ() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {deals.map((d) => (
-            <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor} busy={busy} />
+            <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor}
+                  onDistribute={distribute} onFlash={setMsg} busy={busy} />
           ))}
         </div>
       )}

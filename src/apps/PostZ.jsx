@@ -19,7 +19,7 @@
 // as rateable the moment it landed.
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
+  AlertCircle, Check as CheckIcon, Disc3, Flame, Handshake, Loader2, Lock, RefreshCw,
   Send, Share2, ThumbsDown, ThumbsUp,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -286,6 +286,22 @@ function PostCard({ post, now, charLimit, onFlash }) {
   // PostZ is for show; CollabZ is for collaboration. This is the seam: the
   // post seeds the deal's title and puts its author in the room, so nobody has
   // to retype the thing they were just looking at.
+  // A post already carries the four assets a distributor asks for — the song,
+  // the music video, the cover and the lyrics — so this fills a release from
+  // them rather than making anyone retype it. The GET answers first so the
+  // button can say what's still missing before creating anything.
+  async function distribute() {
+    try {
+      const r = await api(`/api/economy/postz/${post.id}/distribute/`, { method: "POST", body: {} });
+      // Deliberately does NOT navigate. There is no DistributeZ tab to land on
+      // yet, and switching tabs would take this message with it — the result
+      // of pressing a button has to survive pressing it.
+      onFlash(r.ready
+        ? `Release ready — "${r.title}" by ${r.artist_name}, with the song, video, cover and lyrics filled in.`
+        : `Release started. It still needs ${r.missing.join(", ")}.`);
+    } catch (e) { onFlash(e.message || "Couldn't start that release."); }
+  }
+
   async function takeToCollabZ() {
     try {
       await api("/api/economy/collab/", {
@@ -388,6 +404,16 @@ function PostCard({ post, now, charLimit, onFlash }) {
                 title="Start a CollabZ deal from this post — drafting costs nothing">
           <Handshake size={13} /> Take it to CollabZ
         </button>
+        {/* Only on your own post, and only when there's a song to release —
+            a Distribute button on someone else's track, or on a post with no
+            audio, is a button that can't do what it says. */}
+        {post.mine && post.media?.audio && (
+          <button onClick={distribute}
+                  className="flex items-center gap-1 text-white/40 hover:text-mcz-cyan"
+                  title="Fill a release from this post — the song, video, cover and lyrics are already here">
+            <Disc3 size={13} /> Distribute
+          </button>
+        )}
         {post.collab_count > 0 && (
           <button onClick={() => goToSpot("collabz", "")}
                   className="text-white/35 hover:text-mcz-gold"
