@@ -222,9 +222,12 @@ export default function OCC() {
   const [lang, setLang] = useState("python");
   const [source, setSource] = useState("");
   const [ran, setRan] = useState(null);
+  const [sugg, setSugg] = useState(null);
 
   const loadTasks = () => api("/api/economy/occ/taskz/")
     .then((d) => setTasks(asList(d?.tasks))).catch(() => setTasks([]));
+  const loadSugg = () => api("/api/economy/occ/suggest/")
+    .then(setSugg).catch(() => setSugg(null));
   const loadWorks = () => api("/api/economy/occ/workz/")
     .then((d) => setWorks(asList(d?.works))).catch(() => setWorks([]));
 
@@ -233,6 +236,7 @@ export default function OCC() {
     api("/api/economy/occ/settings/").then(setSettings).catch(() => {});
     loadTasks();
     loadWorks();
+    loadSugg();
   }, []);
 
   if (!spec) {
@@ -310,6 +314,16 @@ export default function OCC() {
       // rather than letting the button quote a number that has since changed.
       api("/api/economy/occ/spec/").then(setSpec).catch(() => {});
     } catch (e) { flash(e.message || "That run didn't happen — you weren't charged."); }
+    finally { setBusy(false); }
+  }
+
+  async function runSuggestions() {
+    setBusy(true);
+    try {
+      const r = await api("/api/economy/occ/suggest/", { method: "POST", body: {} });
+      flash(r.detail);
+      loadTasks(); loadSugg(); loadWorks();
+    } catch (e) { flash(e.message || "Couldn't do that."); }
     finally { setBusy(false); }
   }
 
@@ -488,6 +502,68 @@ export default function OCC() {
           </ul>
         )}
       </div>
+
+      {/* SuggestionZ / AutomationZ, doing something at last. Both were stored
+          booleans that nothing read — a switch that changes no behaviour is the
+          same lie as a rate nothing pays. */}
+      {sugg && (
+        <div className="re-card space-y-3" data-tour="occ-suggest">
+          <div className="re-label">💭 What's worth doing</div>
+          {!sugg.suggestionz_allowed ? (
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
+              <Lock size={12} className="mt-0.5 shrink-0 text-mcz-ember" />
+              SuggestionZ is Premium — it reads your account and tells you what's
+              worth doing next, with what, why and how.
+            </p>
+          ) : !sugg.suggestionz ? (
+            <p className="text-[11px] text-white/45">
+              SuggestionZ is switched off in Settings below.
+            </p>
+          ) : sugg.suggestions.length === 0 ? (
+            <p className="text-[12px] text-white/40">
+              Nothing to suggest — you're straight.
+            </p>
+          ) : (
+            <>
+              <ul className="space-y-2">
+                {sugg.suggestions.map((x) => (
+                  <li key={x.key} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-[13px] text-white/85">
+                      {x.title}
+                      {x.auto_safe ? (
+                        <span className="ml-2 text-[10px] text-emerald-300">
+                          {sugg.automation ? "🤖 done for you" : "safe to automate"}
+                        </span>
+                      ) : (
+                        <span className="ml-2 text-[10px] text-mcz-gold">asks you first</span>
+                      )}
+                    </p>
+                    <div className="mt-1 space-y-0.5 text-[11px] leading-relaxed">
+                      <p><span className="text-mcz-gold">What · </span><span className="text-white/60">{x.what}</span></p>
+                      <p><span className="text-mcz-gold">Why · </span><span className="text-white/60">{x.why}</span></p>
+                      <p><span className="text-mcz-gold">How · </span><span className="text-white/60">{x.how}</span></p>
+                    </div>
+                    {x.tab && (
+                      <button className="pill mt-2 !text-[10px] hover:!text-white"
+                              onClick={() => goToSpot(x.tab, x.target || "")}>
+                        Take me there
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <button className="neon-btn-primary !w-auto px-4" onClick={runSuggestions}
+                      disabled={busy}>
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {sugg.automation ? " Do the safe ones" : " Add these to TaskZ"}
+              </button>
+            </>
+          )}
+          {/* Said plainly, because "StatZ automates everything" is what a member
+              would otherwise assume and be wrong about. */}
+          <p className="text-[10px] leading-relaxed text-white/35">{sugg.note}</p>
+        </div>
+      )}
 
       {/* The two toggles the spec puts front and centre. */}
       {settings && (
