@@ -63,6 +63,7 @@ export default function PostZ() {
   const [posting, setPosting] = useState(false);
   const [work, setWork] = useState({});      // MediaFields' shape
   const [storage, setStorage] = useState(null);
+  const [cost, setCost] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
@@ -79,6 +80,14 @@ export default function PostZ() {
       setRefreshing(false);
     }
   }
+
+  // The price of the skills picked, quoted before the button rather than
+  // discovered by pressing it. Re-asked whenever the picks change, because a
+  // stale quote is the same lie as no quote.
+  useEffect(() => {
+    const q = skillsUsed.length ? `?skills=${encodeURIComponent(skillsUsed.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
+  }, [skillsUsed]);
 
   useEffect(() => {
     load();
@@ -180,9 +189,14 @@ export default function PostZ() {
             <option value="restricted">Members only</option>
             <option value="private">Just me</option>
           </select>
-          <button className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
+          <button data-tour="post-submit" className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {posting && hasBlobs(work) ? " Uploading…" : " Post"}
+            {/* −N ⚡ on the control itself. A price you find out by paying it
+                is not a price, it's a bill. */}
+            {cost?.cost?.amount > 0
+              ? <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+              : <span className="ml-1 text-emerald-300">Free</span>}
           </button>
         </div>
 
@@ -193,6 +207,24 @@ export default function PostZ() {
         {/* 2.2 required this on every example, and it's what makes a post
             matchable to the people who have those skills. */}
         <SkillsUsed value={skillsUsed} onChange={setSkillsUsed} label="Skills used on this" />
+        {cost && (
+          <p className="text-[10px] leading-relaxed text-white/35">
+            {cost.cost.amount > 0 ? (
+              <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+                {" — "}
+                {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+                {!cost.affordable && (
+                  <span className="text-mcz-ember">
+                    {" "}You have {cost.energy} — we'll take what's there.
+                  </span>
+                )}
+              </>
+            ) : (
+              <>Free. Price your skills in ProfileZ and posts that use them cost
+                what they're worth.</>
+            )}
+          </p>
+        )}
 
         <p className="text-[11px] leading-relaxed text-white/40">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { asList } from "./shape.js";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
 import Login from "./auth/Login.jsx";
@@ -230,6 +231,18 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   );
 }
 
+// LogicZ: every tab has its own address, named after the tab with the trailing
+// Z dropped — /post, /battle, /sing. Derived from the key, never typed, because
+// a hand-written address is one that drifts from the tab it names.
+//
+// Until this existed the whole app lived at "/" and switched tabs through a
+// custom event: no tab could be linked, bookmarked, or reached with the back
+// button. A screen with no address is one you can only tell somebody how to find.
+export const slugFor = (key) =>
+  key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
+export const tabForSlug = (slug) =>
+  TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
+
 const TABS = [
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
@@ -351,8 +364,16 @@ const TAB_ABOUT = {
 
 function Home() {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState(null); // decided from onboarded state below
+  const navigate = useNavigate();
+  // Read the slug off the path rather than from useParams: the tab routes are
+  // listed explicitly (so an unknown address still redirects) and an explicit
+  // path has no params to read.
+  const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
+  const [tab, setTab] = useState(null); // decided from the URL or onboarded state
   const [infoKey, setInfoKey] = useState(null);
+  // LogicZ: what each tab is and what lives inside it, from the server, so the
+  // description a member reads can't drift from the thing they land on.
+  const [logicz, setLogicz] = useState({});
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
@@ -361,19 +382,22 @@ function Home() {
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
+  const logic = infoTab ? logicz[infoTab.key] : null;
   const today = new Date().toLocaleDateString();
   // PickConnectZ dock — pinned apps + the ones this member opens most.
   const { usage, pins, togglePin } = usePickConnectZ(tab);
 
+  // One way in and out of a tab: set the state AND the address, together. Two
+  // paths would let the URL say one thing while the screen showed another.
   const openTab = (key) => {
     setTab(key);
+    navigate(`/${slugFor(key)}`, { replace: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const go = (delta) => {
     const n = (idx + delta + TABS.length) % TABS.length;
-    setTab(TABS[n].key);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    openTab(TABS[n].key);
   };
 
   // Lets any tab (e.g. OnboardZ steps) jump to another tab.
@@ -381,16 +405,33 @@ function Home() {
     const h = (e) => {
       if (TABS.some((t) => t.key === e.detail)) {
         setTab(e.detail);
+        navigate(`/${slugFor(e.detail)}`);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
     window.addEventListener("mcz-goto-tab", h);
     return () => window.removeEventListener("mcz-goto-tab", h);
+  }, [navigate]);
+
+  useEffect(() => {
+    api("/api/economy/logicz/")
+      .then((d) => setLogicz(Object.fromEntries(asList(d?.tabs).map((t) => [t.key, t]))))
+      .catch(() => {});   // the modal falls back to its built-in copy
   }, []);
+
+  // The address decides the tab, so a pasted link, a bookmark and the back
+  // button all land in the same place.
+  useEffect(() => {
+    const t = tabForSlug(slug);
+    if (t && t.key !== tab) setTab(t.key);
+  }, [slug]);
 
   // New users land on OnboardZ until they've completed it; returning users on PostZ.
   // A checkout return (?checkout=…) lands on MembershipZ so the result is shown.
   useEffect(() => {
+    // An address wins over the default landing — someone opening /battle asked
+    // for BattleZ, not for wherever we would have sent them.
+    if (tabForSlug(slug)) return;
     if (new URLSearchParams(window.location.search).has("checkout")) {
       setTab("membershipz");
       return;
@@ -437,9 +478,21 @@ function Home() {
             </span>
           </button>
 
-          <button className="flex-1 text-center" onClick={() => setInfoKey(tab)} title="What is this tab?">
-            <div className="text-[11px] font-semibold text-white/70">🎵 {active?.label} <span className="text-white/30">ⓘ</span></div>
-            <div className="text-[9px] text-white/35">{today}</div>
+          {/* LogicZ: the tab's own icon, and clicking it opens the modal that
+              says what this tab is. The control used to be text with a ⓘ — the
+              icon is the thing the spec points at, and the thing a member's
+              thumb actually finds. */}
+          <button data-tour="tab-info" className="flex flex-1 items-center justify-center gap-2"
+                  onClick={() => setInfoKey(tab)} title="What is this tab?">
+            {active?.icon && (
+              <IconImg icon={active.icon} alt="" className="h-7 w-7 shrink-0 rounded-lg" />
+            )}
+            <span className="min-w-0 text-center">
+              <span className="block text-[11px] font-semibold text-white/70">
+                {active?.label} <span className="text-white/30">ⓘ</span>
+              </span>
+              <span className="block text-[9px] text-white/35">{today}</span>
+            </span>
           </button>
 
           <button
@@ -485,8 +538,39 @@ function Home() {
               <h3 className="font-display text-2xl font-extrabold">{infoTab.label}</h3>
             </div>
             <p className="text-sm leading-relaxed text-white/75">
-              {TAB_ABOUT[infoTab.key] || "A Music ConnectZ app."}
+              {logic?.desc || TAB_ABOUT[infoTab.key] || "A Music ConnectZ app."}
             </p>
+
+            {/* Its address. The whole point of LogicZ — this is the thing you
+                paste to somebody. */}
+            <p className="mt-3 font-mono text-[11px] text-mcz-cyan">
+              musicconnectz.net/{slugFor(infoTab.key)}
+            </p>
+
+            {/* What lives in this tab, and honestly whether it exists yet. A
+                modal promising five apps and delivering one is worse than one
+                promising one. */}
+            {logic?.apps?.length > 0 && (
+              <ul className="mt-3 space-y-1.5 border-t border-white/[0.08] pt-3">
+                {logic.apps.map((a) => (
+                  <li key={a.name} className="flex items-start gap-2 text-[12px]">
+                    <span className="shrink-0">{a.emoji}</span>
+                    <span className="min-w-0">
+                      <span className={a.built ? "text-white/80" : "text-white/40"}>
+                        {a.name}
+                      </span>
+                      {!a.built && (
+                        <span className="ml-1 text-[10px] text-mcz-gold">not built yet</span>
+                      )}
+                      <span className="block text-[11px] leading-relaxed text-white/40">
+                        {a.desc}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             <button className="re-btn mt-5" onClick={() => setInfoKey(null)}>Got it</button>
           </div>
         </div>
@@ -608,6 +692,20 @@ export default function App() {
           </RequireAuth>
         }
       />
+      {/* LogicZ: one address per tab. Listed explicitly rather than as a
+          catch-all so an unknown path still falls through to the redirect
+          below instead of rendering an app shell with no tab in it. */}
+      {TABS.map((t) => (
+        <Route
+          key={t.key}
+          path={`/${slugFor(t.key)}`}
+          element={
+            <RequireAuth>
+              <Home />
+            </RequireAuth>
+          }
+        />
+      ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
