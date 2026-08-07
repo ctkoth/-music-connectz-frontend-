@@ -89,6 +89,12 @@ give them the link. A read-only surface is usually an unfinished one.
 
 ## Deploys
 
-This repo auto-deploys; the backend does **not** (Render, manual). A frontend
-change can therefore go live before the API it needs — sequence accordingly so
-the UI never promises what the backend can't yet do.
+**Both repos auto-deploy from `main`, so merging to `main` IS the deploy.**
+Develop on a branch; the merge is the deliberate act, not a button afterwards.
+
+The two deploy independently, so a frontend change can still go live before the
+API it needs. When a screen depends on a new endpoint, **merge the backend
+first** — an endpoint may exist before anything calls it, but never the reverse.
+
+Render runs `migrate` on every backend deploy, so a backend merge migrates
+production unattended. Worth knowing when you're waiting on one.
