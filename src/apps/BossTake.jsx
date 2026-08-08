@@ -52,6 +52,30 @@ function Cost({ price, trial }) {
   );
 }
 
+/** What a tier buys here: how OFTEN, not whether.
+ *
+ * Nothing locks a take any more, so there is no wall to explain — but the
+ * ladder is still worth showing, because "you've used today's free one" is only
+ * half an answer without "a tier up gets five". */
+function AllowanceLadder({ price }) {
+  const ladder = price?.allowance_ladder;
+  if (!ladder?.length || price.free_today) return null;
+  return (
+    <p className="text-[11px] text-white/35">
+      Free takes a day:{" "}
+      {ladder.map((r, i) => (
+        <span key={r.tier}>
+          {i > 0 && " · "}
+          <span className={r.tier === price.tier ? "text-mcz-gold" : ""}>
+            {r.tier} {r.daily}
+          </span>
+        </span>
+      ))}
+      . Past that a take costs {price.cost_cents} 🏷️ at any tier.
+    </p>
+  );
+}
+
 // `trial` swaps the member coach for the no-account door. Same recorder, same
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
@@ -266,6 +290,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               A take the coach can't read isn't charged.
             </p>
           )}
+          {!trial && <AllowanceLadder price={price} />}
         </div>
       )}
 
