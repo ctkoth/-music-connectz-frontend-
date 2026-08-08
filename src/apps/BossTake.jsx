@@ -5,7 +5,7 @@
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 
@@ -61,6 +61,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   const [range, setRange] = useState("tenor");
   const [difficulty, setDifficulty] = useState("builder");
   const [blob, setBlob] = useState(null);
+  // Video takes are scored on delivery and breath as well as sound, so the
+  // preview has to be a <video> or the member can't check what they sent.
+  const [isVideo, setIsVideo] = useState(false);
   const [takeName, setTakeName] = useState("take.webm");
   const [url, setUrl] = useState("");
   const [recording, setRecording] = useState(false);
@@ -86,36 +89,54 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     return () => clearInterval(t);
   }, [recording]);
 
-  function attach(b, name) {
+  function attach(b, name, video = false) {
+    // Checked here rather than on submit, because the server sends the take to
+    // a model that caps the whole request — an oversize take fails upstream and
+    // comes back as "the coach couldn't process that", which blames the take
+    // instead of the size. Say it before the upload, not after.
+    const capMb = price?.max_mb;
+    if (capMb && b.size > capMb * 1024 * 1024) {
+      return setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
+        + "Trim it to the section you want scored, or record video at a shorter length.");
+    }
     if (url) URL.revokeObjectURL(url);
     // Keep the filename in state rather than assigning onto the Blob: File.name
     // is a read-only getter, so Object.assign threw and swallowed the attach.
     setBlob(b);
-    setTakeName(name || b.name || "take.webm");
+    setIsVideo(video || (b.type || "").startsWith("video/"));
+    setTakeName(name || b.name || (video ? "take-video.webm" : "take.webm"));
     setUrl(URL.createObjectURL(b));
     setResult(null);
+    setMsg("");
   }
 
-  async function startRec() {
+  async function startRec(video = false) {
     setMsg("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      return setMsg("This browser can't record. Attach an audio file instead.");
+      return setMsg("This browser can't record. Attach a file instead.");
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(
+        video ? { audio: true, video: { width: 640, height: 360 } } : { audio: true });
       chunks.current = [];
-      const mr = new MediaRecorder(stream);
+      // Ask for a modest bitrate on video so a minute of take lands inside the
+      // size cap. Browsers that don't honour the hint still work — the size
+      // check in attach() catches anything that comes back too big.
+      const mr = new MediaRecorder(stream, video ? { videoBitsPerSecond: 900_000 } : undefined);
       mr.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        attach(new Blob(chunks.current, { type: mr.mimeType || "audio/webm" }), "take.webm");
+        attach(new Blob(chunks.current, { type: mr.mimeType || (video ? "video/webm" : "audio/webm") }),
+               video ? "take-video.webm" : "take.webm", video);
       };
       rec.current = mr;
       mr.start();
       setSecs(0);
       setRecording(true);
     } catch {
-      setMsg("Microphone access was refused. Allow it, or attach an audio file instead.");
+      setMsg(video
+        ? "Camera access was refused. Allow it, record audio only, or attach a file instead."
+        : "Microphone access was refused. Allow it, or attach a file instead.");
     }
   }
 
@@ -126,7 +147,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
 
   function discard() {
     if (url) URL.revokeObjectURL(url);
-    setBlob(null); setUrl(""); setResult(null); setMsg(""); setSecs(0);
+    setBlob(null); setIsVideo(false); setUrl(""); setResult(null); setMsg(""); setSecs(0);
   }
 
   async function submit() {
@@ -155,8 +176,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           👑 Boss Take — {price?.label || "AI"} Coach
         </p>
         <p className="mt-1 text-[11px] text-white/45">
-          Record one take, or upload a file, and have it scored. You'll get what actually worked, what to fix,
-          and a drill to run before the next one.
+          Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
+          actually worked, what to fix, and a drill to run before the next one. On camera the coach can
+          mark delivery and breath too.
         </p>
       </div>
 
@@ -192,18 +214,27 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
 
       <div className="flex flex-wrap items-center gap-2">
         {!recording ? (
-          <button className="re-btn !w-auto px-4" onClick={startRec} disabled={busy}>
-            <Mic size={15} /> {blob ? "Record again" : "Record a take"}
-          </button>
+          <>
+            <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
+                    data-tour="bosstake-mic">
+              <Mic size={15} /> {blob ? "Record again" : "Record a take"}
+            </button>
+            {/* The coach watches as well as listens. On camera it can mark
+                delivery, breath and posture, which sound alone can't show. */}
+            <button className="re-btn !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
+                    data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
+              <Video size={15} /> Record on camera
+            </button>
+          </>
         ) : (
           <button className="neon-btn-primary !w-auto px-4" onClick={stopRec}>
             <Square size={14} /> Stop · {mmss}
           </button>
         )}
-        <input ref={fileInput} type="file" accept="audio/*" className="hidden"
+        <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) attach(f, f.name); }} />
         <button className="re-btn !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
-          <Upload size={15} /> Attach a file
+          <Upload size={15} /> Attach audio or video
         </button>
         {blob && !recording && (
           <button className="re-btn !w-auto px-3 !text-red-300" onClick={discard} disabled={busy}>
@@ -220,7 +251,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
 
       {url && !recording && (
         <div className="space-y-2">
-          <audio src={url} controls className="w-full" />
+          {isVideo
+            ? <video src={url} controls playsInline className="w-full rounded-lg" />
+            : <audio src={url} controls className="w-full" />}
           <div className="flex flex-wrap items-center gap-3">
             <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
