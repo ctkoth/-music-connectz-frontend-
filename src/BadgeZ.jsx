@@ -60,7 +60,11 @@ export default function BadgeZ({ username }) {
 
   return (
     <div className="re-card space-y-3" data-tour="badgez">
-      <div className="re-label">🏅 BadgeZ</div>
+      <div className="re-label flex items-center gap-2">
+        <IconImg icon="badgez.png" alt="" className="h-5 w-5 rounded"
+                 fallback={<span>🏅</span>} />
+        BadgeZ
+      </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-mcz-gold">{msg}</p>}
 
@@ -77,6 +81,12 @@ export default function BadgeZ({ username }) {
                 <p className="text-[13px] font-semibold text-white/85">
                   {b.name}
                   {b.gifted && <span className="ml-2 text-[10px] text-white/35">gifted</span>}
+                  {/* A badge that can lapse says so. Losing one you thought
+                      was permanent is a worse surprise than knowing it tracks
+                      a live number. */}
+                  {b.temporary && (
+                    <span className="ml-2 text-[10px] text-mcz-gold">while you hold it</span>
+                  )}
                 </p>
                 <p className="text-[11px] leading-relaxed text-white/45">{b.desc}</p>
                 {/* The effect, said as plainly as the artwork shows the title. */}
