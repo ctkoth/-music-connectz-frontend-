@@ -187,6 +187,11 @@ export const CUSTOM_ICONS = {
   "tier_statz.png": "/icons/tier_statz.png",
   "videoz.png": "/icons/videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
+  // BadgeZ artwork — each badge that has real art names it; the rest carry
+  // their emoji. Registered so the fallback is the emoji, not a logo.
+  "badge_owner.png": "/icons/badge_owner.png",
+  "badge_founding.png": "/icons/badge_founding.png",
+  "badge_gifted.png": "/icons/badge_gifted.png",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
