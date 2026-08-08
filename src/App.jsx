@@ -193,6 +193,8 @@ export const CUSTOM_ICONS = {
   "badge_founding.png": "/icons/badge_founding.png",
   "badge_gifted.png": "/icons/badge_gifted.png",
   "badge_sexy.png": "/icons/badge_sexy.png",
+  "badge_polyglot.png": "/icons/badge_polyglot.png",
+  "badge_patron.png": "/icons/badge_patron.png",
   "badgez.png": "/icons/badgez.png",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
