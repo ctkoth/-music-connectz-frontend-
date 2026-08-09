@@ -134,6 +134,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     setMsg("");
   }
 
+  // Record into a container the coach's model can actually read. Chrome's
+  // default is audio/webm, which Gemini does not accept as audio — the server
+  // relabels it to video/webm now, but recording straight into ogg or mp4 where
+  // the browser supports it means the take never needs rescuing.
+  function bestMime(video) {
+    const wanted = video
+      ? ["video/mp4", "video/webm;codecs=vp8,opus", "video/webm"]
+      : ["audio/ogg;codecs=opus", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
+    return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
+  }
+
   async function startRec(video = false) {
     setMsg("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -146,12 +157,21 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // Ask for a modest bitrate on video so a minute of take lands inside the
       // size cap. Browsers that don't honour the hint still work — the size
       // check in attach() catches anything that comes back too big.
-      const mr = new MediaRecorder(stream, video ? { videoBitsPerSecond: 900_000 } : undefined);
+      const mimeType = bestMime(video);
+      const mr = new MediaRecorder(stream, {
+        ...(mimeType ? { mimeType } : {}),
+        ...(video ? { videoBitsPerSecond: 900_000 } : {}),
+      });
       mr.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        attach(new Blob(chunks.current, { type: mr.mimeType || (video ? "video/webm" : "audio/webm") }),
-               video ? "take-video.webm" : "take.webm", video);
+        // Keep the recorder's own mime — the server normalises it — but give
+        // the file an extension that matches, so an attached-file round trip
+        // and a recorded one look the same to everything downstream.
+        const type = mr.mimeType || (video ? "video/webm" : "audio/webm");
+        const ext = type.includes("mp4") ? "mp4" : type.includes("ogg") ? "ogg" : "webm";
+        attach(new Blob(chunks.current, { type }),
+               `${video ? "take-video" : "take"}.${ext}`, video);
       };
       rec.current = mr;
       mr.start();
