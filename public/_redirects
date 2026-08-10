@@ -1,1 +1,9 @@
+# Digital Asset Links must be served as itself, not as the SPA shell.
+#
+# The catch-all below sends every unmatched path to index.html. Most hosts
+# serve a real static file before applying redirect rules, so this would
+# probably work anyway — but "probably" here means a TWA that opens with a
+# browser address bar across the top and no obvious reason why. Be explicit.
+/.well-known/*  /.well-known/:splat  200
+
 /*    /index.html   200

@@ -57,6 +57,10 @@ export default function PostZ() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [genre, setGenre] = useState("Trap");
+  // 🆓 Freestyle rides ALONGSIDE the genre, never instead of it. A freestyle
+  // Trap verse is still Trap — putting Freestyle in the genre list would have
+  // forced a choice between the two and split the tag across every family.
+  const [freestyle, setFreestyle] = useState(false);
   const [skillsUsed, setSkillsUsed] = useState([]);
   const [visibility, setVisibility] = useState("public");
   const [toast, setToast] = useState("");
@@ -113,7 +117,7 @@ export default function PostZ() {
       const s = await api("/api/economy/postz/", {
         method: "POST",
         body: {
-          title: t, description: description.trim(), genre, visibility,
+          title: t, description: description.trim(), genre, freestyle, visibility,
           skills_used: skillsUsed,
           // One of each: audio, video, image and script all ride together.
           // The primary slot is what the feed plays inline; `items` carries
@@ -183,6 +187,15 @@ export default function PostZ() {
               </optgroup>
             ))}
           </select>
+          {/* Any genre can be freestyled, so this is a toggle next to the
+              genre rather than an entry inside it. */}
+          <button type="button" data-tour="post-freestyle"
+                  aria-pressed={freestyle}
+                  title="Off the top, unwritten — works with any genre"
+                  onClick={() => setFreestyle((v) => !v)}
+                  className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
+            🆓 Freestyle
+          </button>
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={visibility} onChange={(e) => setVisibility(e.target.value)}>
             <option value="public">Public</option>
@@ -373,6 +386,7 @@ function PostCard({ post, now, charLimit, onFlash }) {
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
             {post.genre && <span>· {genreLabel(post.genre)}</span>}
+            {post.freestyle && <span className="text-mcz-gold">· 🆓 Freestyle</span>}
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
             )}

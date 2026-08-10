@@ -614,6 +614,19 @@ export default function OCC() {
                 {!tab.allowed && (
                   <p className="text-[10px] text-mcz-ember">Needs {tab.needs}</p>
                 )}
+                {/* The server has always said which tabs have something behind
+                    them (`builds`) and now says where each one opens
+                    (`open_in`). This screen read neither, so twenty-two tabs
+                    rendered as a list you could read and not enter. */}
+                {tab.allowed && tab.open_in && (
+                  <button className="mt-1 text-[10px] text-mcz-cyan hover:underline"
+                          onClick={() => goToSpot(tab.open_in, `occ:${tab.key}`)}>
+                    Open →
+                  </button>
+                )}
+                {tab.allowed && !tab.open_in && (
+                  <p className="text-[10px] text-white/25">Not built yet</p>
+                )}
               </li>
             ))}
           </ul>
@@ -624,18 +637,27 @@ export default function OCC() {
       <div className="re-card space-y-2">
         <div className="re-label">🎮 Build a game in</div>
         <div className="flex flex-wrap gap-1.5">
-          {asList(spec.languages).map((l) => <span key={l.key} className="pill !text-[10px]">{l.name}</span>)}
+          {asList(spec.languages).map((l) => (
+            <span key={l.key} className={`pill !text-[10px] ${l.runs ? "" : "!text-white/45"}`}
+                  title={l.runs ? "OCC can write this and run it" : "OCC can write this — no sandbox runner yet"}>
+              {l.name}{l.runs ? " ▶" : ""}
+            </span>
+          ))}
           {asList(spec.languages_locked).map((l) => (
             <span key={l.key} className="pill !text-[10px] !text-white/30" title={`Needs ${l.needs}`}>
               <Lock size={9} className="mr-0.5 inline" />{l.name}
             </span>
           ))}
         </div>
-        {asList(spec.languages_locked).length > 0 && (
-          <p className="text-[10px] text-white/35">
-            Unreal is reserved for StatZ, which is what makes C++ a StatZ language.
-          </p>
-        )}
+        {/* Seventeen advertised, twelve runnable. That is not a lie — OCC writes
+            Unity C# perfectly well without executing it — but the pills sit right
+            above a Run panel that offers twelve, so the line gets drawn here. */}
+        <p className="text-[10px] text-white/35">
+          ▶ means OCC can run it in the sandbox too. The rest it writes; you run them
+          in your own engine.
+          {asList(spec.languages_locked).length > 0
+            && " Unreal is reserved for StatZ, which is what makes C++ a StatZ language."}
+        </p>
       </div>
 
       {/* The taxonomy games are filed under. */}

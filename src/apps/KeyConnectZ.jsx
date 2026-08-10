@@ -49,10 +49,15 @@ export default function KeyConnectZ() {
 
   const langs = asList(state.languages);
   const skin = state.skin || {};
+  // The Polyglot badge lifts the daily allowance, and the server says so with
+  // nulls rather than a huge number. `?? 0` on a null cap would read as "0 of 0
+  // left" and disable the button — the badge would take the thing away instead
+  // of giving it.
+  const uncapped = state.translate_uncapped === true;
   const left = state.translate_remaining ?? 0;
   const cap = state.translate_daily_chars ?? 0;
   const overLength = text.length > (state.translate_max_chars ?? 2000);
-  const overAllowance = text.length > left;
+  const overAllowance = !uncapped && text.length > left;
 
   async function translate() {
     if (!text.trim() || busy) return;
@@ -168,7 +173,9 @@ export default function KeyConnectZ() {
           {/* Free, and it says so before the button — every other AI surface in
               this app costs PromptZ, so silence would read as a charge. */}
           <span className="text-[11px] text-emerald-300">
-            Free · {left.toLocaleString()} of {cap.toLocaleString()} characters left today
+            {uncapped
+              ? "Free · 🗺️ Polyglot — no daily limit"
+              : `Free · ${left.toLocaleString()} of ${cap.toLocaleString()} characters left today`}
           </span>
         </div>
 
