@@ -26,6 +26,37 @@ must be disclosed, and it must be genuinely optional.
   yet, removing it now removes a whole category from the form and a whole class
   of review question.
 
+### ✅ 2. Teen-safe mode and attractiveness ratings — BUILT
+
+**Option (b) is implemented.** The surfaces below are walled server-side, not
+hidden in the UI:
+
+* **Attractiveness rating** — refused in both directions. A minor cannot rate,
+  and a minor cannot BE rated (the second is the half that matters, and the
+  half a rater-only check misses). Both write paths are covered: the dedicated
+  endpoint and the shared `dimension` endpoint that reaches the same table.
+* **Sexual orientation** (`attracted_to`, `asexual`) — dropped from a minor's
+  profile save, and cleared if it was set before the wall existed. The rest of
+  the save still lands, and the response names what it didn't store.
+
+**"Minor" means a stated age of 13–17.** No birthday and no verification means
+adult — Corey's call, and the reason is that most of the current user base has
+neither, so treating unknown as underage would remove features from real people
+to satisfy a form. Stripe Identity verification outranks a typed birthday, in
+the permissive direction only.
+
+**Rating somebody's WORK is untouched.** That is not an adult surface, and
+walling it would take a teen out of the economy over a policy about looks.
+
+`Profile.verified_18plus` already existed and was already set correctly by
+Stripe Identity. Its own comment claimed it gated adult content; it gated
+nothing across thirteen references. It is read now.
+
+**On the form:** you can answer *"Committed to the Play Families Policy"* — Yes.
+Sexual orientation is still collected from adults, so it stays declared below.
+
+<details><summary>The original decision, kept for the record</summary>
+
 ### 2. Teen-safe mode and attractiveness ratings are in the same app
 
 The RapZ screen shows a **"Teen-safe · SkillZ training"** badge, so under-18s are
@@ -50,6 +81,8 @@ Minors being rated on looks by adults, or having orientation collected, is a
 **(b) is the one I'd build**, because the app already has a tier/age concept and
 because "teen-safe" is currently a label rather than a boundary. Say the word
 and I'll wire it.
+
+</details>
 
 ---
 
@@ -81,7 +114,7 @@ data is shared with third parties for advertising.
 
 - **Data is encrypted in transit** — Yes. HTTPS end to end.
 - **Users can request data deletion** — Yes. See below.
-- **Committed to the Play Families Policy** — only if you take option (b) above.
+- **Committed to the Play Families Policy** — Yes. Option (b) is built (see above).
 
 ### Deletion
 
