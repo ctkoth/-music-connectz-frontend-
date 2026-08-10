@@ -13,12 +13,26 @@ import { GENRE_GROUPS } from "../genres.js";
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
 // take has no "breath" and a drummer has no vocal range — and keeping a copy
 // here would let the chips disagree with what the model was asked to score.
+// How long a video take may run. A rap verse is 30-60s and a song section one
+// to two minutes, so ninety seconds covers what a Boss Take actually is — the
+// coach scores ONE take, not a session.
+//
+// It is also what keeps a camera take inside the server's size cap without
+// relying on the browser honouring a bitrate hint. It does not: a 640x360,
+// 900kbps request came back as 1,407.8MB of 1080p at roughly 20Mbps, because
+// every constraint below `max` is a preference the encoder may ignore.
+const VIDEO_MAX_SECONDS = 90;
+
 const DIFFICULTY_LABEL = {
   starter: "Starter 🌱", builder: "Builder 🧩",
   performer: "Performer 🌟", stageboss: "Stage Boss 👑",
 };
 
 
+
+const mmssOf = (s) =>
+  `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+const mb = (n) => (n / 1024 / 1024).toFixed(1);
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -92,15 +106,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   const [url, setUrl] = useState("");
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
+  // Bytes recorded so far. Hints can be ignored; bytes cannot — this is what
+  // the size stop actually reads, and what the member watches climb.
+  const [bytes, setBytes] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [msg, setMsg] = useState("");
+  // Why the recorder stopped itself, when it did. Kept apart from `msg`: an
+  // auto-stop is not an error — the take is good, it just ended on its own, and
+  // dressing it in the red warning box would read as a failure.
+  const [stopNote, setStopNote] = useState("");
   // What this take costs, read BEFORE anything is sent. A price you only see
   // in the response is a bill, not a price.
   const [price, setPrice] = useState(null);
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
+  // Whether the take now running came from the camera. A ref, not state,
+  // because the size stop reads it from inside the recorder's own callback.
+  const videoRec = useRef(false);
+
+  // The size ceiling, in bytes, as published by the server. One copy of the
+  // number, on the server, where the transport that imposes it lives.
+  const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
 
   useEffect(() => { api(path, { auth: !trial }).then(setPrice).catch(() => {}); }, [path, trial]);
 
@@ -112,6 +140,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [recording]);
+
+  // Stop on time — video only. Audio at speech bitrates needs a quarter of an
+  // hour to reach the size cap, and a song section can legitimately run long;
+  // the size stop covers it without putting a clock on singing.
+  useEffect(() => {
+    if (recording && videoRec.current && secs >= VIDEO_MAX_SECONDS) {
+      stopRec(`Stopped at ${VIDEO_MAX_SECONDS} seconds — that's a full Boss Take. Send it, or record another.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, secs]);
 
   function attach(b, name, video = false) {
     // Checked here rather than on submit, because the server sends the take to
@@ -139,30 +177,61 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // relabels it to video/webm now, but recording straight into ogg or mp4 where
   // the browser supports it means the take never needs rescuing.
   function bestMime(video) {
+    // VP8 first for video, not MP4. Android records MP4 through a hardware
+    // encoder that commonly ignores videoBitsPerSecond — which is how a
+    // 900kbps request produced a 20Mbps file. MP4 stays last for Safari, which
+    // cannot record WebM at all. The server relabels all of these correctly
+    // (see _RELABEL in vocalcoach.py), so the choice is purely about size.
     const wanted = video
-      ? ["video/mp4", "video/webm;codecs=vp8,opus", "video/webm"]
+      ? ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
       : ["audio/ogg;codecs=opus", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
     return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
   }
 
   async function startRec(video = false) {
-    setMsg("");
+    setMsg(""); setStopNote("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       return setMsg("This browser can't record. Attach a file instead.");
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
-        video ? { audio: true, video: { width: 640, height: 360 } } : { audio: true });
+        video
+          // `max`, not bare values. A bare `width: 640` is an IDEAL the camera
+          // may overshoot, and overshoot it did — straight to 1080p.
+          ? { audio: true,
+              video: { width: { max: 854 }, height: { max: 480 },
+                       frameRate: { max: 30 } } }
+          : { audio: true });
       chunks.current = [];
+      setBytes(0);
+      videoRec.current = video;
       // Ask for a modest bitrate on video so a minute of take lands inside the
-      // size cap. Browsers that don't honour the hint still work — the size
-      // check in attach() catches anything that comes back too big.
+      // size cap. This is a HINT and phones ignore it — the byte count below is
+      // what actually holds the line.
       const mimeType = bestMime(video);
       const mr = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
         ...(video ? { videoBitsPerSecond: 900_000 } : {}),
       });
-      mr.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
+      // The stop that can't be argued with. A timeslice makes the recorder hand
+      // over a chunk every second instead of one blob at the end, so we can
+      // total the real bytes as they arrive and stop at the published cap —
+      // whatever the browser decided to do with resolution, codec or bitrate.
+      mr.ondataavailable = (e) => {
+        if (!e.data.size) return;
+        chunks.current.push(e.data);
+        const total = chunks.current.reduce((n, c) => n + c.size, 0);
+        setBytes(total);
+        // Stop BELOW the cap, not at it. stop() flushes one more chunk, so
+        // leaving room for two seconds of the heaviest second seen so far keeps
+        // the finished take inside the limit — otherwise the size stop would
+        // hand attach() a file attach() then refuses, losing the take twice.
+        const headroom = 2 * chunks.current.reduce((n, c) => Math.max(n, c.size), 0);
+        if (capBytes && total + headroom >= capBytes) {
+          stopRec(`Stopped near ${price.max_mb}MB — that's as much as the coach can take in one go. `
+            + "It's still a take: send it, or record a shorter one.");
+        }
+      };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         // Keep the recorder's own mime — the server normalises it — but give
@@ -174,7 +243,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
                `${video ? "take-video" : "take"}.${ext}`, video);
       };
       rec.current = mr;
-      mr.start();
+      // One chunk a second. Without a timeslice the recorder holds everything
+      // until stop(), and the first time we'd learn a take was 1.4GB is after
+      // it was performed.
+      mr.start(1000);
       setSecs(0);
       setRecording(true);
     } catch {
@@ -184,14 +256,19 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     }
   }
 
-  function stopRec() {
-    rec.current?.state === "recording" && rec.current.stop();
+  // `note` is set when the recorder stopped ITSELF — on time or on size. A
+  // member pressing Stop gets no note; they know why it stopped.
+  function stopRec(note = "") {
+    if (rec.current?.state !== "recording") return;
+    rec.current.stop();
     setRecording(false);
+    if (note) setStopNote(note);
   }
 
   function discard() {
     if (url) URL.revokeObjectURL(url);
     setBlob(null); setIsVideo(false); setUrl(""); setResult(null); setMsg(""); setSecs(0);
+    setBytes(0); setStopNote("");
   }
 
   async function submit() {
@@ -211,7 +288,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     } finally { setBusy(false); }
   }
 
-  const mmss = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
+  const mmss = mmssOf(secs);
 
   return (
     <div className="neon-frame space-y-4 p-4">
@@ -223,6 +300,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
           actually worked, what to fix, and a drill to run before the next one. On camera the coach can
           mark delivery and breath too.
+        </p>
+        {/* The ceiling, before the button that hits it. A limit you discover by
+            reaching it costs you the take you already performed. */}
+        <p className="mt-1 text-[11px] text-white/35">
+          Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
+          coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
+          the recorder stops itself before the take gets too big to send.
         </p>
       </div>
 
@@ -271,12 +355,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             </button>
           </>
         ) : (
-          <button className="neon-btn-primary !w-auto px-4" onClick={stopRec}>
+          <button className="neon-btn-primary !w-auto px-4" onClick={() => stopRec()}>
             <Square size={14} /> Stop · {mmss}
           </button>
         )}
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) attach(f, f.name); }} />
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); } }} />
         <button className="re-btn !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
           <Upload size={15} /> Attach audio or video
         </button>
@@ -289,7 +373,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
 
       {recording && (
         <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" /> Recording — {mmss}
+          <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" />
+          Recording — {mmss}
+          {videoRec.current && ` / ${mmssOf(VIDEO_MAX_SECONDS)}`}
+          {bytes > 0 && ` · ${mb(bytes)}MB${price?.max_mb ? ` of ${price.max_mb}MB` : ""}`}
+        </p>
+      )}
+
+      {/* The recorder stopped itself. Said plainly, in its own line, because
+          the take is fine — this is information, not a warning. */}
+      {stopNote && !recording && (
+        <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[11px] text-white/70">
+          {stopNote}
         </p>
       )}
 
