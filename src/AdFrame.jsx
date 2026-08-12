@@ -54,20 +54,26 @@ export function useAdsAllowed() {
   return allowed;
 }
 
-export default function AdFrame({ site, width = 300, height = 130, className = "" }) {
+export default function AdFrame({ site, width = 300, height = 130,
+                                  className = "flex justify-center pb-2 pt-4" }) {
   const allowed = useAdsAllowed();
   // Strictly true. Null (still loading) and false both render nothing — the
   // banner is worth far less than the answer being wrong.
   if (allowed !== true || !site) return null;
+  // The spacing lives INSIDE the null check on purpose. A caller wrapping this
+  // in its own padded div would leave that div behind when the ad is withheld,
+  // and a teen would be looking at a gap where an advert isn't — which is a
+  // worse tell than the ad itself.
   return (
-    <iframe
-      src={`https://ad-swap.web.app/frame.html?site=${encodeURIComponent(site)}`}
-      title="Ad"
-      loading="lazy"
-      sandbox={SANDBOX}
-      referrerPolicy="no-referrer"
-      className={className}
-      style={{ border: 0, width, height, maxWidth: "100%" }}
-    />
+    <div className={className}>
+      <iframe
+        src={`https://ad-swap.web.app/frame.html?site=${encodeURIComponent(site)}`}
+        title="Ad"
+        loading="lazy"
+        sandbox={SANDBOX}
+        referrerPolicy="no-referrer"
+        style={{ border: 0, width, height, maxWidth: "100%" }}
+      />
+    </div>
   );
 }

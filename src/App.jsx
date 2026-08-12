@@ -4,6 +4,7 @@ import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
+import AdFrame from "./AdFrame.jsx";
 import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
 import ForgotPassword from "./auth/ForgotPassword.jsx";
@@ -590,6 +591,13 @@ function Home() {
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
+
+      {/* Above the dock, so it sits at the foot of the page without fighting
+          the fixed navigation. AdFrame renders nothing AT ALL unless the server
+          says this member may see a third-party ad — including its own spacing,
+          which is why there is no wrapper here. A wrapper would survive the
+          null and leave a teen looking at a padded gap where an advert isn't. */}
+      <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
       <Dock
         apps={TABS}
