@@ -114,7 +114,36 @@ data is shared with third parties for advertising.
 
 - **Data is encrypted in transit** — Yes. HTTPS end to end.
 - **Users can request data deletion** — Yes. See below.
-- **Committed to the Play Families Policy** — Yes. Option (b) is built (see above).
+- **Committed to the Play Families Policy** — Yes. Option (b) is built (see above),
+  and third-party ads are gated on the same rule — see below.
+
+### Third-party ads and the Families commitment
+
+The Families Policy requires that ads shown to under-18s come from a
+**Play-certified ad SDK**. The `ad-swap.web.app` frame is not one and cannot
+attest to being one, so it is **never rendered for a member the server knows to
+be 13–17**.
+
+That decision is `third_party_ads_allowed()` in `apps/economy/models.py` — one
+function, answered server-side, published on `/api/economy/limits/` as
+`third_party_ads`. The client is never told an age: it does not need one to
+render a banner, and a birthday sent so a browser can decide whether to show an
+advert is a birthday travelling further than it has to.
+
+`src/AdFrame.jsx` is the only place an ad frame is constructed, and it renders
+nothing unless the answer is strictly `true` — "still loading" and "no" both
+show nothing, because a banner is worth less than the answer being wrong.
+
+**Two things that still need YOUR answer before ads go live:**
+
+1. **AdMob is already in this app** (`AdmobConfigView`, `AdmobSsvView`,
+   `adz.py`). Running a second ad network alongside it can breach AdMob's own
+   policies. Check before both are serving.
+2. **This form's disclosures do not mention a third-party ad network.** If the
+   frame collects device identifiers — most ad networks do — that belongs in
+   the table above under *Device or other IDs*, and the answer to *"Does your
+   app share user data with third parties?"* changes with it. Ask the network
+   what it collects; if they cannot tell you, that is itself the answer.
 
 ### Deletion
 

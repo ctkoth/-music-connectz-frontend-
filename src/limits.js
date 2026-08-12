@@ -36,7 +36,15 @@ export function loadLimits() {
       .catch(() => {
         // Fall back to the free tier: never offer more room than the most
         // restrictive tier allows, or the member writes text that gets refused.
-        cache = { tier: "free", char_limit: TIER_CHAR_LIMITS.free, char_limit_unlimited: false };
+        //
+        // `third_party_ads: false` is spelled out rather than left absent.
+        // Undefined is already falsy, so the ad would stay hidden either way —
+        // but by accident, and one `?? true` written by somebody reading a
+        // missing key as "no answer, assume yes" would turn a Play Families
+        // commitment into a policy breach. The safe answer wants to be a value,
+        // not an absence.
+        cache = { tier: "free", char_limit: TIER_CHAR_LIMITS.free,
+                  char_limit_unlimited: false, third_party_ads: false };
         listeners.forEach((fn) => fn(cache));
         return cache;
       })
