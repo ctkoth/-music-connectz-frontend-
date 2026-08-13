@@ -88,8 +88,22 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // button from the grid below, so a failure left the member with no Google
   // option and no explanation — the button simply was not there.
   const [gsi, setGsi] = useState("loading");
+  // Did the config come from the SERVER, or are we falling back to build vars?
+  // It matters, because only the backend can COMPLETE a sign-in — it verifies
+  // the token's audience against its own client ID. A VITE_* var the server
+  // doesn't share doesn't enable a provider; it enables a button that walks the
+  // member all the way to the provider and comes back refused. So once the
+  // server has answered it is the authority, and VITE_* is only for when it
+  // never answers at all.
+  const [served, setServed] = useState(false);
+  // Apple reports a bad Services ID as `invalid_client` from inside its own
+  // popup, which the catch below used to relabel "cancelled" — the one word
+  // that makes an owner stop looking. Remember it and say what it means.
+  const [appleErr, setAppleErr] = useState("");
 
-  const clientId = (key) => (cfg && cfg[key]) || VITE_ID(key);
+  // Nothing is enabled while the answer is still in flight: a button that
+  // appears and then vanishes is worse than one that arrives a moment late.
+  const clientId = (key) => (!cfg ? "" : served ? cfg[key] || "" : VITE_ID(key));
 
   // Pull the configured providers from the backend so no VITE_* build vars are
   // required — configure OAuth once on the server and it just works here.
@@ -98,7 +112,9 @@ export default function OAuthButtons({ onSuccess, onError }) {
     api("/api/auth/oauth-config/", { auth: false })
       .then((d) => {
         // Backend returns a flat map: { google: "<client_id>", github: "…", … }.
-        if (on) setCfg(d && typeof d === "object" ? d : {});
+        if (!on) return;
+        setCfg(d && typeof d === "object" ? d : {});
+        setServed(true);
       })
       .catch(() => on && setCfg({})); // backend unreachable → fall back to VITE
     return () => { on = false; };
@@ -172,8 +188,17 @@ export default function OAuthButtons({ onSuccess, onError }) {
         });
         window.AppleID.auth.init({ clientId: id, scope: "name email", redirectURI: REDIRECT, usePopup: true });
         const data = await window.AppleID.auth.signIn();
+        setAppleErr("");
         onSuccess?.(await oauth("apple", { id_token: data?.authorization?.id_token }));
-      } catch (e) { onError?.(e.message || "Apple sign-in was cancelled."); }
+      } catch (e) {
+        // Apple rejects with a plain object carrying `error`, not an Error, so
+        // `e.message` is undefined and every failure read as "cancelled" —
+        // including the one that isn't the member's doing at all.
+        const why = String(e?.error || e?.message || "");
+        const bad = /invalid[_\s-]?client/i.test(why);
+        if (bad) setAppleErr(why);
+        onError?.(bad ? "Apple refused this site's sign-in setup." : (e?.message || "Apple sign-in was cancelled."));
+      }
       finally { setBusy(""); }
       return;
     }
@@ -231,6 +256,28 @@ export default function OAuthButtons({ onSuccess, onError }) {
             <code className="rounded bg-black/40 px-1 text-white/80">{origin}</code> to the OAuth
             client's <span className="font-semibold">Authorized JavaScript origins</span> in the
             Google Console. An ad blocker or blocked third-party cookies will also do this.
+          </p>
+        </div>
+      )}
+
+      {/* `invalid_client` is Apple's answer to three different mistakes and it
+          names none of them. All three are on the Services ID, and none is
+          guessable from the popup — so list them, with the two values Apple
+          has to be told, which are the parts nobody can look up for you. */}
+      {appleErr && (
+        <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
+          <p className="font-semibold">Apple refused this site's sign-in setup.</p>
+          <p className="mt-1 text-mcz-ember/80">
+            Use email, or another provider below. If you run this site,{" "}
+            <code className="rounded bg-black/40 px-1 text-white/80">invalid_client</code> means one
+            of three things on the Apple <span className="font-semibold">Services ID</span>: it's
+            the App ID (bundle ID) rather than a Services ID, Sign in with Apple isn't enabled on
+            it, or these two aren't registered on it —{" "}
+            <code className="rounded bg-black/40 px-1 text-white/80">{origin.replace(/^https?:\/\//, "")}</code>{" "}
+            as a domain, and{" "}
+            <code className="rounded bg-black/40 px-1 text-white/80">{REDIRECT}</code> as a return
+            URL. The same string goes in{" "}
+            <code className="rounded bg-black/40 px-1 text-white/80">APPLE_OAUTH_CLIENT_ID</code>.
           </p>
         </div>
       )}
