@@ -109,6 +109,12 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // required — configure OAuth once on the server and it just works here.
   useEffect(() => {
     let on = true;
+    // `api` has no timeout, and a sleeping Render instance takes the better
+    // part of a minute to answer its first request. Waiting that out with an
+    // empty grid would be a blank login screen for anyone arriving first, so
+    // fall back to the build vars after a few seconds and let the real answer
+    // overwrite them whenever it lands. Late is fine; never is not.
+    const fallback = setTimeout(() => on && setCfg((c) => c || {}), 4000);
     api("/api/auth/oauth-config/", { auth: false })
       .then((d) => {
         // Backend returns a flat map: { google: "<client_id>", github: "…", … }.
@@ -117,7 +123,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
         setServed(true);
       })
       .catch(() => on && setCfg({})); // backend unreachable → fall back to VITE
-    return () => { on = false; };
+    return () => { on = false; clearTimeout(fallback); };
   }, []);
 
   /* Google Identity Services button, rendered once its client_id is known. */
