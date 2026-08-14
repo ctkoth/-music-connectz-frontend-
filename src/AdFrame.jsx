@@ -25,15 +25,39 @@
 //   and grants nothing of ours. (It is the opposite story for same-origin
 //   content — see the game bundles, which must never have it.)
 //
-//   `allow-popups` is dropped. An ad that can open windows is a disruptive-ads
-//   problem with the stores and an unpleasant surprise for the member. If the
-//   network genuinely needs it, that is a conversation to have deliberately,
-//   not a flag to inherit from a copy-pasted snippet.
+//   `allow-popups` is the CLICK, not a convenience. This file used to drop it,
+//   reasoning that an ad which can open windows is a disruptive-ads problem
+//   with the stores. That was right about pop-unders and wrong about
+//   everything else: inside a sandboxed frame the flag gates `window.open`
+//   AND `<a target="_blank">`, which between them are every route an ad
+//   network has to the advertiser. So the slot rendered, took up the page,
+//   cost a member their attention, and could never return anything — a
+//   decoration wearing a revenue stream's clothes, which is worse than the
+//   risk it was avoiding. The hazard actually worth refusing is top-level
+//   navigation with no gesture behind it, and that is refused specifically
+//   below rather than by breaking the click.
 import { useEffect, useState } from "react";
 import { loadLimits } from "./limits.js";
 
-// What the frame may do. Deliberately narrower than the snippet this replaced.
-const SANDBOX = "allow-scripts allow-same-origin";
+// What the frame may do — and, as much to the point, what it still may not.
+const SANDBOX = [
+  "allow-scripts",
+  "allow-same-origin",
+  // The click-through itself.
+  "allow-popups",
+  // The opened tab escapes OUR sandbox. Without this the advertiser's page
+  // inherits these restrictions and renders broken, so the click "works" and
+  // the advertiser still gets a dead visit. The snippet this replaced was
+  // missing it too.
+  "allow-popups-to-escape-sandbox",
+  // Some networks click through by navigating the top window instead of
+  // opening a tab. The -by-user-activation form fires only on a real gesture,
+  // so this buys the click without buying the drive-by redirect.
+  "allow-top-navigation-by-user-activation",
+].join(" ");
+// Still refused, deliberately: allow-forms, allow-modals, allow-pointer-lock,
+// and bare allow-top-navigation — that last one is the actual disruptive-ads
+// hazard, and the gesture-gated variant above covers the legitimate case.
 
 /** Whether this member may be shown a third-party ad.
  *
@@ -71,7 +95,11 @@ export default function AdFrame({ site, width = 300, height = 130,
         title="Ad"
         loading="lazy"
         sandbox={SANDBOX}
-        referrerPolicy="no-referrer"
+        // Origin only — "https://musicconnectz.net", no path, no query.
+        // `no-referrer` hands a network nothing to price the placement on,
+        // and they bid on the domain an ad runs on. This is what an advertiser
+        // legitimately needs to value the slot, and nothing beyond it.
+        referrerPolicy="strict-origin-when-cross-origin"
         style={{ border: 0, width, height, maxWidth: "100%" }}
       />
     </div>
