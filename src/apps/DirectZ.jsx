@@ -29,8 +29,12 @@ const mmss = (s) =>
 
 export default function DirectZ() {
   const [spec, setSpec] = useState(null);
+  // The craft rating is OFF by default. It sends the video to a model that
+  // watches it, which costs real money — so posting must not quietly become a
+  // paid action. The member asks for it, having read the price first.
   const [form, setForm] = useState({ fmt: "reelz", genre: "", video_type: "",
-                                     title: "", description: "" });
+                                     title: "", description: "",
+                                     craft_rating: false });
   const [work, setWork] = useState({});
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -81,7 +85,8 @@ export default function DirectZ() {
           media_type: work.video ? "video" : "",
         },
       });
-      setForm({ fmt: form.fmt, genre: "", video_type: "", title: "", description: "" });
+      setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
+                description: "", craft_rating: false });
       setWork({}); setSeconds(0);
       setMsg("Posted to DirectZ.");
       load();
@@ -161,6 +166,29 @@ export default function DirectZ() {
                 + (shouldBe ? `It fits ${shouldBe.name}.`
                             : "It's outside every DirectZ length band.")}
           </p>
+        )}
+
+        {/* The price, on the control that spends it. This shipped free and
+            silent, which is unbounded spend on the platform's Gemini key and
+            the cost/gain rule broken by the app that enforces it. */}
+        {spec?.craft?.configured && (
+          <label className="flex items-start gap-2 text-[11px] text-white/60">
+            <input type="checkbox" className="mt-0.5" checked={form.craft_rating}
+                   disabled={!spec.craft.affordable}
+                   onChange={(e) => setForm({ ...form, craft_rating: e.target.checked })} />
+            <span>
+              Get a craft rating{" "}
+              {spec.craft.free_today
+                ? <span className="text-emerald-300">
+                    +1 🏷️ free today · {spec.craft.daily_prompts_left} left
+                  </span>
+                : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>}
+              <span className="block text-white/35">
+                {spec.craft.note}
+                {!spec.craft.affordable && " You're out of prompts and balance for today."}
+              </span>
+            </span>
+          </label>
         )}
 
         {msg && (
