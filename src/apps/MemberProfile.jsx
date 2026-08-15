@@ -8,6 +8,7 @@ import { Loader2, MapPin, Star, Users, X } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
+import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -55,6 +56,10 @@ export default function MemberProfile({ username, onClose }) {
                 {data?.display_name || username}
               </h3>
               <p className="truncate text-xs text-white/45">@{username}</p>
+              {/* The title and the medals sit with the name, because that is
+                  what a title is for — it qualifies the person, not the page. */}
+              <BadgeWear badges={data?.badges} title={data?.badge_title}
+                         size="h-6 w-6" className="pt-1" />
             </div>
           </div>
           <button
@@ -91,6 +96,10 @@ export default function MemberProfile({ username, onClose }) {
             )}
 
             {data.bio && <p className="text-sm leading-relaxed text-white/75">{data.bio}</p>}
+
+            {/* Spelled out, not just worn. "Ten deals, no dispute" is the
+                reason to work with somebody, and it should not need a hover. */}
+            <BadgeWearList badges={data.badges} />
 
             <div className="flex flex-wrap gap-2 text-xs">
               <Pill><Users size={11} className="inline" /> {data.followers ?? 0} followers</Pill>

@@ -3304,7 +3304,19 @@ function MemberFinder({ serverOk, onPick, actionLabel = "Select", note }) {
                 {m.avatar
                   ? <img src={m.avatar} alt={name} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
                   : <span className="post-avatar" style={{ width: 32, height: 32, fontSize: 14 }}>{(name || "?").charAt(0).toUpperCase()}</span>}
-                <span>{name} {m.founding && <span title="Founding member">👑</span>} {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</span>
+                <span>{name}{" "}
+                  {/* 🏛️, not 👑 — the crown is the Owner badge's, and now that
+                      badges ride on the card the two would read as the same
+                      thing. A founding seat has its own mark. */}
+                  {m.founding && <span title="Founding member">🏛️</span>}{" "}
+                  {/* Worn badges, straight off the card payload. The tooltip
+                      carries what each one pays, which is the reason anybody
+                      would want it. */}
+                  {(m.badges || []).map((b) => (
+                    <span key={b.key} title={`${b.name} — ${b.effect_note || b.how || b.desc || ""}`}>{b.emoji}</span>
+                  ))}
+                  {m.badge_title && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>{m.badge_title}</span>}
+                  {m.gender && `· ${PARTNER_GENDERS.find((g) => g.id === m.gender)?.emoji || ""}`} {m.median != null && <span className="tag" style={{ color: "var(--gold, #ffcf3f)" }}>💯 {m.median}</span>}</span>
               </div>
               <div className="post-meta">🌐 {heritage || "—"} · {SIGNS.find((s) => s.name === m.sign)?.emoji} {m.sign} · {m.sober ? "🟢 sober" : "🍺 social"}{m.age != null ? ` · 🎂 ${m.age}` : ""}{m.distance_km != null ? ` · 🗺️ ${m.distance_km}km` : ""}{m.tier && m.tier !== "free" ? ` · ${TIER_EMOJI[tierKey(m.tier)]} ${tierLabel(m.tier)}` : ""}</div>
               <button className="btn btn-small" style={{ marginTop: 6 }} onClick={() => onPick?.(m)}>{actionLabel}{uname ? ` · @${uname}` : name ? ` · ${name}` : ""}</button>

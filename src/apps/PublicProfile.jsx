@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -55,6 +56,11 @@ export default function PublicProfile() {
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{p.display_name}</h1>
             <p className="text-sm text-white/45">@{p.username}</p>
+            {/* A shared profile is somebody's proof they are worth hiring.
+                The badge travels with it; what it pays does not — the server
+                leaves the effect off a card a stranger can read. */}
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-6 w-6"
+                       className="pt-1.5" />
           </div>
 
           {p.bio && (
@@ -78,6 +84,8 @@ export default function PublicProfile() {
               </div>
             </div>
           ))}
+
+          <BadgeWearList badges={p.badges} />
 
           {p.links?.length > 0 && (
             <div className="flex flex-wrap gap-2">
