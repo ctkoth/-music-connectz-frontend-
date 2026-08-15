@@ -10,6 +10,8 @@ import CharLimit from "../CharLimit.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
+import { BadgeWear } from "../BadgeWear.jsx";
+import { spotlight } from "../goto.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -386,6 +388,8 @@ export default function ProfileZ() {
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
   const [bio, setBio] = useState("");
+  // What you wear: the badges you show and the title you picked out of them.
+  const [worn, setWorn] = useState({ badges: [], title: "", hidden: 0 });
   const cl = useCharLimit();
   const premium = isPremiumTier(me?.tier);
   // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
@@ -431,6 +435,10 @@ export default function ProfileZ() {
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
     api("/api/economy/profile/").then((d) => {
+      // The badges you wear, and the title you picked — straight off the
+      // profile payload, so the header is right on first paint. The BadgeZ
+      // panel below takes over from here and keeps it live.
+      setWorn({ badges: d?.badges, title: d?.badge_title, hidden: d?.badges_hidden || 0 });
       setBio(d?.bio || "");
       // Older saves are a bare list of keys with no frequency. Read them as
       // declared-but-unspecified rather than inventing a frequency for someone.
@@ -517,11 +525,23 @@ export default function ProfileZ() {
             <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
             <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
           </p>
+          {/* Worn, not filed away. The medals sit on the card the room sees,
+              and tapping one drops you at the panel that switches it. */}
+          <BadgeWear badges={worn.badges} title={worn.title} className="pt-1.5"
+                     onOpen={() => spotlight("badgez")} />
         </div>
       </header>
 
-      {/* BadgeZ — the medal, and the effect it actually carries. */}
-      <BadgeZ />
+      {/* BadgeZ — the medal, and the effect it actually carries. It reports
+          what you wear back up, so the header medals follow the switches
+          here without waiting for a reload. */}
+      <BadgeZ onWear={setWorn} />
+      {worn.hidden > 0 && (
+        <p className="-mt-4 text-[11px] text-white/35">
+          {worn.hidden === 1 ? "One badge is" : `${worn.hidden} badges are`} hidden —
+          you keep the effect either way, the room just doesn't see it.
+        </p>
+      )}
 
       <AvatarCard />
 

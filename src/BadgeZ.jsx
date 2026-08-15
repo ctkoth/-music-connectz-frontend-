@@ -19,23 +19,13 @@ import { useEffect, useState } from "react";
 import { Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
-import { CUSTOM_ICONS, IconImg } from "./App.jsx";
+import { IconImg } from "./App.jsx";
+// The medal is drawn in one place. This screen and every profile that wears a
+// badge have to agree about what a badge looks like, or the same badge reads
+// as two different things depending on where you meet it.
+import { Medal } from "./BadgeWear.jsx";
 
-function Medal({ badge, className = "h-12 w-12" }) {
-  // The registry guard matters: a badge naming art the frontend hasn't shipped
-  // would render the MCZ logo, which says nothing. The emoji says everything.
-  return CUSTOM_ICONS[badge.icon] ? (
-    <IconImg icon={badge.icon} alt=""
-             className={`${className} shrink-0 rounded-full object-cover shadow-neon`}
-             fallback={<span className="text-2xl">{badge.emoji}</span>} />
-  ) : (
-    <span className={`${className} flex shrink-0 items-center justify-center text-2xl`}>
-      {badge.emoji}
-    </span>
-  );
-}
-
-export default function BadgeZ({ username }) {
+export default function BadgeZ({ username, onWear }) {
   const [data, setData] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,6 +33,21 @@ export default function BadgeZ({ username }) {
   const load = () => api(`/api/economy/badgez/${username ? `?username=${username}` : ""}`)
     .then(setData).catch(() => setData(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [username]);
+
+  // Tell the profile above what is being worn. Hiding a badge here has to take
+  // it off the card in the same tick, or the switch and the thing it switches
+  // disagree until a reload — which is exactly how somebody ends up believing
+  // they hid something they didn't.
+  useEffect(() => {
+    if (!onWear || !data) return;
+    const held = asList(data.badges);
+    onWear({
+      badges: held.filter((b) => b.visible !== false),
+      title: data.title || "",
+      hidden: held.filter((b) => b.visible === false).length,
+    });
+    /* eslint-disable-next-line */
+  }, [data]);
 
   if (!data) return null;
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
