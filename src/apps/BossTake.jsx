@@ -158,8 +158,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     // instead of the size. Say it before the upload, not after.
     const capMb = price?.max_mb;
     if (capMb && b.size > capMb * 1024 * 1024) {
+      // The server says why, because this is NOT the member's tier limit and
+      // reading it as one is how a StatZ member concludes their plan is being
+      // ignored. Fall back to the old wording if an older server sends none.
       return setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
-        + "Trim it to the section you want scored, or record video at a shorter length.");
+        + (price?.max_mb_why
+           || "Trim it to the section you want scored, or record video at a shorter length."));
     }
     if (url) URL.revokeObjectURL(url);
     // Keep the filename in state rather than assigning onto the Blob: File.name
