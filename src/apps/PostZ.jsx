@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Disc3, Flame, Handshake, Loader2, Lock, RefreshCw,
-  Send, Share2, ThumbsDown, ThumbsUp,
+  Pencil, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -69,8 +69,21 @@ export default function PostZ() {
   const [storage, setStorage] = useState(null);
   const [cost, setCost] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  // The owner can edit and delete any post at any age. The server enforces it;
+  // this only decides whether the buttons are worth drawing.
+  const [isOwner, setIsOwner] = useState(false);
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
+
+  useEffect(() => {
+    api("/api/auth/stats/").then((st) => setIsOwner(!!st?.is_owner)).catch(() => {});
+  }, []);
+
+  // One post changed in place, or removed when `next` is null. Beats reloading
+  // the feed: a re-sort under somebody's thumb after they edited a caption is
+  // its own small betrayal.
+  const replacePost = (id, next) => setPosts((cur) => (cur || []).flatMap(
+    (x) => (x.id !== id ? [x] : next ? [mapPost(next)] : [])));
 
   async function load({ quiet } = {}) {
     if (!quiet) setRefreshing(true);
@@ -276,19 +289,25 @@ export default function PostZ() {
 
       <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
-          <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash} />
+          <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash}
+                    isOwner={isOwner} onChanged={replacePost} />
         ))}
       </div>
     </div>
   );
 }
 
-function PostCard({ post, now, charLimit, onFlash }) {
+function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
   const [shared, setShared] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [eTitle, setETitle] = useState(post.title);
+  const [eDesc, setEDesc] = useState(post.description || "");
+  const [eWork, setEWork] = useState({});
   const draft = useRef("");
   const item = `post:${post.id}`;
 
@@ -307,6 +326,55 @@ function PostCard({ post, now, charLimit, onFlash }) {
     navigator.clipboard?.writeText(`${window.location.origin}/p/${post.id}`)
       .then(() => { setShared(true); setTimeout(() => setShared(false), 1800); })
       .catch(() => {});
+  }
+
+  // Editing is the author's inside the tier's window, and the owner's at any
+  // age on any post. Media is the reason it matters: a post whose track never
+  // uploaded used to need posting again, which threw away every rating on it.
+  const canEdit = post.mine || isOwner;
+
+  async function saveEdit() {
+    const t = eTitle.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    try {
+      // Media only rides along when it was actually touched. Sending empty
+      // slots on a text edit would wipe the attachments the post already has.
+      const touched = Object.keys(eWork).length > 0;
+      let media = {};
+      if (touched) {
+        if (hasBlobs(eWork)) onFlash("Uploading…");
+        const { work: hosted } = await uploadWork(eWork);
+        media = { ...primaryMedia(hosted), items: mediaItems(hosted, t) };
+      }
+      const next = await api("/api/economy/postz/", {
+        method: "POST",
+        body: { edit_id: post.id, title: t, description: eDesc.trim(), ...media },
+      });
+      onChanged(post.id, next);
+      setEditing(false); setEWork({});
+      onFlash(post.mine ? "Saved." : `Saved — @${post.author} was told you edited it.`);
+    } catch (e) {
+      // api() throws a plain Error whose message is the server's `detail`, so
+      // the window refusal arrives as that string rather than a field.
+      onFlash(/edit_window_passed/.test(e.message || "")
+        ? "That post is past its edit window."
+        : e.message || "Couldn't save that.");
+    } finally { setBusy(false); }
+  }
+
+  async function remove() {
+    const who = post.mine ? "your post" : `@${post.author}'s post`;
+    if (!window.confirm(`Delete ${who} "${post.title}"? This can't be undone.`)) return;
+    setBusy(true);
+    try {
+      await api(`/api/economy/postz/${post.id}/delete/`, { method: "DELETE" });
+      onChanged(post.id, null);
+      onFlash(post.mine ? "Deleted." : `Deleted — @${post.author} was told.`);
+    } catch (e) {
+      onFlash(e.message || "Couldn't delete that.");
+      setBusy(false);
+    }
   }
 
   async function rate(score) {
@@ -393,6 +461,20 @@ function PostCard({ post, now, charLimit, onFlash }) {
           </div>
         </div>
         <div className="flex items-start gap-2">
+          {canEdit && (
+            <button onClick={() => setEditing((v) => !v)} disabled={busy}
+                    title={post.mine ? "Edit this post" : "Edit as platform owner"}
+                    className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-cyan">
+              {editing ? <XIcon size={15} /> : <Pencil size={15} />}
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={remove} disabled={busy}
+                    title={post.mine ? "Delete this post" : "Delete as platform owner"}
+                    className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-pink">
+              <Trash2 size={15} />
+            </button>
+          )}
           <button onClick={share} title="Copy public link"
                   className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
             {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
@@ -408,9 +490,58 @@ function PostCard({ post, now, charLimit, onFlash }) {
         </div>
       </div>
 
-      <p className="text-sm font-semibold text-white">{post.title}</p>
-      {post.description && (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{post.description}</p>
+      {editing ? (
+        <div className="mt-1 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3">
+          <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
+            {post.mine ? "Editing your post" : `Editing @${post.author}'s post as owner`}
+          </p>
+          {!post.mine && (
+            <p className="text-[11px] text-white/45">
+              This gets recorded on the post and @{post.author} is notified. Their
+              name is on it, so the edit says yours is too.
+            </p>
+          )}
+          <input value={eTitle} onChange={(e) => setETitle(e.target.value)} maxLength={160}
+                 className="w-full rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                 placeholder="Title" />
+          <textarea value={eDesc} onChange={(e) => setEDesc(e.target.value)} rows={4}
+                    maxLength={charLimit ?? undefined}
+                    className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                    placeholder="Say more about it…" />
+          {/* `cl` lives in the composer's scope, not this card's — the card
+              is handed the resolved limit, so it counts against that. */}
+          <div className="text-right text-[10px] text-white/35">
+            {eDesc.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
+          </div>
+          {/* The whole point of editing an old post: attach the take that
+              never uploaded. Untouched, the media already on the post stays. */}
+          <MediaFields value={eWork} onChange={setEWork}
+                       label="Add or replace audio, video, image or lyrics" />
+          <div className="flex items-center gap-2">
+            <button className="re-btn !w-auto px-4" onClick={saveEdit} disabled={busy || !eTitle.trim()}>
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <CheckIcon size={14} />}
+              {busy ? " Saving…" : " Save"}
+            </button>
+            <button className="pill !text-[11px]" onClick={() => { setEditing(false); setEWork({}); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm font-semibold text-white">{post.title}</p>
+          {post.description && (
+            <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{post.description}</p>
+          )}
+        </>
+      )}
+      {/* An edit by anyone other than the author is said on the post itself.
+          A post carries its author's name; an unmarked edit by somebody else
+          is the platform putting words in their mouth. */}
+      {post.edited_by && (
+        <p className="mt-1 text-[11px] text-white/35">
+          ✏️ Edited by @{post.edited_by}
+        </p>
       )}
       {/* One of each: the server resolves the primary slot and the album
           entries into `media`, so every attachment renders instead of only the
