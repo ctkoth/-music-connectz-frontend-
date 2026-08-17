@@ -98,6 +98,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
   const [difficulty, setDifficulty] = useState("builder");
+  // RapZ picks a style the way SingZ picks a range. The list comes from the
+  // server profile, so the coach is judging against the same names the picker
+  // offered rather than a second list kept over here.
+  const [style, setStyle] = useState("");
   const [blob, setBlob] = useState(null);
   // Video takes are scored on delivery and breath as well as sound, so the
   // preview has to be a <video> or the member can't check what they sent.
@@ -284,6 +288,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       body.append("genre", genre);
       body.append("range", range);
       body.append("difficulty", difficulty);
+      if (style) body.append("style", style);
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
       onResult?.(out);
@@ -332,6 +337,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             {price.range_label}
             <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
               {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+          </label>
+        )}
+        {price?.style_label && (
+          <label className="text-[11px] text-white/50">
+            {price.style_label}
+            <select value={style} onChange={(e) => setStyle(e.target.value)} className="neon-input !py-2 text-xs">
+              <option value="">Any</option>
+              {(price.styles || []).map((v) => <option key={v.key} value={v.label}>{v.label}</option>)}
             </select>
           </label>
         )}
@@ -427,6 +441,50 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+
+          {/* Where you are, and where you're going. A score with no
+              destination is a number, not coaching — so the two sit together,
+              current read first. Each row hides itself when the coach had
+              nothing honest to put in it (a take too short to read a range
+              from says so by leaving this empty). */}
+          {(result.now || result.goal) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {result.now && (
+                <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+                  <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
+                    Where you're at
+                  </p>
+                  <p className="text-[12px] leading-relaxed text-white/75">{result.now}</p>
+                </div>
+              )}
+              {result.goal && (
+                <div className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
+                  <p className="mb-1 text-[10px] uppercase tracking-widest text-mcz-cyan/80">
+                    What you're aiming at
+                  </p>
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.goal}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {result.range_profile && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
+                📏 Your range
+              </p>
+              <p className="text-[12px] leading-relaxed text-white/75">{result.range_profile}</p>
+            </div>
+          )}
+
+          {result.style_fit && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
+                🎯 {style || genre}
+              </p>
+              <p className="text-[12px] leading-relaxed text-white/75">{result.style_fit}</p>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             {Object.entries(price?.scores || {}).map(([k, label]) => (
