@@ -115,7 +115,7 @@ export default function DirectZ() {
         />
       </header>
 
-      <form onSubmit={submit} className="neon-frame space-y-3 p-4">
+      <form onSubmit={submit} className="neon-frame space-y-3 p-4" data-tour="directz-releases">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Clapperboard size={14} /> Post a video
         </p>

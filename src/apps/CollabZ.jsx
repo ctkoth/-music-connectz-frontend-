@@ -293,6 +293,7 @@ export default function CollabZ() {
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
 
+      <div data-tour="collabz-deals" className="space-y-3">
       {deals === null ? (
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       ) : deals.length === 0 ? (
@@ -307,6 +308,7 @@ export default function CollabZ() {
           ))}
         </div>
       )}
+      </div>
 
       <div className="neon-frame space-y-3 p-5">
         <h3 className="font-semibold">Start a deal</h3>

@@ -23,6 +23,7 @@ import { asList } from "../shape.js";
 import { CUSTOM_ICONS, IconImg } from "../App.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { goToSpot } from "../goto.js";
+import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 
 const STATUS_STYLE = {
@@ -223,6 +224,9 @@ export default function OCC() {
   const [source, setSource] = useState("");
   const [ran, setRan] = useState(null);
   const [sugg, setSugg] = useState(null);
+  // Which post the WorkZ draft was seeded from, so the panel can say where the
+  // words in it came from rather than looking like something you typed.
+  const [fromPost, setFromPost] = useState(null);
 
   const loadTasks = () => api("/api/economy/occ/taskz/")
     .then((d) => setTasks(asList(d?.tasks))).catch(() => setTasks([]));
@@ -238,6 +242,23 @@ export default function OCC() {
     loadWorks();
     loadSugg();
   }, []);
+
+  // A post carried in from PostZ opens as a WorkZ draft with its own words and
+  // attachment already in it — the point being to rewrite the hook, not to
+  // retype the verse before you can start.
+  useEffect(() => onHandoff("occ", (h) => {
+    if (h?.kind !== "post" || !h.post_id) return;
+    setFromPost(h);
+    setDraft({
+      title: h.title || "",
+      input_text: h.lyrics || h.description || "",
+      description: "",
+    });
+    setWork({
+      audio_url: h.audio_url || "", video_url: h.video_url || "",
+      image_url: h.image_url || "", lyrics: h.lyrics || "",
+    });
+  }), []);
 
   if (!spec) {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading OCC…</p>;
@@ -295,6 +316,7 @@ export default function OCC() {
       });
       setDraft({ title: "", input_text: "", description: "" });
       setWork({});
+      setFromPost(null);
       loadWorks();
     } catch (e) { flash(e.message || "Couldn't keep that."); }
     finally { setBusy(false); }
@@ -468,6 +490,15 @@ export default function OCC() {
         </p>
 
         <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+          {fromPost && (
+            <p className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] px-3 py-2 text-[11px] text-white/70">
+              🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
+              Rewrite it here and keep the result — the post itself isn't touched.{" "}
+              <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
+                Back to the post
+              </button>
+            </p>
+          )}
           <input className="neon-input !py-2 text-xs" placeholder="Call it something"
                  value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
           <textarea className="neon-input !py-2 text-xs" rows={2}
