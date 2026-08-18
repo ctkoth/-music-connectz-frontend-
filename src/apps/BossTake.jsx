@@ -8,6 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
+import { onHandoff } from "../handoff.js";
+import { goToSpot } from "../goto.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -102,6 +104,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
   const [style, setStyle] = useState("");
+  // A post handed over from PostZ. It is a take that is already recorded and
+  // already stored, so there is nothing to upload: the coach is given the
+  // post's id and reads the file itself. Null the rest of the time.
+  const [fromPost, setFromPost] = useState(null);
   const [blob, setBlob] = useState(null);
   // Video takes are scored on delivery and breath as well as sound, so the
   // preview has to be a <video> or the member can't check what they sent.
@@ -135,6 +141,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
 
   useEffect(() => { api(path, { auth: !trial }).then(setPrice).catch(() => {}); }, [path, trial]);
+
+  // A post arriving from PostZ. The trial door is for people with no account
+  // and therefore no posts, so it never listens.
+  useEffect(() => {
+    if (trial) return undefined;
+    return onHandoff(appKey, (h) => {
+      if (h?.kind !== "post" || !h.post_id) return;
+      setFromPost(h);
+      setResult(null);
+      setMsg("");
+      setStopNote("");
+      // The post already says what it is. Its genre seeds the picker so the
+      // coach isn't asked to score a Drill verse as "unspecified" — the member
+      // can still change it before sending.
+      if (h.genre) setGenre(h.genre);
+    });
+  }, [appKey, trial]);
 
   // Object URLs must be revoked or every take leaks for the life of the page.
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -173,6 +196,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     // Keep the filename in state rather than assigning onto the Blob: File.name
     // is a read-only getter, so Object.assign threw and swallowed the attach.
     setBlob(b);
+    // A fresh take replaces the handed-over post. Both loaded at once would
+    // leave the Send button ambiguous about which one it is spending on.
+    setFromPost(null);
     setIsVideo(video || (b.type || "").startsWith("video/"));
     setTakeName(name || b.name || (video ? "take-video.webm" : "take.webm"));
     setUrl(URL.createObjectURL(b));
@@ -280,21 +306,36 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   }
 
   async function submit() {
-    if (!blob) return;
+    if (!blob && !fromPost) return;
     setBusy(true); setMsg(""); setResult(null);
     try {
-      const body = new FormData();
-      body.append("take", blob, takeName);
-      body.append("genre", genre);
-      body.append("range", range);
-      body.append("difficulty", difficulty);
-      if (style) body.append("style", style);
+      // A handed-over post is already stored, so it rides as its id. Uploading
+      // the same file a second time to have it coached is the dead end this
+      // handoff exists to remove — and it would spend the member's storage
+      // quota on a duplicate of a track they already posted.
+      const body = fromPost
+        ? { post_id: fromPost.post_id, genre, range, difficulty, ...(style ? { style } : {}) }
+        : (() => {
+            const f = new FormData();
+            f.append("take", blob, takeName);
+            f.append("genre", genre);
+            f.append("range", range);
+            f.append("difficulty", difficulty);
+            if (style) f.append("style", style);
+            return f;
+          })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
       onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
     } finally { setBusy(false); }
+  }
+
+  /** Put the post back down. The recorder is free again, and the post is
+   *  still in PostZ — nothing was consumed by looking at it here. */
+  function dropPost() {
+    setFromPost(null); setResult(null); setMsg("");
   }
 
   const mmss = mmssOf(secs);
@@ -358,7 +399,48 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         </label>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* A post arrived from PostZ. It IS the take — there is nothing to record
+          and nothing to upload, so the recorder steps aside and the only thing
+          left is the price and the button that spends it. */}
+      {fromPost && !recording && (
+        <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
+          <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
+            🎧 From PostZ
+          </p>
+          <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
+          <p className="text-[11px] text-white/45">
+            by @{fromPost.author}
+            {fromPost.genre ? ` · ${fromPost.genre}` : ""}
+            {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
+          </p>
+          {fromPost.coach_kind === "video" && fromPost.video_url
+            ? <video src={fromPost.video_url} controls playsInline className="w-full rounded-lg" />
+            : fromPost.audio_url
+              ? <audio src={fromPost.audio_url} controls className="w-full" />
+              : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
+              {busy ? "Coaching this post…" : "Send this post to the coach"}
+            </button>
+            <Cost price={price} trial={trial} />
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px]">
+            <button className="re-link" onClick={dropPost}>
+              Record a fresh take instead
+            </button>
+            <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
+              Back to the post
+            </button>
+          </div>
+          <p className="text-[11px] text-white/35">
+            Nothing is uploaded again — the coach reads the take already on the
+            post. A take it can't read isn't charged.
+          </p>
+        </div>
+      )}
+
+      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !recording ? "opacity-60" : ""}`}>
         {!recording ? (
           <>
             <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
@@ -529,6 +611,21 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               {result.cost_cents
                 ? <span className="text-mcz-ember">−{result.cost_cents} 🏷️ spent</span>
                 : <span className="text-emerald-300">Free — a daily prompt covered it 🏷️</span>}
+            </p>
+          )}
+
+          {/* The score is not a dead end either: it says which post it scored
+              and takes you back to it. When the post is yours the coaching is
+              kept ON it, so it is there next time without paying twice. */}
+          {result.source === "post" && (
+            <p className="text-[11px] text-white/45">
+              {result.saved_to_post
+                ? `Kept on "${result.post_title}" — it'll be on the post next time you look.`
+                : `Scored @${result.post_author}'s "${result.post_title}". This read is yours; their post is untouched.`}
+              {" "}
+              <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
+                Back to the post
+              </button>
             </p>
           )}
 

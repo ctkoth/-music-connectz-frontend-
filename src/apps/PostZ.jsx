@@ -19,7 +19,7 @@
 // as rateable the moment it landed.
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertCircle, Check as CheckIcon, Disc3, Flame, Handshake, Loader2, Lock, RefreshCw,
+  AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
   Pencil, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -31,10 +31,92 @@ import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
-import { ENERGY } from "../resources.js";
+import { ENERGY, PROMPTZ } from "../resources.js";
 import { goToSpot } from "../goto.js";
+import { handOff } from "../handoff.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
+
+// What a destination costs, said BEFORE the button that spends it. The server
+// decides the number and whether today's free prompts already cover it — this
+// only renders what it was told, so the price on the button and the price the
+// coach charges cannot drift.
+function Price({ cost }) {
+  if (!cost || !cost.amount) return <span className="text-emerald-300">Free</span>;
+  if (cost.free_today) {
+    return (
+      <span className="text-emerald-300">
+        Free today · {cost.daily_remaining} left
+      </span>
+    );
+  }
+  return (
+    <span className={cost.affordable ? "text-mcz-ember" : "text-mcz-ember/60"}>
+      −{cost.amount} {PROMPTZ}
+      {!cost.affordable && <span className="text-white/35"> · not enough</span>}
+    </span>
+  );
+}
+
+/** Where this post can go, and what happens to it there.
+ *
+ * The list is the SERVER's — one place decides which apps can do something
+ * with a post, what each still needs, and what it costs. A door that can't do
+ * anything with this post is shown greyed with the reason on it rather than
+ * dropped: a member whose post is lyrics-only should read that the coach wants
+ * a recording, not conclude SingZ went missing.
+ */
+function OpenIn({ post, busy, onGo }) {
+  const dests = asList(post.destinations);
+  if (!dests.length) return null;
+  return (
+    <div className="mt-3 space-y-2 rounded-lg border border-white/[0.06] bg-black/20 p-3"
+         data-tour="postz-open-in">
+      <p className="text-[11px] uppercase tracking-widest text-white/45">
+        Open this post in
+      </p>
+      <p className="text-[11px] leading-relaxed text-white/40">
+        The track, the words and the cover travel with it — nothing gets
+        attached twice.
+      </p>
+      {dests.map((d) => (
+        <div key={d.app + d.label}
+             className={`rounded-lg border p-2.5 ${d.available
+               ? "border-white/[0.08] bg-white/[0.03]"
+               : "border-white/[0.05] bg-white/[0.01]"}`}>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <button
+              onClick={() => onGo(d)}
+              disabled={!d.available
+                        || !!(d.cost?.amount && !d.cost.affordable && !d.cost.free_today)}
+              className={`text-[13px] font-semibold ${d.available
+                ? "text-white hover:text-mcz-gold"
+                : "cursor-not-allowed text-white/35"}`}>
+              {d.label}
+            </button>
+            <span className="text-[11px]"><Price cost={d.cost} /></span>
+            {d.gain?.what && (
+              <span className="text-[11px] text-emerald-300/70">→ {d.gain.what}</span>
+            )}
+            {d.count > 0 && (
+              <span className="text-[10px] text-white/35">· {d.count} so far</span>
+            )}
+          </div>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{d.what}</p>
+          {/* Why it can't go yet — on the row, not hidden behind the attempt. */}
+          {!d.available && (
+            <p className="mt-1 text-[11px] text-mcz-ember/80">Needs {d.needs.join("; ")}.</p>
+          )}
+        </div>
+      ))}
+      {busy && (
+        <p className="flex items-center gap-2 text-[11px] text-white/45">
+          <Loader2 className="animate-spin" size={12} /> Handing it over…
+        </p>
+      )}
+    </div>
+  );
+}
 
 // One 1s clock for the whole feed, so every countdown ticks together.
 function useNow() {
@@ -305,6 +387,10 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [skipped, setSkipped] = useState(false);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Which door is being walked through, so two taps can't send the same post
+  // to two apps at once.
+  const [opening, setOpening] = useState("");
+  const [showOpen, setShowOpen] = useState(false);
   const [eTitle, setETitle] = useState(post.title);
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
@@ -403,26 +489,52 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   // the music video, the cover and the lyrics — so this fills a release from
   // them rather than making anyone retype it. The GET answers first so the
   // button can say what's still missing before creating anything.
-  async function distribute() {
+  async function distribute(target) {
     try {
       const r = await api(`/api/economy/postz/${post.id}/distribute/`, { method: "POST", body: {} });
-      // Deliberately does NOT navigate. There is no DistributeZ tab to land on
-      // yet, and switching tabs would take this message with it — the result
-      // of pressing a button has to survive pressing it.
+      // Deliberately does NOT navigate on its own. There is no DistributeZ tab
+      // to land on, and switching tabs would take this message with it — the
+      // result of pressing a button has to survive pressing it. When the
+      // destination row names an anchor in DirectZ, that jump is the caller's.
+      if (target) goToSpot("directz", target);
       onFlash(r.ready
         ? `Release ready — "${r.title}" by ${r.artist_name}, with the song, video, cover and lyrics filled in.`
         : `Release started. It still needs ${r.missing.join(", ")}.`);
     } catch (e) { onFlash(e.message || "Couldn't start that release."); }
   }
 
-  async function takeToCollabZ() {
+  async function takeToCollabZ(target) {
     try {
       await api("/api/economy/collab/", {
         method: "POST", body: { from_post: post.id, currency: "money" },
       });
       onFlash(`Draft deal started on "${post.title}" — open CollabZ to set the worth.`);
-      goToSpot("collabz", "");
+      goToSpot("collabz", target || "");
     } catch (e) { onFlash(e.message || "Couldn't start that collab."); }
+  }
+
+  // The one place a post leaves PostZ. Which apps are offered, what each one
+  // needs and what it costs are all the server's answer (`post.destinations`);
+  // this decides only HOW the post travels — an API call for the doors that
+  // create something server-side, and a handoff for the ones that fill a form
+  // in the destination.
+  async function openIn(d) {
+    if (!d.available || opening) return;
+    setOpening(d.app);
+    try {
+      if (d.action === "deal") return await takeToCollabZ(d.target);
+      if (d.action === "distribute") return await distribute(d.target);
+      // "coach" and "seed" both carry the post over and land on the control.
+      // The destination states the price again ON the button that spends it —
+      // the row here is the quote, the button there is the commitment.
+      await handOff(d.app, d.target, {
+        kind: "post", action: d.action, coach_kind: d.coach_kind || "",
+        ...(d.carry || {}),
+      });
+      onFlash(`"${post.title}" is waiting in ${d.app.toUpperCase()}.`);
+    } catch (e) {
+      onFlash(e.message || `Couldn't open that in ${d.app}.`);
+    } finally { setOpening(""); }
   }
 
   async function comment() {
@@ -574,31 +686,44 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           <ThumbsDown size={13} /> {social?.down ?? 0}
         </button>
 
-        {/* Drafting is free and moves nothing — say so, since every other
-            button in the app that touches money states its price. */}
-        <button onClick={takeToCollabZ}
-                className="ml-auto flex items-center gap-1 text-white/40 hover:text-mcz-gold"
-                title="Start a CollabZ deal from this post — drafting costs nothing">
-          <Handshake size={13} /> Take it to CollabZ
+        {/* One door out of a post used to be hardcoded here — CollabZ, and
+            nothing else. Every app that can do something with this post now
+            lives in the panel below, from the server's own list. */}
+        <button onClick={() => setShowOpen((v) => !v)}
+                className={`ml-auto flex items-center gap-1 ${showOpen ? "text-mcz-gold" : "text-white/40 hover:text-mcz-gold"}`}
+                title="Coach it, collab on it, put it in a playlist, enter it in a battle">
+          <Handshake size={13} /> {showOpen ? "Close" : "Open it in…"}
         </button>
-        {/* Only on your own post, and only when there's a song to release —
-            a Distribute button on someone else's track, or on a post with no
-            audio, is a button that can't do what it says. */}
-        {post.mine && post.media?.audio && (
-          <button onClick={distribute}
-                  className="flex items-center gap-1 text-white/40 hover:text-mcz-cyan"
-                  title="Fill a release from this post — the song, video, cover and lyrics are already here">
-            <Disc3 size={13} /> Distribute
-          </button>
-        )}
         {post.collab_count > 0 && (
-          <button onClick={() => goToSpot("collabz", "")}
+          <button onClick={() => goToSpot("collabz", "collabz-deals")}
                   className="text-white/35 hover:text-mcz-gold"
                   title="Deals that grew out of this post">
             {post.collab_count} collab{post.collab_count === 1 ? "" : "s"}
           </button>
         )}
       </div>
+
+      {showOpen && (
+        <OpenIn post={post} busy={!!opening} onGo={openIn} />
+      )}
+
+      {/* What the coach said, kept on the post that was coached. A score that
+          lived for one screenful and then vanished sent people back through
+          the same prompt to read it again. */}
+      {post.score?.verdict && (
+        <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
+          <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
+            👑 Coached in {(post.score.app_key || "singz").toUpperCase()} ·{" "}
+            <span className="text-white">{post.score.score}/10</span>
+          </p>
+          <p className="mt-1 text-[12px] leading-relaxed text-white/70">{post.score.verdict}</p>
+          {post.score.next_drill && (
+            <p className="mt-1 text-[11px] text-white/45">
+              Next drill · {post.score.next_drill}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="mt-3 border-t border-white/[0.06] pt-3">
         {canRate && !skipped ? (

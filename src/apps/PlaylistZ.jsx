@@ -15,6 +15,7 @@ import {
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 
 const PROVIDER_LABEL = {
@@ -400,6 +401,73 @@ function Appearances({ onOpen }) {
   );
 }
 
+/** A post handed over from PostZ, waiting for a set to go into.
+ *
+ * The old way round was: remember the post, come here, open a playlist, find
+ * it again in a dropdown of everything you have ever posted. The post travels
+ * now, so the only question left is which set — and that is the only control
+ * this shows.
+ */
+function PendingPost({ lists, onAdded, onDrop }) {
+  const [post, setPost] = useState(null);
+  const [pick, setPick] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => onHandoff("playlistz", (h) => {
+    if (h?.kind === "post" && h.post_id) { setPost(h); setMsg(""); }
+  }), []);
+
+  const mine = asList(lists).filter((l) => l.can_add !== false);
+  if (!post) return null;
+
+  async function add() {
+    if (!pick) return;
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/economy/playlistz/${pick}/items/`,
+                { method: "POST", body: { kind: "post", post_id: post.post_id } });
+      setPost(null); setPick("");
+      onAdded?.(Number(pick));
+    } catch (e) {
+      // The real error, never a cheerful lie — a set that silently didn't take
+      // the track is the worst bug class in this app.
+      setMsg(e.message || "That set wouldn't take it.");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="re-card space-y-2 border-mcz-gold/30" data-tour="playlistz-add">
+      <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">🎧 From PostZ</p>
+      <p className="text-[13px] font-semibold text-white">{post.title}</p>
+      <p className="text-[11px] text-white/45">
+        by @{post.author}{post.genre ? ` · ${post.genre}` : ""}
+      </p>
+      {mine.length === 0 ? (
+        <p className="text-[12px] text-white/45">
+          Name a playlist below first, then this drops straight into it.
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="neon-input !w-auto !py-2 text-xs" value={pick}
+                  onChange={(e) => setPick(e.target.value)}>
+            <option value="">Which set?</option>
+            {mine.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
+          </select>
+          <button className="neon-btn-primary !w-auto px-4" onClick={add} disabled={!pick || busy}>
+            {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
+            {" "}Add it <span className="text-emerald-300">Free</span>
+          </button>
+          <button className="re-link text-[11px]" onClick={() => { setPost(null); onDrop?.(); }}>
+            Not now
+          </button>
+        </div>
+      )}
+      {msg && <p className="text-[11px] text-mcz-ember">{msg}</p>}
+    </div>
+  );
+}
+
 export default function PlaylistZ() {
   const [lists, setLists] = useState(null);
   const [open, setOpen] = useState(null);
@@ -446,6 +514,10 @@ export default function PlaylistZ() {
           </button>
         </div>
       )}
+
+      {/* Above the lists, not inside one: the post is here to be placed, and
+          the placing is the first thing to do. */}
+      {!open && <PendingPost lists={lists} onAdded={(id) => { load(); setOpen(id); }} />}
 
       {open ? (
         <Detail id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} />

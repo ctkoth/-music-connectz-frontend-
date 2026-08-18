@@ -21,6 +21,7 @@ import { SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { GENRE_GROUPS } from "../genres.js";
+import { onHandoff } from "../handoff.js";
 
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
@@ -110,7 +111,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
   );
 }
 
-function Detail({ id, onBack, onFlash }) {
+function Detail({ id, onBack, onFlash, seed }) {
   const [b, setB] = useState(null);
   const [work, setWork] = useState({});
   const [title, setTitle] = useState("");
@@ -119,6 +120,19 @@ function Detail({ id, onBack, onFlash }) {
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+
+  // A post carried in from PostZ fills the entry. The URLs are already hosted,
+  // so `uploadWork` finds nothing to upload and the same take enters the
+  // battle without being stored a second time.
+  useEffect(() => {
+    if (!seed?.post_id) return;
+    setTitle(seed.title || "");
+    setWork({
+      audio_url: seed.audio_url || "", video_url: seed.video_url || "",
+      image_url: seed.image_url || "", lyrics: seed.lyrics || "",
+    });
+    setShowEntry(true);
+  }, [seed]);
 
   if (!b) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
 
@@ -381,10 +395,17 @@ export default function BattleZ() {
   const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
   const [duelGates, setDuelGates] = useState({});
 
+  // A post carried in from PostZ, waiting for a battle to be entered into.
+  const [seed, setSeed] = useState(null);
+
   const load = () => api("/api/economy/battlez/")
     .then((d) => setList(asList(d?.battles)))
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
+
+  useEffect(() => onHandoff("battlez", (h) => {
+    if (h?.kind === "post" && h.post_id) setSeed(h);
+  }), []);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3200); };
 
@@ -443,8 +464,24 @@ export default function BattleZ() {
 
       {!open && <MoneyPoll />}
 
+      {/* The post is here to be entered somewhere — say so above the list, and
+          say which battles cost what before one is picked. */}
+      {!open && seed && (
+        <div className="neon-frame space-y-1 border-mcz-gold/30 p-4" data-tour="battlez-list">
+          <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">🎧 From PostZ</p>
+          <p className="text-[13px] font-semibold text-white">{seed.title}</p>
+          <p className="text-[11px] text-white/50">
+            Pick a battle below and this fills the entry — the take, the cover and
+            the lyrics come with it. Each battle's fee is on its row, and you pay
+            it on the Enter button, not here.
+          </p>
+          <button className="re-link text-[11px]" onClick={() => setSeed(null)}>Not now</button>
+        </div>
+      )}
+
       {open ? (
-        <Detail id={open} onBack={() => { setOpen(null); load(); }} onFlash={flash} />
+        <Detail id={open} onBack={() => { setOpen(null); setSeed(null); load(); }}
+                onFlash={flash} seed={seed} />
       ) : (
         <>
           {list === null ? (
