@@ -21,6 +21,7 @@ import { AlertTriangle, Clapperboard, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import MediaFields from "../MediaFields.jsx";
+import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 
 const mmss = (s) =>
@@ -46,8 +47,14 @@ export default function DirectZ() {
 
   // Read the real duration off the file the member picked, so the band check
   // below is about their actual video rather than something they typed.
+  //
+  // `video_url` — MediaFields has never written a plain `video`. This read the
+  // wrong key, so `seconds` was always 0, the length band it makes such a point
+  // of checking never once ran, and `media_url` posted empty: no video has ever
+  // been attached to a DirectZ work. The craft rating's "no video attached" was
+  // not a member forgetting, it was this.
   useEffect(() => {
-    const src = work.video;
+    const src = work.video_url;
     if (!src) return setSeconds(0);
     const el = document.createElement("video");
     el.preload = "metadata";
@@ -59,7 +66,7 @@ export default function DirectZ() {
     el.src = src;
     probe.current = el;
     return () => { if (probe.current) probe.current.onloadedmetadata = null; };
-  }, [work.video]);
+  }, [work.video_url]);
 
   const formats = asList(spec?.formats);
   const chosen = formats.find((f) => f.key === form.fmt);
@@ -71,18 +78,39 @@ export default function DirectZ() {
     ? formats.find((f) => seconds >= f.min_sec && seconds <= f.max_sec)
     : null;
 
+  // The rater's ceiling, against the file actually picked — the same thing the
+  // length band does two lines up, which this screen somehow did for duration
+  // and not for size. A video over it is a perfectly good POST; it is only the
+  // rating that can't happen, so this greys the tickbox and never the button.
+  const craftMax = spec?.craft?.max_mb || 0;
+  const videoMb = (work.video_blob?.size || 0) / 1024 / 1024;
+  const tooBigToRate = !!(craftMax && videoMb > craftMax);
+
+  // Ticked, then a video too big for the rater arrives: untick it rather than
+  // posting a request that can only come back as a note saying no.
+  useEffect(() => {
+    if (tooBigToRate && form.craft_rating) {
+      setForm((f) => ({ ...f, craft_rating: false }));
+    }
+  }, [tooBigToRate]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   async function submit(e) {
     e.preventDefault();
     if (!form.title.trim()) return setMsg("Give it a title.");
     setBusy(true); setMsg("");
     try {
+      // Host the recording before the work is written. DirectZ never did this,
+      // so even once the key above was right it would have stored a `blob:`
+      // URL — alive only in the tab that made it, and dead for everyone else.
+      // Same fix, same helper, as PostZ / CollabZ / BattleZ.
+      if (hasBlobs(work)) setMsg("Uploading the video…");
+      const { work: hosted } = await uploadWork(work);
       await api("/api/economy/directz/", {
         method: "POST",
         body: {
           ...form,
           duration_sec: Math.round(seconds),
-          media_url: work.video || "",
-          media_type: work.video ? "video" : "",
+          ...primaryMedia(hosted),
         },
       });
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
@@ -174,19 +202,36 @@ export default function DirectZ() {
         {spec?.craft?.configured && (
           <label className="flex items-start gap-2 text-[11px] text-white/60">
             <input type="checkbox" className="mt-0.5" checked={form.craft_rating}
-                   disabled={!spec.craft.affordable}
+                   disabled={!spec.craft.affordable || tooBigToRate}
                    onChange={(e) => setForm({ ...form, craft_rating: e.target.checked })} />
             <span>
               Get a craft rating{" "}
+              {/* NOT "+1 🏷️". Nothing arrives — a rating SPENDS one of the
+                  day's free prompts. A green plus on something that costs you
+                  is the paradigm pointing the wrong way. */}
               {spec.craft.free_today
                 ? <span className="text-emerald-300">
-                    +1 🏷️ free today · {spec.craft.daily_prompts_left} left
+                    Free today <span className="text-white/45">
+                      — uses 1 of the {spec.craft.daily_prompts_left} 🏷️ you have left
+                    </span>
                   </span>
                 : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>}
               <span className="block text-white/35">
                 {spec.craft.note}
                 {!spec.craft.affordable && " You're out of prompts and balance for today."}
+                {spec.craft.max_mb > 0 && !tooBigToRate
+                  && ` The rater watches up to ${spec.craft.max_mb}MB in one go.`}
               </span>
+              {/* The ceiling, on the control, against the file they picked —
+                  not as a note on the finished work an hour later. */}
+              {tooBigToRate && (
+                <span className="mt-1 block text-mcz-ember">
+                  This video is {videoMb.toFixed(0)}MB and the rater watches up to{" "}
+                  {craftMax}MB in one request. {spec.craft.max_mb_why
+                    || "It isn't your tier's upload limit — the post keeps the full video."}
+                  {" "}Post it anyway; only the rating needs a shorter cut.
+                </span>
+              )}
             </span>
           </label>
         )}
