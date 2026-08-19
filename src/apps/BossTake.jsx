@@ -51,9 +51,15 @@ function Cost({ price, trial }) {
     return <span className="text-[11px] text-emerald-300">Free — no account, nothing to pay</span>;
   }
   if (price.free_today) {
+    // NOT "+1 🏷️". Nothing arrives — a take SPENDS one of the day's free
+    // prompts. A green plus on something that costs you is the paradigm
+    // pointing the wrong way, and it sat under the send button saying the
+    // opposite of what the button does.
     return (
       <span className="text-[11px] text-emerald-300">
-        +1 🏷️ free today · {price.daily_remaining} left
+        Free today <span className="text-white/45">
+          — uses 1 of the {price.daily_remaining} 🏷️ you have left
+        </span>
       </span>
     );
   }
@@ -332,6 +338,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     } finally { setBusy(false); }
   }
 
+  // Measured in PostZ and carried over. Zero means nobody measured it, which
+  // is not the same as "it fits" — the send is allowed and the server still
+  // holds the wall.
+  const postTooBig = !!(fromPost?.take_bytes && fromPost?.max_bytes
+                        && fromPost.take_bytes > fromPost.max_bytes);
+
   /** Put the post back down. The recorder is free again, and the post is
    *  still in PostZ — nothing was consumed by looking at it here. */
   function dropPost() {
@@ -418,13 +430,25 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             : fromPost.audio_url
               ? <audio src={fromPost.audio_url} controls className="w-full" />
               : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-              {busy ? "Coaching this post…" : "Send this post to the coach"}
-            </button>
-            <Cost price={price} trial={trial} />
-          </div>
+          {/* The ceiling, before the button that would hit it. The row in PostZ
+              says this too — this is the second line of defence, for a card
+              rendered before anyone measured the file. */}
+          {postTooBig ? (
+            <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
+              This {fromPost.coach_kind || "take"} is {mb(fromPost.take_bytes)}MB and the coach reads
+              one in a single request that caps out near {mb(fromPost.max_bytes)}MB. It isn't your
+              tier's upload limit — the post keeps the full track. Record or attach just the section
+              you want scored, below.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
+                {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
+                {busy ? "Coaching this post…" : "Send this post to the coach"}
+              </button>
+              <Cost price={price} trial={trial} />
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3 text-[11px]">
             <button className="re-link" onClick={dropPost}>
               Record a fresh take instead
@@ -440,7 +464,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         </div>
       )}
 
-      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !recording ? "opacity-60" : ""}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postTooBig && !recording ? "opacity-60" : ""}`}>
         {!recording ? (
           <>
             <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
