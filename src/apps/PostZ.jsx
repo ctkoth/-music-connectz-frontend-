@@ -529,6 +529,10 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       // the row here is the quote, the button there is the commitment.
       await handOff(d.app, d.target, {
         kind: "post", action: d.action, coach_kind: d.coach_kind || "",
+        // The coach's ceiling travels with the post, so the destination can
+        // hold the same line the row just held rather than letting the button
+        // find it out.
+        take_bytes: d.take_bytes || 0, max_bytes: d.max_bytes || 0,
         ...(d.carry || {}),
       });
       onFlash(`"${post.title}" is waiting in ${d.app.toUpperCase()}.`);
