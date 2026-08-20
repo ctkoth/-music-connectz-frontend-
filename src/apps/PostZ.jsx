@@ -19,8 +19,8 @@
 // as rateable the moment it landed.
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertCircle, Check as CheckIcon, Disc3, Flame, Handshake, Loader2, Lock, RefreshCw,
-  Send, Share2, ThumbsDown, ThumbsUp,
+  AlertCircle, Check as CheckIcon, Disc3, Flame, GraduationCap, Handshake, Loader2, Lock,
+  RefreshCw, Send, Share2, ThumbsDown, ThumbsUp,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -31,7 +31,7 @@ import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
-import { ENERGY } from "../resources.js";
+import { ENERGY, PROMPTZ } from "../resources.js";
 import { goToSpot } from "../goto.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
@@ -283,11 +283,184 @@ export default function PostZ() {
   );
 }
 
+
+// The InstrumentZ tabs that actually exist. The server can score a post on any
+// instrument profile, but only these two are mounted, so only these two are
+// somewhere to send a member. Keep in step with App.jsx's appKey= tabs.
+const COACH_TABS = ["singz", "rapz"];
+
+/** The coach's read on a post — its own line, never the members' rating.
+ *
+ * `rating` is the median of what MEMBERS scored this. This is one model's
+ * opinion of the recording. They are shown apart and labelled apart on
+ * purpose: a machine's number rendered as a human count is the failure
+ * CLAUDE.md's third rule names, and the first member who compared the two
+ * would be right to stop trusting both.
+ */
+function CoachRead({ read, rating }) {
+  if (rating == null) return null;
+  const labels = read?.scores_labels || {};
+  return (
+    <div className="mt-3 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3">
+      <div className="flex items-center gap-2">
+        <GraduationCap size={14} className="text-mcz-cyan" />
+        <span className="re-label !text-mcz-cyan">
+          {read?.label || "Coach"}&rsquo;s read
+        </span>
+        <span className="ml-auto text-sm font-bold text-mcz-cyan">
+          {rating}<span className="text-white/35">/10</span>
+        </span>
+      </div>
+      {/* Said out loud, every time. The coach is one listener, not the room. */}
+      <p className="mt-1 text-[10px] text-white/35">
+        One model listening to the recording — not a member rating, and it never counts toward one.
+      </p>
+      {read?.verdict && <p className="mt-2 text-[13px] text-white/80">{read.verdict}</p>}
+      {!!Object.keys(labels).length && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {Object.entries(labels).map(([key, label]) => (
+            read?.scores?.[key] != null && (
+              <span key={key} className="pill !px-2 !py-0.5 !text-[10px]">
+                {label} {read.scores[key]}/10
+              </span>
+            )
+          ))}
+        </div>
+      )}
+      {!!read?.strengths?.length && (
+        <div className="mt-2">
+          <div className="re-label !text-emerald-300">What worked</div>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[12px] text-white/70">
+            {read.strengths.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </div>
+      )}
+      {!!read?.fixes?.length && (
+        <div className="mt-2">
+          <div className="re-label !text-mcz-ember">Fix next</div>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[12px] text-white/70">
+            {read.fixes.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </div>
+      )}
+      {read?.next_drill && (
+        <p className="mt-2 text-[12px] text-white/60">
+          <span className="text-white/40">Drill:</span> {read.next_drill}
+        </p>
+      )}
+      {read?.caveat && <p className="mt-2 text-[10px] text-white/30">{read.caveat}</p>}
+      {/* Nothing is a dead end: the read is a coaching result, and the place to
+          act on it is the app that trains the thing it scored. Only offered for
+          an app that is actually mounted — a link to a tab that doesn't exist
+          is worse than no link, because it looks like somewhere to go. */}
+      {COACH_TABS.includes(read?.app_key) && (
+        <button onClick={() => goToSpot(read.app_key, "bosstake-mic")}
+                className="mt-2 text-[11px] text-mcz-cyan hover:underline">
+          Run the drill in {read.label} &rarr;
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** "Send it to the coach" on your own post, with the price ON the button.
+ *
+ * The GET answers before anything is spent — what it costs, whether today's
+ * free prompt covers it, and why it can't run at all when it can't. A price
+ * discovered by paying it is not a price, it's a bill.
+ */
+function CoachButton({ post, onRead, onFlash }) {
+  const [price, setPrice] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open || price) return;
+    api(`/api/economy/postz/${post.id}/coach/`)
+      .then(setPrice)
+      .catch((e) => onFlash(e.message || "Couldn't read what that costs."));
+  }, [open, price, post.id, onFlash]);
+
+  async function send() {
+    setBusy(true);
+    try {
+      const read = await api(`/api/economy/postz/${post.id}/coach/`, { method: "POST", body: {} });
+      onRead(read);
+      onFlash(read.cost_cents
+        ? `Coach scored it ${read.score}/10 · −${read.cost_cents} ${PROMPTZ} spent`
+        : `Coach scored it ${read.score}/10 · today's free prompt covered it`);
+      setOpen(false);
+    } catch (e) {
+      // The real error, always. A catch that answers "done" on failure is the
+      // worst bug class in this app and has shipped twice.
+      onFlash(e.message || "The coach couldn't read that one.");
+    } finally { setBusy(false); }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+              className="flex items-center gap-1 text-white/40 hover:text-mcz-cyan"
+              title="Have the coach listen to this post and score it">
+        <GraduationCap size={13} /> {post.coach_rating != null ? "Coach it again" : "Coach it"}
+      </button>
+    );
+  }
+  return (
+    <div className="w-full space-y-2 rounded-lg border border-mcz-cyan/25 bg-black/20 p-3">
+      <div className="flex items-center gap-2">
+        <GraduationCap size={14} className="text-mcz-cyan" />
+        <span className="re-label !text-mcz-cyan">
+          Send it to the {price?.coach || "coach"}
+        </span>
+        <button onClick={() => setOpen(false)} className="ml-auto text-[11px] text-white/35 hover:text-white">
+          Cancel
+        </button>
+      </div>
+      {price?.blocked_because ? (
+        <p className="flex items-start gap-1.5 text-[12px] text-mcz-ember">
+          <AlertCircle size={13} className="mt-0.5 shrink-0" /> {price.blocked_because}.
+        </p>
+      ) : (
+        <>
+          <p className="text-[11px] text-white/45">
+            The coach listens to the recording and scores it on{" "}
+            {Object.values(price?.scores || {}).join(", ") || "its dimensions"}.
+          </p>
+          <button onClick={send} disabled={busy || !price?.allowed}
+                  className="neon-btn-primary w-full !py-2 text-xs disabled:opacity-40">
+            {busy
+              ? <span className="flex items-center justify-center gap-2"><Loader2 size={13} className="animate-spin" /> Listening…</span>
+              : "Send it to the coach"}
+          </button>
+          {/* The cost goes ON the button, not in the result. */}
+          {price && (price.free_today ? (
+            <p className="text-[11px] text-emerald-300">
+              +1 {PROMPTZ} free today · {price.daily_remaining} left
+            </p>
+          ) : (
+            <p className="text-[11px] text-mcz-ember">
+              &minus;{price.cost_cents} {PROMPTZ}{" "}
+              <span className="text-white/35">from your balance — no free prompts left today</span>
+            </p>
+          ))}
+          <p className="text-[11px] text-white/35">
+            A post the coach can&rsquo;t read isn&rsquo;t charged.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function PostCard({ post, now, charLimit, onFlash }) {
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
   const [shared, setShared] = useState(false);
+  // A read just taken, overlaying what arrived with the feed — so the score
+  // appears where the member pressed rather than after the next refresh.
+  const [coach, setCoach] = useState(null);
   const [skipped, setSkipped] = useState(false);
   const draft = useRef("");
   const item = `post:${post.id}`;
@@ -433,7 +606,18 @@ function PostCard({ post, now, charLimit, onFlash }) {
         );
       })()}
 
-      <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
+      {/* The coach's read, when there is one. Under the media it scored, and
+          nowhere near the members' median in the header. */}
+      <CoachRead read={coach || post.coach} rating={coach?.score ?? post.coach_rating} />
+      {/* Why there ISN'T one, when the coach was asked and couldn't answer. An
+          unexplained blank reads as a bad score. */}
+      {post.mine && !post.coach_rating && post.coach_note && !coach && (
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] text-white/35">
+          <AlertCircle size={12} className="mt-0.5 shrink-0" /> {post.coach_note}
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}
                 className={`flex items-center gap-1 ${social?.my === 1 ? "text-emerald-300" : "text-white/40 hover:text-white"}`}>
           <ThumbsUp size={13} /> {social?.up ?? 0}
@@ -459,6 +643,11 @@ function PostCard({ post, now, charLimit, onFlash }) {
                   title="Fill a release from this post — the song, video, cover and lyrics are already here">
             <Disc3 size={13} /> Distribute
           </button>
+        )}
+        {/* Only on your own post, and only when there's something to hear. A
+            Coach button on a picture is a button that can't do what it says. */}
+        {post.mine && (post.media?.audio || post.media?.video) && (
+          <CoachButton post={post} onRead={setCoach} onFlash={onFlash} />
         )}
         {post.collab_count > 0 && (
           <button onClick={() => goToSpot("collabz", "")}
