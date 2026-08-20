@@ -114,6 +114,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
   const [fromPost, setFromPost] = useState(null);
+  // The handed-over recording failed to load. Not the same as "too big" — the
+  // file is gone, and the send button must not be the thing that discovers it.
+  const [takeGone, setTakeGone] = useState(false);
   const [blob, setBlob] = useState(null);
   // Video takes are scored on delivery and breath as well as sound, so the
   // preview has to be a <video> or the member can't check what they sent.
@@ -155,6 +158,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     return onHandoff(appKey, (h) => {
       if (h?.kind !== "post" || !h.post_id) return;
       setFromPost(h);
+      setTakeGone(false);
       setResult(null);
       setMsg("");
       setStopNote("");
@@ -204,7 +208,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     setBlob(b);
     // A fresh take replaces the handed-over post. Both loaded at once would
     // leave the Send button ambiguous about which one it is spending on.
-    setFromPost(null);
+    setFromPost(null); setTakeGone(false);
     setIsVideo(video || (b.type || "").startsWith("video/"));
     setTakeName(name || b.name || (video ? "take-video.webm" : "take.webm"));
     setUrl(URL.createObjectURL(b));
@@ -343,11 +347,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // holds the wall.
   const postTooBig = !!(fromPost?.take_bytes && fromPost?.max_bytes
                         && fromPost.take_bytes > fromPost.max_bytes);
+  // Either way the post can't be sent, so the recorder below is the way out
+  // and must not look like the dimmed path.
+  const postUnsendable = postTooBig || takeGone;
 
   /** Put the post back down. The recorder is free again, and the post is
    *  still in PostZ — nothing was consumed by looking at it here. */
   function dropPost() {
-    setFromPost(null); setResult(null); setMsg("");
+    setFromPost(null); setTakeGone(false); setResult(null); setMsg("");
   }
 
   const mmss = mmssOf(secs);
@@ -425,15 +432,27 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
+          {/* The player is the first thing that knows whether the recording is
+              actually there. A take that 404s shows 0:00 / 0:00 and says
+              nothing — and the send button then spends a press to find out.
+              `onError` is that answer, for free, before the button. */}
           {fromPost.coach_kind === "video" && fromPost.video_url
-            ? <video src={fromPost.video_url} controls playsInline className="w-full rounded-lg" />
+            ? <video src={fromPost.video_url} controls playsInline className="w-full rounded-lg"
+                     onError={() => setTakeGone(true)} />
             : fromPost.audio_url
-              ? <audio src={fromPost.audio_url} controls className="w-full" />
+              ? <audio src={fromPost.audio_url} controls className="w-full"
+                       onError={() => setTakeGone(true)} />
               : null}
           {/* The ceiling, before the button that would hit it. The row in PostZ
               says this too — this is the second line of defence, for a card
               rendered before anyone measured the file. */}
-          {postTooBig ? (
+          {takeGone ? (
+            <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
+              This recording won't load — it isn't on the server any more, so there's nothing
+              for the coach to listen to. Nothing was charged. Record or attach the take below
+              and it'll be scored.
+            </p>
+          ) : postTooBig ? (
             <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
               This {fromPost.coach_kind || "take"} is {mb(fromPost.take_bytes)}MB and the coach reads
               one in a single request that caps out near {mb(fromPost.max_bytes)}MB. It isn't your
@@ -464,7 +483,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         </div>
       )}
 
-      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postTooBig && !recording ? "opacity-60" : ""}`}>
+      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         {!recording ? (
           <>
             <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
