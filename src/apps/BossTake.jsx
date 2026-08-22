@@ -195,9 +195,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     // instead of the size. Say it before the upload, not after.
     const capMb = price?.max_mb;
     if (capMb && b.size > capMb * 1024 * 1024) {
-      // The server says why, because this is NOT the member's tier limit and
-      // reading it as one is how a StatZ member concludes their plan is being
-      // ignored. Fall back to the old wording if an older server sends none.
+      // The server says WHOSE limit this is, because it can now be either: the
+      // coach's own judgement about what one take is, or this member's tier
+      // upload limit when that binds first. Reading a StatZ member's refusal as
+      // their tier's is how somebody concludes the plan they paid for is being
+      // ignored — and telling a Free member it ISN'T their tier when it is, is
+      // the same lie pointing the other way. Fall back only for an old server.
       return setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
         + (price?.max_mb_why
            || "Trim it to the section you want scored, or record video at a shorter length."));
@@ -377,6 +380,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
           the recorder stops itself before the take gets too big to send.
         </p>
+        {/* When the member's own tier is what's holding the ceiling down, say
+            what a tier up would actually buy here — the same "frequency, not
+            access" upsell the allowance ladder makes, about size instead. */}
+        {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
+          <p className="mt-1 text-[11px] text-white/35">
+            {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
+            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> — a tier up gets you there.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
