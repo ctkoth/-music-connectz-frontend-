@@ -148,7 +148,13 @@
       <p>
         <a href="/privacy.html">Privacy Policy</a> ·
         <a href="/terms.html">TermZ</a> ·
-        <a href="/partners.html">Partners</a>
+        <a href="/partners.html">Partners</a> ·
+        <!-- The same account the Organization graph claims in sameAs. A
+             crawler reading a structured claim and then finding the link that
+             backs it is a stronger signal than the claim on its own — and it
+             is the only way a JavaScript-off visitor can find us anywhere
+             else, which is the reason this block exists at all. -->
+        <a href="https://www.instagram.com/musicconnectz/" rel="me noopener">Instagram</a>
       </p>
     </noscript>
     <script type="module" src="/src/main.jsx"></script>
