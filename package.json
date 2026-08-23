@@ -11,7 +11,8 @@
     "cap:add:ios": "cap add ios",
     "cap:sync": "npm run build && cap sync",
     "android:open": "npm run cap:sync && cap open android",
-    "ios:open": "npm run cap:sync && cap open ios"
+    "ios:open": "npm run cap:sync && cap open ios",
+    "test": "node --test seo/meta.test.mjs"
   },
   "dependencies": {
     "@capacitor-community/admob": "^6.2.0",
@@ -33,5 +34,5 @@
   },
   "author": "Corey Knap (Bi K-Oth) <ctkoth>",
   "license": "UNLICENSED",
-  "description": "Music ConnectZ — gamified music creator platform by Corey Knap"
+  "description": "Music ConnectZ \u2014 gamified music creator platform by Corey Knap"
 }
