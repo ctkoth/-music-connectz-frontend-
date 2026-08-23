@@ -2,26 +2,152 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon-v5.png" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ─── What a crawler actually gets ───────────────────────────────────
+         This file IS the site as far as anything that doesn't run JavaScript
+         is concerned: the app renders into #root at runtime, so a fetch of
+         any route returns this markup and nothing else. Google executes JS
+         and eventually sees the app; most AI crawlers (GPTBot, ClaudeBot,
+         PerplexityBot) do not, and neither do link unfurlers. So everything
+         below has to say what this place is without the app's help. -->
+    <title>Music ConnectZ — AI Vocal &amp; Rap Coach, Collabs, Paid Gigs</title>
+    <meta
+      name="description"
+      content="Train your voice or your bars with an AI coach that listens to the actual take and scores pitch, timing and delivery. Post tracks, collaborate, get paid. Free scored take, no account needed."
+    />
+    <link rel="canonical" href="https://musicconnectz.net/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+
     <meta name="author" content="Corey Knap" />
     <meta name="copyright" content="© 2026 Corey Knap. All rights reserved." />
     <meta name="theme-color" content="#a855f7" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Music ConnectZ" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" type="image/png" href="/favicon-v5.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Link previews: every share of this domain used to unfurl as a bare
+         URL with no image, because there were no OG tags at all. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Music ConnectZ" />
+    <meta property="og:url" content="https://musicconnectz.net/" />
+    <meta property="og:title" content="Music ConnectZ — Connect Through Music" />
+    <meta
+      property="og:description"
+      content="An AI coach that listens to your actual take and scores it. Post tracks, collaborate, get paid. Free scored take, no account needed."
+    />
+    <meta property="og:image" content="https://musicconnectz.net/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Music ConnectZ — Connect Through Music" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Music ConnectZ — Connect Through Music" />
+    <meta
+      name="twitter:description"
+      content="An AI coach that listens to your actual take and scores it. Post tracks, collaborate, get paid. Free scored take, no account needed."
+    />
+    <meta name="twitter:image" content="https://musicconnectz.net/og-card.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap"
       rel="stylesheet"
     />
-    <title>Music ConnectZ</title>
+
+    <!-- Structured data. This is the part an answer engine reads when it is
+         deciding what to say about this place, and it is the only structured
+         description of the product that exists outside the app. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://musicconnectz.net/#org",
+            "name": "Music ConnectZ",
+            "url": "https://musicconnectz.net/",
+            "logo": "https://musicconnectz.net/logo.png",
+            "slogan": "Connect Through Music",
+            "founder": { "@type": "Person", "name": "Corey Knap" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://musicconnectz.net/#site",
+            "url": "https://musicconnectz.net/",
+            "name": "Music ConnectZ",
+            "publisher": { "@id": "https://musicconnectz.net/#org" },
+            "inLanguage": "en"
+          },
+          {
+            "@type": "WebApplication",
+            "name": "Music ConnectZ",
+            "url": "https://musicconnectz.net/",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web, Android",
+            "publisher": { "@id": "https://musicconnectz.net/#org" },
+            "description": "A gamified platform for musicians: AI vocal and rap coaching scored from the recording itself, track posting, collaboration deals, playlists and paid work.",
+            "featureList": [
+              "AI vocal coaching scored on pitch, tone, breath, range and agility",
+              "AI rap coaching scored on flow, timing, breath, clarity and delivery",
+              "Post tracks, videos, covers and lyrics",
+              "Collaboration deals with escrow and credited contributors",
+              "Playlists across Music ConnectZ and outside distributors",
+              "Lessons, battles and paid creative work"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "Free tier with a daily allowance of AI coaching prompts."
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Not a trick, and not keywords: this is what someone with JavaScript
+         off actually gets, and it should be true and useful to them. It is
+         also what a non-rendering crawler reads, which is why it says the
+         same things the app says rather than a different, better story. -->
+    <noscript>
+      <h1>Music ConnectZ — Connect Through Music</h1>
+      <p>
+        Music ConnectZ is a platform for musicians. An AI coach listens to the
+        take you actually recorded and scores it — pitch, tone, breath, range
+        and agility for singing; flow, timing, breath, clarity and delivery for
+        rap — then tells you what worked, what to fix, and one drill to run
+        before the next take.
+      </p>
+      <p>
+        Around that: post your tracks, videos, covers and lyrics; start
+        collaboration deals that credit everyone who worked on the record;
+        build playlists across Music ConnectZ and outside distributors; book
+        lessons; and get paid for creative work.
+      </p>
+      <p>
+        <strong>You can try the coach without an account.</strong>
+        <a href="/try/singz">Get a free scored singing take</a> or
+        <a href="/try/rapz">a free scored rap take</a> — one per day, no sign-up.
+      </p>
+      <p>
+        Music ConnectZ needs JavaScript to run. Please enable it, or install the
+        Android app.
+      </p>
+      <p>
+        <a href="/privacy.html">Privacy Policy</a> ·
+        <a href="/terms.html">TermZ</a> ·
+        <a href="/partners.html">Partners</a>
+      </p>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Only genuinely public addresses.
+
+  Deliberately NOT listed: /singz, /rapz, /postz and the rest of the tab
+  routes. They are behind RequireAuth, so a crawler is bounced to the login
+  screen — a page that answers a request with somebody else's page is a soft
+  404, and listing it invites the crawler to find that out repeatedly.
+
+  Also not listed, because they cannot be enumerated from a static file:
+  /p/<id> posts, /u/<username> profiles and /pl/<id> playlists. Those are the
+  pages worth indexing most, and they need a per-URL title and description the
+  SPA cannot give them — see the note in the pull request.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://musicconnectz.net/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/try/singz</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/try/rapz</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/try</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/partners.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/privacy.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://musicconnectz.net/terms.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

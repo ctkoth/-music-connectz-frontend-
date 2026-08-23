@@ -1,0 +1,20 @@
+# Music ConnectZ — https://musicconnectz.net/
+#
+# Everything worth reading is open, including to the AI crawlers, because the
+# point of this site is that people find the artists on it. What is closed is
+# the set of paths that are the SAME page as far as a crawler is concerned:
+# the app is a single-page app, so /login, /register and the rest all return
+# the identical HTML shell. Letting those be crawled buys nothing and spends
+# the crawl budget on duplicates of one document.
+
+User-agent: *
+Allow: /
+
+# Auth plumbing — one shell, many addresses, no content of its own.
+Disallow: /login
+Disallow: /register
+Disallow: /forgot
+Disallow: /reset-password
+Disallow: /oauth/callback
+
+Sitemap: https://musicconnectz.net/sitemap.xml
