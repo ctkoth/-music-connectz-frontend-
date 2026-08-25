@@ -3,6 +3,7 @@ import { MapPin, Search, Heart } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { personaName, loadSocial, NATIONALITIES } from "./socialData.js";
+import ReachVerify from "./ReachVerify.jsx";
 
 const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
 
@@ -61,11 +62,20 @@ export default function SocialConnectZ() {
         </div>
       </header>
 
+      {/* Your own sources, before the directory of other people's.
+          This tab was entirely about finding OTHER members; the one thing in it
+          that is about you — the accounts your reach is measured from, and the
+          hourly Energy they pay — had no screen anywhere in the app, even
+          though the API for it was finished. QuestZ's reach milestone lands
+          here (`social-verify`). */}
+      <ReachVerify />
+
+      <h3 className="re-label pt-1">Discover creators</h3>
+
       {/* Filters.
           `social-feed` is another anchor EarnZ has linked to since it shipped
           without it ever existing — "Share another member's post" landed at the
-          top of the tab. QuestZ's reach milestone points here too, because
-          reach is measured from verified social sources. */}
+          top of the tab. */}
       <div className="re-card space-y-3" data-tour="social-feed">
         <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3">
           <Search size={16} className="text-white/40" />

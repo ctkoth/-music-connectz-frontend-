@@ -135,7 +135,16 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
             .join(" "))) ||
       STATUS_MESSAGE[res.status] ||
       `Request failed (${res.status})`;
-    throw new Error(msg);
+    // The message is what a screen shows; the payload is what it can ACT on.
+    // Endpoints send more than `detail` — `hint` on a 502 from the social
+    // verifier says "some platforms block automated checks, use the code
+    // route", which is the only useful thing to tell somebody staring at a
+    // failed check. Flattening every error to a string threw that away, so
+    // the body rides along and callers read it when they have a use for it.
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
   return data;
 }
