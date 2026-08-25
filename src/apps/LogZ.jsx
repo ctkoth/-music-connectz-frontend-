@@ -84,15 +84,17 @@ export default function LogZ() {
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setFilter("")}
           className={`pill text-[11px] ${!filter ? "!border-mcz-cyan/70 !text-white" : ""}`}>Everything</button>
+        {/* OCC's SpinaZ and Energy tabs open LogZ filtered to that resource,
+            so each filter is an anchor by its own key. */}
         {resources.map((r) => (
-          <button key={r.key} onClick={() => setFilter(r.key)}
+          <button key={r.key} onClick={() => setFilter(r.key)} data-tour={`logz-resource-${r.key}`}
             className={`pill text-[11px] ${filter === r.key ? "!border-mcz-cyan/70 !text-white" : ""}`}>
             {r.emoji} {r.label}
           </button>
         ))}
       </div>
 
-      <div className="neon-frame divide-y divide-white/[0.06]">
+      <div className="neon-frame divide-y divide-white/[0.06]" data-tour="logz-entries">
         {entries.length === 0 && (
           <p className="flex items-center gap-2 p-4 text-sm text-white/45">
             <ScrollText size={15} />

@@ -387,13 +387,14 @@ export default function OCC() {
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
 
       {/* Said once, up front. */}
-      <p className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-white/50">
+      <p data-tour="occ-welcome"
+         className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-white/50">
         <AlertTriangle size={13} className="mt-0.5 shrink-0 text-mcz-gold" />
         {spec.execute_note}
       </p>
 
       {/* TaskZ — the spine. Git actions land here too. */}
-      <div className="re-card space-y-3">
+      <div className="re-card space-y-3" data-tour="occ-taskz">
         <div className="re-label">📑 TaskZ</div>
         <div className="flex flex-wrap items-center gap-2">
           <input className="neon-input !w-auto flex-1 !py-2 text-xs" placeholder="What should OCC do?"
@@ -459,11 +460,12 @@ export default function OCC() {
                   up to −{spec.execute.max_cost_per_run} ⚡
                 </span>
               </button>
-              {ran && (
-                <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-white/10 bg-black/40 p-2 font-mono text-[11px] text-white/70">
-                  {ran.stdout || ran.stderr || "(no output)"}
-                </pre>
-              )}
+              {/* The console tab opens here — on the output itself when there
+                  is some, on the editor above it when there isn't. */}
+              <pre data-tour="occ-console"
+                   className="max-h-56 overflow-auto whitespace-pre-wrap rounded border border-white/10 bg-black/40 p-2 font-mono text-[11px] text-white/70">
+                {ran ? (ran.stdout || ran.stderr || "(no output)") : "(nothing run yet)"}
+              </pre>
               {ran && (
                 <p className="text-[10px] text-white/35">
                   exit {ran.exit_code} · {ran.seconds}s ·{" "}
@@ -509,7 +511,9 @@ export default function OCC() {
                     placeholder="What came back"
                     value={draft.description}
                     onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-          <MediaFields value={work} onChange={setWork} label="Attachment" />
+          <div data-tour="occ-filez">
+            <MediaFields value={work} onChange={setWork} label="Attachment" />
+          </div>
           <button className="neon-btn-primary !w-auto px-4" onClick={keepWork}
                   disabled={!canKeep || busy}>
             <Plus size={14} /> Keep it <span className="text-emerald-300">Free</span>
@@ -598,7 +602,7 @@ export default function OCC() {
 
       {/* The two toggles the spec puts front and centre. */}
       {settings && (
-        <div className="re-card space-y-3">
+        <div className="re-card space-y-3" data-tour="occ-settings">
           <div className="re-label">⚙️ Settings</div>
           {asList(spec.toggles).map((t) => (
             <Toggle key={t.key} toggle={t}
@@ -606,7 +610,7 @@ export default function OCC() {
                     allowed={t.key === "automation" ? settings.automation_allowed : settings.suggestionz_allowed}
                     onChange={(v) => setToggle(t.key === "automation" ? "automation" : "suggestionz", v)} />
           ))}
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/35" data-tour="occ-pickconnectz">
             📌 Pick ConnectZ — {settings.pin_limit === null
               ? "pin as many tabs as you like."
               : `Free pins ${settings.pin_limit}; the rest of the footer is filled in for you.`}
@@ -649,9 +653,16 @@ export default function OCC() {
                     them (`builds`) and now says where each one opens
                     (`open_in`). This screen read neither, so twenty-two tabs
                     rendered as a list you could read and not enter. */}
+                {/* The server names the control, not just the app. This used
+                    to build its own anchor from the tab key, and no anchor of
+                    that shape exists anywhere in this repo — so Open → switched
+                    tabs, hunted for three seconds, and left the member at the
+                    top of the destination. Which is the tab switch wearing a
+                    handoff's clothes that goto.js exists to stop.
+                    src/anchors.test.mjs holds both halves of that now. */}
                 {tab.allowed && tab.open_in && (
                   <button className="mt-1 text-[10px] text-mcz-cyan hover:underline"
-                          onClick={() => goToSpot(tab.open_in, `occ:${tab.key}`)}>
+                          onClick={() => goToSpot(tab.open_in, tab.target || "")}>
                     Open →
                   </button>
                 )}

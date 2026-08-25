@@ -67,7 +67,8 @@ export default function SocialConnectZ() {
           top of the tab. QuestZ's reach milestone points here too, because
           reach is measured from verified social sources. */}
       <div className="re-card space-y-3" data-tour="social-feed">
-        <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3">
+        <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3"
+             data-tour="social-search">
           <Search size={16} className="text-white/40" />
           <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, city…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>

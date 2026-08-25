@@ -79,8 +79,13 @@ export default function HabitZ() {
       {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
 
       <div className="flex flex-wrap gap-2">
+        {/* CodeZ, PathZ, MistakeZ and HabitZ are four names for this one
+            screen, so "open CodeZ" has to land on the CodeZ pill — landing on
+            the tab alone drops you on whichever kind was last selected, which
+            is the wrong screen wearing the right title. OCC's tab list points
+            at these anchors by name. */}
         {kinds.map((k) => (
-          <button key={k.key} onClick={() => setKind(k.key)}
+          <button key={k.key} onClick={() => setKind(k.key)} data-tour={`habitz-kind-${k.key}`}
             className={`pill text-[11px] ${kind === k.key ? "!border-mcz-cyan/70 !text-white" : ""}`}>
             {k.emoji} {k.label}{k.count ? ` · ${k.count}` : ""}
           </button>

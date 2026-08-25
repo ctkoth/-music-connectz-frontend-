@@ -325,7 +325,9 @@ function AvatarCard() {
 
   const shown = preview || url;
   return (
-    <div className="neon-frame space-y-3 p-4">
+    // FaceZ in OCC's tab list is this card — faces available to AI images and
+    // video. Its Open -> lands here rather than at the top of ProfileZ.
+    <div className="neon-frame space-y-3 p-4" data-tour="profilez-facez">
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <ImageIcon size={13} className="text-mcz-ember" /> Profile picture
       </p>
