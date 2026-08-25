@@ -36,12 +36,43 @@ its resource emoji.
 - Say whether a **failed** attempt is charged. Usually it should not be.
 - Two-sided rewards show both sides (a referral is `+300 🍥` / `+100 🍥`).
 
+### Getting the quote from the server
+
+Every AI endpoint that charges answers `GET` with what THIS member pays for
+THIS run — cost, whether a free daily prompt covers it, what it falls back to,
+and whether a failed run is charged. Read it and render it; never compute a
+price over here, and never hardcode one (see Conventions).
+
+`BossTake.jsx`'s `Cost` component is the reference. Two fields decide the copy:
+
+- `free_today` — true only where the run actually spends a daily prompt. It is
+  **false** on image, video and translate even when `daily_remaining` is high,
+  because those don't draw on the allowance. Render `daily_remaining` alongside
+  so the member sees "you have prompts left, they don't cover this one" instead
+  of assuming the opposite.
+- `charged_on_failure` — say it either way, and print
+  `charged_on_failure_note`, which is the half that makes it believable. Video
+  is `true`: it's billed when Veo accepts the job, and the generation runs long
+  after the request returns.
+
+`pays_from` (`free_today` / `promptz` / `mixed` / `balance` / `short`) saves the
+client re-deriving which wallet the money leaves. `allowance_ladder` is only
+present where a tier up actually buys more of this — absent means don't upsell.
+
 ### Known violations, not yet fixed
 
-- **BossTake** — "Send it to the coach" spends a prompt with no warning; the
-  cost only appears in the response as `cost_cents`.
-- **AI surfaces generally** (translate, OCC chat, Gemini image/video).
+- **OCC chat** — the prompt is charged with nothing stated first. The `Price`
+  component in `OCC.jsx` is the ⚡ cost of *posting* a work, not the prompt the
+  chat spends, so the screen looks priced and isn't. Waiting on the backend
+  `GET`.
 - **CallZ** — the other member's hourly rate must be visible pre-connect.
+  Nothing connects a call yet, so this is a rule for whoever builds the screen.
+
+### Fixed
+
+- **BossTake** — `Cost` renders the server's quote beside the send button.
+- **Translate / Gemini image / Gemini video** — the endpoints quote themselves
+  now. No surface calls them yet; when one does, it renders the quote.
 
 ---
 
