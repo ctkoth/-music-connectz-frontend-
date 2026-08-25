@@ -547,8 +547,13 @@ export default function ProfileZ() {
 
       <Verify18Card />
 
-      {/* ReferZ — invite links + referred members */}
-      <div className="neon-frame space-y-3 p-4">
+      {/* ReferZ — invite links + referred members.
+          `referral-code` is the anchor EarnZ has been linking to since it
+          shipped — and it never existed, so "Take me there" dropped people at
+          the top of ProfileZ to hunt for the invite box. QuestZ needed the same
+          anchor, so it is one anchor serving both rather than a second name
+          for the same control. */}
+      <div className="neon-frame space-y-3 p-4" data-tour="referral-code">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Gift size={13} className="text-mcz-ember" /> ReferZ
           <span className="ml-auto flex items-center gap-1 text-mcz-pink">
