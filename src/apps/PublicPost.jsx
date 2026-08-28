@@ -73,7 +73,16 @@ export default function PublicPost() {
             <h1 className="font-display text-xl font-extrabold tracking-tight text-white">{post.title}</h1>
           )}
 
-          {post.media_url && (
+          {/* Somebody followed this link to HEAR something. A player that
+              sits at 0:00 and says nothing reads as "this artist posted
+              silence" — the member's name, on a stranger's screen, carrying
+              our failure. So say whose it was. */}
+          {post.take_missing ? (
+            <p className="mt-3 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[13px] leading-relaxed text-mcz-ember">
+              The {post.take_kind || "recording"} on this post isn't on our server
+              any more — that's on Music ConnectZ, not on @{post.author}.
+            </p>
+          ) : post.media_url && (
             post.media_type === "video" ? (
               <video src={post.media_url} controls className="mt-3 w-full rounded-xl" />
             ) : post.media_type === "audio" ? (
