@@ -114,9 +114,21 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
   const [fromPost, setFromPost] = useState(null);
-  // The handed-over recording failed to load. Not the same as "too big" — the
-  // file is gone, and the send button must not be the thing that discovers it.
+  // The SERVER went to storage for the post's take and found nothing. That is
+  // the only thing that justifies taking the send button away, so it is set
+  // from the coach's own 410 and from nothing else.
   const [takeGone, setTakeGone] = useState(false);
+  // The <audio>/<video> below couldn't play the post's recording. This is NOT
+  // evidence the take is gone, and it used to be treated as though it were:
+  // the coach reads the file from storage, never through this player, so an
+  // expired media link, a container the browser can't decode (Chrome records
+  // takes as webm/opus, which Safari won't play at all) or one bad response
+  // would all "prove" a perfectly coachable take was dead and remove the only
+  // button that would have scored it. The footnote under this card said as
+  // much — "the coach reads the take already on the post" — while the card
+  // above it did the opposite. Say the preview failed; let the coach answer
+  // for the file.
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [blob, setBlob] = useState(null);
   // Video takes are scored on delivery and breath as well as sound, so the
   // preview has to be a <video> or the member can't check what they sent.
@@ -159,6 +171,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       if (h?.kind !== "post" || !h.post_id) return;
       setFromPost(h);
       setTakeGone(false);
+      setPreviewFailed(false);
       setResult(null);
       setMsg("");
       setStopNote("");
@@ -211,7 +224,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     setBlob(b);
     // A fresh take replaces the handed-over post. Both loaded at once would
     // leave the Send button ambiguous about which one it is spending on.
-    setFromPost(null); setTakeGone(false);
+    setFromPost(null); setTakeGone(false); setPreviewFailed(false);
     setIsVideo(video || (b.type || "").startsWith("video/"));
     setTakeName(name || b.name || (video ? "take-video.webm" : "take.webm"));
     setUrl(URL.createObjectURL(b));
@@ -341,7 +354,19 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       setResult(out);
       onResult?.(out);
     } catch (e) {
-      setMsg(e.message || "The coach couldn't take that one.");
+      // The one refusal that is about the FILE rather than about the take.
+      // The coach went to storage for the post's recording and there was
+      // nothing there (410 `take_missing`), or the post's media isn't stored
+      // here at all (400 `take_unreadable`) — either way no other send of this
+      // post can succeed, so the post is put down and the recorder becomes the
+      // way forward. Nothing was charged: the coach bills after a result
+      // parses, never before.
+      if (fromPost && (e.data?.take_missing || e.data?.take_unreadable)) {
+        setTakeGone(true);
+        setMsg("");
+      } else {
+        setMsg(e.message || "The coach couldn't take that one.");
+      }
     } finally { setBusy(false); }
   }
 
@@ -357,7 +382,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   /** Put the post back down. The recorder is free again, and the post is
    *  still in PostZ — nothing was consumed by looking at it here. */
   function dropPost() {
-    setFromPost(null); setTakeGone(false); setResult(null); setMsg("");
+    setFromPost(null); setTakeGone(false); setPreviewFailed(false);
+    setResult(null); setMsg("");
   }
 
   const mmss = mmssOf(secs);
@@ -444,25 +470,25 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
-          {/* The player is the first thing that knows whether the recording is
-              actually there. A take that 404s shows 0:00 / 0:00 and says
-              nothing — and the send button then spends a press to find out.
-              `onError` is that answer, for free, before the button. */}
+          {/* The player says whether YOUR BROWSER can play it. It cannot say
+              whether the coach can read it — the coach fetches the file from
+              storage and never touches this element — so `onError` sets a
+              note, not a verdict. */}
           {fromPost.coach_kind === "video" && fromPost.video_url
             ? <video src={fromPost.video_url} controls playsInline className="w-full rounded-lg"
-                     onError={() => setTakeGone(true)} />
+                     onError={() => setPreviewFailed(true)} />
             : fromPost.audio_url
               ? <audio src={fromPost.audio_url} controls className="w-full"
-                       onError={() => setTakeGone(true)} />
+                       onError={() => setPreviewFailed(true)} />
               : null}
           {/* The ceiling, before the button that would hit it. The row in PostZ
               says this too — this is the second line of defence, for a card
               rendered before anyone measured the file. */}
           {takeGone ? (
             <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
-              This recording won't load — it isn't on the server any more, so there's nothing
-              for the coach to listen to. Nothing was charged. Record or attach the take below
-              and it'll be scored.
+              The coach went looking for this recording and it isn't in storage any more,
+              so there's nothing for it to listen to. Nothing was charged. Record or attach
+              the take below and it'll be scored.
             </p>
           ) : postTooBig ? (
             <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
@@ -472,13 +498,26 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               you want scored, below.
             </p>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
-                {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-                {busy ? "Coaching this post…" : "Send this post to the coach"}
-              </button>
-              <Cost price={price} trial={trial} />
-            </div>
+            <>
+              {/* Couldn't play here, but nothing has been asked of the coach
+                  yet. Blue, not red: this is information about the preview,
+                  and the take may well be fine. */}
+              {previewFailed && (
+                <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[11px] leading-relaxed text-white/70">
+                  This preview won't play in your browser — that's the player, not
+                  the take. The coach reads the file from the server rather than
+                  from here, so send it and find out: a take it can't read isn't
+                  charged.
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
+                  {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
+                  {busy ? "Coaching this post…" : "Send this post to the coach"}
+                </button>
+                <Cost price={price} trial={trial} />
+              </div>
+            </>
           )}
           <div className="flex flex-wrap items-center gap-3 text-[11px]">
             <button className="re-link" onClick={dropPost}>

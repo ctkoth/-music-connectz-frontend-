@@ -135,7 +135,15 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
             .join(" "))) ||
       STATUS_MESSAGE[res.status] ||
       `Request failed (${res.status})`;
-    throw new Error(msg);
+    // The message is what a member reads. The status and the body are what a
+    // caller needs to tell one refusal from another — a component that can
+    // only see `.message` has to match on prose to find out what happened,
+    // which is how the Boss Take ended up unable to see the server's own
+    // "this take is no longer in storage" and had to guess it from a player.
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data || null;
+    throw err;
   }
   return data;
 }
