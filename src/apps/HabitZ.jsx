@@ -15,7 +15,8 @@ import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
 
 const OPEN_LABEL = { singz: "SingZ", rapz: "RapZ", postz: "PostZ", profilez: "ProfileZ",
-                     social: "Social ConnectZ", messagez: "MessageZ", logz: "LogZ" };
+                     social: "Social ConnectZ", messagez: "MessageZ", logz: "LogZ",
+                     journalz: "JournalZ" };
 
 export default function HabitZ() {
   const [data, setData] = useState(null);
@@ -119,7 +120,7 @@ export default function HabitZ() {
             </button>
           </div>
 
-          <div className="neon-frame divide-y divide-white/[0.06]">
+          <div className="neon-frame divide-y divide-white/[0.06]" data-tour="habitz-list">
             {rows.length === 0 && (
               <p className="p-4 text-sm text-white/45">
                 Nothing noticed yet {busy ? "…" : "— it needs a few repeats before anything shows."}

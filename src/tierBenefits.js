@@ -85,6 +85,16 @@ export const APP_BENEFITS = [
     statz: "Auto-schedule, PersonaZ automation that builds tasks from your RapZ/SingZ/BattleZ/LabelZ activity, AI breakdown of big goals, smart priority scoring, and the analytics dashboard.",
   },
   {
+    app: "JournalZ", icon: "journalz.png",
+    // No numbers in this copy on purpose. The per-tier room comes from the
+    // server (`/api/economy/journalz/cost/` → `limits`) and JournalZ prints it
+    // beside the control it applies to, which is where a cap belongs. Retyping
+    // the figures here is exactly how "20 free prompts" reached nine places.
+    free: "The diary itself, forever — write every day, search every word, keep it private, and tag people without telling them anything. Your words are yours at every tier, and the account export always includes them.",
+    premium: "On This Day — the same date in every year you've kept — and the whole journal out as one file. Plus the room a real habit needs: more entries a day, more tags, more people and more attachments on one.",
+    statz: "No character limit on an entry, the most room of any tier, and the export whenever you want it.",
+  },
+  {
     app: "ProfileZ", icon: "personaz.png",
     free: "Every PersonaZ, every skill, every metric. Your identity is never the paywall.",
     premium: "Alternate PersonaZ artwork, and the dock pins to match.",
