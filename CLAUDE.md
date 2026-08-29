@@ -79,6 +79,34 @@ When adding a screen, ask what a member would want to DO with each row, and
 give them the link. A read-only surface is usually an unfinished one.
 
 
+## KeyConnectZ voice: what a tier may be sold
+
+The keyboard already had the rule written down — **the wallpaper is Premium
+because it is decoration, and translate is free because being understood is not
+a luxury.** Voice lands on the capability side of that line twice over, so
+neither half is gated by tier:
+
+- **Read aloud** is the second half of translate. Giving a Free member the
+  Portuguese and charging them to hear how to *say* it sells half a capability
+  and teaches them the free half was bait.
+- **Speech input** is how you type when typing is the hard part. The members
+  who need it most are the least likely to be on the top tier.
+
+What a tier buys is **how many** — clips a day for listening, characters a day
+for the server voice — laddered like BossTake's, published by `GET
+/api/economy/keyz/` before either button is pressed.
+
+**Read-aloud goes to the device first, always.** `speechSynthesis` costs
+nothing, works offline and is unlimited, so `voice.js` asks whether the handset
+has a voice for that language and only falls back to the server when it does
+not. That gap is Yorùbá, Igbo, Hausa and Amharic before it is anything else —
+which is why the server voice is not sold by tier either. A gate there would
+mean English speakers hear their translation free while Yorùbá speakers pay.
+
+`voicesReady()` exists because `getVoices()` is empty on the first call in
+Chrome and fills in later — without the wait, "your phone can't speak Spanish"
+gets said about a phone that can.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via
