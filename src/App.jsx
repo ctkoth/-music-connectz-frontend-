@@ -272,6 +272,27 @@ const TABS = [
   { key: "rapz", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+  // guitarz/bassz/keyz/drumz/violinz score profiles have lived in
+  // apps/economy/instruments.py since it was written — dimensions, caveat,
+  // prompt_for() all tested — with no route to reach them until
+  // INSTRUMENT_APP_KEYS grew from ["singz", "rapz"] to all seven. Same
+  // one-line InstrumentZ pattern as SingZ/RapZ; the coach was never the
+  // missing piece, the tab was.
+  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#22d3ee"
+        tagline="Guitar training — timing, tone and technique scored on every take, Boss Mode included." /> },
+  { key: "bassz", label: "BassZ", icon: "bassz.png",
+    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#a78bfa"
+        tagline="Bass training — timing, tone and note length scored on every take, Boss Mode included." /> },
+  { key: "keyz", label: "KeyZ", icon: "keyz.png",
+    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#34d399"
+        tagline="Keys training — timing, tone and voicing scored on every take, Boss Mode included." /> },
+  { key: "drumz", label: "DrumZ", icon: "drumz.png",
+    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#f87171"
+        tagline="Drum training — groove, timing and fills scored on every take, Boss Mode included." /> },
+  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#93c5fd"
+        tagline="Strings training — intonation, bowing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -364,6 +385,11 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  guitarz: "🎸 GuitarZ — guitar training: timing, tone and technique scored on every take, Boss Mode included.",
+  bassz: "🎸 BassZ — bass training: timing, tone and note length scored on every take, Boss Mode included.",
+  keyz: "🎹 KeyZ — keys training: timing, tone and voicing scored on every take, Boss Mode included.",
+  drumz: "🥁 DrumZ — drum training: groove, timing and fills scored on every take, Boss Mode included.",
+  violinz: "🎻 ViolinZ — strings training: intonation, bowing and vibrato scored on every take, Boss Mode included.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",

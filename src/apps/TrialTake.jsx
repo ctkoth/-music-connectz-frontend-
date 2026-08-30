@@ -12,7 +12,14 @@ import { Link, useParams } from "react-router-dom";
 import BossTake from "./BossTake.jsx";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
-const APPS = { singz: "SingZ", rapz: "RapZ" };
+// Every key TrialCoachView is actually mounted for (music_connectz/urls.py
+// INSTRUMENT_APP_KEYS) — a key missing here silently served a SingZ trial
+// under a GuitarZ link, the same failure the tab bar had before it grew from
+// two instruments to seven.
+const APPS = {
+  singz: "SingZ", rapz: "RapZ", guitarz: "GuitarZ", bassz: "BassZ",
+  keyz: "KeyZ", drumz: "DrumZ", violinz: "ViolinZ",
+};
 
 export function storedTrialToken() {
   try {
