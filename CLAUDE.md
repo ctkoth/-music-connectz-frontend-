@@ -79,6 +79,24 @@ When adding a screen, ask what a member would want to DO with each row, and
 give them the link. A read-only surface is usually an unfinished one.
 
 
+## A tab and a route have to be added together
+
+`<InstrumentZ appKey="…">` is fully generic — SingZ and RapZ are one-liner
+`TABS` entries that pass it a key, an icon, an accent and a tagline, and the
+coach/SkillZ tree it renders comes entirely from what the server has mounted
+for that key. That genericity cuts both ways: guitarz, bassz, keyz, drumz and
+violinz had scored profiles and a tested coach on the backend for a while
+with no `TABS` entry at all, because the backend's `INSTRUMENT_APP_KEYS` list
+(the thing that actually mounts `/api/<key>/coach/`) held only `singz` and
+`rapz`. Extending one without the other is either a 404 behind a tab, or a
+tab-less coach nobody can reach — check `INSTRUMENT_APP_KEYS` in the
+backend's `music_connectz/urls.py` before wiring either end.
+
+The same list exists a second time in `TrialTake.jsx`'s `APPS` map, for the
+no-account door — `/try/<appKey>` silently falls back to a SingZ trial for
+any key not in it, which is a worse failure than a 404 because it looks like
+it worked. Both maps move together.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -9,37 +9,54 @@ import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
 import ForgotPassword from "./auth/ForgotPassword.jsx";
 import ResetPassword from "./auth/ResetPassword.jsx";
-import MimeZ from "./apps/MimeZ.jsx";
-import DirectZ from "./apps/DirectZ.jsx";
-import LessonZ from "./apps/LessonZ.jsx";
-import InstrumentZ from "./apps/InstrumentZ.jsx";
-import MessageZ from "./apps/MessageZ.jsx";
-import ProfileZ from "./apps/ProfileZ.jsx";
-import GroupZ from "./apps/GroupZ.jsx";
-import CollabZ from "./apps/CollabZ.jsx";
-import BattleZ from "./apps/BattleZ.jsx";
-import LabelZ from "./apps/LabelZ.jsx";
-import BugZ from "./apps/BugZ.jsx";
-import PostZ from "./apps/PostZ.jsx";
-import KeyConnectZ from "./apps/KeyConnectZ.jsx";
-import OCC from "./apps/OCC.jsx";
-import SocialConnectZ from "./apps/SocialConnectZ.jsx";
-import SpecZ from "./apps/SpecZ.jsx";
-import MembershipZ from "./apps/MembershipZ.jsx";
-import AdZ from "./apps/AdZ.jsx";
-import OfferZ from "./apps/OfferZ.jsx";
-import OnboardZ from "./apps/OnboardZ.jsx";
+// Every one of these is a TABS entry, and only ONE tab is ever on screen at
+// once — {active?.el} below is the sole place any of them render. Eagerly
+// importing all of them meant a member who only ever opens PostZ and
+// OnboardZ still downloaded and parsed BattleZ, LabelZ, OCC, MembershipZ and
+// eighteen others before the app was interactive at all; the production
+// build warned about it (a single 700KB+ JS chunk). `lazy()` defers each
+// one to the first time its tab is actually opened — the Suspense boundary
+// around {active?.el} is the only other piece this needs, since ALL 29
+// per-tab Routes funnel through Home() reading the URL slug, never through
+// a route that renders t.el directly.
+//
+// NOT lazy: Login/Register/ForgotPassword/ResetPassword (the first thing an
+// unauthenticated visitor sees — lazy-loading the login page adds a network
+// round trip to that, which is a regression, not a win) and the public
+// share-link pages (PublicPost/PublicProfile/PublicPlaylist/TrialTake — each
+// is the ONLY thing its route ever renders, so there is no unused-code cost
+// to eager-load there the way there is for a 29-way tab switch).
+const MimeZ = lazy(() => import("./apps/MimeZ.jsx"));
+const DirectZ = lazy(() => import("./apps/DirectZ.jsx"));
+const LessonZ = lazy(() => import("./apps/LessonZ.jsx"));
+const InstrumentZ = lazy(() => import("./apps/InstrumentZ.jsx"));
+const MessageZ = lazy(() => import("./apps/MessageZ.jsx"));
+const ProfileZ = lazy(() => import("./apps/ProfileZ.jsx"));
+const GroupZ = lazy(() => import("./apps/GroupZ.jsx"));
+const CollabZ = lazy(() => import("./apps/CollabZ.jsx"));
+const BattleZ = lazy(() => import("./apps/BattleZ.jsx"));
+const LabelZ = lazy(() => import("./apps/LabelZ.jsx"));
+const BugZ = lazy(() => import("./apps/BugZ.jsx"));
+const PostZ = lazy(() => import("./apps/PostZ.jsx"));
+const KeyConnectZ = lazy(() => import("./apps/KeyConnectZ.jsx"));
+const OCC = lazy(() => import("./apps/OCC.jsx"));
+const SocialConnectZ = lazy(() => import("./apps/SocialConnectZ.jsx"));
+const SpecZ = lazy(() => import("./apps/SpecZ.jsx"));
+const MembershipZ = lazy(() => import("./apps/MembershipZ.jsx"));
+const AdZ = lazy(() => import("./apps/AdZ.jsx"));
+const OfferZ = lazy(() => import("./apps/OfferZ.jsx"));
+const OnboardZ = lazy(() => import("./apps/OnboardZ.jsx"));
 import PublicPost from "./apps/PublicPost.jsx";
 import PublicProfile from "./apps/PublicProfile.jsx";
 import TrialTake from "./apps/TrialTake.jsx";
 import PublicPlaylist from "./apps/PublicPlaylist.jsx";
-import PlaylistZ from "./apps/PlaylistZ.jsx";
+const PlaylistZ = lazy(() => import("./apps/PlaylistZ.jsx"));
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
-import LogZ from "./apps/LogZ.jsx";
-import HabitZ from "./apps/HabitZ.jsx";
+const LogZ = lazy(() => import("./apps/LogZ.jsx"));
+const HabitZ = lazy(() => import("./apps/HabitZ.jsx"));
 import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -272,6 +289,27 @@ const TABS = [
   { key: "rapz", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+  // guitarz/bassz/keyz/drumz/violinz score profiles have lived in
+  // apps/economy/instruments.py since it was written — dimensions, caveat,
+  // prompt_for() all tested — with no route to reach them until
+  // INSTRUMENT_APP_KEYS grew from ["singz", "rapz"] to all seven. Same
+  // one-line InstrumentZ pattern as SingZ/RapZ; the coach was never the
+  // missing piece, the tab was.
+  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#22d3ee"
+        tagline="Guitar training — timing, tone and technique scored on every take, Boss Mode included." /> },
+  { key: "bassz", label: "BassZ", icon: "bassz.png",
+    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#a78bfa"
+        tagline="Bass training — timing, tone and note length scored on every take, Boss Mode included." /> },
+  { key: "keyz", label: "KeyZ", icon: "keyz.png",
+    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#34d399"
+        tagline="Keys training — timing, tone and voicing scored on every take, Boss Mode included." /> },
+  { key: "drumz", label: "DrumZ", icon: "drumz.png",
+    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#f87171"
+        tagline="Drum training — groove, timing and fills scored on every take, Boss Mode included." /> },
+  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#93c5fd"
+        tagline="Strings training — intonation, bowing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -364,6 +402,11 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  guitarz: "🎸 GuitarZ — guitar training: timing, tone and technique scored on every take, Boss Mode included.",
+  bassz: "🎸 BassZ — bass training: timing, tone and note length scored on every take, Boss Mode included.",
+  keyz: "🎹 KeyZ — keys training: timing, tone and voicing scored on every take, Boss Mode included.",
+  drumz: "🥁 DrumZ — drum training: groove, timing and fills scored on every take, Boss Mode included.",
+  violinz: "🎻 ViolinZ — strings training: intonation, bowing and vibrato scored on every take, Boss Mode included.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
@@ -529,7 +572,13 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          {active?.el}
+          <Suspense fallback={
+            <div className="flex items-center gap-2 py-10 text-white/50">
+              <Loader2 className="animate-spin" size={18} /> Loading {active?.label}…
+            </div>
+          }>
+            {active?.el}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
