@@ -40,6 +40,7 @@ import Tour from "./Tour.jsx";
 import MemberProfile from "./apps/MemberProfile.jsx";
 import LogZ from "./apps/LogZ.jsx";
 import HabitZ from "./apps/HabitZ.jsx";
+import JournalZ from "./apps/JournalZ.jsx";
 import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -162,6 +163,7 @@ export const CUSTOM_ICONS = {
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
   "habitz.png": "/icons/habitz.png",
+  "journalz.png": "/icons/journalz.png",
   "logz.png": "/icons/logz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -276,6 +278,7 @@ const TABS = [
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
+  { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
@@ -365,6 +368,7 @@ const TAB_ABOUT = {
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
+  journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",

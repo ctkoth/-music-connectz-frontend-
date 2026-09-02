@@ -27,18 +27,34 @@ jobs:
         working-directory: desktop
         run: npm install
 
-      - name: Build Windows installer
+      # Two files from one build. The installer is the one that puts Music
+      # ConnectZ on the desktop and in the Start menu; the portable exe is for
+      # anyone who wants to run it off a stick without installing anything, and
+      # for the case where an installer is what a locked-down machine refuses.
+      - name: Build Windows installer and portable exe
         working-directory: desktop
-        run: npx electron-builder --win nsis --publish never
+        run: npx electron-builder --win nsis portable --publish never
 
-      - name: Collect installer
+      - name: Collect the builds
         shell: bash
-        run: cp desktop/dist/MusicConnectZ-Setup.exe "$GITHUB_WORKSPACE/MusicConnectZ-Setup.exe"
+        run: |
+          cp desktop/dist/MusicConnectZ-Setup.exe "$GITHUB_WORKSPACE/MusicConnectZ-Setup.exe"
+          cp desktop/dist/MusicConnectZ.exe "$GITHUB_WORKSPACE/MusicConnectZ.exe"
 
       - name: Publish to the exe-latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: exe-latest
           name: Music ConnectZ — Windows installer
-          body: "Auto-built Windows installer (.exe). SmartScreen: More info → Run anyway (unsigned). Built from ${{ github.sha }}."
-          files: MusicConnectZ-Setup.exe
+          body: |
+            Auto-built from ${{ github.sha }}.
+
+            * **MusicConnectZ-Setup.exe** — the installer. Puts Music ConnectZ on your
+              desktop and in the Start menu.
+            * **MusicConnectZ.exe** — one file, installs nothing. Run it from anywhere.
+
+            Neither is code-signed yet, so SmartScreen shows "unrecognised app" on
+            first run: **More info → Run anyway**.
+          files: |
+            MusicConnectZ-Setup.exe
+            MusicConnectZ.exe

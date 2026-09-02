@@ -156,7 +156,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   useEffect(() => {
     if (trial) return undefined;
     return onHandoff(appKey, (h) => {
-      if (h?.kind !== "post" || !h.post_id) return;
+      // A post, or a page of the member's own diary — a voice note kept in
+      // JournalZ is a take like any other, and it is already stored, so it
+      // rides as an id exactly like a post does.
+      if (!((h?.kind === "post" && h.post_id)
+            || (h?.kind === "journal" && h.journal_id))) return;
       setFromPost(h);
       setTakeGone(false);
       setResult(null);
@@ -327,7 +331,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
       const body = fromPost
-        ? { post_id: fromPost.post_id, genre, range, difficulty, ...(style ? { style } : {}) }
+        ? { ...(fromPost.kind === "journal"
+              ? { journal_id: fromPost.journal_id }
+              : { post_id: fromPost.post_id }),
+            genre, range, difficulty, ...(style ? { style } : {}) }
         : (() => {
             const f = new FormData();
             f.append("take", blob, takeName);
@@ -436,14 +443,21 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       {fromPost && !recording && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
-            🎧 From PostZ
+            {fromPost.kind === "journal" ? "📔 From your journal" : "🎧 From PostZ"}
           </p>
           <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
           <p className="text-[11px] text-white/45">
-            by @{fromPost.author}
+            {fromPost.kind === "journal"
+              ? fromPost.day
+              : `by @${fromPost.author}`}
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
+          {fromPost.kind === "journal" && (
+            <p className="text-[11px] text-white/45">
+              The entry stays private — sending a take to the coach publishes nothing.
+            </p>
+          )}
           {/* The player is the first thing that knows whether the recording is
               actually there. A take that 404s shows 0:00 / 0:00 and says
               nothing — and the send button then spends a press to find out.

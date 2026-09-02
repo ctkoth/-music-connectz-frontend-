@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Lock, Plus, Sparkles, Tag } from "lucide-react";
+import { Download, Loader2, Lock, Plus, Sparkles, Tag } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, isStatZ, SPEC_APPS } from "./socialData.js";
@@ -7,6 +7,27 @@ import { SPINAZ } from "../resources.js";
 
 // SpecZ price in SpinaZ (blueprint economy currency).
 const SPEC_PRICE = 250;
+
+// The installed builds, and where they actually are.
+//
+// Both are built by CI on every push to main that touches `desktop/**` or
+// `android/**` and published to a fixed release tag, so these links never go
+// stale and never need a version in them. They lived only in `src/mcz2/`, which
+// is the 2.2 reference app and is NOT MOUNTED — so the app has been building
+// an installer nobody in the running app could reach. A download that exists
+// and cannot be found is the same as one that doesn't.
+const REPO = "https://github.com/ctkoth/-music-connectz-frontend-/releases/download";
+const BUILDS = [
+  { key: "win", emoji: "🪟", label: "Windows installer (.exe)",
+    href: `${REPO}/exe-latest/MusicConnectZ-Setup.exe`,
+    note: "Puts Music ConnectZ on your desktop and in the Start menu." },
+  { key: "win-portable", emoji: "🥾", label: "Windows, portable (.exe)",
+    href: `${REPO}/exe-latest/MusicConnectZ.exe`,
+    note: "One file, installs nothing — run it from anywhere." },
+  { key: "android", emoji: "🤖", label: "Android (.apk)",
+    href: `${REPO}/apk-latest/MusicConnectZ.apk`,
+    note: "Sideload build. Play Store release is separate." },
+];
 
 export default function SpecZ() {
   const [me, setMe] = useState(null);
@@ -71,6 +92,35 @@ export default function SpecZ() {
           <p className="text-xs text-white/45">User metadata &amp; UGC you attach to any app — a StatZ perk.</p>
         </div>
       </header>
+
+      {/* Get the app. Not a SpecZ, but the same question — what your device can
+          take — and this is the only mounted tab that asks it. */}
+      <div className="re-card space-y-2">
+        <span className="re-label flex items-center gap-2">
+          <Download size={13} className="text-mcz-cyan" /> Get Music ConnectZ on your device
+        </span>
+        <p className="text-[11px] leading-relaxed text-white/45">
+          The desktop and Android builds load the live site, so they are always
+          whatever the web app is — there is no version to keep up to date.
+          <span className="text-emerald-300"> Free</span>, and no account action:
+          these are downloads, not purchases.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {BUILDS.map((b) => (
+            <a key={b.key} href={b.href} target="_blank" rel="noreferrer"
+               className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2.5 transition hover:border-mcz-cyan/50">
+              <p className="text-[13px] font-semibold text-white">{b.emoji} {b.label}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{b.note}</p>
+            </a>
+          ))}
+        </div>
+        {/* Said before the download, not discovered at the warning — the same
+            rule the rest of this app follows about prices. */}
+        <p className="text-[11px] leading-relaxed text-white/35">
+          Neither Windows build is code-signed yet, so SmartScreen shows
+          "unrecognised app" the first time: <b className="text-white/60">More info → Run anyway</b>.
+        </p>
+      </div>
 
       {/* Purchase / author panel */}
       <div className="re-card space-y-3">
