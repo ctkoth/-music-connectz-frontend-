@@ -63,6 +63,10 @@ export default function Login() {
         <Link to="/register" className="text-mcz-cyan hover:underline">
           Create an account
         </Link>
+        {" "}or{" "}
+        <Link to="/try" className="text-mcz-cyan hover:underline">
+          try a free scored take first
+        </Link>
       </p>
     </AuthShell>
   );

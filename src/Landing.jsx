@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, Mic2, Star, Users2, Wallet } from "lucide-react";
+import { api } from "./api.js";
 import { WINDOWS_EXE } from "./downloadBuilds.js";
 
 // The logged-out homepage.
@@ -24,7 +26,22 @@ const FEATURES = [
     body: "Sell beats, book lessons, run label deals. The platform fee drops as your tier goes up, and it's shown before you ever spend." },
 ];
 
+// Real counts or none — see CLAUDE.md on substance over decoration. A landing
+// page showing a fabricated "1,200 members" would be exactly the kind of
+// number that could look good without being good, and it's the first thing
+// this codebase's own rules say not to ship.
+function useCommunityStats() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/auth/public-stats/", { auth: false }).then((s) => on && setStats(s)).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  return stats;
+}
+
 export default function Landing() {
+  const stats = useCommunityStats();
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
       <header className="mb-8 flex items-center gap-3">
@@ -34,6 +51,17 @@ export default function Landing() {
       </header>
 
       <div className="neon-frame p-6 text-center sm:p-10">
+        {stats?.total_members > 0 && (
+          <p className="mb-4 flex items-center justify-center gap-2 text-xs">
+            <span className="pill">👥 {stats.total_members.toLocaleString()} members</span>
+            {stats.online_now > 0 && (
+              <span className="pill !border-emerald-400/40 !text-emerald-300">
+                <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                {stats.online_now} online now
+              </span>
+            )}
+          </p>
+        )}
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
           Train your voice or your bars.<br className="hidden sm:block" /> Get scored by a coach that actually listens.
         </h1>

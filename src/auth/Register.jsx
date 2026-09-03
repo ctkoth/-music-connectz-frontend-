@@ -16,7 +16,7 @@ export default function Register() {
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
-  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", password2: "", birthday: "" });
+  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +25,6 @@ export default function Register() {
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (form.password !== form.password2) return setError("Passwords don't match.");
     setBusy(true);
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
@@ -39,7 +38,7 @@ export default function Register() {
   }
 
   return (
-    <AuthShell title="Create your account" subtitle="Join Music ConnectZ — train, create, climb the SkillZ board.">
+    <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
@@ -60,7 +59,6 @@ export default function Register() {
           <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
         </div>
         <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
-        <PasswordField placeholder="Repeat password" value={form.password2} onChange={set("password2")} autoComplete="new-password" />
 
         {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
