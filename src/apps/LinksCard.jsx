@@ -16,12 +16,13 @@
 // same formula that actually pays Energy, never a guess.
 import { useEffect, useState } from "react";
 import {
-  Check, Link2, Loader2, Lock, Plus, Trash2, Zap,
+  Check, Link2, Loader2, Lock, Plus, Star, Trash2, Zap,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { serviceFor } from "../socialServices.jsx";
 import { ENERGY } from "../resources.js";
+import EmbedLink from "../EmbedLink.jsx";
 import YouTubeVerifyCard from "./YouTubeVerifyCard.jsx";
 
 const VERIFY = "/api/economy/social/verify/";
@@ -39,7 +40,7 @@ function EnergyChip({ delta }) {
   );
 }
 
-function LinkRow({ link, onVerify, onRemove, busy }) {
+function LinkRow({ link, featured, onVerify, onRemove, onFeature, busy }) {
   const svc = serviceFor(link.service);
   return (
     <li className="space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
@@ -59,6 +60,13 @@ function LinkRow({ link, onVerify, onRemove, busy }) {
           ) : (
             <button className="re-link text-[10px]" disabled={busy} onClick={() => onVerify(link)}>Verify</button>
           )}
+          <button
+            className={featured ? "text-mcz-gold" : "text-white/25 hover:text-mcz-gold"}
+            disabled={busy} onClick={() => onFeature(link, featured)}
+            title={featured ? "Featured at the top of your profile — tap to unfeature" : "Pin to the top of your profile"}
+          >
+            <Star size={13} fill={featured ? "currentColor" : "none"} />
+          </button>
           <button className="text-white/25 hover:text-mcz-ember" disabled={busy} onClick={() => onRemove(link)} title="Remove">
             <Trash2 size={13} />
           </button>
@@ -71,13 +79,16 @@ function LinkRow({ link, onVerify, onRemove, busy }) {
 export default function LinksCard() {
   const [links, setLinks] = useState(null);
   const [reach, setReach] = useState(0);
+  const [featured, setFeatured] = useState(null); // {url, label, service} | null
   const [url, setUrl] = useState("");
   const [detected, setDetected] = useState(null); // {service, label, source}
   const [detecting, setDetecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const load = () => api(VERIFY).then((d) => { setLinks(asList(d?.links)); setReach(d?.reach_median || 0); });
+  const load = () => api(VERIFY).then((d) => {
+    setLinks(asList(d?.links)); setReach(d?.reach_median || 0); setFeatured(d?.featured_link || null);
+  });
   useEffect(() => { load().catch(() => setLinks([])); }, []);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 4000); };
@@ -128,6 +139,19 @@ export default function LinksCard() {
     finally { setBusy(false); }
   }
 
+  async function toggleFeature(link, isFeatured) {
+    setBusy(true);
+    try {
+      await api(VERIFY, {
+        method: "POST",
+        body: isFeatured ? { action: "unfeature" } : { action: "feature", url: link.url },
+      });
+      await load();
+      flash(isFeatured ? "Unfeatured." : `${link.label} now plays at the top of your profile.`);
+    } catch (e) { flash(e.message || "Couldn't feature that."); }
+    finally { setBusy(false); }
+  }
+
   if (links === null) {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading links…</p>;
   }
@@ -145,12 +169,22 @@ export default function LinksCard() {
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-mcz-gold">{msg}</p>}
 
+      {featured && (
+        <div className="space-y-1">
+          <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-mcz-gold">
+            <Star size={10} fill="currentColor" /> Featured — plays at the top of your profile
+          </p>
+          <EmbedLink link={featured} />
+        </div>
+      )}
+
       {links.length === 0 ? (
         <p className="text-[12px] text-white/35">No links yet — paste one below.</p>
       ) : (
         <ul className="space-y-1.5">
           {links.map((l) => (
-            <LinkRow key={l.url} link={l} onVerify={verify} onRemove={remove} busy={busy} />
+            <LinkRow key={l.url} link={l} featured={featured?.url === l.url}
+                     onVerify={verify} onRemove={remove} onFeature={toggleFeature} busy={busy} />
           ))}
         </ul>
       )}

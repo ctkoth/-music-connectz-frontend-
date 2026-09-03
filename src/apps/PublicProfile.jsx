@@ -13,7 +13,9 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import EmbedLink from "../EmbedLink.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -63,6 +65,10 @@ export default function PublicProfile() {
                        className="pt-1.5" />
           </div>
 
+          {/* The "now playing" banner — one link the member pinned, played
+              inline right at the top of the card a stranger lands on. */}
+          {p.featured_link && <EmbedLink link={p.featured_link} owner={p.username} />}
+
           {p.bio && (
             <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">{p.bio}</p>
           )}
@@ -87,16 +93,9 @@ export default function PublicProfile() {
 
           <BadgeWearList badges={p.badges} />
 
-          {p.links?.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {p.links.map((l, i) => (
-                <a key={i} href={typeof l === "string" ? l : l.url} target="_blank" rel="noreferrer noopener"
-                   className="pill hover:text-mcz-ember">
-                  {typeof l === "string" ? l : l.label || l.url}
-                </a>
-              ))}
-            </div>
-          )}
+          {asList(p.links).filter((l) => (typeof l === "string" ? l : l.url) !== p.featured_link?.url).map((l, i) => (
+            <EmbedLink key={i} link={typeof l === "string" ? { url: l } : l} owner={p.username} />
+          ))}
 
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">

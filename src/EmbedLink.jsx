@@ -15,8 +15,11 @@ import { serviceFor } from "./socialServices.jsx";
 
 /** The iframe src for a platform that publishes one, given the member's
  * own share link — or null when this platform has no simple embed (the
- * link still renders, just not inline). */
-function embedSrcFor(service, url) {
+ * link still renders, just not inline). Exported: PlaylistZ's own
+ * link_provider() (apps/economy/models.py's LINK_PROVIDERS, an older,
+ * separate domain-detector than social_verify.py's) reuses this directly
+ * rather than a second copy of the per-platform iframe URLs. */
+export function embedSrcFor(service, url) {
   try {
     const u = new URL(url);
     if (service === "soundcloud") {
@@ -33,7 +36,7 @@ function embedSrcFor(service, url) {
       if (!id && u.pathname.startsWith("/embed/")) id = u.pathname.slice(7);
       return id ? `https://www.youtube.com/embed/${id}` : null;
     }
-    if (service === "apple_music") {
+    if (service === "apple_music" || service === "apple") {
       return url.replace("music.apple.com", "embed.music.apple.com");
     }
     return null;
@@ -42,17 +45,20 @@ function embedSrcFor(service, url) {
   }
 }
 
-const EMBED_HEIGHT = { soundcloud: 166, spotify: 152, youtube: 200, apple_music: 175 };
+const EMBED_HEIGHT = { soundcloud: 166, spotify: 152, youtube: 200, apple_music: 175, apple: 175 };
 
-/** A plain link that reports a genuine visit for the +5⚡ click reward and a
- * best-effort safety scan — dwell-timed the same way SHARE tracking already
- * is elsewhere in this app (active seconds, not just a click). */
-function PlainLink({ url, label, owner }) {
+/** Reports a genuine visit for the +5⚡ click reward and a best-effort safety
+ * scan — dwell-timed the same way SHARE tracking already is elsewhere in
+ * this app (active seconds, not just a click). Exported as a hook so a
+ * caller with its own row layout (PlaylistZ) gets the exact same
+ * click-tracking + safety-flag behavior without adopting PlainLink's markup.
+ * Spread the returned handlers onto whatever element is clickable. */
+export function useLinkClickTracking(url, owner) {
   const [flag, setFlag] = useState(null); // {safe, threat} once scanned
   const start = useRef(null);
   const sent = useRef(false);
 
-  function onEnter() { start.current = Date.now(); }
+  function onMouseDown() { start.current = Date.now(); }
   function report() {
     if (sent.current || !start.current) return;
     sent.current = true;
@@ -63,9 +69,13 @@ function PlainLink({ url, label, owner }) {
   }
   useEffect(() => () => report(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  return { flag, handlers: { onMouseDown, onClick: report } };
+}
+
+function PlainLink({ url, label, owner }) {
+  const { flag, handlers } = useLinkClickTracking(url, owner);
   return (
-    <a href={url} target="_blank" rel="noreferrer"
-       onMouseDown={onEnter} onClick={report}
+    <a href={url} target="_blank" rel="noreferrer" {...handlers}
        className="flex items-center gap-1.5 text-[12px] text-mcz-cyan hover:underline">
       <ExternalLink size={12} /> {label}
       {flag && !flag.safe && (

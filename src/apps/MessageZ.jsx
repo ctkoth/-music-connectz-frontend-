@@ -6,6 +6,28 @@ import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 import { onHandoff } from "../handoff.js";
+import EmbedLink from "../EmbedLink.jsx";
+
+const URL_RE = /https?:\/\/[^\s]+/i;
+
+// A pasted SoundCloud/Spotify/YouTube link in a DM unfurls into a real
+// player instead of sitting there as text somebody has to copy out. Only
+// fires when the body actually looks like it contains a URL — no
+// detect call wasted on ordinary messages.
+function MessageLink({ body, owner }) {
+  const [link, setLink] = useState(null);
+  const url = URL_RE.exec(body || "")?.[0];
+  useEffect(() => {
+    if (!url) { setLink(null); return; }
+    let on = true;
+    api("/api/economy/social/detect/", { method: "POST", body: { url } })
+      .then((d) => on && setLink({ url, service: d.service, label: d.label }))
+      .catch(() => on && setLink(null));
+    return () => { on = false; };
+  }, [url]);
+  if (!link) return null;
+  return <EmbedLink link={link} owner={owner} />;
+}
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -88,6 +110,7 @@ function MsgList({ title, rows, who }) {
           <div key={m.id} className="px-4 py-3 text-sm">
             <p className="text-xs text-white/50">{who === "from" ? `From ${m.from}` : `To ${m.to}`}</p>
             <p>{m.body}</p>
+            {who === "from" && <MessageLink body={m.body} owner={m.from} />}
           </div>
         ))}
       </div>

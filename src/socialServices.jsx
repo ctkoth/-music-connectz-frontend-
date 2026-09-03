@@ -51,5 +51,10 @@ export const SERVICES = {
   google:      { label: "Google",      Icon: GoogleG,     color: "#ffffff" },
   website:     { label: "Website",     Icon: Globe,       color: "#8b9bb4" },
 };
+// Alias: apps/economy/models.py's older LINK_PROVIDERS (PlaylistZ's own
+// domain-detection, predating social_verify.py's KNOWN_SERVICES) spells
+// Apple Music "apple". Same platform, one icon — the alias lives here so no
+// caller has to remember which registry it's asking.
+SERVICES.apple = SERVICES.apple_music;
 
 export const serviceFor = (key) => SERVICES[key] || SERVICES.website;
