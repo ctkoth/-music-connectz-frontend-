@@ -41,6 +41,7 @@ import MemberProfile from "./apps/MemberProfile.jsx";
 import LogZ from "./apps/LogZ.jsx";
 import HabitZ from "./apps/HabitZ.jsx";
 import JournalZ from "./apps/JournalZ.jsx";
+import VenueZ from "./apps/VenueZ.jsx";
 import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -282,6 +283,7 @@ const TABS = [
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
+  { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
@@ -371,6 +373,7 @@ const TAB_ABOUT = {
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
+  venuez: "🏛️ VenueZ — real venues at real locations. Post a performance (visitors pay to attend) or a collaborative session (you pay visitors to play) — gated and priced the same way CollabZ and BattleZ are.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
