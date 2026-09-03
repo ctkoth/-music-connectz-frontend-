@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
+import EmbedLink from "../EmbedLink.jsx";
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -87,16 +89,13 @@ export default function PublicPost() {
             <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">{post.description}</p>
           )}
 
-          {post.links?.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {post.links.map((l, i) => (
-                <a key={i} href={typeof l === "string" ? l : l.url} target="_blank" rel="noreferrer noopener"
-                   className="pill hover:text-mcz-ember">
-                  {typeof l === "string" ? l : l.label || l.url}
-                </a>
-              ))}
-            </div>
-          )}
+          {/* SoundCloud/Spotify/YouTube/Apple Music play inline, right here —
+              no account needed to listen, same as the feed. Older posts (or
+              a bare string link) fall back gracefully: EmbedLink shows a
+              plain link when there's no `service` it recognizes. */}
+          {asList(post.links).map((l, i) => (
+            <EmbedLink key={i} link={typeof l === "string" ? { url: l } : l} owner={post.author} />
+          ))}
 
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
