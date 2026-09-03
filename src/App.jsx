@@ -50,6 +50,7 @@ const PublicPlaylist = lazy(() => import("./apps/PublicPlaylist.jsx"));
 const PlaylistZ = lazy(() => import("./apps/PlaylistZ.jsx"));
 const MemberProfile = lazy(() => import("./apps/MemberProfile.jsx"));
 const LogZ = lazy(() => import("./apps/LogZ.jsx"));
+const FunnelZ = lazy(() => import("./apps/FunnelZ.jsx"));
 const HabitZ = lazy(() => import("./apps/HabitZ.jsx"));
 const JournalZ = lazy(() => import("./apps/JournalZ.jsx"));
 const Landing = lazy(() => import("./Landing.jsx"));
@@ -233,6 +234,9 @@ export const CUSTOM_ICONS = {
   "console.png": "/icons/console.png",
   "search.png": "/icons/search.png",
   "welcome.png": "/icons/welcome.png",
+  // Owner-only tab — reserved ahead of the artwork, same as the rest above;
+  // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
+  "funnelz.png": "/icons/funnelz.png",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -307,6 +311,11 @@ const TABS = [
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+  // Owner-only — filtered out of the Dock for everyone else in Home(),
+  // below. The route and TABS entry still exist for anyone who is the
+  // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
+  // shows nothing to a non-owner even if they reach it another way.
+  { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -415,6 +424,7 @@ const TAB_ABOUT = {
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
+  funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
 };
 
 function Home() {
@@ -441,6 +451,11 @@ function Home() {
   const today = new Date().toLocaleDateString();
   // PickConnectZ dock — pinned apps + the ones this member opens most.
   const { usage, pins, togglePin } = usePickConnectZ(tab);
+  // FunnelZ is owner-only real visitor data — not something to advertise in
+  // the drawer for everyone. The route and TABS entry still exist (so the
+  // info modal, ⓘ, and a direct link work for the owner); this only trims
+  // what the Dock lists.
+  const dockApps = user?.is_owner ? TABS : TABS.filter((t) => t.key !== "funnelz");
 
   // One way in and out of a tab: set the state AND the address, together. Two
   // paths would let the URL say one thing while the screen showed another.
@@ -647,7 +662,7 @@ function Home() {
       <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
       <Dock
-        apps={TABS}
+        apps={dockApps}
         usage={usage}
         pins={pins}
         tier={user?.tier}
