@@ -13,6 +13,7 @@ import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
 import LinkedAccountsCard from "./LinkedAccountsCard.jsx";
+import LinksCard from "./LinksCard.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -547,6 +548,8 @@ export default function ProfileZ() {
       <AvatarCard />
 
       <Verify18Card />
+
+      <LinksCard />
 
       <LinkedAccountsCard />
 
