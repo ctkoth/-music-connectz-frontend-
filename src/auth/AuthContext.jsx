@@ -64,6 +64,14 @@ export function AuthProvider({ children }) {
     return persist(res);
   }
 
+  // Attach an ADDITIONAL provider to the account that's already signed in —
+  // unlike oauth() above, this authenticates as the current member (auth
+  // defaults to true) and never touches the stored tokens, because no new
+  // session is being started.
+  async function linkOAuth(provider, payload) {
+    return api(`/api/auth/oauth/${provider}/link/`, { method: "POST", body: payload });
+  }
+
   function logout() {
     tokenStore.clear();
     setUser(null);
@@ -71,7 +79,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, register, login, oauth, logout }}
+      value={{ user, loading, register, login, oauth, linkOAuth, logout }}
     >
       {children}
     </AuthContext.Provider>

@@ -617,9 +617,16 @@ function Home() {
 }
 
 function OAuthCallback() {
-  const { oauth } = useAuth();
+  const { oauth, linkOAuth } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  // "signin" (default, back-compat with a redirect already in flight when
+  // this shipped) or "link" — set by whichever screen started the redirect.
+  // Decides which endpoint finishes the flow and where "back" goes: a failed
+  // sign-in belongs at /login, but a failed LINK attempt belongs back on
+  // ProfileZ — the member is already signed in and "back to login" would be
+  // actively wrong.
+  const [intent, setIntent] = useState("signin");
 
   const ran = useRef(false);
 
@@ -636,9 +643,12 @@ function OAuthCallback() {
     const provider = sessionStorage.getItem("mcz_oauth_provider");
     const expectedState = sessionStorage.getItem("mcz_oauth_state");
     const verifier = sessionStorage.getItem("mcz_oauth_verifier");
+    const oauthIntent = sessionStorage.getItem("mcz_oauth_intent") || "signin";
     sessionStorage.removeItem("mcz_oauth_provider");
     sessionStorage.removeItem("mcz_oauth_state");
     sessionStorage.removeItem("mcz_oauth_verifier");
+    sessionStorage.removeItem("mcz_oauth_intent");
+    setIntent(oauthIntent);
 
     const denied = params.get("error_description") || params.get("error");
     if (denied) {
@@ -646,7 +656,7 @@ function OAuthCallback() {
       return;
     }
     if (!code) {
-      navigate("/login", { replace: true });
+      navigate(oauthIntent === "link" ? "/profilez" : "/login", { replace: true });
       return;
     }
     // The state check is what stops someone handing you a link that finishes
@@ -655,11 +665,11 @@ function OAuthCallback() {
     // A missing provider means this tab never began a sign-in at all — don't
     // guess one, or a stray code gets replayed against the wrong provider.
     if (!provider || !expectedState) {
-      setError("This sign-in didn't start in this tab. Please try again from the login screen.");
+      setError("This didn't start in this tab. Please try again from where you started it.");
       return;
     }
     if (returnedState !== expectedState) {
-      setError("Sign-in couldn't be verified. Please start again from the login screen.");
+      setError("This couldn't be verified. Please try again from where you started it.");
       return;
     }
 
@@ -667,23 +677,25 @@ function OAuthCallback() {
       import.meta.env.VITE_OAUTH_REDIRECT || `${window.location.origin}/oauth/callback`;
     const body = { code, redirect_uri: redirect };
     if (verifier) body.code_verifier = verifier;
-    oauth(provider, body)
-      .then(() => navigate("/", { replace: true }))
+    const finish = oauthIntent === "link" ? linkOAuth(provider, body) : oauth(provider, body);
+    finish
+      .then(() => navigate(oauthIntent === "link" ? "/profilez?linked=" + provider : "/", { replace: true }))
       .catch((e) => setError(e.message));
-  }, [oauth, navigate]);
+  }, [oauth, linkOAuth, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-white/60">
       {error ? (
         <>
           <p className="text-mcz-pink">{error}</p>
-          <button className="neon-btn-ghost !w-auto px-4 py-2" onClick={() => navigate("/login")}>
-            Back to login
+          <button className="neon-btn-ghost !w-auto px-4 py-2"
+                  onClick={() => navigate(intent === "link" ? "/profilez" : "/login")}>
+            {intent === "link" ? "Back to ProfileZ" : "Back to login"}
           </button>
         </>
       ) : (
         <>
-          <Loader2 className="animate-spin" size={20} /> Finishing sign-in…
+          <Loader2 className="animate-spin" size={20} /> {intent === "link" ? "Linking account…" : "Finishing sign-in…"}
         </>
       )}
     </div>
