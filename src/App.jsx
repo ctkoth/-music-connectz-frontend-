@@ -41,6 +41,7 @@ import MemberProfile from "./apps/MemberProfile.jsx";
 import LogZ from "./apps/LogZ.jsx";
 import HabitZ from "./apps/HabitZ.jsx";
 import JournalZ from "./apps/JournalZ.jsx";
+import Landing from "./Landing.jsx";
 import { SPINAZ } from "./resources.js";
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
@@ -297,6 +298,25 @@ function RequireAuth({ children }) {
     );
   }
   return user ? children : <Navigate to="/login" replace />;
+}
+
+// "/" is the one URL that gets shared, indexed and clicked cold — the
+// index.html SEO meta and every OG card point at it. A signed-in member
+// should land in the app; anyone else gets the marketing page that makes
+// good on what those links promised, not a bare "Welcome back" login form
+// (that redirect is still what every OTHER protected route does — a deep
+// link like /battle while logged out is someone who already knows what this
+// is, and /login is the right place to send them).
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  return user ? <Home /> : <Landing />;
 }
 
 function CommunityBar({ onOpenMember }) {
@@ -705,14 +725,7 @@ export default function App() {
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
           catch-all so an unknown path still falls through to the redirect
           below instead of rendering an app shell with no tab in it. */}
