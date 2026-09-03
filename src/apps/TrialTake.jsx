@@ -7,9 +7,10 @@
 // The take is not a dead end. The score comes back with a claim token, kept
 // here and handed to /register, so the thing they made at the door opens
 // inside SingZ once they join.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import BossTake from "./BossTake.jsx";
+import { track } from "../track.js";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
 const APPS = { singz: "SingZ", rapz: "RapZ" };
@@ -35,6 +36,8 @@ export default function TrialTake() {
   const app = APPS[appKey] ? appKey : "singz";
   const [scored, setScored] = useState(false);
 
+  useEffect(() => { track("try_view", { app_key: app }); }, [app]);
+
   function keep(result) {
     if (!result?.claim_token) return;
     try {
@@ -43,6 +46,7 @@ export default function TrialTake() {
       /* no storage → they can still sign up, they just lose the take */
     }
     setScored(true);
+    track("try_scored", { app_key: app });
   }
 
   return (

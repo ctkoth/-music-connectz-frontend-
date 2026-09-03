@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, Mic2, Star, Users2, Wallet } from "lucide-react";
 import { api } from "./api.js";
+import { track } from "./track.js";
 import { WINDOWS_EXE } from "./downloadBuilds.js";
 
 // The logged-out homepage.
@@ -42,6 +43,7 @@ function useCommunityStats() {
 
 export default function Landing() {
   const stats = useCommunityStats();
+  useEffect(() => { track("landing_view"); }, []);
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
       <header className="mb-8 flex items-center gap-3">

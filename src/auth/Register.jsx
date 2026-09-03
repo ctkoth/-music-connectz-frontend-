@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { track } from "../track.js";
 import { WINDOWS_EXE } from "../downloadBuilds.js";
 
 export default function Register() {
@@ -20,6 +21,11 @@ export default function Register() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    track("register_view", { has_ref: !!ref, has_trial: !!trialToken });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e) {
@@ -29,6 +35,7 @@ export default function Register() {
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
       clearTrialToken();
+      track("register_success");
       navigate("/");
     } catch (err) {
       setError(err.message);
