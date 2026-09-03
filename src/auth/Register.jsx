@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AtSign, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
+import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { WINDOWS_EXE } from "../downloadBuilds.js";
 
 export default function Register() {
   const { register } = useAuth();
@@ -101,6 +102,24 @@ export function AuthShell({ title, subtitle, children }) {
         </div>
       </div>
       <div className="neon-frame space-y-5 p-6">{children}</div>
+
+      {/* Free, no account needed — the desktop build loads the live site, so
+          it's always whatever the web app is, never a version behind it. */}
+      <a
+        href={WINDOWS_EXE.href}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
+      >
+        <Download size={15} className="shrink-0 text-mcz-cyan" />
+        <div>
+          <span className="font-semibold text-white">{WINDOWS_EXE.emoji} Download for Windows (.exe)</span>
+          <span className="ml-1.5 text-emerald-300">Free</span>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
+            {WINDOWS_EXE.note} Unsigned build — SmartScreen: More info → Run anyway.
+          </p>
+        </div>
+      </a>
     </div>
   );
 }

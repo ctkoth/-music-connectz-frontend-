@@ -4,30 +4,10 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { loadSocial, saveSocial, isStatZ, SPEC_APPS } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
+import { BUILDS } from "../downloadBuilds.js";
 
 // SpecZ price in SpinaZ (blueprint economy currency).
 const SPEC_PRICE = 250;
-
-// The installed builds, and where they actually are.
-//
-// Both are built by CI on every push to main that touches `desktop/**` or
-// `android/**` and published to a fixed release tag, so these links never go
-// stale and never need a version in them. They lived only in `src/mcz2/`, which
-// is the 2.2 reference app and is NOT MOUNTED — so the app has been building
-// an installer nobody in the running app could reach. A download that exists
-// and cannot be found is the same as one that doesn't.
-const REPO = "https://github.com/ctkoth/-music-connectz-frontend-/releases/download";
-const BUILDS = [
-  { key: "win", emoji: "🪟", label: "Windows installer (.exe)",
-    href: `${REPO}/exe-latest/MusicConnectZ-Setup.exe`,
-    note: "Puts Music ConnectZ on your desktop and in the Start menu." },
-  { key: "win-portable", emoji: "🥾", label: "Windows, portable (.exe)",
-    href: `${REPO}/exe-latest/MusicConnectZ.exe`,
-    note: "One file, installs nothing — run it from anywhere." },
-  { key: "android", emoji: "🤖", label: "Android (.apk)",
-    href: `${REPO}/apk-latest/MusicConnectZ.apk`,
-    note: "Sideload build. Play Store release is separate." },
-];
 
 export default function SpecZ() {
   const [me, setMe] = useState(null);
