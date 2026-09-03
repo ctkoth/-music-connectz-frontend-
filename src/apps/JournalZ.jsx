@@ -21,6 +21,8 @@ import { asList, asDict } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
 import MediaFields from "../MediaFields.jsx";
+import LinkPicker from "../LinkPicker.jsx";
+import EmbedLink from "../EmbedLink.jsx";
 import { hasBlobs, mediaItems, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
 import { goToSpot } from "../goto.js";
@@ -176,6 +178,7 @@ export default function JournalZ() {
   const [placeExact, setPlaceExact] = useState(false);
   const [visibility, setVisibility] = useState("private");
   const [work, setWork] = useState({});
+  const [entryLinks, setEntryLinks] = useState([]); // LinkPicker's shape; only the first rides in
   const [storage, setStorage] = useState(null);
   const [dropped, setDropped] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -216,8 +219,8 @@ export default function JournalZ() {
 
   async function save() {
     if (saving) return;
-    if (!title.trim() && !body.trim() && !Object.keys(work).length) {
-      return flash("An entry needs something in it — a title, some words, or an attachment.");
+    if (!title.trim() && !body.trim() && !Object.keys(work).length && !entryLinks.length) {
+      return flash("An entry needs something in it — a title, some words, an attachment, or a linked track.");
     }
     setSaving(true);
     try {
@@ -231,10 +234,11 @@ export default function JournalZ() {
           place_name: placeName, place_exact: placeExact,
           place_lat: coords?.lat ?? null, place_lng: coords?.lng ?? null,
           visibility, items: mediaItems(hosted, title.trim() || day),
+          link: entryLinks[0] || {},
         },
       });
       setDropped(asDict(d.dropped));
-      setTitle(""); setBody(""); setWork({}); setEntryMood(""); setWeather("");
+      setTitle(""); setBody(""); setWork({}); setEntryLinks([]); setEntryMood(""); setWeather("");
       setTags([]); setPeople([]); setPlaceName(""); setCoords(null); setPlaceExact(false);
       setVisibility("private");
       flash(asList(d.notified).length
@@ -455,6 +459,7 @@ export default function JournalZ() {
 
         <MediaFields value={work} onChange={setWork} label="Attach a photo, a voice note, a take" />
         {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
+        <LinkPicker value={entryLinks} onChange={(v) => setEntryLinks(v.slice(-1))} label="What was playing" />
 
         <div className="flex flex-wrap items-center gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
@@ -589,6 +594,7 @@ export default function JournalZ() {
             {e.media?.image && <img src={e.media.image} alt="" className="max-h-72 rounded-lg" />}
             {e.media?.audio && <audio src={e.media.audio} controls className="w-full" />}
             {e.media?.video && <video src={e.media.video} controls className="max-h-72 w-full rounded-lg" />}
+            {e.link?.url && <EmbedLink link={e.link} owner={e.author} />}
 
             {e.mine && (
               <div className="flex flex-wrap items-center gap-2">

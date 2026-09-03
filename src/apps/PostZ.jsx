@@ -34,6 +34,8 @@ import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../
 import { ENERGY, PROMPTZ } from "../resources.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
+import LinkPicker from "../LinkPicker.jsx";
+import EmbedLink from "../EmbedLink.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -148,6 +150,7 @@ export default function PostZ() {
   const [toast, setToast] = useState("");
   const [posting, setPosting] = useState(false);
   const [work, setWork] = useState({});      // MediaFields' shape
+  const [links, setLinks] = useState([]);    // [{url, label, service}] — LinkPicker's shape
   const [storage, setStorage] = useState(null);
   const [cost, setCost] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -220,10 +223,11 @@ export default function PostZ() {
           // any kind unless the post is explicitly an album.
           ...primaryMedia(hosted),
           items: mediaItems(hosted, t),
+          links,
         },
       });
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
+      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({}); setLinks([]);
       flash("Posted. Rating opens in 30s, comments in 60s.");
     } catch (e) {
       flash(e.message || "Couldn't post.");
@@ -312,6 +316,9 @@ export default function PostZ() {
             so the three composers can't drift apart. */}
         <MediaFields value={work} onChange={setWork} label="Audio, video, image or lyrics" />
         {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
+        {/* A track that lives on SoundCloud/Spotify/YouTube doesn't need
+            re-uploading — link it and it plays inline, right in the feed. */}
+        <LinkPicker value={links} onChange={setLinks} label="Link a track" />
         {/* 2.2 required this on every example, and it's what makes a post
             matchable to the people who have those skills. */}
         <SkillsUsed value={skillsUsed} onChange={setSkillsUsed} label="Skills used on this" />
@@ -394,6 +401,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eTitle, setETitle] = useState(post.title);
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
+  const [eLinks, setELinks] = useState(() => asList(post.links));
   const draft = useRef("");
   const item = `post:${post.id}`;
 
@@ -435,7 +443,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       }
       const next = await api("/api/economy/postz/", {
         method: "POST",
-        body: { edit_id: post.id, title: t, description: eDesc.trim(), ...media },
+        body: { edit_id: post.id, title: t, description: eDesc.trim(), links: eLinks, ...media },
       });
       onChanged(post.id, next);
       setEditing(false); setEWork({});
@@ -633,6 +641,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               never uploaded. Untouched, the media already on the post stays. */}
           <MediaFields value={eWork} onChange={setEWork}
                        label="Add or replace audio, video, image or lyrics" />
+          <LinkPicker value={eLinks} onChange={setELinks} label="Link a track" />
           <div className="flex items-center gap-2">
             <button className="re-btn !w-auto px-4" onClick={saveEdit} disabled={busy || !eTitle.trim()}>
               {busy ? <Loader2 size={14} className="animate-spin" /> : <CheckIcon size={14} />}
@@ -679,6 +688,10 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </>
         );
       })()}
+
+      {asList(post.links).map((l, i) => (
+        <EmbedLink key={`${l.url}-${i}`} link={l} owner={post.author} />
+      ))}
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}

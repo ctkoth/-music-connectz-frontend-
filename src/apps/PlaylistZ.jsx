@@ -9,14 +9,16 @@
 // through the same counter a ProfileZ link does.
 import { useEffect, useState } from "react";
 import {
-  ArrowDown, ArrowUp, Check, Copy, ExternalLink, Eye, EyeOff, Link2, Loader2,
-  LogOut, Music, Plus, Trash2, UserPlus, Users, X,
+  ArrowDown, ArrowUp, Check, ChevronUp, Copy, ExternalLink, Eye,
+  EyeOff, Link2, Loader2, LogOut, Music, Play, Plus, ShieldAlert, Trash2,
+  UserPlus, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
+import EmbedLink, { embedSrcFor, useLinkClickTracking } from "../EmbedLink.jsx";
 
 const PROVIDER_LABEL = {
   spotify: "Spotify", youtube: "YouTube", apple: "Apple Music",
@@ -33,62 +35,87 @@ const VISIBILITIES = [
   ["private", "Just me"],
 ];
 
-function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
+function Row({ item, onUp, onDown, onRemove, canReorder, shared, owner }) {
+  const [expanded, setExpanded] = useState(false);
   const isPost = item.kind === "post";
+  // SoundCloud/Spotify/YouTube/Apple Music play right in the list; everything
+  // else (Pandora, TIDAL, Bandcamp, a distributor page — nobody publishes a
+  // public embed for those) still opens out, same as before.
+  const embeddable = !isPost && !!embedSrcFor(item.provider, item.url);
+  const { flag, handlers } = useLinkClickTracking(item.url, owner);
+
   const open = () => {
     if (isPost) return goToSpot("social", "social-feed");
+    if (embeddable) { setExpanded((v) => !v); return; }
+    // Opening in a new tab is still a click-through — start the dwell timer
+    // the same way a real <a> click would, then send it where it was going.
+    handlers.onMouseDown();
+    handlers.onClick();
     window.open(item.url, "_blank", "noopener,noreferrer");
   };
+
   return (
-    <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-      <span className="w-5 shrink-0 text-[11px] tabular-nums text-white/30">{item.position}</span>
-      <button
-        className="min-w-0 flex-1 text-left disabled:opacity-50"
-        onClick={open}
-        disabled={!item.available}
-        title={item.available ? "Open" : "This post was deleted"}
-      >
-        <span className="flex items-center gap-1.5">
-          {isPost
-            ? <Music size={12} className="shrink-0 text-mcz-cyan" />
-            : <Link2 size={12} className="shrink-0 text-mcz-gold" />}
-          <span className="truncate text-[13px] text-white/85">
-            {item.title || item.url || "Untitled"}
+    <li className="space-y-0">
+      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+        <span className="w-5 shrink-0 text-[11px] tabular-nums text-white/30">{item.position}</span>
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left disabled:opacity-50"
+          onClick={open}
+          disabled={!item.available}
+          title={!item.available ? "This post was deleted" : embeddable ? "Play here" : "Open"}
+        >
+          <span className="flex items-center gap-1.5">
+            {isPost
+              ? <Music size={12} className="shrink-0 text-mcz-cyan" />
+              : <Link2 size={12} className="shrink-0 text-mcz-gold" />}
+            <span className="truncate text-[13px] text-white/85">
+              {item.title || item.url || "Untitled"}
+            </span>
+            {embeddable && (expanded ? <ChevronUp size={12} className="shrink-0 text-white/30" /> : <Play size={11} className="shrink-0 text-mcz-gold" />)}
           </span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/35">
+            {item.artist && <span className="truncate">{item.artist}</span>}
+            {isPost
+              ? <span className="pill !px-1.5 !py-0 !text-[9px]">Music ConnectZ</span>
+              : item.provider
+                ? <span className="pill !px-1.5 !py-0 !text-[9px]">{PROVIDER_LABEL[item.provider] || item.provider}</span>
+                : null}
+            {!isPost && item.clicks > 0 && <span>{item.clicks} clicks</span>}
+            {item.rating != null && <span className="text-mcz-ember">{item.rating}/10</span>}
+            {/* On a shared list, "who put this here" is the first question. */}
+            {shared && item.added_by && <span>added by @{item.added_by}</span>}
+            {!item.available && <span className="text-mcz-ember">post deleted</span>}
+            {flag && !flag.safe && (
+              <span className="flex items-center gap-0.5 text-mcz-ember" title={`Flagged: ${flag.threat}`}>
+                <ShieldAlert size={10} /> flagged
+              </span>
+            )}
+          </span>
+        </button>
+        {!isPost && (
+          <a href={item.url} target="_blank" rel="noreferrer noopener"
+             className="shrink-0 text-white/25 hover:text-mcz-gold" title="Open in a new tab">
+            <ExternalLink size={13} />
+          </a>
+        )}
+        <span className="flex shrink-0 items-center gap-1">
+          {canReorder && (
+            <>
+              <button onClick={onUp} className="text-white/25 hover:text-white" title="Move up"><ArrowUp size={13} /></button>
+              <button onClick={onDown} className="text-white/25 hover:text-white" title="Move down"><ArrowDown size={13} /></button>
+            </>
+          )}
+          {/* The server decides this, not the client: the owner may remove
+              anything, a collaborator only what they put in. */}
+          {item.can_remove && (
+            <button onClick={onRemove} className="text-white/25 hover:text-red-300" title="Remove"><Trash2 size={13} /></button>
+          )}
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/35">
-          {item.artist && <span className="truncate">{item.artist}</span>}
-          {isPost
-            ? <span className="pill !px-1.5 !py-0 !text-[9px]">Music ConnectZ</span>
-            : item.provider
-              ? <span className="pill !px-1.5 !py-0 !text-[9px]">{PROVIDER_LABEL[item.provider] || item.provider}</span>
-              : null}
-          {!isPost && item.clicks > 0 && <span>{item.clicks} clicks</span>}
-          {item.rating != null && <span className="text-mcz-ember">{item.rating}/10</span>}
-          {/* On a shared list, "who put this here" is the first question. */}
-          {shared && item.added_by && <span>added by @{item.added_by}</span>}
-          {!item.available && <span className="text-mcz-ember">post deleted</span>}
-        </span>
-      </button>
-      {!isPost && (
-        <a href={item.url} target="_blank" rel="noreferrer noopener"
-           className="shrink-0 text-white/25 hover:text-mcz-gold" title="Open">
-          <ExternalLink size={13} />
-        </a>
+      </div>
+      {expanded && embeddable && (
+        <EmbedLink link={{ url: item.url, label: item.title, service: item.provider }} owner={owner} />
       )}
-      <span className="flex shrink-0 items-center gap-1">
-        {canReorder && (
-          <>
-            <button onClick={onUp} className="text-white/25 hover:text-white" title="Move up"><ArrowUp size={13} /></button>
-            <button onClick={onDown} className="text-white/25 hover:text-white" title="Move down"><ArrowDown size={13} /></button>
-          </>
-        )}
-        {/* The server decides this, not the client: the owner may remove
-            anything, a collaborator only what they put in. */}
-        {item.can_remove && (
-          <button onClick={onRemove} className="text-white/25 hover:text-red-300" title="Remove"><Trash2 size={13} /></button>
-        )}
-      </span>
     </li>
   );
 }
@@ -308,7 +335,7 @@ function Detail({ id, onBack, onChanged }) {
       ) : (
         <ol className="space-y-1.5">
           {items.map((it, i) => (
-            <Row key={it.id} item={it} canReorder={pl.can_reorder}
+            <Row key={it.id} item={it} canReorder={pl.can_reorder} owner={pl.owner}
                  shared={pl.collaborators?.length > 0}
                  onUp={() => move(i, -1)} onDown={() => move(i, 1)} onRemove={() => remove(it.id)} />
           ))}

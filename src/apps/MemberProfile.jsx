@@ -6,9 +6,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import EmbedLink from "../EmbedLink.jsx";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -95,6 +97,9 @@ export default function MemberProfile({ username, onClose }) {
               </p>
             )}
 
+            {/* The "now playing" banner — one link the member pinned. */}
+            {data.featured_link && <EmbedLink link={data.featured_link} owner={username} />}
+
             {data.bio && <p className="text-sm leading-relaxed text-white/75">{data.bio}</p>}
 
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
@@ -132,15 +137,12 @@ export default function MemberProfile({ username, onClose }) {
               </div>
             )}
 
-            {data.links?.length > 0 && (
+            {asList(data.links).filter((l) => l.url !== data.featured_link?.url).length > 0 && (
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">Links</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {data.links.map((l, i) => (
-                    <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
-                       className="pill hover:!text-mcz-cyan">
-                      {l.label || l.url}
-                    </a>
+                <div className="space-y-2">
+                  {asList(data.links).filter((l) => l.url !== data.featured_link?.url).map((l, i) => (
+                    <EmbedLink key={i} link={l} owner={username} />
                   ))}
                 </div>
               </div>

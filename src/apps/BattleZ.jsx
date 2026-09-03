@@ -20,11 +20,13 @@ import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import LinkPicker from "../LinkPicker.jsx";
+import EmbedLink from "../EmbedLink.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 
 function Work({ item }) {
-  if (!item.media_url && !item.image_url && !item.lyrics) return null;
+  if (!item.media_url && !item.image_url && !item.lyrics && !item.link?.url) return null;
   return (
     <div className="space-y-2">
       {item.media_url && (
@@ -33,6 +35,9 @@ function Work({ item }) {
           : <audio src={item.media_url} controls className="w-full" />
       )}
       {item.image_url && <img src={item.image_url} alt="" className="w-full rounded-lg" />}
+      {/* A take that already lives on SoundCloud/Spotify/YouTube — it's a
+          second way to bring a take, not a substitute for the upload above. */}
+      {item.link?.url && <EmbedLink link={item.link} owner={item.user} />}
       {item.lyrics && (
         <details>
           <summary className="cursor-pointer text-[11px] text-white/45">Lyrics / script</summary>
@@ -117,6 +122,7 @@ function Detail({ id, onBack, onFlash, seed }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [showEntry, setShowEntry] = useState(false);
+  const [entryLinks, setEntryLinks] = useState([]); // LinkPicker's shape; only the first rides in
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -149,9 +155,10 @@ function Detail({ id, onBack, onFlash, seed }) {
         method: "POST",
         body: { title: title.trim(), lyrics: hosted.lyrics || "",
                 ...primaryMedia(hosted),
-                image_url: hosted.image_url || "" },
+                image_url: hosted.image_url || "",
+                link: entryLinks[0] || {} },
       });
-      setTitle(""); setWork({}); setShowEntry(false);
+      setTitle(""); setWork({}); setEntryLinks([]); setShowEntry(false);
       onFlash("You're in.");
       load();
     } catch (e) { onFlash(e.message || "Couldn't enter."); }
@@ -365,6 +372,9 @@ function Detail({ id, onBack, onFlash, seed }) {
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
                  value={title} onChange={(e) => setTitle(e.target.value)} />
           <MediaFields value={work} onChange={setWork} label="Your entry" />
+          {/* Already on SoundCloud/Spotify/YouTube? Bring that instead of
+              re-uploading — it plays right here for the judges. */}
+          <LinkPicker value={entryLinks} onChange={(v) => setEntryLinks(v.slice(-1))} label="Or link a track" />
           <button className="neon-btn-primary !w-auto px-5" onClick={enter} disabled={busy}>
             {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Enter
             {b.entry_spinaz > 0 && (

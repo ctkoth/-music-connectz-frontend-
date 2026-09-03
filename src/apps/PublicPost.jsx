@@ -11,8 +11,11 @@
 // needs a moderation path this page doesn't have.
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { AlertCircle, Flame, Loader2 } from "lucide-react";
+import { AlertCircle, Flame, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
+import { asList } from "../shape.js";
+import EmbedLink from "../EmbedLink.jsx";
+import GuestCTA from "../GuestCTA.jsx";
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -23,8 +26,10 @@ export default function PublicPost() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    // auth:false → works logged-out. A restricted or private post answers 404
-    // here on purpose, so this page can't confirm one exists.
+    // auth:false → works logged-out. A private post answers 404 here on
+    // purpose, so this page can't confirm one exists. A restricted post
+    // answers 200 with a locked teaser (post.locked) instead — existence is
+    // the point of that door, see apps/economy/publicz.py's public_post_teaser.
     api(`/api/postz/${id}/`, { auth: false })
       .then(setPost)
       .catch((e) => setErr(e.message || "That post isn't available."));
@@ -53,7 +58,26 @@ export default function PublicPost() {
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       )}
 
-      {post && (
+      {post && post.locked && (
+        // A restricted post — the door RESTRICTED_JOIN_REWARD_SPINAZ rewards
+        // the author for a stranger walking back through. Title and author
+        // only; the server never sent the content to leak here.
+        <article className="neon-frame space-y-3 p-5 text-center">
+          <Lock size={28} className="mx-auto text-mcz-gold" />
+          <div>
+            <Link to={`/u/${post.author}`} className="text-sm font-bold text-white hover:text-mcz-ember">
+              @{post.author}
+            </Link>
+            <h1 className="mt-1 font-display text-xl font-extrabold tracking-tight text-white">{post.title}</h1>
+          </div>
+          <p className="text-sm text-white/60">
+            This one's for members. Join free and it opens — @{post.author} gets credit for bringing you in.
+          </p>
+          <GuestCTA action="unlock this" icon={Lock} className="!px-4 !py-2 !text-sm" />
+        </article>
+      )}
+
+      {post && !post.locked && (
         <article className="neon-frame p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             {/* The author is a link, not a dead name — that is the whole point
@@ -87,16 +111,13 @@ export default function PublicPost() {
             <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">{post.description}</p>
           )}
 
-          {post.links?.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {post.links.map((l, i) => (
-                <a key={i} href={typeof l === "string" ? l : l.url} target="_blank" rel="noreferrer noopener"
-                   className="pill hover:text-mcz-ember">
-                  {typeof l === "string" ? l : l.label || l.url}
-                </a>
-              ))}
-            </div>
-          )}
+          {/* SoundCloud/Spotify/YouTube/Apple Music play inline, right here —
+              no account needed to listen, same as the feed. Older posts (or
+              a bare string link) fall back gracefully: EmbedLink shows a
+              plain link when there's no `service` it recognizes. */}
+          {asList(post.links).map((l, i) => (
+            <EmbedLink key={i} link={typeof l === "string" ? { url: l } : l} owner={post.author} />
+          ))}
 
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
