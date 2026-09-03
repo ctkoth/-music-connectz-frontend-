@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, UserCircle2 } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
-import { AuthShell } from "./Register.jsx";
+import { AuthShell, safeNext } from "./Register.jsx";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // A guest who hit a gated action while browsing without an account (see
+  // GuestCTA.jsx) may already have one — landing back on it after LOGIN
+  // matters exactly as much as it does after registering.
+  const next = safeNext(params.get("next"));
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,7 +26,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(form);
-      navigate("/");
+      navigate(next || "/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -56,11 +61,11 @@ export default function Login() {
         </button>
       </form>
 
-      <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+      <OAuthButtons onSuccess={() => navigate(next || "/")} onError={setError} />
 
       <p className="pt-2 text-center text-sm text-white/55">
         New here?{" "}
-        <Link to="/register" className="text-mcz-cyan hover:underline">
+        <Link to={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="text-mcz-cyan hover:underline">
           Create an account
         </Link>
       </p>

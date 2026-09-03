@@ -30,6 +30,7 @@ import AdZ from "./apps/AdZ.jsx";
 import OfferZ from "./apps/OfferZ.jsx";
 import OnboardZ from "./apps/OnboardZ.jsx";
 import PublicPost from "./apps/PublicPost.jsx";
+import PublicFeed from "./apps/PublicFeed.jsx";
 import PublicProfile from "./apps/PublicProfile.jsx";
 import TrialTake from "./apps/TrialTake.jsx";
 import PublicPlaylist from "./apps/PublicPlaylist.jsx";
@@ -710,8 +711,12 @@ export default function App() {
       <Route path="/forgot" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
-      {/* Public — readable with no account. By link, never by browse: there is
-          no anonymous feed and no anonymous member search. */}
+      {/* Public — readable with no account. By link (one post, one profile,
+          one playlist) or by /browse — the one deliberate scroll, scoped to
+          exactly what a link to any one of these posts would already show.
+          Still no anonymous member search; that's the boundary the old
+          "no anonymous feed" rule actually existed to protect. */}
+      <Route path="/browse" element={<PublicFeed />} />
       <Route path="/p/:id" element={<PublicPost />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />

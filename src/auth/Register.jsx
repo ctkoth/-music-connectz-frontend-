@@ -6,11 +6,22 @@ import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
 
+// A same-origin path only — never handed straight to a raw redirect, so a
+// crafted `?next=` can't send a freshly-registered member off-site.
+export function safeNext(raw) {
+  const v = (raw || "").trim();
+  return v.startsWith("/") && !v.startsWith("//") ? v : "";
+}
+
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const ref = (params.get("ref") || "").trim();
+  // A guest who hit a gated action (rate, comment, unlock a restricted post)
+  // lands right back on it once they've joined — the whole point of tying a
+  // CTA to what they were actually trying to do, per GuestCTA.jsx.
+  const next = safeNext(params.get("next"));
   // A take they had scored at the door, before they had an account to put it
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
@@ -29,7 +40,7 @@ export default function Register() {
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
       clearTrialToken();
-      navigate("/");
+      navigate(next || "/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,6 +58,11 @@ export default function Register() {
       {trialToken && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-sm text-mcz-cyan">
           <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
+        </div>
+      )}
+      {next && !trialToken && (
+        <div className="flex items-center gap-2 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-sm text-mcz-cyan">
+          <Sparkles size={15} /> You'll land right back where you were once you're in.
         </div>
       )}
       <form onSubmit={submit} className="space-y-3">
@@ -101,6 +117,9 @@ export function AuthShell({ title, subtitle, children }) {
         </div>
       </div>
       <div className="neon-frame space-y-5 p-6">{children}</div>
+      <Link to="/browse" className="mt-4 text-center text-sm text-white/45 hover:text-white/70 hover:underline">
+        Not ready? Browse without an account →
+      </Link>
     </div>
   );
 }
