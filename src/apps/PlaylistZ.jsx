@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 
@@ -42,10 +42,12 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
   return (
     <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
       <span className="w-5 shrink-0 text-[11px] tabular-nums text-white/30">{item.position}</span>
-      <button
-        className="min-w-0 flex-1 text-left disabled:opacity-50"
-        onClick={open}
-        disabled={!item.available}
+      <div
+        role="button"
+        tabIndex={0}
+        className={`min-w-0 flex-1 text-left ${item.available ? "cursor-pointer" : "cursor-default opacity-50"}`}
+        onClick={item.available ? open : undefined}
+        onKeyDown={(e) => { if (item.available && (e.key === "Enter" || e.key === " ")) open(); }}
         title={item.available ? "Open" : "This post was deleted"}
       >
         <span className="flex items-center gap-1.5">
@@ -66,10 +68,12 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
           {!isPost && item.clicks > 0 && <span>{item.clicks} clicks</span>}
           {item.rating != null && <span className="text-mcz-ember">{item.rating}/10</span>}
           {/* On a shared list, "who put this here" is the first question. */}
-          {shared && item.added_by && <span>added by @{item.added_by}</span>}
+          {shared && item.added_by && (
+            <span>added by <button className="hover:underline" onClick={(e) => { e.stopPropagation(); openMember(item.added_by); }}>@{item.added_by}</button></span>
+          )}
           {!item.available && <span className="text-mcz-ember">post deleted</span>}
         </span>
-      </button>
+      </div>
       {!isPost && (
         <a href={item.url} target="_blank" rel="noreferrer noopener"
            className="shrink-0 text-white/25 hover:text-mcz-gold" title="Open">
@@ -192,7 +196,8 @@ function Collaborators({ pl, onChanged }) {
     if (!pl.can_add) return null;
     return (
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
-        <Users size={12} /> You're a collaborator here — add tracks, and @{pl.owner} sets the order.
+        <Users size={12} /> You're a collaborator here — add tracks, and{" "}
+        <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button> sets the order.
         <button className="pill !text-red-300" onClick={() => remove("")}>
           <LogOut size={11} className="inline" /> Leave
         </button>
@@ -213,7 +218,7 @@ function Collaborators({ pl, onChanged }) {
         <ul className="flex flex-wrap gap-1.5">
           {mates.map((u) => (
             <li key={u} className="pill flex items-center gap-1">
-              @{u}
+              <button className="hover:underline" onClick={() => openMember(u)}>@{u}</button>
               <button onClick={() => remove(u)} className="text-white/30 hover:text-red-300" title="Remove collaborator">
                 <X size={10} />
               </button>
@@ -282,7 +287,8 @@ function Detail({ id, onBack, onChanged }) {
       <div>
         <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
         <p className="text-[11px] text-white/40">
-          by @{pl.owner} · {pl.post_count} from Music ConnectZ · {pl.link_count} outside
+          by <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button>
+          {" · "}{pl.post_count} from Music ConnectZ · {pl.link_count} outside
           {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
           {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
         </p>
@@ -374,8 +380,10 @@ function Appearances({ onOpen }) {
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] text-white/85">{r.post}</span>
             <span className="block truncate text-[10px] text-white/35">
-              in “{r.playlist}” by @{r.owner}
-              {r.added_by && r.added_by !== r.owner && <> · added by @{r.added_by}</>}
+              in “{r.playlist}” by <button className="hover:underline" onClick={() => openMember(r.owner)}>@{r.owner}</button>
+              {r.added_by && r.added_by !== r.owner && (
+                <> · added by <button className="hover:underline" onClick={() => openMember(r.added_by)}>@{r.added_by}</button></>
+              )}
               {" · "}{r.visibility}
             </span>
           </span>
@@ -441,7 +449,8 @@ function PendingPost({ lists, onAdded, onDrop }) {
       <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">🎧 From PostZ</p>
       <p className="text-[13px] font-semibold text-white">{post.title}</p>
       <p className="text-[11px] text-white/45">
-        by @{post.author}{post.genre ? ` · ${post.genre}` : ""}
+        by <button className="hover:underline" onClick={() => openMember(post.author)}>@{post.author}</button>
+        {post.genre ? ` · ${post.genre}` : ""}
       </p>
       {mine.length === 0 ? (
         <p className="text-[12px] text-white/45">

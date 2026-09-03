@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
+import { openMember } from "./goto.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -299,7 +300,7 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-function CommunityBar({ onOpenMember }) {
+function CommunityBar() {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     let on = true;
@@ -333,7 +334,7 @@ function CommunityBar({ onOpenMember }) {
           {(stats.online_members || []).map((u) => (
             <button
               key={u}
-              onClick={() => onOpenMember?.(u)}
+              onClick={() => openMember(u)}
               title={`View ${u}'s profile`}
               className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:shadow-neon active:scale-95"
             >
@@ -426,6 +427,14 @@ function Home() {
     window.addEventListener("mcz-goto-tab", h);
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
+
+  // Any screen anywhere can open a member's profile via openMember(username)
+  // (goto.js) instead of needing this modal threaded down as a prop.
+  useEffect(() => {
+    const h = (e) => setMemberKey(e.detail);
+    window.addEventListener("mcz-open-member", h);
+    return () => window.removeEventListener("mcz-open-member", h);
+  }, []);
 
   useEffect(() => {
     api("/api/economy/logicz/")
@@ -530,7 +539,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} />
+        <CommunityBar />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
           {active?.el}

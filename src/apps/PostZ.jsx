@@ -32,7 +32,7 @@ import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff } from "../handoff.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
@@ -561,11 +561,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   return (
     <div className="re-card">
       <div className="mb-3 flex items-center gap-3">
-        <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
-                 className="h-10 w-10 rounded-lg object-cover" />
+        <button onClick={() => openMember(post.author)} title={`View ${post.author}'s profile`}>
+          <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
+                   className="h-10 w-10 rounded-lg object-cover" />
+        </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold text-white">
-            {post.author}{post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
+            <button className="hover:underline" onClick={() => openMember(post.author)}>{post.author}</button>
+            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
@@ -764,7 +767,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <div className="re-label">Comments · {comments.length}</div>
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
-            <span className="font-semibold text-mcz-ember">{c.user}</span>{" "}
+            <button className="font-semibold text-mcz-ember hover:underline" onClick={() => openMember(c.user)}>{c.user}</button>{" "}
             <span className="text-white/80">{c.body}</span>
           </div>
         ))}

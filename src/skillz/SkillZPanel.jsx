@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, Flame, Loader2, Star, Trophy, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
+import { openMember } from "../goto.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -170,7 +171,7 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             <div key={row.username + i} className="flex items-center justify-between px-4 py-2 text-sm">
               <span className="flex items-center gap-3">
                 <span className="w-5 text-white/40">{i + 1}</span>
-                <span className="font-medium">{row.username}</span>
+                <button className="font-medium hover:underline" onClick={() => openMember(row.username)}>{row.username}</button>
               </span>
               <span className="flex items-center gap-3 text-white/55">
                 <span>Lv {row.level}</span>

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
@@ -54,7 +54,8 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{deal.title || "Untitled deal"}</p>
           <p className="text-xs text-white/55">
-            by @{deal.initiator} · {STATUS_LABEL[deal.status] || deal.status}
+            by <button className="hover:underline" onClick={() => openMember(deal.initiator)}>@{deal.initiator}</button>
+            {" · "}{STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
         {held > 0 && (
@@ -131,7 +132,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
-            <span className="truncate text-white/75">@{p.username}</span>
+            <button className="truncate text-white/75 hover:underline" onClick={() => openMember(p.username)}>@{p.username}</button>
             <span className="flex shrink-0 items-center gap-2 text-[11px]">
               {p.pays_cents > 0 && (
                 <span className="text-mcz-ember">−<Amount cents={p.pays_cents} currency={cur} /></span>

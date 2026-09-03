@@ -9,7 +9,7 @@ import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -449,7 +449,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           <p className="text-[11px] text-white/45">
             {fromPost.kind === "journal"
               ? fromPost.day
-              : `by @${fromPost.author}`}
+              : <>by <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button></>}
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
@@ -690,7 +690,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             <p className="text-[11px] text-white/45">
               {result.saved_to_post
                 ? `Kept on "${result.post_title}" — it'll be on the post next time you look.`
-                : `Scored @${result.post_author}'s "${result.post_title}". This read is yours; their post is untouched.`}
+                : <>Scored <button className="hover:underline" onClick={() => openMember(result.post_author)}>@{result.post_author}</button>'s "{result.post_title}". This read is yours; their post is untouched.</>}
               {" "}
               <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
                 Back to the post

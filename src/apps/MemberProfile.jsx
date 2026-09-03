@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
-import { personaName } from "./socialData.js";
+import { personaName, FLAG_FOR } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 
 function Pill({ children, className = "" }) {
@@ -127,7 +127,7 @@ export default function MemberProfile({ username, onClose }) {
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">NationalitieZ</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.nationalities.map((n) => <Pill key={n}>{n}</Pill>)}
+                  {data.nationalities.map((n) => <Pill key={n}>{FLAG_FOR[n] || "🌐"} {n}</Pill>)}
                 </div>
               </div>
             )}

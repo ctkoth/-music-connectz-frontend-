@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FileSignature, Loader2, Plus } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import { openMember } from "../goto.js";
 
 export default function LabelZ() {
   const [data, setData] = useState(null);
@@ -77,7 +78,10 @@ export default function LabelZ() {
           {labels.map((l) => (
             <div key={l.id} className="neon-frame p-4">
               <p className="font-semibold">{l.name} {l.i_own && <span className="pill ml-1 text-[10px]">yours</span>}</p>
-              <p className="text-xs text-white/55">by {l.owner} · {l.member_count} member{l.member_count === 1 ? "" : "s"}</p>
+              <p className="text-xs text-white/55">
+                by <button className="hover:underline" onClick={() => openMember(l.owner)}>{l.owner}</button>
+                {" · "}{l.member_count} member{l.member_count === 1 ? "" : "s"}
+              </p>
               {l.bio && <p className="mt-1 text-sm text-white/60">{l.bio}</p>}
             </div>
           ))}
@@ -109,7 +113,10 @@ export default function LabelZ() {
           {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
               <div className="flex items-start justify-between">
-                <p className="font-medium">{c.title} <span className="text-xs text-white/40">· {c.label} → {c.artist}</span></p>
+                <p className="font-medium">
+                  {c.title} <span className="text-xs text-white/40">· {c.label} → </span>
+                  <button className="text-xs text-white/40 hover:text-white hover:underline" onClick={() => openMember(c.artist)}>{c.artist}</button>
+                </p>
                 <span className="pill uppercase">{c.status}</span>
               </div>
               <pre className="whitespace-pre-wrap rounded-lg bg-black/30 p-3 text-xs text-white/70">{c.terms_text}</pre>

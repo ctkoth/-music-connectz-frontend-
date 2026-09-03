@@ -3,7 +3,7 @@ import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Load
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
-import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
+import { PERSONAS, PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
 import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears } from "../personaSkills.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
@@ -11,7 +11,7 @@ import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
-import { spotlight } from "../goto.js";
+import { spotlight, openMember } from "../goto.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -65,20 +65,6 @@ function Verify18Card() {
     </div>
   );
 }
-
-const PERSONAS = [
-  ["arscout", "A&R Scout", "personaz_arscout.png"],
-  ["designer", "Designer", "personaz_designer.png"],
-  ["developer", "Developer", "personaz_developer.png"],
-  ["director", "Director", "personaz_director.webp"],
-  ["ghostwriter", "GhostWriter", "personaz_ghostwriter.png"],
-  ["indieartist", "Indie Artist", "personaz_indieartist.png"],
-  ["manager", "Manager", "personaz_manager.png"],
-  ["mime", "Mime", "personaz_mime.png"],
-  ["mixengineer", "Mix Engineer", "personaz_mixengineer.png"],
-  ["producer", "Producer", "personaz_producer.png"],
-  ["videographer", "Videographer", "personaz_videographer.png"],
-];
 
 // SubstanceZ — what a member uses, declared by them. A profile metric, so it is
 // filterable on Social ConnectZ like every other one. Order runs legal → heavy;
@@ -486,7 +472,7 @@ export default function ProfileZ() {
         // string, and React refuses to render an object as a child — the
         // whole tab died with "Objects are not valid as a React child".
         user: me?.username, persona: sel[0]?.name || sel[0]?.key || "Creator",
-        icon: "personaz.png", nationalities: nats, looking: "collab",
+        icon: "personaz.png", nationalities: nats,
       },
     });
     try {
@@ -580,7 +566,7 @@ export default function ProfileZ() {
           <div className="space-y-1 border-t border-white/[0.06] pt-2">
             {ref.members.map((m) => (
               <div key={m.username} className="flex items-center justify-between text-sm">
-                <span className="text-white/80">{m.username}</span>
+                <button className="text-white/80 hover:underline" onClick={() => openMember(m.username)}>{m.username}</button>
                 <span className="text-[11px] text-white/40">
                   {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
                 </span>

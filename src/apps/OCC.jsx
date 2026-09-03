@@ -22,7 +22,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { CUSTOM_ICONS, IconImg } from "../App.jsx";
 import MediaFields from "../MediaFields.jsx";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 
@@ -511,7 +511,8 @@ export default function OCC() {
                 </>
               ) : (
                 <>
-                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
+                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by{" "}
+                  <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button>.
                   Rewrite it here and keep the result — the post itself isn't touched.{" "}
                   <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
                     Back to the post

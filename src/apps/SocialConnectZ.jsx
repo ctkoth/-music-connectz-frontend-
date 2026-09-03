@@ -1,51 +1,87 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Search, Heart } from "lucide-react";
+import { Loader2, MapPin, Search } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
-import { personaName, loadSocial, NATIONALITIES } from "./socialData.js";
+import { PERSONAS } from "../personaIcons.js";
+import { NATIONALITIES, FLAG_FOR } from "./socialData.js";
+import { openMember } from "../goto.js";
 
-const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
+// A persona is stored as {key, name, skills} (or, from before the skill
+// picker, a bare key string). The default label + icon for that key comes
+// from the one PERSONAS table ProfileZ's picker uses, so "producer" means
+// the same thing everywhere.
+function personaOf(personas) {
+  const first = (personas || [])[0];
+  if (!first) return null;
+  const key = typeof first === "object" ? first.key : first;
+  const label = (typeof first === "object" ? first.name : first) || key;
+  const found = PERSONAS.find(([k]) => k === key);
+  return { label: found?.[1] || label, icon: found?.[2] || "personaz.png" };
+}
 
-// Seed directory — each member carries NationalitieZ so heritage filtering is
-// demoable. Real members merge in from the shared store as profiles are saved.
-const SEED = [
-  { user: "NovaBeatz", icon: "personaz_producer.png", persona: "Producer", location: "Atlanta, GA", nationalities: ["African American", "Jamaican"], looking: "collab" },
-  { user: "SopranoSol", icon: "personaz_indieartist.png", persona: "Indie Artist", location: "Los Angeles, CA", nationalities: ["Mexican", "Filipino"], looking: "collab" },
-  { user: "KxngDrill", icon: "personaz_ghostwriter.png", persona: "Ghostwriter", location: "Chicago, IL", nationalities: ["Nigerian"], looking: "romance" },
-  { user: "MiaMix", icon: "personaz_mixengineer.png", persona: "Mix Engineer", location: "London, UK", nationalities: ["British", "Irish"], looking: "collab" },
-  { user: "DreVision", icon: "personaz_videographer.png", persona: "Videographer", location: "Toronto, CA", nationalities: ["Haitian", "Canadian"], looking: "romance" },
-  { user: "SeoulKeys", icon: "personaz_producer.png", persona: "Producer", location: "Seoul, KR", nationalities: ["Korean"], looking: "collab" },
-];
+// GET /api/economy/members/(<username>/)? card -> what this screen renders.
+function toCard(p, self = false) {
+  const persona = personaOf(p.personas);
+  return {
+    user: p.username,
+    avatar: p.avatar || null,
+    icon: persona?.icon || "personaz.png",
+    persona: persona?.label || "",
+    location: p.location || "",
+    nationalities: p.nationalities || [],
+    tier: p.tier || "",
+    self,
+  };
+}
 
 export default function SocialConnectZ() {
   const [me, setMe] = useState(null);
   const [nat, setNat] = useState("");
   const [q, setQ] = useState("");
-  const [dir, setDir] = useState(SEED);
+  const [dir, setDir] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     api("/api/auth/me/").then(setMe).catch(() => setMe(null));
   }, []);
 
   useEffect(() => {
-    const rebuild = () => {
-      const s = loadSocial();
-      const mine = s.profile;
-      if (mine?.user && (mine.nationalities?.length || mine.persona)) {
-        setDir([{ ...mine, self: true }, ...SEED.filter((m) => m.user !== mine.user)]);
-      } else {
-        setDir(SEED);
+    let on = true;
+    const rebuild = async () => {
+      setLoading(true);
+      setErr("");
+      try {
+        const [mine, listRes] = await Promise.all([
+          me?.username
+            ? api(`/api/economy/members/${encodeURIComponent(me.username)}/`).catch(() => null)
+            : Promise.resolve(null),
+          api("/api/economy/members/"),
+        ]);
+        const others = (listRes?.members || []).map((p) => toCard(p));
+        // Only show a "you" card once there's something real to show — a
+        // blank profile isn't a creator to discover yet.
+        const selfCard = mine && ((mine.nationalities?.length || 0) > 0 || (mine.personas?.length || 0) > 0)
+          ? [toCard(mine, true)]
+          : [];
+        if (on) setDir([...selfCard, ...others]);
+      } catch (e) {
+        if (on) setErr(e.message || "Couldn't load members.");
+      } finally {
+        if (on) setLoading(false);
       }
     };
     rebuild();
+    // ProfileZ fires this on every save, so a NationalitieZ or PersonaZ
+    // change shows up here without leaving the tab.
     window.addEventListener("mcz-social", rebuild);
-    return () => window.removeEventListener("mcz-social", rebuild);
-  }, []);
+    return () => { on = false; window.removeEventListener("mcz-social", rebuild); };
+  }, [me?.username]);
 
   const filtered = useMemo(() => {
     return dir.filter((m) => {
       const natMatch = !nat || (m.nationalities || []).includes(nat);
-      const text = `${m.user} ${personaName(m.persona)} ${m.location}`.toLowerCase();
+      const text = `${m.user} ${m.persona} ${m.location}`.toLowerCase();
       const qMatch = !q || text.includes(q.toLowerCase());
       return natMatch && qMatch;
     });
@@ -86,21 +122,30 @@ export default function SocialConnectZ() {
         <p className="re-label">{filtered.length} creator{filtered.length !== 1 ? "s" : ""} match</p>
       </div>
 
-      {/* Results */}
+      {/* Results — real members from GET /api/economy/members/, tap a card to
+          open their full profile (MemberProfile) instead of dead-ending here. */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div key={m.user} className={`re-card ${m.self ? "!border-mcz-ember/40" : ""}`}>
+          <div
+            key={m.user}
+            onClick={() => openMember(m.user)}
+            className={`re-card cursor-pointer transition hover:!border-white/20 ${m.self ? "!border-mcz-ember/40" : ""}`}
+          >
             <div className="mb-2 flex items-center gap-3">
-              <IconImg icon={m.icon || "personaz.png"} alt="" className="h-11 w-11 rounded-full object-cover" />
-              <div className="flex-1">
+              {m.avatar ? (
+                <img src={m.avatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <IconImg icon={m.icon} alt="" className="h-11 w-11 rounded-full object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold text-white">
                   {m.user}{m.self && <span className="ml-2 text-[10px] text-mcz-ember">you</span>}
                 </div>
-                <div className="text-[11px] text-white/50">{personaName(m.persona)}</div>
+                {m.persona && <div className="text-[11px] text-white/50">{m.persona}</div>}
               </div>
-              {m.looking === "romance"
-                ? <span className="pill !border-mcz-pink/40 !text-mcz-pink"><Heart size={10} className="inline" /> Romance</span>
-                : <span className="pill !border-mcz-ember/40 !text-mcz-ember">Collab</span>}
+              {m.tier && m.tier !== "free" && (
+                <span className="pill shrink-0 uppercase !text-mcz-cyan">{m.tier}</span>
+              )}
             </div>
             {m.location && (
               <div className="mb-2 flex items-center gap-1 text-[11px] text-white/45">
@@ -111,20 +156,26 @@ export default function SocialConnectZ() {
               {(m.nationalities || []).map((n) => (
                 <button
                   key={n}
-                  onClick={() => setNat(n)}
+                  onClick={(e) => { e.stopPropagation(); setNat(n); }}
                   className="pill hover:!text-white"
                   title={`Filter by ${n}`}
                 >
-                  {FLAG[n] || "🌐"} {n}
+                  {FLAG_FOR[n] || "🌐"} {n}
                 </button>
               ))}
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
-          <p className="text-sm text-white/45">No creators match that heritage yet.</p>
-        )}
       </div>
+      {loading && (
+        <p className="flex items-center gap-2 text-sm text-white/45">
+          <Loader2 className="animate-spin" size={14} /> Loading creators…
+        </p>
+      )}
+      {err && <p className="text-sm text-mcz-pink">{err}</p>}
+      {!loading && !err && filtered.length === 0 && (
+        <p className="text-sm text-white/45">No creators match that heritage yet.</p>
+      )}
     </div>
   );
 }

@@ -22,6 +22,18 @@ import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
+import { openMember } from "../goto.js";
+
+// "@username" as a real link to their profile — every place BattleZ mentions
+// a contestant by name uses this instead of a bare "@{name}" string.
+function AtUser({ user }) {
+  if (!user) return null;
+  return (
+    <button className="hover:underline" onClick={(e) => { e.stopPropagation(); openMember(user); }}>
+      @{user}
+    </button>
+  );
+}
 
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
@@ -80,7 +92,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
     <div className={`neon-frame space-y-2 p-3 ${isWinner ? "!border-mcz-gold/60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-[13px] font-semibold text-white/85">
-          {isWinner && <Crown size={12} className="mr-1 inline text-mcz-gold" />}@{s.username}
+          {isWinner && <Crown size={12} className="mr-1 inline text-mcz-gold" />}<AtUser user={s.username} />
         </span>
         <span className="shrink-0 text-[12px] font-bold text-mcz-ember">
           {s.median != null ? s.median : "—"}<span className="text-white/30">/10</span>
@@ -213,7 +225,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           <div className="min-w-0">
             <h3 className="font-display text-lg font-extrabold">{b.title}</h3>
             <p className="text-[11px] text-white/45">
-              hosted by @{b.host}
+              hosted by <AtUser user={b.host} />
               {b.genre && <> · {b.genre}</>}
               {" · "}{b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
@@ -239,8 +251,8 @@ function Detail({ id, onBack, onFlash, seed }) {
             <div className="neon-frame flex flex-wrap items-center gap-2 p-3">
               <p className="flex-1 text-[12px] text-white/70">
                 {b.my_side === "opponent"
-                  ? `@${b.host} called you out.`
-                  : `Waiting on @${b.opponent} to answer.`}
+                  ? <><AtUser user={b.host} /> called you out.</>
+                  : <>Waiting on <AtUser user={b.opponent} /> to answer.</>}
               </p>
               {b.my_side === "opponent" && (
                 <>
@@ -262,7 +274,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           )}
           {b.status === "settled" && (
             <p className="flex items-center gap-1.5 text-[12px] text-mcz-gold">
-              <Crown size={13} /> {b.winner ? `@${b.winner} took it.` : "Draw — every wager was refunded."}
+              <Crown size={13} /> {b.winner ? <><AtUser user={b.winner} /> took it.</> : "Draw — every wager was refunded."}
             </p>
           )}
 
@@ -281,13 +293,13 @@ function Detail({ id, onBack, onFlash, seed }) {
             <div className="flex flex-wrap gap-2">
               {["host", "opponent"].map((side) => (
                 <span key={side} className="pill">
-                  @{b.scoreboard?.[side]?.username} · {b.pools?.[side] || 0} {SPINAZ}
+                  <AtUser user={b.scoreboard?.[side]?.username} /> · {b.pools?.[side] || 0} {SPINAZ}
                 </span>
               ))}
             </div>
             {b.my_wager ? (
               <p className="text-[11px] text-white/60">
-                You staked {b.my_wager.amount} {SPINAZ} on @{b.scoreboard?.[b.my_wager.side]?.username}.
+                You staked {b.my_wager.amount} {SPINAZ} on <AtUser user={b.scoreboard?.[b.my_wager.side]?.username} />.
                 {b.status === "settled" && (
                   <span className={b.my_wager.paid_out > b.my_wager.amount ? " text-emerald-300" : " text-mcz-ember"}>
                     {" "}Paid out {b.my_wager.paid_out} {SPINAZ}.
@@ -336,9 +348,9 @@ function Detail({ id, onBack, onFlash, seed }) {
                   <span className="min-w-0">
                     <span className="text-[11px] tabular-nums text-white/30">#{i + 1}</span>{" "}
                     <span className="text-[13px] font-semibold text-white/85">
-                      {e.title || `@${e.user}`}
+                      {e.title || <AtUser user={e.user} />}
                     </span>
-                    <span className="block text-[10px] text-white/35">@{e.user}</span>
+                    <span className="block text-[10px] text-white/35"><AtUser user={e.user} /></span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="text-[12px] font-bold text-mcz-ember">
