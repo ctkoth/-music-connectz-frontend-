@@ -1,47 +1,69 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "./auth/AuthContext.jsx";
 import AdFrame from "./AdFrame.jsx";
-import Login from "./auth/Login.jsx";
-import Register from "./auth/Register.jsx";
-import ForgotPassword from "./auth/ForgotPassword.jsx";
-import ResetPassword from "./auth/ResetPassword.jsx";
-import MimeZ from "./apps/MimeZ.jsx";
-import DirectZ from "./apps/DirectZ.jsx";
-import LessonZ from "./apps/LessonZ.jsx";
-import InstrumentZ from "./apps/InstrumentZ.jsx";
-import MessageZ from "./apps/MessageZ.jsx";
-import ProfileZ from "./apps/ProfileZ.jsx";
-import GroupZ from "./apps/GroupZ.jsx";
-import CollabZ from "./apps/CollabZ.jsx";
-import BattleZ from "./apps/BattleZ.jsx";
-import LabelZ from "./apps/LabelZ.jsx";
-import BugZ from "./apps/BugZ.jsx";
-import PostZ from "./apps/PostZ.jsx";
-import KeyConnectZ from "./apps/KeyConnectZ.jsx";
-import OCC from "./apps/OCC.jsx";
-import SocialConnectZ from "./apps/SocialConnectZ.jsx";
-import SpecZ from "./apps/SpecZ.jsx";
-import MembershipZ from "./apps/MembershipZ.jsx";
-import AdZ from "./apps/AdZ.jsx";
-import OfferZ from "./apps/OfferZ.jsx";
-import OnboardZ from "./apps/OnboardZ.jsx";
-import PublicPost from "./apps/PublicPost.jsx";
-import PublicProfile from "./apps/PublicProfile.jsx";
-import TrialTake from "./apps/TrialTake.jsx";
-import PublicPlaylist from "./apps/PublicPlaylist.jsx";
-import PlaylistZ from "./apps/PlaylistZ.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
-import MemberProfile from "./apps/MemberProfile.jsx";
-import LogZ from "./apps/LogZ.jsx";
-import HabitZ from "./apps/HabitZ.jsx";
-import JournalZ from "./apps/JournalZ.jsx";
 import { SPINAZ } from "./resources.js";
+
+// Every screen below used to be a static import, which means a cold visitor
+// hitting the logged-out Landing page paid for the ENTIRE authenticated app —
+// all ~28 tabs, SingZ through BugZ — before a single pixel of "here's what
+// this is" painted. That's the 730KB single chunk Vite's own build output
+// warns about. lazy() + Suspense (below) means each route/tab downloads only
+// when it's actually opened, so the cold path (Landing → /try → Register) now
+// ships close to nothing extra. JSX referencing a lazy component (as TABS
+// does, below) does NOT trigger its import — only mounting it does, which is
+// why TABS can stay exactly as written.
+const Login = lazy(() => import("./auth/Login.jsx"));
+const Register = lazy(() => import("./auth/Register.jsx"));
+const ForgotPassword = lazy(() => import("./auth/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./auth/ResetPassword.jsx"));
+const MimeZ = lazy(() => import("./apps/MimeZ.jsx"));
+const DirectZ = lazy(() => import("./apps/DirectZ.jsx"));
+const LessonZ = lazy(() => import("./apps/LessonZ.jsx"));
+const InstrumentZ = lazy(() => import("./apps/InstrumentZ.jsx"));
+const MessageZ = lazy(() => import("./apps/MessageZ.jsx"));
+const ProfileZ = lazy(() => import("./apps/ProfileZ.jsx"));
+const GroupZ = lazy(() => import("./apps/GroupZ.jsx"));
+const CollabZ = lazy(() => import("./apps/CollabZ.jsx"));
+const BattleZ = lazy(() => import("./apps/BattleZ.jsx"));
+const LabelZ = lazy(() => import("./apps/LabelZ.jsx"));
+const BugZ = lazy(() => import("./apps/BugZ.jsx"));
+const PostZ = lazy(() => import("./apps/PostZ.jsx"));
+const KeyConnectZ = lazy(() => import("./apps/KeyConnectZ.jsx"));
+const OCC = lazy(() => import("./apps/OCC.jsx"));
+const SocialConnectZ = lazy(() => import("./apps/SocialConnectZ.jsx"));
+const SpecZ = lazy(() => import("./apps/SpecZ.jsx"));
+const MembershipZ = lazy(() => import("./apps/MembershipZ.jsx"));
+const AdZ = lazy(() => import("./apps/AdZ.jsx"));
+const OfferZ = lazy(() => import("./apps/OfferZ.jsx"));
+const OnboardZ = lazy(() => import("./apps/OnboardZ.jsx"));
+const PublicPost = lazy(() => import("./apps/PublicPost.jsx"));
+const PublicProfile = lazy(() => import("./apps/PublicProfile.jsx"));
+const TrialTake = lazy(() => import("./apps/TrialTake.jsx"));
+const PublicPlaylist = lazy(() => import("./apps/PublicPlaylist.jsx"));
+const PlaylistZ = lazy(() => import("./apps/PlaylistZ.jsx"));
+const MemberProfile = lazy(() => import("./apps/MemberProfile.jsx"));
+const LogZ = lazy(() => import("./apps/LogZ.jsx"));
+const HabitZ = lazy(() => import("./apps/HabitZ.jsx"));
+const JournalZ = lazy(() => import("./apps/JournalZ.jsx"));
+const Landing = lazy(() => import("./Landing.jsx"));
+
+// A minimal, theme-matched fallback — Suspense shows this for the split
+// second a chunk is in flight. Same spinner RequireAuth already used, so a
+// lazy chunk loading doesn't look like a different kind of wait.
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center text-white/50">
+      <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+    </div>
+  );
+}
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
@@ -299,6 +321,25 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+// "/" is the one URL that gets shared, indexed and clicked cold — the
+// index.html SEO meta and every OG card point at it. A signed-in member
+// should land in the app; anyone else gets the marketing page that makes
+// good on what those links promised, not a bare "Welcome back" login form
+// (that redirect is still what every OTHER protected route does — a deep
+// link like /battle while logged out is someone who already knows what this
+// is, and /login is the right place to send them).
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  return user ? <Home /> : <Landing />;
+}
+
 function CommunityBar({ onOpenMember }) {
   const [stats, setStats] = useState(null);
   useEffect(() => {
@@ -533,7 +574,7 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          {active?.el}
+          <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
         </ErrorBoundary>
       </main>
 
@@ -591,7 +632,9 @@ function Home() {
       )}
 
       {memberKey && (
-        <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        <Suspense fallback={null}>
+          <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        </Suspense>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
@@ -692,6 +735,7 @@ function OAuthCallback() {
 
 export default function App() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -705,14 +749,7 @@ export default function App() {
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
           catch-all so an unknown path still falls through to the redirect
           below instead of rendering an app shell with no tab in it. */}
@@ -729,5 +766,6 @@ export default function App() {
       ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
