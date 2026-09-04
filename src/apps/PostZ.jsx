@@ -33,6 +33,8 @@ import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
 import { playSound } from "../sound.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
 
@@ -381,6 +383,7 @@ export default function PostZ() {
 }
 
 function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
+  const talk = useSay();
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
@@ -468,7 +471,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     try {
       setSocial(await api("/api/economy/social/rate/",
                           { method: "POST", body: { item, action: "rate", score } }));
-      onFlash(`Rated ${score}/10 · +1 ${ENERGY}`);
+      onFlash(talk(P.postz_rated(score)));
       playSound("energy_gain");
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
@@ -538,7 +541,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         take_bytes: d.take_bytes || 0, max_bytes: d.max_bytes || 0,
         ...(d.carry || {}),
       });
-      onFlash(`"${post.title}" is waiting in ${d.app.toUpperCase()}.`);
+      onFlash(talk(P.postz_handed_over(post.title, d.app.toUpperCase())));
     } catch (e) {
       onFlash(e.message || `Couldn't open that in ${d.app}.`);
     } finally { setOpening(""); }
@@ -550,7 +553,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     try {
       setSocial(await api("/api/economy/social/comment/", { method: "POST", body: { item, body } }));
       draft.current = "";
-      onFlash("Comment posted.");
+      onFlash(talk(P.postz_commented));
     } catch (e) {
       onFlash(e.message || "Couldn't comment.");
       loadSocial();

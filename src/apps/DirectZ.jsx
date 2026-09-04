@@ -19,6 +19,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Clapperboard, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { asList } from "../shape.js";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
@@ -29,6 +31,7 @@ const mmss = (s) =>
             : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 export default function DirectZ() {
+  const talk = useSay();
   const [spec, setSpec] = useState(null);
   // The craft rating is OFF by default. It sends the video to a model that
   // watches it, which costs real money — so posting must not quietly become a
@@ -116,7 +119,7 @@ export default function DirectZ() {
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
                 description: "", craft_rating: false });
       setWork({}); setSeconds(0);
-      setMsg("Posted to DirectZ.");
+      setMsg(talk(P.directz_posted));
       load();
     } catch (err) {
       setMsg(err.message || "Couldn't post that one.");

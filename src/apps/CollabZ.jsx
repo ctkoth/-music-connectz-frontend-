@@ -19,6 +19,8 @@ import {
   Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
@@ -184,6 +186,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
 }
 
 export default function CollabZ() {
+  const talk = useSay();
   const [deals, setDeals] = useState(null);
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
@@ -217,7 +220,7 @@ export default function CollabZ() {
       await api("/api/economy/social/rate/", {
         method: "POST", body: { item: itemKey, action: "rate", score: Math.round(score) },
       });
-      setMsg(`Rated @${username} ${Math.round(score)}/10.`);
+      setMsg(talk(P.collab_rated(username, Math.round(score))));
       load();
     } catch (e) { setMsg(e.message || "Couldn't rate that."); }
   }
@@ -274,7 +277,7 @@ export default function CollabZ() {
       });
       setForm({ ...form, title: "", partner: "", mine: "", theirs: "", description: "" });
       setWork({}); setGates({});
-      setMsg("Deal drafted — fund your share to put it in escrow.");
+      setMsg(talk(P.collab_drafted));
       // Only once the deal actually exists — a refused draft is not a collab.
       playSound("collab");
       load();
