@@ -28,7 +28,9 @@ export const TIER_MATRIX = [
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
   ["DistributeZ submissions", "1 / month", "Unlimited", "Unlimited + licensing"],
   ["LabelZ — create and run a label", "—", "Yes", "Yes"],
-  ["CallZ", "—", "—", "Yes"],
+  // Placing is StatZ. ANSWERING is every tier — see the CallZ row below.
+  ["CallZ — place a call", "—", "—", "Yes"],
+  ["CallZ — answer and get paid", "Yes", "Yes", "Yes"],
   ["SpecZ marketplace", "—", "—", "Yes"],
   ["PersonaZ alternate artwork", "—", "Yes", "Yes"],
 ];
@@ -68,9 +70,12 @@ export const APP_BENEFITS = [
   },
   {
     app: "CallZ", icon: "callz.png",
-    free: "—",
-    premium: "—",
-    statz: "StatZ only, and needs a cash balance. Calls are priced by the other member's skill rate per hour.",
+    // No number in this copy. What a call COSTS is the other member's own
+    // per-minute rate, derived from their priced skills and published by
+    // `GET /api/economy/callz/rate/<username>/` before anything rings.
+    free: "Answer calls and get paid your own per-minute rate — receiving is never gated, because charging somebody to be hired is backwards. You see what you'll earn a minute before you pick up.",
+    premium: "The same, at a lower platform fee on what you earn.",
+    statz: "Place calls as well as answer them. You see their rate, your balance and how many minutes you can afford before it rings, and the running cost while you talk.",
   },
   {
     app: "SpecZ", icon: "specz.png",
