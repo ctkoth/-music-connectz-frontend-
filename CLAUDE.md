@@ -38,10 +38,16 @@ its resource emoji.
 
 ### Known violations, not yet fixed
 
-- **BossTake** — "Send it to the coach" spends a prompt with no warning; the
-  cost only appears in the response as `cost_cents`.
-- **AI surfaces generally** (translate, OCC chat, Gemini image/video).
-- **CallZ** — the other member's hourly rate must be visible pre-connect.
+- **CallZ** — no live 1:1 calling surface is mounted yet (LessonZ's "CallZ"
+  option is just a delivery method on a booking, priced the same as remote/
+  in-person). When a real call feature ships, the other member's rate has to
+  be visible pre-connect, same as everywhere else.
+
+Previously listed here and since fixed — BossTake's "Send it to the coach"
+(`Cost` component, price beside the button), OCC chat, DirectZ craft, and
+KeyConnectZ translate all state cost before the control that spends it now.
+Don't take this list as exhaustive — a surface not named here was never
+audited, not cleared. Check the actual button before assuming.
 
 ---
 
@@ -97,11 +103,14 @@ for the server voice — laddered like BossTake's, published by `GET
 /api/economy/keyz/` before either button is pressed.
 
 **Read-aloud goes to the device first, always.** `speechSynthesis` costs
-nothing, works offline and is unlimited, so `voice.js` asks whether the handset
-has a voice for that language and only falls back to the server when it does
-not. That gap is Yorùbá, Igbo, Hausa and Amharic before it is anything else —
-which is why the server voice is not sold by tier either. A gate there would
-mean English speakers hear their translation free while Yorùbá speakers pay.
+nothing, works offline and is unlimited, so `keyVoice.js` asks whether the
+handset has a voice for that language and only falls back to the server when
+it does not — named apart from `voice.js` (the member's slang/emoji/explicit
+tone switches) since the two are unrelated and happened to want the same
+filename. That gap is Yorùbá, Igbo, Hausa and Amharic before it is anything
+else — which is why the server voice is not sold by tier either. A gate there
+would mean English speakers hear their translation free while Yorùbá speakers
+pay.
 
 `voicesReady()` exists because `getVoices()` is empty on the first call in
 Chrome and fills in later — without the wait, "your phone can't speak Spanish"

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Send, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
+import { onHandoff } from "../handoff.js";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -19,12 +21,22 @@ export default function MessageZ() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // A jump that arrives empty-handed is a tab switch wearing a handoff's
+  // clothes. JournalZ sends "message the people on this entry" here, so the
+  // recipient and the words are already in the form when it lands.
+  useEffect(() => onHandoff("messagez", (p) => {
+    const first = asList(p.people)[0];
+    if (first) setTo(first);
+    setBody([p.title, p.description].filter(Boolean).join("\n\n").slice(0, 4000));
+  }), []);
+
   async function send(e) {
     e.preventDefault();
     setBusy(true); setMsg("");
     try {
       const r = await api("/api/economy/messages/", { method: "POST", body: { to, body } });
       setMsg(r.cost_energy ? `Sent · −${r.cost_energy} ⚡ Energy` : "Sent · reply = free ⚡");
+      playSound(r.cost_energy ? "energy_spend" : "message");
       setBody(""); load();
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
   }
@@ -43,7 +55,7 @@ export default function MessageZ() {
         </div>
       </header>
 
-      <form onSubmit={send} className="neon-frame space-y-3 p-4">
+      <form onSubmit={send} className="neon-frame space-y-3 p-4" data-tour="messagez-compose">
         <input className="neon-input" placeholder="To (username)" value={to} onChange={(e) => setTo(e.target.value)} required />
         <textarea className="neon-input" rows={2} placeholder="Say something worth their time…"
           value={body} maxLength={cl.unlimited ? undefined : cl.limit}

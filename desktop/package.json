@@ -4,7 +4,9 @@
   "description": "Music ConnectZ desktop wrapper",
   "main": "main.cjs",
   "scripts": {
-    "dist": "electron-builder --win nsis --publish never"
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --publish never",
+    "dist:portable": "electron-builder --win portable --publish never"
   },
   "devDependencies": {
     "electron": "^31.7.7",
@@ -19,7 +21,13 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "MusicConnectZ-Setup.${ext}"
+      "artifactName": "MusicConnectZ-Setup.${ext}",
+      "shortcutName": "Music ConnectZ",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "MusicConnectZ.${ext}"
     }
   }
 }

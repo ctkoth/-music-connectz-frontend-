@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
+import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { APP_BENEFITS, TIER_BLURB, TIER_MATRIX, TIER_ORDER } from "../tierBenefits.js";
 
@@ -31,6 +34,7 @@ function Cell({ v }) {
 }
 
 export default function MembershipZ() {
+  const talk = useSay();
   const [me, setMe] = useState(null);
   const [founding, setFounding] = useState(null);
   const [cfg, setCfg] = useState(null);
@@ -43,7 +47,7 @@ export default function MembershipZ() {
     api("/api/economy/checkout/config/").then(setCfg).catch(() => setCfg({ stripe_enabled: false }));
     // Surface a checkout return (backend now redirects to /?checkout=…).
     const q = new URLSearchParams(window.location.search);
-    if (q.get("checkout") === "success") setMsg("✅ Payment received — your StatZ upgrade activates as soon as the payment clears.");
+    if (q.get("checkout") === "success") setMsg(talk(P.membership_paid));
     else if (q.get("checkout") === "cancel") setMsg("Checkout canceled — no charge was made.");
     if (q.has("checkout")) window.history.replaceState({}, "", window.location.pathname);
   }, []);
@@ -57,7 +61,7 @@ export default function MembershipZ() {
     setMsg(""); setBusy(key);
     try {
       const r = await api(endpoint, { method: "POST", body: { plan } });
-      if (r?.url) { window.location.href = r.url; return; }
+      if (r?.url) { playSound("money_spend"); window.location.href = r.url; return; }
       setMsg("Couldn't start checkout — please try again.");
     } catch (e) {
       const m = e?.message || "";

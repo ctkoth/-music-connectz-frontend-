@@ -135,7 +135,20 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
             .join(" "))) ||
       STATUS_MESSAGE[res.status] ||
       `Request failed (${res.status})`;
-    throw new Error(msg);
+    // The body travels with the error, not just the sentence.
+    //
+    // A refusal in this app is rarely only "no": a tier gate names what is
+    // behind it and how many entries are waiting there, a cap says which cap
+    // and what the next tier lifts it to. Throwing the message alone threw all
+    // of that away, so every screen that wanted to turn a 403 into an offer had
+    // to re-request something to find out what it had just been refused.
+    //
+    // Additive on purpose — `e.message` is unchanged, so nothing that already
+    // reads it has to care.
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
   return data;
 }

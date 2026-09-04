@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Apple, Facebook, Github } from "lucide-react";
+import { Apple, ChevronDown, Facebook, Github } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -100,6 +100,13 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // popup, which the catch below used to relabel "cancelled" — the one word
   // that makes an owner stop looking. Remember it and say what it means.
   const [appleErr, setAppleErr] = useState("");
+  // Six providers deep in a same-sized icon grid made every option look
+  // equally likely to work, which is worse than showing none: a first-time
+  // visitor can't tell "the one everyone has" from "the one from 2019 nobody
+  // configured." Apple joins Google as a full-width, labeled button; the
+  // long tail collapses behind a toggle instead of eating screen space by
+  // default.
+  const [showMore, setShowMore] = useState(false);
 
   // Nothing is enabled while the answer is still in flight: a button that
   // appears and then vanishes is worse than one that arrives a moment late.
@@ -233,6 +240,8 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // screen. Hiding it on `hasGoogle` alone meant configuring Google could
   // REMOVE the member's only way to use it.
   const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
+  const apple = grid.find((p) => p.key === "apple");
+  const rest = grid.filter((p) => p.key !== "apple");
 
   return (
     <div className="space-y-3">
@@ -288,20 +297,44 @@ export default function OAuthButtons({ onSuccess, onError }) {
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-2">
-        {grid.map((p) => (
+      {apple && (
+        <button
+          onClick={() => start(apple)}
+          disabled={busy === "apple"}
+          className="neon-btn-ghost"
+        >
+          <Apple size={18} /> Continue with Apple
+        </button>
+      )}
+
+      {rest.length > 0 && (
+        <>
           <button
-            key={p.key}
-            title={p.label}
-            aria-label={`Continue with ${p.label}`}
-            onClick={() => start(p)}
-            disabled={busy === p.key}
-            className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="flex w-full items-center justify-center gap-1 py-1 text-xs font-semibold text-white/40 hover:text-white/70"
           >
-            <p.Icon size={20} color={p.color} />
+            {showMore ? "Fewer options" : `More sign-in options (${rest.length})`}
+            <ChevronDown size={13} className={`transition ${showMore ? "rotate-180" : ""}`} />
           </button>
-        ))}
-      </div>
+          {showMore && (
+            <div className="grid grid-cols-5 gap-2">
+              {rest.map((p) => (
+                <button
+                  key={p.key}
+                  title={p.label}
+                  aria-label={`Continue with ${p.label}`}
+                  onClick={() => start(p)}
+                  disabled={busy === p.key}
+                  className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+                >
+                  <p.Icon size={20} color={p.color} />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

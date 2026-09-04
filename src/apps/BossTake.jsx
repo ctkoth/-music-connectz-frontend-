@@ -10,6 +10,7 @@ import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
+import { playSound } from "../sound.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -156,7 +157,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   useEffect(() => {
     if (trial) return undefined;
     return onHandoff(appKey, (h) => {
-      if (h?.kind !== "post" || !h.post_id) return;
+      // A post, or a page of the member's own diary — a voice note kept in
+      // JournalZ is a take like any other, and it is already stored, so it
+      // rides as an id exactly like a post does.
+      if (!((h?.kind === "post" && h.post_id)
+            || (h?.kind === "journal" && h.journal_id))) return;
       setFromPost(h);
       setTakeGone(false);
       setResult(null);
@@ -296,6 +301,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       mr.start(1000);
       setSecs(0);
       setRecording(true);
+      playSound("record_start");
     } catch {
       setMsg(video
         ? "Camera access was refused. Allow it, record audio only, or attach a file instead."
@@ -309,6 +315,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     if (rec.current?.state !== "recording") return;
     rec.current.stop();
     setRecording(false);
+    playSound("record_stop");
     if (note) setStopNote(note);
   }
 
@@ -327,7 +334,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
       const body = fromPost
-        ? { post_id: fromPost.post_id, genre, range, difficulty, ...(style ? { style } : {}) }
+        ? { ...(fromPost.kind === "journal"
+              ? { journal_id: fromPost.journal_id }
+              : { post_id: fromPost.post_id }),
+            genre, range, difficulty, ...(style ? { style } : {}) }
         : (() => {
             const f = new FormData();
             f.append("take", blob, takeName);
@@ -339,9 +349,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
+      // The score landing is the moment worth hearing. The prompt it spent
+      // is announced separately, and only when one was actually spent — a
+      // take covered by the day's free allowance costs nothing, and saying
+      // otherwise in audio would be the same lie as saying it on screen.
+      playSound("xp_gain");
+      if (!trial && out?.cost_cents) playSound("promptz_spend");
       onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
+      playSound("error");
     } finally { setBusy(false); }
   }
 
@@ -436,14 +453,21 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       {fromPost && !recording && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
-            🎧 From PostZ
+            {fromPost.kind === "journal" ? "📔 From your journal" : "🎧 From PostZ"}
           </p>
           <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
           <p className="text-[11px] text-white/45">
-            by @{fromPost.author}
+            {fromPost.kind === "journal"
+              ? fromPost.day
+              : `by @${fromPost.author}`}
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
+          {fromPost.kind === "journal" && (
+            <p className="text-[11px] text-white/45">
+              The entry stays private — sending a take to the coach publishes nothing.
+            </p>
+          )}
           {/* The player is the first thing that knows whether the recording is
               actually there. A take that 404s shows 0:00 / 0:00 and says
               nothing — and the send button then spends a press to find out.
@@ -498,13 +522,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         {!recording ? (
           <>
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
+            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
                     data-tour="bosstake-mic">
               <Mic size={15} /> {blob ? "Record again" : "Record a take"}
             </button>
             {/* The coach watches as well as listens. On camera it can mark
                 delivery, breath and posture, which sound alone can't show. */}
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
+            <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
@@ -515,8 +539,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           </button>
         )}
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); } }} />
-        <button className="re-btn !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
+        <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
           <Upload size={15} /> Attach audio or video
         </button>
         {blob && !recording && (

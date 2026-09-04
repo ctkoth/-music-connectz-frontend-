@@ -246,8 +246,16 @@ export default function OCC() {
   // A post carried in from PostZ opens as a WorkZ draft with its own words and
   // attachment already in it — the point being to rewrite the hook, not to
   // retype the verse before you can start.
+  // A post, or a page of somebody's diary. Both arrive in the same shape —
+  // `crosspost.carry` and `journalz.carry` speak the same keys on purpose — so
+  // the only difference here is which of them sent it, and that is only used
+  // to write the right sentence on the card. Refusing the journal handoff
+  // would have landed a member in WorkZ with an empty form, which is the
+  // dead end this whole handoff mechanism exists to stop.
   useEffect(() => onHandoff("occ", (h) => {
-    if (h?.kind !== "post" || !h.post_id) return;
+    const post = h?.kind === "post" && h.post_id;
+    const journal = h?.kind === "journal" && h.journal_id;
+    if (!post && !journal) return;
     setFromPost(h);
     setDraft({
       title: h.title || "",
@@ -492,11 +500,24 @@ export default function OCC() {
         <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
           {fromPost && (
             <p className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] px-3 py-2 text-[11px] text-white/70">
-              🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
-              Rewrite it here and keep the result — the post itself isn't touched.{" "}
-              <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
-                Back to the post
-              </button>
+              {fromPost.kind === "journal" ? (
+                <>
+                  📔 Filled from your journal entry for <b className="text-white">{fromPost.day}</b>.
+                  Rewrite it here and keep the result — the entry itself isn't touched, and
+                  nothing here is published.{" "}
+                  <button className="re-link" onClick={() => goToSpot("journalz", "journalz-entries")}>
+                    Back to the entry
+                  </button>
+                </>
+              ) : (
+                <>
+                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
+                  Rewrite it here and keep the result — the post itself isn't touched.{" "}
+                  <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
+                    Back to the post
+                  </button>
+                </>
+              )}
             </p>
           )}
           <input className="neon-input !py-2 text-xs" placeholder="Call it something"

@@ -5,6 +5,7 @@ import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { AuthShell } from "./Register.jsx";
+import { track } from "../track.js";
 
 export default function Login() {
   const { login } = useAuth();
@@ -21,6 +22,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(form);
+      track("login_success");
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -62,6 +64,10 @@ export default function Login() {
         New here?{" "}
         <Link to="/register" className="text-mcz-cyan hover:underline">
           Create an account
+        </Link>
+        {" "}or{" "}
+        <Link to="/try" className="text-mcz-cyan hover:underline">
+          try a free scored take first
         </Link>
       </p>
     </AuthShell>

@@ -35,13 +35,18 @@ body {
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3
            text-sm font-semibold transition active:scale-[0.98];
   }
+  /* Outlined glow pill, ringed in the brand gradient rather than filled with
+     it — a dark center reads as "the loudest button here" exactly as well as
+     a solid fill does, and it keeps every button in the app speaking the
+     same visual language (a ring + a glow) instead of two unrelated ones. */
   .neon-btn-primary {
-    @apply neon-btn text-white;
-    background: linear-gradient(90deg, #ff2bd1, #a855f7 55%, #22e6ff);
-    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4);
+    @apply neon-btn rounded-2xl border-2 border-transparent text-white;
+    background: linear-gradient(#0e0b1a, #0e0b1a) padding-box,
+      linear-gradient(90deg, #ff2bd1, #a855f7 55%, #22e6ff) border-box;
+    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4), 0 6px 18px rgba(0, 0, 0, 0.55);
   }
   .neon-btn-ghost {
-    @apply neon-btn border border-white/10 bg-white/5 text-white/90 hover:bg-white/10;
+    @apply neon-btn rounded-2xl border border-white/15 bg-white/5 text-white/90 hover:bg-white/10;
   }
   .pill {
     @apply rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/70;
@@ -55,25 +60,84 @@ body {
   .re-label {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40;
   }
+  /* Outlined glow pill, not a solid fill — border, glow AND icon (lucide
+     icons stroke with currentColor) all come from the text color, so a
+     single color class controls the whole button. Default is the brand
+     ember; re-btn-cyan/-pink/-emerald/-gold reassign it for a button whose
+     color carries meaning (BossTake's mic/camera/attach trio, the app's
+     resource colors, etc). A `!text-red-300` override already used on
+     several destructive buttons picks up the same trick for free — the
+     border and glow turn red with it, no separate class needed. */
   .re-btn {
-    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl bg-mcz-ember
-           px-4 py-3 text-sm font-bold text-white transition
-           hover:brightness-110 active:scale-[0.99];
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-2xl
+           border-2 border-current bg-black/30 px-5 py-3 text-sm font-bold
+           text-mcz-ember backdrop-blur-sm transition hover:brightness-125
+           active:translate-y-0 active:scale-[0.99]
+           disabled:opacity-40 disabled:hover:brightness-100;
+    /* Floating, not flat: the neon ring, an outward glow, an inner bloom
+       along the edge, and a real cast shadow underneath. The cast shadow is
+       what lifts it off the panel — glow alone reads as a sticker, glow plus
+       a shadow reads as a sign hanging in front of the wall. */
+    box-shadow: 0 0 12px currentColor, inset 0 0 8px -4px currentColor,
+      0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .re-btn:hover {
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px -4px currentColor,
+      0 9px 22px rgba(0, 0, 0, 0.6);
+  }
+  /* Pressed: it drops onto the surface. The shadow collapsing is the whole
+     tell — a button that floats has somewhere to fall to. */
+  .re-btn:active {
+    box-shadow: 0 0 14px currentColor, inset 0 0 10px -3px currentColor,
+      0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+  .re-btn-cyan {
+    @apply !text-mcz-cyan;
+  }
+  .re-btn-pink {
+    @apply !text-mcz-pink;
+  }
+  .re-btn-emerald {
+    @apply !text-emerald-400;
+  }
+  .re-btn-gold {
+    @apply !text-mcz-gold;
+  }
+  .re-btn-purple {
+    @apply !text-mcz-purple;
+  }
+  .re-btn-red {
+    @apply !text-red-400;
   }
   .re-link {
     @apply font-semibold text-mcz-ember transition hover:brightness-125;
   }
   .re-badge {
-    @apply rounded-md bg-mcz-ember px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+    @apply rounded-full border border-mcz-ember bg-mcz-ember/10 px-2 py-0.5
+           text-[10px] font-bold uppercase tracking-wide text-mcz-ember;
   }
-  /* 1–10 rating block, dim by default, ember when active/hovered. */
+  /* 1–10 rating block. Dim and quiet until you're actually on it, then it
+     lights like everything else — the score you're about to give is worth
+     the same emphasis as the button that spends a prompt. */
   .re-scale {
-    @apply flex h-11 flex-1 items-center justify-center rounded-md bg-white/[0.06]
-           text-sm font-bold text-white/70 transition
-           hover:bg-mcz-ember hover:text-white;
+    @apply flex h-11 flex-1 items-center justify-center rounded-lg
+           border border-white/10 bg-white/[0.04] text-sm font-bold
+           text-white/60 transition
+           hover:border-mcz-ember hover:text-mcz-ember;
+  }
+  .re-scale:hover {
+    box-shadow: 0 0 10px currentColor;
   }
   .re-scale-on {
-    @apply bg-mcz-ember text-white;
+    @apply border-mcz-ember bg-mcz-ember/10 text-mcz-ember;
+    box-shadow: 0 0 10px currentColor;
+  }
+  /* The chip/tab idiom — PostZ's sort row, TrialTake's SingZ|RapZ switch,
+     LessonZ's views. `pill-on` is the selected one, lit the same way every
+     other active control in the app is now. */
+  .pill-on {
+    @apply !border-current !text-mcz-ember;
+    box-shadow: 0 0 9px currentColor;
   }
   /* Flashed on the control an OnboardZ link just sent you to, so you land on
      the actual field rather than somewhere near it. Removed after ~2s. */

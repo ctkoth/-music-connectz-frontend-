@@ -1,106 +1,113 @@
-// The phone's own voice, and how to tell when it hasn't got one.
+// VoiceZ — how hard the app talks to THIS member.
 //
-// `speechSynthesis` is on every browser and every phone. It costs nothing,
-// works offline, needs no key, and speaks the languages the device has voices
-// installed for — which on most handsets is the big ones and nothing else.
+// Three switches, served off /api/auth/me/ like every tier number, because a
+// house voice hardcoded in twenty-eight files is the same bug as the "20 free
+// prompts" figure that drifted into nine places. Copy asks for a phrase and
+// gets the strongest version this member allows.
 //
-// That gap is the whole reason this file is careful. KeyConnectZ deliberately
-// carries Yorùbá, Igbo, Hausa and Amharic, and those are exactly the languages
-// a phone has no voice for. If "read this aloud" quietly did nothing for them,
-// the feature would work for English speakers and fail silently for the members
-// it was most worth building for — so the caller has to be able to ASK whether
-// the device can do it, and fall back to the server when it can't.
+//   say({ plain: "Rated 8/10", slang: "8/10, locked in" }, voice)
 //
-// One definition, here, because the answer is needed in two places already (the
-// text you typed and the translation that came back) and a second copy would
-// drift the moment one of them got a fix.
+// The switches are independent on purpose: somebody can want the slang
+// without the swearing, or the swearing without a screen full of emoji.
+//
+// THE EMOJI SWITCH DOES NOT TOUCH THE RESOURCE MARKS. ⚡ 🍥 🏷️ 💵 ⭐ are not
+// decoration — they are the unit. CLAUDE.md's rule is "always the resource
+// emoji, never a bare number", and turning "+1 ⚡" into "+1" would delete
+// which currency arrived, which is the one thing that line exists to say. So
+// the switch strips ornament (🎤 ✨ 🔥 👋) and leaves the units alone.
+import { useEffect, useState } from "react";
+import { api, tokenStore } from "./api.js";
+import { ENERGY, MONEY, PROMPTZ, SPINAZ, XP } from "./resources.js";
 
-/** The device's voices, waiting for the list to arrive if it hasn't yet.
+// The house voice, and what a logged-out visitor gets: this is how Music
+// ConnectZ talks unless somebody says otherwise.
+export const DEFAULT_VOICE = { explicit: false, emoji: true, slang: true, explicit_allowed: false };
+
+// Compared with variation selectors dropped, so 🏷️ matches 🏷.
+const bare = (s) => String(s).replace(/️/g, "");
+const UNITS = new Set([ENERGY, SPINAZ, PROMPTZ, MONEY, XP].map(bare));
+
+/** Strip ornamental emoji, keep the resource units. */
+export function stripOrnament(text) {
+  return String(text ?? "")
+    .replace(
+      // One cluster: a pictograph plus any variation selectors, skin tones or
+      // ZWJ-joined parts, so a multi-codepoint emoji goes as one thing rather
+      // than leaving half of itself behind.
+      /\p{Extended_Pictographic}(️|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic})*/gu,
+      (m) => (UNITS.has(bare(m)) ? m : ""),
+    )
+    // Tidy the holes the removals leave: doubled spaces, a space before
+    // punctuation, and a dangling separator at either end.
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([.,!?;:])/g, "$1")
+    .replace(/^[\s·—–-]+|[\s·—–-]+$/g, "")
+    .trim();
+}
+
+/**
+ * Pick the strongest variant this member allows, then apply the emoji switch.
  *
- * `getVoices()` is empty on the first call in Chrome and fills in later, which
- * is how "your phone can't speak Spanish" gets said about a phone that can.
+ * `plain` is required and is the floor — every phrase has to work with every
+ * switch off, which also means a phrase can add a slang or explicit variant
+ * later without anything else changing.
  */
-export function voicesReady(timeoutMs = 1500) {
-  return new Promise((resolve) => {
-    const synth = typeof window !== "undefined" && window.speechSynthesis;
-    if (!synth) return resolve([]);
-    const now = synth.getVoices();
-    if (now.length) return resolve(now);
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      synth.removeEventListener?.("voiceschanged", finish);
-      resolve(synth.getVoices() || []);
-    };
-    synth.addEventListener?.("voiceschanged", finish);
-    // Never hang the button on a browser that fires the event late or not at
-    // all — an unanswered promise here is a speaker icon that spins forever.
-    setTimeout(finish, timeoutMs);
-  });
+export function say(variants, voice = DEFAULT_VOICE) {
+  const v = { ...DEFAULT_VOICE, ...(voice || {}) };
+  const picked =
+    (v.explicit && variants.explicit) ||
+    (v.slang && variants.slang) ||
+    variants.plain ||
+    "";
+  return v.emoji ? picked : stripOrnament(picked);
 }
 
-/** The device voice for `lang`, or null.
- *
- * Matched on the language subtag only: the app stores "pt", the device offers
- * "pt-BR", and demanding an exact match would reject a perfectly good voice.
- */
-export async function deviceVoiceFor(lang) {
-  const want = String(lang || "").toLowerCase().split("-")[0];
-  if (!want || want === "auto") return null;
-  const voices = await voicesReady();
-  return voices.find((v) => String(v.lang || "").toLowerCase().split("-")[0] === want) || null;
+/* ------------------------------------------------------------------ state */
+
+let cache = null;                 // last voice read from the server
+let inflight = null;
+
+function broadcast(v) {
+  cache = v;
+  window.dispatchEvent(new CustomEvent("mcz-voice-changed", { detail: v }));
 }
 
-/** Speak `text` with the device's own voice. Resolves false when it has none.
- *
- * False is an answer, not a failure — it is the caller's cue to ask the server,
- * which is the only reason the server voice exists.
- */
-export async function speakOnDevice(text, lang) {
-  const synth = typeof window !== "undefined" && window.speechSynthesis;
-  if (!synth || !String(text || "").trim()) return false;
-  const voice = await deviceVoiceFor(lang);
-  if (!voice) return false;
-  try {
-    // Whatever was being read is no longer what the member asked for.
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.voice = voice;
-    u.lang = voice.lang;
-    synth.speak(u);
-    return true;
-  } catch {
-    return false;
-  }
+/** Push a change to the server, then tell every mounted screen. Returns the
+ *  server's answer so a caller can surface a refusal — the explicit switch
+ *  400s for an account too young for it, and that has to be shown, not
+ *  swallowed. */
+export async function saveVoice(patch) {
+  const me = await api("/api/auth/me/", { method: "PATCH", body: { voice: patch } });
+  broadcast(me?.voice || DEFAULT_VOICE);
+  return me?.voice || DEFAULT_VOICE;
 }
 
-/** Stop whatever the device is saying. Safe to call when it is saying nothing. */
-export function stopDeviceVoice() {
-  try { window.speechSynthesis?.cancel(); } catch { /* nothing was speaking */ }
-}
-
-/** Play a base64 payload the server sent back, resolving when it ends. */
-export function playBase64(b64, mime = "audio/wav") {
-  return new Promise((resolve) => {
-    try {
-      const audio = new Audio(`data:${mime};base64,${b64}`);
-      audio.onended = () => resolve(true);
-      audio.onerror = () => resolve(false);
-      audio.play().catch(() => resolve(false));
-    } catch {
-      resolve(false);
+/** The member's voice. Starts from the house default so copy renders on the
+ *  first frame rather than flickering, and re-renders when the answer lands
+ *  or another screen changes it. */
+export function useVoice() {
+  const [voice, setVoice] = useState(cache || DEFAULT_VOICE);
+  useEffect(() => {
+    const h = (e) => setVoice(e.detail || DEFAULT_VOICE);
+    window.addEventListener("mcz-voice-changed", h);
+    // A logged-out visitor has no voice to fetch and gets the house one, so
+    // don't spend a doomed 401 on it — /try is the busiest page here and it
+    // has no session by definition.
+    if (!cache && tokenStore.get()) {
+      // One request for the whole app, however many screens ask at once.
+      inflight = inflight || api("/api/auth/me/").catch(() => null);
+      inflight.then((me) => {
+        inflight = null;
+        if (me?.voice) broadcast(me.voice);
+      });
     }
-  });
+    return () => window.removeEventListener("mcz-voice-changed", h);
+  }, []);
+  return voice;
 }
 
-/** What the browser can record a voice clip as.
- *
- * Ogg and mp4 first where they exist: the server relabels containers, but
- * recording into one the model reads natively means the clip never needs
- * rescuing. Safari can only do mp4, so it stays in the list.
- */
-export function bestClipMime() {
-  const wanted = ["audio/ogg;codecs=opus", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
-  return wanted.find((t) => window.MediaRecorder?.isTypeSupported?.(t)) || "";
+/** `const talk = useSay(); talk({ plain, slang, explicit })` */
+export function useSay() {
+  const voice = useVoice();
+  return (variants) => say(variants, voice);
 }

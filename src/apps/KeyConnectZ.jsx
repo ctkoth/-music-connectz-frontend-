@@ -38,7 +38,7 @@ import {
   Mic, Send, Square, Trash2, Volume2,
 } from "lucide-react";
 import { api } from "../api.js";
-import { bestClipMime, playBase64, speakOnDevice, stopDeviceVoice } from "../voice.js";
+import { bestClipMime, playBase64, speakOnDevice, stopDeviceVoice } from "../keyVoice.js";
 import { asList } from "../shape.js";
 import { goToTab } from "../goto.js";
 import { IconImg } from "../App.jsx";
