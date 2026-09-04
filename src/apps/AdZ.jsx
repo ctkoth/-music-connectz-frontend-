@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import EarnInstead from "../EarnInstead.jsx";
@@ -18,7 +19,13 @@ export default function AdZ() {
     const loadStats = () => api("/api/economy/adz/").then(setStats).catch(() => setStats(null));
     loadStats();
     // A rewarded ad just paid out (via server-side verification) — refresh.
-    const onReward = () => setTimeout(loadStats, 1500);
+    const onReward = () => {
+      // The whole product is "watch it, get paid" and the getting-paid moment
+      // landed in silence. The event is fired by the native shell only after
+      // the server verified the reward, so this is coin actually arriving.
+      playSound("spinaz_gain");
+      setTimeout(loadStats, 1500);
+    };
     window.addEventListener("mcz-ad-rewarded", onReward);
     return () => window.removeEventListener("mcz-ad-rewarded", onReward);
   }, []);
