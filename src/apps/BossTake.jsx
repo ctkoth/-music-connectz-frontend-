@@ -301,6 +301,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       mr.start(1000);
       setSecs(0);
       setRecording(true);
+      playSound("record_start");
     } catch {
       setMsg(video
         ? "Camera access was refused. Allow it, record audio only, or attach a file instead."
@@ -314,6 +315,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     if (rec.current?.state !== "recording") return;
     rec.current.stop();
     setRecording(false);
+    playSound("record_stop");
     if (note) setStopNote(note);
   }
 
@@ -537,7 +539,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           </button>
         )}
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); } }} />
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
         <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
           <Upload size={15} /> Attach audio or video
         </button>

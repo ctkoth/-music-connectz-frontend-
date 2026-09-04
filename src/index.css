@@ -40,13 +40,13 @@ body {
      a solid fill does, and it keeps every button in the app speaking the
      same visual language (a ring + a glow) instead of two unrelated ones. */
   .neon-btn-primary {
-    @apply neon-btn rounded-full border-2 border-transparent text-white;
+    @apply neon-btn rounded-2xl border-2 border-transparent text-white;
     background: linear-gradient(#0e0b1a, #0e0b1a) padding-box,
       linear-gradient(90deg, #ff2bd1, #a855f7 55%, #22e6ff) border-box;
-    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4);
+    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4), 0 6px 18px rgba(0, 0, 0, 0.55);
   }
   .neon-btn-ghost {
-    @apply neon-btn rounded-full border border-white/15 bg-white/5 text-white/90 hover:bg-white/10;
+    @apply neon-btn rounded-2xl border border-white/15 bg-white/5 text-white/90 hover:bg-white/10;
   }
   .pill {
     @apply rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/70;
@@ -69,14 +69,27 @@ body {
      several destructive buttons picks up the same trick for free — the
      border and glow turn red with it, no separate class needed. */
   .re-btn {
-    @apply inline-flex w-full items-center justify-center gap-2 rounded-full
-           border-2 border-current bg-black/20 px-5 py-3 text-sm font-bold
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-2xl
+           border-2 border-current bg-black/30 px-5 py-3 text-sm font-bold
            text-mcz-ember backdrop-blur-sm transition hover:brightness-125
-           active:scale-[0.99] disabled:opacity-40 disabled:hover:brightness-100;
-    box-shadow: 0 0 10px currentColor;
+           active:translate-y-0 active:scale-[0.99]
+           disabled:opacity-40 disabled:hover:brightness-100;
+    /* Floating, not flat: the neon ring, an outward glow, an inner bloom
+       along the edge, and a real cast shadow underneath. The cast shadow is
+       what lifts it off the panel — glow alone reads as a sticker, glow plus
+       a shadow reads as a sign hanging in front of the wall. */
+    box-shadow: 0 0 12px currentColor, inset 0 0 8px -4px currentColor,
+      0 6px 18px rgba(0, 0, 0, 0.55);
   }
   .re-btn:hover {
-    box-shadow: 0 0 16px currentColor;
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px -4px currentColor,
+      0 9px 22px rgba(0, 0, 0, 0.6);
+  }
+  /* Pressed: it drops onto the surface. The shadow collapsing is the whole
+     tell — a button that floats has somewhere to fall to. */
+  .re-btn:active {
+    box-shadow: 0 0 14px currentColor, inset 0 0 10px -3px currentColor,
+      0 2px 6px rgba(0, 0, 0, 0.5);
   }
   .re-btn-cyan {
     @apply !text-mcz-cyan;
@@ -89,6 +102,12 @@ body {
   }
   .re-btn-gold {
     @apply !text-mcz-gold;
+  }
+  .re-btn-purple {
+    @apply !text-mcz-purple;
+  }
+  .re-btn-red {
+    @apply !text-red-400;
   }
   .re-link {
     @apply font-semibold text-mcz-ember transition hover:brightness-125;

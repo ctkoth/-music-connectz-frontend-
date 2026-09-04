@@ -4,6 +4,7 @@ import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
+import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
@@ -564,20 +565,23 @@ function Home() {
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
         >
           <div className="flex items-center gap-1">
-            <button onClick={() => go(-1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
+            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => go(1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
+            </a>
+            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
-            </button>
+            </a>
           </div>
 
-          <button onClick={() => setTab("postz")} className="flex items-center gap-2">
+          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
+             title="PostZ — ctrl/cmd-click for a new tab">
             <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </button>
+          </a>
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -596,13 +600,13 @@ function Home() {
             </span>
           </button>
 
-          <button
-            onClick={() => setTab("profilez")}
+          <a
+            {...openable("/profile", () => openTab("profilez"))}
             className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10"
-            title="ProfileZ"
+            title="ProfileZ — ctrl/cmd-click for a new tab"
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
-          </button>
+          </a>
           <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
