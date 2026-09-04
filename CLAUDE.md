@@ -97,6 +97,22 @@ give them the link. A read-only surface is usually an unfinished one.
 - `src/mcz2/` is the 2.2 reference app and is **not mounted** — changing it
   changes nothing.
 
+## Profile JSON arrives repaired — don't re-implement the repair
+
+`personas` and `links` come off the server already normalized
+(`apps/economy/personaz.py` cleans them on write AND on read), so a component
+renders `persona.name` and `link.url` without defending against a shape.
+
+One exception, deliberately: `socialData.js`'s `personaName` also recovers a
+persona stored as the **printed form of a dict** —
+`"{'name': 'Independent Artist', 'emoji': '🎤', 'skills': []}"` — because that
+one ran against whatever a browser had cached and whatever is in localStorage,
+which no server deploy can reach. It is the same "repair on read" the file
+already does for the object form, and for the same reason.
+
+If a persona ever renders as machine noise again, it is a caching or a
+localStorage row, not a live API response.
+
 ## Deploys
 
 **Both repos auto-deploy from `main`, so merging to `main` IS the deploy.**
