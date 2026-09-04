@@ -33,6 +33,7 @@ import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
 import { playSound } from "../sound.js";
+import { useSay } from "../voice.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
 
@@ -381,6 +382,7 @@ export default function PostZ() {
 }
 
 function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
+  const talk = useSay();
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
@@ -468,7 +470,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     try {
       setSocial(await api("/api/economy/social/rate/",
                           { method: "POST", body: { item, action: "rate", score } }));
-      onFlash(`Rated ${score}/10 · +1 ${ENERGY}`);
+      onFlash(talk({
+        plain: `Rated ${score}/10 · +1 ${ENERGY}`,
+        slang: `${score}/10, locked in · +1 ${ENERGY}`,
+        explicit: `${score}/10, no notes · +1 ${ENERGY}`,
+      }));
       playSound("energy_gain");
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
