@@ -78,11 +78,26 @@ export const APP_BENEFITS = [
     premium: "—",
     statz: "The whole marketplace — audience demographics, engagement heatmaps, genre intelligence, collab compatibility.",
   },
+  // Lilith was listed here and sold at all three tiers — "auto-schedule,
+  // PersonaZ automation…, AI breakdown of big goals, smart priority scoring,
+  // and the analytics dashboard". None of it exists. It is three icons in
+  // App.jsx (lilith_today/anytime/logbook) and an entry in the translator's
+  // do-not-translate glossary: no tab, no component, no endpoint. It is not
+  // HabitZ renamed (HabitZ tallies observations; this is tasks and
+  // scheduling), and it is not OCC TaskZ (that is the agent's own queue).
+  //
+  // NOTHING GOES IN THIS FILE THAT A MEMBER CANNOT DO AFTER PAYING. Every row
+  // here is a promise attached to a price, so an entry for something unbuilt
+  // is not optimism, it is a refund conversation with a delay on it. Put
+  // Lilith back the day it ships and not one deploy sooner.
   {
-    app: "Lilith", icon: "toolz_lilith.png",
-    free: "Manual tasks, streaks and simple reminders.",
-    premium: "Expanded reward customization, more active missions, enhanced reminder bundles.",
-    statz: "Auto-schedule, PersonaZ automation that builds tasks from your RapZ/SingZ/BattleZ/LabelZ activity, AI breakdown of big goals, smart priority scoring, and the analytics dashboard.",
+    app: "RoyaltieZ", icon: "royaltiez.png",
+    // No tier gate, and the copy must not invent one: what changes by tier is
+    // the CASHOUT RATE, which comes from the server (catalog.cashout_rate) and
+    // is printed on the button beside the money it takes. No number here.
+    free: "Your royalty balance and its ledger, and every cashout plan with the fee and the net stated before you pick one. Quarterly always keeps all of it, at every tier.",
+    premium: "A lower fee on the weekly plan than Free pays.",
+    statz: "The lowest weekly fee of any tier.",
   },
   {
     app: "JournalZ", icon: "journalz.png",
