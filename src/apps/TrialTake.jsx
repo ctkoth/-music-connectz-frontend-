@@ -70,7 +70,7 @@ export default function TrialTake() {
         <div className="mt-3 flex gap-2">
           {Object.entries(APPS).map(([k, label]) => (
             <Link key={k} to={`/try/${k}`}
-                  className={`pill ${k === app ? "text-mcz-ember" : "hover:text-white"}`}>
+                  className={`pill ${k === app ? "pill-on" : "hover:text-white"}`}>
               {label}
             </Link>
           ))}

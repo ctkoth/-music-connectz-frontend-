@@ -15,6 +15,7 @@ import {
   Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
@@ -192,7 +193,10 @@ function Detail({ id, onBack, onFlash, seed }) {
       setB(await api(`/api/economy/battlez/${id}/wager/`,
                      { method: "POST", body: { side, amount: Math.round(amount) } }));
       onFlash(`−${Math.round(amount)} ${SPINAZ} staked. It's held until the result.`);
-    } catch (e) { onFlash(e.message || "Couldn't place that."); }
+      // After the server takes it, never before: a refused wager stakes
+      // nothing, and it must not sound like it did.
+      playSound("battle");
+    } catch (e) { onFlash(e.message || "Couldn't place that."); playSound("error"); }
   }
 
   async function settle() {

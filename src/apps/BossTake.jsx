@@ -10,6 +10,7 @@ import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
+import { playSound } from "../sound.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -346,9 +347,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
+      // The score landing is the moment worth hearing. The prompt it spent
+      // is announced separately, and only when one was actually spent — a
+      // take covered by the day's free allowance costs nothing, and saying
+      // otherwise in audio would be the same lie as saying it on screen.
+      playSound("xp_gain");
+      if (!trial && out?.cost_cents) playSound("promptz_spend");
       onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
+      playSound("error");
     } finally { setBusy(false); }
   }
 
@@ -512,13 +520,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         {!recording ? (
           <>
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
+            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
                     data-tour="bosstake-mic">
               <Mic size={15} /> {blob ? "Record again" : "Record a take"}
             </button>
             {/* The coach watches as well as listens. On camera it can mark
                 delivery, breath and posture, which sound alone can't show. */}
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
+            <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
@@ -530,7 +538,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         )}
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); } }} />
-        <button className="re-btn !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
+        <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
           <Upload size={15} /> Attach audio or video
         </button>
         {blob && !recording && (

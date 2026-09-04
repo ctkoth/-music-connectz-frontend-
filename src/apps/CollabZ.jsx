@@ -19,6 +19,7 @@ import {
   Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
@@ -274,8 +275,10 @@ export default function CollabZ() {
       setForm({ ...form, title: "", partner: "", mine: "", theirs: "", description: "" });
       setWork({}); setGates({});
       setMsg("Deal drafted — fund your share to put it in escrow.");
+      // Only once the deal actually exists — a refused draft is not a collab.
+      playSound("collab");
       load();
-    } catch (e) { setMsg(e.message || "Couldn't create that deal."); }
+    } catch (e) { setMsg(e.message || "Couldn't create that deal."); playSound("error"); }
     finally { setBusy(false); }
   }
 
