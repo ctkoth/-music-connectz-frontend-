@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import OfferMap from "./OfferMap.jsx";
 import { asList } from "../shape.js";
@@ -183,6 +185,7 @@ function Browse() {
 
 /* ----------------------------------------------------------------- Teach */
 function Teach() {
+  const talk = useSay();
   const [form, setForm] = useState({
     skill: "guitar", title: "", description: "", pricing_mode: "per_hour",
     price: "25.00", city: "", remote_ok: true, in_person_ok: true, callz_ok: false,
@@ -215,7 +218,7 @@ function Teach() {
         );
       }
       await api("/api/lessonz/offers/", { method: "POST", body });
-      setMsg("Offer published! Students can now find and book you.");
+      setMsg(talk(P.lesson_offer_published));
     } catch (e) {
       setMsg(e.message);
     } finally {
@@ -399,6 +402,7 @@ function Posts() {
 
 /* -------------------------------------------------------------- PostForm */
 function PostForm() {
+  const talk = useSay();
   const [form, setForm] = useState({ skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -408,7 +412,7 @@ function PostForm() {
     setBusy(true); setMsg("");
     try {
       await api("/api/lessonz/posts/", { method: "POST", body: form });
-      setMsg("Lesson post published!");
+      setMsg(talk(P.lesson_post_published));
     } catch (e) { setMsg(e.message); } finally { setBusy(false); }
   }
 

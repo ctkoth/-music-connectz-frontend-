@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown, Compass } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
@@ -79,6 +81,7 @@ function Detail({ label, children }) {
 }
 
 export default function OnboardZ() {
+  const talk = useSay();
   const [me, setMe] = useState(null);
   const [ref, setRef] = useState(null);
   const [done, setDone] = useState(loadDone);
@@ -222,8 +225,8 @@ export default function OnboardZ() {
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
           <PartyPopper size={16} />
           {claim?.granted
-            ? <span>You're all set — <span className="font-semibold">+{claim.reward_spinaz} {SPINAZ} · +{claim.reward_energy} Energy</span> claimed!</span>
-            : <span>You're all set — welcome to Music ConnectZ.</span>}
+            ? <span>{talk(P.onboard_done(claim.reward_spinaz, claim.reward_energy))}</span>
+            : <span>{talk(P.onboard_done_plain)}</span>}
         </div>
       )}
 

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileSignature, Loader2, Plus } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 
 export default function LabelZ() {
+  const talk = useSay();
   const [data, setData] = useState(null);
   const [contracts, setContracts] = useState(null);
   const [msg, setMsg] = useState("");
@@ -24,7 +27,7 @@ export default function LabelZ() {
   }
   async function sendOffer() {
     setMsg("");
-    try { await api("/api/labelz/contracts/", { method: "POST", body: offer }); setMsg("Contract offered — signed on your side, awaiting the artist."); load(); }
+    try { await api("/api/labelz/contracts/", { method: "POST", body: offer }); setMsg(talk(P.label_offered)); load(); }
     catch (e) { setMsg(e.message); }
   }
   async function respond(id, action) {
