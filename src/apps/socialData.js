@@ -92,9 +92,7 @@ export const NATIONALITIES = [
 ];
 
 // Apps SpecZ can be attached to (used by the SpecZ store dropdown).
-export const SPEC_APPS = [
-  ["postz.png", "PostZ"], ["battlez.png", "BattleZ"], ["collabz.png", "CollabZ"],
-  ["singz.png", "SingZ"], ["rapz.png", "RapZ"], ["labelz.png", "LabelZ"],
-  ["groupz.png", "GroupZ"], ["social_connectz.png", "Social ConnectZ"],
-  ["lessonz.png", "LessonZ"], ["messagez.png", "MessageZ"],
-];
+// SPEC_APPS lived here — a hardcoded list of the apps a SpecZ could attach to.
+// The server publishes it now (`GET /api/economy/specz/` → `apps`), because a
+// second copy of a list the server validates against is a list that drifts,
+// and the tab would have started offering apps the API refuses.
