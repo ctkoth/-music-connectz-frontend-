@@ -35,18 +35,49 @@ body {
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3
            text-sm font-semibold transition active:scale-[0.98];
   }
-  /* Outlined glow pill, ringed in the brand gradient rather than filled with
-     it — a dark center reads as "the loudest button here" exactly as well as
-     a solid fill does, and it keeps every button in the app speaking the
-     same visual language (a ring + a glow) instead of two unrelated ones. */
+  /* The loudest button in the room, and it is the SAME TUBE as every other
+     one — `.re-btn` below is the chassis, this is the weight.
+     
+     It used to be ringed in a pink→purple→cyan gradient, which was a second
+     visual language rather than a louder version of the first: a gradient
+     cannot take a colour from context (so a primary "Delete" glowed pink like
+     a primary "Save"), and its icon stayed white while its ring was three
+     other colours — the one thing the tube gets right is that border, glow and
+     icon are all the same light. Hierarchy is carried by GLOW and SIZE now,
+     not by a different construction. */
   .neon-btn-primary {
-    @apply neon-btn rounded-2xl border-2 border-transparent text-white;
-    background: linear-gradient(#0e0b1a, #0e0b1a) padding-box,
-      linear-gradient(90deg, #ff2bd1, #a855f7 55%, #22e6ff) border-box;
-    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4), 0 6px 18px rgba(0, 0, 0, 0.55);
+    @apply re-btn !text-mcz-pink;
+    box-shadow: 0 0 5px currentColor, 0 0 22px -1px currentColor,
+      inset 0 0 14px -8px currentColor, 0 8px 22px rgba(0, 0, 0, 0.6);
   }
+  .neon-btn-primary:hover {
+    box-shadow: 0 0 7px currentColor, 0 0 34px -1px currentColor,
+      inset 0 0 16px -7px currentColor, 0 11px 26px rgba(0, 0, 0, 0.65);
+  }
+  .neon-btn-primary:active {
+    box-shadow: 0 0 5px currentColor, 0 0 20px -2px currentColor,
+      inset 0 0 16px -6px currentColor, 0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+  /* Secondary: the same tube with the light turned down. It was a flat grey
+     outline with no glow at all, which read as disabled sitting next to
+     anything else on this page. */
   .neon-btn-ghost {
-    @apply neon-btn rounded-2xl border border-white/15 bg-white/5 text-white/90 hover:bg-white/10;
+    @apply re-btn !border-white/60 !text-white/80;
+    /* Lit, just not coloured. The first pass at this used a 25%-white border
+       and a barely-there glow, and next to any coloured tube it read as
+       DISABLED rather than as secondary — which is a real cost, because the
+       secondary action beside a primary one is usually "cancel", and a cancel
+       that looks broken is a member stuck on a screen. Quieter is a dimmer
+       tube, never an unlit one. */
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.55),
+      0 0 16px -3px rgba(255, 255, 255, 0.45),
+      inset 0 0 12px -8px rgba(255, 255, 255, 0.6), 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .neon-btn-ghost:hover {
+    @apply !border-white !text-white;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.7),
+      0 0 24px -3px rgba(255, 255, 255, 0.55),
+      inset 0 0 14px -7px rgba(255, 255, 255, 0.7), 0 9px 22px rgba(0, 0, 0, 0.6);
   }
   .pill {
     @apply rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/70;
@@ -78,18 +109,22 @@ body {
        along the edge, and a real cast shadow underneath. The cast shadow is
        what lifts it off the panel — glow alone reads as a sticker, glow plus
        a shadow reads as a sign hanging in front of the wall. */
-    box-shadow: 0 0 12px currentColor, inset 0 0 8px -4px currentColor,
-      0 6px 18px rgba(0, 0, 0, 0.55);
+    /* Two glows, not one. A single blur reads as a line with something smudged
+       behind it; a real tube has a tight hot ring right at the glass AND a
+       wide soft halo thrown onto the wall. That is the whole difference
+       between "outlined button" and "neon sign". */
+    box-shadow: 0 0 4px currentColor, 0 0 18px -2px currentColor,
+      inset 0 0 12px -8px currentColor, 0 6px 18px rgba(0, 0, 0, 0.55);
   }
   .re-btn:hover {
-    box-shadow: 0 0 20px currentColor, inset 0 0 10px -4px currentColor,
-      0 9px 22px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 6px currentColor, 0 0 28px -2px currentColor,
+      inset 0 0 14px -7px currentColor, 0 9px 22px rgba(0, 0, 0, 0.6);
   }
   /* Pressed: it drops onto the surface. The shadow collapsing is the whole
      tell — a button that floats has somewhere to fall to. */
   .re-btn:active {
-    box-shadow: 0 0 14px currentColor, inset 0 0 10px -3px currentColor,
-      0 2px 6px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 4px currentColor, 0 0 16px -3px currentColor,
+      inset 0 0 14px -6px currentColor, 0 2px 6px rgba(0, 0, 0, 0.5);
   }
   .re-btn-cyan {
     @apply !text-mcz-cyan;
@@ -107,7 +142,7 @@ body {
     @apply !text-mcz-purple;
   }
   .re-btn-red {
-    @apply !text-red-400;
+    @apply !text-red-500;
   }
   .re-link {
     @apply font-semibold text-mcz-ember transition hover:brightness-125;
