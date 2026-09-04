@@ -4,6 +4,7 @@ import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
+import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
@@ -74,17 +75,17 @@ export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
   "background.png": "/icons/background.png",
-  "battlez.png": "/icons/battlez.png",
+  "battlez.png": "/icons/battlez-neon.svg",
   "boardz.png": "/icons/boardz.png",
   "bodiez.png": "/icons/bodiez.png",
-  "bugz.png": "/icons/bugz.png",
+  "bugz.png": "/icons/bugz-neon.svg",
   "callz.png": "/icons/callz.png",
   "callz_ai.png": "/icons/callz_ai.png",
   "callz_ai.webp": "/icons/callz_ai.webp",
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  "collabz.png": "/icons/collabz.png",
+  "collabz.png": "/icons/collabz-neon.svg",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
@@ -99,13 +100,13 @@ export const CUSTOM_ICONS = {
   "guitarz.png": "/icons/guitarz.png",
   "bassz.png": "/icons/bassz.png",
   "keyz.png": "/icons/keyz.png",
-  "directz.png": "/icons/directz.png",
+  "directz.png": "/icons/directz-neon.svg",
   "distributez.png": "/icons/distributez.png",
   "energy.png": "/icons/energy.png",
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
-  "groupz.png": "/icons/groupz.png",
+  "groupz.png": "/icons/groupz-neon.svg",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
@@ -116,9 +117,9 @@ export const CUSTOM_ICONS = {
   "inbox_alt.png": "/icons/inbox_alt.png",
   "intelligence.png": "/icons/intelligence.png",
   "intuition.png": "/icons/intuition.png",
-  "keyconnectz.png": "/icons/keyconnectz.png",
-  "labelz.png": "/icons/labelz.png",
-  "lessonz.png": "/icons/lessonz.png",
+  "keyconnectz.png": "/icons/keyconnectz-neon.svg",
+  "labelz.png": "/icons/labelz-neon.svg",
+  "lessonz.png": "/icons/lessonz-neon.svg",
   "lilith_anytime.png": "/icons/lilith_anytime.png",
   "lilith_logbook.png": "/icons/lilith_logbook.png",
   "lilith_today.png": "/icons/lilith_today.png",
@@ -127,20 +128,24 @@ export const CUSTOM_ICONS = {
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
-  "messagez.png": "/icons/messagez.png",
+  "messagez.png": "/icons/messagez-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
-  "mimez.png": "/icons/mimez.png",
+  "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
-  "occ.png": "/icons/occ.png",
-  "offerz.png": "/icons/offerz.png",
-  "adz.png": "/icons/adz.png",
-  "money.png": "/icons/money.png",
+  "occ.png": "/icons/occ-neon.svg",
+  "offerz.png": "/icons/offerz-neon.svg",
+  "adz.png": "/icons/adz-neon.svg",
+  "money.png": "/icons/money-neon.svg",
   // New editions — neon signage dropped in Jul 16.
-  "specz.png": "/icons/specz.png",
+  "specz.png": "/icons/specz-neon.svg",
   "nationalitiez.png": "/icons/nationalitiez.png",
-  "onboardz.png": "/icons/onboardz.png",
-  "postz.png": "/icons/postz.png",
-  "personaz.png": "/icons/personaz.png",
+  "onboardz.png": "/icons/onboardz-neon.svg",
+  // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
+  // rest of the platform refers to and the value points at the SVG — the
+  // same indirection "logo.png" → the .jpg already uses, and the reason this
+  // registry maps names to paths instead of just globbing a folder.
+  "postz.png": "/icons/postz-neon.svg",
+  "personaz.png": "/icons/personaz-neon.svg",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
@@ -159,18 +164,18 @@ export const CUSTOM_ICONS = {
   "pickconz.png": "/icons/pickconz.png",
   "preferencez.png": "/icons/preferencez.png",
   "producez.png": "/icons/producez.png",
-  "rapz.png": "/icons/rapz.png",
+  "rapz.png": "/icons/rapz-neon.svg",
   "ratez.png": "/icons/ratez.png",
   "royaltiez.png": "/icons/royaltiez.png",
   "scoutz.png": "/icons/scoutz.png",
   "sentencez.png": "/icons/sentencez.png",
   "shotz.png": "/icons/shotz.png",
-  "singz.png": "/icons/singz.png",
+  "singz.png": "/icons/singz-neon.svg",
   "skillz.png": "/icons/skillz.png",
-  "social_connectz.png": "/icons/social_connectz.png",
+  "social_connectz.png": "/icons/social_connectz-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
-  "playlistz.png": "/icons/playlistz.png",
+  "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
@@ -186,9 +191,9 @@ export const CUSTOM_ICONS = {
   // Live surfaces whose art was on disk but never registered — so they were
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
-  "habitz.png": "/icons/habitz.png",
-  "journalz.png": "/icons/journalz.png",
-  "logz.png": "/icons/logz.png",
+  "habitz.png": "/icons/habitz-neon.svg",
+  "journalz.png": "/icons/journalz-neon.svg",
+  "logz.png": "/icons/logz-neon.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
@@ -237,7 +242,7 @@ export const CUSTOM_ICONS = {
   "welcome.png": "/icons/welcome.png",
   // Owner-only tab — reserved ahead of the artwork, same as the rest above;
   // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
-  "funnelz.png": "/icons/funnelz.png",
+  "funnelz.png": "/icons/funnelz-neon.svg",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -564,20 +569,23 @@ function Home() {
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
         >
           <div className="flex items-center gap-1">
-            <button onClick={() => go(-1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
+            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => go(1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
+            </a>
+            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
-            </button>
+            </a>
           </div>
 
-          <button onClick={() => setTab("postz")} className="flex items-center gap-2">
+          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
+             title="PostZ — ctrl/cmd-click for a new tab">
             <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </button>
+          </a>
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -596,13 +604,13 @@ function Home() {
             </span>
           </button>
 
-          <button
-            onClick={() => setTab("profilez")}
+          <a
+            {...openable("/profile", () => openTab("profilez"))}
             className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10"
-            title="ProfileZ"
+            title="ProfileZ — ctrl/cmd-click for a new tab"
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
-          </button>
+          </a>
           <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />

@@ -148,6 +148,29 @@ const SOUNDS = {
   // action usually costs nothing, and saying otherwise in audio would be the
   // same lie as saying it on screen.
   error: [{ type: "sawtooth", from: 180, to: 120, dur: 0.2, gain: 0.05 }],
+
+  // Making something. These are the ones people hit over and over in a
+  // session, so they're the shortest and quietest in the set — the studio
+  // sound of a transport button, not a fanfare. Record arms UP and lands
+  // DOWN, the same way a tape deck tells you which state you're in without
+  // looking; nothing else here is allowed to use that pair.
+  record_start: [{ type: "sine", from: 520, to: 780, dur: 0.1, gain: 0.06 }],
+  record_stop: [{ type: "sine", from: 700, to: 420, dur: 0.13, gain: 0.06 }],
+  // Attaching work. One family, three pitches — audio lowest, video above
+  // it, image on top — so which KIND of thing you just attached is audible
+  // without three unrelated noises to learn.
+  upload_audio: [
+    { type: "triangle", from: 392, dur: 0.06, gain: 0.05 },
+    { type: "triangle", from: 587, dur: 0.11, gain: 0.05, at: 0.06 },
+  ],
+  upload_video: [
+    { type: "triangle", from: 523, dur: 0.06, gain: 0.05 },
+    { type: "triangle", from: 784, dur: 0.11, gain: 0.05, at: 0.06 },
+  ],
+  upload_image: [
+    { type: "triangle", from: 659, dur: 0.06, gain: 0.05 },
+    { type: "triangle", from: 988, dur: 0.11, gain: 0.05, at: 0.06 },
+  ],
 };
 
 export const SOUND_KEYS = Object.keys(SOUNDS);

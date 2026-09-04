@@ -9,6 +9,7 @@
 // inside SingZ once they join.
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Share2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { track } from "../track.js";
 
@@ -35,18 +36,55 @@ export default function TrialTake() {
   const { appKey = "singz" } = useParams();
   const app = APPS[appKey] ? appKey : "singz";
   const [scored, setScored] = useState(false);
+  const [score, setScore] = useState(null);
+  const [shared, setShared] = useState("");
 
   useEffect(() => { track("try_view", { app_key: app }); }, [app]);
 
   function keep(result) {
-    if (!result?.claim_token) return;
-    try {
-      localStorage.setItem(TRIAL_TOKEN_KEY, result.claim_token);
-    } catch {
-      /* no storage → they can still sign up, they just lose the take */
+    if (!result) return;
+    // The token and the score are separate things. Gating on the token meant
+    // a take that scored fine but came back without one showed the visitor
+    // nothing at all — no offer to keep it, and no way to share it.
+    if (result.claim_token) {
+      try {
+        localStorage.setItem(TRIAL_TOKEN_KEY, result.claim_token);
+      } catch {
+        /* no storage → they can still sign up, they just lose the take */
+      }
     }
+    if (result.score != null) setScore(result.score);
     setScored(true);
     track("try_scored", { app_key: app });
+  }
+
+  // The whole viral loop, such as it is: somebody gets a number they're proud
+  // of and currently has nowhere to put it. The share carries a link back to
+  // this exact door — the free one, no account — because sending a stranger
+  // to a signup form is how you waste a recommendation.
+  const shareUrl = `${window.location.origin}/try/${app}`;
+  const shareText = score != null
+    ? `I scored ${score}/10 on my ${APPS[app]} take 🎤 — real AI coach, free, no account. Get yours scored:`
+    : `Got my ${APPS[app]} take scored free by an AI coach 🎤 — no account needed. Try it:`;
+
+  async function share() {
+    // Only ever count a share that actually went out. navigator.share
+    // rejects with AbortError when somebody opens the sheet and backs out,
+    // and counting that would inflate the one number that tells us whether
+    // this loop works at all.
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Music ConnectZ", text: shareText, url: shareUrl });
+        setShared("Shared — thanks for passing it on.");
+      } else {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        setShared("Copied — paste it anywhere.");
+      }
+      track("try_shared", { app_key: app });
+    } catch {
+      // Cancelled, or a browser that allows neither. Say nothing: a share
+      // somebody backed out of is not an error they need told about.
+    }
   }
 
   return (
@@ -81,13 +119,22 @@ export default function TrialTake() {
 
       {scored && (
         <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
-          <p className="mb-2 text-white/85">
+          <p className="mb-3 text-white/85">
             That take is yours. Make an account in the next 30 days and it lands in {APPS[app]} —
             with the drill, the history, and takes whenever you want them.
           </p>
-          <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
-            Keep this take — join free
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Link to="/register" className="re-btn !w-auto px-5">
+              Keep this take — join free
+            </Link>
+            {/* The label names the number that's going out, so nobody
+                discovers what they shared by sharing it. */}
+            <button type="button" onClick={share} className="re-btn re-btn-cyan !w-auto px-5">
+              <Share2 size={15} />
+              {score != null ? `Share your ${score}/10` : "Share this"}
+            </button>
+          </div>
+          {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
         </div>
       )}
     </div>

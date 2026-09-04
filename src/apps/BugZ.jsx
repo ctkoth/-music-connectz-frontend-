@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bug, Image as ImageIcon, Loader2, Star, Trash2 } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import { asList } from "../shape.js";
@@ -77,9 +78,13 @@ export default function BugZ() {
       await api("/api/economy/bugz/", { method: "POST", body });
       setForm({ title: "", body: "" });
       dropShot();
+      // Sent, not paid. The bounty lands if and when it's squashed, so this
+      // is the message sound — playing the coin here would promise in audio
+      // what the sentence right next to it carefully says is conditional.
       setMsg(`Reported! If the team squashes it, you earn +${meta?.bounty_spinaz ?? 200} ${SPINAZ}.`);
+      playSound("message");
       load();
-    } catch (err) { setMsg(err.message); } finally { setBusy(false); }
+    } catch (err) { setMsg(err.message); playSound("error"); } finally { setBusy(false); }
   }
 
   return (
