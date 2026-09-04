@@ -94,16 +94,31 @@ body {
     @apply font-semibold text-mcz-ember transition hover:brightness-125;
   }
   .re-badge {
-    @apply rounded-md bg-mcz-ember px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+    @apply rounded-full border border-mcz-ember bg-mcz-ember/10 px-2 py-0.5
+           text-[10px] font-bold uppercase tracking-wide text-mcz-ember;
   }
-  /* 1–10 rating block, dim by default, ember when active/hovered. */
+  /* 1–10 rating block. Dim and quiet until you're actually on it, then it
+     lights like everything else — the score you're about to give is worth
+     the same emphasis as the button that spends a prompt. */
   .re-scale {
-    @apply flex h-11 flex-1 items-center justify-center rounded-md bg-white/[0.06]
-           text-sm font-bold text-white/70 transition
-           hover:bg-mcz-ember hover:text-white;
+    @apply flex h-11 flex-1 items-center justify-center rounded-lg
+           border border-white/10 bg-white/[0.04] text-sm font-bold
+           text-white/60 transition
+           hover:border-mcz-ember hover:text-mcz-ember;
+  }
+  .re-scale:hover {
+    box-shadow: 0 0 10px currentColor;
   }
   .re-scale-on {
-    @apply bg-mcz-ember text-white;
+    @apply border-mcz-ember bg-mcz-ember/10 text-mcz-ember;
+    box-shadow: 0 0 10px currentColor;
+  }
+  /* The chip/tab idiom — PostZ's sort row, TrialTake's SingZ|RapZ switch,
+     LessonZ's views. `pill-on` is the selected one, lit the same way every
+     other active control in the app is now. */
+  .pill-on {
+    @apply !border-current !text-mcz-ember;
+    box-shadow: 0 0 9px currentColor;
   }
   /* Flashed on the control an OnboardZ link just sent you to, so you land on
      the actual field rather than somewhere near it. Removed after ~2s. */

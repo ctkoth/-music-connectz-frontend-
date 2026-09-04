@@ -2,7 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
@@ -349,6 +350,36 @@ function RootRoute() {
   return user ? <Home /> : <Landing />;
 }
 
+// SoundZ on/off. It lives in the header rather than buried in a settings
+// screen because it is the control somebody reaches for the moment a sound
+// surprises them — a mute you have to go hunting for is one you resent.
+// Flipping it ON plays the coin, so you hear what you just agreed to; the
+// click is also the user gesture browsers require before any audio at all.
+function SoundToggle() {
+  const [on, setOn] = useState(isSoundOn);
+  useEffect(() => {
+    const h = (e) => setOn(!!e.detail);
+    window.addEventListener("mcz-sound-changed", h);
+    return () => window.removeEventListener("mcz-sound-changed", h);
+  }, []);
+  return (
+    <button
+      onClick={() => {
+        const next = !on;
+        setSoundOn(next);
+        setOn(next);
+        if (next) playSoundPreview();
+      }}
+      className={`rounded-lg p-1.5 transition hover:bg-white/10 ${
+        on ? "text-mcz-cyan" : "text-white/40"}`}
+      title={on ? "SoundZ on — resource changes make a sound" : "SoundZ off — turn sounds on"}
+      aria-pressed={on}
+    >
+      {on ? <Volume2 size={16} /> : <VolumeX size={16} />}
+    </button>
+  );
+}
+
 function CommunityBar({ onOpenMember }) {
   const [stats, setStats] = useState(null);
   useEffect(() => {
@@ -572,6 +603,7 @@ function Home() {
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
           </button>
+          <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>

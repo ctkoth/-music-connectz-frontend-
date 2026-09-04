@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Flame, Lock, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY } from "../resources.js";
@@ -106,6 +107,7 @@ export default function MimeZ() {
       const r = await api(`/api/economy/questz/${q.id}/claim/`, { method: "POST", body: {} });
       setBoard(r);
       setMsg(`+${r.energy} ${ENERGY} — ${q.title}.`);
+      playSound("energy_gain");
     } catch (e) {
       // The server's real reason, never a cheerful lie. A claim that quietly
       // fails while the screen says "done" is the worst bug class in this app.

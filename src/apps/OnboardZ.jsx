@@ -5,6 +5,7 @@ import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
 import { SPINAZ } from "../resources.js";
+import { playSound } from "../sound.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -183,7 +184,13 @@ export default function OnboardZ() {
   useEffect(() => {
     if (allDone && me && !me.onboarded && !claim) {
       api("/api/auth/onboard/complete/", { method: "POST" })
-        .then(setClaim).catch(() => {});
+        .then((c) => {
+          setClaim(c);
+          // Both sides of the reward land at once, so play the coin — the
+          // bigger of the two — rather than stacking two sounds on one event.
+          if (c?.granted) playSound("spinaz_gain");
+        })
+        .catch(() => {});
     }
   }, [allDone, me, claim]);
 

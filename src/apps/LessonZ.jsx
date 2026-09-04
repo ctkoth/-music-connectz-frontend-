@@ -32,8 +32,8 @@ export default function LessonZ() {
             <button
               key={k}
               onClick={() => setView(k)}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                view === k ? "bg-white/10 text-white shadow-neon" : "text-white/55 hover:bg-white/5"
+              className={`pill !px-4 !py-2 !text-sm font-semibold transition ${
+                view === k ? "pill-on" : "hover:text-white"
               }`}
             >
               {label}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Send, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { playSound } from "../sound.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
@@ -35,6 +36,7 @@ export default function MessageZ() {
     try {
       const r = await api("/api/economy/messages/", { method: "POST", body: { to, body } });
       setMsg(r.cost_energy ? `Sent · −${r.cost_energy} ⚡ Energy` : "Sent · reply = free ⚡");
+      playSound(r.cost_energy ? "energy_spend" : "message");
       setBody(""); load();
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
   }

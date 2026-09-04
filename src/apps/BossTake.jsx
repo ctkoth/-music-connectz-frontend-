@@ -10,6 +10,7 @@ import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
+import { playSound } from "../sound.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -346,9 +347,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
+      // The score landing is the moment worth hearing. The prompt it spent
+      // is announced separately, and only when one was actually spent — a
+      // take covered by the day's free allowance costs nothing, and saying
+      // otherwise in audio would be the same lie as saying it on screen.
+      playSound("xp_gain");
+      if (!trial && out?.cost_cents) playSound("promptz_spend");
       onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
+      playSound("error");
     } finally { setBusy(false); }
   }
 
