@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AtSign, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
+import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { track } from "../track.js";
+import { WINDOWS_EXE } from "../downloadBuilds.js";
 
 export default function Register() {
   const { register } = useAuth();
@@ -15,20 +17,25 @@ export default function Register() {
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
-  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", password2: "", birthday: "" });
+  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    track("register_view", { has_ref: !!ref, has_trial: !!trialToken });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (form.password !== form.password2) return setError("Passwords don't match.");
     setBusy(true);
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
       clearTrialToken();
+      track("register_success");
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -38,7 +45,7 @@ export default function Register() {
   }
 
   return (
-    <AuthShell title="Create your account" subtitle="Join Music ConnectZ — train, create, climb the SkillZ board.">
+    <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
@@ -59,7 +66,6 @@ export default function Register() {
           <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
         </div>
         <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
-        <PasswordField placeholder="Repeat password" value={form.password2} onChange={set("password2")} autoComplete="new-password" />
 
         {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
@@ -101,6 +107,24 @@ export function AuthShell({ title, subtitle, children }) {
         </div>
       </div>
       <div className="neon-frame space-y-5 p-6">{children}</div>
+
+      {/* Free, no account needed — the desktop build loads the live site, so
+          it's always whatever the web app is, never a version behind it. */}
+      <a
+        href={WINDOWS_EXE.href}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
+      >
+        <Download size={15} className="shrink-0 text-mcz-cyan" />
+        <div>
+          <span className="font-semibold text-white">{WINDOWS_EXE.emoji} Download for Windows (.exe)</span>
+          <span className="ml-1.5 text-emerald-300">Free</span>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
+            {WINDOWS_EXE.note} Unsigned build — SmartScreen: More info → Run anyway.
+          </p>
+        </div>
+      </a>
     </div>
   );
 }

@@ -25,3 +25,13 @@ ratez.png ✓ · collabz.png ✓ · personaz.png ✓ (the final three).
 Every registry key in CUSTOM_ICONS now has real artwork available. Remaining
 on-device files just need the RENAME_ICONS.sh pass + push. Zero icons left to make.
 
+
+## 📔 WAITING FOR ITS FILE — journalz.png
+`journalz.png` is registered in CUSTOM_ICONS and named by the JournalZ tab, the
+LogicZ modal and the OCC spec. The artwork exists (the neon "JournalZ — Diary &
+Daily Notes" sign) but has not been committed here, so the tab currently falls
+back to the MCZ logo.
+
+Dropping the file at `public/icons/journalz.png` is the entire job — no code
+change, no registry edit. That is the whole reason the key is registered ahead
+of the file.

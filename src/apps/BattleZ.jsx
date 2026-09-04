@@ -15,6 +15,9 @@ import {
   Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
@@ -112,6 +115,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
 }
 
 function Detail({ id, onBack, onFlash, seed }) {
+  const talk = useSay();
   const [b, setB] = useState(null);
   const [work, setWork] = useState({});
   const [title, setTitle] = useState("");
@@ -152,7 +156,7 @@ function Detail({ id, onBack, onFlash, seed }) {
                 image_url: hosted.image_url || "" },
       });
       setTitle(""); setWork({}); setShowEntry(false);
-      onFlash("You're in.");
+      onFlash(talk(P.battle_entered));
       load();
     } catch (e) { onFlash(e.message || "Couldn't enter."); }
     finally { setBusy(false); }
@@ -191,14 +195,17 @@ function Detail({ id, onBack, onFlash, seed }) {
     try {
       setB(await api(`/api/economy/battlez/${id}/wager/`,
                      { method: "POST", body: { side, amount: Math.round(amount) } }));
-      onFlash(`−${Math.round(amount)} ${SPINAZ} staked. It's held until the result.`);
-    } catch (e) { onFlash(e.message || "Couldn't place that."); }
+      onFlash(talk(P.battle_staked(Math.round(amount))));
+      // After the server takes it, never before: a refused wager stakes
+      // nothing, and it must not sound like it did.
+      playSound("battle");
+    } catch (e) { onFlash(e.message || "Couldn't place that."); playSound("error"); }
   }
 
   async function settle() {
     try {
       setB(await api(`/api/economy/battlez/${id}/settle/`, { method: "POST", body: {} }));
-      onFlash("Settled.");
+      onFlash(talk(P.battle_settled));
     } catch (e) { onFlash(e.message || "Couldn't settle it."); }
   }
 

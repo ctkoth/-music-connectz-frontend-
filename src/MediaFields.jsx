@@ -13,6 +13,7 @@
 // phone, and falls back to attaching a file when the browser can't record.
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
+import { playSound } from "./sound.js";
 
 // One of each — the order they preview in. The tag is how each renders.
 const SLOTS = [["audio", "audio"], ["video", "video"], ["image", "img"]];
@@ -83,6 +84,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
       mr.start();
       setSecs(0);
       setRecording(true);
+      playSound("record_start");
     } catch {
       setMsg("Microphone access was refused. Attach a file instead.");
     }
@@ -91,6 +93,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   function stopRec() {
     rec.current?.state === "recording" && rec.current.stop();
     setRecording(false);
+    playSound("record_stop");
   }
 
   const mmss = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
@@ -101,7 +104,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
 
       <div className="flex flex-wrap items-center gap-2">
         {!recording ? (
-          <button type="button" className="re-btn !w-auto px-3 text-xs" onClick={startRec}>
+          <button type="button" className="re-btn re-btn-red !w-auto px-3 text-xs" onClick={startRec}>
             <Mic size={13} /> {v.audio_url ? "Record again" : "Record"}
           </button>
         ) : (
@@ -110,20 +113,20 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
           </button>
         )}
         <input ref={audioInput} type="file" accept="audio/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "audio"); }} />
-        <button type="button" className="re-btn !w-auto px-3 text-xs"
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "audio"); playSound("upload_audio"); } }} />
+        <button type="button" className="re-btn re-btn-cyan !w-auto px-3 text-xs"
                 onClick={() => audioInput.current?.click()} disabled={recording}>
           <Upload size={13} /> Audio
         </button>
         <input ref={videoInput} type="file" accept="video/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "video"); }} />
-        <button type="button" className="re-btn !w-auto px-3 text-xs"
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "video"); playSound("upload_video"); } }} />
+        <button type="button" className="re-btn re-btn-purple !w-auto px-3 text-xs"
                 onClick={() => videoInput.current?.click()} disabled={recording}>
           <Film size={13} /> Video
         </button>
         <input ref={imageInput} type="file" accept="image/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; f && attach(f, "image"); }} />
-        <button type="button" className="re-btn !w-auto px-3 text-xs"
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "image"); playSound("upload_image"); } }} />
+        <button type="button" className="re-btn re-btn-gold !w-auto px-3 text-xs"
                 onClick={() => imageInput.current?.click()}>
           <ImageIcon size={13} /> Image
         </button>

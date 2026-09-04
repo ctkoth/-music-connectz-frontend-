@@ -55,6 +55,12 @@ export const TOUR_STEPS = [
     body: "This is the front door. Rating opens 30 seconds after you post and comments at 60, so nobody can pile on something they haven't heard. You can't rate your own.",
     optional: true,
   },
+  {
+    tab: "journalz", target: "journalz-composer",
+    title: "Keep the day",
+    body: "The one tab here that publishes nothing. Write the day down — mood, where you were, who you were with — and it stays yours. Tagging somebody on a private entry tells them nothing at all. Your first entry each day pays Energy on the quest board.",
+    optional: true,
+  },
 ];
 
 function useRect(selector, deps) {
