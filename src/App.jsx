@@ -140,7 +140,11 @@ export const CUSTOM_ICONS = {
   "specz.png": "/icons/specz.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
   "onboardz.png": "/icons/onboardz.png",
-  "postz.png": "/icons/postz.png",
+  // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
+  // rest of the platform refers to and the value points at the SVG — the
+  // same indirection "logo.png" → the .jpg already uses, and the reason this
+  // registry maps names to paths instead of just globbing a folder.
+  "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
