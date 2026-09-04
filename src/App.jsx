@@ -21,41 +21,43 @@ import { SPINAZ } from "./resources.js";
 // ships close to nothing extra. JSX referencing a lazy component (as TABS
 // does, below) does NOT trigger its import — only mounting it does, which is
 // why TABS can stay exactly as written.
-const Login = lazy(() => import("./auth/Login.jsx"));
-const Register = lazy(() => import("./auth/Register.jsx"));
-const ForgotPassword = lazy(() => import("./auth/ForgotPassword.jsx"));
-const ResetPassword = lazy(() => import("./auth/ResetPassword.jsx"));
-const MimeZ = lazy(() => import("./apps/MimeZ.jsx"));
-const DirectZ = lazy(() => import("./apps/DirectZ.jsx"));
-const LessonZ = lazy(() => import("./apps/LessonZ.jsx"));
-const InstrumentZ = lazy(() => import("./apps/InstrumentZ.jsx"));
-const MessageZ = lazy(() => import("./apps/MessageZ.jsx"));
-const ProfileZ = lazy(() => import("./apps/ProfileZ.jsx"));
-const GroupZ = lazy(() => import("./apps/GroupZ.jsx"));
-const CollabZ = lazy(() => import("./apps/CollabZ.jsx"));
-const BattleZ = lazy(() => import("./apps/BattleZ.jsx"));
-const LabelZ = lazy(() => import("./apps/LabelZ.jsx"));
-const BugZ = lazy(() => import("./apps/BugZ.jsx"));
-const PostZ = lazy(() => import("./apps/PostZ.jsx"));
-const KeyConnectZ = lazy(() => import("./apps/KeyConnectZ.jsx"));
-const OCC = lazy(() => import("./apps/OCC.jsx"));
-const SocialConnectZ = lazy(() => import("./apps/SocialConnectZ.jsx"));
-const SpecZ = lazy(() => import("./apps/SpecZ.jsx"));
-const MembershipZ = lazy(() => import("./apps/MembershipZ.jsx"));
-const AdZ = lazy(() => import("./apps/AdZ.jsx"));
-const OfferZ = lazy(() => import("./apps/OfferZ.jsx"));
-const OnboardZ = lazy(() => import("./apps/OnboardZ.jsx"));
-const PublicPost = lazy(() => import("./apps/PublicPost.jsx"));
-const PublicProfile = lazy(() => import("./apps/PublicProfile.jsx"));
-const TrialTake = lazy(() => import("./apps/TrialTake.jsx"));
-const PublicPlaylist = lazy(() => import("./apps/PublicPlaylist.jsx"));
-const PlaylistZ = lazy(() => import("./apps/PlaylistZ.jsx"));
-const MemberProfile = lazy(() => import("./apps/MemberProfile.jsx"));
-const LogZ = lazy(() => import("./apps/LogZ.jsx"));
-const FunnelZ = lazy(() => import("./apps/FunnelZ.jsx"));
-const HabitZ = lazy(() => import("./apps/HabitZ.jsx"));
-const JournalZ = lazy(() => import("./apps/JournalZ.jsx"));
-const Landing = lazy(() => import("./Landing.jsx"));
+import { lazyRoute } from "./chunkError.js";
+
+const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
+const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
+const ForgotPassword = lazy(lazyRoute(() => import("./auth/ForgotPassword.jsx")));
+const ResetPassword = lazy(lazyRoute(() => import("./auth/ResetPassword.jsx")));
+const MimeZ = lazy(lazyRoute(() => import("./apps/MimeZ.jsx")));
+const DirectZ = lazy(lazyRoute(() => import("./apps/DirectZ.jsx")));
+const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
+const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
+const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
+const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
+const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
+const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
+const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
+const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
+const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
+const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
+const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
+const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
+const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
+const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
+const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
+const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
+const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
+const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
+const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
+const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
+const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
 // second a chunk is in flight. Same spinner RequireAuth already used, so a
