@@ -238,6 +238,28 @@ irritation, and all three are in the file:
 - **Listeners are passive and nothing calls `preventDefault`.** This can never
   be the reason the page stops scrolling.
 
+## JournalZ has three ways in, and the third is the one Diarium can't have
+
+`JournalCalendar.jsx`, `JournalInsights.jsx`, `JournalPrompts.jsx`. A list
+answers "what did I write lately" and cannot answer "what was I doing last
+March", which is the question a diary exists for.
+
+- **Calendar** — the month as a grid, mood as a coloured dot (a word per cell
+  would not fit; a colour is what you can read at a glance across a month). A
+  kept day opens the entry, a missed one opens the composer set to that date, a
+  future day is disabled. `aria-label` on every cell says the date and whether
+  it was kept, because the number alone tells a screen reader nothing.
+- **Insights** — counts only, every row a door. A person opens their profile
+  through `openMember`, a tag or a mood sets the filter and drops you back on
+  the list. Nothing on the screen scores the writing.
+- **Prompts, above the blank page** — drawn from the member's own ledger for
+  that day. `onUse` appends the opener to the body; it never replaces what is
+  already typed, and it hands over a first LINE, not an entry. The button
+  beside it opens the app the prompt came from.
+
+The pane switch uses `aria-pressed` so a screen reader is told which of the
+three is open rather than that three buttons exist.
+
 ## An icon that isn't there is a blank, not an error
 
 `IconImg` falls back to the MCZ logo when a file 404s. That is right for a
