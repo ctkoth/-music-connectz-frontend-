@@ -38,10 +38,14 @@ its resource emoji.
 
 ### Known violations, not yet fixed
 
-- **CallZ** — no live 1:1 calling surface is mounted yet (LessonZ's "CallZ"
-  option is just a delivery method on a booking, priced the same as remote/
-  in-person). When a real call feature ships, the other member's rate has to
-  be visible pre-connect, same as everywhere else.
+- *(none open on this list.)* CallZ was here for the whole life of this file —
+  no live 1:1 surface existed, LessonZ's "CallZ" was a delivery method on a
+  booking priced the same as remote or in-person, so there was no per-minute
+  rate to state because there was no call. It ships now: `apps/economy/callz.py`
+  publishes the callee's rate, the caller's balance and the minutes they can
+  afford BEFORE anything rings, the running cost is on screen during the call,
+  and the receipt matches the quote. The rate is snapshot at ring so it cannot
+  move under a call in progress.
 
 Previously listed here and since fixed — BossTake's "Send it to the coach"
 (`Cost` component, price beside the button), OCC chat, DirectZ craft, and
@@ -96,6 +100,73 @@ give them the link. A read-only surface is usually an unfinished one.
   on failure is the worst bug class in this app and has shipped twice.
 - `src/mcz2/` is the 2.2 reference app and is **not mounted** — changing it
   changes nothing.
+
+## Profile JSON arrives repaired — don't re-implement the repair
+
+`personas` and `links` come off the server already normalized
+(`apps/economy/personaz.py` cleans them on write AND on read), so a component
+renders `persona.name` and `link.url` without defending against a shape.
+
+One exception, deliberately: `socialData.js`'s `personaName` also recovers a
+persona stored as the **printed form of a dict** —
+`"{'name': 'Independent Artist', 'emoji': '🎤', 'skills': []}"` — because that
+one ran against whatever a browser had cached and whatever is in localStorage,
+which no server deploy can reach. It is the same "repair on read" the file
+already does for the object form, and for the same reason.
+
+If a persona ever renders as machine noise again, it is a caching or a
+localStorage row, not a live API response.
+
+## A deploy breaks every tab that is already open, and lazy loading is why
+
+Every route is `lazy(() => import(...))` and Vite hashes each chunk by its
+contents (`InstrumentZ-B8NXpgMc.js`). **A deploy rewrites every one of those
+hashes.** A tab opened before the deploy is still holding the old `index.js`,
+which names chunks the server no longer has — so the next tab the member opens
+requests a file that is gone.
+
+It does not arrive as a 404. `vercel.json` ends with
+`{ "source": "/(.*)", "destination": "/index.html" }` (and `public/_redirects`
+does the same for the Pages host), so an unmatched path answers **200 with
+`index.html`**, and the browser refuses it:
+
+    Failed to load module script: Expected a JavaScript-or-Wasm module script
+    but the server responded with a MIME type of "text/html"
+
+surfacing as `TypeError: Failed to fetch dynamically imported module`.
+
+**Code-splitting is what made this reachable.** One bundle could be stale, but
+never *partially* stale — everything the session would ever need was already in
+memory. Now every tab switch is a fresh request against a server that may have
+moved on, and the failure lands on whichever app was opened next. It reads as
+"SingZ is broken" when nothing is wrong with SingZ.
+
+`src/chunkError.js` handles it:
+
+- **`lazyRoute(loader)`** wraps every `lazy()` in `App.jsx`. It retries the
+  import once — the identical error is what a dropped connection produces, and
+  a blip deserves a second attempt — then reloads, returning a promise that
+  deliberately never settles so nothing renders in the half-second before the
+  page goes.
+- **Reload at most once per 30s**, recorded in `sessionStorage`. A permanent
+  failure must not spin; a member still here for the *next* deploy still gets
+  recovered from that one.
+- **Never reload when `navigator.onLine === false`.** Offline produces this
+  exact error, and reloading there lands the member on the browser's own error
+  page — strictly worse than the app saying the connection dropped.
+- **Unreadable storage counts as "already tried."** A browser with site data
+  blocked gets the message, not a loop.
+
+And in `ErrorBoundary`: **`setState({ error: null })` can never fix a stale
+chunk.** React caches the rejected `lazy()` promise, so "Try again" re-threw
+the identical error instantly, forever — the button was a dead end for the one
+failure a member is most likely to hit. It reloads for a chunk error now, and
+the copy says *"A new version shipped"* rather than blaming the app.
+
+Still worth doing host-side, untested from here so not shipped: make a missing
+`/assets/*` **404 instead of falling through to the SPA shell**. A 200
+`text/html` for a `.js` URL is also something a CDN can cache, which turns one
+member's stale tab into everybody's.
 
 ## Deploys
 
