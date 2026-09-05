@@ -170,6 +170,7 @@ function Detail({ id, onBack, onFlash, seed }) {
       await api("/api/economy/social/rate/", {
         method: "POST", body: { item: entry.item_key, action: "rate", score: Math.round(score) },
       });
+      playSound("rating_given");
       load();
     } catch (e) { onFlash(e.message || "Couldn't rate that."); }
   }
