@@ -126,6 +126,17 @@ const G = {
     <circle cx="256" cy="196" r="16" fill="${b}"/>
     <path d="M186 288l-32 30 32 30M326 288l32 30-32 30" fill="none" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
 
+  royaltiez: (a, b) => `
+    <ellipse cx="220" cy="164" rx="86" ry="34" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M134 164v56c0 19 39 34 86 34s86-15 86-34v-56" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M134 220v56c0 19 39 34 86 34s86-15 86-34v-56" fill="none" stroke="${a}" stroke-width="15" stroke-opacity="0.75" stroke-linejoin="round"/>
+    <path d="M356 308V196" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M320 232l36-36 36 36" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  callz: (a, b) => `
+    <path d="M158 122c14-14 38-12 50 4l26 36c9 12 7 29-4 39l-20 18c14 30 38 54 68 68l18-20c10-11 27-13 39-4l36 26c16 12 18 36 4 50l-20 20c-14 14-35 18-53 10-52-23-104-60-142-98s-75-90-98-142c-8-18-4-39 10-53z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M300 150a76 76 0 0 1 62 62M300 106a120 120 0 0 1 106 106" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.9"/>`,
+
   logz: (a, b) => `
     <rect x="150" y="106" width="212" height="196" rx="22" fill="none" stroke="${a}" stroke-width="15"/>
     <path d="M186 156h140M186 204h140M186 252h84" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.65"/>
@@ -197,6 +208,8 @@ const APPS = [
   ["keyconnectz", "KeyConnectZ", C.emerald, C.gold],
   ["occ", "OCC", C.cyan, C.purple],
   ["logz", "LogZ", C.purple, C.gold],
+  ["royaltiez", "RoyaltieZ", C.gold, C.emerald],
+  ["callz", "CallZ", C.emerald, C.cyan],
   ["journalz", "JournalZ", C.pink, C.gold],
   ["habitz", "HabitZ", C.ember, C.gold],
   ["collabz", "CollabZ", C.gold, C.cyan],

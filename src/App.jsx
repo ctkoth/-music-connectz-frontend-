@@ -21,41 +21,45 @@ import { SPINAZ } from "./resources.js";
 // ships close to nothing extra. JSX referencing a lazy component (as TABS
 // does, below) does NOT trigger its import — only mounting it does, which is
 // why TABS can stay exactly as written.
-const Login = lazy(() => import("./auth/Login.jsx"));
-const Register = lazy(() => import("./auth/Register.jsx"));
-const ForgotPassword = lazy(() => import("./auth/ForgotPassword.jsx"));
-const ResetPassword = lazy(() => import("./auth/ResetPassword.jsx"));
-const MimeZ = lazy(() => import("./apps/MimeZ.jsx"));
-const DirectZ = lazy(() => import("./apps/DirectZ.jsx"));
-const LessonZ = lazy(() => import("./apps/LessonZ.jsx"));
-const InstrumentZ = lazy(() => import("./apps/InstrumentZ.jsx"));
-const MessageZ = lazy(() => import("./apps/MessageZ.jsx"));
-const ProfileZ = lazy(() => import("./apps/ProfileZ.jsx"));
-const GroupZ = lazy(() => import("./apps/GroupZ.jsx"));
-const CollabZ = lazy(() => import("./apps/CollabZ.jsx"));
-const BattleZ = lazy(() => import("./apps/BattleZ.jsx"));
-const LabelZ = lazy(() => import("./apps/LabelZ.jsx"));
-const BugZ = lazy(() => import("./apps/BugZ.jsx"));
-const PostZ = lazy(() => import("./apps/PostZ.jsx"));
-const KeyConnectZ = lazy(() => import("./apps/KeyConnectZ.jsx"));
-const OCC = lazy(() => import("./apps/OCC.jsx"));
-const SocialConnectZ = lazy(() => import("./apps/SocialConnectZ.jsx"));
-const SpecZ = lazy(() => import("./apps/SpecZ.jsx"));
-const MembershipZ = lazy(() => import("./apps/MembershipZ.jsx"));
-const AdZ = lazy(() => import("./apps/AdZ.jsx"));
-const OfferZ = lazy(() => import("./apps/OfferZ.jsx"));
-const OnboardZ = lazy(() => import("./apps/OnboardZ.jsx"));
-const PublicPost = lazy(() => import("./apps/PublicPost.jsx"));
-const PublicProfile = lazy(() => import("./apps/PublicProfile.jsx"));
-const TrialTake = lazy(() => import("./apps/TrialTake.jsx"));
-const PublicPlaylist = lazy(() => import("./apps/PublicPlaylist.jsx"));
-const PlaylistZ = lazy(() => import("./apps/PlaylistZ.jsx"));
-const MemberProfile = lazy(() => import("./apps/MemberProfile.jsx"));
-const LogZ = lazy(() => import("./apps/LogZ.jsx"));
-const FunnelZ = lazy(() => import("./apps/FunnelZ.jsx"));
-const HabitZ = lazy(() => import("./apps/HabitZ.jsx"));
-const JournalZ = lazy(() => import("./apps/JournalZ.jsx"));
-const Landing = lazy(() => import("./Landing.jsx"));
+import { lazyRoute } from "./chunkError.js";
+
+const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
+const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
+const ForgotPassword = lazy(lazyRoute(() => import("./auth/ForgotPassword.jsx")));
+const ResetPassword = lazy(lazyRoute(() => import("./auth/ResetPassword.jsx")));
+const MimeZ = lazy(lazyRoute(() => import("./apps/MimeZ.jsx")));
+const DirectZ = lazy(lazyRoute(() => import("./apps/DirectZ.jsx")));
+const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
+const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
+const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
+const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
+const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
+const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
+const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
+const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
+const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
+const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
+const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
+const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
+const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
+const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
+const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
+const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
+const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
+const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
+const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
+const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
+const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
+const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
+const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
 // second a chunk is in flight. Same spinner RequireAuth already used, so a
@@ -71,21 +75,39 @@ function RouteFallback() {
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
 // fall back to the MCZ logo via <IconImg> until dropped into /public/icons/.
+// ICON ARTWORK: Corey's own PNGs, not the generated neon set.
+//
+// The `-neon.svg` icons were generated by `tools/make-neon-icons.mjs` and they
+// are vector, so they scale — but they are simple line glyphs against real
+// designed artwork, and next to the actual icon set they read as low-detail.
+// The registry points at the artwork.
+//
+// Three keys still hold a neon SVG, each for its own reason:
+//
+//   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
+//   * journalz.png— the artwork exists on Corey's machine and has never been
+//                   committed. Pointing at a file that is not in the repo does
+//                   not error, it silently falls back to the MCZ logo, so this
+//                   stays on the SVG until the PNG lands.
+//   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
+//
+// The generator stays in `tools/` — it is what made the three above, and it is
+// how a new tab gets a placeholder before there is art for it.
 export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
   "background.png": "/icons/background.png",
-  "battlez.png": "/icons/battlez-neon.svg",
+  "battlez.png": "/icons/battlez.png",
   "boardz.png": "/icons/boardz.png",
   "bodiez.png": "/icons/bodiez.png",
-  "bugz.png": "/icons/bugz-neon.svg",
+  "bugz.png": "/icons/bugz.png",
   "callz.png": "/icons/callz.png",
   "callz_ai.png": "/icons/callz_ai.png",
   "callz_ai.webp": "/icons/callz_ai.webp",
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  "collabz.png": "/icons/collabz-neon.svg",
+  "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
@@ -100,13 +122,13 @@ export const CUSTOM_ICONS = {
   "guitarz.png": "/icons/guitarz.png",
   "bassz.png": "/icons/bassz.png",
   "keyz.png": "/icons/keyz.png",
-  "directz.png": "/icons/directz-neon.svg",
+  "directz.png": "/icons/directz.png",
   "distributez.png": "/icons/distributez.png",
   "energy.png": "/icons/energy.png",
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
-  "groupz.png": "/icons/groupz-neon.svg",
+  "groupz.png": "/icons/groupz.png",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
@@ -117,9 +139,9 @@ export const CUSTOM_ICONS = {
   "inbox_alt.png": "/icons/inbox_alt.png",
   "intelligence.png": "/icons/intelligence.png",
   "intuition.png": "/icons/intuition.png",
-  "keyconnectz.png": "/icons/keyconnectz-neon.svg",
-  "labelz.png": "/icons/labelz-neon.svg",
-  "lessonz.png": "/icons/lessonz-neon.svg",
+  "keyconnectz.png": "/icons/keyconnectz.png",
+  "labelz.png": "/icons/labelz.png",
+  "lessonz.png": "/icons/lessonz.png",
   "lilith_anytime.png": "/icons/lilith_anytime.png",
   "lilith_logbook.png": "/icons/lilith_logbook.png",
   "lilith_today.png": "/icons/lilith_today.png",
@@ -128,24 +150,24 @@ export const CUSTOM_ICONS = {
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
-  "messagez.png": "/icons/messagez-neon.svg",
+  "messagez.png": "/icons/messagez.png",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
-  "mimez.png": "/icons/mimez-neon.svg",
+  "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
-  "occ.png": "/icons/occ-neon.svg",
-  "offerz.png": "/icons/offerz-neon.svg",
-  "adz.png": "/icons/adz-neon.svg",
-  "money.png": "/icons/money-neon.svg",
+  "occ.png": "/icons/occ.png",
+  "offerz.png": "/icons/offerz.png",
+  "adz.png": "/icons/adz.png",
+  "money.png": "/icons/money.png",
   // New editions — neon signage dropped in Jul 16.
-  "specz.png": "/icons/specz-neon.svg",
+  "specz.png": "/icons/specz.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
-  "onboardz.png": "/icons/onboardz-neon.svg",
+  "onboardz.png": "/icons/onboardz.png",
   // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
   // rest of the platform refers to and the value points at the SVG — the
   // same indirection "logo.png" → the .jpg already uses, and the reason this
   // registry maps names to paths instead of just globbing a folder.
   "postz.png": "/icons/postz-neon.svg",
-  "personaz.png": "/icons/personaz-neon.svg",
+  "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
@@ -164,18 +186,18 @@ export const CUSTOM_ICONS = {
   "pickconz.png": "/icons/pickconz.png",
   "preferencez.png": "/icons/preferencez.png",
   "producez.png": "/icons/producez.png",
-  "rapz.png": "/icons/rapz-neon.svg",
+  "rapz.png": "/icons/rapz.png",
   "ratez.png": "/icons/ratez.png",
   "royaltiez.png": "/icons/royaltiez.png",
   "scoutz.png": "/icons/scoutz.png",
   "sentencez.png": "/icons/sentencez.png",
   "shotz.png": "/icons/shotz.png",
-  "singz.png": "/icons/singz-neon.svg",
+  "singz.png": "/icons/singz.png",
   "skillz.png": "/icons/skillz.png",
-  "social_connectz.png": "/icons/social_connectz-neon.svg",
+  "social_connectz.png": "/icons/social_connectz.png",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
-  "playlistz.png": "/icons/playlistz-neon.svg",
+  "playlistz.png": "/icons/playlistz.png",
   "spinaz.png": "/icons/spinaz.png",
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
@@ -191,9 +213,9 @@ export const CUSTOM_ICONS = {
   // Live surfaces whose art was on disk but never registered — so they were
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
-  "habitz.png": "/icons/habitz-neon.svg",
+  "habitz.png": "/icons/habitz.png",
   "journalz.png": "/icons/journalz-neon.svg",
-  "logz.png": "/icons/logz-neon.svg",
+  "logz.png": "/icons/logz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
@@ -310,6 +332,8 @@ const TABS = [
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
+  { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
+  { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
