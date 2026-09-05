@@ -23,6 +23,7 @@ import {
   Pencil, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import { ViewsBadge } from "../ViewZ.jsx";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
@@ -603,6 +604,12 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                   className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
             {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
           </button>
+          {/* 👁️ before the rating, because it is the question that comes
+              first: a post with no ratings and 200 views was SEEN and not
+              acted on, which is a completely different problem from a post
+              nobody found. Read-only here — a card scrolling past is an
+              impression, not a view. */}
+          <ViewsBadge target={item} views={post.view_count} />
           <div className="text-right">
             <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
               <Flame size={14} /> {rating != null ? rating : "—"}<span className="text-white/35">/10</span>

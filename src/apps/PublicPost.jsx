@@ -5,15 +5,21 @@
 // which a Post has ever had, and it called an endpoint that returned 404. It
 // now renders the payload the server actually serves.
 //
-// Two things it deliberately does NOT show. Views: nothing counts them, and a
-// number anybody can inflate by reloading is worth less than no number.
-// Comments: they're member-authored text, and publishing that to strangers
-// needs a moderation path this page doesn't have.
+// Views used to be on that list — "nothing counts them, and a number anybody
+// can inflate by reloading is worth less than no number." Something counts
+// them now, and it counts a PERSON PER DAY rather than a page load, so the
+// objection is answered rather than waived: reloading this page moves nothing.
+// A stranger arriving on a shared link is the reach a creator most wants
+// measured, so this is exactly where it belongs.
+//
+// Comments still are not here: they're member-authored text, and publishing
+// that to strangers needs a moderation path this page doesn't have.
 import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { recordView, ViewsBadge } from "../ViewZ.jsx";
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -21,6 +27,13 @@ const scoreColor = (n) =>
 export default function PublicPost() {
   const { id } = useParams();
   const [post, setPost] = useState(null);
+  // Somebody opened a shared link. That is a deliberate look at one post —
+  // the exact thing a view is meant to mean — so it is recorded once, here,
+  // and never on a card that merely scrolled past.
+  const [views, setViews] = useState(null);
+  useEffect(() => {
+    if (id) recordView(`post:${id}`).then((d) => d && setViews(d.views));
+  }, [id]);
   usePageTitle(post?.title && `${post.title} — ${post.author}`,
                post?.description || (post?.author ? `A track by ${post.author}.` : ""));
   const [err, setErr] = useState("");
@@ -64,12 +77,15 @@ export default function PublicPost() {
             <Link to={`/u/${post.author}`} className="text-sm font-bold text-white hover:text-mcz-ember">
               @{post.author}
             </Link>
-            {post.rating != null && (
-              <span className="flex items-center gap-1 text-xs text-mcz-ember">
-                <Flame size={13} /> <span className={`font-bold ${scoreColor(post.rating)}`}>{post.rating}</span>
-                <span className="text-white/40">/10</span>
-              </span>
-            )}
+            <span className="flex items-center gap-2">
+              <ViewsBadge target={`post:${id}`} views={views ?? post.view_count} />
+              {post.rating != null && (
+                <span className="flex items-center gap-1 text-xs text-mcz-ember">
+                  <Flame size={13} /> <span className={`font-bold ${scoreColor(post.rating)}`}>{post.rating}</span>
+                  <span className="text-white/40">/10</span>
+                </span>
+              )}
+            </span>
           </div>
 
           {post.title && (

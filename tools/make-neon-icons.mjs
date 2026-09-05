@@ -137,6 +137,62 @@ const G = {
     <path d="M158 122c14-14 38-12 50 4l26 36c9 12 7 29-4 39l-20 18c14 30 38 54 68 68l18-20c10-11 27-13 39-4l36 26c16 12 18 36 4 50l-20 20c-14 14-35 18-53 10-52-23-104-60-142-98s-75-90-98-142c-8-18-4-39 10-53z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M300 150a76 76 0 0 1 62 62M300 106a120 120 0 0 1 106 106" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.9"/>`,
 
+  // ---- OCC tiles. All eight were NAMED by occ_spec.py, registered in
+  // CUSTOM_ICONS, and had no file in the repo — so every one of them rendered
+  // the generic MCZ logo. Nothing errored: IconImg falls back on purpose, which
+  // is right for a missing file and is exactly why nobody saw it for months.
+  // These are placeholders in the house style until Corey's art is committed.
+  editor: (a, b) => `
+    <rect x="118" y="112" width="276" height="188" rx="20" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M118 162h276" stroke="${a}" stroke-width="13" stroke-opacity="0.6"/>
+    <circle cx="150" cy="137" r="8" fill="${a}"/><circle cx="178" cy="137" r="8" fill="${a}" fill-opacity="0.55"/>
+    <path d="M162 196l-28 28 28 28M262 196l28 28-28 28M232 190l-38 68" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  taskz: (a, b) => `
+    <rect x="130" y="112" width="76" height="76" rx="16" fill="none" stroke="${a}" stroke-width="15"/>
+    <rect x="130" y="224" width="76" height="76" rx="16" fill="none" stroke="${a}" stroke-width="15" stroke-opacity="0.6"/>
+    <path d="M150 150l14 16 26-32" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M240 138h142M240 178h100M240 250h142M240 290h100" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.75"/>`,
+
+  codez: (a, b) => `
+    <path d="M186 140l-72 66 72 66" fill="none" stroke="${a}" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M326 140l72 66-72 66" fill="none" stroke="${a}" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M288 116l-64 180" stroke="${b}" stroke-width="16" stroke-linecap="round"/>`,
+
+  mistakez: (a, b) => `
+    <path d="M256 108l134 194H122z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M256 176v56" stroke="${b}" stroke-width="17" stroke-linecap="round"/>
+    <circle cx="256" cy="266" r="10" fill="${b}"/>`,
+
+  characterz: (a, b) => `
+    <circle cx="256" cy="164" r="54" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M148 306c0-56 48-84 108-84s108 28 108 84" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M300 118a54 54 0 0 1 0 92" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>`,
+
+  console: (a, b) => `
+    <rect x="118" y="118" width="276" height="176" rx="20" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M164 176l40 32-40 32" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M234 246h108" stroke="${b}" stroke-width="16" stroke-linecap="round"/>`,
+
+  search: (a, b) => `
+    <circle cx="232" cy="184" r="82" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M292 244l72 72" stroke="${b}" stroke-width="18" stroke-linecap="round"/>`,
+
+  welcome: (a, b) => `
+    <path d="M160 106h124a20 20 0 0 1 20 20v180a20 20 0 0 1-20 20H160z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="270" cy="214" r="11" fill="${a}"/>
+    <path d="M330 214h72M368 180l34 34-34 34" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // ViewZ — an eye inside a speech bubble, from Corey's neon sign. The bubble
+  // is the point: a view is somebody SAYING they looked, not a hit. Drawn with
+  // the same heavy strokes as the rest of the set because this one is rendered
+  // small — beside a count in the header, not only at 44px in its panel.
+  viewz: (a, b) => `
+    <path d="M256 96c-70 0-126 45-126 100 0 33 20 62 51 80l-30 48 74-30c10 2 21 3 31 3 70 0 126-45 126-101S326 96 256 96z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M182 196c26-34 122-34 148 0-26 34-122 34-148 0z" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="256" cy="196" r="30" fill="none" stroke="${b}" stroke-width="15"/>
+    <circle cx="268" cy="182" r="9" fill="${b}"/>`,
+
   soundz: (a, b) => `
     <path d="M150 212h56l74-62v212l-74-62h-56z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M326 186a76 76 0 0 1 0 140M362 152a130 130 0 0 1 0 208" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
@@ -223,6 +279,15 @@ const APPS = [
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
   ["funnelz", "FunnelZ", C.emerald, C.cyan],
+  ["viewz", "ViewZ", C.cyan, C.cyan],
+  ["editor", "Editor", C.cyan, C.gold],
+  ["taskz", "TaskZ", C.emerald, C.cyan],
+  ["codez", "CodeZ", C.purple, C.cyan],
+  ["mistakez", "MistakeZ", C.ember, C.gold],
+  ["characterz", "CharacterZ", C.pink, C.cyan],
+  ["console", "Console", C.gold, C.emerald],
+  ["search", "Search", C.cyan, C.purple],
+  ["welcome", "Welcome", C.gold, C.cyan],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't

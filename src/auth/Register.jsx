@@ -4,7 +4,7 @@ import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-r
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
-import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { clearTrialToken, storedTrialToken } from "../trialClaim.js";
 import { track } from "../track.js";
 import { WINDOWS_EXE } from "../downloadBuilds.js";
 

@@ -6,11 +6,12 @@
 //
 // Pin allowance follows the blueprint: Free pins 2 and lets the picks fill the
 // rest, Premium and StatZ pin as many as they like.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Home, LayoutGrid, Pin, Search, Sparkles, X } from "lucide-react";
 import { IconImg, slugFor } from "./App.jsx";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
+import { onSwipe } from "./swipe.js";
 
 const USAGE_KEY = "mcz_app_usage";
 const PINS_KEY = "mcz_pinned_apps";
@@ -99,6 +100,7 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
   // than recall". Searching by WHAT YOU WANT TO DO is the fix: "record" finds
   // SingZ, "where did my money go" finds LogZ. See appPurpose.js.
   const [q, setQ] = useState("");
+  const dockRef = useRef(null);
   const { label: tierLabel, limit } = tierInfo(tier);
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
@@ -109,6 +111,15 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
     .slice(0, AI_PICK_COUNT);
   const atLimit = pinnedApps.length >= limit;
   const shown = apps.filter((a) => matchesApp(a, q));
+
+  // Swipe up on the dock opens the app list; swipe down closes it. The dock is
+  // a horizontal strip of cards at the bottom of a phone screen — it AFFORDS a
+  // swipe and used to only accept taps, which is the affordance mismatch
+  // Interaction Design names. Every one of these has a visible button that does
+  // the same thing, because a gesture nobody discovers is a feature nobody has.
+  useEffect(() => onSwipe(dockRef.current, {
+    onDown: () => { setDrawer(false); setQ(""); },
+  }), [drawer]);
 
   // Escape closes it. ITS340's events chapter is blunt about this and so is
   // every keyboard user: an overlay you can only dismiss by finding and
@@ -125,7 +136,7 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
   }, [drawer]);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-4xl p-2">
+    <div ref={dockRef} className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-4xl p-2">
       {/* The drawer is the full app list — this is how every app stays
           reachable now that the header tab bar is gone. Tapping a tile opens
           the app; the corner pin button adds it to the dock instead. */}

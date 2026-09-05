@@ -21,7 +21,7 @@ its resource emoji.
 
 | Resource | Emoji | Notes |
 |---|---|---|
-| Energy | ⚡ | mana; regenerates hourly at reach ÷ tier |
+| Energy | ⚡ | mana; refills hourly at reach ÷ tier, toward a daily ceiling |
 | SpinaZ | 🍥 | coin; earned by rating, referring, AdZ/OfferZ |
 | PromptZ | 🏷️ | prepaid AI credits; the daily free allowance is separate |
 | Money | 💵 | real cash balance |
@@ -100,6 +100,211 @@ give them the link. A read-only surface is usually an unfinished one.
   on failure is the worst bug class in this app and has shipped twice.
 - `src/mcz2/` is the 2.2 reference app and is **not mounted** — changing it
   changes nothing.
+
+## ViewZ — 👁️ on every page, drawn like a track in a DAW
+
+Every page here could be looked at by a thousand people and said nothing about
+it. `ViewZ.jsx` puts an eye on the header (this app, today, plus who is in it
+right now) and a read-only one on every post card, and both open the same
+panel: **twenty-four lanes across a day**, bars, floor-aligned.
+
+Why a timeline instead of the number:
+
+- "128 views" is a receipt. A lane shows the spike when it got shared, the flat
+  overnight stretch, and whether the attention is still arriving or already
+  over — every one of which is something a creator would act on, and none of
+  which is in the scalar. It reads as a track because that is the one chart
+  this audience already knows how to read.
+- **`watching` is the engaging half, not the total.** A total describes
+  something that already happened. "3 people are here right now" changes what
+  somebody does next.
+
+Three implementation rules that are not decoration:
+
+- **Only the TAB beats.** `useViews` heartbeats for `tab:<key>`; a feed card
+  gets `ViewsBadge`, which beats at nothing. Thirty cards each holding a
+  heartbeat is thirty requests every half minute, and a card scrolling past is
+  an impression, not a view — counting it would inflate the one number a
+  creator is going to trust.
+- **A hidden tab is not a viewer.** The beat checks `document.hidden`, which is
+  the difference between "watching" meaning watching and meaning "left a tab
+  open in another window".
+- **The client never decides what a view IS.** The server counts one viewer per
+  day, refuses the author's own looks, and returns the sentence explaining it;
+  this screen prints that sentence rather than inventing a claim of its own.
+
+The mark is Corey's neon sign — an eye in a speech bubble, because a view is
+somebody saying they looked. It exists twice on purpose: `viewz.png` is the
+full neon TILE (background, wordmark) drawn at 44px in the panel header, and
+`ViewEye` is the same glyph inline as SVG, taking `currentColor` and staying
+crisp at 15px beside a number. Shrinking the tile to sit in a pill makes a
+smudge; the glyph is generated from the same path in
+`tools/make-neon-icons.mjs`, so the two cannot drift.
+
+`recordView(target)` is the one-shot for a deliberate open — the public post
+page, which is where a stranger arriving on a shared link gets counted. That
+page's own header comment used to say views were left out because "a number
+anybody can inflate by reloading is worth less than no number". The objection
+is answered now rather than waived: reloading moves nothing.
+
+## Clicking the name shows what shipped
+
+Work landed and nothing on the platform said so. Somebody who noticed a screen
+was different had nowhere to confirm it, and somebody who didn't never learned
+the app had grown. The wordmark in the header — the one place everybody's eye
+already goes — opens `ChangeZ.jsx` now. (PostZ still lives at `/post` and is
+one tap away in the dock, which is what that link was doing.)
+
+`src/changelog.js` is the content, and two rules govern an entry:
+
+- **Say what was WRONG first.** "ViewZ ships" tells nobody anything. "You had
+  no way to find out if anyone saw your track" is a sentence somebody
+  recognises, because they lived it. Same rule the commit messages follow.
+- **No tier ladder retyped into prose.** `tools/changelog.test.mjs` fails the
+  build on one — a changelog is exactly where a tenth copy of "20 free prompts"
+  would land.
+
+`id` is stable and never reused: the unread dot on the wordmark is keyed on
+`CHANGELOG[0].id`, and it clears by the panel being READ rather than by a
+"mark as read" button, which is a control that exists to be ignored. Blocked
+storage counts as seen — a dot that can never be cleared is worse than no dot.
+
+## A tab switch can carry what to DO when it lands
+
+`goToSpot(tab, target)` scrolls to a `data-tour` anchor and flashes it. That is
+the whole of it — it cannot type in a search box, choose a filter or set a sort
+order. So "click ⚡ in the header" had nowhere to go: LogZ opens on Everything,
+and the member is reading SpinaZ, money and XP rows after asking one question
+about one resource.
+
+`openTo.js` is the missing half. `goToView(tab, view)` names the tab AND the
+view; `useOpenView(tab, apply)` applies it in the destination. Two details are
+what make it survive a lazy route:
+
+- **The view is remembered as well as announced.** The destination chunk is
+  still downloading when the event fires, so an event alone would be shouted at
+  nobody. `useOpenView` reads the pending value on mount.
+- **It is taken exactly once.** A member who then picks a different filter must
+  not have their choice undone by a stale intent on the next remount.
+
+`member.js` (`openMember(username)`) is the same idea for the profile card:
+`MemberProfile` is mounted once behind `memberKey` in App, so before this only
+the two things holding that setter could open anybody — every other screen that
+named a member had a username on screen and nothing to do about it.
+
+## Every header stat opens the thing it is about
+
+They were all `<span>`s. A member looking at "⚡ 240 Energy" who wanted to know
+where it came from had to know LogZ exists, find it among thirty apps, open it
+and then set a filter — for a question they asked by *looking at the number*.
+A read-only surface is an unfinished one, and the header is the most-looked-at
+surface in the app.
+
+Members → the directory. Online → the directory, most recently active first.
+⚡ and 🍥 and 🏷️ → LogZ already filtered. Tier → MembershipZ. Sign → ProfileZ.
+`Balance.jsx` is the same control anywhere else a BALANCE is shown (ProfileZ,
+AdZ). **Prices are deliberately left alone** — "−1 🏷️ to run this" is a cost
+stated up front, and putting a navigation under the thing somebody is about to
+press is a different bug.
+
+While fixing this: the prompts tooltip read `free 1 · premium 5 · statZ 10`,
+and Free had been **3** for weeks. A tier number retyped into copy, drifting,
+exactly as the convention warns. `/api/auth/stats/` publishes
+`promptz_daily_ladder` now and the copy reads it.
+
+## Social ConnectZ was showing six people who do not exist
+
+`NovaBeatz`, `SopranoSol` and four more were a hardcoded `SEED` array, and
+`/api/economy/members/` — the real directory, with filters, gates, distance and
+badges — had **no caller anywhere in the mounted app**. A discovery surface
+that discovers nobody is the worst version of the read-only screen: not just a
+dead end, a dead end with strangers painted on the wall.
+
+It reads the real endpoint now, and the viewer sets the order. The orders come
+off the server WITH the results, for the same reason tier numbers do — a picker
+offering a sort the server cannot do is a control that quietly does nothing.
+
+## Swipe is a first-class gesture, and it never wins
+
+`swipe.js` gives the shell left/right between apps, the dock and every sheet a
+downward flick to dismiss. Three rules keep a gesture layer from being an
+irritation, and all three are in the file:
+
+- **Never the only way.** Every swipe has a visible control that does the same
+  thing — the ‹ › chevrons, the ✕, Escape. A gesture nobody discovers is a
+  feature nobody has, and a gesture somebody *cannot make* is a wall.
+- **It loses to the content.** A swipe starting on a scroller, a slider, a text
+  field or an audio scrubber belongs to that thing.
+- **Listeners are passive and nothing calls `preventDefault`.** This can never
+  be the reason the page stops scrolling.
+
+## JournalZ has three ways in, and the third is the one Diarium can't have
+
+`JournalCalendar.jsx`, `JournalInsights.jsx`, `JournalPrompts.jsx`. A list
+answers "what did I write lately" and cannot answer "what was I doing last
+March", which is the question a diary exists for.
+
+- **Calendar** — the month as a grid, mood as a coloured dot (a word per cell
+  would not fit; a colour is what you can read at a glance across a month). A
+  kept day opens the entry, a missed one opens the composer set to that date, a
+  future day is disabled. `aria-label` on every cell says the date and whether
+  it was kept, because the number alone tells a screen reader nothing.
+- **Insights** — counts only, every row a door. A person opens their profile
+  through `openMember`, a tag or a mood sets the filter and drops you back on
+  the list. Nothing on the screen scores the writing.
+- **Prompts, above the blank page** — drawn from the member's own ledger for
+  that day. `onUse` appends the opener to the body; it never replaces what is
+  already typed, and it hands over a first LINE, not an entry. The button
+  beside it opens the app the prompt came from.
+
+The pane switch uses `aria-pressed` so a screen reader is told which of the
+three is open rather than that three buttons exist.
+
+## An icon that isn't there is a blank, not an error
+
+`IconImg` falls back to the MCZ logo when a file 404s. That is right for a
+missing file, and it is exactly why **eight OCC tiles rendered the generic logo
+for months** — `editor`, `taskz`, `codez`, `mistakez`, `characterz`, `console`,
+`search`, `welcome` were named by `occ_spec.py`, registered in `CUSTOM_ICONS`,
+and had no file in the repository. Nothing errored. Nobody saw it.
+
+Same shape as the missing tab descriptions: a name with nothing behind it is a
+blank, and a blank is invisible. So `tools/icons.test.mjs` fails the build on
+either way it happens:
+
+- **A registered name with no file.** The registry is hand-maintained and the
+  art arrives separately — the entry lands, the PNG never gets committed, and
+  the fallback hides it.
+- **A case-only mismatch.** Development is on Windows, where `LogZ.png` and
+  `logz.png` are the same file. Production is Linux behind a CDN, where they
+  are not. That bug works perfectly on the machine it was written on and 404s
+  for every member. The registry is clean of this today; the test is what keeps
+  it that way.
+
+The eight are neon placeholders from `tools/make-neon-icons.mjs` now — which is
+what that generator is FOR ("how a new tab gets a placeholder before there is
+art for it"). Replacing one is dropping the PNG in and pointing the registry
+row at it.
+
+**Most of the icon set on Corey's machine has never been committed.** Of 126
+filenames in his `public/icons/`, 82 are not in this repository. Those eight
+were simply the ones something already asked for by name — the rest are art
+waiting for a surface, and no test can see them until they are in git.
+
+## Every app has to explain itself, and `npm test` holds it to that
+
+The ⓘ in the header is the closest thing MCZ has to a tutorial, and it is the
+first thing somebody presses on an app they have never seen. **Four apps
+shipped without one** — RoyaltieZ, CallZ, GameZ, SoundZ — and answered "A Music
+ConnectZ app." to the member most in need of an answer. Nothing caught it,
+because a missing key in an object literal is not an error in JavaScript; it is
+a blank.
+
+`tools/tabs.test.mjs` reads App.jsx and holds `TABS` and `TAB_ABOUT` to each
+other: every tab has a description, no description outlives its tab, and none
+of them is short enough to be a name and an emoji. It is a text scan rather
+than an import on purpose — App.jsx pulls in React, thirty lazy routes and a
+stylesheet, none of which a sentence needs.
 
 ## Profile JSON arrives repaired — don't re-implement the repair
 

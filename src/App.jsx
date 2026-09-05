@@ -11,6 +11,11 @@ import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import { SPINAZ } from "./resources.js";
+import { goToTab } from "./goto.js";
+import { goToView } from "./openTo.js";
+import { onSwipe, useSwipeAway } from "./swipe.js";
+import { ViewsPill } from "./ViewZ.jsx";
+import { hasUnread } from "./changelog.js";
 
 // Every screen below used to be a static import, which means a cold visitor
 // hitting the logged-out Landing page paid for the ENTIRE authenticated app —
@@ -53,6 +58,7 @@ const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const ChangeZ = lazy(lazyRoute(() => import("./ChangeZ.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
@@ -259,17 +265,18 @@ export const CUSTOM_ICONS = {
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
   // files fall back to the tab's emoji, not to the logo (see IconImg).
-  "editor.png": "/icons/editor.png",
-  "taskz.png": "/icons/taskz.png",
-  "codez.png": "/icons/codez.png",
-  "mistakez.png": "/icons/mistakez.png",
-  "characterz.png": "/icons/characterz.png",
-  "console.png": "/icons/console.png",
-  "search.png": "/icons/search.png",
-  "welcome.png": "/icons/welcome.png",
+  "editor.png": "/icons/editor-neon.svg",
+  "taskz.png": "/icons/taskz-neon.svg",
+  "codez.png": "/icons/codez-neon.svg",
+  "mistakez.png": "/icons/mistakez-neon.svg",
+  "characterz.png": "/icons/characterz-neon.svg",
+  "console.png": "/icons/console-neon.svg",
+  "search.png": "/icons/search-neon.svg",
+  "welcome.png": "/icons/welcome-neon.svg",
   // Owner-only tab — reserved ahead of the artwork, same as the rest above;
   // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
   "funnelz.png": "/icons/funnelz-neon.svg",
+  "viewz.png": "/icons/viewz-neon.svg",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -416,7 +423,29 @@ function SoundToggle() {
   );
 }
 
-function CommunityBar({ onOpenMember }) {
+/** A header stat that OPENS the thing it is about.
+ *
+ * Every one of these was a `<span>`. A member looking at "⚡ 240 Energy" and
+ * wanting to know where it came from had to know that LogZ exists, find it in
+ * a bar of thirty apps, open it, and then set a filter — for a question they
+ * asked by looking at the number. A read-only surface is an unfinished one,
+ * and a header is the most-looked-at surface in the app.
+ *
+ * `title` says where it goes BEFORE it is pressed, same rule as a price. */
+function StatPill({ onClick, title, className = "", children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`pill transition hover:!border-white/40 hover:!text-white active:scale-95 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function CommunityBar({ onOpenMember, tab }) {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     let on = true;
@@ -426,24 +455,77 @@ function CommunityBar({ onOpenMember }) {
     return () => { on = false; clearInterval(t); };
   }, []);
   if (!stats) return null;
+  // The ladder comes off the server. The tooltip here used to spell it out —
+  // "free 1 · premium 5 · statZ 10" — and Free had been 3 for weeks: a tier
+  // number retyped into copy, drifting, exactly as the convention warns.
+  const ladder = asList(stats.promptz_daily_ladder)
+    .filter((r) => r.tier !== "debug")
+    .map((r) => `${r.tier} ${r.per_day}`)
+    .join(" · ");
   return (
     <div className="neon-frame mb-6 space-y-2 p-4">
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="pill">👥 {stats.total_members} members</span>
-        <span className="pill !border-emerald-400/40 !text-emerald-300">
+        <StatPill
+          onClick={() => goToView("social", { sort: "" })}
+          title="Open the member directory — you choose the order"
+        >
+          👥 {stats.total_members} members
+        </StatPill>
+        <StatPill
+          onClick={() => goToView("social", { sort: "active" })}
+          title="Everyone, most recently active first"
+          className="!border-emerald-400/40 !text-emerald-300"
+        >
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
-        </span>
-        <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
+        </StatPill>
+        <StatPill
+          onClick={() => goToView("logz", { resource: "energy" })}
+          title={`Open your ⚡ movements${
+            stats.my_energy_rate_per_hour
+              ? ` — refills ${stats.my_energy_rate_per_hour}/hour toward ${stats.my_energy_daily_cap}. ${
+                  stats.energy_reset_note || ""}`
+              : ""}`}
+          className="!text-mcz-gold"
+        >
+          ⚡ {stats.my_energy} Energy
+        </StatPill>
+        <StatPill
+          onClick={() => goToView("logz", { resource: "spinaz" })}
+          title="Open your 🍥 movements — what earned it and what spent it"
+          className="!text-mcz-pink"
+        >
+          {SPINAZ} {stats.my_spinaz} SpinaZ
+        </StatPill>
         {stats.my_promptz_daily != null && (
-          <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+          <StatPill
+            onClick={() => goToView("logz", { resource: "promptz" })}
+            title={`Free AI prompts today${ladder ? ` (${ladder})` : ""} — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}
+            className="!text-mcz-cyan"
+          >
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
-          </span>
+          </StatPill>
         )}
-        <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
-        {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
+        <StatPill
+          onClick={() => goToTab("membershipz")}
+          title="Open MembershipZ — what this tier gives you, and the next one"
+          className="uppercase !text-mcz-cyan"
+        >
+          {stats.my_tier}
+        </StatPill>
+        {stats.my_zodiac && (
+          <StatPill
+            onClick={() => goToTab("profilez")}
+            title="Open ProfileZ — your sign comes from your birthday"
+          >
+            {stats.my_zodiac}
+          </StatPill>
+        )}
+        {/* 👁️ ViewZ, on every page. The count is for THIS app — how many
+            people came through it today and how many are in it right now —
+            and it opens the hour-by-hour lane. A room with nobody in it and
+            a room with forty people in it looked identical before this. */}
+        {tab && <ViewsPill target={`tab:${tab}`} />}
       </div>
       {stats.online_members?.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -479,19 +561,33 @@ const TAB_ABOUT = {
   membershipz: "💳 MembershipZ — upgrade your tier for lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Founding members lock in 50% off for life.",
   adz: "📺 AdZ — watch a short rewarded ad and earn SpinaZ. Ads play in the mobile app via AdMob; your reward lands automatically when the ad finishes.",
   offerz: "🎁 OfferZ — complete offers (surveys, sign-ups, installs) on the offerwall and earn SpinaZ, credited automatically once the provider confirms.",
-  mimez: "🤫 MimeZ — silent-performance training and practice drills.",
-  directz: "🎬 DirectZ — directing tools and guided sessions.",
-  lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
-  singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
-  rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
-  messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
+  mimez: "🤫 MimeZ — performance with the sound off. Drills for what your face and body are saying while you are not singing, which is most of a set. Anything you record here is a Boss Take like any other, so the coach can score it.",
+  directz: "🎬 DirectZ — the video side. A craft rating here comes from a model that WATCHES the video and scores framing, editing, lighting, sound and story, not from how many fields you filled in. The 🏷️ price sits beside the button before you press it, and a run that comes back with nothing is not charged.",
+  lessonz: "📚 LessonZ — book and run lessons. Teachers set their own skills, rates and availability, and every booking states the 💵 before it is made. Remote, in person, or over CallZ at the same price: the delivery is your choice, not a surcharge.",
+  singz: "🎤 SingZ — vocal training that actually listens. Your Boss Take is scored on pitch, timing and tone by a model that hears it, and the dimensions come from your instrument own profile, so a drummer is never scored on breath. Range detection, QuestZ and Boss SongZ. Voice health first: a warning here is not a nag.",
+  rapz: "🎤 RapZ — the same recorder as SingZ, scored on what rap is: breath control, pocket, cadence. Style tracks, a combo meter and Boss Mode. A track you already posted can be coached here without uploading it a second time.",
+  messagez: "📨 MessageZ — Inbox and Outbox, and nothing is a dead end in either: a message about a post opens the post, a deal opens the deal, and a member name opens their profile.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
-  collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
+  collabz: "🤝 CollabZ — PostZ is for show; this is where it becomes work. OriginalZ, CoverZ and RemixeZ, with the money escrowed so a stranger can take the first deal without either of you praying. The split is agreed and shown before anything is paid.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
-  groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
+  groupz: "👥 GroupZ — put members into groups you control: Friends, Fans, Partners, Blocked, or your own. A group is a thing you can aim at, post to, price for or keep out, rather than a list you look at.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
-  funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors. No modelled numbers: if we didn't see it happen, it isn't in here.",
+  // Nine tabs had NO entry here and four of them had none on the server
+  // either, so pressing ⓘ on RoyaltieZ, CallZ, GameZ or SoundZ answered
+  // "A Music ConnectZ app." — a tutorial that says nothing, on exactly the
+  // apps nobody has seen before. Each of these says what it is FOR, what it
+  // moves, and where what you make in it goes next.
+  playlistz: "🎧 PlaylistZ — put tracks in an order that means something. A playlist is a post: the room can rate it and argue with the running order, and any track in it opens back in the app that made it.",
+  keyconnectz: "⌨️ KeyConnectZ — the keyboard that translates. Translate is free at every tier, because being understood is not a luxury. Reading it aloud and speaking instead of typing are free too — the tier buys how MANY clips and characters a day, never whether. Your device's own voice never touches our server and is never counted.",
+  occ: "🖥️ OCC — the on-platform build room. Write it, run it, ship it. An AI run states its 🏷️ price beside the button before you press it, and a run that fails to produce anything usable isn't charged.",
+  logz: "🪵 LogZ — where your balances moved, and why. Every ⚡ and 🍥 row carries the reason it happened and opens the app it came from. Free sees the last 30 days, Premium a year, StatZ everything — the depth ladders, the ledger is never hidden from you.",
+  royaltiez: "💰 RoyaltieZ — what you're owed, and what it costs to get it out. Every plan's rate is on screen before you pick one; the cut is not a surprise at the end, it's the thing you chose. Each accrual opens the post that earned it.",
+  callz: "📞 CallZ — a live 1:1, priced by the minute. You see their rate, your balance and how many minutes you can afford BEFORE it rings. The running cost stays on screen, the receipt matches the quote, and the rate is locked at ring so it can't move under a call in progress.",
+  gamez: "🎮 GameZ — the game layer, shown honestly. ⭐ XP and badges reward turning up; ratings and skill levels never do. If a number in here looks good, somebody got good.",
+  soundz: "🔊 SoundZ — every action makes a sound so you know it landed without reading anything. One switch turns all of it off. Premium and StatZ can retune the pack — the sound is a confirmation, never a toll.",
+  habitz: "🎂 HabitZ — something you repeat, noticed and kept. It reads what you already did in the other apps rather than asking you to log it twice, and a streak leads back to the thing that built it.",
 };
 
 function Home() {
@@ -503,6 +599,10 @@ function Home() {
   const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
   const [infoKey, setInfoKey] = useState(null);
+  const [newsOpen, setNewsOpen] = useState(false);
+  const [news, setNews] = useState(false);           // is there an unread entry
+  useEffect(() => { setNews(hasUnread()); }, []);
+  useEffect(() => { if (newsOpen) setNews(false); }, [newsOpen]);
   // LogicZ: what each tab is and what lives inside it, from the server, so the
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
@@ -537,6 +637,27 @@ function Home() {
     openTab(TABS[n].key);
   };
 
+  // Escape and a downward flick both put the LogicZ card away. Escape is what
+  // a keyboard has and the flick is what a phone has; the ✕ inside stays for
+  // everyone, because neither of those is discoverable on its own.
+  const infoSwipe = useSwipeAway(() => setInfoKey(null));
+  useEffect(() => {
+    const h = (e) => e.key === "Escape" && setInfoKey(null);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // Swiping between apps. Left is forward, the direction the content would
+  // move — the same convention every phone gallery uses, so nobody has to be
+  // taught it.
+  const mainRef = useRef(null);
+  const goRef = useRef(go);
+  goRef.current = go;
+  useEffect(() => onSwipe(mainRef.current, {
+    onLeft: () => goRef.current(1),
+    onRight: () => goRef.current(-1),
+  }), [tab]);
+
   // Lets any tab (e.g. OnboardZ steps) jump to another tab.
   useEffect(() => {
     const h = (e) => {
@@ -549,6 +670,16 @@ function Home() {
     window.addEventListener("mcz-goto-tab", h);
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
+
+  // ...and any app can open a member's card. `MemberProfile` is mounted once,
+  // here, behind `memberKey` — so before this only the two things holding that
+  // setter could open anybody, and every other screen that names a member had
+  // a username on screen with nothing to do about it.
+  useEffect(() => {
+    const h = (e) => e.detail && setMemberKey(String(e.detail));
+    window.addEventListener("mcz-open-member", h);
+    return () => window.removeEventListener("mcz-open-member", h);
+  }, []);
 
   useEffect(() => {
     api("/api/economy/logicz/")
@@ -610,13 +741,27 @@ function Home() {
             </a>
           </div>
 
-          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
-             title="PostZ — ctrl/cmd-click for a new tab">
+          {/* The name opens what shipped. Work landed and nothing on the
+              platform said so — somebody who noticed a screen was different
+              had nowhere to confirm it, and somebody who didn't never learned
+              the app had grown. PostZ is still one tap away in the dock and
+              still lives at /post, which is where a home link was pointing. */}
+          <button
+            onClick={() => setNewsOpen(true)}
+            className="relative flex items-center gap-2"
+            title="What's new in Music ConnectZ"
+          >
             <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </a>
+            {/* Unread, and it clears by being READ rather than by a button
+                that exists to be ignored. */}
+            {news && (
+              <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-mcz-cyan shadow-neon"
+                    aria-label="New changes" />
+            )}
+          </button>
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -652,12 +797,18 @@ function Home() {
             nav. Its ⊞ drawer lists every app, so nothing is unreachable. */}
       </header>
 
-      {/* pb leaves room for the fixed PickConnectZ dock */}
-      <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
+      {/* pb leaves room for the fixed PickConnectZ dock.
+          Swipe left / right here is the same move as the ‹ › in the header —
+          the chevrons stay, because a gesture nobody discovers is a feature
+          nobody has and a gesture somebody cannot make is a wall. `swipe.js`
+          hands anything that owns its own horizontal movement (a scroller, a
+          slider, a text field, an audio scrubber) back to it, and never calls
+          preventDefault, so it can't be the reason the page stops scrolling. */}
+      <main ref={mainRef} className="mx-auto max-w-4xl px-4 pb-40 pt-5">
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} />
+        <CommunityBar onOpenMember={setMemberKey} tab={tab} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
           <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
@@ -669,8 +820,12 @@ function Home() {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           onClick={() => setInfoKey(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`About ${infoTab.label}`}
         >
           <div
+            ref={infoSwipe}
             className="neon-frame w-full max-w-md p-5"
             onClick={(e) => e.stopPropagation()}
           >
@@ -720,6 +875,12 @@ function Home() {
       {memberKey && (
         <Suspense fallback={null}>
           <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        </Suspense>
+      )}
+
+      {newsOpen && (
+        <Suspense fallback={null}>
+          <ChangeZ onClose={() => setNewsOpen(false)} />
         </Suspense>
       )}
 

@@ -10,6 +10,7 @@ import { saveVoice, useVoice } from "../voice.js";
 import CharLimit from "../CharLimit.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
+import Balance from "../Balance.jsx";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
@@ -590,8 +591,10 @@ export default function ProfileZ() {
           <p className="flex flex-wrap gap-2 pt-1 text-sm">
             <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
             {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}
-            <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
-            <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
+            {/* Both open their own history. A balance on your own card is the
+                exact moment you want to know what moved it. */}
+            <Balance resource="energy" amount={me.energy} className="!text-mcz-gold" />
+            <Balance resource="spinaz" amount={me.spinaz} className="!text-mcz-pink" />
           </p>
           {/* Worn, not filed away. The medals sit on the card the room sees,
               and tapping one drops you at the panel that switches it. */}

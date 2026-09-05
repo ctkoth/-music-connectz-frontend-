@@ -17,6 +17,9 @@ import {
   Send, Tag, Trash2, Users, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import JournalCalendar from "./JournalCalendar.jsx";
+import JournalInsights from "./JournalInsights.jsx";
+import JournalPrompts from "./JournalPrompts.jsx";
 import { asList, asDict } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
@@ -162,6 +165,10 @@ export default function JournalZ() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [opening, setOpening] = useState("");
+  // Which way into the diary. "write" is the composer + list this app has
+  // always been; the other two are the ones a diary app has.
+  const [pane, setPane] = useState("write");
+  const [dayFilter, setDayFilter] = useState("");
 
   // The composer.
   const [day, setDay] = useState(today);
@@ -196,12 +203,15 @@ export default function JournalZ() {
     if (q.trim()) p.set("q", q.trim());
     if (tag) p.set("tag", tag);
     if (mood) p.set("mood", mood);
+    // Picking a day on the calendar narrows the list to it, rather than
+    // scrolling somebody to roughly the right place and leaving them there.
+    if (dayFilter) p.set("day", dayFilter);
     api(`/api/economy/journalz/?${p}`)
       .then((d) => { setData(d); setErr(""); })
       .catch((e) => setErr(e.message || "Couldn't load your journal."))
       .finally(() => setBusy(false));
   };
-  useEffect(() => { load(); }, [view, tag, mood]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [view, tag, mood, dayFilter]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api(`/api/economy/journalz/cost/?day=${day}`).then(setCost).catch(() => {}); }, [day]);
 
   // A post handed over from PostZ arrives here as the start of today's entry.
@@ -357,8 +367,50 @@ export default function JournalZ() {
         <span className="text-white/30">{data?.streak_note}</span>
       </div>
 
+      {/* Three ways into the same diary. A list answers "what did I write
+          lately"; it cannot answer "what was I doing last March", which is the
+          question a diary exists for. `aria-pressed` so a screen reader is told
+          which pane is open rather than that three buttons exist. */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="How to look at your diary">
+        {[["write", "Write"], ["calendar", "Calendar"], ["insights", "Insights"]].map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setPane(k)}
+            aria-pressed={pane === k}
+            className={`pill text-[11px] ${pane === k ? "!border-mcz-cyan/70 !text-white" : ""}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {pane === "calendar" && (
+        <JournalCalendar
+          onOpenDay={(d) => { setPane("write"); setQ(""); setTag(""); setDayFilter(d.day); }}
+          onWriteDay={(d) => { setPane("write"); setDay(d); setTitle(""); setBody(""); }}
+        />
+      )}
+
+      {pane === "insights" && (
+        <JournalInsights
+          onFilter={(f) => {
+            setPane("write");
+            if (f?.tag) { setTag(f.tag); setMood(""); }
+            if (f?.mood) { setMood(f.mood); setTag(""); }
+          }}
+        />
+      )}
+
       {/* ---- the composer -------------------------------------------------- */}
+      {pane === "write" && (
       <div className="re-card space-y-3" data-tour="journalz-composer">
+        {/* Before the blank page, not after it. The reason diaries get
+            abandoned is that opening one costs you the work of remembering
+            what happened — and this app already knows. */}
+        <JournalPrompts
+          day={day}
+          onUse={(opener) => setBody((b) => (b ? `${b}\n\n${opener}` : `${opener} `))}
+        />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="re-label">Keep the day</div>
           {/* Free to write, and what it EARNS said before a word is typed —
@@ -479,6 +531,7 @@ export default function JournalZ() {
           </p>
         ) : null}
       </div>
+      )}
 
       {/* ---- the two Premium doors, as offers rather than walls ----------- */}
       <div className="flex flex-wrap gap-2">
@@ -540,6 +593,13 @@ export default function JournalZ() {
       )}
 
       {/* ---- the entries -------------------------------------------------- */}
+      {pane === "write" && dayFilter && (
+        <div className="flex items-center gap-2 text-[11px] text-white/50">
+          <span className="pill !border-mcz-cyan/50 !text-white">{dayFilter}</span>
+          <button className="re-link" onClick={() => setDayFilter("")}>Show every day</button>
+        </div>
+      )}
+
       <div className="space-y-3" data-tour="journalz-entries">
         {entries.length === 0 && (
           <p className="text-sm text-white/45">
