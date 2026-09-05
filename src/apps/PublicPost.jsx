@@ -9,6 +9,7 @@
 // number anybody can inflate by reloading is worth less than no number.
 // Comments: they're member-authored text, and publishing that to strangers
 // needs a moderation path this page doesn't have.
+import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
@@ -20,6 +21,8 @@ const scoreColor = (n) =>
 export default function PublicPost() {
   const { id } = useParams();
   const [post, setPost] = useState(null);
+  usePageTitle(post?.title && `${post.title} — ${post.author}`,
+               post?.description || (post?.author ? `A track by ${post.author}.` : ""));
   const [err, setErr] = useState("");
 
   useEffect(() => {
