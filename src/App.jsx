@@ -15,6 +15,7 @@ import { goToTab } from "./goto.js";
 import { goToView } from "./openTo.js";
 import { onSwipe, useSwipeAway } from "./swipe.js";
 import { ViewsPill } from "./ViewZ.jsx";
+import { hasUnread } from "./changelog.js";
 
 // Every screen below used to be a static import, which means a cold visitor
 // hitting the logged-out Landing page paid for the ENTIRE authenticated app —
@@ -57,6 +58,7 @@ const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const ChangeZ = lazy(lazyRoute(() => import("./ChangeZ.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
@@ -274,6 +276,7 @@ export const CUSTOM_ICONS = {
   // Owner-only tab — reserved ahead of the artwork, same as the rest above;
   // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
   "funnelz.png": "/icons/funnelz-neon.svg",
+  "viewz.png": "/icons/viewz-neon.svg",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -596,6 +599,10 @@ function Home() {
   const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
   const [infoKey, setInfoKey] = useState(null);
+  const [newsOpen, setNewsOpen] = useState(false);
+  const [news, setNews] = useState(false);           // is there an unread entry
+  useEffect(() => { setNews(hasUnread()); }, []);
+  useEffect(() => { if (newsOpen) setNews(false); }, [newsOpen]);
   // LogicZ: what each tab is and what lives inside it, from the server, so the
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
@@ -734,13 +741,27 @@ function Home() {
             </a>
           </div>
 
-          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
-             title="PostZ — ctrl/cmd-click for a new tab">
+          {/* The name opens what shipped. Work landed and nothing on the
+              platform said so — somebody who noticed a screen was different
+              had nowhere to confirm it, and somebody who didn't never learned
+              the app had grown. PostZ is still one tap away in the dock and
+              still lives at /post, which is where a home link was pointing. */}
+          <button
+            onClick={() => setNewsOpen(true)}
+            className="relative flex items-center gap-2"
+            title="What's new in Music ConnectZ"
+          >
             <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </a>
+            {/* Unread, and it clears by being READ rather than by a button
+                that exists to be ignored. */}
+            {news && (
+              <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-mcz-cyan shadow-neon"
+                    aria-label="New changes" />
+            )}
+          </button>
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -854,6 +875,12 @@ function Home() {
       {memberKey && (
         <Suspense fallback={null}>
           <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        </Suspense>
+      )}
+
+      {newsOpen && (
+        <Suspense fallback={null}>
+          <ChangeZ onClose={() => setNewsOpen(false)} />
         </Suspense>
       )}
 

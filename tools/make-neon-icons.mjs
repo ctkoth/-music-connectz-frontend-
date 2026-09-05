@@ -137,6 +137,16 @@ const G = {
     <path d="M158 122c14-14 38-12 50 4l26 36c9 12 7 29-4 39l-20 18c14 30 38 54 68 68l18-20c10-11 27-13 39-4l36 26c16 12 18 36 4 50l-20 20c-14 14-35 18-53 10-52-23-104-60-142-98s-75-90-98-142c-8-18-4-39 10-53z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M300 150a76 76 0 0 1 62 62M300 106a120 120 0 0 1 106 106" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.9"/>`,
 
+  // ViewZ — an eye inside a speech bubble, from Corey's neon sign. The bubble
+  // is the point: a view is somebody SAYING they looked, not a hit. Drawn with
+  // the same heavy strokes as the rest of the set because this one is rendered
+  // small — beside a count in the header, not only at 44px in its panel.
+  viewz: (a, b) => `
+    <path d="M256 96c-70 0-126 45-126 100 0 33 20 62 51 80l-30 48 74-30c10 2 21 3 31 3 70 0 126-45 126-101S326 96 256 96z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M182 196c26-34 122-34 148 0-26 34-122 34-148 0z" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="256" cy="196" r="30" fill="none" stroke="${b}" stroke-width="15"/>
+    <circle cx="268" cy="182" r="9" fill="${b}"/>`,
+
   soundz: (a, b) => `
     <path d="M150 212h56l74-62v212l-74-62h-56z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M326 186a76 76 0 0 1 0 140M362 152a130 130 0 0 1 0 208" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
@@ -223,6 +233,7 @@ const APPS = [
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
   ["funnelz", "FunnelZ", C.emerald, C.cyan],
+  ["viewz", "ViewZ", C.cyan, C.cyan],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't

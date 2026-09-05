@@ -27,6 +27,7 @@ import { Eye, Loader2 } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { useSwipeAway } from "./swipe.js";
+import { IconImg } from "./App.jsx";
 import { goToSpot } from "./goto.js";
 
 const VIEWER_KEY = "mcz_viewer_id";
@@ -91,6 +92,22 @@ export function useViews(target, { beat = true } = {}) {
   return state;
 }
 
+
+/** Corey's ViewZ mark, inline, so it takes `currentColor` and stays crisp at
+ *  16px. The neon TILE (`viewz.png`) carries a background and a wordmark and
+ *  is drawn at 44px in the panel header; shrunk to sit beside a number it
+ *  would be a smudge. Same glyph, two renderings, one meaning. */
+export function ViewEye({ size = 15, className = "" }) {
+  return (
+    <svg viewBox="0 0 512 512" width={size} height={size} className={className}
+         fill="none" stroke="currentColor" strokeLinejoin="round" aria-hidden="true">
+      <path d="M256 96c-70 0-126 45-126 100 0 33 20 62 51 80l-30 48 74-30c10 2 21 3 31 3 70 0 126-45 126-101S326 96 256 96z" strokeWidth="30" />
+      <path d="M182 196c26-34 122-34 148 0-26 34-122 34-148 0z" strokeWidth="26" />
+      <circle cx="256" cy="196" r="30" strokeWidth="26" />
+    </svg>
+  );
+}
+
 /** Record one view of `target` and stop. No beat loop.
  *
  * Deliberately NOT what a feed card does on render. Thirty cards each holding
@@ -119,7 +136,7 @@ export function ViewsBadge({ target, views, className = "" }) {
         title="Open ViewZ — when people looked, hour by hour"
         className={`pill !text-[11px] transition hover:!border-white/40 hover:!text-white active:scale-95 ${className}`}
       >
-        👁️ {Number(views ?? 0).toLocaleString()}
+        <ViewEye className="mr-1 inline-block align-[-2px]" /> {Number(views ?? 0).toLocaleString()}
       </button>
       {open && <ViewZPanel target={target} onClose={() => setOpen(false)} />}
     </>
@@ -139,7 +156,7 @@ export function ViewsPill({ target, className = "" }) {
         title="Open ViewZ — when people looked, hour by hour"
         className={`pill transition hover:!border-white/40 hover:!text-white active:scale-95 ${className}`}
       >
-        👁️ {Number(live.views || 0).toLocaleString()}
+        <ViewEye size={16} className="mr-1 inline-block align-[-3px]" /> {Number(live.views || 0).toLocaleString()}
         {live.watching > 1 && (
           <span className="ml-1 text-emerald-300">· {live.watching} here now</span>
         )}
@@ -185,7 +202,7 @@ export default function ViewZPanel({ target, onClose }) {
     >
       <div ref={sheet} className="neon-frame w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center gap-3">
-          <span className="text-3xl" aria-hidden="true">👁️</span>
+          <IconImg icon="viewz.png" alt="" className="h-11 w-11 rounded-xl" />
           <div className="flex-1">
             <h3 className="font-display text-xl font-extrabold">ViewZ</h3>
             <p className="text-[11px] text-white/45">{target}</p>
@@ -203,7 +220,7 @@ export default function ViewZPanel({ target, onClose }) {
         {data && (
           <>
             <div className="mb-3 flex flex-wrap gap-2 text-sm">
-              <span className="pill">👁️ {data.views?.toLocaleString()} views</span>
+              <span className="pill"><ViewEye className="mr-1 inline-block align-[-2px]" /> {data.views?.toLocaleString()} views</span>
               <span className="pill">{data.viewers?.toLocaleString()} people</span>
               <span className={`pill ${data.watching ? "!border-emerald-400/40 !text-emerald-300" : ""}`}>
                 {data.watching ? (
@@ -295,7 +312,9 @@ function MineList() {
                 onClick={() => goToSpot(r.open_in, "")}
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition hover:bg-white/[0.05]"
               >
-                <span className="w-16 shrink-0 tabular-nums text-white/70">👁️ {r.views}</span>
+                <span className="flex w-16 shrink-0 items-center gap-1 tabular-nums text-white/70">
+                  <ViewEye size={13} /> {r.views}
+                </span>
                 {r.watching > 0 && (
                   <span className="shrink-0 text-emerald-300">{r.watching} now</span>
                 )}

@@ -133,11 +133,41 @@ Three implementation rules that are not decoration:
   day, refuses the author's own looks, and returns the sentence explaining it;
   this screen prints that sentence rather than inventing a claim of its own.
 
+The mark is Corey's neon sign — an eye in a speech bubble, because a view is
+somebody saying they looked. It exists twice on purpose: `viewz.png` is the
+full neon TILE (background, wordmark) drawn at 44px in the panel header, and
+`ViewEye` is the same glyph inline as SVG, taking `currentColor` and staying
+crisp at 15px beside a number. Shrinking the tile to sit in a pill makes a
+smudge; the glyph is generated from the same path in
+`tools/make-neon-icons.mjs`, so the two cannot drift.
+
 `recordView(target)` is the one-shot for a deliberate open — the public post
 page, which is where a stranger arriving on a shared link gets counted. That
 page's own header comment used to say views were left out because "a number
 anybody can inflate by reloading is worth less than no number". The objection
 is answered now rather than waived: reloading moves nothing.
+
+## Clicking the name shows what shipped
+
+Work landed and nothing on the platform said so. Somebody who noticed a screen
+was different had nowhere to confirm it, and somebody who didn't never learned
+the app had grown. The wordmark in the header — the one place everybody's eye
+already goes — opens `ChangeZ.jsx` now. (PostZ still lives at `/post` and is
+one tap away in the dock, which is what that link was doing.)
+
+`src/changelog.js` is the content, and two rules govern an entry:
+
+- **Say what was WRONG first.** "ViewZ ships" tells nobody anything. "You had
+  no way to find out if anyone saw your track" is a sentence somebody
+  recognises, because they lived it. Same rule the commit messages follow.
+- **No tier ladder retyped into prose.** `tools/changelog.test.mjs` fails the
+  build on one — a changelog is exactly where a tenth copy of "20 free prompts"
+  would land.
+
+`id` is stable and never reused: the unread dot on the wordmark is keyed on
+`CHANGELOG[0].id`, and it clears by the panel being READ rather than by a
+"mark as read" button, which is a control that exists to be ignored. Blocked
+storage counts as seen — a dot that can never be cleared is worse than no dot.
 
 ## A tab switch can carry what to DO when it lands
 
