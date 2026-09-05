@@ -151,7 +151,9 @@ export default function CallZ() {
       // request was in flight is still queued and goes out on this flush.
       activeId.current = call.id;
       await flushIce();
-      playSound("message");
+      // Ringing OUT. The two-tone repeat is the one sound in the set that
+      // has to be recognisable as a phone before anything else.
+      playSound("call_ring");
       poll();
     } catch (e) {
       teardown();
@@ -173,7 +175,7 @@ export default function CallZ() {
         method: "POST", body: { answer_sdp: answer.sdp },
       });
       await flushIce();
-      playSound("collab");
+      playSound("call_connect");
       poll();
     } catch (e) {
       teardown();
@@ -187,6 +189,7 @@ export default function CallZ() {
     setBusy(true);
     try {
       const r = await api(`/api/economy/callz/${call.id}/${action}/`, { method: "POST", body: {} });
+      playSound(action === "end" ? "call_end" : "deleted");
       teardown();
       if (action === "end" && r.charged_cents) {
         // The receipt, in the same shape as the quote that preceded it.
