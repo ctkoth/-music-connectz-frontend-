@@ -105,6 +105,25 @@ export const APP_BENEFITS = [
     statz: "The lowest weekly fee of any tier.",
   },
   {
+    app: "SoundZ", icon: "soundz.png",
+    // Sound itself is NOT the perk and the copy must not imply it is. Hearing
+    // your own balance move is free at every tier; choosing a different set of
+    // sounds is decoration, which is the same line KeyConnectZ draws when it
+    // puts the wallpaper behind Premium and leaves translate free.
+    free: "The house sound set, and the on/off switch. Every sound tells you which resource moved and which way — gains rise, spends fall — and none of them is ever the only signal.",
+    premium: "Choose a different pack — Arcade, Soft or Deep — or take a single sound from another pack and leave the rest. It's stored on your account, so it follows you to every device.",
+    statz: "The same. Sound isn't a tier ladder past Premium.",
+  },
+  {
+    app: "GameZ", icon: "gamez.png",
+    // No number: a build is priced per SECOND of build time, so a fixed figure
+    // here would be a guess. The endpoint states the rate and your balance
+    // before the button.
+    free: "Build the games you make in OCC and play them in the app. Builds cost Energy by the second, quoted before you start, and a build that never starts costs nothing.",
+    premium: "More storage for sprites and audio — game assets ride the same quota your tier already gives you.",
+    statz: "Run a build command in the sandbox, and the most storage of any tier.",
+  },
+  {
     app: "JournalZ", icon: "journalz.png",
     // No numbers in this copy on purpose. The per-tier room comes from the
     // server (`/api/economy/journalz/cost/` → `limits`) and JournalZ prints it

@@ -1,3 +1,4 @@
+import { playSound } from "./sound.js";
 // Send someone to the exact control a task is completed on.
 //
 // Switching tabs alone drops you at the top of an app and leaves you to hunt
@@ -43,6 +44,11 @@ export function spotlight(target, { tries = 25, every = 120, delay = 400 } = {})
 
 /** Open `tab` and land on `target` within it. */
 export function goToSpot(tab, target) {
+  // The cross-pollination sound. Every "nothing is a dead end" handoff in the
+  // app comes through here, so one wire covers all of them — and it is the
+  // quietest kind of confirmation on purpose: you are already looking at the
+  // thing that just opened.
+  playSound("open_in");
   goToTab(tab);
   return target ? spotlight(target) : Promise.resolve(false);
 }
