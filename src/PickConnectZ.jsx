@@ -110,13 +110,32 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
   const atLimit = pinnedApps.length >= limit;
   const shown = apps.filter((a) => matchesApp(a, q));
 
+  // Escape closes it. ITS340's events chapter is blunt about this and so is
+  // every keyboard user: an overlay you can only dismiss by finding and
+  // clicking a small X is an overlay somebody is trapped in. The listener is
+  // bound only while the drawer is open, so it never competes with a shortcut
+  // anywhere else in the app.
+  useEffect(() => {
+    if (!drawer) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") { setDrawer(false); setQ(""); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer]);
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-4xl p-2">
       {/* The drawer is the full app list — this is how every app stays
           reachable now that the header tab bar is gone. Tapping a tile opens
           the app; the corner pin button adds it to the dock instead. */}
       {drawer && (
-        <div className="neon-frame mb-2 max-h-[55vh] overflow-y-auto bg-mcz-bg/95 p-3 backdrop-blur">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="All apps"
+          className="neon-frame mb-2 max-h-[55vh] overflow-y-auto bg-mcz-bg/95 p-3 backdrop-blur"
+        >
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[11px] text-white/55">
               All apps ·{" "}
@@ -129,14 +148,22 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
               onClick={() => setDrawer(false)}
               className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
               title="Close"
+              aria-label="Close the app list"
             >
               <X size={16} />
             </button>
           </div>
           <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
             <Search size={14} className="shrink-0 text-white/40" />
+            {/* A placeholder is not a label: it disappears the moment you type
+                and screen readers are inconsistent about announcing it. The
+                visible text stays a placeholder because the magnifier already
+                says what the box is to a sighted user; the aria-label is what
+                everybody else gets. */}
             <input
               autoFocus
+              type="search"
+              aria-label="Search apps by what you want to do"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="What do you want to do? record, get paid, translate…"
@@ -148,6 +175,12 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
               </button>
             )}
           </label>
+
+          {/* Announced, not just drawn. A filter that silently changes what is
+              on screen tells a screen-reader user nothing happened. */}
+          <p className="sr-only" role="status" aria-live="polite">
+            {q ? `${shown.length} app${shown.length === 1 ? "" : "s"} match ${q}` : ""}
+          </p>
 
           {shown.length === 0 && (
             <p className="py-6 text-center text-[13px] text-white/40">
@@ -186,6 +219,8 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
                   <button
                     onClick={() => !pinDisabled && onTogglePin(a.key)}
                     disabled={pinDisabled}
+                    aria-label={pinned ? `Unpin ${a.label}` : `Pin ${a.label} to the dock`}
+                    aria-pressed={pinned}
                     title={
                       pinDisabled
                         ? `${tierLabel} pins ${limit} apps — upgrade for more`
