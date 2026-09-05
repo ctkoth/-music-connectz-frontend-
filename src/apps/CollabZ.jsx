@@ -220,6 +220,7 @@ export default function CollabZ() {
       await api("/api/economy/social/rate/", {
         method: "POST", body: { item: itemKey, action: "rate", score: Math.round(score) },
       });
+      playSound("rating_given");
       setMsg(talk(P.collab_rated(username, Math.round(score))));
       load();
     } catch (e) { setMsg(e.message || "Couldn't rate that."); }

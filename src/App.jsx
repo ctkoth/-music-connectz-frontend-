@@ -56,6 +56,8 @@ const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
+const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
+const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
@@ -222,6 +224,9 @@ export const CUSTOM_ICONS = {
   "builder.png": "/icons/builder.png",
   "filez.png": "/icons/filez.png",
   "gamez.png": "/icons/gamez.png",
+  // No artwork for SoundZ — it is a tab this session added, so it takes a
+  // generated neon icon like FunnelZ does until there is a drawing for it.
+  "soundz.png": "/icons/soundz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -334,6 +339,8 @@ const TABS = [
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
   { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
+  { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
+  { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },

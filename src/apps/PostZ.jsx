@@ -225,6 +225,8 @@ export default function PostZ() {
           items: mediaItems(hosted, t),
         },
       });
+
+      playSound("post");
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
       setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
       flash("Posted. Rating opens in 30s, comments in 60s.");
