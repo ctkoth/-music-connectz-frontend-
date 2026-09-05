@@ -141,7 +141,9 @@ export async function api(path, { method = "GET", body, auth = true, headers = {
     // behind it and how many entries are waiting there, a cap says which cap
     // and what the next tier lifts it to. Throwing the message alone threw all
     // of that away, so every screen that wanted to turn a 403 into an offer had
-    // to re-request something to find out what it had just been refused.
+    // to re-request something to find out what it had just been refused —
+    // which is how the Boss Take ended up unable to see the server's own "this
+    // take is no longer in storage" and had to guess it from a player instead.
     //
     // Additive on purpose — `e.message` is unchanged, so nothing that already
     // reads it has to care.

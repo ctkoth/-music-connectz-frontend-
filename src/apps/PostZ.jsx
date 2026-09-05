@@ -674,10 +674,32 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       {(() => {
         const m = post.media || (post.media_url
           ? { [post.media_type || "audio"]: post.media_url } : {});
+        // The recording this post carried is not in storage any more, and the
+        // SERVER established that — something went and looked, it was not
+        // guessed from a player that failed. So the player is replaced rather
+        // than left to sit at 0:00 explaining nothing, and it is replaced HERE,
+        // on the post, where the member may still have the file. They used to
+        // find out one app away, from the coach, framed as a refusal.
+        const gone = post.take_missing ? (post.take_kind || "audio") : "";
         return (
           <>
-            {m.audio && <audio src={m.audio} controls className="mt-3 w-full" />}
-            {m.video && <video src={m.video} controls className="mt-3 w-full rounded-lg" />}
+            {gone && (
+              <div className="mt-3 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 p-3">
+                <p className="text-[11px] leading-relaxed text-mcz-ember">
+                  The {gone} on this post isn't on our server any more, so it won't
+                  play and no app can open it. That's on us, not on you — nothing
+                  you did removed it, and it isn't counting against your storage.
+                </p>
+                {canEdit && (
+                  <button className="re-link mt-2 text-[11px]"
+                          onClick={() => setEditing(true)}>
+                    Attach the {gone} again — every door on this post opens with it
+                  </button>
+                )}
+              </div>
+            )}
+            {m.audio && gone !== "audio" && <audio src={m.audio} controls className="mt-3 w-full" />}
+            {m.video && gone !== "video" && <video src={m.video} controls className="mt-3 w-full rounded-lg" />}
             {m.image && <img src={m.image} alt="" className="mt-3 w-full rounded-lg" />}
             {m.text && (
               <p className="mt-3 whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/20 p-3 text-[13px] leading-relaxed text-white/70">
