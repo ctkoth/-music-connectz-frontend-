@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Apple, ChevronDown, Facebook, Github } from "lucide-react";
+import { ChevronDown, Facebook, Github } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -45,17 +45,16 @@ const SoundCloud = (p) => (
 /* provider registry: brand color + authorize url builder per provider */
 const PROVIDERS = [
   { key: "google",     label: "Google",     Icon: GoogleG,    color: "#ffffff" },
-  { key: "apple",      label: "Apple",      Icon: Apple,      color: "#ffffff" },
   { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954",
     auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=user-read-email&state=${s}` },
+  { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
+    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&state=${s}` },
   { key: "microsoft",  label: "Microsoft",  Icon: Microsoft,  color: "#00A4EF",
     auth: (id, s) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=User.Read&state=${s}` },
   { key: "github",     label: "GitHub",     Icon: Github,     color: "#ffffff",
     auth: (id, s) => `https://github.com/login/oauth/authorize?client_id=${id}&redirect_uri=${REDIRECT}&scope=read:user%20user:email&state=${s}` },
   { key: "twitter",    label: "Twitter / X", Icon: XTwitter,  color: "#ffffff", pkce: true,
     auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
-  { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
-    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&state=${s}` },
   { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2",
     auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=email,public_profile&state=${s}` },
 ];
@@ -96,16 +95,12 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // server has answered it is the authority, and VITE_* is only for when it
   // never answers at all.
   const [served, setServed] = useState(false);
-  // Apple reports a bad Services ID as `invalid_client` from inside its own
-  // popup, which the catch below used to relabel "cancelled" — the one word
-  // that makes an owner stop looking. Remember it and say what it means.
-  const [appleErr, setAppleErr] = useState("");
   // Six providers deep in a same-sized icon grid made every option look
   // equally likely to work, which is worse than showing none: a first-time
   // visitor can't tell "the one everyone has" from "the one from 2019 nobody
-  // configured." Apple joins Google as a full-width, labeled button; the
-  // long tail collapses behind a toggle instead of eating screen space by
-  // default.
+  // configured." Featured providers (Spotify and SoundCloud) are shown
+  // side-by-side; the long tail collapses behind a toggle instead of eating
+  // screen space by default.
   const [showMore, setShowMore] = useState(false);
 
   // Nothing is enabled while the answer is still in flight: a button that
@@ -188,33 +183,6 @@ export default function OAuthButtons({ onSuccess, onError }) {
     if (p.key === "google") {
       return onError?.(id ? "Use the Google button above." : "Google sign-in isn't available yet.");
     }
-    if (p.key === "apple") {
-      if (!id) return onError?.("Apple sign-in isn't available right now.");
-      try {
-        setBusy("apple");
-        await new Promise((res, rej) => {
-          if (document.getElementById("apple-js")) return res();
-          const s = document.createElement("script");
-          s.id = "apple-js";
-          s.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
-          s.onload = res; s.onerror = rej; document.head.appendChild(s);
-        });
-        window.AppleID.auth.init({ clientId: id, scope: "name email", redirectURI: REDIRECT, usePopup: true });
-        const data = await window.AppleID.auth.signIn();
-        setAppleErr("");
-        onSuccess?.(await oauth("apple", { id_token: data?.authorization?.id_token }));
-      } catch (e) {
-        // Apple rejects with a plain object carrying `error`, not an Error, so
-        // `e.message` is undefined and every failure read as "cancelled" —
-        // including the one that isn't the member's doing at all.
-        const why = String(e?.error || e?.message || "");
-        const bad = /invalid[_\s-]?client/i.test(why);
-        if (bad) setAppleErr(why);
-        onError?.(bad ? "Apple refused this site's sign-in setup." : (e?.message || "Apple sign-in was cancelled."));
-      }
-      finally { setBusy(""); }
-      return;
-    }
     if (!id) return onError?.(`${p.label} sign-in isn't available right now.`);
 
     const state = rand();
@@ -240,8 +208,8 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // screen. Hiding it on `hasGoogle` alone meant configuring Google could
   // REMOVE the member's only way to use it.
   const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
-  const apple = grid.find((p) => p.key === "apple");
-  const rest = grid.filter((p) => p.key !== "apple");
+  const featured = grid.filter((p) => p.key === "spotify" || p.key === "soundcloud");
+  const rest = grid.filter((p) => p.key !== "spotify" && p.key !== "soundcloud");
 
   return (
     <div className="space-y-3">
@@ -275,36 +243,21 @@ export default function OAuthButtons({ onSuccess, onError }) {
         </div>
       )}
 
-      {/* `invalid_client` is Apple's answer to three different mistakes and it
-          names none of them. All three are on the Services ID, and none is
-          guessable from the popup — so list them, with the two values Apple
-          has to be told, which are the parts nobody can look up for you. */}
-      {appleErr && (
-        <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
-          <p className="font-semibold">Apple refused this site's sign-in setup.</p>
-          <p className="mt-1 text-mcz-ember/80">
-            Use email, or another provider below. If you run this site,{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">invalid_client</code> means one
-            of three things on the Apple <span className="font-semibold">Services ID</span>: it's
-            the App ID (bundle ID) rather than a Services ID, Sign in with Apple isn't enabled on
-            it, or these two aren't registered on it —{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">{origin.replace(/^https?:\/\//, "")}</code>{" "}
-            as a domain, and{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">{REDIRECT}</code> as a return
-            URL. The same string goes in{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">APPLE_OAUTH_CLIENT_ID</code>.
-          </p>
+      {featured.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {featured.map((p) => (
+            <button
+              key={p.key}
+              title={p.label}
+              aria-label={`Continue with ${p.label}`}
+              onClick={() => start(p)}
+              disabled={busy === p.key}
+              className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+            >
+              <p.Icon size={20} color={p.color} />
+            </button>
+          ))}
         </div>
-      )}
-
-      {apple && (
-        <button
-          onClick={() => start(apple)}
-          disabled={busy === "apple"}
-          className="neon-btn-ghost"
-        >
-          <Apple size={18} /> Continue with Apple
-        </button>
       )}
 
       {rest.length > 0 && (
