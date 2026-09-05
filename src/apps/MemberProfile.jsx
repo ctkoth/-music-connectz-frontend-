@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X } from "lucide-react";
 import { api } from "../api.js";
+import { useSwipeAway } from "../swipe.js";
 import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
@@ -28,6 +29,10 @@ export default function MemberProfile({ username, onClose }) {
     return () => { on = false; };
   }, [username]);
 
+  // A downward flick closes it too — the move a phone has taught everybody for
+  // "put this away", next to the Escape a phone does not have.
+  const sheet = useSwipeAway(onClose);
+
   // Escape closes, matching every other modal in the app.
   useEffect(() => {
     const h = (e) => e.key === "Escape" && onClose();
@@ -39,8 +44,12 @@ export default function MemberProfile({ username, onClose }) {
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${username}'s profile`}
     >
       <div
+        ref={sheet}
         className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
         onClick={(e) => e.stopPropagation()}
       >

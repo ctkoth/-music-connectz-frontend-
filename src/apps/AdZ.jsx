@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
+import Balance from "../Balance.jsx";
 import EarnInstead from "../EarnInstead.jsx";
 
 // AdZ — Google AdMob rewarded video. The actual ad plays through the AdMob SDK
@@ -47,7 +48,9 @@ export default function AdZ() {
       {stats?.mine != null && (
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="pill"><PlayCircle size={11} className="inline" /> {stats.mine?.count ?? 0} watched</span>
-          <span className="pill !text-mcz-pink">{SPINAZ} {stats.mine?.spinaz ?? 0} earned</span>
+          <Balance resource="spinaz" amount={stats.mine?.spinaz ?? 0} label="earned"
+                   className="!text-mcz-pink"
+                   title="Open your 🍥 movements — every ad you watched is a row" />
         </div>
       )}
 

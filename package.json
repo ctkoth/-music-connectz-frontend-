@@ -12,7 +12,7 @@
     "cap:sync": "npm run build && cap sync",
     "android:open": "npm run cap:sync && cap open android",
     "ios:open": "npm run cap:sync && cap open ios",
-    "test": "node --test seo/meta.test.mjs"
+    "test": "node --test seo/meta.test.mjs tools/tabs.test.mjs"
   },
   "dependencies": {
     "@capacitor-community/admob": "^6.2.0",

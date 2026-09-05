@@ -9,10 +9,12 @@
 // emoji and the signed amount come pre-rendered from the server so this screen
 // cannot disagree with the ledger about what moved.
 import { useEffect, useState } from "react";
-import { Loader2, ScrollText, RefreshCw } from "lucide-react";
+import { Loader2, ScrollText, RefreshCw, ArrowUpRight } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
+import { goToSpot } from "../goto.js";
+import { useOpenView } from "../openTo.js";
 
 const when = (iso) => {
   const d = new Date(iso);
@@ -38,6 +40,14 @@ export default function LogZ() {
       .finally(() => setBusy(false));
   };
   useEffect(() => { load(filter); }, [filter]);
+
+  // The header's ⚡ and 🍥 pills land here already narrowed to the resource
+  // they name. Opening the whole ledger and leaving the member to find the
+  // filter is the tab-switch-and-good-luck this app has a rule against.
+  useOpenView("logz", (view) => {
+    const want = typeof view === "string" ? view : view?.resource;
+    if (typeof want === "string") setFilter(want);
+  });
 
   if (!data && !err) {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading LogZ…</p>;
@@ -99,18 +109,7 @@ export default function LogZ() {
             {filter ? "Nothing moved here yet." : "Nothing logged yet — earn or spend something and it shows up here."}
           </p>
         )}
-        {entries.map((e) => (
-          <div key={e.id} className="flex items-center gap-3 px-4 py-2.5">
-            <span className={`w-24 shrink-0 text-right font-bold tabular-nums ${
-              e.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
-              {e.display}
-            </span>
-            <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
-            <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
-              {when(e.at)}
-            </span>
-          </div>
-        ))}
+        {entries.map((e) => <Row key={e.id} e={e} />)}
       </div>
 
       {data?.count > entries.length && (
@@ -118,6 +117,62 @@ export default function LogZ() {
           Showing the {entries.length} most recent of {data.count}.
         </p>
       )}
+
+      {/* What this tier can see, and what it can't.
+          LogZ used to answer a Free member with a 403 — "where did my SpinaZ
+          go" met with an upsell. Everybody sees their ledger now and the tier
+          buys how far back it goes, which is a "how much" and allowed. The
+          rows outside the window are NAMED rather than silently absent: an
+          empty screen reads as "nothing happened", which is a different and
+          worse claim than "there is more, further back". */}
+      {data?.history_label && (
+        <p className="text-[11px] text-white/35">
+          You're seeing {data.history_label}
+          {data.hidden_by_tier > 0 && (
+            <>
+              {" — "}
+              <button className="re-link" onClick={() => goToSpot("membershipz", "")}>
+                {data.hidden_by_tier} older {data.hidden_by_tier === 1 ? "row is" : "rows are"} outside your window
+              </button>
+            </>
+          )}
+          .
+        </p>
+      )}
     </div>
+  );
+}
+
+/** One movement. Clickable when the writer recorded where it came from.
+ *
+ * Nothing is a dead end: a balance leads back to the action that changed it.
+ * A row with no `open_in` stays a plain row rather than guessing a
+ * destination from its note — a link to the wrong app is worse than no link. */
+function Row({ e }) {
+  const [tab, anchor] = String(e.open_in || "").split(":");
+  const body = (
+    <>
+      <span className={`w-24 shrink-0 text-right font-bold tabular-nums ${
+        e.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
+        {e.display}
+      </span>
+      <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
+      <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
+        {when(e.at)}
+      </span>
+    </>
+  );
+  if (!tab) {
+    return <div className="flex items-center gap-3 px-4 py-2.5">{body}</div>;
+  }
+  return (
+    <button
+      onClick={() => goToSpot(tab, anchor || "")}
+      title={`Open where this came from — ${tab}`}
+      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-white/[0.05]"
+    >
+      {body}
+      <ArrowUpRight size={13} className="shrink-0 text-white/30" />
+    </button>
   );
 }

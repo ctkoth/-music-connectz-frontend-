@@ -12,25 +12,15 @@ import { Link, useParams } from "react-router-dom";
 import { Share2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { track } from "../track.js";
+import { keepTrialToken } from "../trialClaim.js";
 
-const TRIAL_TOKEN_KEY = "mcz_trial_token";
 const APPS = { singz: "SingZ", rapz: "RapZ" };
 
-export function storedTrialToken() {
-  try {
-    return localStorage.getItem(TRIAL_TOKEN_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function clearTrialToken() {
-  try {
-    localStorage.removeItem(TRIAL_TOKEN_KEY);
-  } catch {
-    /* private-mode browsers throw on storage; losing the token is survivable */
-  }
-}
+// Re-exported so nothing that already imports them from here has to move. The
+// storage itself lives in trialClaim.js now, because signing IN has to reach
+// it too and an auth screen importing a lazy app route to read localStorage is
+// how a chunk ends up in the login bundle.
+export { storedTrialToken, clearTrialToken } from "../trialClaim.js";
 
 export default function TrialTake() {
   const { appKey = "singz" } = useParams();
@@ -46,13 +36,7 @@ export default function TrialTake() {
     // The token and the score are separate things. Gating on the token meant
     // a take that scored fine but came back without one showed the visitor
     // nothing at all — no offer to keep it, and no way to share it.
-    if (result.claim_token) {
-      try {
-        localStorage.setItem(TRIAL_TOKEN_KEY, result.claim_token);
-      } catch {
-        /* no storage → they can still sign up, they just lose the take */
-      }
-    }
+    if (result.claim_token) keepTrialToken(result.claim_token);
     if (result.score != null) setScore(result.score);
     setScored(true);
     track("try_scored", { app_key: app });
@@ -126,6 +110,13 @@ export default function TrialTake() {
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Link to="/register" className="re-btn !w-auto px-5">
               Keep this take — join free
+            </Link>
+            {/* Signing in keeps it too. It always could have — the token is
+                claimed against whoever is logged in, not against a brand new
+                row — but the only button said "join", so anybody who already
+                had an account read that as "not for me" and lost the take. */}
+            <Link to="/login" className="re-btn re-btn-purple !w-auto px-5">
+              Already have an account? Sign in and keep it
             </Link>
             {/* The label names the number that's going out, so nobody
                 discovers what they shared by sharing it. */}
