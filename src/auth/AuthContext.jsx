@@ -35,13 +35,24 @@ export function AuthProvider({ children }) {
     return res.user;
   }
 
-  async function register({ username, email, phone, password, birthday, ref }) {
+  async function register({ username, email, phone, password, birthday, ref, trial_token }) {
     const res = await api("/api/auth/register/", {
       method: "POST",
       auth: false,
       // birthday is optional but was previously dropped here, so ZodiacZ never
       // got set at signup. `ref` credits the inviter 300 SpinaZ on a legit join.
-      body: { username, email, phone, password, birthday: birthday || null, ref: ref || "" },
+      // trial_token was dropped here too — every /try → register conversion
+      // silently lost the take it promised to save, since the backend claims
+      // it only when this field is sent.
+      body: {
+        username,
+        email,
+        phone,
+        password,
+        birthday: birthday || null,
+        ref: ref || "",
+        trial_token: trial_token || "",
+      },
     });
     return persist(res);
   }

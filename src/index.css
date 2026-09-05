@@ -35,13 +35,49 @@ body {
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3
            text-sm font-semibold transition active:scale-[0.98];
   }
+  /* The loudest button in the room, and it is the SAME TUBE as every other
+     one — `.re-btn` below is the chassis, this is the weight.
+     
+     It used to be ringed in a pink→purple→cyan gradient, which was a second
+     visual language rather than a louder version of the first: a gradient
+     cannot take a colour from context (so a primary "Delete" glowed pink like
+     a primary "Save"), and its icon stayed white while its ring was three
+     other colours — the one thing the tube gets right is that border, glow and
+     icon are all the same light. Hierarchy is carried by GLOW and SIZE now,
+     not by a different construction. */
   .neon-btn-primary {
-    @apply neon-btn text-white;
-    background: linear-gradient(90deg, #ff2bd1, #a855f7 55%, #22e6ff);
-    box-shadow: 0 0 18px rgba(255, 43, 209, 0.4);
+    @apply re-btn !text-mcz-pink;
+    box-shadow: 0 0 5px currentColor, 0 0 22px -1px currentColor,
+      inset 0 0 14px -8px currentColor, 0 8px 22px rgba(0, 0, 0, 0.6);
   }
+  .neon-btn-primary:hover {
+    box-shadow: 0 0 7px currentColor, 0 0 34px -1px currentColor,
+      inset 0 0 16px -7px currentColor, 0 11px 26px rgba(0, 0, 0, 0.65);
+  }
+  .neon-btn-primary:active {
+    box-shadow: 0 0 5px currentColor, 0 0 20px -2px currentColor,
+      inset 0 0 16px -6px currentColor, 0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+  /* Secondary: the same tube with the light turned down. It was a flat grey
+     outline with no glow at all, which read as disabled sitting next to
+     anything else on this page. */
   .neon-btn-ghost {
-    @apply neon-btn border border-white/10 bg-white/5 text-white/90 hover:bg-white/10;
+    @apply re-btn !border-white/60 !text-white/80;
+    /* Lit, just not coloured. The first pass at this used a 25%-white border
+       and a barely-there glow, and next to any coloured tube it read as
+       DISABLED rather than as secondary — which is a real cost, because the
+       secondary action beside a primary one is usually "cancel", and a cancel
+       that looks broken is a member stuck on a screen. Quieter is a dimmer
+       tube, never an unlit one. */
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.55),
+      0 0 16px -3px rgba(255, 255, 255, 0.45),
+      inset 0 0 12px -8px rgba(255, 255, 255, 0.6), 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .neon-btn-ghost:hover {
+    @apply !border-white !text-white;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.7),
+      0 0 24px -3px rgba(255, 255, 255, 0.55),
+      inset 0 0 14px -7px rgba(255, 255, 255, 0.7), 0 9px 22px rgba(0, 0, 0, 0.6);
   }
   .pill {
     @apply rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-white/70;
@@ -55,25 +91,88 @@ body {
   .re-label {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40;
   }
+  /* Outlined glow pill, not a solid fill — border, glow AND icon (lucide
+     icons stroke with currentColor) all come from the text color, so a
+     single color class controls the whole button. Default is the brand
+     ember; re-btn-cyan/-pink/-emerald/-gold reassign it for a button whose
+     color carries meaning (BossTake's mic/camera/attach trio, the app's
+     resource colors, etc). A `!text-red-300` override already used on
+     several destructive buttons picks up the same trick for free — the
+     border and glow turn red with it, no separate class needed. */
   .re-btn {
-    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl bg-mcz-ember
-           px-4 py-3 text-sm font-bold text-white transition
-           hover:brightness-110 active:scale-[0.99];
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-2xl
+           border-2 border-current bg-black/30 px-5 py-3 text-sm font-bold
+           text-mcz-ember backdrop-blur-sm transition hover:brightness-125
+           active:translate-y-0 active:scale-[0.99]
+           disabled:opacity-40 disabled:hover:brightness-100;
+    /* Floating, not flat: the neon ring, an outward glow, an inner bloom
+       along the edge, and a real cast shadow underneath. The cast shadow is
+       what lifts it off the panel — glow alone reads as a sticker, glow plus
+       a shadow reads as a sign hanging in front of the wall. */
+    /* Two glows, not one. A single blur reads as a line with something smudged
+       behind it; a real tube has a tight hot ring right at the glass AND a
+       wide soft halo thrown onto the wall. That is the whole difference
+       between "outlined button" and "neon sign". */
+    box-shadow: 0 0 4px currentColor, 0 0 18px -2px currentColor,
+      inset 0 0 12px -8px currentColor, 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .re-btn:hover {
+    box-shadow: 0 0 6px currentColor, 0 0 28px -2px currentColor,
+      inset 0 0 14px -7px currentColor, 0 9px 22px rgba(0, 0, 0, 0.6);
+  }
+  /* Pressed: it drops onto the surface. The shadow collapsing is the whole
+     tell — a button that floats has somewhere to fall to. */
+  .re-btn:active {
+    box-shadow: 0 0 4px currentColor, 0 0 16px -3px currentColor,
+      inset 0 0 14px -6px currentColor, 0 2px 6px rgba(0, 0, 0, 0.5);
+  }
+  .re-btn-cyan {
+    @apply !text-mcz-cyan;
+  }
+  .re-btn-pink {
+    @apply !text-mcz-pink;
+  }
+  .re-btn-emerald {
+    @apply !text-emerald-400;
+  }
+  .re-btn-gold {
+    @apply !text-mcz-gold;
+  }
+  .re-btn-purple {
+    @apply !text-mcz-purple;
+  }
+  .re-btn-red {
+    @apply !text-red-500;
   }
   .re-link {
     @apply font-semibold text-mcz-ember transition hover:brightness-125;
   }
   .re-badge {
-    @apply rounded-md bg-mcz-ember px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+    @apply rounded-full border border-mcz-ember bg-mcz-ember/10 px-2 py-0.5
+           text-[10px] font-bold uppercase tracking-wide text-mcz-ember;
   }
-  /* 1–10 rating block, dim by default, ember when active/hovered. */
+  /* 1–10 rating block. Dim and quiet until you're actually on it, then it
+     lights like everything else — the score you're about to give is worth
+     the same emphasis as the button that spends a prompt. */
   .re-scale {
-    @apply flex h-11 flex-1 items-center justify-center rounded-md bg-white/[0.06]
-           text-sm font-bold text-white/70 transition
-           hover:bg-mcz-ember hover:text-white;
+    @apply flex h-11 flex-1 items-center justify-center rounded-lg
+           border border-white/10 bg-white/[0.04] text-sm font-bold
+           text-white/60 transition
+           hover:border-mcz-ember hover:text-mcz-ember;
+  }
+  .re-scale:hover {
+    box-shadow: 0 0 10px currentColor;
   }
   .re-scale-on {
-    @apply bg-mcz-ember text-white;
+    @apply border-mcz-ember bg-mcz-ember/10 text-mcz-ember;
+    box-shadow: 0 0 10px currentColor;
+  }
+  /* The chip/tab idiom — PostZ's sort row, TrialTake's SingZ|RapZ switch,
+     LessonZ's views. `pill-on` is the selected one, lit the same way every
+     other active control in the app is now. */
+  .pill-on {
+    @apply !border-current !text-mcz-ember;
+    box-shadow: 0 0 9px currentColor;
   }
   /* Flashed on the control an OnboardZ link just sent you to, so you land on
      the actual field rather than somewhere near it. Removed after ~2s. */

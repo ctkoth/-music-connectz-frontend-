@@ -8,7 +8,8 @@
 // rest, Premium and StatZ pin as many as they like.
 import { useCallback, useEffect, useState } from "react";
 import { Home, LayoutGrid, Pin, Sparkles, X } from "lucide-react";
-import { IconImg } from "./App.jsx";
+import { IconImg, slugFor } from "./App.jsx";
+import { openable } from "./openable.js";
 
 const USAGE_KEY = "mcz_app_usage";
 const PINS_KEY = "mcz_pinned_apps";
@@ -73,9 +74,9 @@ export function usePickConnectZ(currentKey) {
 
 function DockButton({ app, active, badge, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      title={app.label}
+    <a
+      {...openable(`/${slugFor(app.key)}`, onClick)}
+      title={`${app.label} — ctrl/cmd-click for a new tab`}
       className={`relative shrink-0 rounded-xl border p-1.5 transition ${
         active
           ? "border-mcz-ember bg-white/[0.08] shadow-neon"
@@ -84,7 +85,7 @@ function DockButton({ app, active, badge, onClick }) {
     >
       <IconImg icon={app.icon} alt={app.label} className="h-9 w-9 rounded-lg object-cover" />
       {badge}
-    </button>
+    </a>
   );
 }
 
@@ -129,9 +130,9 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
               const pinDisabled = !pinned && atLimit;
               return (
                 <div key={a.key} className="relative">
-                  <button
-                    onClick={() => { onOpen(a.key); setDrawer(false); }}
-                    title={`Open ${a.label}`}
+                  <a
+                    {...openable(`/${slugFor(a.key)}`, () => { onOpen(a.key); setDrawer(false); })}
+                    title={`Open ${a.label} — ctrl/cmd-click for a new tab`}
                     className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 transition ${
                       current === a.key
                         ? "border-mcz-ember bg-white/[0.08] shadow-neon"
@@ -140,7 +141,7 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
                   >
                     <IconImg icon={a.icon} alt={a.label} className="h-8 w-8 rounded-lg object-cover" />
                     <span className="w-full truncate text-[9px] text-white/60">{a.label}</span>
-                  </button>
+                  </a>
                   <button
                     onClick={() => !pinDisabled && onTogglePin(a.key)}
                     disabled={pinDisabled}
@@ -167,14 +168,14 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
       )}
 
       <div className="neon-frame flex items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur">
-        <button
-          onClick={() => onOpen(apps[0]?.key)}
-          title="PickConnectZ — home"
+        <a
+          {...openable(`/${slugFor(apps[0]?.key || "postz")}`, () => onOpen(apps[0]?.key))}
+          title="PickConnectZ — home · ctrl/cmd-click for a new tab"
           className="flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-white/70 hover:bg-white/10 hover:text-white"
         >
           <IconImg icon="pickconz.png" alt="PickConnectZ" className="h-7 w-7 rounded-lg" />
           <Home size={13} className="hidden sm:block" />
-        </button>
+        </a>
 
         <div className="h-8 w-px shrink-0 bg-white/10" />
 

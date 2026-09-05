@@ -1,50 +1,100 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
+import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import AdFrame from "./AdFrame.jsx";
-import Login from "./auth/Login.jsx";
-import Register from "./auth/Register.jsx";
-import ForgotPassword from "./auth/ForgotPassword.jsx";
-import ResetPassword from "./auth/ResetPassword.jsx";
-import MimeZ from "./apps/MimeZ.jsx";
-import DirectZ from "./apps/DirectZ.jsx";
-import LessonZ from "./apps/LessonZ.jsx";
-import InstrumentZ from "./apps/InstrumentZ.jsx";
-import MessageZ from "./apps/MessageZ.jsx";
-import ProfileZ from "./apps/ProfileZ.jsx";
-import GroupZ from "./apps/GroupZ.jsx";
-import CollabZ from "./apps/CollabZ.jsx";
-import BattleZ from "./apps/BattleZ.jsx";
-import LabelZ from "./apps/LabelZ.jsx";
-import BugZ from "./apps/BugZ.jsx";
-import PostZ from "./apps/PostZ.jsx";
-import KeyConnectZ from "./apps/KeyConnectZ.jsx";
-import OCC from "./apps/OCC.jsx";
-import SocialConnectZ from "./apps/SocialConnectZ.jsx";
-import SpecZ from "./apps/SpecZ.jsx";
-import MembershipZ from "./apps/MembershipZ.jsx";
-import AdZ from "./apps/AdZ.jsx";
-import OfferZ from "./apps/OfferZ.jsx";
-import OnboardZ from "./apps/OnboardZ.jsx";
-import PublicPost from "./apps/PublicPost.jsx";
-import PublicProfile from "./apps/PublicProfile.jsx";
-import TrialTake from "./apps/TrialTake.jsx";
-import PublicPlaylist from "./apps/PublicPlaylist.jsx";
-import PlaylistZ from "./apps/PlaylistZ.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
-import MemberProfile from "./apps/MemberProfile.jsx";
-import LogZ from "./apps/LogZ.jsx";
-import HabitZ from "./apps/HabitZ.jsx";
 import { SPINAZ } from "./resources.js";
+
+// Every screen below used to be a static import, which means a cold visitor
+// hitting the logged-out Landing page paid for the ENTIRE authenticated app —
+// all ~28 tabs, SingZ through BugZ — before a single pixel of "here's what
+// this is" painted. That's the 730KB single chunk Vite's own build output
+// warns about. lazy() + Suspense (below) means each route/tab downloads only
+// when it's actually opened, so the cold path (Landing → /try → Register) now
+// ships close to nothing extra. JSX referencing a lazy component (as TABS
+// does, below) does NOT trigger its import — only mounting it does, which is
+// why TABS can stay exactly as written.
+import { lazyRoute } from "./chunkError.js";
+
+const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
+const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
+const ForgotPassword = lazy(lazyRoute(() => import("./auth/ForgotPassword.jsx")));
+const ResetPassword = lazy(lazyRoute(() => import("./auth/ResetPassword.jsx")));
+const MimeZ = lazy(lazyRoute(() => import("./apps/MimeZ.jsx")));
+const DirectZ = lazy(lazyRoute(() => import("./apps/DirectZ.jsx")));
+const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
+const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
+const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
+const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
+const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
+const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
+const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
+const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
+const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
+const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
+const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
+const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
+const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
+const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
+const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
+const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
+const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
+const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
+const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
+const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
+const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
+const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
+const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
+const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
+const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
+
+// A minimal, theme-matched fallback — Suspense shows this for the split
+// second a chunk is in flight. Same spinner RequireAuth already used, so a
+// lazy chunk loading doesn't look like a different kind of wait.
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center text-white/50">
+      <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+    </div>
+  );
+}
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
 // fall back to the MCZ logo via <IconImg> until dropped into /public/icons/.
+// ICON ARTWORK: Corey's own PNGs, not the generated neon set.
+//
+// The `-neon.svg` icons were generated by `tools/make-neon-icons.mjs` and they
+// are vector, so they scale — but they are simple line glyphs against real
+// designed artwork, and next to the actual icon set they read as low-detail.
+// The registry points at the artwork.
+//
+// Three keys still hold a neon SVG, each for its own reason:
+//
+//   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
+//   * journalz.png— the artwork exists on Corey's machine and has never been
+//                   committed. Pointing at a file that is not in the repo does
+//                   not error, it silently falls back to the MCZ logo, so this
+//                   stays on the SVG until the PNG lands.
+//   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
+//
+// The generator stays in `tools/` — it is what made the three above, and it is
+// how a new tab gets a placeholder before there is art for it.
 export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
@@ -114,7 +164,11 @@ export const CUSTOM_ICONS = {
   "specz.png": "/icons/specz.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
   "onboardz.png": "/icons/onboardz.png",
-  "postz.png": "/icons/postz.png",
+  // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
+  // rest of the platform refers to and the value points at the SVG — the
+  // same indirection "logo.png" → the .jpg already uses, and the reason this
+  // registry maps names to paths instead of just globbing a folder.
+  "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   "personaz_designer.png": "/icons/personaz_designer.png",
@@ -162,6 +216,7 @@ export const CUSTOM_ICONS = {
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
   "habitz.png": "/icons/habitz.png",
+  "journalz.png": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -169,6 +224,9 @@ export const CUSTOM_ICONS = {
   "builder.png": "/icons/builder.png",
   "filez.png": "/icons/filez.png",
   "gamez.png": "/icons/gamez.png",
+  // No artwork for SoundZ — it is a tab this session added, so it takes a
+  // generated neon icon like FunnelZ does until there is a drawing for it.
+  "soundz.png": "/icons/soundz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -209,6 +267,9 @@ export const CUSTOM_ICONS = {
   "console.png": "/icons/console.png",
   "search.png": "/icons/search.png",
   "welcome.png": "/icons/welcome.png",
+  // Owner-only tab — reserved ahead of the artwork, same as the rest above;
+  // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
+  "funnelz.png": "/icons/funnelz-neon.svg",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -276,12 +337,22 @@ const TABS = [
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
+  { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
+  { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
+  { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
+  { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
+  { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+  // Owner-only — filtered out of the Dock for everyone else in Home(),
+  // below. The route and TABS entry still exist for anyone who is the
+  // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
+  // shows nothing to a non-owner even if they reach it another way.
+  { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -294,6 +365,55 @@ function RequireAuth({ children }) {
     );
   }
   return user ? children : <Navigate to="/login" replace />;
+}
+
+// "/" is the one URL that gets shared, indexed and clicked cold — the
+// index.html SEO meta and every OG card point at it. A signed-in member
+// should land in the app; anyone else gets the marketing page that makes
+// good on what those links promised, not a bare "Welcome back" login form
+// (that redirect is still what every OTHER protected route does — a deep
+// link like /battle while logged out is someone who already knows what this
+// is, and /login is the right place to send them).
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  return user ? <Home /> : <Landing />;
+}
+
+// SoundZ on/off. It lives in the header rather than buried in a settings
+// screen because it is the control somebody reaches for the moment a sound
+// surprises them — a mute you have to go hunting for is one you resent.
+// Flipping it ON plays the coin, so you hear what you just agreed to; the
+// click is also the user gesture browsers require before any audio at all.
+function SoundToggle() {
+  const [on, setOn] = useState(isSoundOn);
+  useEffect(() => {
+    const h = (e) => setOn(!!e.detail);
+    window.addEventListener("mcz-sound-changed", h);
+    return () => window.removeEventListener("mcz-sound-changed", h);
+  }, []);
+  return (
+    <button
+      onClick={() => {
+        const next = !on;
+        setSoundOn(next);
+        setOn(next);
+        if (next) playSoundPreview();
+      }}
+      className={`rounded-lg p-1.5 transition hover:bg-white/10 ${
+        on ? "text-mcz-cyan" : "text-white/40"}`}
+      title={on ? "SoundZ on — resource changes make a sound" : "SoundZ off — turn sounds on"}
+      aria-pressed={on}
+    >
+      {on ? <Volume2 size={16} /> : <VolumeX size={16} />}
+    </button>
+  );
 }
 
 function CommunityBar({ onOpenMember }) {
@@ -365,11 +485,13 @@ const TAB_ABOUT = {
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
+  journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
+  funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
 };
 
 function Home() {
@@ -396,6 +518,11 @@ function Home() {
   const today = new Date().toLocaleDateString();
   // PickConnectZ dock — pinned apps + the ones this member opens most.
   const { usage, pins, togglePin } = usePickConnectZ(tab);
+  // FunnelZ is owner-only real visitor data — not something to advertise in
+  // the drawer for everyone. The route and TABS entry still exist (so the
+  // info modal, ⓘ, and a direct link work for the owner); this only trims
+  // what the Dock lists.
+  const dockApps = user?.is_owner ? TABS : TABS.filter((t) => t.key !== "funnelz");
 
   // One way in and out of a tab: set the state AND the address, together. Two
   // paths would let the URL say one thing while the screen showed another.
@@ -473,20 +600,23 @@ function Home() {
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
         >
           <div className="flex items-center gap-1">
-            <button onClick={() => go(-1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
+            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => go(1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
+            </a>
+            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
-            </button>
+            </a>
           </div>
 
-          <button onClick={() => setTab("postz")} className="flex items-center gap-2">
+          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
+             title="PostZ — ctrl/cmd-click for a new tab">
             <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </button>
+          </a>
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -505,13 +635,14 @@ function Home() {
             </span>
           </button>
 
-          <button
-            onClick={() => setTab("profilez")}
+          <a
+            {...openable("/profile", () => openTab("profilez"))}
             className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10"
-            title="ProfileZ"
+            title="ProfileZ — ctrl/cmd-click for a new tab"
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
-          </button>
+          </a>
+          <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>
@@ -529,7 +660,7 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          {active?.el}
+          <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
         </ErrorBoundary>
       </main>
 
@@ -587,7 +718,9 @@ function Home() {
       )}
 
       {memberKey && (
-        <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        <Suspense fallback={null}>
+          <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        </Suspense>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
@@ -600,7 +733,7 @@ function Home() {
       <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
       <Dock
-        apps={TABS}
+        apps={dockApps}
         usage={usage}
         pins={pins}
         tier={user?.tier}
@@ -688,6 +821,7 @@ function OAuthCallback() {
 
 export default function App() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -701,14 +835,7 @@ export default function App() {
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
           catch-all so an unknown path still falls through to the redirect
           below instead of rendering an app shell with no tab in it. */}
@@ -725,5 +852,6 @@ export default function App() {
       ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
