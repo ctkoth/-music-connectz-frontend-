@@ -10,6 +10,8 @@
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
 import { useEffect, useState } from "react";
+
+import { usePageTitle } from "../pageTitle.js";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -20,6 +22,10 @@ const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 export default function PublicProfile() {
   const { username } = useParams();
   const [p, setP] = useState(null);
+  // The member, not the site. A shared profile whose tab says the
+  // platform name tells a reader nothing about who they opened.
+  usePageTitle(p?.display_name || p?.username,
+               p?.bio || (p?.username ? `${p.username} makes music on Music ConnectZ.` : ""));
   const [err, setErr] = useState("");
 
   useEffect(() => {
