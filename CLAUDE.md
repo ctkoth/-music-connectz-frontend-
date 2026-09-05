@@ -238,6 +238,37 @@ irritation, and all three are in the file:
 - **Listeners are passive and nothing calls `preventDefault`.** This can never
   be the reason the page stops scrolling.
 
+## An icon that isn't there is a blank, not an error
+
+`IconImg` falls back to the MCZ logo when a file 404s. That is right for a
+missing file, and it is exactly why **eight OCC tiles rendered the generic logo
+for months** — `editor`, `taskz`, `codez`, `mistakez`, `characterz`, `console`,
+`search`, `welcome` were named by `occ_spec.py`, registered in `CUSTOM_ICONS`,
+and had no file in the repository. Nothing errored. Nobody saw it.
+
+Same shape as the missing tab descriptions: a name with nothing behind it is a
+blank, and a blank is invisible. So `tools/icons.test.mjs` fails the build on
+either way it happens:
+
+- **A registered name with no file.** The registry is hand-maintained and the
+  art arrives separately — the entry lands, the PNG never gets committed, and
+  the fallback hides it.
+- **A case-only mismatch.** Development is on Windows, where `LogZ.png` and
+  `logz.png` are the same file. Production is Linux behind a CDN, where they
+  are not. That bug works perfectly on the machine it was written on and 404s
+  for every member. The registry is clean of this today; the test is what keeps
+  it that way.
+
+The eight are neon placeholders from `tools/make-neon-icons.mjs` now — which is
+what that generator is FOR ("how a new tab gets a placeholder before there is
+art for it"). Replacing one is dropping the PNG in and pointing the registry
+row at it.
+
+**Most of the icon set on Corey's machine has never been committed.** Of 126
+filenames in his `public/icons/`, 82 are not in this repository. Those eight
+were simply the ones something already asked for by name — the rest are art
+waiting for a surface, and no test can see them until they are in git.
+
 ## Every app has to explain itself, and `npm test` holds it to that
 
 The ⓘ in the header is the closest thing MCZ has to a tutorial, and it is the

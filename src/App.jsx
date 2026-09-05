@@ -265,14 +265,14 @@ export const CUSTOM_ICONS = {
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
   // files fall back to the tab's emoji, not to the logo (see IconImg).
-  "editor.png": "/icons/editor.png",
-  "taskz.png": "/icons/taskz.png",
-  "codez.png": "/icons/codez.png",
-  "mistakez.png": "/icons/mistakez.png",
-  "characterz.png": "/icons/characterz.png",
-  "console.png": "/icons/console.png",
-  "search.png": "/icons/search.png",
-  "welcome.png": "/icons/welcome.png",
+  "editor.png": "/icons/editor-neon.svg",
+  "taskz.png": "/icons/taskz-neon.svg",
+  "codez.png": "/icons/codez-neon.svg",
+  "mistakez.png": "/icons/mistakez-neon.svg",
+  "characterz.png": "/icons/characterz-neon.svg",
+  "console.png": "/icons/console-neon.svg",
+  "search.png": "/icons/search-neon.svg",
+  "welcome.png": "/icons/welcome-neon.svg",
   // Owner-only tab — reserved ahead of the artwork, same as the rest above;
   // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
   "funnelz.png": "/icons/funnelz-neon.svg",
