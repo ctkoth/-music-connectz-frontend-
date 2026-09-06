@@ -3,6 +3,16 @@ import { X, Loader2, RefreshCw } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { useTransactionModal } from "./TransactionModalContext.jsx";
+import { IconImg } from "./App.jsx";
+
+// Map resource keys to icon filenames
+const RESOURCE_ICONS = {
+  "money": "money.png",
+  "spinaz": "spinaz.png",
+  "energy": "energy.png",
+  "promptz": "promptz.png",
+  "xp": "xp.png",
+};
 
 const when = (iso) => {
   const d = new Date(iso);
@@ -39,7 +49,11 @@ export default function TransactionModal() {
       <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl neon-frame">
         <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-slate-900/95 p-4 backdrop-blur">
           <div className="flex items-center gap-3 flex-1">
-            <span className="text-2xl">{resource.emoji}</span>
+            {RESOURCE_ICONS[resource.key] ? (
+              <IconImg icon={RESOURCE_ICONS[resource.key]} alt="" className="h-8 w-8 rounded" />
+            ) : (
+              <span className="text-2xl">{resource.emoji}</span>
+            )}
             <div>
               <h2 className="font-display text-lg font-extrabold">{resource.label}</h2>
               <p className="text-xs text-white/45">Transaction history</p>
