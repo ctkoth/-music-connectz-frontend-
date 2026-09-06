@@ -45,3 +45,13 @@ export function widgetHint(url, canFramePages) {
   if (isOneOf(host, PLAYER_HOSTS)) return { kind: "player", host };
   return { kind: canFramePages ? "page" : "outside", host };
 }
+
+// The sandbox a third-party frame gets, wherever one is rendered.
+//
+// `allow-scripts` + `allow-same-origin` together lets a sandboxed frame remove
+// its own sandbox, so the pair is never granted; `allow-popups` is out because
+// a framed page that can open a window is one that can open a window over
+// ours. It matches `widgetz.SANDBOX` on the server, and it lives here so the
+// portfolio embeds and the widget board cannot end up with two postures — which
+// is exactly what happened when PostEmbeds shipped its own iframes with none.
+export const EMBED_SANDBOX = "allow-scripts allow-forms allow-popups-to-escape-sandbox";
