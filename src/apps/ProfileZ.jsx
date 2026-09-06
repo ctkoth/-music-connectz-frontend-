@@ -458,6 +458,11 @@ export default function ProfileZ() {
   const [bio, setBio] = useState("");
   // What you wear: the badges you show and the title you picked out of them.
   const [worn, setWorn] = useState({ badges: [], title: "", hidden: 0 });
+  // Handle editing (Premium only)
+  const [handleEdit, setHandleEdit] = useState("");
+  const [handleAvailable, setHandleAvailable] = useState(null);
+  const [handleChecking, setHandleChecking] = useState(false);
+  const [handleMsg, setHandleMsg] = useState("");
   const cl = useCharLimit();
   const premium = isPremiumTier(me?.tier);
   // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
@@ -616,6 +621,69 @@ export default function ProfileZ() {
       <VoiceCard />
 
       <Verify18Card />
+
+      {/* HandleZ — customize your profile handle/username (Premium only) */}
+      {premium && (
+        <div className="neon-frame space-y-3 p-4">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+            <span className="text-mcz-cyan">Handle</span>
+          </p>
+          <p className="text-sm text-white/60">Your current handle: <span className="font-semibold text-white">{me.username}</span></p>
+          <input
+            type="text"
+            placeholder="New handle (3-20 chars, letters/numbers/underscore)"
+            value={handleEdit}
+            onChange={(e) => {
+              const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
+              setHandleEdit(v);
+              // Real-time availability check
+              if (v.length >= 3 && v !== me.username) {
+                setHandleChecking(true);
+                api(`/api/auth/check-username/?username=${encodeURIComponent(v)}`)
+                  .then((r) => {
+                    setHandleAvailable(r.available);
+                    setHandleMsg(r.reason || (r.available ? "✓ Available!" : ""));
+                  })
+                  .catch(() => setHandleMsg(""))
+                  .finally(() => setHandleChecking(false));
+              } else if (v === me.username) {
+                setHandleAvailable(false);
+                setHandleMsg("This is already your handle");
+              } else {
+                setHandleAvailable(null);
+                setHandleMsg("");
+              }
+            }}
+            className="neon-input text-sm"
+          />
+          {handleChecking && <p className="text-xs text-mcz-gold">Checking...</p>}
+          {handleMsg && (
+            <p className={`text-xs ${handleAvailable ? "text-emerald-300" : "text-mcz-ember"}`}>
+              {handleMsg}
+            </p>
+          )}
+          <button
+            className="neon-btn-primary !py-2 !text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!handleAvailable || handleChecking}
+            onClick={async () => {
+              setHandleMsg("");
+              try {
+                await api("/api/auth/me/", { method: "PATCH", body: { username: handleEdit } });
+                setHandleEdit("");
+                setHandleAvailable(null);
+                setHandleMsg("Handle updated!");
+                setTimeout(() => setHandleMsg(""), 2000);
+                // Reload to update all references to username
+                window.location.reload();
+              } catch (e) {
+                setHandleMsg(e.message || "Couldn't update handle.");
+              }
+            }}
+          >
+            Update Handle
+          </button>
+        </div>
+      )}
 
       {/* ReferZ — invite links + referred members.
           `referral-code` is the anchor EarnZ has been linking to since it
