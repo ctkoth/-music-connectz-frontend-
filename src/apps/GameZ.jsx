@@ -24,6 +24,7 @@ import { asList } from "../shape.js";
 import { ENERGY } from "../resources.js";
 import { goToTab } from "../goto.js";
 import { playSound } from "../sound.js";
+import MentionText from "../MentionParser.jsx";
 
 const STATUS_TONE = {
   playable: "text-emerald-300",
@@ -174,7 +175,7 @@ export default function GameZ() {
                   </span>
                 </div>
                 {g.description && (
-                  <p className="text-[12px] text-white/55">{g.description}</p>
+                  <p className="text-[12px] text-white/55"><MentionText text={g.description} /></p>
                 )}
                 <p className="text-[11px] text-white/35">
                   {g.files} file{g.files === 1 ? "" : "s"}

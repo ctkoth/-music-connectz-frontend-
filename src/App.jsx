@@ -22,6 +22,8 @@ import { SPINAZ } from "./resources.js";
 // does, below) does NOT trigger its import — only mounting it does, which is
 // why TABS can stay exactly as written.
 import { lazyRoute } from "./chunkError.js";
+import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
+import TransactionModal from "./TransactionModal.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -58,6 +60,8 @@ const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
 const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
+const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
+const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
@@ -109,6 +113,7 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
+  "coachz.jpg": "/icons/CoachZ.jpg",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
@@ -171,6 +176,7 @@ export const CUSTOM_ICONS = {
   "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
+  "personaz_coach.jpg": "/icons/personaz.coach.jpg",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
   // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
@@ -227,6 +233,7 @@ export const CUSTOM_ICONS = {
   // No artwork for SoundZ — it is a tab this session added, so it takes a
   // generated neon icon like FunnelZ does until there is a drawing for it.
   "soundz.png": "/icons/soundz-neon.svg",
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -319,6 +326,8 @@ const TABS = [
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
+  { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
@@ -417,7 +426,12 @@ function SoundToggle() {
 }
 
 function CommunityBar({ onOpenMember }) {
+  const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   useEffect(() => {
     let on = true;
     const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
@@ -425,22 +439,52 @@ function CommunityBar({ onOpenMember }) {
     const t = setInterval(load, 60000); // refresh every minute
     return () => { on = false; clearInterval(t); };
   }, []);
+
+  async function loadAllMembers() {
+    setLoadingMembers(true);
+    try {
+      const response = await api("/api/auth/stats/all/");
+      setMembers(response.members || []);
+      setShowMembers(true);
+    } catch (e) {
+      console.error("Failed to load members:", e);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
+
   if (!stats) return null;
   return (
-    <div className="neon-frame mb-6 space-y-2 p-4">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="pill">👥 {stats.total_members} members</span>
+    <>
+      <div className="neon-frame mb-6 space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button onClick={loadAllMembers} className="pill cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+            👥 {stats.total_members} members
+          </button>
         <span className="pill !border-emerald-400/40 !text-emerald-300">
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
         </span>
-        <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
+        <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+          ⚡ {stats.my_energy} Energy
+        </button>
+        <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+          {SPINAZ} {stats.my_spinaz} SpinaZ
+        </button>
         {stats.my_promptz_daily != null && (
-          <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+          <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
+                  className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
+                  title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
-          </span>
+          </button>
+        )}
+        {stats.my_money != null && (
+          <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
+                  className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
+            💵 ${(stats.my_money / 100).toFixed(2)}
+          </button>
         )}
         <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
@@ -459,7 +503,43 @@ function CommunityBar({ onOpenMember }) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Members modal */}
+      {showMembers && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="neon-frame max-h-[70vh] w-full max-w-md overflow-y-auto p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 font-display text-lg font-extrabold">Members ({members.length})</h3>
+            {loadingMembers ? (
+              <p className="flex items-center gap-2 text-white/50"><span className="animate-spin">⟳</span> Loading...</p>
+            ) : members.length > 0 ? (
+              <div className="space-y-2">
+                {members.map((username, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onOpenMember?.(username);
+                      setShowMembers(false);
+                    }}
+                    className="block w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                  >
+                    @{username}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/50">No members found.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -550,6 +630,15 @@ function Home() {
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
 
+  // Cross-pollination: mentions open profiles
+  useEffect(() => {
+    const h = (e) => {
+      setMemberKey(e.detail);
+    };
+    window.addEventListener("mcz-goto-profile", h);
+    return () => window.removeEventListener("mcz-goto-profile", h);
+  }, []);
+
   useEffect(() => {
     api("/api/economy/logicz/")
       .then((d) => setLogicz(Object.fromEntries(asList(d?.tabs).map((t) => [t.key, t]))))
@@ -592,9 +681,10 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+    <TransactionModalProvider>
+      <div className="min-h-screen">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <div
           className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
@@ -732,16 +822,18 @@ function Home() {
           null and leave a teen looking at a padded gap where an advert isn't. */}
       <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
-      <Dock
-        apps={dockApps}
-        usage={usage}
-        pins={pins}
-        tier={user?.tier}
-        current={tab}
-        onOpen={openTab}
-        onTogglePin={togglePin}
-      />
-    </div>
+        <Dock
+          apps={dockApps}
+          usage={usage}
+          pins={pins}
+          tier={user?.tier}
+          current={tab}
+          onOpen={openTab}
+          onTogglePin={togglePin}
+        />
+      </div>
+      <TransactionModal />
+    </TransactionModalProvider>
   );
 }
 

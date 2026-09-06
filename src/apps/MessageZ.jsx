@@ -7,6 +7,7 @@ import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 import { onHandoff } from "../handoff.js";
+import MentionText from "../MentionParser.jsx";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -89,7 +90,7 @@ function MsgList({ title, rows, who }) {
         {rows.map((m) => (
           <div key={m.id} className="px-4 py-3 text-sm">
             <p className="text-xs text-white/50">{who === "from" ? `From ${m.from}` : `To ${m.to}`}</p>
-            <p>{m.body}</p>
+            <p><MentionText text={m.body} /></p>
           </div>
         ))}
       </div>
