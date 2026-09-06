@@ -128,10 +128,12 @@ tile, which is what the member would have got anyway.
 ### The screen decides the layout, not a breakpoint
 
 `useScreenShape.js` measures width, height, orientation and `pointer: coarse`
-— never the user agent, which lies by design. A 844px landscape phone and an
+— never the user agent, which lies by design. An 844px landscape phone and an
 844px laptop window are the same width and different screens: the phone gets
-shorter tiles and no floating, because a thumb cannot aim at what a mouse can.
-One lane is a stack, so only the focused widget expands there.
+shorter tiles (it has 390px of height to spend) and one fewer lane than it
+technically fits, because a widget a thumb has to aim at needs to be bigger
+than one a mouse does. One lane is a stack, so only the focused widget expands
+there and the rest collapse to their title bars.
 
 ### The +5 ⚡ link reward finally has an honest signal
 
