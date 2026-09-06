@@ -41,6 +41,7 @@ import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { ENERGY } from "./resources.js";
 import { goToSpot } from "./goto.js";
+import { tabForSlug } from "./App.jsx";
 import { useScreenShape } from "./useScreenShape.js";
 import { widgetHint } from "./widgetz.js";
 
@@ -444,7 +445,12 @@ function openOurOwn(target) {
   }
   if (target.kind === "post") return goToSpot("social", "social-feed");
   if (target.kind === "playlist") return goToSpot("playlistz");
-  goToSpot(target.key);
+  // A tab address carries a SLUG (`/post`), and `goToSpot` wants the tab KEY
+  // (`postz`). Translating through the app's own `tabForSlug` rather than
+  // guessing at the "drop the z" rule keeps one definition of that mapping —
+  // a second one here would drift the first time a tab is renamed.
+  const tab = tabForSlug(target.key);
+  if (tab) goToSpot(tab.key);
 }
 
 /** Count the seconds a widget is genuinely being looked at, and bank the ⚡
