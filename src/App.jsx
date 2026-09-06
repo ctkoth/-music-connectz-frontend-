@@ -452,6 +452,12 @@ function CommunityBar({ onOpenMember }) {
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
           </button>
         )}
+        {stats.my_money != null && (
+          <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
+                  className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
+            💵 ${(stats.my_money / 100).toFixed(2)}
+          </button>
+        )}
         <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
       </div>
@@ -559,6 +565,15 @@ function Home() {
     window.addEventListener("mcz-goto-tab", h);
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
+
+  // Cross-pollination: mentions open profiles
+  useEffect(() => {
+    const h = (e) => {
+      setMemberKey(e.detail);
+    };
+    window.addEventListener("mcz-goto-profile", h);
+    return () => window.removeEventListener("mcz-goto-profile", h);
+  }, []);
 
   useEffect(() => {
     api("/api/economy/logicz/")
