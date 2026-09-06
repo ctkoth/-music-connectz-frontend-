@@ -266,3 +266,10 @@ first** — an endpoint may exist before anything calls it, but never the revers
 
 Render runs `migrate` on every backend deploy, so a backend merge migrates
 production unattended. Worth knowing when you're waiting on one.
+
+**Corey's standing instruction: merge without asking.** Don't stop at a green
+branch to request permission — verify it (the repo's own checks, and for the
+backend the full suite plus a column-width check on any new migration), then
+merge and push. The merge is still the deliberate act; the deliberation is the
+verification, not a question. Backend first whenever a screen needs a new
+endpoint.
