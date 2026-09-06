@@ -598,6 +598,8 @@ function Home() {
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
+  const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
+  const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -840,8 +842,47 @@ function Home() {
             onClose={() => setMemberKey(null)}
             currentUsername={user?.username}
             onEditProfile={() => { setMemberKey(null); openTab("profilez"); }}
+            isOwner={user?.is_owner}
+            onEditMember={(u) => { setMemberKey(null); setEditMemberKey(u); }}
+            onDeleteMember={(u) => { setDeleteMemberKey(u); }}
           />
         </Suspense>
+      )}
+
+      {editMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setEditMemberKey(null)}>
+          <div className="neon-frame w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-xl font-extrabold">Edit @{editMemberKey}</h3>
+              <button onClick={() => setEditMemberKey(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
+            <p className="mb-4 text-sm text-white/60">Account editing interface would go here. For now, direct the owner to manage this account via the backend admin panel or create a dedicated account management interface.</p>
+            <div className="flex gap-2">
+              <button className="re-btn" onClick={() => setEditMemberKey(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setDeleteMemberKey(null)}>
+          <div className="neon-frame w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 font-display text-lg font-extrabold text-mcz-ember">Delete Account: @{deleteMemberKey}</h3>
+            <p className="mb-4 text-sm text-white/75">This action is permanent and cannot be undone. All posts, uploads, and data associated with this account will be deleted.</p>
+            <div className="flex gap-2">
+              <button className="re-btn-ghost" onClick={() => setDeleteMemberKey(null)}>Cancel</button>
+              <button className="re-btn !bg-mcz-ember/20 !text-mcz-ember hover:!bg-mcz-ember/40" onClick={async () => {
+                try {
+                  await api(`/api/auth/users/${encodeURIComponent(deleteMemberKey)}/`, { method: "DELETE" });
+                  setDeleteMemberKey(null);
+                  setMemberKey(null);
+                } catch (e) {
+                  alert(`Error: ${e.message}`);
+                }
+              }}>Delete Permanently</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />

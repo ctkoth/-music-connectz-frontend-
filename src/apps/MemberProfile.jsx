@@ -4,7 +4,7 @@
 // same payload Social ConnectZ uses, so whatever a member fills in on ProfileZ
 // shows up here.
 import { useEffect, useState } from "react";
-import { Loader2, MapPin, Star, Users, X } from "lucide-react";
+import { Loader2, MapPin, Star, Users, X, Edit, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
@@ -16,7 +16,7 @@ function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
 }
 
-export default function MemberProfile({ username, onClose, currentUsername, onEditProfile }) {
+export default function MemberProfile({ username, onClose, currentUsername, onEditProfile, isOwner, onEditMember, onDeleteMember }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
@@ -72,13 +72,33 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                          size="h-6 w-6" className="pt-1" />
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
-            title="Close"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex gap-1">
+            {isOwner && (
+              <>
+                <button
+                  onClick={() => onEditMember && onEditMember(username)}
+                  className="shrink-0 rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                  title="Edit account"
+                >
+                  <Edit size={18} />
+                </button>
+                <button
+                  onClick={() => onDeleteMember && onDeleteMember(username)}
+                  className="shrink-0 rounded-lg p-1 text-white/50 hover:bg-mcz-ember/20 hover:text-mcz-ember"
+                  title="Delete account"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </>
+            )}
+            <button
+              onClick={onClose}
+              className="shrink-0 rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
+              title="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {!data && !error && (
