@@ -421,6 +421,10 @@ function SoundToggle() {
 function CommunityBar({ onOpenMember }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   useEffect(() => {
     let on = true;
     const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
@@ -428,11 +432,28 @@ function CommunityBar({ onOpenMember }) {
     const t = setInterval(load, 60000); // refresh every minute
     return () => { on = false; clearInterval(t); };
   }, []);
+
+  async function loadAllMembers() {
+    setLoadingMembers(true);
+    try {
+      const response = await api("/api/auth/stats/all/");
+      setMembers(response.members || []);
+      setShowMembers(true);
+    } catch (e) {
+      console.error("Failed to load members:", e);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
+
   if (!stats) return null;
   return (
-    <div className="neon-frame mb-6 space-y-2 p-4">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="pill">👥 {stats.total_members} members</span>
+    <>
+      <div className="neon-frame mb-6 space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button onClick={loadAllMembers} className="pill cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+            👥 {stats.total_members} members
+          </button>
         <span className="pill !border-emerald-400/40 !text-emerald-300">
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
@@ -475,7 +496,43 @@ function CommunityBar({ onOpenMember }) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Members modal */}
+      {showMembers && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="neon-frame max-h-[70vh] w-full max-w-md overflow-y-auto p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 font-display text-lg font-extrabold">Members ({members.length})</h3>
+            {loadingMembers ? (
+              <p className="flex items-center gap-2 text-white/50"><span className="animate-spin">⟳</span> Loading...</p>
+            ) : members.length > 0 ? (
+              <div className="space-y-2">
+                {members.map((username, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onOpenMember?.(username);
+                      setShowMembers(false);
+                    }}
+                    className="block w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                  >
+                    @{username}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/50">No members found.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
