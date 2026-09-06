@@ -16,6 +16,7 @@ import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import MentionText from "../MentionParser.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -70,7 +71,9 @@ export default function PublicProfile() {
           </div>
 
           {p.bio && (
-            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">{p.bio}</p>
+            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">
+              <MentionText text={p.bio} />
+            </p>
           )}
 
           {p.personas?.map((persona, i) => (

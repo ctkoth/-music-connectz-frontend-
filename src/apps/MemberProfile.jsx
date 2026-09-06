@@ -9,6 +9,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import MentionText from "../MentionParser.jsx";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -95,7 +96,7 @@ export default function MemberProfile({ username, onClose }) {
               </p>
             )}
 
-            {data.bio && <p className="text-sm leading-relaxed text-white/75">{data.bio}</p>}
+            {data.bio && <p className="text-sm leading-relaxed text-white/75"><MentionText text={data.bio} /></p>}
 
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}

@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import MentionText from "../MentionParser.jsx";
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -87,7 +88,7 @@ export default function PublicPost() {
           )}
 
           {post.description && (
-            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">{post.description}</p>
+            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90"><MentionText text={post.description} /></p>
           )}
 
           {post.links?.length > 0 && (
