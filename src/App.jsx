@@ -22,6 +22,8 @@ import { SPINAZ } from "./resources.js";
 // does, below) does NOT trigger its import — only mounting it does, which is
 // why TABS can stay exactly as written.
 import { lazyRoute } from "./chunkError.js";
+import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
+import TransactionModal from "./TransactionModal.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -417,6 +419,7 @@ function SoundToggle() {
 }
 
 function CommunityBar({ onOpenMember }) {
+  const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
   useEffect(() => {
     let on = true;
@@ -434,13 +437,20 @@ function CommunityBar({ onOpenMember }) {
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
         </span>
-        <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
+        <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+          ⚡ {stats.my_energy} Energy
+        </button>
+        <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+          {SPINAZ} {stats.my_spinaz} SpinaZ
+        </button>
         {stats.my_promptz_daily != null && (
-          <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+          <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
+                  className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
+                  title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
-          </span>
+          </button>
         )}
         <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
@@ -592,9 +602,10 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+    <TransactionModalProvider>
+      <div className="min-h-screen">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <div
           className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
@@ -732,16 +743,18 @@ function Home() {
           null and leave a teen looking at a padded gap where an advert isn't. */}
       <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
-      <Dock
-        apps={dockApps}
-        usage={usage}
-        pins={pins}
-        tier={user?.tier}
-        current={tab}
-        onOpen={openTab}
-        onTogglePin={togglePin}
-      />
-    </div>
+        <Dock
+          apps={dockApps}
+          usage={usage}
+          pins={pins}
+          tier={user?.tier}
+          current={tab}
+          onOpen={openTab}
+          onTogglePin={togglePin}
+        />
+      </div>
+      <TransactionModal />
+    </TransactionModalProvider>
   );
 }
 
