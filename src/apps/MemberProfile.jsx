@@ -73,7 +73,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             </div>
           </div>
           <div className="flex gap-1">
-            {isOwner && (
+            {isOwner && username !== currentUsername && (
               <>
                 <button
                   onClick={() => onEditMember && onEditMember(username)}
