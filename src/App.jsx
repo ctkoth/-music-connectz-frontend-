@@ -24,6 +24,11 @@ import { SPINAZ } from "./resources.js";
 import { lazyRoute } from "./chunkError.js";
 import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
 import TransactionModal from "./TransactionModal.jsx";
+// WidgetZ. Mounted at the top of the signed-in app rather than inside a tab,
+// because a widget outlives the screen it was opened from — that is the point
+// of it. A link opened on a member's card is still there when its owner has
+// been closed and a post is being read instead.
+import { WidgetProvider } from "./WidgetBoard.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -682,6 +687,7 @@ function Home() {
 
   return (
     <TransactionModalProvider>
+      <WidgetProvider>
       <div className="min-h-screen">
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
@@ -832,6 +838,7 @@ function Home() {
           onTogglePin={togglePin}
         />
       </div>
+      </WidgetProvider>
       <TransactionModal />
     </TransactionModalProvider>
   );
