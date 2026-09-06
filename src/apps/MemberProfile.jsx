@@ -10,6 +10,7 @@ import { IconImg } from "../App.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
+import { LinkList } from "../WidgetBoard.jsx";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -133,17 +134,15 @@ export default function MemberProfile({ username, onClose }) {
               </div>
             )}
 
+            {/* Links open ON this screen — a player, one of our own screens,
+                or (StatZ, scan-cleared) the page itself — instead of handing
+                the member to a tab and losing everything else they had open.
+                LinkList is also where the +5 ⚡ a genuine visit pays gets
+                stated, before the link is pressed rather than after. */}
             {data.links?.length > 0 && (
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">Links</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {data.links.map((l, i) => (
-                    <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
-                       className="pill hover:!text-mcz-cyan">
-                      {l.label || l.url}
-                    </a>
-                  ))}
-                </div>
+                <LinkList links={data.links} owner={data.mine ? "" : username} />
               </div>
             )}
 
