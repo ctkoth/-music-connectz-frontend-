@@ -62,9 +62,12 @@ const EMPTY = {
 
 let nextId = 1;
 
-// The sticky header's height. The board starts under it rather than over it so
-// the member can still switch tabs, log out and reach the dock with widgets up.
+// The board sits BETWEEN the app's two fixed surfaces rather than over them:
+// the sticky header (tab, profile, log out) and the PickConnectZ dock. Covering
+// either would mean a member with a widget open has to close it to go anywhere,
+// which is the tab-switch problem this whole feature exists to end.
 const HEADER_PX = 64;
+const DOCK_PX = 76;
 
 export function WidgetProvider({ children }) {
   const [widgets, setWidgets] = useState([]);
@@ -202,11 +205,20 @@ function Board() {
   const { widgets, minimized, setMinimized, closeAll } = useWidgets();
   const shape = useScreenShape();
 
+  // Escape gets the page back. A surface this size that can only be dismissed
+  // by finding its own button is one people close by reloading.
+  useEffect(() => {
+    if (!widgets.length || minimized) return undefined;
+    const h = (e) => { if (e.key === "Escape") setMinimized(true); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [widgets.length, minimized, setMinimized]);
+
   if (!widgets.length) return null;
 
   if (minimized) {
     return (
-      <div className="fixed inset-x-0 bottom-24 z-[130] px-3">
+      <div className="fixed inset-x-0 z-[130] px-3" style={{ bottom: DOCK_PX + 8 }}>
         <div className="mx-auto flex max-w-4xl items-center gap-2 rounded-xl border border-white/10 bg-mcz-panel/95 px-3 py-2 backdrop-blur">
           <button
             onClick={() => setMinimized(false)}
@@ -231,13 +243,11 @@ function Board() {
 
   return (
     <div
-      // Below the sticky header and over everything else, so the board is the
-      // screen while it is open and the app's own navigation stays reachable.
-      // z above the member-card modal (110) and below the tour (200): a
-      // widget opened FROM the member card has to be visible without closing
-      // it, and minimising the board puts the card back exactly as it was.
-      className="fixed inset-x-0 bottom-0 z-[120] flex flex-col bg-mcz-bg/95 backdrop-blur"
-      style={{ top: HEADER_PX }}
+      // z above the member-card modal (110) and below the tour (200): a widget
+      // opened FROM the member card has to be visible without closing it, and
+      // minimising the board puts the card back exactly as it was.
+      className="fixed inset-x-0 z-[120] flex flex-col bg-mcz-bg/95 backdrop-blur"
+      style={{ top: HEADER_PX, bottom: DOCK_PX }}
       role="region"
       aria-label="WidgetZ board"
     >
@@ -258,7 +268,7 @@ function Board() {
       </div>
 
       <div
-        className="min-h-0 flex-1 overflow-y-auto p-3 pb-28"
+        className="min-h-0 flex-1 overflow-y-auto p-3"
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${shape.lanes}, minmax(0, 1fr))`,
