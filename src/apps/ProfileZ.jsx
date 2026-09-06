@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -436,7 +436,7 @@ function VoiceCard() {
   );
 }
 
-export default function ProfileZ() {
+export default function ProfileZ({ onViewProfile, onMessage }) {
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
@@ -717,11 +717,17 @@ export default function ProfileZ() {
         {ref?.members?.length > 0 && (
           <div className="space-y-1 border-t border-white/[0.06] pt-2">
             {ref.members.map((m) => (
-              <div key={m.username} className="flex items-center justify-between text-sm">
-                <span className="text-white/80">{m.username}</span>
-                <span className="text-[11px] text-white/40">
-                  {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
-                </span>
+              <div key={m.username} className="flex items-center justify-between rounded bg-white/[0.03] px-2 py-1.5">
+                <div>
+                  <span className="text-sm text-white/80">@{m.username}</span>
+                  <p className="text-[11px] text-white/40">
+                    {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  {onViewProfile && <button onClick={() => onViewProfile(m.username)} title="View profile" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Eye size={13} /></button>}
+                  {onMessage && <button onClick={() => onMessage(m.username)} title="Message" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Mail size={13} /></button>}
+                </div>
               </div>
             ))}
           </div>

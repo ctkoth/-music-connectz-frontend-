@@ -762,7 +762,21 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
+          <Suspense fallback={<RouteFallback />}>
+            {active?.key === "profilez" ? (
+              <ProfileZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : active?.key === "groupz" ? (
+              <GroupZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : (
+              active?.el
+            )}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
