@@ -6,6 +6,7 @@ import { P } from "../phrases.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import OfferMap from "./OfferMap.jsx";
 import { asList } from "../shape.js";
+import MentionText from "../MentionParser.jsx";
 
 const SKILLS = ["mimez", "directz", "singz", "rapz", "dawz", "designz", "shotz", "writez",
   "guitar", "piano", "vocals", "drums", "bass", "violin", "saxophone", "dj"];
@@ -149,7 +150,7 @@ function Browse() {
                 {o.price} {o.pricing_mode === "per_hour" ? "/hr" : "/lesson"}
               </span>
             </div>
-            {o.description && <p className="text-sm text-white/60">{o.description}</p>}
+            {o.description && <p className="text-sm text-white/60"><MentionText text={o.description} /></p>}
             <p className="flex flex-wrap gap-2 text-xs text-white/45">
               {o.city && <span><MapPin size={11} className="mr-0.5 inline" />{o.city}</span>}
               {o.distance_km != null && <span>{o.distance_km} km away</span>}
@@ -382,7 +383,7 @@ function Posts() {
               </div>
               <span className="pill whitespace-nowrap"><DollarSign size={11} className="mr-0.5 inline" />{p.price}</span>
             </div>
-            {p.description && <p className="text-sm text-white/60">{p.description}</p>}
+            {p.description && <p className="text-sm text-white/60"><MentionText text={p.description} /></p>}
             {p.unlocked ? (
               <p className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">
                 Unlocked · media: {p.media_ref || "(attach in upload pipeline)"}

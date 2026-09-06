@@ -25,6 +25,7 @@ import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
+import MentionText from "../MentionParser.jsx";
 
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
@@ -231,7 +232,7 @@ function Detail({ id, onBack, onFlash, seed }) {
             <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
           )}
         </div>
-        {b.description && <p className="text-[13px] text-white/75">{b.description}</p>}
+        {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />
         {Object.keys(b.gates || {}).length > 0 && (
           <p className="flex items-center gap-1.5 text-[11px] text-white/45">

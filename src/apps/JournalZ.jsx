@@ -26,6 +26,7 @@ import { ENERGY } from "../resources.js";
 import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
+import MentionText from "../MentionParser.jsx";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -564,7 +565,7 @@ export default function JournalZ() {
               )}
             </div>
             {e.title && <h3 className="text-sm font-bold text-white">{e.title}</h3>}
-            {e.body && <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/75">{e.body}</p>}
+            {e.body && <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/75"><MentionText text={e.body} /></p>}
 
             <div className="flex flex-wrap items-center gap-1.5">
               {asList(e.tags).map((t) => (
