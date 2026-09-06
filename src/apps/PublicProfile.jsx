@@ -66,7 +66,7 @@ export default function PublicProfile() {
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-6 w-6"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
                        className="pt-1.5" />
           </div>
 
