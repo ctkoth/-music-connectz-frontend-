@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi } from "lucide-react";
+import { Check, Clock, DollarSign, GraduationCap, Loader2, MapPin, Share2, Wifi } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -64,6 +64,7 @@ function Browse() {
   const [hours, setHours] = useState({});
   const [methods, setMethods] = useState({});
   const [showMap, setShowMap] = useState(false);
+  const [shared, setShared] = useState(null);
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -111,6 +112,12 @@ function Browse() {
     }
   }
 
+  function shareLesson(id) {
+    navigator.clipboard?.writeText(`${window.location.origin}/lesson/${id}`)
+      .then(() => { setShared(id); setTimeout(() => setShared(null), 1800); })
+      .catch(() => {});
+  }
+
   return (
     <div className="space-y-4">
       <div className="neon-frame grid grid-cols-2 gap-3 p-4 sm:grid-cols-5">
@@ -145,10 +152,16 @@ function Browse() {
                   {o.teacher_username} · <span className="uppercase">{o.skill}</span> · {o.rating_snapshot}★
                 </p>
               </div>
-              <span className="pill whitespace-nowrap">
-                <DollarSign size={11} className="mr-0.5 inline" />
-                {o.price} {o.pricing_mode === "per_hour" ? "/hr" : "/lesson"}
-              </span>
+              <div className="flex shrink-0 gap-2">
+                <button onClick={() => shareLesson(o.id)} title="Copy public link"
+                        className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+                  {shared === o.id ? <Check size={15} /> : <Share2 size={15} />}
+                </button>
+                <span className="pill whitespace-nowrap">
+                  <DollarSign size={11} className="mr-0.5 inline" />
+                  {o.price} {o.pricing_mode === "per_hour" ? "/hr" : "/lesson"}
+                </span>
+              </div>
             </div>
             {o.description && <p className="text-sm text-white/60"><MentionText text={o.description} /></p>}
             <p className="flex flex-wrap gap-2 text-xs text-white/45">
