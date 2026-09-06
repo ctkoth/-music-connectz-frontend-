@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { FileSignature, Loader2, Plus } from "lucide-react";
+import { FileSignature, Loader2, Plus, Share2, Check } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -14,6 +14,7 @@ export default function LabelZ() {
   const [newLabel, setNewLabel] = useState({ name: "", bio: "" });
   const [offer, setOffer] = useState({ label_id: "", artist: "", title: "Artist Agreement", terms_text: "", advance_display: "", signed_name: "" });
   const [signName, setSignName] = useState({});
+  const [shared, setShared] = useState(null);
 
   const load = useCallback(() => {
     api("/api/labelz/").then(setData).catch((e) => setMsg(e.message));
@@ -37,6 +38,12 @@ export default function LabelZ() {
       await api(`/api/labelz/contracts/${id}/${action}/`, { method: "POST", body: { signed_name: signName[id] || "" } });
       load();
     } catch (e) { setMsg(e.message); }
+  }
+
+  function shareOffer(id) {
+    navigator.clipboard?.writeText(`${window.location.origin}/offer/${id}`)
+      .then(() => { setShared(id); setTimeout(() => setShared(null), 1800); })
+      .catch(() => {});
   }
 
   if (!data) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
@@ -112,9 +119,15 @@ export default function LabelZ() {
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">My contracts</h3>
           {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <p className="font-medium">{c.title} <span className="text-xs text-white/40">· {c.label} → {c.artist}</span></p>
-                <span className="pill uppercase">{c.status}</span>
+                <div className="flex shrink-0 gap-1">
+                  <button onClick={() => shareOffer(c.id)} title="Copy public link"
+                          className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+                    {shared === c.id ? <Check size={15} /> : <Share2 size={15} />}
+                  </button>
+                  <span className="pill uppercase">{c.status}</span>
+                </div>
               </div>
               <pre className="whitespace-pre-wrap rounded-lg bg-black/30 p-3 text-xs text-white/70">{c.terms_text}</pre>
               <p className="text-[11px] text-white/40">

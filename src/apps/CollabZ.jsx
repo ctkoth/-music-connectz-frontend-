@@ -15,8 +15,8 @@
 // cost/gain rule — a price you discover by paying it is a bill.
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight, Check, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
-  Scale, Send, ShieldCheck, Star, X,
+  ArrowRight, Check, CheckIcon, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
+  Scale, Send, Share2, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
@@ -46,9 +46,16 @@ function Amount({ cents, currency }) {
 }
 
 function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
+  const [shared, setShared] = useState(false);
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
   const held = cur === "spinaz" ? deal.held_spinaz : deal.held_cents;
+
+  function share() {
+    navigator.clipboard?.writeText(`${window.location.origin}/collab/${deal.id}`)
+      .then(() => { setShared(true); setTimeout(() => setShared(false), 1800); })
+      .catch(() => {});
+  }
 
   const act = (verb) => onAction(deal.id, verb);
 
@@ -61,11 +68,17 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
             by @{deal.initiator} · {STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
-        {held > 0 && (
-          <span className="pill flex shrink-0 items-center gap-1 !text-emerald-300">
-            <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
-          </span>
-        )}
+        <div className="flex shrink-0 gap-2">
+          <button onClick={share} title="Copy public link"
+                  className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+            {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
+          </button>
+          {held > 0 && (
+            <span className="pill flex shrink-0 items-center gap-1 !text-emerald-300">
+              <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Back to where it came from. A deal that can't point at the post it

@@ -11,7 +11,7 @@
 //   * judging rides the shared RateZ item space, not a second rating system.
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Check, Coins, Crown, Loader2, Lock, Plus, Star, Swords, Timer,
+  ArrowLeft, Check, CheckIcon as CheckMark, Coins, Crown, Loader2, Lock, Plus, Share2, Star, Swords, Timer,
   Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -122,6 +122,7 @@ function Detail({ id, onBack, onFlash, seed }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [showEntry, setShowEntry] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -211,6 +212,12 @@ function Detail({ id, onBack, onFlash, seed }) {
     } catch (e) { onFlash(e.message || "Couldn't settle it."); }
   }
 
+  function share() {
+    navigator.clipboard?.writeText(`${window.location.origin}/battle/${id}`)
+      .then(() => { setShared(true); setTimeout(() => setShared(false), 1800); })
+      .catch(() => {});
+  }
+
   return (
     <div className="space-y-4">
       <button className="re-btn !w-auto px-3 text-xs" onClick={onBack}>
@@ -228,9 +235,15 @@ function Detail({ id, onBack, onFlash, seed }) {
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
             </p>
           </div>
-          {b.mine && b.status === "open" && (
-            <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
-          )}
+          <div className="flex shrink-0 gap-1">
+            <button onClick={share} title="Copy public link"
+                    className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+              {shared ? <CheckMark size={15} /> : <Share2 size={15} />}
+            </button>
+            {b.mine && b.status === "open" && (
+              <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
+            )}
+          </div>
         </div>
         {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />

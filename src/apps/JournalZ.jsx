@@ -13,8 +13,8 @@
 // rule that stopped "20 free prompts" drifting into nine places.
 import { useEffect, useState } from "react";
 import {
-  Calendar, Clock, Download, Loader2, Lock, MapPin, Plus, RefreshCw, Search,
-  Send, Tag, Trash2, Users, X as XIcon,
+  Calendar, Check, Clock, Download, Loader2, Lock, MapPin, Plus, RefreshCw, Search,
+  Send, Share2, Tag, Trash2, Users, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList, asDict } from "../shape.js";
@@ -186,6 +186,7 @@ export default function JournalZ() {
   const [look, setLook] = useState(null);
   const [lookGate, setLookGate] = useState(null);
   const [exportGate, setExportGate] = useState(null);
+  const [shared, setShared] = useState(null);
 
   const cl = useCharLimit();
   const limits = asDict(cost?.limits);
@@ -287,6 +288,12 @@ export default function JournalZ() {
         : "Published to PostZ.");
       load();
     } catch (x) { flash(x.message); }
+  }
+
+  function shareEntry(id) {
+    navigator.clipboard?.writeText(`${window.location.origin}/journal/${id}`)
+      .then(() => { setShared(id); setTimeout(() => setShared(null), 1800); })
+      .catch(() => {});
   }
 
   async function openIn(e, d) {
@@ -559,10 +566,16 @@ export default function JournalZ() {
               </span>
               {e.mood_label && <span className="text-[11px] text-white/50">{e.mood_label}</span>}
               {e.weather && <span className="text-[11px] text-white/40">{e.weather}</span>}
-              {e.mine && (
-                <button className="ml-auto text-white/30 hover:text-mcz-ember" title="Delete"
-                        onClick={() => remove(e)}><Trash2 size={13} /></button>
-              )}
+              <div className="ml-auto flex gap-1">
+                <button onClick={() => shareEntry(e.id)} title="Copy public link"
+                        className="rounded-lg p-1 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+                  {shared === e.id ? <Check size={13} /> : <Share2 size={13} />}
+                </button>
+                {e.mine && (
+                  <button className="text-white/30 hover:text-mcz-ember" title="Delete"
+                          onClick={() => remove(e)}><Trash2 size={13} /></button>
+                )}
+              </div>
             </div>
             {e.title && <h3 className="text-sm font-bold text-white">{e.title}</h3>}
             {e.body && <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-white/75"><MentionText text={e.body} /></p>}
