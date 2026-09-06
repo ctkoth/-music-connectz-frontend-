@@ -68,6 +68,7 @@ const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
 const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
 const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const DupeZ = lazy(lazyRoute(() => import("./apps/DupeZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
@@ -367,6 +368,10 @@ const TABS = [
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
   // shows nothing to a non-owner even if they reach it another way.
   { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
+  // Not owner-only, unlike FunnelZ: a member needs to see their own
+  // duplicates to say which one is theirs. The server decides what each
+  // person is shown — the owner every group, a member only their own.
+  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -577,6 +582,7 @@ const TAB_ABOUT = {
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
 function Home() {

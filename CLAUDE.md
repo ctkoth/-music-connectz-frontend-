@@ -147,6 +147,35 @@ pressed. The line afterwards reports what the server ACTUALLY paid, never what
 the client hoped — the daily cap and the once-per-link-per-day rule are still
 the server's.
 
+## One person, one account, and the rule is read not retyped
+
+**Every member gets one account. Duplicate accounts are not accepted.**
+
+`rulez.js` reads the rule from `/api/economy/rulez/` and `RuleNote.jsx` renders
+it — on the signup form, which is the one screen where somebody is about to
+make a second one, and above DupeZ, which is the thing that enforces it. The
+copy is never typed into a screen, for the same reason a tier number never is:
+one stated in three places reads three ways within a year, and a rule people
+are held to has to be one they were actually told. **If the rule can't be
+loaded, nothing renders** — a half-stated rule is worse than an unmentioned
+one, because the half somebody read is the half they'll hold you to.
+
+`DupeZ.jsx` is one file for two views because they are two views of one thing.
+A member sees only accounts strongly tied to theirs and can close one; the
+owner sees every group and decides. The server draws that line — the client
+renders whichever answer it was given, and never decides who is an owner.
+
+**Every account shows what a delete would destroy before the button that
+destroys it** — posts, uploads, journal entries, 🍥, ⚡ and, in ember when it
+isn't zero, 💵. That is the cost/gain rule applied to the most expensive action
+in the app: the price of pressing it is that whole list. Money is the one thing
+a delete may never destroy, and the server refuses rather than trusting the
+screen to have shown it.
+
+The signals are rendered as words — "Same email on a linked sign-in", strong or
+weak — never folded into a percentage. A number nobody can check, behind an
+action nobody can undo, is the substance rule's failure case at its worst.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via
