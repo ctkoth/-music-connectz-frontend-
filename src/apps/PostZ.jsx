@@ -38,6 +38,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
+import PostEmbeds from "../PostEmbeds.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -688,6 +689,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </>
         );
       })()}
+
+      <PostEmbeds post={post} canEdit={canEdit} />
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}
