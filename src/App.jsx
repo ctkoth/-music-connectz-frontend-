@@ -60,6 +60,7 @@ const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
 const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
+const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
@@ -229,6 +230,7 @@ export const CUSTOM_ICONS = {
   // No artwork for SoundZ — it is a tab this session added, so it takes a
   // generated neon icon like FunnelZ does until there is a drawing for it.
   "soundz.png": "/icons/soundz-neon.svg",
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -321,6 +323,7 @@ const TABS = [
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
