@@ -51,6 +51,13 @@ const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
 const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
 const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
+const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
+const PublicOffer = lazy(lazyRoute(() => import("./apps/PublicOffer.jsx")));
+const PublicJournal = lazy(lazyRoute(() => import("./apps/PublicJournal.jsx")));
+const PublicCollab = lazy(lazyRoute(() => import("./apps/PublicCollab.jsx")));
+const PublicPersona = lazy(lazyRoute(() => import("./apps/PublicPersona.jsx")));
+const PublicBadge = lazy(lazyRoute(() => import("./apps/PublicBadge.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
@@ -924,6 +931,13 @@ export default function App() {
           no anonymous feed and no anonymous member search. */}
       <Route path="/p/:id" element={<PublicPost />} />
       <Route path="/u/:username" element={<PublicProfile />} />
+      <Route path="/battle/:id" element={<PublicBattle />} />
+      <Route path="/lesson/:id" element={<PublicLesson />} />
+      <Route path="/offer/:id" element={<PublicOffer />} />
+      <Route path="/journal/:id" element={<PublicJournal />} />
+      <Route path="/collab/:id" element={<PublicCollab />} />
+      <Route path="/persona/:username/:personaKey" element={<PublicPersona />} />
+      <Route path="/badge/:username/:badgeKey" element={<PublicBadge />} />
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
