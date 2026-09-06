@@ -91,16 +91,15 @@ export default function TransactionModal() {
                 <div key={i} className="p-3 hover:bg-white/[0.03] transition">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex-1">
-                      <p className="text-sm text-white">{entry.description}</p>
-                      <p className="text-xs text-white/40 mt-0.5">{when(entry.timestamp)}</p>
+                      <p className="text-sm text-white">{entry.kind}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{when(entry.at)}</p>
                     </div>
-                    <span className={`font-bold whitespace-nowrap ${entry.signed_amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
-                      {entry.signed_amount > 0 ? "+" : ""}
-                      {resource.key === "money" ? (entry.signed_amount / 100).toFixed(2) : entry.signed_amount.toLocaleString()}
+                    <span className={`font-bold whitespace-nowrap ${entry.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
+                      {entry.display}
                     </span>
                   </div>
-                  {entry.details && (
-                    <p className="text-xs text-white/35 mt-2 pl-2 border-l border-white/10">{entry.details}</p>
+                  {entry.note && (
+                    <p className="text-xs text-white/35 mt-2 pl-2 border-l border-white/10">{entry.note}</p>
                   )}
                 </div>
               ))
