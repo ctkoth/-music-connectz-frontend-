@@ -16,7 +16,7 @@ function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
 }
 
-export default function MemberProfile({ username, onClose }) {
+export default function MemberProfile({ username, onClose, currentUsername, onEditProfile }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
@@ -25,10 +25,18 @@ export default function MemberProfile({ username, onClose }) {
     setData(null);
     setError("");
     api(`/api/economy/members/${encodeURIComponent(username)}/`)
-      .then((d) => on && setData(d))
+      .then((d) => {
+        if (!on) return;
+        // If viewing your own profile, navigate to edit instead
+        if (currentUsername && username === currentUsername && onEditProfile) {
+          onEditProfile();
+        } else {
+          setData(d);
+        }
+      })
       .catch((e) => on && setError(e.message));
     return () => { on = false; };
-  }, [username]);
+  }, [username, currentUsername, onEditProfile]);
 
   // Escape closes, matching every other modal in the app.
   useEffect(() => {

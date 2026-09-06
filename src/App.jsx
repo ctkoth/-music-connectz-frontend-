@@ -821,7 +821,12 @@ function Home() {
 
       {memberKey && (
         <Suspense fallback={null}>
-          <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+          <MemberProfile
+            username={memberKey}
+            onClose={() => setMemberKey(null)}
+            currentUsername={user?.username}
+            onEditProfile={() => { setMemberKey(null); openTab("profilez"); }}
+          />
         </Suspense>
       )}
 
