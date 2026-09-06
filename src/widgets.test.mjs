@@ -34,8 +34,7 @@ test("same width, different screen: a landscape phone is not a laptop window", (
   const p = shapeOf(phoneWide);
   const l = shapeOf({ w: 844, h: 800, coarse: false });
   assert.equal(p.lanes, 2);
-  assert.equal(p.canFloat, false);
-  assert.equal(l.canFloat, true);
+  assert.equal(p.coarse, true);
   assert.ok(p.maxTile < l.maxTile, "a short screen gets shorter tiles");
 });
 

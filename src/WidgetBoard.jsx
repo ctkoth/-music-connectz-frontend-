@@ -34,8 +34,8 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
 import {
-  ArrowLeftRight, ChevronDown, ChevronUp, ExternalLink, Loader2, Maximize2,
-  Minimize2, X,
+  ArrowLeftRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  ExternalLink, Loader2, Minimize2, X,
 } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
@@ -58,6 +58,12 @@ const EMPTY = {
   widgets: [],
   open: (url) => window.open(url, "_blank", "noopener,noreferrer"),
   close: () => {},
+  focus: () => {},
+  move: () => {},
+  setSpan: () => {},
+  setMinimized: () => {},
+  closeAll: () => {},
+  minimized: false,
 };
 
 let nextId = 1;
@@ -138,6 +144,17 @@ export function WidgetProvider({ children }) {
   const value = useMemo(
     () => ({ policy, widgets, open, close, minimized, setMinimized,
              setSpan: (id, span) => patch(id, { span }),
+             // Arranging is what makes these windows rather than a feed.
+             // Buttons, not a drag: a drag needs a pointer that can hover, and
+             // the board has to work the same on the screen it was designed for.
+             move: (id, delta) => setWidgets((ws) => {
+               const i = ws.findIndex((w) => w.id === id);
+               const to = i + delta;
+               if (i < 0 || to < 0 || to >= ws.length) return ws;
+               const out = ws.slice();
+               [out[i], out[to]] = [out[to], out[i]];
+               return out;
+             }),
              focus: (id) => setWidgets((ws) => ws.map((w) => ({ ...w, focused: w.id === id }))),
              closeAll: () => setWidgets([]) }),
     [policy, widgets, open, close, minimized, patch],
@@ -276,12 +293,14 @@ function Board() {
           alignContent: "start",
         }}
       >
-        {widgets.map((w) => (
+        {widgets.map((w, i) => (
           <Widget
             key={w.id}
             w={w}
             shape={shape}
             collapsed={shape.stacked && w.id !== focusedId}
+            first={i === 0}
+            last={i === widgets.length - 1}
           />
         ))}
       </div>
@@ -289,8 +308,8 @@ function Board() {
   );
 }
 
-function Widget({ w, shape, collapsed }) {
-  const { close, setSpan, focus } = useWidgets();
+function Widget({ w, shape, collapsed, first, last }) {
+  const { close, setSpan, focus, move } = useWidgets();
   const span = Math.min(w.span || 1, shape.lanes);
   const title = w.label || w.host || w.url;
 
@@ -307,6 +326,22 @@ function Widget({ w, shape, collapsed }) {
         >
           {title}
           {w.host && <span className="ml-1.5 text-white/30">{w.host}</span>}
+        </button>
+        <button
+          onClick={() => move(w.id, -1)}
+          disabled={first}
+          className="rounded p-1 text-white/40 hover:text-white disabled:opacity-20"
+          title={shape.stacked ? "Move up" : "Move left"}
+        >
+          <ChevronLeft size={13} className={shape.stacked ? "rotate-90" : ""} />
+        </button>
+        <button
+          onClick={() => move(w.id, 1)}
+          disabled={last}
+          className="rounded p-1 text-white/40 hover:text-white disabled:opacity-20"
+          title={shape.stacked ? "Move down" : "Move right"}
+        >
+          <ChevronRight size={13} className={shape.stacked ? "rotate-90" : ""} />
         </button>
         {shape.lanes > 1 && !collapsed && (
           <button

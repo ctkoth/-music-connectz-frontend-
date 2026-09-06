@@ -59,9 +59,6 @@ export function shapeOf({ w, h, coarse }) {
     // marathon — so on one lane only the focused widget is expanded and the
     // rest collapse to their title bars. This is the flag that says so.
     stacked: lanes === 1,
-    // Dragging a floating window needs a pointer that can hover. Touch gets
-    // the tiled grid, which needs no aiming at all.
-    canFloat: !coarse && lanes >= 2,
   };
 }
 
