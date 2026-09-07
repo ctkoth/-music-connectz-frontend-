@@ -147,6 +147,64 @@ pressed. The line afterwards reports what the server ACTUALLY paid, never what
 the client hoped — the daily cap and the once-per-link-per-day rule are still
 the server's.
 
+## MetZ: the coach named a tool the app didn't have
+
+The drill at the end of every Boss Take routinely names a tempo — *"eight
+steady metronome clicks at 75 BPM ... for ten reps"* — and for the whole life
+of that feature the app printed the sentence and stopped. An instruction to use
+a metronome, handed to somebody with no metronome, is the dead end the crux is
+about in its purest form: not a screen that fails to link onward, a screen that
+**names the next step and doesn't take it**.
+
+So the click is on the drill line now (`DrillClick` in `BossTake.jsx`), and
+`metz.js`'s `parseDrill` reads the tempo, the count and the reps out of the
+coach's own prose to set it. Three things about that not to soften:
+
+- **Parsed on the client, deliberately.** Coaching is kept ON posts, so a take
+  scored last month still carries its drill, and no change to what the server
+  asks the model for next time ever reaches it. Repair on read — the same
+  reason `socialData.js` still recovers a printed persona dict.
+- **Every parsed field is `null` when the text didn't say it.** A metronome
+  opened at 75 because the drill said 75 and one opened at 75 because the
+  parser guessed look identical on screen, and the member practises to
+  whichever they got. When no tempo was named the panel says so and uses
+  *their* last one. `metronome.test.mjs` pins this; the tests that matter most
+  are the ones asserting nothing was found.
+- **Nothing renders when there is nothing to run.** "Sit upright and push each
+  vowel off the front of your mouth" is a real drill with no click in it, and a
+  metronome offered beside it is a button that can only disappoint.
+
+### Free at every tier, and it says so
+
+A metronome is a few oscillators in the member's own browser. Nothing uploads,
+no model runs, no request is made — so metering it would be counting something
+we don't pay for in order to charge for it, which is the argument
+`keyconnectz.py` already makes about the device voice. It is also the ladder
+rule: **a limit may say how much, how often or how fast. Never whether.** The
+price is stated on the control anyway, because a free thing whose price is
+unstated still reads risky.
+
+### Two things in the engine that look like details and aren't
+
+- **`setInterval` cannot run a metronome.** It is clamped, it queues behind the
+  main thread, and every late tick is drift that never gets paid back — a
+  metronome that drifts isn't a slow one, it's a broken one, because the member
+  practises to it and learns the wrong thing. So a coarse timer books clicks
+  slightly *ahead* onto the sample-accurate `AudioContext` clock, which fires
+  them exactly. `stop()` also kills the already-booked nodes; without that,
+  Stop is followed by a quarter second of clicks and reads as a dead button.
+- **The click is not `playSound`.** `sound.js` is off until asked for, and
+  pressing Start *is* the asking — a metronome silenced by a preference set on
+  another screen last week is a bug that reads as MetZ being broken. MetZ owns
+  its own gain and its own mute, and the panel says so. It keeps the other half
+  of that rule: the beat dots carry the beat, so practising muted (headphones
+  off, sleeping house, or a member who can't hear it) is supported rather than
+  broken.
+
+**MetZ does not listen, so it never scores.** The rep counter counts clicks
+that elapsed and says nothing about whether you were on them — that is what the
+coach is for, and the door back to the recorder is on the screen.
+
 ## One person, one account, and the rule is read not retyped
 
 **Every member gets one account. Duplicate accounts are not accepted.**
