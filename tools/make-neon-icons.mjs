@@ -189,6 +189,16 @@ const G = {
     <path d="M132 116h248l-92 108v86l-64 30v-116z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M170 156h172" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.8"/>
     <circle cx="256" cy="330" r="14" fill="${b}"/>`,
+
+  metz: (a, b) => `
+    <rect x="180" y="140" width="152" height="80" rx="12" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="180" cy="140" r="8" fill="${a}"/>
+    <circle cx="332" cy="140" r="8" fill="${a}"/>
+    <line x1="256" y1="140" x2="230" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
+    <line x1="256" y1="140" x2="280" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.4"/>
+    <circle cx="256" cy="140" r="6" fill="${b}"/>
+    <path d="M210 300h92" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.7"/>
+    <path d="M216 320h80" stroke="${a}" stroke-width="11" stroke-linecap="round" stroke-opacity="0.4"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
@@ -223,6 +233,7 @@ const APPS = [
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
   ["funnelz", "FunnelZ", C.emerald, C.cyan],
+  ["metz", "MetZ", C.cyan, C.gold],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't
