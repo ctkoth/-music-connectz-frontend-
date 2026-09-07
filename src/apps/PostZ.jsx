@@ -677,11 +677,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       {(() => {
         const m = post.media || (post.media_url
           ? { [post.media_type || "audio"]: post.media_url } : {});
-        const extractUploadId = (url) => {
-          const match = url?.match(/\/api\/economy\/media\/(\d+)\//);
-          return match ? parseInt(match[1], 10) : null;
-        };
-        const uploadId = extractUploadId(m.audio || m.video);
+        // `_upload_dict` hands out /api/economy/media/<id>/<filename> and that
+        // is what gets stored, so the id is readable off the post without a
+        // second request. Anything else (an old absolute URL, a blob) yields
+        // null and the panel simply doesn't render.
+        const uploadIdOf = (url) =>
+          Number(String(url || "").match(/\/api\/economy\/media\/(\d+)\//)?.[1]) || null;
+        const uploadId = uploadIdOf(m.audio || m.video);
         return (
           <>
             {m.audio && <audio src={m.audio} controls className="mt-3 w-full" />}
@@ -692,7 +694,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                 {m.text}
               </p>
             )}
-            {uploadId && (m.audio || m.video) && <TakeAnalysisDisplay uploadId={uploadId} />}
+            {uploadId && !post.take_missing && (
+              <TakeAnalysisDisplay uploadId={uploadId} mine={post.mine} />
+            )}
           </>
         );
       })()}

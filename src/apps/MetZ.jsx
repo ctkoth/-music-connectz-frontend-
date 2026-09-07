@@ -1,12 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { onHandoff } from "../handoff.js";
 
 function MetZ() {
-  // Parse URL params for pre-set BPM (from coach feedback linking)
-  const params = new URLSearchParams(window.location.search);
-  const urlBpm = params.get("bpm") ? parseInt(params.get("bpm")) : null;
+  // A tempo handed over from another app — read as a HANDOFF, not off the
+  // URL. Tabs here switch without navigating, so window.location.search never
+  // changes after load and a param-only read could only ever fire for a
+  // pasted link. The URL is still the seed so such a link keeps working.
+  const [urlBpm, setUrlBpm] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get("bpm") ? parseInt(p.get("bpm"), 10) : null;
+  });
 
   const [bpm, setBpm] = useState(urlBpm || 120);
+
+  useEffect(() => onHandoff("metz", (d) => {
+    const next = d?.bpm != null ? Number(d.bpm) : null;
+    if (!next || !Number.isFinite(next)) return;
+    setUrlBpm(next);
+    setBpm(Math.max(40, Math.min(240, Math.round(next))));
+  }), []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeSignature, setTimeSignature] = useState(4);
   const audioContextRef = useRef(null);
@@ -150,7 +163,7 @@ function MetZ() {
         )}
 
         {/* BPM Display */}
-        <div className="mb-8 rounded-xl bg-slate-800/50 p-8 backdrop-blur">
+        <div data-tour="metz-bpm" className="mb-8 rounded-xl bg-slate-800/50 p-8 backdrop-blur">
           <div className="mb-6 text-center">
             <div className="text-6xl font-bold text-cyan-400">{bpm}</div>
             <div className="mt-2 text-sm text-slate-400">BPM</div>

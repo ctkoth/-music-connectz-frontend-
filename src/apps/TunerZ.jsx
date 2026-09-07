@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Volume2 } from "lucide-react";
+import { api } from "../api.js";
+import { onHandoff } from "../handoff.js";
 
 const NOTES = [
   { note: "C", freq: 16.35 },
@@ -102,13 +104,44 @@ function findClosestNote(frequency) {
 }
 
 function TunerZ() {
-  // Parse URL params for drill mode (from coach feedback)
-  const params = new URLSearchParams(window.location.search);
-  const drillNote = params.get("note");
-  const drillFreq = params.get("freq") ? parseFloat(params.get("freq")) : null;
-  const drillCentsOff = params.get("cents") ? parseInt(params.get("cents")) : null;
-  const drillKey = params.get("key");
-  const drillBpm = params.get("bpm") ? parseInt(params.get("bpm")) : null;
+  // Which note is being drilled, and where it came from.
+  //
+  // A handoff, not the URL. Tabs here switch WITHOUT navigating, so
+  // `window.location.search` never changes once the app is loaded — reading
+  // the drill out of it meant the drill only ever armed if somebody pasted a
+  // link, which nothing in the app produces. The URL is still read once as
+  // the seed, so a pasted link keeps working.
+  const [drill, setDrill] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    const note = p.get("note");
+    if (!note) return null;
+    return {
+      note,
+      freq: p.get("freq") ? parseFloat(p.get("freq")) : null,
+      cents: p.get("cents") ? parseInt(p.get("cents"), 10) : null,
+      key: p.get("key") || null,
+      bpm: p.get("bpm") ? parseInt(p.get("bpm"), 10) : null,
+    };
+  });
+
+  useEffect(() => {
+    const arm = (d) => d?.note && setDrill({
+      note: d.note,
+      freq: d.freq != null ? Number(d.freq) : null,
+      cents: d.cents != null ? Number(d.cents) : null,
+      key: d.key || null,
+      bpm: d.bpm != null ? Number(d.bpm) : null,
+    });
+    // onHandoff takes on mount as well as on a later handoff, so this covers
+    // both arriving from PostZ and being handed a note while already open.
+    return onHandoff("tunerz", arm);
+  }, []);
+
+  const drillNote = drill?.note || null;
+  const drillFreq = drill?.freq ?? null;
+  const drillCentsOff = drill?.cents ?? null;
+  const drillKey = drill?.key || null;
+  const drillBpm = drill?.bpm ?? null;
   const isDrillMode = !!drillNote;
 
   const [isListening, setIsListening] = useState(false);
@@ -119,6 +152,11 @@ function TunerZ() {
   const [accuracy, setAccuracy] = useState(0);
   const [drillAccuracy, setDrillAccuracy] = useState(0);
   const [drillHistory, setDrillHistory] = useState([]);
+  // A drill that silently failed to save is the bug class this repo has
+  // shipped twice: the handler reports the REAL error rather than answering
+  // "saved" on a failure.
+  const [saveErr, setSaveErr] = useState("");
+  const [historyStale, setHistoryStale] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -172,10 +210,9 @@ function TunerZ() {
       const finalCentsOff = finalNote ? finalNote.cents : null;
 
       try {
-        await fetch("/api/economy/tunerz/drills/", {
+        await api("/api/economy/tunerz/drills/", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: {
             weak_note: drillNote,
             original_frequency: drillFreq,
             original_cents_off: drillCentsOff,
@@ -185,10 +222,11 @@ function TunerZ() {
             final_cents_off: finalCentsOff,
             key_context: drillKey,
             bpm_context: drillBpm,
-          }),
+          },
         });
+        setHistoryStale((n) => n + 1);
       } catch (err) {
-        console.error("Failed to save drill take:", err);
+        setSaveErr(err.message || "That drill didn't save.");
       }
     }
 
@@ -234,20 +272,13 @@ function TunerZ() {
   }, []);
 
   useEffect(() => {
-    const fetchDrillHistory = async () => {
-      try {
-        const noteFilter = isDrillMode ? `?note=${encodeURIComponent(drillNote)}` : "";
-        const response = await fetch(`/api/economy/tunerz/drills/${noteFilter}`);
-        if (response.ok) {
-          const data = await response.json();
-          setDrillHistory(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch drill history:", err);
-      }
-    };
-    fetchDrillHistory();
-  }, [isDrillMode, drillNote]);
+    let live = true;
+    const q = isDrillMode ? `?note=${encodeURIComponent(drillNote)}` : "";
+    api(`/api/economy/tunerz/drills/${q}`)
+      .then((d) => { if (live) setDrillHistory(Array.isArray(d) ? d : (d?.drills || [])); })
+      .catch(() => { if (live) setDrillHistory([]); });
+    return () => { live = false; };
+  }, [isDrillMode, drillNote, historyStale]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-8">
@@ -262,13 +293,20 @@ function TunerZ() {
 
         {/* Drill Context */}
         {isDrillMode && (
-          <div className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+          <div data-tour="tunerz-drill"
+               className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
             <div className="text-center">
               <div className="text-sm text-slate-400 mb-2">Coach said you were:</div>
               <div className="text-3xl font-bold text-cyan-400 mb-3">{drillNote} {drillCentsOff && `(${Math.abs(drillCentsOff)}¢ ${drillCentsOff < 0 ? 'flat' : 'sharp'})`}</div>
               {drillKey && <div className="text-sm text-slate-300 mb-2">Key: {drillKey}</div>}
               {drillBpm && <div className="text-sm text-slate-300">Song tempo: {drillBpm} BPM</div>}
             </div>
+          </div>
+        )}
+
+        {saveErr && (
+          <div className="mb-4 rounded-lg border border-mcz-ember/40 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
+            {saveErr}
           </div>
         )}
 
