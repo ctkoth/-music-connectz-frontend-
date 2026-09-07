@@ -199,6 +199,14 @@ const G = {
     <circle cx="256" cy="140" r="6" fill="${b}"/>
     <path d="M210 300h92" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.7"/>
     <path d="M216 320h80" stroke="${a}" stroke-width="11" stroke-linecap="round" stroke-opacity="0.4"/>`,
+
+  tunerz: (a, b) => `
+    <path d="M160 180h192M176 216h160" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="256" cy="288" r="72" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="288" r="50" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.7"/>
+    <path d="M256 240v48" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M304 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M192 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
@@ -234,6 +242,7 @@ const APPS = [
   ["bugz", "BugZ", C.cyan, C.emerald],
   ["funnelz", "FunnelZ", C.emerald, C.cyan],
   ["metz", "MetZ", C.cyan, C.gold],
+  ["tunerz", "TunerZ", C.emerald, C.cyan],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't
