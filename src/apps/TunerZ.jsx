@@ -102,11 +102,21 @@ function findClosestNote(frequency) {
 }
 
 function TunerZ() {
+  // Parse URL params for drill mode (from coach feedback)
+  const params = new URLSearchParams(window.location.search);
+  const drillNote = params.get("note");
+  const drillFreq = params.get("freq") ? parseFloat(params.get("freq")) : null;
+  const drillCentsOff = params.get("cents") ? parseInt(params.get("cents")) : null;
+  const drillKey = params.get("key");
+  const drillBpm = params.get("bpm") ? parseInt(params.get("bpm")) : null;
+  const isDrillMode = !!drillNote;
+
   const [isListening, setIsListening] = useState(false);
   const [frequency, setFrequency] = useState(0);
   const [note, setNote] = useState(null);
   const [instrument, setInstrument] = useState("guitar");
   const [targetString, setTargetString] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
@@ -169,9 +179,15 @@ function TunerZ() {
     animationFrameRef.current = requestAnimationFrame(detectPitch);
   };
 
-  const targetFreq = STANDARD_TUNING[instrument][targetString].freq;
+  // In drill mode, use the target frequency from coach feedback
+  const targetFreq = isDrillMode ? drillFreq : STANDARD_TUNING[instrument][targetString].freq;
+
+  // Calculate deviation from target
   const deviation = note ? note.cents : 0;
   const deviationPercent = Math.max(-50, Math.min(50, deviation / 2));
+
+  // In drill mode, calculate accuracy percentage (100% = in tune, 0% = very flat/sharp)
+  const drillAccuracy = isDrillMode && frequency > 0 ? Math.max(0, 100 - Math.abs(deviation) * 2) : 0;
 
   useEffect(() => {
     return () => {
@@ -185,8 +201,22 @@ function TunerZ() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="mb-2 text-5xl font-bold text-white">TunerZ</h1>
-          <p className="text-lg text-slate-400">(instrument tuner)</p>
+          <p className="text-lg text-slate-400">
+            {isDrillMode ? "Practice drill from coach feedback" : "(instrument tuner)"}
+          </p>
         </div>
+
+        {/* Drill Context */}
+        {isDrillMode && (
+          <div className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+            <div className="text-center">
+              <div className="text-sm text-slate-400 mb-2">Coach said you were:</div>
+              <div className="text-3xl font-bold text-cyan-400 mb-3">{drillNote} {drillCentsOff && `(${Math.abs(drillCentsOff)}¢ ${drillCentsOff < 0 ? 'flat' : 'sharp'})`}</div>
+              {drillKey && <div className="text-sm text-slate-300 mb-2">Key: {drillKey}</div>}
+              {drillBpm && <div className="text-sm text-slate-300">Song tempo: {drillBpm} BPM</div>}
+            </div>
+          </div>
+        )}
 
         {/* Microphone Control */}
         <div className="mb-8 flex gap-4">
@@ -225,60 +255,71 @@ function TunerZ() {
           </div>
         </div>
 
-        {/* Instrument Selection */}
-        <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
-          <label className="block text-sm font-semibold text-slate-300 mb-2">Instrument</label>
-          <select
-            value={instrument}
-            onChange={(e) => {
-              setInstrument(e.target.value);
-              setTargetString(0);
-            }}
-            className="w-full rounded bg-slate-700 px-3 py-2 text-white"
-          >
-            <option value="guitar">Guitar</option>
-            <option value="bass">Bass Guitar</option>
-            <option value="ukulele">Ukulele</option>
-          </select>
-        </div>
-
-        {/* String Selection */}
-        <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
-          <label className="block text-sm font-semibold text-slate-300 mb-3">String</label>
-          <div className="grid grid-cols-3 gap-2">
-            {STANDARD_TUNING[instrument].map((string, idx) => (
-              <button
-                key={idx}
-                onClick={() => setTargetString(idx)}
-                className={`rounded py-2 font-semibold transition-all ${
-                  targetString === idx
-                    ? "bg-cyan-500 text-slate-900"
-                    : "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                }`}
+        {/* Instrument Selection (hidden in drill mode) */}
+        {!isDrillMode && (
+          <>
+            <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Instrument</label>
+              <select
+                value={instrument}
+                onChange={(e) => {
+                  setInstrument(e.target.value);
+                  setTargetString(0);
+                }}
+                className="w-full rounded bg-slate-700 px-3 py-2 text-white"
               >
-                {string.string}
-              </button>
-            ))}
-          </div>
-        </div>
+                <option value="guitar">Guitar</option>
+                <option value="bass">Bass Guitar</option>
+                <option value="ukulele">Ukulele</option>
+              </select>
+            </div>
+
+            {/* String Selection */}
+            <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+              <label className="block text-sm font-semibold text-slate-300 mb-3">String</label>
+              <div className="grid grid-cols-3 gap-2">
+                {STANDARD_TUNING[instrument].map((string, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setTargetString(idx)}
+                    className={`rounded py-2 font-semibold transition-all ${
+                      targetString === idx
+                        ? "bg-cyan-500 text-slate-900"
+                        : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                    }`}
+                  >
+                    {string.string}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Tuner Display */}
         {isListening && (
           <div className="mb-8 rounded-xl bg-slate-800/50 p-8 backdrop-blur">
             {/* Frequency & Note */}
             <div className="mb-8 text-center">
-              <div className="text-2xl text-slate-400 mb-2">Target: {STANDARD_TUNING[instrument][targetString].string}</div>
+              {!isDrillMode && <div className="text-2xl text-slate-400 mb-2">Target: {STANDARD_TUNING[instrument][targetString].string}</div>}
               {note ? (
                 <>
                   <div className="mb-2 text-6xl font-bold text-cyan-400">{note.note}</div>
                   <div className="text-lg text-slate-300">
-                    Detected: {frequency.toFixed(1)} Hz | Target: {targetFreq.toFixed(1)} Hz
+                    Detected: {frequency.toFixed(1)} Hz | Target: {targetFreq?.toFixed(1)} Hz
                   </div>
                   <div className={`text-lg font-semibold ${
                     Math.abs(deviation) < 5 ? "text-emerald-400" : "text-amber-400"
                   }`}>
                     {deviation > 0 ? `↓ ${deviation} cents flat` : deviation < 0 ? `↑ ${Math.abs(deviation)} cents sharp` : "✓ In tune"}
                   </div>
+
+                  {/* Drill mode accuracy */}
+                  {isDrillMode && (
+                    <div className="mt-4 text-sm text-slate-400">
+                      Accuracy: <span className={drillAccuracy > 80 ? "text-emerald-400 font-bold" : "text-amber-400"}>{Math.round(drillAccuracy)}%</span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="text-lg text-slate-400">Play a note...</div>
@@ -293,7 +334,18 @@ function TunerZ() {
                 <div className="h-full w-1/2 bg-gradient-to-l from-slate-700 to-transparent"></div>
               </div>
 
-              {/* Indicator */}
+              {/* Drill mode goal marker - show where they were originally off */}
+              {isDrillMode && drillCentsOff && (
+                <div
+                  className="absolute top-0 h-full w-1 bg-purple-400/50 border-l border-purple-300"
+                  style={{
+                    left: `calc(50% + ${Math.max(-50, Math.min(50, drillCentsOff / 2))}%)`,
+                  }}
+                  title={`Goal: ${drillCentsOff < 0 ? 'fix flat by' : 'fix sharp by'} ${Math.abs(drillCentsOff)}¢`}
+                ></div>
+              )}
+
+              {/* Indicator - current detection */}
               <div
                 className={`absolute top-0 h-full w-2 transition-all ${
                   Math.abs(deviation) < 5 ? "bg-emerald-500" : "bg-amber-500"
@@ -316,8 +368,17 @@ function TunerZ() {
 
         {/* Info */}
         <div className="rounded-lg bg-slate-800/30 p-6 text-center text-sm text-slate-400">
-          <p>Allow microphone access and play a note to see the detected frequency and tuning accuracy.</p>
-          <p className="mt-2">The gauge shows how far you are from the target note (±50 cents).</p>
+          {isDrillMode ? (
+            <>
+              <p>The purple line shows where you were flat/sharp in your recording. Hit the green area (in tune) to complete this drill.</p>
+              <p className="mt-2">When you're consistently hitting 80%+ accuracy, you've locked it in—move to the next weak note.</p>
+            </>
+          ) : (
+            <>
+              <p>Allow microphone access and play a note to see the detected frequency and tuning accuracy.</p>
+              <p className="mt-2">The gauge shows how far you are from the target note (±50 cents).</p>
+            </>
+          )}
         </div>
       </div>
     </div>
