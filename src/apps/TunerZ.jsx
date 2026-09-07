@@ -117,11 +117,14 @@ function TunerZ() {
   const [instrument, setInstrument] = useState("guitar");
   const [targetString, setTargetString] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
+  const [drillAccuracy, setDrillAccuracy] = useState(0);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
   const dataArrayRef = useRef(null);
+  const sessionStartRef = useRef(null);
+  const lastFrequencyRef = useRef(0);
 
   const startListening = async () => {
     try {
@@ -139,6 +142,8 @@ function TunerZ() {
       analyserRef.current = analyser;
       dataArrayRef.current = new Float32Array(analyser.fftSize);
 
+      sessionStartRef.current = Date.now();
+      lastFrequencyRef.current = 0;
       setIsListening(true);
       detectPitch();
     } catch (err) {
@@ -146,7 +151,7 @@ function TunerZ() {
     }
   };
 
-  const stopListening = () => {
+  const stopListening = async () => {
     setIsListening(false);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -157,6 +162,34 @@ function TunerZ() {
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
+
+    if (isDrillMode && drillNote && sessionStartRef.current) {
+      const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      const finalFreq = lastFrequencyRef.current;
+      const finalNote = finalFreq > 0 ? findClosestNote(finalFreq) : null;
+      const finalCentsOff = finalNote ? finalNote.cents : null;
+
+      try {
+        await fetch("/api/economy/tunerz/drills/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weak_note: drillNote,
+            original_frequency: drillFreq,
+            original_cents_off: drillCentsOff,
+            accuracy_percent: Math.round(drillAccuracy),
+            duration_seconds: durationSeconds,
+            final_frequency: finalFreq || null,
+            final_cents_off: finalCentsOff,
+            key_context: drillKey,
+            bpm_context: drillBpm,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save drill take:", err);
+      }
+    }
+
     setFrequency(0);
     setNote(null);
   };
@@ -169,6 +202,7 @@ function TunerZ() {
 
     if (detectedFreq > -1) {
       setFrequency(detectedFreq);
+      lastFrequencyRef.current = detectedFreq;
       const closestNote = findClosestNote(detectedFreq);
       setNote(closestNote);
     } else {
@@ -186,8 +220,10 @@ function TunerZ() {
   const deviation = note ? note.cents : 0;
   const deviationPercent = Math.max(-50, Math.min(50, deviation / 2));
 
-  // In drill mode, calculate accuracy percentage (100% = in tune, 0% = very flat/sharp)
-  const drillAccuracy = isDrillMode && frequency > 0 ? Math.max(0, 100 - Math.abs(deviation) * 2) : 0;
+  useEffect(() => {
+    const acc = isDrillMode && frequency > 0 ? Math.max(0, 100 - Math.abs(deviation) * 2) : 0;
+    setDrillAccuracy(acc);
+  }, [isDrillMode, frequency, deviation]);
 
   useEffect(() => {
     return () => {
