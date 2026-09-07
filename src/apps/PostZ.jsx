@@ -28,6 +28,7 @@ import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
+import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
 import MentionText from "../MentionParser.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
@@ -676,6 +677,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       {(() => {
         const m = post.media || (post.media_url
           ? { [post.media_type || "audio"]: post.media_url } : {});
+        const extractUploadId = (url) => {
+          const match = url?.match(/\/api\/economy\/media\/(\d+)\//);
+          return match ? parseInt(match[1], 10) : null;
+        };
+        const uploadId = extractUploadId(m.audio || m.video);
         return (
           <>
             {m.audio && <audio src={m.audio} controls className="mt-3 w-full" />}
@@ -686,6 +692,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                 {m.text}
               </p>
             )}
+            {uploadId && (m.audio || m.video) && <TakeAnalysisDisplay uploadId={uploadId} />}
           </>
         );
       })()}
