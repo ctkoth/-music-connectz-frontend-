@@ -35,6 +35,7 @@ export const APP_PURPOSE = {
   lessonz:     { does: "Book or teach a lesson",         words: "lesson teach learn tutor booking coach hire class" },
   singz:       { does: "Record singing and get scored",  words: "sing vocal record voice pitch coach score take practice" },
   rapz:        { does: "Record rap and get scored",      words: "rap bars flow record freestyle score take practice" },
+  metz:        { does: "Keep time with a metronome",     words: "metronome click tempo bpm beat timing count practice drill speed pace time signature tap" },
   messagez:    { does: "Direct messages",                words: "message dm chat inbox talk write contact" },
   keyconnectz: { does: "Translate and read aloud",       words: "translate language keyboard speak voice transcribe foreign" },
   occ:         { does: "Build things with AI",           words: "ai assistant chat build code project agent help" },

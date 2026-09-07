@@ -189,6 +189,18 @@ const G = {
     <path d="M132 116h248l-92 108v86l-64 30v-116z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M170 156h172" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.8"/>
     <circle cx="256" cy="330" r="14" fill="${b}"/>`,
+
+  // The wedge, the pendulum off-centre, and the weight on it. A metronome is
+  // one of the few objects in this set everybody can already name from its
+  // outline, so the glyph is the silhouette and nothing else — the arm is
+  // drawn leaning because a vertical one reads as a closed box.
+  metz: (a, b) => `
+    <path d="M196 104h120l52 200H144z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M144 304h224" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 288L300 124" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
+    <rect x="270" y="186" width="46" height="28" rx="6" transform="rotate(-15 293 200)"
+          fill="none" stroke="${b}" stroke-width="12"/>
+    <circle cx="256" cy="292" r="12" fill="${a}"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
@@ -208,6 +220,7 @@ const APPS = [
   ["lessonz", "LessonZ", C.gold, C.cyan],
   ["singz", "SingZ", C.pink, C.cyan],
   ["rapz", "RapZ", C.gold, C.ember],
+  ["metz", "MetZ", C.cyan, C.gold],
   ["messagez", "MessageZ", C.cyan, C.pink],
   ["keyconnectz", "KeyConnectZ", C.emerald, C.gold],
   ["occ", "OCC", C.cyan, C.purple],

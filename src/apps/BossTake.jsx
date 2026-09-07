@@ -5,12 +5,14 @@
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
+import { AlertTriangle, Loader2, Mic, Music2, Play, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
-import { onHandoff } from "../handoff.js";
+import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
+import Metronome from "../Metronome.jsx";
+import { drillIsRunnable, parseDrill, readLastBpm } from "../metronome.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -39,6 +41,64 @@ const mb = (n) => (n / 1024 / 1024).toFixed(1);
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
+
+/** MetZ, on the drill that asked for it.
+ *
+ * Deliberately closed until pressed. Somebody is reading a score they just
+ * paid for; a metronome that starts itself underneath that is noise at a
+ * stranger, which is the thing `sound.js` refuses to be. So this states what
+ * it will do and what it costs — nothing — and waits.
+ *
+ * It renders NOTHING when the drill named no tempo, no count and no reps.
+ * "Sit upright and push each vowel off the front of your mouth" is a real
+ * drill with nothing for a metronome to do, and a click offered beside it is
+ * a button that can only disappoint. */
+function DrillClick({ text, appKey, trial }) {
+  const [open, setOpen] = useState(false);
+  const drill = parseDrill(text);
+  if (!drillIsRunnable(drill)) return null;
+
+  // A bar is counted in the beats the widget is set to, which is the 4 it
+  // opens on — derived from what's on screen rather than a second assumption
+  // about a time signature the drill never gave.
+  const beatsPerRep = drill.clicks ?? (drill.bars ? drill.bars * 4 : null);
+  const bpm = drill.bpm ?? readLastBpm();
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-mcz-cyan/30 bg-black/30 px-2.5 py-1.5 text-[11px] hover:border-mcz-cyan/60"
+      >
+        <Music2 size={13} className="text-mcz-cyan" />
+        <span className="font-semibold text-white/80">
+          {drill.bpm ? `Run it at ${drill.bpm} BPM` : "Run it to a click"}
+        </span>
+        {beatsPerRep && <span className="text-white/40">· {beatsPerRep} clicks</span>}
+        {drill.reps && <span className="text-white/40">· {drill.reps} reps</span>}
+        <span className="text-emerald-300">Free</span>
+      </button>
+    );
+  }
+
+  return (
+    <Metronome
+      compact
+      bpm={bpm}
+      beats={4}
+      subdivision={drill.subdivision || "quarter"}
+      beatsPerRep={beatsPerRep}
+      reps={drill.reps}
+      // The trial door has no tabs to jump to — the visitor has no account
+      // yet. The click still runs here, which is the part that matters.
+      onOpenFull={trial ? null : () => handOff("metz", "metz-click", {
+        bpm, beatsPerRep, reps: drill.reps,
+        subdivision: drill.subdivision || "quarter",
+        text, from: appKey ? appKey.toUpperCase() : "the coach",
+      })}
+    />
+  );
+}
 
 /** What this take costs, stated before it is sent.
  *
@@ -680,9 +740,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           )}
 
           {result.next_drill && (
-            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
-              <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
-            </p>
+            <div className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2">
+              <p className="text-[12px] text-white/70">
+                <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
+              </p>
+              {/* The drill names a tempo, so the tempo is here. It used to name
+                  one and leave — "eight steady metronome clicks at 75 BPM"
+                  printed at somebody with no metronome is an instruction to go
+                  and find one somewhere else, which is a dead end in the most
+                  literal sense the crux means. MetZ is on the line now, set to
+                  what the drill actually said. */}
+              <DrillClick text={result.next_drill} appKey={appKey} trial={trial} />
+            </div>
           )}
 
           {!trial && (

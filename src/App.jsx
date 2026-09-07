@@ -72,6 +72,7 @@ const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -166,6 +167,10 @@ export const CUSTOM_ICONS = {
   "managez.png": "/icons/managez.png",
   "messagez.png": "/icons/messagez.png",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
+  // No artwork drawn for MetZ yet, so it points at the generated neon mark —
+  // the same indirection postz.png uses. A .png key with an .svg value is why
+  // this is a registry and not a glob over the folder.
+  "metz.png": "/icons/metz-neon.svg",
   "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
@@ -349,6 +354,9 @@ const TABS = [
   { key: "rapz", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+  // Beside SingZ and RapZ on purpose: their coaches are what send people here,
+  // and a drill that names a tempo now opens the click set to it.
+  { key: "metz", label: "MetZ", icon: "metz.png", el: <MetZ /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -571,6 +579,7 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  metz: "🎼 MetZ — the click. Set a tempo, tap one out, or let a coach's drill set it for you: \"eight steady clicks at 75 BPM for ten reps\" opens MetZ already counting. Free at every tier — it runs in your browser and nothing is uploaded. It doesn't score you; it keeps time.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
