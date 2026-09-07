@@ -118,6 +118,8 @@ function TunerZ() {
   const [targetString, setTargetString] = useState(0);
   const [accuracy, setAccuracy] = useState(0);
   const [drillAccuracy, setDrillAccuracy] = useState(0);
+  const [drillHistory, setDrillHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
@@ -230,6 +232,22 @@ function TunerZ() {
       if (isListening) stopListening();
     };
   }, []);
+
+  useEffect(() => {
+    const fetchDrillHistory = async () => {
+      try {
+        const noteFilter = isDrillMode ? `?note=${encodeURIComponent(drillNote)}` : "";
+        const response = await fetch(`/api/economy/tunerz/drills/${noteFilter}`);
+        if (response.ok) {
+          const data = await response.json();
+          setDrillHistory(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch drill history:", err);
+      }
+    };
+    fetchDrillHistory();
+  }, [isDrillMode, drillNote]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-8">
@@ -416,6 +434,45 @@ function TunerZ() {
             </>
           )}
         </div>
+
+        {/* Drill History */}
+        {drillHistory.length > 0 && (
+          <div className="mt-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full text-left font-semibold text-slate-300 mb-4 hover:text-emerald-400 transition-colors"
+            >
+              {showHistory ? "▼ " : "▶ "} Drill History ({drillHistory.length} attempts)
+            </button>
+            {showHistory && (
+              <div className="space-y-3">
+                {drillHistory.map((drill, idx) => (
+                  <div key={idx} className="rounded bg-slate-700/50 p-4 text-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="text-cyan-400 font-bold">{drill.weak_note}</span>
+                        <span className="text-slate-400 ml-2">{drill.duration_seconds}s</span>
+                      </div>
+                      <div className={drill.accuracy_percent >= 80 ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                        {drill.accuracy_percent}% accuracy
+                      </div>
+                    </div>
+                    {drill.improvement !== null && (
+                      <div className="text-slate-300">
+                        Improvement: <span className={drill.improvement > 0 ? "text-emerald-400" : "text-slate-400"}>
+                          {drill.improvement > 0 ? `+${drill.improvement}¢` : `${drill.improvement}¢`}
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-500 mt-1">
+                      {new Date(drill.created_at).toLocaleDateString()} {new Date(drill.created_at).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
