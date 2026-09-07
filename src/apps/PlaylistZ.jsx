@@ -16,6 +16,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { onHandoff } from "../handoff.js";
+import { useWidgets } from "../WidgetBoard.jsx";
 import { IconImg } from "../App.jsx";
 
 const PROVIDER_LABEL = {
@@ -35,9 +36,15 @@ const VISIBILITIES = [
 
 function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
   const isPost = item.kind === "post";
+  // A running order is the one screen where leaving for each row is worst: the
+  // list IS the thing, and a new tab per track is the order taken apart. Rows
+  // open on the board instead, so a set can be laid out side by side and
+  // played through without the list ever going away. The ↗ beside it still
+  // opens the distributor in a tab for anyone who wants that.
+  const { open: openWidget } = useWidgets();
   const open = () => {
     if (isPost) return goToSpot("social", "social-feed");
-    window.open(item.url, "_blank", "noopener,noreferrer");
+    openWidget(item.url, { label: item.title });
   };
   return (
     <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">

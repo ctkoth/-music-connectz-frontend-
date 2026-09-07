@@ -24,6 +24,11 @@ import { SPINAZ } from "./resources.js";
 import { lazyRoute } from "./chunkError.js";
 import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
 import TransactionModal from "./TransactionModal.jsx";
+// WidgetZ. Mounted at the top of the signed-in app rather than inside a tab,
+// because a widget outlives the screen it was opened from — that is the point
+// of it. A link opened on a member's card is still there when its owner has
+// been closed and a post is being read instead.
+import { WidgetProvider } from "./WidgetBoard.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -70,6 +75,7 @@ const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
 const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
 const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const DupeZ = lazy(lazyRoute(() => import("./apps/DupeZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
@@ -377,6 +383,10 @@ const TABS = [
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
   // shows nothing to a non-owner even if they reach it another way.
   { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
+  // Not owner-only, unlike FunnelZ: a member needs to see their own
+  // duplicates to say which one is theirs. The server decides what each
+  // person is shown — the owner every group, a member only their own.
+  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -588,6 +598,7 @@ const TAB_ABOUT = {
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
 function Home() {
@@ -603,6 +614,8 @@ function Home() {
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
+  const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
+  const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -698,6 +711,7 @@ function Home() {
 
   return (
     <TransactionModalProvider>
+      <WidgetProvider>
       <div className="min-h-screen">
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
@@ -766,7 +780,21 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
+          <Suspense fallback={<RouteFallback />}>
+            {active?.key === "profilez" ? (
+              <ProfileZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : active?.key === "groupz" ? (
+              <GroupZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : (
+              active?.el
+            )}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
@@ -825,8 +853,52 @@ function Home() {
 
       {memberKey && (
         <Suspense fallback={null}>
-          <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+          <MemberProfile
+            username={memberKey}
+            onClose={() => setMemberKey(null)}
+            currentUsername={user?.username}
+            onEditProfile={() => { setMemberKey(null); openTab("profilez"); }}
+            isOwner={user?.is_owner}
+            onEditMember={(u) => { setMemberKey(null); setEditMemberKey(u); }}
+            onDeleteMember={(u) => { setDeleteMemberKey(u); }}
+          />
         </Suspense>
+      )}
+
+      {editMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setEditMemberKey(null)}>
+          <div className="neon-frame w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-xl font-extrabold">Edit @{editMemberKey}</h3>
+              <button onClick={() => setEditMemberKey(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
+            <p className="mb-4 text-sm text-white/60">Account editing interface would go here. For now, direct the owner to manage this account via the backend admin panel or create a dedicated account management interface.</p>
+            <div className="flex gap-2">
+              <button className="re-btn" onClick={() => setEditMemberKey(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setDeleteMemberKey(null)}>
+          <div className="neon-frame w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 font-display text-lg font-extrabold text-mcz-ember">Delete Account: @{deleteMemberKey}</h3>
+            <p className="mb-4 text-sm text-white/75">This action is permanent and cannot be undone. All posts, uploads, and data associated with this account will be deleted.</p>
+            <div className="flex gap-2">
+              <button className="re-btn-ghost" onClick={() => setDeleteMemberKey(null)}>Cancel</button>
+              <button className="re-btn !bg-mcz-ember/20 !text-mcz-ember hover:!bg-mcz-ember/40" onClick={async () => {
+                try {
+                  await api(`/api/auth/users/${encodeURIComponent(deleteMemberKey)}/`, { method: "DELETE" });
+                  setDeleteMemberKey(null);
+                  setMemberKey(null);
+                } catch (e) {
+                  alert(`Error: ${e.message}`);
+                }
+              }}>Delete Permanently</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
@@ -848,6 +920,7 @@ function Home() {
           onTogglePin={togglePin}
         />
       </div>
+      </WidgetProvider>
       <TransactionModal />
     </TransactionModalProvider>
   );
