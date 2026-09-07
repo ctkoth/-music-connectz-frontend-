@@ -73,6 +73,7 @@ const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
+const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -234,6 +235,7 @@ export const CUSTOM_ICONS = {
   "logz.png": "/icons/logz.png",
   "metz.png": "/icons/metz-neon.svg",
   "tunerz.png": "/icons/tunerz.png",
+  "chordz.png": "/icons/chordz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
@@ -362,6 +364,7 @@ const TABS = [
   { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
   { key: "metz", label: "MetZ", icon: "metz.png", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.png", el: <TunerZ /> },
+  { key: "chordz", label: "ChordZ", icon: "chordz.png", el: <ChordZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
