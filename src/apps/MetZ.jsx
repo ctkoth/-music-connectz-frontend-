@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 
 function MetZ() {
-  const [bpm, setBpm] = useState(120);
+  // Parse URL params for pre-set BPM (from coach feedback linking)
+  const params = new URLSearchParams(window.location.search);
+  const urlBpm = params.get("bpm") ? parseInt(params.get("bpm")) : null;
+
+  const [bpm, setBpm] = useState(urlBpm || 120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeSignature, setTimeSignature] = useState(4);
   const audioContextRef = useRef(null);
@@ -129,8 +133,21 @@ function MetZ() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="mb-2 text-5xl font-bold text-white">MetZ</h1>
-          <p className="text-lg text-slate-400">(metronome)</p>
+          <p className="text-lg text-slate-400">
+            {urlBpm ? "Practice tempo from coach feedback" : "(metronome)"}
+          </p>
         </div>
+
+        {/* Coach Context */}
+        {urlBpm && (
+          <div className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+            <div className="text-center">
+              <div className="text-sm text-slate-400 mb-2">Coach recommended practicing at:</div>
+              <div className="text-2xl font-bold text-cyan-400">{urlBpm} BPM</div>
+              <div className="text-xs text-slate-300 mt-2">Lock in the tempo, then focus on precision.</div>
+            </div>
+          </div>
+        )}
 
         {/* BPM Display */}
         <div className="mb-8 rounded-xl bg-slate-800/50 p-8 backdrop-blur">
