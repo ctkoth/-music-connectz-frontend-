@@ -3,21 +3,6 @@ import { Mic, MicOff, Volume2 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
 
-const NOTES = [
-  { note: "C", freq: 16.35 },
-  { note: "C#", freq: 17.32 },
-  { note: "D", freq: 18.35 },
-  { note: "D#", freq: 19.45 },
-  { note: "E", freq: 20.6 },
-  { note: "F", freq: 21.83 },
-  { note: "F#", freq: 23.12 },
-  { note: "G", freq: 24.5 },
-  { note: "G#", freq: 25.96 },
-  { note: "A", freq: 27.5 },
-  { note: "A#", freq: 29.13 },
-  { note: "B", freq: 30.87 },
-];
-
 const STANDARD_TUNING = {
   guitar: [
     { string: "E", freq: 82.41 },
@@ -41,66 +26,125 @@ const STANDARD_TUNING = {
   ],
 };
 
+// Pitch detection by the McLeod method (NSDF), replacing a hand-rolled
+// autocorrelation that had two faults a tuner cannot afford.
+//
+//   * It was AMPLITUDE-SENSITIVE. The old score was
+//     `1 - Σ|x[i] - x[i+τ]| / N`, a raw difference with no normalisation, so
+//     a quiet signal produced small differences, a value near 1, and sailed
+//     past the fixed `> 0.9` threshold. A quiet room gave confident nonsense
+//     instead of "no signal".
+//   * It RETURNED ON THE FIRST peak it liked, scanning lags upward — so it
+//     took the smallest period above threshold, which is how a detector locks
+//     onto a harmonic and reports the note an octave up.
+//
+// The NSDF is normalised into [-1, 1] by construction, so one clarity
+// threshold means the same thing at any volume. And the fundamental is chosen
+// as the FIRST key maximum within `NSDF_K` of the highest one, which is the
+// standard octave-safe pick: a harmonic peak is never taller than the
+// fundamental's by more than that margin, so preferring the earliest tall
+// peak keeps the period whole.
+const NSDF_K = 0.9;          // how close to the best peak still counts
+const NSDF_MIN_CLARITY = 0.5; // below this it is noise, not a note
+const RMS_GATE = 0.01;
+const PITCH_MIN_HZ = 55;      // A1 — below any voice or guitar string
+const PITCH_MAX_HZ = 1400;    // above the top of a soprano's range
+
 function autoCorrelate(buffer, sampleRate) {
   const SIZE = buffer.length;
-  const MAX_SAMPLES = Math.floor(SIZE / 2);
 
-  let best_offset = -1;
-  let best_correlation = 0;
   let rms = 0;
-
-  for (let i = 0; i < SIZE; i++) {
-    const val = buffer[i];
-    rms += val * val;
-  }
+  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / SIZE);
+  if (rms < RMS_GATE) return -1;
 
-  if (rms < 0.01) return -1;
+  // Only lags that could be a musical pitch. Bounding this is what keeps an
+  // O(n²) detector inside a 60fps frame.
+  const minLag = Math.max(2, Math.floor(sampleRate / PITCH_MAX_HZ));
+  const maxLag = Math.min(Math.floor(sampleRate / PITCH_MIN_HZ),
+                          Math.floor(SIZE / 2));
+  if (maxLag <= minLag + 2) return -1;
 
-  let lastCorrelation = 1;
-  for (let offset = 0; offset < MAX_SAMPLES; offset++) {
-    let correlation = 0;
-
-    for (let i = 0; i < MAX_SAMPLES; i++) {
-      correlation += Math.abs(buffer[i] - buffer[i + offset]);
+  const window = SIZE - maxLag;
+  const nsdf = new Float32Array(maxLag + 1);
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    let acf = 0, norm = 0;
+    for (let i = 0; i < window; i++) {
+      const a = buffer[i], b = buffer[i + tau];
+      acf += a * b;
+      norm += a * a + b * b;
     }
-
-    correlation = 1 - correlation / MAX_SAMPLES;
-    if (correlation > 0.9 && correlation > lastCorrelation) {
-      let foundGoodCorrelation = false;
-      if (correlation > best_correlation) {
-        best_correlation = correlation;
-        best_offset = offset;
-        foundGoodCorrelation = true;
-      }
-      if (foundGoodCorrelation) {
-        const shift = ((correlation - lastCorrelation) * offset) / (2 * (correlation + lastCorrelation));
-        return sampleRate / (offset + shift);
-      }
-    }
-    lastCorrelation = correlation;
+    nsdf[tau] = norm > 0 ? (2 * acf) / norm : 0;
   }
 
-  if (best_correlation > 0.01) {
-    return sampleRate / best_offset;
+  // Key maxima: the tallest point of each positive run.
+  const peaks = [];
+  let i = minLag;
+  while (i <= maxLag) {
+    if (nsdf[i] > 0) {
+      let top = i;
+      while (i <= maxLag && nsdf[i] > 0) {
+        if (nsdf[i] > nsdf[top]) top = i;
+        i++;
+      }
+      peaks.push(top);
+    } else i++;
   }
-  return -1;
+  if (!peaks.length) return -1;
+
+  let best = peaks[0];
+  for (const p of peaks) if (nsdf[p] > nsdf[best]) best = p;
+  if (nsdf[best] < NSDF_MIN_CLARITY) return -1;
+
+  const cutoff = NSDF_K * nsdf[best];
+  const chosen = peaks.find((p) => nsdf[p] >= cutoff) ?? best;
+
+  // Parabolic interpolation — a lag is a whole number of samples, and a note
+  // is not, so without this the reading quantises and the cents jump.
+  const y1 = nsdf[chosen - 1] ?? nsdf[chosen];
+  const y2 = nsdf[chosen];
+  const y3 = nsdf[chosen + 1] ?? nsdf[chosen];
+  const denom = 2 * (2 * y2 - y1 - y3);
+  const period = chosen + (denom !== 0 ? (y3 - y1) / denom : 0);
+
+  const hz = period > 0 ? sampleRate / period : -1;
+  return hz >= PITCH_MIN_HZ && hz <= PITCH_MAX_HZ ? hz : -1;
 }
 
+// Frequency -> note name, octave and cents, computed the same way
+// apps/economy/take_analyzer.freq_to_note does it on the server.
+//
+// What was here compared the raw frequency against a table of OCTAVE-ZERO
+// notes (C 16.35Hz .. B 30.87Hz) by linear distance. For any pitch a person
+// can actually sing, the nearest entry in that table is always B0 — so the
+// tuner named every note "B" and reported cents in the thousands, which the
+// needle pinned and which made drill accuracy (100 - |cents| * 2) permanently
+// zero. It was not imprecise; it never worked.
+//
+// Doing the arithmetic instead of searching a table also means the tuner and
+// the take analyser cannot disagree about what note somebody sang, which they
+// necessarily did while one used a table and the other used logarithms.
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const A4_HZ = 440;
+
 function findClosestNote(frequency) {
-  let closestNote = NOTES[0];
-  let minDiff = Math.abs(frequency - closestNote.freq);
+  if (!frequency || frequency <= 0) return null;
+  const semitonesFromA4 = 12 * Math.log2(frequency / A4_HZ);
+  const semitone = Math.round(semitonesFromA4);
+  const cents = Math.round(100 * (semitonesFromA4 - semitone));
 
-  for (const note of NOTES) {
-    const diff = Math.abs(frequency - note.freq);
-    if (diff < minDiff) {
-      minDiff = diff;
-      closestNote = note;
-    }
-  }
+  const index = ((semitone + 9) % 12 + 12) % 12;
+  const octave = 4 + Math.floor((semitone + 9) / 12);
+  const exact = A4_HZ * Math.pow(2, semitone / 12);
 
-  const cents = Math.round(1200 * Math.log2(frequency / closestNote.freq));
-  return { ...closestNote, detectedFreq: frequency, cents };
+  return {
+    note: NOTE_NAMES[index],
+    octave,
+    name: `${NOTE_NAMES[index]}${octave}`,
+    freq: exact,
+    detectedFreq: frequency,
+    cents,
+  };
 }
 
 function TunerZ() {
@@ -396,7 +440,7 @@ function TunerZ() {
               {!isDrillMode && <div className="text-2xl text-slate-400 mb-2">Target: {STANDARD_TUNING[instrument][targetString].string}</div>}
               {note ? (
                 <>
-                  <div className="mb-2 text-6xl font-bold text-cyan-400">{note.note}</div>
+                  <div className="mb-2 text-6xl font-bold text-cyan-400">{note.name}</div>
                   <div className="text-lg text-slate-300">
                     Detected: {frequency.toFixed(1)} Hz | Target: {targetFreq?.toFixed(1)} Hz
                   </div>
