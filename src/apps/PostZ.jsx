@@ -28,6 +28,7 @@ import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
+import MentionText from "../MentionParser.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
@@ -37,6 +38,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
+import PostEmbeds from "../PostEmbeds.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -655,7 +657,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <>
           <p className="text-sm font-semibold text-white">{post.title}</p>
           {post.description && (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-white/80">{post.description}</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-white/80"><MentionText text={post.description} /></p>
           )}
         </>
       )}
@@ -709,6 +711,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </>
         );
       })()}
+
+      <PostEmbeds post={post} canEdit={canEdit} />
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}
