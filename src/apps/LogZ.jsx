@@ -9,10 +9,12 @@
 // emoji and the signed amount come pre-rendered from the server so this screen
 // cannot disagree with the ledger about what moved.
 import { useEffect, useState } from "react";
-import { Loader2, ScrollText, RefreshCw } from "lucide-react";
+import { ChevronDown, Loader2, ScrollText, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
+import { goToSpot } from "../goto.js";
+import { handOff } from "../handoff.js";
 
 const when = (iso) => {
   const d = new Date(iso);
@@ -24,11 +26,101 @@ const when = (iso) => {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
+// A row, and the doors out of it.
+//
+// LogZ is the app that makes every other balance leadable-back-to, and it was
+// the most read-only surface in the app: you could read "+300 🍥 referral
+// (referrer)" and do nothing with it. The doors are the server's
+// (`crosspost.log_destinations`) so this screen and a post's destinations are
+// the same list rendered the same way, and neither can grow a door the other
+// does not know about.
+function Row({ e, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const doors = asList(e.destinations);
+
+  const take = async (d) => {
+    // "Open it where it came from" is a jump, not a call. Only offered when
+    // the writer recorded an origin — a guessed one lands on the wrong screen.
+    if (d.action === "open") return goToSpot(d.app, d.target || "");
+    setBusy(true);
+    try {
+      if (d.app === "messagez") {
+        const who = window.prompt("Send this line to which member? (@handle)");
+        if (!who) { setBusy(false); return; }
+        const r = await api("/api/economy/logz/export/", {
+          method: "POST",
+          body: { ids: [e.id], to: "messagez", to_username: who.replace(/^@/, "") },
+        });
+        onDone(r.detail || "Sent.");
+      } else if (d.app === "journalz") {
+        const r = await api("/api/economy/logz/export/", {
+          method: "POST", body: { ids: [e.id], to: "journalz" },
+        });
+        onDone(r.detail || "Kept in today's entry.");
+      } else {
+        // PostZ is SEEDED, never created here — a post has a price, and
+        // spending it from a screen that never showed the cost is the one
+        // thing the paradigm forbids. The composer opens with the line in it.
+        const r = await api("/api/economy/logz/export/", {
+          method: "POST", body: { ids: [e.id], to: "postz" },
+        });
+        // handOff parks the line and jumps in one call — the composer picks
+        // it up on mount, so the jump does not arrive empty-handed.
+        handOff("postz", d.target || "post-compose", { text: r.text });
+      }
+    } catch (err) {
+      // The real error. A door that quietly does nothing is worse than one
+      // that says why it couldn't.
+      onDone(err.message || "That didn't work.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.02]"
+        title="What you can do with this"
+      >
+        <span className={`w-24 shrink-0 text-right font-bold tabular-nums ${
+          e.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
+          {e.display}
+        </span>
+        <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
+        <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
+          {when(e.at)}
+        </span>
+        <ChevronDown size={13} className={`shrink-0 text-white/25 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && doors.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-4 pb-3 pl-[7.5rem]">
+          {doors.map((d) => (
+            <button
+              key={d.app + d.action}
+              onClick={() => take(d)}
+              disabled={busy}
+              title={d.what}
+              className="pill text-[11px] hover:!text-mcz-cyan disabled:opacity-50"
+            >
+              {busy ? <Loader2 size={11} className="mr-1 inline animate-spin" /> : null}
+              {d.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LogZ() {
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
 
   const load = (resource) => {
     setBusy(true);
@@ -92,6 +184,8 @@ export default function LogZ() {
         ))}
       </div>
 
+      {msg && <p className="text-[12px] text-mcz-cyan">{msg}</p>}
+
       <div className="neon-frame divide-y divide-white/[0.06]">
         {entries.length === 0 && (
           <p className="flex items-center gap-2 p-4 text-sm text-white/45">
@@ -100,16 +194,7 @@ export default function LogZ() {
           </p>
         )}
         {entries.map((e) => (
-          <div key={e.id} className="flex items-center gap-3 px-4 py-2.5">
-            <span className={`w-24 shrink-0 text-right font-bold tabular-nums ${
-              e.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
-              {e.display}
-            </span>
-            <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
-            <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
-              {when(e.at)}
-            </span>
-          </div>
+          <Row key={e.id} e={e} onDone={setMsg} />
         ))}
       </div>
 

@@ -16,6 +16,7 @@ import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import MentionText from "../MentionParser.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -65,12 +66,14 @@ export default function PublicProfile() {
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-6 w-6"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
                        className="pt-1.5" />
           </div>
 
           {p.bio && (
-            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">{p.bio}</p>
+            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">
+              <MentionText text={p.bio} />
+            </p>
           )}
 
           {p.personas?.map((persona, i) => (

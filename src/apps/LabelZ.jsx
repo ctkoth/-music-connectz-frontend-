@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
+import MentionText from "../MentionParser.jsx";
 
 export default function LabelZ() {
   const talk = useSay();
@@ -81,7 +82,7 @@ export default function LabelZ() {
             <div key={l.id} className="neon-frame p-4">
               <p className="font-semibold">{l.name} {l.i_own && <span className="pill ml-1 text-[10px]">yours</span>}</p>
               <p className="text-xs text-white/55">by {l.owner} · {l.member_count} member{l.member_count === 1 ? "" : "s"}</p>
-              {l.bio && <p className="mt-1 text-sm text-white/60">{l.bio}</p>}
+              {l.bio && <p className="mt-1 text-sm text-white/60"><MentionText text={l.bio} /></p>}
             </div>
           ))}
           {labels.length === 0 && <p className="text-sm text-white/45">No labels yet — found the first one.</p>}

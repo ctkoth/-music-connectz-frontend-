@@ -30,6 +30,7 @@ import { IconImg } from "../App.jsx";
 import { MONEY, SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import MentionText from "../MentionParser.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -88,7 +89,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       {/* The work. A deal you can't hear is a settlement about nothing. */}
       {(deal.media_url || deal.image_url || deal.description || deal.lyrics) && (
         <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
-          {deal.description && <p className="text-[12px] text-white/70">{deal.description}</p>}
+          {deal.description && <p className="text-[12px] text-white/70"><MentionText text={deal.description} /></p>}
           {deal.media_url && (
             deal.media_type === "video"
               ? <video src={deal.media_url} controls className="w-full rounded-lg" />
