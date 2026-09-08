@@ -13,10 +13,15 @@
 //   GET  /api/economy/social/?item=post:<id>   → reactions, comments, my rating
 //   POST /api/economy/social/rate/             → { item, action:"rate", score }
 //   POST /api/economy/social/comment/          → { item, body }
+//   POST /api/economy/social/listened/         → { item, seconds, finished }
 //
 // The unlock countdowns tick from the SERVER's `age_sec`, and the unlock
 // lengths come from the server too — a phone an hour fast used to show a post
 // as rateable the moment it landed.
+//
+// The age window is only a floor now. Rating a track also needs it to have
+// been PLAYED — the age gate stopped nobody on a post older than a minute,
+// which was every post anybody ever scrolled past. See `listen.js`.
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
@@ -40,6 +45,7 @@ import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
 import PostEmbeds from "../PostEmbeds.jsx";
+import { trackListening } from "../listen.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -122,6 +128,20 @@ function OpenIn({ post, busy, onGo }) {
       )}
     </div>
   );
+}
+
+/** An <audio>/<video> that tells the server how much of it was really played.
+ *
+ * The rating gate used to be the post's AGE, which stopped nobody: anything
+ * older than a minute could be rated without pressing play. The seconds are
+ * counted off this element instead — see `listen.js` for what does and does
+ * not count.
+ */
+function ListenedMedia({ kind, src, item, className, onProgress }) {
+  const ref = useRef(null);
+  useEffect(() => trackListening(ref.current, item, onProgress), [item]);
+  const Tag = kind === "video" ? "video" : "audio";
+  return <Tag ref={ref} src={src} controls className={className} />;
 }
 
 // One 1s clock for the whole feed, so every countdown ticks together.
@@ -406,6 +426,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const draft = useRef("");
   const item = `post:${post.id}`;
 
+  // What the SERVER credited, never what the player counted — it clamps each
+  // heartbeat to the wall clock, so an optimistic local total would promise an
+  // unlock that never arrives.
+  const onHeard = (r) => setSocial((cur) => (cur ? { ...cur, ...r } : cur));
+
   const loadSocial = () => api(`/api/economy/social/?item=${encodeURIComponent(item)}`)
     .then(setSocial).catch(() => setSocial(null));
   useEffect(() => { loadSocial(); /* eslint-disable-next-line */ }, [post.id]);
@@ -565,6 +590,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     }
   }
 
+  // How much more of it has to be played before rating opens. Zero for a post
+  // with nothing to play, which is why the server gates only audio and video —
+  // a listening test on lyrics would be a wall in front of nothing.
+  const listenShort = (social?.listen_required_sec && !social?.listen_finished)
+    ? Math.max(0, social.listen_required_sec - (social.listened_sec || 0))
+    : 0;
+
   const comments = asList(social?.comments);
   const myRating = social?.my_rating || 0;
   const rating = social?.rating ?? post.rating;
@@ -686,8 +718,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         const uploadId = uploadIdOf(m.audio || m.video);
         return (
           <>
-            {m.audio && <audio src={m.audio} controls className="mt-3 w-full" />}
-            {m.video && <video src={m.video} controls className="mt-3 w-full rounded-lg" />}
+            {m.audio && (
+              <ListenedMedia kind="audio" src={m.audio} item={item}
+                             className="mt-3 w-full" onProgress={onHeard} />
+            )}
+            {m.video && (
+              <ListenedMedia kind="video" src={m.video} item={item}
+                             className="mt-3 w-full rounded-lg" onProgress={onHeard} />
+            )}
             {m.image && <img src={m.image} alt="" className="mt-3 w-full rounded-lg" />}
             {m.text && (
               <p className="mt-3 whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/20 p-3 text-[13px] leading-relaxed text-white/70">
@@ -759,10 +797,17 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             <p className="text-[11px] text-white/40">
               Anonymous, and it curates the ChartZ. +1 {ENERGY} per rating.
             </p>
+            {/* The condition beside the control, not inside the refusal. */}
+            {listenShort > 0 && (
+              <p className="text-[11px] text-mcz-ember">
+                Give it a listen first — {listenShort}s to go.
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <button key={n} onClick={() => rate(n)}
-                        className={`re-scale ${n <= myRating ? "re-scale-on" : ""}`} title={`Rate ${n}/10`}>
+                <button key={n} onClick={() => rate(n)} disabled={listenShort > 0}
+                        className={`re-scale ${n <= myRating ? "re-scale-on" : ""} ${listenShort > 0 ? "opacity-40" : ""}`}
+                        title={listenShort > 0 ? `Listen ${listenShort}s more first` : `Rate ${n}/10`}>
                   {n}
                 </button>
               ))}
