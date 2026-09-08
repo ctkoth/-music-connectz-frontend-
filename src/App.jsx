@@ -22,6 +22,13 @@ import { SPINAZ } from "./resources.js";
 // does, below) does NOT trigger its import — only mounting it does, which is
 // why TABS can stay exactly as written.
 import { lazyRoute } from "./chunkError.js";
+import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
+import TransactionModal from "./TransactionModal.jsx";
+// WidgetZ. Mounted at the top of the signed-in app rather than inside a tab,
+// because a widget outlives the screen it was opened from — that is the point
+// of it. A link opened on a member's card is still there when its owner has
+// been closed and a post is being read instead.
+import { WidgetProvider } from "./WidgetBoard.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -58,9 +65,16 @@ const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
 const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
+const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
+const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const DupeZ = lazy(lazyRoute(() => import("./apps/DupeZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
+const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
+const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const DrumZ = lazy(lazyRoute(() => import("./apps/DrumZ.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -109,6 +123,7 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
+  "coachz.jpg": "/icons/CoachZ.jpg",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
@@ -171,6 +186,7 @@ export const CUSTOM_ICONS = {
   "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
+  "personaz_coach.jpg": "/icons/personaz.coach.jpg",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
   // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
@@ -218,6 +234,10 @@ export const CUSTOM_ICONS = {
   "habitz.png": "/icons/habitz.png",
   "journalz.png": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
+  "metz.png": "/icons/metz-neon.svg",
+  "tunerz.png": "/icons/tunerz.png",
+  "chordz.png": "/icons/chordz.png",
+  "drumz.png": "/icons/drumz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
@@ -227,6 +247,7 @@ export const CUSTOM_ICONS = {
   // No artwork for SoundZ — it is a tab this session added, so it takes a
   // generated neon icon like FunnelZ does until there is a drawing for it.
   "soundz.png": "/icons/soundz-neon.svg",
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -319,6 +340,8 @@ const TABS = [
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
+  { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
@@ -341,6 +364,10 @@ const TABS = [
   { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
   { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
   { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
+  { key: "metz", label: "MetZ", icon: "metz.png", el: <MetZ /> },
+  { key: "tunerz", label: "TunerZ", icon: "tunerz.png", el: <TunerZ /> },
+  { key: "chordz", label: "ChordZ", icon: "chordz.png", el: <ChordZ /> },
+  { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
@@ -353,6 +380,10 @@ const TABS = [
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
   // shows nothing to a non-owner even if they reach it another way.
   { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
+  // Not owner-only, unlike FunnelZ: a member needs to see their own
+  // duplicates to say which one is theirs. The server decides what each
+  // person is shown — the owner every group, a member only their own.
+  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -417,7 +448,12 @@ function SoundToggle() {
 }
 
 function CommunityBar({ onOpenMember }) {
+  const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   useEffect(() => {
     let on = true;
     const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
@@ -425,22 +461,52 @@ function CommunityBar({ onOpenMember }) {
     const t = setInterval(load, 60000); // refresh every minute
     return () => { on = false; clearInterval(t); };
   }, []);
+
+  async function loadAllMembers() {
+    setLoadingMembers(true);
+    try {
+      const response = await api("/api/auth/stats/all/");
+      setMembers(response.members || []);
+      setShowMembers(true);
+    } catch (e) {
+      console.error("Failed to load members:", e);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
+
   if (!stats) return null;
   return (
-    <div className="neon-frame mb-6 space-y-2 p-4">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="pill">👥 {stats.total_members} members</span>
+    <>
+      <div className="neon-frame mb-6 space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button onClick={loadAllMembers} className="pill cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+            👥 {stats.total_members} members
+          </button>
         <span className="pill !border-emerald-400/40 !text-emerald-300">
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
         </span>
-        <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
+        <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+          ⚡ {stats.my_energy} Energy
+        </button>
+        <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+          {SPINAZ} {stats.my_spinaz} SpinaZ
+        </button>
         {stats.my_promptz_daily != null && (
-          <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+          <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
+                  className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
+                  title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
-          </span>
+          </button>
+        )}
+        {stats.my_money != null && (
+          <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
+                  className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
+            💵 ${(stats.my_money / 100).toFixed(2)}
+          </button>
         )}
         <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
@@ -459,7 +525,43 @@ function CommunityBar({ onOpenMember }) {
           ))}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Members modal */}
+      {showMembers && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="neon-frame max-h-[70vh] w-full max-w-md overflow-y-auto p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 font-display text-lg font-extrabold">Members ({members.length})</h3>
+            {loadingMembers ? (
+              <p className="flex items-center gap-2 text-white/50"><span className="animate-spin">⟳</span> Loading...</p>
+            ) : members.length > 0 ? (
+              <div className="space-y-2">
+                {members.map((username, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onOpenMember?.(username);
+                      setShowMembers(false);
+                    }}
+                    className="block w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                  >
+                    @{username}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/50">No members found.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -492,6 +594,7 @@ const TAB_ABOUT = {
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
 function Home() {
@@ -507,6 +610,8 @@ function Home() {
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
+  const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
+  const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -550,6 +655,15 @@ function Home() {
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
 
+  // Cross-pollination: mentions open profiles
+  useEffect(() => {
+    const h = (e) => {
+      setMemberKey(e.detail);
+    };
+    window.addEventListener("mcz-goto-profile", h);
+    return () => window.removeEventListener("mcz-goto-profile", h);
+  }, []);
+
   useEffect(() => {
     api("/api/economy/logicz/")
       .then((d) => setLogicz(Object.fromEntries(asList(d?.tabs).map((t) => [t.key, t]))))
@@ -592,9 +706,11 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+    <TransactionModalProvider>
+      <WidgetProvider>
+      <div className="min-h-screen">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <div
           className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
@@ -660,7 +776,21 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
-          <Suspense fallback={<RouteFallback />}>{active?.el}</Suspense>
+          <Suspense fallback={<RouteFallback />}>
+            {active?.key === "profilez" ? (
+              <ProfileZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : active?.key === "groupz" ? (
+              <GroupZ
+                onViewProfile={setMemberKey}
+                onMessage={(u) => { openTab("messagez"); }}
+              />
+            ) : (
+              active?.el
+            )}
+          </Suspense>
         </ErrorBoundary>
       </main>
 
@@ -719,8 +849,52 @@ function Home() {
 
       {memberKey && (
         <Suspense fallback={null}>
-          <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+          <MemberProfile
+            username={memberKey}
+            onClose={() => setMemberKey(null)}
+            currentUsername={user?.username}
+            onEditProfile={() => { setMemberKey(null); openTab("profilez"); }}
+            isOwner={user?.is_owner}
+            onEditMember={(u) => { setMemberKey(null); setEditMemberKey(u); }}
+            onDeleteMember={(u) => { setDeleteMemberKey(u); }}
+          />
         </Suspense>
+      )}
+
+      {editMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setEditMemberKey(null)}>
+          <div className="neon-frame w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-xl font-extrabold">Edit @{editMemberKey}</h3>
+              <button onClick={() => setEditMemberKey(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
+            <p className="mb-4 text-sm text-white/60">Account editing interface would go here. For now, direct the owner to manage this account via the backend admin panel or create a dedicated account management interface.</p>
+            <div className="flex gap-2">
+              <button className="re-btn" onClick={() => setEditMemberKey(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setDeleteMemberKey(null)}>
+          <div className="neon-frame w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 font-display text-lg font-extrabold text-mcz-ember">Delete Account: @{deleteMemberKey}</h3>
+            <p className="mb-4 text-sm text-white/75">This action is permanent and cannot be undone. All posts, uploads, and data associated with this account will be deleted.</p>
+            <div className="flex gap-2">
+              <button className="re-btn-ghost" onClick={() => setDeleteMemberKey(null)}>Cancel</button>
+              <button className="re-btn !bg-mcz-ember/20 !text-mcz-ember hover:!bg-mcz-ember/40" onClick={async () => {
+                try {
+                  await api(`/api/auth/users/${encodeURIComponent(deleteMemberKey)}/`, { method: "DELETE" });
+                  setDeleteMemberKey(null);
+                  setMemberKey(null);
+                } catch (e) {
+                  alert(`Error: ${e.message}`);
+                }
+              }}>Delete Permanently</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
@@ -732,16 +906,19 @@ function Home() {
           null and leave a teen looking at a padded gap where an advert isn't. */}
       <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
-      <Dock
-        apps={dockApps}
-        usage={usage}
-        pins={pins}
-        tier={user?.tier}
-        current={tab}
-        onOpen={openTab}
-        onTogglePin={togglePin}
-      />
-    </div>
+        <Dock
+          apps={dockApps}
+          usage={usage}
+          pins={pins}
+          tier={user?.tier}
+          current={tab}
+          onOpen={openTab}
+          onTogglePin={togglePin}
+        />
+      </div>
+      </WidgetProvider>
+      <TransactionModal />
+    </TransactionModalProvider>
   );
 }
 

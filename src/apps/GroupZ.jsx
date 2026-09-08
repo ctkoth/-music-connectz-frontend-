@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, UserMinus, UserPlus } from "lucide-react";
+import { Loader2, UserMinus, UserPlus, Mail, Eye } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
@@ -12,7 +12,7 @@ const KINDS = [
   ["blocked", "Blocked", "groupz_blocked.png"],
 ];
 
-export default function GroupZ() {
+export default function GroupZ({ onViewProfile, onMessage }) {
   const [groups, setGroups] = useState(null);
   const [msg, setMsg] = useState("");
   const [names, setNames] = useState({});
@@ -84,10 +84,16 @@ export default function GroupZ() {
                 {rows.map((g) => (
                   <div key={g.id} className="mb-2 rounded-xl bg-black/25 p-3">
                     {g.title && <p className="mb-1 text-sm font-medium">{g.title}</p>}
-                    <div className="mb-2 flex flex-wrap gap-2">
+                    <div className="mb-2 space-y-1">
                       {g.members.length === 0 && <span className="text-xs text-white/40">No members yet.</span>}
                       {g.members.map((m) => (
-                        <span key={m} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs">{m}</span>
+                        <div key={m} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-xs">
+                          <span className="text-white/80">@{m}</span>
+                          <div className="flex gap-1">
+                            {onViewProfile && <button onClick={() => onViewProfile(m)} title="View profile" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Eye size={12} /></button>}
+                            {onMessage && <button onClick={() => onMessage(m)} title="Message" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Mail size={12} /></button>}
+                          </div>
+                        </div>
                       ))}
                     </div>
                     <div className="flex gap-2">

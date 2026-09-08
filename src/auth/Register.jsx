@@ -7,6 +7,7 @@ import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
 import { track } from "../track.js";
 import { WINDOWS_EXE } from "../downloadBuilds.js";
+import RuleNote from "../RuleNote.jsx";
 
 export default function Register() {
   const { register } = useAuth();
@@ -56,6 +57,12 @@ export default function Register() {
           <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
         </div>
       )}
+      {/* The one-account rule, on the one screen where somebody is about to
+          make a second one. Read from the server (`rulez.js`) rather than
+          typed here, so the rule a member is shown and the rule the code
+          enforces are the same sentence. */}
+      <RuleNote rule="one_account" />
+
       <form onSubmit={submit} className="space-y-3">
         <Field icon={User} placeholder="Username" value={form.username} onChange={set("username")} autoComplete="username" />
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
