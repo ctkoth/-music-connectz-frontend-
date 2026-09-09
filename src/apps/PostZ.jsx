@@ -399,7 +399,7 @@ export default function PostZ() {
                 <div>🎤 <strong>SingZ Coach</strong> — Get feedback + earn ⭐ for improvement</div>
               )}
               {(work.audio || work.video) && (
-                <div>🎬 <strong>DirectZ</strong> — Collaborate with other producers, earn 🍥</div>
+                <div>🎬 <strong>DirectZ</strong> — Collaborate with other producers, +10% per collaborator</div>
               )}
               {work.video && (
                 <div>📺 <strong>BattleZ</strong> — Compete weekly for prizes</div>
@@ -407,9 +407,14 @@ export default function PostZ() {
               {description.trim() && (
                 <div>📝 <strong>SongwriteZ</strong> — Share lyrics, earn royalties</div>
               )}
-              {visibility === "public" && (
-                <div className="pt-1 border-t border-emerald-300/20">
-                  ✨ <strong>Public bonus:</strong> +25% on all earnings from this post
+              {(visibility === "public" || skillsUsed.length > 0) && (
+                <div className="pt-1 border-t border-emerald-300/20 space-y-0.5">
+                  {visibility === "public" && (
+                    <div>✨ <strong>Public bonus:</strong> +25% on all earnings from this post</div>
+                  )}
+                  {skillsUsed.length > 1 && (
+                    <div>🤝 <strong>Collab bonus:</strong> +10% per team member on rated work</div>
+                  )}
                 </div>
               )}
             </div>
@@ -579,7 +584,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     try {
       setSocial(await api("/api/economy/social/rate/",
                           { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility } }));
-      onFlash(talk(P.postz_rated(score)) + (ratingVisibility === "public" ? " +bonus 🍥" : ""));
+      const bonuses = [];
+      if (ratingVisibility === "public") bonuses.push("public +25%");
+      if (post.contributors?.length > 1) bonuses.push(`team +${10 * (post.contributors.length - 1)}%`);
+      const bonus = bonuses.length ? ` (${bonuses.join(" + ")})` : "";
+      onFlash(talk(P.postz_rated(score)) + bonus);
       playSound("energy_gain");
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
