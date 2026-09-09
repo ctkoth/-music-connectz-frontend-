@@ -583,15 +583,15 @@ export default function BattleZ() {
             <MediaFields value={work} onChange={setWork} label="The beat / brief" />
             <RangeGates value={gates} onChange={setGates} title="Who can enter" />
 
-            <button className="neon-btn-primary !w-auto px-5" onClick={create}
-                    disabled={busy || !form.title.trim()}>
-              {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
-            </button>
-            {Number(form.entry_spinaz || 0) > 0 && (
-              <p className="text-[10px] text-emerald-300">
-                +{Number(form.entry_spinaz)} {SPINAZ} to you per entry.
-              </p>
-            )}
+            <div className="flex items-center gap-2">
+              <button className="neon-btn-primary !w-auto px-5" onClick={create}
+                      disabled={busy || !form.title.trim()}>
+                {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
+              </button>
+              {Number(form.entry_spinaz || 0) > 0 && (
+                <span className="text-sm text-emerald-300">+{Number(form.entry_spinaz)} {SPINAZ}/entry</span>
+              )}
+            </div>
           </div>
         </>
       )}
