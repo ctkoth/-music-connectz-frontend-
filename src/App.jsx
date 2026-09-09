@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -10,6 +10,7 @@ import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
+import NotificationsPanel from "./components/NotificationsPanel.jsx";
 import { SPINAZ } from "./resources.js";
 
 // Every screen below used to be a static import, which means a cold visitor
@@ -423,6 +424,19 @@ function RootRoute() {
   return user ? <Home /> : <Landing />;
 }
 
+// Notifications button — opens the habit reminders panel
+function NotificationsButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-mcz-cyan transition"
+      title="View notifications"
+    >
+      <Bell size={16} />
+    </button>
+  );
+}
+
 // SoundZ on/off. It lives in the header rather than buried in a settings
 // screen because it is the control somebody reaches for the moment a sound
 // surprises them — a mute you have to go hunting for is one you resent.
@@ -618,6 +632,7 @@ function Home() {
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
   const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
   const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
+  const [notificationsOpen, setNotificationsOpen] = useState(false); // habit reminders panel
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -764,6 +779,7 @@ function Home() {
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
           </a>
+          <NotificationsButton onClick={() => setNotificationsOpen(true)} />
           <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
@@ -852,6 +868,9 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Habit reminders notification panel */}
+      <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
 
       {memberKey && (
         <Suspense fallback={null}>
