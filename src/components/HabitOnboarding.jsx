@@ -25,6 +25,9 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
         app_key: appKey,
         frequency,
         repeat: frequency,
+        notifications_enabled: notificationsEnabled,
+        language,
+        sound_enabled: soundEnabled,
       };
       await api("/api/economy/habits/", { method: "POST", body });
       track("onboarding_habit_created", { app_key: appKey, frequency });
@@ -38,8 +41,8 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
     }
   }
 
-  async function savePreferences() {
-    track("onboarding_preferences_saved", {
+  function completeOnboarding() {
+    track("onboarding_preferences_confirmed", {
       notifications_enabled: notificationsEnabled,
       language,
       sound_enabled: soundEnabled,
@@ -159,7 +162,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               <p className="text-xs uppercase tracking-wider text-mcz-cyan/70 mb-1">Preferences</p>
               <h2 className="font-display text-xl font-bold text-white">Personalize your experience</h2>
             </div>
-            <button onClick={savePreferences} className="text-white/40 hover:text-white/70">
+            <button onClick={completeOnboarding} className="text-white/40 hover:text-white/70">
               <X size={20} />
             </button>
           </div>
@@ -229,7 +232,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={savePreferences} className="flex-1 neon-btn-primary">
+            <button onClick={completeOnboarding} className="flex-1 neon-btn-primary">
               Get started →
             </button>
           </div>
