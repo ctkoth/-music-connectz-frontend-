@@ -40,6 +40,7 @@ const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
 const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
 const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
@@ -343,6 +344,7 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
+  { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
