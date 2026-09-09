@@ -5,6 +5,7 @@ import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import HabitOnboarding from "../components/HabitOnboarding.jsx";
 import { track } from "../track.js";
 import { WINDOWS_EXE } from "../downloadBuilds.js";
 import RuleNote from "../RuleNote.jsx";
@@ -21,6 +22,7 @@ export default function Register() {
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showHabitOnboarding, setShowHabitOnboarding] = useState(false);
 
   useEffect(() => {
     track("register_view", { has_ref: !!ref, has_trial: !!trialToken });
@@ -37,12 +39,18 @@ export default function Register() {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
       clearTrialToken();
       track("register_success");
-      navigate("/");
+      // Show habit onboarding before going home — new users hook into daily returns
+      setShowHabitOnboarding(true);
     } catch (err) {
       setError(err.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  function completeOnboarding() {
+    setShowHabitOnboarding(false);
+    navigate("/");
   }
 
   return (
@@ -91,6 +99,8 @@ export default function Register() {
         </Link>
       </p>
     </AuthShell>
+
+    {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
   );
 }
 
