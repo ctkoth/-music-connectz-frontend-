@@ -11,6 +11,8 @@ import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -103,6 +105,7 @@ function AllowanceLadder({ price }) {
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
 export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
+  const { user } = useAuth();
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
@@ -136,6 +139,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // auto-stop is not an error — the take is good, it just ended on its own, and
   // dressing it in the red warning box would read as a failure.
   const [stopNote, setStopNote] = useState("");
+  // Show upgrade prompt when upload limit is hit
+  const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   // What this take costs, read BEFORE anything is sent. A price you only see
   // in the response is a bill, not a price.
   const [price, setPrice] = useState(null);
@@ -223,9 +228,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // their tier's is how somebody concludes the plan they paid for is being
       // ignored — and telling a Free member it ISN'T their tier when it is, is
       // the same lie pointing the other way. Fall back only for an old server.
-      return setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
+      setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
         + (price?.max_mb_why
            || "Trim it to the section you want scored, or record video at a shorter length."));
+      setShowUploadLimitPrompt(true);
+      return;
     }
     if (url) URL.revokeObjectURL(url);
     // Keep the filename in state rather than assigning onto the Blob: File.name
@@ -341,7 +348,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   function discard() {
     if (url) URL.revokeObjectURL(url);
     setBlob(null); setIsVideo(false); setUrl(""); setResult(null); setMsg(""); setSecs(0);
-    setBytes(0); setStopNote("");
+    setBytes(0); setStopNote(""); setShowUploadLimitPrompt(false);
   }
 
   async function submit() {
@@ -613,6 +620,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <p className="flex items-start gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] text-mcz-ember">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
         </p>
+      )}
+
+      {showUploadLimitPrompt && !trial && price?.max_mb_is_tier_limit && (
+        <TierUpgradePrompt
+          limit="upload_mb"
+          current={0}
+          userTier={user?.tier || "free"}
+          onUpgrade={() => goToSpot("settings", "membership")}
+        />
       )}
 
       {busy && !result && (
