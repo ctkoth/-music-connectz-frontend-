@@ -139,6 +139,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // What this take costs, read BEFORE anything is sent. A price you only see
   // in the response is a bill, not a price.
   const [price, setPrice] = useState(null);
+  const [scoringElapsed, setScoringElapsed] = useState(0);
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
@@ -201,6 +202,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, secs]);
+
+  // Track elapsed time while scoring is in progress
+  useEffect(() => {
+    if (!busy) return;
+    const t = setInterval(() => setScoringElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [busy]);
 
   function attach(b, name, video = false) {
     // Checked here rather than on submit, because the server sends the take to
@@ -273,7 +281,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       const mimeType = bestMime(video);
       const mr = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
-        ...(video ? { videoBitsPerSecond: 900_000 } : {}),
+        ...(video ? { videoBitsPerSecond: 900_000 } : { audioBitsPerSecond: 96_000 }),
       });
       // The stop that can't be argued with. A timeslice makes the recorder hand
       // over a chunk every second instead of one blob at the end, so we can
@@ -338,7 +346,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
   async function submit() {
     if (!blob && !fromPost) return;
-    setBusy(true); setMsg(""); setResult(null);
+    setBusy(true); setScoringElapsed(0); setMsg(""); setResult(null);
     track("boss_take_submit", { app_key: appKey, trial, from_post: !!fromPost });
     try {
       // A handed-over post is already stored, so it rides as its id. Uploading
@@ -605,6 +613,19 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <p className="flex items-start gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] text-mcz-ember">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
         </p>
+      )}
+
+      {busy && !result && (
+        <div className="space-y-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/5 p-4">
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin text-mcz-cyan" size={18} />
+            <span className="text-sm text-white/75">Scoring your take…</span>
+          </div>
+          <div className="flex justify-between text-[11px] text-white/50">
+            <span>The AI coach is listening</span>
+            <span>{scoringElapsed}s</span>
+          </div>
+        </div>
       )}
 
       {result && (
