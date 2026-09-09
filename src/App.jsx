@@ -13,6 +13,7 @@ import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
 import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
+import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
 
 // Every screen below used to be a static import, which means a cold visitor
@@ -514,7 +515,7 @@ function CommunityBar({ onOpenMember }) {
   return (
     <>
       <div className="neon-frame mb-6 space-y-2 p-4">
-        <div className="flex flex-wrap items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <button onClick={loadAllMembers} className="pill cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
             👥 {stats.total_members} members
           </button>
@@ -522,6 +523,7 @@ function CommunityBar({ onOpenMember }) {
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
         </span>
+        <EnergyRegenerationDisplay />
         <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
                 className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
           ⚡ {stats.my_energy} Energy
