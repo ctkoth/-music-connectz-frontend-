@@ -405,7 +405,13 @@ export default function PostZ() {
       )}
 
       {posts?.length === 0 && !loadErr && (
-        <p className="text-sm text-white/45">No PostZ yet — be the first to post.</p>
+        <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center space-y-3">
+          <p className="text-sm text-white/75">Welcome to your feed!</p>
+          <p className="text-xs text-white/50">Follow members you want to hear from, or explore SkillZ drills to build your voice.</p>
+          <div className="flex gap-2 justify-center pt-2">
+            <a href="#" onClick={(e) => { e.preventDefault(); dispatchEvent(new CustomEvent('mcz-goto-tab', { detail: 'skillz' })); }} className="neon-btn-primary text-xs px-4 py-2">Try SkillZ</a>
+          </div>
+        </div>
       )}
 
       <div data-tour="feed" className="space-y-3">
