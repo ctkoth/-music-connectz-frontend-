@@ -25,6 +25,8 @@ import { ENERGY } from "../resources.js";
 import { goToTab } from "../goto.js";
 import { playSound } from "../sound.js";
 import MentionText from "../MentionParser.jsx";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 const STATUS_TONE = {
   playable: "text-emerald-300",
@@ -34,12 +36,14 @@ const STATUS_TONE = {
 };
 
 export default function GameZ() {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [playing, setPlaying] = useState(null);   // the game in the frame
   const [quote, setQuote] = useState({});          // id -> build cost
+  const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   const pollRef = useRef(null);
 
   const load = useCallback(() =>
@@ -94,10 +98,16 @@ export default function GameZ() {
       await api(`/api/economy/gamez/${game.id}/assets/`, { method: "POST", body: fd });
       playSound((file.type || "").startsWith("audio/") ? "upload_audio"
         : (file.type || "").startsWith("video/") ? "upload_video" : "upload_image");
+      setShowUploadLimitPrompt(false);
       load();
     } catch (e) {
       playSound("error");
-      setMsg(e.message || "Couldn't attach that.");
+      const errMsg = e.message || "Couldn't attach that.";
+      setMsg(errMsg);
+      // Show tier upgrade prompt if error is about upload size limit
+      if (errMsg.toLowerCase().includes("upload") || errMsg.toLowerCase().includes("size") || errMsg.toLowerCase().includes("mb")) {
+        setShowUploadLimitPrompt(true);
+      }
     } finally {
       setBusy(false);
     }
@@ -236,6 +246,18 @@ export default function GameZ() {
       )}
 
       {msg && <p className="re-card text-[13px] text-white/80">{msg}</p>}
+
+      {showUploadLimitPrompt && (
+        <TierUpgradePrompt
+          limit="upload_mb"
+          current={0}
+          userTier={user?.tier || "free"}
+          onUpgrade={() => {
+            setShowUploadLimitPrompt(false);
+            window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+          }}
+        />
+      )}
     </div>
   );
 }
