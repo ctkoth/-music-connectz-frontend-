@@ -49,6 +49,7 @@ import { handOff } from "../handoff.js";
 import PostEmbeds from "../PostEmbeds.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
+import LeaderboardZ from "./LeaderboardZ.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -270,7 +271,8 @@ export default function PostZ() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="space-y-5 lg:col-span-2">
       <header className="flex items-center gap-3">
         <IconImg icon="postz.png" alt="PostZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
@@ -419,6 +421,12 @@ export default function PostZ() {
           <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash}
                     isOwner={isOwner} onChanged={replacePost} />
         ))}
+      </div>
+      </div>
+
+      {/* Leaderboards sidebar — shows this week's competition */}
+      <div className="sticky top-5 h-fit">
+        <LeaderboardZ period="week" />
       </div>
     </div>
   );
