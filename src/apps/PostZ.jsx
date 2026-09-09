@@ -490,6 +490,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
+  const [progression, setProgression] = useState(null);
   const [shared, setShared] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -516,7 +517,15 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
   const loadSocial = () => api(`/api/economy/social/?item=${encodeURIComponent(item)}`)
     .then(setSocial).catch(() => setSocial(null));
-  useEffect(() => { loadSocial(); /* eslint-disable-next-line */ }, [post.id]);
+
+  const loadProgression = () => api(`/api/economy/postz/${post.id}/progression/`)
+    .then(setProgression).catch(() => setProgression(null));
+
+  useEffect(() => {
+    loadSocial();
+    loadProgression();
+    /* eslint-disable-next-line */
+  }, [post.id]);
 
   const ageSec = Math.max(0, Math.floor((now - post.localCreated) / 1000));
   const rateLeft = Math.max(0, (post.rate_unlock_sec ?? 30) - ageSec);
@@ -705,8 +714,44 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
             )}
+            {/* Progression indicators */}
+            {post.battle_eligible_at && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-mcz-gold/40 !text-mcz-gold">🎯 BattleZ ready</span>
+            )}
+            {post.collab_eligible_at && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-emerald-300/40 !text-emerald-300">🤝 CollabZ ready</span>
+            )}
             {canEdit && <EditWindowCountdown post={post} now={now} canEdit={canEdit} />}
           </div>
+          {/* Progression bars when not yet eligible */}
+          {progression && (
+            <div className="mt-2 space-y-2">
+              {!progression.battle.eligible && progression.battle.progress_percent < 100 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/60">🎯 BattleZ</span>
+                    <span className="text-white/40">{progression.battle.current} of {progression.battle.needed}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-mcz-gold/60"
+                         style={{ width: `${progression.battle.progress_percent}%` }} />
+                  </div>
+                </div>
+              )}
+              {!progression.collab.eligible && progression.collab.progress_percent < 100 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/60">🤝 CollabZ</span>
+                    <span className="text-white/40">{progression.collab.current.toFixed(1)} of {progression.collab.needed.toFixed(1)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-emerald-300/60"
+                         style={{ width: `${progression.collab.progress_percent}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-start gap-2">
           {canEdit && (
