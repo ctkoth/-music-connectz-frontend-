@@ -12,6 +12,7 @@ import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
 import SoundzPanel from "./components/SoundzPanel.jsx";
+import StorageWarning from "./components/StorageWarning.jsx";
 import { SPINAZ } from "./resources.js";
 
 // Every screen below used to be a static import, which means a cold visitor
@@ -812,6 +813,7 @@ function Home() {
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
         <CommunityBar onOpenMember={setMemberKey} />
+        <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
           <Suspense fallback={<RouteFallback />}>
