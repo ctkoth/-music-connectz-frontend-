@@ -254,6 +254,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       return setMsg("This browser can't record. Attach a file instead.");
     }
+    track("boss_take_start_recording", { app_key: appKey, trial });
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
         video
@@ -325,6 +326,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     rec.current.stop();
     setRecording(false);
     playSound("record_stop");
+    track("boss_take_stop_recording", { app_key: appKey, trial, auto_stopped: !!note });
     if (note) setStopNote(note);
   }
 
@@ -337,6 +339,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   async function submit() {
     if (!blob && !fromPost) return;
     setBusy(true); setMsg(""); setResult(null);
+    track("boss_take_submit", { app_key: appKey, trial, from_post: !!fromPost });
     try {
       // A handed-over post is already stored, so it rides as its id. Uploading
       // the same file a second time to have it coached is the dead end this
@@ -358,6 +361,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
+      track("boss_take_scored", { app_key: appKey, trial, score: out?.score });
       // The score landing is the moment worth hearing. The prompt it spent
       // is announced separately, and only when one was actually spent — a
       // take covered by the day's free allowance costs nothing, and saying
