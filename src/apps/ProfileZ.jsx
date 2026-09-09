@@ -13,6 +13,7 @@ import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
+import WhatINeed from "./WhatINeed.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -733,6 +734,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           </div>
         )}
       </div>
+
+      <WhatINeed />
 
       <div className="neon-frame space-y-2 p-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-white/45">ZodiacZ — birthday</p>
