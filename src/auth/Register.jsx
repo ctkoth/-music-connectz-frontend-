@@ -54,53 +54,55 @@ export default function Register() {
   }
 
   return (
-    <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
-      {ref && (
-        <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
-          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
-        </div>
-      )}
-      {trialToken && (
-        <div className="flex items-center gap-2 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-sm text-mcz-cyan">
-          <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
-        </div>
-      )}
-      {/* The one-account rule, on the one screen where somebody is about to
-          make a second one. Read from the server (`rulez.js`) rather than
-          typed here, so the rule a member is shown and the rule the code
-          enforces are the same sentence. */}
-      <RuleNote rule="one_account" />
+    <>
+      <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
+        {ref && (
+          <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
+            <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
+          </div>
+        )}
+        {trialToken && (
+          <div className="flex items-center gap-2 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-sm text-mcz-cyan">
+            <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
+          </div>
+        )}
+        {/* The one-account rule, on the one screen where somebody is about to
+            make a second one. Read from the server (`rulez.js`) rather than
+            typed here, so the rule a member is shown and the rule the code
+            enforces are the same sentence. */}
+        <RuleNote rule="one_account" />
 
-      <form onSubmit={submit} className="space-y-3">
-        <Field icon={User} placeholder="Username" value={form.username} onChange={set("username")} autoComplete="username" />
-        <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
-        <Field icon={Phone} type="tel" placeholder="Phone number" value={form.phone} onChange={set("phone")} autoComplete="tel" />
-        <div className="relative">
-          <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
-                 aria-label="Birthday (for ZodiacZ)" />
-          <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
-        </div>
-        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+        <form onSubmit={submit} className="space-y-3">
+          <Field icon={User} placeholder="Username" value={form.username} onChange={set("username")} autoComplete="username" />
+          <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
+          <Field icon={Phone} type="tel" placeholder="Phone number" value={form.phone} onChange={set("phone")} autoComplete="tel" />
+          <div className="relative">
+            <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
+                   aria-label="Birthday (for ZodiacZ)" />
+            <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
+          </div>
+          <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
 
-        {error && <p className="text-sm text-mcz-pink">{error}</p>}
+          {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
-        <button className="neon-btn-primary" disabled={busy}>
-          {busy ? <Loader2 className="animate-spin" size={18} /> : null}
-          {busy ? "Creating…" : "Create account"}
-        </button>
-      </form>
+          <button className="neon-btn-primary" disabled={busy}>
+            {busy ? <Loader2 className="animate-spin" size={18} /> : null}
+            {busy ? "Creating…" : "Create account"}
+          </button>
+        </form>
 
-      <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+        <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
 
-      <p className="pt-2 text-center text-sm text-white/55">
-        Already have an account?{" "}
-        <Link to="/login" className="text-mcz-cyan hover:underline">
-          Log in
-        </Link>
-      </p>
-    </AuthShell>
+        <p className="pt-2 text-center text-sm text-white/55">
+          Already have an account?{" "}
+          <Link to="/login" className="text-mcz-cyan hover:underline">
+            Log in
+          </Link>
+        </p>
+      </AuthShell>
 
-    {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+      {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+    </>
   );
 }
 
