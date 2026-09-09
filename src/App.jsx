@@ -11,6 +11,7 @@ import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
+import SoundzPanel from "./components/SoundzPanel.jsx";
 import { SPINAZ } from "./resources.js";
 
 // Every screen below used to be a static import, which means a cold visitor
@@ -437,6 +438,19 @@ function NotificationsButton({ onClick }) {
   );
 }
 
+// SoundzPanel button — opens sound preferences
+function SoundzButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-mcz-cyan transition"
+      title="Sound preferences"
+    >
+      <Volume2 size={16} />
+    </button>
+  );
+}
+
 // SoundZ on/off. It lives in the header rather than buried in a settings
 // screen because it is the control somebody reaches for the moment a sound
 // surprises them — a mute you have to go hunting for is one you resent.
@@ -633,6 +647,7 @@ function Home() {
   const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
   const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
   const [notificationsOpen, setNotificationsOpen] = useState(false); // habit reminders panel
+  const [soundzOpen, setSoundzOpen] = useState(false); // sound preferences panel
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -780,6 +795,7 @@ function Home() {
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
           </a>
           <NotificationsButton onClick={() => setNotificationsOpen(true)} />
+          <SoundzButton onClick={() => setSoundzOpen(true)} />
           <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
@@ -871,6 +887,9 @@ function Home() {
 
       {/* Habit reminders notification panel */}
       <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+
+      {/* Sound preferences panel */}
+      <SoundzPanel isOpen={soundzOpen} onClose={() => setSoundzOpen(false)} />
 
       {memberKey && (
         <Suspense fallback={null}>
