@@ -99,6 +99,36 @@ export default function Register() {
           Log in
         </Link>
       </p>
+
+      {/* What you unlock — same pattern as TrialTake, so all new users see
+          tier differentiation upfront, whether they came via trial or direct signup */}
+      <div className="space-y-3 pt-4 border-t border-white/10">
+        <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+          Start free, upgrade anytime
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
+            <p className="mb-2 font-semibold text-emerald-300">Free</p>
+            <ul className="space-y-1 text-[11px] text-white/75">
+              <li>✓ Keep all your takes</li>
+              <li>✓ 3 scored takes/day</li>
+              <li>✓ Post & rate</li>
+              <li>✓ Earn ⚡ + 🍥 daily</li>
+              <li>✓ Track progress</li>
+            </ul>
+          </div>
+          <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
+            <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
+            <ul className="space-y-1 text-[11px] text-white/75">
+              <li>✓ Everything in Free</li>
+              <li>✓ 5 scored takes/day</li>
+              <li>✓ 2x faster Energy</li>
+              <li>✓ Advanced analytics</li>
+              <li>✓ Priority support</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </AuthShell>
 
     {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
