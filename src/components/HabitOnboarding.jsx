@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, Music, X, Loader2 } from "lucide-react";
+import { Zap, Music, X, Loader2, Bell, Globe, Volume2 } from "lucide-react";
 import { api } from "../api.js";
 import { track } from "../track.js";
 
@@ -9,10 +9,13 @@ import { track } from "../track.js";
  * Emphasizes the ⚡ and XP they earn daily by returning.
  */
 export default function HabitOnboarding({ appKey = "singz", onComplete }) {
-  const [step, setStep] = useState("intro"); // intro → confirm → done
+  const [step, setStep] = useState("intro"); // intro → confirm → done → preferences
   const [habitTitle, setHabitTitle] = useState("Daily vocal practice");
   const [frequency, setFrequency] = useState("daily");
   const [creating, setCreating] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [language, setLanguage] = useState("en");
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   async function createHabit() {
     setCreating(true);
@@ -25,7 +28,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
       };
       await api("/api/economy/habits/", { method: "POST", body });
       track("onboarding_habit_created", { app_key: appKey, frequency });
-      setStep("done");
+      setStep("preferences");
     } catch (err) {
       console.error("Failed to create habit:", err);
       // Fail gracefully — close modal if creation fails
@@ -33,6 +36,15 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
     } finally {
       setCreating(false);
     }
+  }
+
+  async function savePreferences() {
+    track("onboarding_preferences_saved", {
+      notifications_enabled: notificationsEnabled,
+      language,
+      sound_enabled: soundEnabled,
+    });
+    onComplete?.();
   }
 
   function skip() {
@@ -138,18 +150,89 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
     );
   }
 
-  if (step === "done") {
+  if (step === "preferences") {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 z-50">
-        <div className="rounded-xl border border-emerald-300/40 bg-black/80 p-6 max-w-sm w-full space-y-4 text-center">
-          <p className="text-sm text-emerald-300">✓ Habit created</p>
-          <h2 className="font-display text-xl font-bold text-white">Ready to go</h2>
-          <p className="text-sm text-white/75">
-            Check in on <span className="font-semibold">{habitTitle}</span> daily to earn rewards and track your progress.
-          </p>
-          <button onClick={onComplete} className="w-full neon-btn-primary">
-            Start practicing →
-          </button>
+        <div className="rounded-xl border border-mcz-cyan/30 bg-black/80 p-6 max-w-sm w-full space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-mcz-cyan/70 mb-1">Preferences</p>
+              <h2 className="font-display text-xl font-bold text-white">Personalize your experience</h2>
+            </div>
+            <button onClick={savePreferences} className="text-white/40 hover:text-white/70">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bell size={16} className="text-mcz-cyan" />
+                  <span className="text-sm font-medium text-white">Notifications</span>
+                </div>
+                <button
+                  onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition ${
+                    notificationsEnabled
+                      ? "bg-emerald-300/20 text-emerald-300 border border-emerald-300/50"
+                      : "bg-white/10 text-white/60 border border-white/20"
+                  }`}
+                >
+                  {notificationsEnabled ? "On" : "Off"}
+                </button>
+              </div>
+              <p className="text-[11px] text-white/50">Get reminders to check in daily</p>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Globe size={16} className="text-mcz-cyan" />
+                  <span className="text-sm font-medium text-white">Language</span>
+                </div>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="bg-white/5 border border-white/20 rounded px-2 py-1 text-xs text-white"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                  <option value="pt">Português</option>
+                  <option value="ja">日本語</option>
+                </select>
+              </div>
+              <p className="text-[11px] text-white/50">Choose your preferred language</p>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Volume2 size={16} className="text-mcz-cyan" />
+                  <span className="text-sm font-medium text-white">Sound effects</span>
+                </div>
+                <button
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className={`px-3 py-1 rounded text-xs font-medium transition ${
+                    soundEnabled
+                      ? "bg-emerald-300/20 text-emerald-300 border border-emerald-300/50"
+                      : "bg-white/10 text-white/60 border border-white/20"
+                  }`}
+                >
+                  {soundEnabled ? "On" : "Off"}
+                </button>
+              </div>
+              <p className="text-[11px] text-white/50">Play sounds for interactions</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={savePreferences} className="flex-1 neon-btn-primary">
+              Get started →
+            </button>
+          </div>
         </div>
       </div>
     );
