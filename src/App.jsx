@@ -41,6 +41,7 @@ const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
+const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
 const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
@@ -173,6 +174,7 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
+  "opportunitiez.png": "/icons/opportunitiez-neon.svg",
   "offerz.png": "/icons/offerz.png",
   "adz.png": "/icons/adz.png",
   "money.png": "/icons/money.png",
@@ -345,6 +347,7 @@ const TABS = [
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
+  { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
