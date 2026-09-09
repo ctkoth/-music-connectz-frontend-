@@ -54,6 +54,7 @@ export default function Register() {
   }
 
   return (
+    <>
     <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
@@ -101,6 +102,7 @@ export default function Register() {
     </AuthShell>
 
     {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+    </>
   );
 }
 
