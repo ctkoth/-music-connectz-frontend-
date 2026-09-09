@@ -419,6 +419,7 @@ export default function PostZ() {
 
 function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const talk = useSay();
+  const { user } = useAuth();
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
@@ -433,8 +434,12 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eTitle, setETitle] = useState(post.title);
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
+  const [commentDraft, setCommentDraft] = useState("");
   const draft = useRef("");
   const item = `post:${post.id}`;
+
+  // Track comment char state for showing upgrade prompt
+  const commentCharState = commentDraft.length > charLimit * 0.9 ? "near" : "ok";
 
   // What the SERVER credited, never what the player counted — it clamps each
   // heartbeat to the wall clock, so an optimistic local total would promise an
@@ -588,10 +593,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   }
 
   async function comment() {
-    const body = draft.current.trim();
+    const body = commentDraft.trim();
     if (!body) return;
     try {
       setSocial(await api("/api/economy/social/comment/", { method: "POST", body: { item, body } }));
+      setCommentDraft("");
       draft.current = "";
       onFlash(talk(P.postz_commented));
     } catch (e) {
@@ -847,16 +853,31 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </div>
         ))}
         {canComment ? (
-          <div className="flex items-center gap-2">
-            <input
-              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
-              placeholder="What did you like about it?"
-              maxLength={charLimit ?? undefined}
-              defaultValue=""
-              onChange={(e) => (draft.current = e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && comment()}
-            />
-            <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                placeholder="What did you like about it?"
+                maxLength={charLimit ?? undefined}
+                value={commentDraft}
+                onChange={(e) => {
+                  setCommentDraft(e.target.value);
+                  draft.current = e.target.value;
+                }}
+                onKeyDown={(e) => e.key === "Enter" && comment()}
+              />
+              <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
+            </div>
+
+            {/* Show tier comparison when user is near comment character limit */}
+            {commentCharState === "near" && charLimit && (
+              <TierUpgradePrompt
+                limit="char"
+                current={commentDraft.length}
+                userTier={user?.tier}
+                onUpgrade={() => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: "membershipz" }))}
+              />
+            )}
           </div>
         ) : (
           <div className="re-label flex items-center gap-1.5 !text-white/40">
