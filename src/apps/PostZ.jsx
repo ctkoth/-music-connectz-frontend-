@@ -390,6 +390,32 @@ export default function PostZ() {
           </p>
         )}
 
+        {/* Preview of where this post can go once created */}
+        {(work.audio || work.video || work.image || description.trim()) && (
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
+            <p className="text-[11px] font-semibold text-emerald-300">Once posted, this can go to:</p>
+            <div className="space-y-1 text-[10px] text-white/60">
+              {work.audio && (
+                <div>🎤 <strong>SingZ Coach</strong> — Get feedback + earn ⭐ for improvement</div>
+              )}
+              {(work.audio || work.video) && (
+                <div>🎬 <strong>DirectZ</strong> — Collaborate with other producers, earn 🍥</div>
+              )}
+              {work.video && (
+                <div>📺 <strong>BattleZ</strong> — Compete weekly for prizes</div>
+              )}
+              {description.trim() && (
+                <div>📝 <strong>SongwriteZ</strong> — Share lyrics, earn royalties</div>
+              )}
+              {visibility === "public" && (
+                <div className="pt-1 border-t border-emerald-300/20">
+                  ✨ <strong>Public bonus:</strong> +25% on all earnings from this post
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="text-[11px] leading-relaxed text-white/40">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
           comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
