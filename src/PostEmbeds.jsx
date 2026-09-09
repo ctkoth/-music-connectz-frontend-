@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Trash2, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
+import TierUpgradePrompt from "./components/TierUpgradePrompt.jsx";
+import { useAuth } from "./auth/AuthContext.jsx";
 
 // One frame, sized by what the server said it is.
 //
@@ -62,11 +64,34 @@ function EmbedDisplay({ embed, onRemove, canRemove, busy }) {
 
 // Display all embeds for a post
 export default function PostEmbeds({ post, canEdit }) {
+  const { user } = useAuth();
   const embeds = post.embeds || [];
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [limits, setLimits] = useState(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  // Fetch embed limits from server
+  useEffect(() => {
+    api("/api/economy/limits/")
+      .then((d) => setLimits(d))
+      .catch(() => {
+        // Fallback limits if not available
+        setLimits({
+          tier: user?.tier || "free",
+          embed_limit: { free: 3, premium: 10, statz: null },
+        });
+      });
+  }, [user?.tier]);
 
   if (!embeds.length && !canEdit) return null;
+
+  // Calculate embed limit for current tier
+  const tierEmbedLimits = limits?.embed_limit || { free: 3, premium: 10, statz: null };
+  const currentTier = user?.tier || "free";
+  const embedLimit = tierEmbedLimits[currentTier];
+  const atLimit = embedLimit !== null && embeds.length >= embedLimit;
+  const canAddMore = !atLimit && canEdit;
 
   const handleRemove = async (index) => {
     if (!canEdit) return;
@@ -77,6 +102,7 @@ export default function PostEmbeds({ post, canEdit }) {
         body: { post_id: post.id, index },
       });
       post.embeds.splice(index, 1);
+      setShowUpgradePrompt(false);
     } catch (e) {
       console.error(e);
     }
@@ -103,7 +129,33 @@ export default function PostEmbeds({ post, canEdit }) {
 
       {canEdit && (
         <div>
-          {showAdd ? (
+          {atLimit ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-mcz-ember">
+                <AlertCircle size={14} />
+                <span>You've added {embeds.length} embeds — your tier's limit</span>
+              </div>
+              {showUpgradePrompt && (
+                <TierUpgradePrompt
+                  limit="embed_count"
+                  current={embeds.length}
+                  userTier={user?.tier || "free"}
+                  onUpgrade={() => {
+                    setShowUpgradePrompt(false);
+                    window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+                  }}
+                />
+              )}
+              {!showUpgradePrompt && (
+                <button
+                  onClick={() => setShowUpgradePrompt(true)}
+                  className="text-xs font-semibold text-mcz-gold hover:text-mcz-gold/80"
+                >
+                  Upgrade to add more
+                </button>
+              )}
+            </div>
+          ) : showAdd ? (
             <AddEmbedForm
               postId={post.id}
               onAdded={() => setShowAdd(false)}
@@ -116,6 +168,9 @@ export default function PostEmbeds({ post, canEdit }) {
             >
               <LinkIcon size={14} />
               Add a track or video
+              {embedLimit !== null && (
+                <span className="text-white/35 ml-1">({embeds.length}/{embedLimit})</span>
+              )}
             </button>
           )}
         </div>
