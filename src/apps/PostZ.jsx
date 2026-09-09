@@ -31,6 +31,8 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
@@ -159,6 +161,7 @@ const mapPost = (s) => ({ ...s, localCreated: Date.now() - (s.age_sec || 0) * 10
 
 export default function PostZ() {
   const now = useNow();
+  const { user } = useAuth();
   const [posts, setPosts] = useState(null);
   const [sort, setSort] = useState("hot");
   const [loadErr, setLoadErr] = useState("");
@@ -182,6 +185,7 @@ export default function PostZ() {
   const [isOwner, setIsOwner] = useState(false);
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
+  const charState = cl.ready ? cl.state(description) : null;
 
   useEffect(() => {
     api("/api/auth/stats/").then((st) => setIsOwner(!!st?.is_owner)).catch(() => {});
@@ -299,6 +303,12 @@ export default function PostZ() {
         <div className="text-right text-[10px] text-white/35">
           {description.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
         </div>
+
+        {/* Show tier comparison when user is near or at character limit */}
+        {charState === "near" && (
+          <TierUpgradePrompt limit="char" current={description.length} userTier={user?.tier} onUpgrade={() => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: "membershipz" }))} />
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
