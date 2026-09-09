@@ -102,7 +102,7 @@ function AllowanceLadder({ price }) {
 // `trial` swaps the member coach for the no-account door. Same recorder, same
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
-export default function BossTake({ appKey = "singz", trial = false, onResult }) {
+export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
@@ -150,7 +150,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   // number, on the server, where the transport that imposes it lives.
   const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
 
-  useEffect(() => { api(path, { auth: !trial }).then(setPrice).catch(() => {}); }, [path, trial]);
+  useEffect(() => {
+    api(path, { auth: !trial })
+      .then((p) => {
+        setPrice(p);
+        onReady?.();
+      })
+      .catch(() => {
+        onReady?.();
+      });
+  }, [path, trial, onReady]);
 
   // A post arriving from PostZ. The trial door is for people with no account
   // and therefore no posts, so it never listens.

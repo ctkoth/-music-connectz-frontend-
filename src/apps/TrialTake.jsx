@@ -9,7 +9,7 @@
 // inside SingZ once they join.
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Share2 } from "lucide-react";
+import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { track } from "../track.js";
 
@@ -38,6 +38,7 @@ export default function TrialTake() {
   const [scored, setScored] = useState(false);
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
+  const [bossTakeReady, setBossTakeReady] = useState(false);
 
   useEffect(() => { track("try_view", { app_key: app }); }, [app]);
 
@@ -99,11 +100,11 @@ export default function TrialTake() {
 
       <div className="mb-4">
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">
-          Get one take scored — free, no account
+          One take scored — free, instantly
         </h1>
         <p className="mt-1 text-sm text-white/55">
-          Same coach our {APPS[app]} members use, same rubric, same score out of 10. One take per
-          day. Sign up after and it's saved to your account.
+          Record ~30 seconds and get exact feedback from the same AI coach our {APPS[app]} members use.
+          One free daily take. Join after to keep your takes and track progress.
         </p>
         <div className="mt-3 flex gap-2">
           {Object.entries(APPS).map(([k, label]) => (
@@ -115,13 +116,28 @@ export default function TrialTake() {
         </div>
       </div>
 
-      <BossTake appKey={app} trial onResult={keep} />
+      <div className="mb-6 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Real feedback example</p>
+        <p className="mt-2 text-sm text-white/85">
+          <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
+        </p>
+      </div>
+
+      {!bossTakeReady && (
+        <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
+          <Loader2 className="mr-2 animate-spin text-cyan-300" size={18} />
+          <span className="text-sm text-white/60">Checking mic access…</span>
+        </div>
+      )}
+
+      <div className={bossTakeReady ? "" : "hidden"}>
+        <BossTake appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
+      </div>
 
       {scored && (
         <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
           <p className="mb-3 text-white/85">
-            That take is yours. Make an account in the next 30 days and it lands in {APPS[app]} —
-            with the drill, the history, and takes whenever you want them.
+            Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Link to="/register" className="re-btn !w-auto px-5">
