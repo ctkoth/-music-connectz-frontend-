@@ -48,6 +48,7 @@ import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
 import PostEmbeds from "../PostEmbeds.jsx";
 import { trackListening } from "../listen.js";
+import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -633,6 +634,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
             )}
+            {canEdit && <EditWindowCountdown post={post} now={now} canEdit={canEdit} />}
           </div>
         </div>
         <div className="flex items-start gap-2">
