@@ -120,10 +120,12 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
   if (step === "confirm") {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 z-50">
-        <div className="rounded-xl border border-emerald-300/30 bg-black/80 p-6 max-w-sm w-full space-y-4 text-center">
-          <p className="text-xs uppercase tracking-wider text-emerald-300/70">Your habit</p>
-          <h2 className="font-display text-2xl font-bold text-white">{habitTitle}</h2>
-          <p className="text-sm text-white/75">
+        <div className="rounded-xl border border-emerald-300/30 bg-black/80 p-6 max-w-sm w-full space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-emerald-300/70 mb-1">Your habit</p>
+            <h2 className="font-display text-2xl font-bold text-white text-center">{habitTitle}</h2>
+          </div>
+          <p className="text-sm text-white/75 text-center">
             Every time you complete it, you earn <span className="text-emerald-300">+⚡</span> and <span className="text-mcz-gold">+⭐</span>
           </p>
 
@@ -132,6 +134,14 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             <div className="flex justify-center gap-4 text-lg font-bold">
               <span className="text-emerald-300">⚡ +2</span>
               <span className="text-mcz-gold">⭐ +10</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/60">Keep the streak going</p>
+            <div className="text-xs text-white/75 space-y-1">
+              <p><span className="text-emerald-300">Free:</span> Daily reminders + 1 habit tracked</p>
+              <p><span className="text-mcz-cyan">Premium:</span> 2x faster Energy gain + unlimited habits + priority support</p>
             </div>
           </div>
 
@@ -156,7 +166,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
   if (step === "preferences") {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4 z-50">
-        <div className="rounded-xl border border-mcz-cyan/30 bg-black/80 p-6 max-w-sm w-full space-y-4">
+        <div className="rounded-xl border border-mcz-cyan/30 bg-black/80 p-6 max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xs uppercase tracking-wider text-mcz-cyan/70 mb-1">Preferences</p>
@@ -229,6 +239,17 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               </div>
               <p className="text-[11px] text-white/50">Play sounds for interactions</p>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-mcz-ember/20 bg-mcz-ember/5 p-3 space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-mcz-ember/60">What you unlock later</p>
+            <ul className="text-xs text-white/75 space-y-1">
+              <li>• <span className="text-mcz-cyan">Premium</span>: Custom sound packs + 2x faster Energy</li>
+              <li>• <span className="text-mcz-cyan">StatZ</span>: Unlimited characters + AI vocal coach feedback</li>
+            </ul>
+            <a href="/settings/membership" className="block mt-2 text-xs text-mcz-cyan hover:underline">
+              View all tier benefits →
+            </a>
           </div>
 
           <div className="flex gap-2">

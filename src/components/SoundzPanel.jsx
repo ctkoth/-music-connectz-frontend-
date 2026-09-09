@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Volume2, X, Loader2 } from "lucide-react";
+import { Volume2, X, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { track } from "../track.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 /**
  * Displays user's sound effect preferences and settings.
@@ -9,15 +10,18 @@ import { track } from "../track.js";
  * Fetches/updates user preferences via /api/economy/profile/
  */
 export default function SoundzPanel({ isOpen, onClose }) {
+  const { user } = useAuth();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [volume, setVolume] = useState(100);
   const [selectedPack, setSelectedPack] = useState("default");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const tier = user?.tier || "free";
+  const isPremium = tier === "premium" || tier === "statz";
   const [packs] = useState([
-    { id: "default", name: "Crisp Chimes", desc: "Clean, modern notification sounds" },
-    { id: "subtle", name: "Subtle Tones", desc: "Soft background tones" },
-    { id: "retro", name: "Retro Bells", desc: "Classic electronic tones" },
+    { id: "default", name: "Crisp Chimes", desc: "Clean, modern notification sounds", tier: "free" },
+    { id: "subtle", name: "Subtle Tones", desc: "Soft background tones", tier: "premium" },
+    { id: "retro", name: "Retro Bells", desc: "Classic electronic tones", tier: "premium" },
   ]);
 
   useEffect(() => {
@@ -171,24 +175,41 @@ export default function SoundzPanel({ isOpen, onClose }) {
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-white">Sound Pack</p>
                   <div className="space-y-2">
-                    {packs.map((pack) => (
-                      <button
-                        key={pack.id}
-                        onClick={() => {
-                          setSelectedPack(pack.id);
-                          updatePreference("sound_pack", pack.id);
-                        }}
-                        disabled={saving}
-                        className={`w-full text-left rounded-lg border p-3 transition ${
-                          selectedPack === pack.id
-                            ? "border-emerald-300/50 bg-emerald-300/10"
-                            : "border-white/10 bg-white/5 hover:border-white/20"
-                        }`}
-                      >
-                        <p className="text-sm font-medium text-white">{pack.name}</p>
-                        <p className="text-xs text-white/50">{pack.desc}</p>
-                      </button>
-                    ))}
+                    {packs.map((pack) => {
+                      const isLocked = pack.tier === "premium" && !isPremium;
+                      return (
+                        <button
+                          key={pack.id}
+                          onClick={() => {
+                            if (!isLocked) {
+                              setSelectedPack(pack.id);
+                              updatePreference("sound_pack", pack.id);
+                            }
+                          }}
+                          disabled={saving || isLocked}
+                          className={`w-full text-left rounded-lg border p-3 transition ${
+                            isLocked
+                              ? "border-white/5 bg-white/5 opacity-50 cursor-not-allowed"
+                              : selectedPack === pack.id
+                              ? "border-emerald-300/50 bg-emerald-300/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-white">{pack.name}</p>
+                              <p className="text-xs text-white/50">{pack.desc}</p>
+                            </div>
+                            {isLocked && <Lock size={16} className="text-mcz-ember mt-0.5 shrink-0" />}
+                          </div>
+                          {isLocked && (
+                            <a href="/settings/membership" className="text-xs text-mcz-cyan hover:underline mt-1 block">
+                              Upgrade to Premium
+                            </a>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
