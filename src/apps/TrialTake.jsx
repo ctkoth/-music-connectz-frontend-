@@ -135,23 +135,53 @@ export default function TrialTake() {
       </div>
 
       {scored && (
-        <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
-          <p className="mb-3 text-white/85">
-            Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Link to="/register" className="re-btn !w-auto px-5">
-              Keep this take — join free
-            </Link>
-            {/* The label names the number that's going out, so nobody
-                discovers what they shared by sharing it. */}
-            <button type="button" onClick={share} className="re-btn re-btn-cyan !w-auto px-5">
-              <Share2 size={15} />
-              {score != null ? `Share your ${score}/10` : "Share this"}
-            </button>
+        <>
+          <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
+            <p className="mb-3 text-white/85">
+              Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link to="/register" className="re-btn !w-auto px-5">
+                Keep this take — join free
+              </Link>
+              {/* The label names the number that's going out, so nobody
+                  discovers what they shared by sharing it. */}
+              <button type="button" onClick={share} className="re-btn re-btn-cyan !w-auto px-5">
+                <Share2 size={15} />
+                {score != null ? `Share your ${score}/10` : "Share this"}
+              </button>
+            </div>
+            {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
           </div>
-          {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
-        </div>
+
+          <div className="mt-6 space-y-3">
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+              What you unlock by joining
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
+                <p className="mb-2 font-semibold text-emerald-300">Free</p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Keep all your takes</li>
+                  <li>✓ 3 scored takes/day</li>
+                  <li>✓ Personalized drill</li>
+                  <li>✓ Track your progress</li>
+                  <li>✓ Post & compete</li>
+                </ul>
+              </div>
+              <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
+                <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Everything in Free</li>
+                  <li>✓ 5 scored takes/day</li>
+                  <li>✓ Advanced analytics</li>
+                  <li>✓ Priority support</li>
+                  <li>✓ Coming soon: 1:1 coaching</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
