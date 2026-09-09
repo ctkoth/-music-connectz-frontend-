@@ -332,12 +332,27 @@ export default function PostZ() {
                   className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
             🆓 Freestyle
           </button>
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
-                  value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-            <option value="public">Public</option>
-            <option value="restricted">Members only</option>
-            <option value="private">Just me</option>
-          </select>
+          <div className="flex gap-1">
+            {[
+              { value: "public", label: "Public", bonus: "+25%", tip: "Earn bonus 🍥 + show on leaderboards" },
+              { value: "restricted", label: "Members", bonus: "1x", tip: "Visible to members only" },
+              { value: "private", label: "Private", bonus: "1x", tip: "Just you" },
+            ].map(({ value, label, bonus, tip }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVisibility(value)}
+                title={tip}
+                className={`pill text-[12px] ${
+                  visibility === value
+                    ? "!border-mcz-cyan !text-mcz-cyan"
+                    : "!border-white/20 !text-white/50 hover:!border-white/40"
+                } transition`}
+              >
+                {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+              </button>
+            ))}
+          </div>
           <button data-tour="post-submit" className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {posting && hasBlobs(work) ? " Uploading…" : " Post"}
@@ -380,6 +395,12 @@ export default function PostZ() {
           comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
           you <span className="text-mcz-ember">+1 {ENERGY}</span>.
         </p>
+        {visibility === "public" && (
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-[11px] leading-relaxed text-emerald-300/90">
+            📊 <strong>Public visibility bonus:</strong> You'll earn <span className="text-emerald-300">+25% 🍥</span> on all
+            rewards from this post and appear on the leaderboards for real earnings proof.
+          </div>
+        )}
         <CharLimit cl={cl} value={description} />
         <TierCharTable current={cl.tier} />
       </div>
@@ -450,6 +471,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
   const [commentDraft, setCommentDraft] = useState("");
+  const [ratingVisibility, setRatingVisibility] = useState("restricted");
   const draft = useRef("");
   const item = `post:${post.id}`;
 
@@ -530,8 +552,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   async function rate(score) {
     try {
       setSocial(await api("/api/economy/social/rate/",
-                          { method: "POST", body: { item, action: "rate", score } }));
-      onFlash(talk(P.postz_rated(score)));
+                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility } }));
+      onFlash(talk(P.postz_rated(score)) + (ratingVisibility === "public" ? " +bonus 🍥" : ""));
       playSound("energy_gain");
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
@@ -829,6 +851,26 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             <p className="text-[11px] text-white/40">
               Anonymous, and it curates the ChartZ. +1 {ENERGY} per rating.
             </p>
+            <div className="flex gap-1">
+              {[
+                { value: "public", label: "Public", bonus: "+1.25x", tip: "Earn bonus & appear on leaderboards" },
+                { value: "restricted", label: "Private", bonus: "1x", tip: "Only recorded for you" },
+              ].map(({ value, label, bonus, tip }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRatingVisibility(value)}
+                  title={tip}
+                  className={`pill text-[11px] ${
+                    ratingVisibility === value
+                      ? "!border-mcz-cyan !text-mcz-cyan"
+                      : "!border-white/20 !text-white/50 hover:!border-white/40"
+                  } transition`}
+                >
+                  {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+                </button>
+              ))}
+            </div>
             {/* The condition beside the control, not inside the refusal. */}
             {listenShort > 0 && (
               <p className="text-[11px] text-mcz-ember">
