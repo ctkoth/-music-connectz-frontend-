@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Zap, Music, X, Loader2, Bell, Globe, Volume2 } from "lucide-react";
+import { Zap, Music, X, Loader2, Bell, Globe, Volume2, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { track } from "../track.js";
 
@@ -241,15 +242,14 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-mcz-ember/20 bg-mcz-ember/5 p-3 space-y-2">
-            <p className="text-[11px] uppercase tracking-widest text-mcz-ember/60">What you unlock later</p>
-            <ul className="text-xs text-white/75 space-y-1">
-              <li>• <span className="text-mcz-cyan">Premium</span>: Custom sound packs + 2x faster Energy</li>
-              <li>• <span className="text-mcz-cyan">StatZ</span>: Unlimited characters + AI vocal coach feedback</li>
-            </ul>
-            <a href="/settings/membership" className="block mt-2 text-xs text-mcz-cyan hover:underline">
-              View all tier benefits →
-            </a>
+          <div className="rounded-lg border border-mcz-gold/20 bg-mcz-gold/5 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-mcz-gold">Ready for more?</p>
+            <p className="text-xs text-white/75">
+              <span className="text-mcz-cyan">Premium</span> gives you 2x faster Energy, 5 scored takes/day, and advanced analytics.
+            </p>
+            <Link to="/settings/membership" className="inline-flex items-center gap-1 text-xs font-medium text-mcz-gold hover:text-mcz-gold/80">
+              View membership plans <ChevronRight size={12} />
+            </Link>
           </div>
 
           <div className="flex gap-2">
