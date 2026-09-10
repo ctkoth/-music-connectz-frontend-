@@ -27,9 +27,11 @@ import { goToSpot } from "../goto.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
-import { MONEY, SPINAZ } from "../resources.js";
+import { ENERGY, MONEY, SPINAZ } from "../resources.js";
+import Refused, { isInsufficient } from "../Refused.jsx";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
@@ -197,6 +199,16 @@ export default function CollabZ() {
   const [work, setWork] = useState({});
   const [storage, setStorage] = useState(null);
   const [gates, setGates] = useState({});
+  // The refusal body when the deal costs more ⚡ than they hold.
+  const [short, setShort] = useState(null);
+  // The skills the starter is bringing, and the server's price for them.
+  const [skills, setSkills] = useState([]);
+  const [cost, setCost] = useState(null);
+
+  useEffect(() => {
+    const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
+  }, [skills]);
 
   const load = useCallback(async () => {
     try {
@@ -248,7 +260,7 @@ export default function CollabZ() {
   }
 
   async function create() {
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setShort(null);
     try {
       const cents = (v) => Math.max(0, Math.round(Number(v || 0) * 100));
       // Host the recording before the deal is written, and let a refused
@@ -275,15 +287,20 @@ export default function CollabZ() {
             { username: me, worth_cents: cents(form.mine) },
             { username: form.partner.trim(), worth_cents: cents(form.theirs) },
           ],
+          skills,
         },
       });
       setForm({ ...form, title: "", partner: "", mine: "", theirs: "", description: "" });
-      setWork({}); setGates({});
+      setWork({}); setGates({}); setSkills([]);
       setMsg(talk(P.collab_drafted));
       // Only once the deal actually exists — a refused draft is not a collab.
       playSound("collab");
       load();
-    } catch (e) { setMsg(e.message || "Couldn't create that deal."); playSound("error"); }
+    } catch (e) {
+      // A priced refusal stays on screen with the way out; a flash would not.
+      if (isInsufficient(e)) { setShort(e); playSound("error"); return; }
+      setMsg(e.message || "Couldn't create that deal."); playSound("error");
+    }
     finally { setBusy(false); }
   }
 
@@ -361,13 +378,38 @@ export default function CollabZ() {
             can rate it.
           </span>
         </label>
+        <SkillsUsed value={skills} onChange={setSkills} label="Skills you're bringing" />
         <button className="neon-btn-primary !w-auto px-6" onClick={create}
-                disabled={busy || !form.partner.trim()}>
+                disabled={busy || !form.partner.trim()
+                          || (cost?.cost?.amount > 0 && !cost.affordable)}>
           {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Draft the deal
+          {cost?.cost?.amount > 0 && (
+            <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+          )}
         </button>
         <p className="text-[11px] text-white/35">
-          Drafting costs nothing. Money only moves when you fund your share, and it stays held until release.
+          {/* This used to read "Drafting costs nothing" flatly, and naming a
+              skill now makes that false. The money half is unchanged — ⚡ is
+              what starting it costs you, escrow is still untouched until you
+              fund. */}
+          {cost?.cost?.amount > 0 ? (
+            <>
+              Drafting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+              {" "}— the combined price of the skills you named:{" "}
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+              {!cost.affordable && (
+                <span className="text-mcz-ember">
+                  {" "}You have {cost.energy} — not enough, so this won't draft yet.
+                </span>
+              )}
+              {" "}Money only moves when you fund your share, and it stays held until release.
+            </>
+          ) : (
+            <>Drafting costs nothing. Money only moves when you fund your share, and it stays
+              held until release.</>
+          )}
         </p>
+        {short && <Refused err={short} />}
       </div>
     </div>
   );
