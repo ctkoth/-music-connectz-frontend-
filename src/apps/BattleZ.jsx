@@ -15,14 +15,16 @@ import {
   Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import Refused, { isInsufficient } from "../Refused.jsx";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
-import { SPINAZ } from "../resources.js";
+import { ENERGY, SPINAZ } from "../resources.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import SkillsUsed from "../SkillsUsed.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import MentionText from "../MentionParser.jsx";
@@ -122,6 +124,19 @@ function Detail({ id, onBack, onFlash, seed }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [showEntry, setShowEntry] = useState(false);
+  // The refusal body when the entry costs more ⚡ than they hold.
+  const [short, setShort] = useState(null);
+  // The skills that went into the take, and what they price it at. The quote
+  // comes from the server on every change so the number ON the button is the
+  // number that will be charged — a price the client works out itself is a
+  // guess that disagrees with the bill exactly when it matters.
+  const [skills, setSkills] = useState([]);
+  const [cost, setCost] = useState(null);
+
+  useEffect(() => {
+    const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
+  }, [skills]);
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -145,6 +160,7 @@ function Detail({ id, onBack, onFlash, seed }) {
 
   async function enter() {
     setBusy(true);
+    setShort(null);
     try {
       // Host the take before the entry is written. It used to be blanked
       // whenever a blob was present, so a recorded entry went in silent.
@@ -154,12 +170,18 @@ function Detail({ id, onBack, onFlash, seed }) {
         method: "POST",
         body: { title: title.trim(), lyrics: hosted.lyrics || "",
                 ...primaryMedia(hosted),
-                image_url: hosted.image_url || "" },
+                image_url: hosted.image_url || "", skills },
       });
-      setTitle(""); setWork({}); setShowEntry(false);
+      setTitle(""); setWork({}); setSkills([]); setShowEntry(false);
       onFlash(talk(P.battle_entered));
       load();
-    } catch (e) { onFlash(e.message || "Couldn't enter."); }
+    } catch (e) {
+      // A priced refusal is not a flash message. It stays on screen under the
+      // button, with what it costs and where to go get it — the flash would be
+      // gone in 3.2s, taking the answer with it.
+      if (isInsufficient(e)) { setShort(e); return; }
+      onFlash(e.message || "Couldn't enter.");
+    }
     finally { setBusy(false); }
   }
 
@@ -374,10 +396,18 @@ function Detail({ id, onBack, onFlash, seed }) {
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
                  value={title} onChange={(e) => setTitle(e.target.value)} />
           <MediaFields value={work} onChange={setWork} label="Your entry" />
-          <button className="neon-btn-primary !w-auto px-5" onClick={enter} disabled={busy}>
+          <SkillsUsed value={skills} onChange={setSkills} label="Skills used on this take" />
+          {/* Both prices, before the button. They are different resources going
+              to different places: the fee is 🍥 to the host, the skills are ⚡
+              to nobody — it is what putting the work up costs you. */}
+          <button className="neon-btn-primary !w-auto px-5" onClick={enter}
+                  disabled={busy || (cost?.cost?.amount > 0 && !cost.affordable)}>
             {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Enter
             {b.entry_spinaz > 0 && (
               <span className="ml-1 text-mcz-ember">−{b.entry_spinaz} {SPINAZ}</span>
+            )}
+            {cost?.cost?.amount > 0 && (
+              <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
             )}
           </button>
           {/* The fee is stated on the button, and what happens to it here. */}
@@ -386,6 +416,20 @@ function Detail({ id, onBack, onFlash, seed }) {
               ? `The entry fee goes to @${b.host} for their time. It isn't returned if you withdraw.`
               : "Free to enter."}
           </p>
+          {cost?.cost?.amount > 0 && (
+            <p className="text-[10px] text-white/35">
+              The ⚡ is the combined price of the skills you named:{" "}
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+              {/* Unlike a post, a take that can't be paid for is REFUSED, so
+                  this says so rather than "we'll take what's there". */}
+              {!cost.affordable && (
+                <span className="text-mcz-ember">
+                  {" "}You have {cost.energy} — not enough, so this won't go up yet.
+                </span>
+              )}
+            </p>
+          )}
+          {short && <Refused err={short} />}
         </div>
       )}
       {b.entered && <p className="text-[12px] text-emerald-300">You're in this one.</p>}
