@@ -608,10 +608,14 @@ function PostForm() {
           <option value="private">Only me</option>
         </select>
         <div>
-          <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} />
+          <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} title="The media file ID from your upload (audio/video)" />
           {errors.media_ref && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.media_ref}</p>}
+          {!errors.media_ref && <p className="text-xs text-white/40 mt-1">The uploaded audio or video file ID</p>}
         </div>
-        <input className="neon-input" placeholder="Preview ref (optional)" value={form.preview_ref} onChange={set("preview_ref")} />
+        <div>
+          <input className="neon-input" placeholder="Preview ref (optional)" value={form.preview_ref} onChange={set("preview_ref")} title="The thumbnail/preview image ID from your upload" />
+          <p className="text-xs text-white/40 mt-1">Thumbnail image to show before unlock</p>
+        </div>
         <textarea className="neon-input sm:col-span-2" rows={2} placeholder="What students will learn…" value={form.description} onChange={set("description")} />
       </div>
       {msg && <p className="text-sm text-mcz-gold">{msg}</p>}
