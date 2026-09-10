@@ -147,6 +147,33 @@ pressed. The line afterwards reports what the server ACTUALLY paid, never what
 the client hoped — the daily cap and the once-per-link-per-day rule are still
 the server's.
 
+## ZodiacZ bonuses: the gain, before the thing that earns it
+
+`SignBonus.jsx` sits under the birthday field in ProfileZ, because the sign is
+set there and that is where somebody finds out what it's worth. It is the
+**gain** half of the cost/gain rule, and the half that gets forgotten: a price
+found out by paying it is a bill, and a reward found out by accident is a
+coincidence — and a coincidence changes nobody's behaviour, which is the entire
+point of a nudge.
+
+It computes nothing. The sign, both amounts, what each half asks for and WHICH
+TAB you go to are all `/api/economy/signbonus/`. A client that knew Leo was
+worth 20 🍥 would be the second place that number lives, and the "20 free
+prompts" paragraph above says how that ends.
+
+Three deliberate choices:
+
+- **All twelve are shown**, behind one toggle. A member can only check their
+  birthday isn't earning them less than somebody else's by seeing the rest, and
+  "trust us, it's fair" is not an answer to that.
+- **No birthday renders a door, not an error.** No sign means no bonus, and the
+  panel says so with the control that fixes it — `spotlight("birthday")` lands
+  on the field one line up.
+- **A failed fetch renders nothing at all.** An empty bonus panel reads as a
+  broken feature; absent, it reads as one that isn't switched on — which is
+  what a 500 on that endpoint actually means.
+
+
 ## One person, one account, and the rule is read not retyped
 
 **Every member gets one account. Duplicate accounts are not accepted.**

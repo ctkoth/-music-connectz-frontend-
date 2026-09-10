@@ -14,6 +14,7 @@ import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
 import MemberName from "../MemberName.jsx";
+import SignBonus from "../SignBonus.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
@@ -765,8 +766,16 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
       <div className="neon-frame space-y-2 p-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-white/45">ZodiacZ — birthday</p>
-        <input type="date" className="neon-input !w-auto" value={birthday || ""} onChange={(e) => setBirthday(e.target.value)} />
+        <input data-tour="birthday" type="date" className="neon-input !w-auto" value={birthday || ""} onChange={(e) => setBirthday(e.target.value)} />
         <p className="text-xs text-white/40">Your sign auto-detects from your birthday. Only the sign shows publicly.</p>
+
+        {/* The bonus sits under the field that decides it. The sign is set
+            here, so this is where somebody finds out what it's worth — and
+            they find out BEFORE going and doing the thing, which is the whole
+            of the rule. */}
+        <div className="border-t border-white/10 pt-3">
+          <SignBonus onOpenBirthday={() => spotlight("birthday")} />
+        </div>
       </div>
 
       <div>
