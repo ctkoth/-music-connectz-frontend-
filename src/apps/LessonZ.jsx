@@ -90,6 +90,7 @@ function Browse() {
   const [showMap, setShowMap] = useState(false);
   const [wallet, setWallet] = useState(null);
   const [walletLoading, setWalletLoading] = useState(true);
+  const [tier, setTier] = useState("free");
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -131,6 +132,20 @@ function Browse() {
     return () => { on = false; };
   }, []);
 
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        const limits = await api("/api/economy/limits/");
+        if (on) setTier(limits.tier || "free");
+      } catch (e) {
+        // tier fetch failed, default to free
+        if (on) setTier("free");
+      }
+    })();
+    return () => { on = false; };
+  }, []);
+
   function useMyLocation() {
     if (!navigator.geolocation) return setMsg("Geolocation not available on this device.");
     navigator.geolocation.getCurrentPosition(
@@ -141,6 +156,11 @@ function Browse() {
 
   async function book(offer) {
     setMsg("");
+    const method = methods[offer.id] || (offer.in_person_ok ? "in_person" : offer.remote_ok ? "remote" : "callz");
+    if (method === "callz" && tier !== "statz") {
+      setMsg("CallZ lessons are StatZ-exclusive. Upgrade to StatZ to book over CallZ.");
+      return;
+    }
     if (offer.pricing_mode === "per_hour") {
       const hoursErr = validateHours(hours[offer.id] || "1");
       if (hoursErr) {
@@ -226,8 +246,17 @@ function Browse() {
               >
                 {o.in_person_ok && <option value="in_person">In person</option>}
                 {o.remote_ok && <option value="remote">Remote</option>}
-                {o.callz_ok && <option value="callz">CallZ (StatZ)</option>}
+                {o.callz_ok && (
+                  <option value="callz" disabled={tier !== "statz"}>
+                    CallZ {tier === "statz" ? "" : "(StatZ only)"}
+                  </option>
+                )}
               </select>
+              {o.callz_ok && tier !== "statz" && (
+                <span className="text-xs text-mcz-gold inline-flex items-center gap-1" title="Upgrade to StatZ to use CallZ">
+                  ⭐ StatZ
+                </span>
+              )}
               {o.pricing_mode === "per_hour" && (
                 <input className="neon-input !w-20 !py-2 text-center" inputMode="decimal"
                        value={hours[o.id] || "1"} onChange={(e) => setHours({ ...hours, [o.id]: e.target.value })} />
