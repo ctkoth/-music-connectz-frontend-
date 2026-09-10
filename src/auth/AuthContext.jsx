@@ -72,6 +72,11 @@ export function AuthProvider({ children }) {
       auth: false,
       body: payload,
     });
+    // The server could not tell whether this is a new member or one signing in
+    // a second way, so it asked instead of guessing. Nothing went wrong and
+    // nobody is signed in yet: hand the question back un-persisted, because
+    // `persist` would store an undefined token and set a user that isn't one.
+    if (res?.needs_choice) return res;
     return persist(res);
   }
 

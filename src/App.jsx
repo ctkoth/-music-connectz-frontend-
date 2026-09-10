@@ -7,6 +7,7 @@ import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
+import AccountChoice from "./auth/AccountChoice.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -980,6 +981,10 @@ function OAuthCallback() {
   const { oauth } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  // The server could not tell whether this is a new member or an existing one
+  // arriving a second way, so it asked. Held here until they answer.
+  const [choice, setChoice] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const ran = useRef(false);
 
@@ -1028,9 +1033,23 @@ function OAuthCallback() {
     const body = { code, redirect_uri: redirect };
     if (verifier) body.code_verifier = verifier;
     oauth(provider, body)
-      .then(() => navigate("/", { replace: true }))
+      .then((res) => {
+        // A question, not a result. Nothing is signed in yet.
+        if (res?.needs_choice) return setChoice(res);
+        navigate("/", { replace: true });
+      })
       .catch((e) => setError(e.message));
   }, [oauth, navigate]);
+
+  // "I'm new." The authorization code was spent on the first exchange, so the
+  // answer carries the signed result of it rather than replaying the code.
+  const createNew = () => {
+    setBusy(true);
+    oauth(choice.provider, { pending: choice.pending })
+      .then(() => navigate("/", { replace: true }))
+      .catch((e) => { setError(e.message); setChoice(null); })
+      .finally(() => setBusy(false));
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-white/60">
@@ -1041,6 +1060,18 @@ function OAuthCallback() {
             Back to login
           </button>
         </>
+      ) : choice ? (
+        <div className="w-full max-w-md px-4">
+          <AccountChoice
+            choice={choice}
+            busy={busy}
+            onCreate={createNew}
+            // "I already have one" is never taken on trust — saying so merges
+            // nothing. They sign in the way they already can, and link the
+            // provider from their account afterwards.
+            onSignIn={() => navigate("/login", { replace: true })}
+          />
+        </div>
       ) : (
         <>
           <Loader2 className="animate-spin" size={20} /> Finishing sign-in…

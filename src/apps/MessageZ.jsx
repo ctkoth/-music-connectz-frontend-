@@ -58,9 +58,21 @@ export default function MessageZ() {
 
       <form onSubmit={send} className="neon-frame space-y-3 p-4" data-tour="messagez-compose">
         <input className="neon-input" placeholder="To (username)" value={to} onChange={(e) => setTo(e.target.value)} required />
+        {/* Enter sends, Shift+Enter breaks the line — what every messaging app
+            does, so doing anything else here is the surprise. A textarea's
+            default is the opposite, hence the handler.
+            `isComposing` matters and is easy to miss: typing Japanese, Chinese
+            or Korean, Enter CONFIRMS the character being composed. Sending on
+            that would fire mid-word, every word, for those members only. */}
         <textarea className="neon-input" rows={2} placeholder="Say something worth their time…"
           value={body} maxLength={cl.unlimited ? undefined : cl.limit}
-          onChange={(e) => setBody(cl.clamp(e.target.value))} required />
+          onChange={(e) => setBody(cl.clamp(e.target.value))}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            if (!busy && to.trim() && body.trim()) send(e);
+          }}
+          required />
         <CharLimit cl={cl} value={body} />
         <TierCharTable current={cl.tier} />
         {msg && <p className="text-sm text-mcz-gold">{msg}</p>}
