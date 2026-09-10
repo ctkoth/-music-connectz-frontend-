@@ -13,6 +13,7 @@ import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
+import MemberName from "../MemberName.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
@@ -721,7 +722,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             {ref.members.map((m) => (
               <div key={m.username} className="flex items-center justify-between rounded bg-white/[0.03] px-2 py-1.5">
                 <div>
-                  <span className="text-sm text-white/80">@{m.username}</span>
+                  <MemberName username={m.username} className="text-sm" />
                   <p className="text-[11px] text-white/40">
                     {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
                   </p>

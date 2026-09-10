@@ -6,6 +6,7 @@ import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell } fr
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
+import MemberName from "./MemberName.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -582,16 +583,18 @@ function CommunityBar({ onOpenMember }) {
             ) : members.length > 0 ? (
               <div className="space-y-2">
                 {members.map((username, i) => (
-                  <button
+                  // The row was one big button that only ever did one thing.
+                  // The name still opens them; the second thing anyone wants
+                  // from a list of people — say something — is beside it now.
+                  <div
                     key={i}
-                    onClick={() => {
-                      onOpenMember?.(username);
-                      setShowMembers(false);
-                    }}
-                    className="block w-full rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
                   >
-                    @{username}
-                  </button>
+                    <MemberName
+                      username={username}
+                      onOpen={(u) => { onOpenMember?.(u); setShowMembers(false); }}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (

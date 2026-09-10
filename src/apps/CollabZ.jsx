@@ -34,6 +34,7 @@ import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
+import MemberName from "../MemberName.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -138,7 +139,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
-            <span className="truncate text-white/75">@{p.username}</span>
+            <MemberName username={p.username} className="truncate text-white/75" />
             <span className="flex shrink-0 items-center gap-2 text-[11px]">
               {p.pays_cents > 0 && (
                 <span className="text-mcz-ember">−<Amount cents={p.pays_cents} currency={cur} /></span>

@@ -45,6 +45,7 @@ import Refused, { isInsufficient } from "../Refused.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import { labelForSkill } from "../personaSkills.js";
 import MentionText from "../MentionParser.jsx";
+import MemberName from "../MemberName.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -287,7 +288,7 @@ function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
     <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-semibold">@{b.visitor}</p>
+          <MemberName username={b.visitor} className="text-[13px]" />
           <p className="text-[10px] text-white/40">
             {BOOKING_LABEL[b.status] || b.status} · {b.hours}h
           </p>
