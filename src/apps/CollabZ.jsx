@@ -28,6 +28,7 @@ import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.j
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
 import { ENERGY, MONEY, SPINAZ } from "../resources.js";
+import { labelForSkill } from "../personaSkills.js";
 import Refused, { isInsufficient } from "../Refused.jsx";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
@@ -396,7 +397,7 @@ export default function CollabZ() {
             <>
               Drafting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
               {" "}— the combined price of the skills you named:{" "}
-              {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
               {!cost.affordable && (
                 <span className="text-mcz-ember">
                   {" "}You have {cost.energy} — not enough, so this won't draft yet.

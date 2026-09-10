@@ -396,3 +396,27 @@ export const PERSONA_LABELS = {
   manager: "📋 Manager",
   arscout: "🔎 A&R Scout",
 };
+
+/** A skill KEY as the member reads it — "any_daw" → "Any DAW 🎛️".
+ *
+ * The picker stores keys and the server echoes keys back, so every screen that
+ * renders a skill it got from the API — a price line, a refusal, a booking
+ * summary — was showing `any_daw` where the member had picked "Any DAW 🎛️".
+ * PostZ's composer had done it since it was written.
+ *
+ * One lookup rather than one per screen: five components each walking the tree
+ * is five chances for the same key to read five ways. An unknown key comes back
+ * as itself, because a key on screen beats an empty cell.
+ */
+let _skillLabels = null;
+export const labelForSkill = (key) => {
+  if (!_skillLabels) {
+    _skillLabels = {};
+    for (const cats of Object.values(PERSONA_SKILLS)) {
+      for (const skills of Object.values(cats)) {
+        Object.assign(_skillLabels, skills);
+      }
+    }
+  }
+  return _skillLabels[key] || key;
+};

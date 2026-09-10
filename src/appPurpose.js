@@ -49,6 +49,7 @@ export const APP_PURPOSE = {
   funnelz:     { does: "Owner: join funnel numbers",     words: "funnel analytics conversion stats owner numbers growth" },
   royaltiez:   { does: "Your royalty balance and cashout", words: "royalties money earnings payout cashout withdraw paid revenue" },
   callz:       { does: "Call a member, by the minute",   words: "call phone talk voice ring hire consult minutes" },
+  venuez:      { does: "Meet up and play in one room", words: "venue room gig session jam live in person meet studio space book host" },
   gamez:       { does: "Build and play games",           words: "game play build arcade web unity fun" },
   soundz:      { does: "Change what the app sounds like", words: "sound audio noise sfx effects volume mute pack" },
 };

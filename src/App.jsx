@@ -48,6 +48,7 @@ const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
+const VenueZ = lazy(lazyRoute(() => import("./apps/VenueZ.jsx")));
 const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
 const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
 const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
@@ -381,6 +382,7 @@ const TABS = [
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
+  { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
@@ -626,6 +628,7 @@ const TAB_ABOUT = {
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
+  venuez: "📍 VenueZ — CollabZ in a room. Whoever receives the skill pays for it, priced from whoever brings it: a performance charges the visitor at your rates, a session charges you at theirs. The area is public; the address is released only to somebody you accept.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",

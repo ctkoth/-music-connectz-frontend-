@@ -26,6 +26,7 @@
 import { AlertCircle } from "lucide-react";
 import EarnInstead from "./EarnInstead.jsx";
 import { ENERGY, MONEY, PROMPTZ, SPINAZ } from "./resources.js";
+import { labelForSkill } from "./personaSkills.js";
 
 const EMOJI = { energy: ENERGY, spinaz: SPINAZ, promptz: PROMPTZ, money: MONEY };
 
@@ -72,7 +73,7 @@ export default function Refused({ err, title = "" }) {
         <ul className="space-y-0.5 text-[11px] text-white/45">
           {d.lines.map((l, i) => (
             <li key={`${l.skill}-${i}`} className="flex justify-between gap-3">
-              <span className="truncate">{l.skill}</span>
+              <span className="truncate">{labelForSkill(l.skill)}</span>
               <span className={l.cents ? "text-white/60" : "text-white/25"}>
                 {l.cents ? `${l.cents} ${mark}` : "unpriced"}
               </span>
