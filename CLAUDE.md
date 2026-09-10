@@ -173,6 +173,24 @@ Three deliberate choices:
   broken feature; absent, it reads as one that isn't switched on — which is
   what a 500 on that endpoint actually means.
 
+### Two zodiacs, one card component
+
+A birthday gives a member **two** bonuses — a star sign (the month) and a
+Chinese animal (the year) — so `MineCard` and `AllGrid` each render either,
+and the two cards sit in an equal two-column grid. That is a design decision
+rather than a shortcut: the whole claim this feature makes is that all
+twenty-four are worth the same, and a layout that made one the headline would
+be arguing the opposite underneath copy that says otherwise. Two renderers
+would also be two places the design can drift.
+
+`EMOJI` holds all twenty-four marks in one map, which works for the same
+reason the server's single `sign` column does: the two zodiacs share no name.
+
+`mine_animal` is a key the server grew AFTER this screen shipped, so an older
+API answers `undefined` and the panel renders one card instead of two. That is
+the correct degradation and it is why the animal half is read defensively
+while the star-sign half is not.
+
 
 ## One person, one account, and the rule is read not retyped
 
@@ -202,6 +220,42 @@ screen to have shown it.
 The signals are rendered as words — "Same email on a linked sign-in", strong or
 weak — never folded into a percentage. A number nobody can check, behind an
 action nobody can undo, is the substance rule's failure case at its worst.
+
+## FunnelZ offers: the panel decides nothing
+
+`OfferPanel.jsx` sits above the feed in PostZ — where every member lands after
+signing in, because an offer nobody scrolls to is an offer nobody got. It
+renders **nothing** when the server has nothing true to say, so on most visits
+it costs zero pixels.
+
+It is small because it decides nothing. Who sees which offer is entirely
+`/api/economy/offerz/funnel/`. A client that knew a free member should be
+shown the Premium ladder would be the second place that targeting rule lives,
+and the two would disagree within a year — the same reason a tier number is
+never typed into a screen, applied to WHO rather than HOW MUCH.
+
+Three things it does do, each one of the server's rules made visible:
+
+- **The price sits on the button**, in ember, beside the CTA, before it is
+  pressed. A promotion is where it is most tempting to lead with the gain.
+- **The X is real.** Dismissing posts to the server and the offer never comes
+  back. It is optimistic locally, because the alternative is an X that appears
+  not to work for as long as the round trip takes, on the one control whose
+  whole job is making the thing go away — and a failed write leaves it hidden
+  for the session rather than punishing the member for our outage.
+- **The CTA lands on the CONTROL** via `goToSpot(tab, target)`, never a plain
+  tab switch.
+
+A failed fetch renders nothing and says nothing. An offers panel is the one
+surface where a visible error is strictly worse than silence: the member did
+not ask for it, so telling them it failed is an interruption about an
+interruption.
+
+An amount of `0` in a gain line means "there is a gain but it is not a number"
+— a streak kept, a price that is a percentage. The emoji still renders so the
+member can see which resource is involved; inventing a figure to fill the slot
+would be the substance rule's failure case with a promotion attached.
+
 
 ## Conventions
 

@@ -28,6 +28,7 @@ import {
   Pencil, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import OfferPanel from "../OfferPanel.jsx";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
@@ -274,6 +275,12 @@ export default function PostZ() {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
+      {/* FunnelZ offers, above the feed, because this is where every member
+          lands after signing in and an offer nobody scrolls to is an offer
+          nobody got. It renders NOTHING when the server has nothing true to
+          say, so on most visits this line costs a member zero pixels. */}
+      <OfferPanel />
+
       <header className="flex items-center gap-3">
         <IconImg icon="postz.png" alt="PostZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
