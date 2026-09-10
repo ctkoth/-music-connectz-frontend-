@@ -12,6 +12,7 @@ import { Link, useParams } from "react-router-dom";
 import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { track } from "../track.js";
+import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
 const APPS = { singz: "SingZ", rapz: "RapZ" };
@@ -152,6 +153,10 @@ export default function TrialTake() {
               </button>
             </div>
             {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
+          </div>
+
+          <div className="mt-6">
+            <TrialToUpgradePrompt score={score ?? 7} />
           </div>
 
           <div className="mt-6 space-y-3">

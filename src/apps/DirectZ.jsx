@@ -25,12 +25,15 @@ import { asList } from "../shape.js";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 const mmss = (s) =>
   s >= 3600 ? `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`
             : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 export default function DirectZ() {
+  const { user } = useAuth();
   const talk = useSay();
   const [spec, setSpec] = useState(null);
   // The craft rating is OFF by default. It sends the video to a model that
@@ -43,6 +46,7 @@ export default function DirectZ() {
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   const probe = useRef(null);
 
   const load = () => api("/api/economy/directz/").then(setSpec).catch(() => {});
@@ -119,10 +123,16 @@ export default function DirectZ() {
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
                 description: "", craft_rating: false });
       setWork({}); setSeconds(0);
+      setShowUploadLimitPrompt(false);
       setMsg(talk(P.directz_posted));
       load();
     } catch (err) {
-      setMsg(err.message || "Couldn't post that one.");
+      const errMsg = err.message || "Couldn't post that one.";
+      setMsg(errMsg);
+      // Show tier upgrade prompt if error is about upload size limit
+      if (errMsg.toLowerCase().includes("upload") || errMsg.toLowerCase().includes("size") || errMsg.toLowerCase().includes("mb")) {
+        setShowUploadLimitPrompt(true);
+      }
     } finally { setBusy(false); }
   }
 
@@ -243,6 +253,18 @@ export default function DirectZ() {
           <p className="flex items-start gap-2 text-[11px] text-mcz-gold">
             <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
           </p>
+        )}
+
+        {showUploadLimitPrompt && (
+          <TierUpgradePrompt
+            limit="upload_mb"
+            current={0}
+            userTier={user?.tier || "free"}
+            onUpgrade={() => {
+              setShowUploadLimitPrompt(false);
+              window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+            }}
+          />
         )}
 
         <button className="neon-btn-primary" disabled={busy || !fits}>

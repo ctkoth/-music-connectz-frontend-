@@ -31,6 +31,8 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
@@ -46,6 +48,8 @@ import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
 import PostEmbeds from "../PostEmbeds.jsx";
 import { trackListening } from "../listen.js";
+import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
+import LeaderboardZ from "./LeaderboardZ.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -159,6 +163,7 @@ const mapPost = (s) => ({ ...s, localCreated: Date.now() - (s.age_sec || 0) * 10
 
 export default function PostZ() {
   const now = useNow();
+  const { user } = useAuth();
   const [posts, setPosts] = useState(null);
   const [sort, setSort] = useState("hot");
   const [loadErr, setLoadErr] = useState("");
@@ -182,6 +187,7 @@ export default function PostZ() {
   const [isOwner, setIsOwner] = useState(false);
   const cl = useCharLimit();
   const charLimit = cl.unlimited ? null : cl.limit;
+  const charState = cl.ready ? cl.state(description) : null;
 
   useEffect(() => {
     api("/api/auth/stats/").then((st) => setIsOwner(!!st?.is_owner)).catch(() => {});
@@ -265,7 +271,8 @@ export default function PostZ() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="space-y-5 lg:col-span-2">
       <header className="flex items-center gap-3">
         <IconImg icon="postz.png" alt="PostZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
@@ -299,6 +306,12 @@ export default function PostZ() {
         <div className="text-right text-[10px] text-white/35">
           {description.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
         </div>
+
+        {/* Show tier comparison when user is near or at character limit */}
+        {charState === "near" && (
+          <TierUpgradePrompt limit="char" current={description.length} userTier={user?.tier} onUpgrade={() => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: "membershipz" }))} />
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
@@ -319,12 +332,27 @@ export default function PostZ() {
                   className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
             🆓 Freestyle
           </button>
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
-                  value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-            <option value="public">Public</option>
-            <option value="restricted">Members only</option>
-            <option value="private">Just me</option>
-          </select>
+          <div className="flex gap-1">
+            {[
+              { value: "public", label: "Public", bonus: "+25%", tip: "Earn bonus 🍥 + show on leaderboards" },
+              { value: "restricted", label: "Members", bonus: "1x", tip: "Visible to members only" },
+              { value: "private", label: "Private", bonus: "1x", tip: "Just you" },
+            ].map(({ value, label, bonus, tip }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVisibility(value)}
+                title={tip}
+                className={`pill text-[12px] ${
+                  visibility === value
+                    ? "!border-mcz-cyan !text-mcz-cyan"
+                    : "!border-white/20 !text-white/50 hover:!border-white/40"
+                } transition`}
+              >
+                {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+              </button>
+            ))}
+          </div>
           <button data-tour="post-submit" className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {posting && hasBlobs(work) ? " Uploading…" : " Post"}
@@ -362,11 +390,48 @@ export default function PostZ() {
           </p>
         )}
 
+        {/* Preview of where this post can go once created */}
+        {(work.audio || work.video || work.image || description.trim()) && (
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
+            <p className="text-[11px] font-semibold text-emerald-300">Once posted, this can go to:</p>
+            <div className="space-y-1 text-[10px] text-white/60">
+              {work.audio && (
+                <div>🎤 <strong>SingZ Coach</strong> — Get feedback + earn ⭐ for improvement</div>
+              )}
+              {(work.audio || work.video) && (
+                <div>🎬 <strong>DirectZ</strong> — Collaborate with other producers, +10% per collaborator</div>
+              )}
+              {work.video && (
+                <div>📺 <strong>BattleZ</strong> — Compete weekly for prizes</div>
+              )}
+              {description.trim() && (
+                <div>📝 <strong>SongwriteZ</strong> — Share lyrics, earn royalties</div>
+              )}
+              {(visibility === "public" || skillsUsed.length > 0) && (
+                <div className="pt-1 border-t border-emerald-300/20 space-y-0.5">
+                  {visibility === "public" && (
+                    <div>✨ <strong>Public bonus:</strong> +25% on all earnings from this post</div>
+                  )}
+                  {skillsUsed.length > 1 && (
+                    <div>🤝 <strong>Collab bonus:</strong> +10% per team member on rated work</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="text-[11px] leading-relaxed text-white/40">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
           comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
           you <span className="text-mcz-ember">+1 {ENERGY}</span>.
         </p>
+        {visibility === "public" && (
+          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-[11px] leading-relaxed text-emerald-300/90">
+            📊 <strong>Public visibility bonus:</strong> You'll earn <span className="text-emerald-300">+25% 🍥</span> on all
+            rewards from this post and appear on the leaderboards for real earnings proof.
+          </div>
+        )}
         <CharLimit cl={cl} value={description} />
         <TierCharTable current={cl.tier} />
       </div>
@@ -394,7 +459,13 @@ export default function PostZ() {
       )}
 
       {posts?.length === 0 && !loadErr && (
-        <p className="text-sm text-white/45">No PostZ yet — be the first to post.</p>
+        <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center space-y-3">
+          <p className="text-sm text-white/75">Welcome to your feed!</p>
+          <p className="text-xs text-white/50">Follow members you want to hear from, or explore SkillZ drills to build your voice.</p>
+          <div className="flex gap-2 justify-center pt-2">
+            <a href="#" onClick={(e) => { e.preventDefault(); dispatchEvent(new CustomEvent('mcz-goto-tab', { detail: 'skillz' })); }} className="neon-btn-primary text-xs px-4 py-2">Try SkillZ</a>
+          </div>
+        </div>
       )}
 
       <div data-tour="feed" className="space-y-3">
@@ -403,15 +474,23 @@ export default function PostZ() {
                     isOwner={isOwner} onChanged={replacePost} />
         ))}
       </div>
+      </div>
+
+      {/* Leaderboards sidebar — shows this week's competition */}
+      <div className="sticky top-5 h-fit">
+        <LeaderboardZ period="week" />
+      </div>
     </div>
   );
 }
 
 function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const talk = useSay();
+  const { user } = useAuth();
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
+  const [progression, setProgression] = useState(null);
   const [shared, setShared] = useState(false);
   const [skipped, setSkipped] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -423,8 +502,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eTitle, setETitle] = useState(post.title);
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
+  const [commentDraft, setCommentDraft] = useState("");
+  const [ratingVisibility, setRatingVisibility] = useState("restricted");
   const draft = useRef("");
   const item = `post:${post.id}`;
+
+  // Track comment char state for showing upgrade prompt
+  const commentCharState = commentDraft.length > charLimit * 0.9 ? "near" : "ok";
 
   // What the SERVER credited, never what the player counted — it clamps each
   // heartbeat to the wall clock, so an optimistic local total would promise an
@@ -433,7 +517,15 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
   const loadSocial = () => api(`/api/economy/social/?item=${encodeURIComponent(item)}`)
     .then(setSocial).catch(() => setSocial(null));
-  useEffect(() => { loadSocial(); /* eslint-disable-next-line */ }, [post.id]);
+
+  const loadProgression = () => api(`/api/economy/postz/${post.id}/progression/`)
+    .then(setProgression).catch(() => setProgression(null));
+
+  useEffect(() => {
+    loadSocial();
+    loadProgression();
+    /* eslint-disable-next-line */
+  }, [post.id]);
 
   const ageSec = Math.max(0, Math.floor((now - post.localCreated) / 1000));
   const rateLeft = Math.max(0, (post.rate_unlock_sec ?? 30) - ageSec);
@@ -500,8 +592,12 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   async function rate(score) {
     try {
       setSocial(await api("/api/economy/social/rate/",
-                          { method: "POST", body: { item, action: "rate", score } }));
-      onFlash(talk(P.postz_rated(score)));
+                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility } }));
+      const bonuses = [];
+      if (ratingVisibility === "public") bonuses.push("public +25%");
+      if (post.contributors?.length > 1) bonuses.push(`team +${10 * (post.contributors.length - 1)}%`);
+      const bonus = bonuses.length ? ` (${bonuses.join(" + ")})` : "";
+      onFlash(talk(P.postz_rated(score)) + bonus);
       playSound("energy_gain");
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
@@ -578,10 +674,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   }
 
   async function comment() {
-    const body = draft.current.trim();
+    const body = commentDraft.trim();
     if (!body) return;
     try {
       setSocial(await api("/api/economy/social/comment/", { method: "POST", body: { item, body } }));
+      setCommentDraft("");
       draft.current = "";
       onFlash(talk(P.postz_commented));
     } catch (e) {
@@ -617,7 +714,44 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
             )}
+            {/* Progression indicators */}
+            {post.battle_eligible_at && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-mcz-gold/40 !text-mcz-gold">🎯 BattleZ ready</span>
+            )}
+            {post.collab_eligible_at && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-emerald-300/40 !text-emerald-300">🤝 CollabZ ready</span>
+            )}
+            {canEdit && <EditWindowCountdown post={post} now={now} canEdit={canEdit} />}
           </div>
+          {/* Progression bars when not yet eligible */}
+          {progression && (
+            <div className="mt-2 space-y-2">
+              {!progression.battle.eligible && progression.battle.progress_percent < 100 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/60">🎯 BattleZ</span>
+                    <span className="text-white/40">{progression.battle.current} of {progression.battle.needed}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-mcz-gold/60"
+                         style={{ width: `${progression.battle.progress_percent}%` }} />
+                  </div>
+                </div>
+              )}
+              {!progression.collab.eligible && progression.collab.progress_percent < 100 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/60">🤝 CollabZ</span>
+                    <span className="text-white/40">{progression.collab.current.toFixed(1)} of {progression.collab.needed.toFixed(1)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-emerald-300/60"
+                         style={{ width: `${progression.collab.progress_percent}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-start gap-2">
           {canEdit && (
@@ -797,6 +931,26 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             <p className="text-[11px] text-white/40">
               Anonymous, and it curates the ChartZ. +1 {ENERGY} per rating.
             </p>
+            <div className="flex gap-1">
+              {[
+                { value: "public", label: "Public", bonus: "+1.25x", tip: "Earn bonus & appear on leaderboards" },
+                { value: "restricted", label: "Private", bonus: "1x", tip: "Only recorded for you" },
+              ].map(({ value, label, bonus, tip }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRatingVisibility(value)}
+                  title={tip}
+                  className={`pill text-[11px] ${
+                    ratingVisibility === value
+                      ? "!border-mcz-cyan !text-mcz-cyan"
+                      : "!border-white/20 !text-white/50 hover:!border-white/40"
+                  } transition`}
+                >
+                  {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+                </button>
+              ))}
+            </div>
             {/* The condition beside the control, not inside the refusal. */}
             {listenShort > 0 && (
               <p className="text-[11px] text-mcz-ember">
@@ -837,16 +991,31 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </div>
         ))}
         {canComment ? (
-          <div className="flex items-center gap-2">
-            <input
-              className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
-              placeholder="What did you like about it?"
-              maxLength={charLimit ?? undefined}
-              defaultValue=""
-              onChange={(e) => (draft.current = e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && comment()}
-            />
-            <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                placeholder="What did you like about it?"
+                maxLength={charLimit ?? undefined}
+                value={commentDraft}
+                onChange={(e) => {
+                  setCommentDraft(e.target.value);
+                  draft.current = e.target.value;
+                }}
+                onKeyDown={(e) => e.key === "Enter" && comment()}
+              />
+              <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
+            </div>
+
+            {/* Show tier comparison when user is near comment character limit */}
+            {commentCharState === "near" && charLimit && (
+              <TierUpgradePrompt
+                limit="char"
+                current={commentDraft.length}
+                userTier={user?.tier}
+                onUpgrade={() => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: "membershipz" }))}
+              />
+            )}
           </div>
         ) : (
           <div className="re-label flex items-center gap-1.5 !text-white/40">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, Flame, Loader2, Star, Trophy, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
+import { XP } from "../resources.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -116,19 +117,21 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               {items.map((d) => (
-                <div key={d.key} className="neon-frame flex items-center justify-between gap-3 p-4">
+                <div key={d.key} className="neon-frame flex flex-col gap-3 p-4">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{d.title}</p>
                     <p className="truncate text-xs text-white/55">{d.description}</p>
-                    <span className="pill mt-2 inline-block">+{d.xp} XP</span>
                   </div>
-                  <button
-                    onClick={() => train(d)}
-                    disabled={training === d.key}
-                    className="neon-btn-primary !w-auto px-4 py-2 text-xs"
-                  >
-                    {training === d.key ? <Loader2 className="animate-spin" size={14} /> : "Train"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => train(d)}
+                      disabled={training === d.key}
+                      className="neon-btn-primary !w-auto px-4 py-2 text-xs"
+                    >
+                      {training === d.key ? <Loader2 className="animate-spin" size={14} /> : "Train"}
+                    </button>
+                    <span className="text-sm text-emerald-300">+{d.xp} {XP}</span>
+                  </div>
                 </div>
               ))}
             </div>

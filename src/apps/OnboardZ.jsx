@@ -6,7 +6,7 @@ import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY } from "../resources.js";
 import { playSound } from "../sound.js";
 
 // Guided first session. Steps derive "done" from real account state where
@@ -206,6 +206,16 @@ export default function OnboardZ() {
           <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
       </header>
+
+      {!allDone && (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-300/30 bg-emerald-300/5 px-4 py-3">
+          <Gift size={18} className="shrink-0 text-emerald-300" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-white">Complete all steps for a bonus:</p>
+            <p className="text-xs text-white/70">+150 {SPINAZ}  +50 {ENERGY}</p>
+          </div>
+        </div>
+      )}
 
       <SystemCard />
 

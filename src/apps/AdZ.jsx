@@ -66,12 +66,15 @@ export default function AdZ() {
         ) : isNative ? (
           <>
             <p className="text-sm text-white/70">Rewarded ads are live. Watch a short clip to earn SpinaZ — your reward is credited automatically once the ad completes.</p>
-            <button
-              className="re-btn !w-auto px-5"
-              onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
-            >
-              <PlayCircle size={15} /> Watch an ad
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="re-btn !w-auto px-5"
+                onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
+              >
+                <PlayCircle size={15} /> Watch an ad
+              </button>
+              <span className="text-sm text-emerald-300">+1 {SPINAZ}</span>
+            </div>
             {!cfg.personalized && (
               <p className="text-[11px] text-white/40">You'll see family-friendly, non-personalized ads.{cfg.age == null ? " Add your birthday in ProfileZ for age-appropriate settings." : ""}</p>
             )}
