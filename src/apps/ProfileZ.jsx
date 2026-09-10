@@ -121,6 +121,17 @@ const ZODIAC_RANGES = {
 const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
 
+// The OTHER zodiac. Unicode, like the western one above — the live app has
+// never used artwork for a sign, so an animal needs no icon file to ship and
+// custom art can replace these later without changing anything structural.
+//
+// The animal itself comes from the SERVER (`zodiac_cn`), because the year turns
+// at lunar new year rather than on 1 January and the boundary needs a table. A
+// client computing `year % 12` would disagree with the profile for about seven
+// weeks of every year.
+const CN_ZODIAC_EMOJI = { Rat:"🐀",Ox:"🐂",Tiger:"🐅",Rabbit:"🐇",Dragon:"🐉",Snake:"🐍",
+  Horse:"🐎",Goat:"🐐",Monkey:"🐒",Rooster:"🐓",Dog:"🐕",Pig:"🐖" };
+
 // Premium ICONS (cosmetic art), independent of whether the PersonaZ is premium.
 // Only the manga-styled alternate art is premium. Every PersonaZ in the grid —
 // Designer included — is free to pick and shows its standard icon here, so no
@@ -598,6 +609,17 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           <p className="flex flex-wrap gap-2 pt-1 text-sm">
             <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
             {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}
+            {me.zodiac_cn && (
+              <span className="pill"
+                    title={me.zodiac_cn.approximate
+                      ? "Worked out from your birth year — that year's lunar new year date isn't in our table, so if you were born in January or early February this may be the neighbouring animal."
+                      : `Year of the ${me.zodiac_cn.animal}`}>
+                {CN_ZODIAC_EMOJI[me.zodiac_cn.animal] || me.zodiac_cn.emoji} {me.zodiac_cn.animal}
+                {/* Said, not hidden: a sign somebody is told is theirs,
+                    wrongly, is worse than one the app admits it is unsure of. */}
+                {me.zodiac_cn.approximate && <span className="ml-1 text-white/30">?</span>}
+              </span>
+            )}
             <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
             <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
           </p>
