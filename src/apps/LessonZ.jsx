@@ -88,6 +88,8 @@ function Browse() {
   const [hours, setHours] = useState({});
   const [methods, setMethods] = useState({});
   const [showMap, setShowMap] = useState(false);
+  const [wallet, setWallet] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(true);
 
   const search = useCallback(async () => {
     setLoading(true);
@@ -114,6 +116,21 @@ function Browse() {
     search();
   }, []); // initial load
 
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        const w = await api("/api/economy/wallet/");
+        if (on) setWallet(w.wallet);
+      } catch (e) {
+        if (on) setMsg(`Couldn't load wallet balance: ${e.message}`);
+      } finally {
+        if (on) setWalletLoading(false);
+      }
+    })();
+    return () => { on = false; };
+  }, []);
+
   function useMyLocation() {
     if (!navigator.geolocation) return setMsg("Geolocation not available on this device.");
     navigator.geolocation.getCurrentPosition(
@@ -130,6 +147,13 @@ function Browse() {
         setMsg(hoursErr);
         return;
       }
+    }
+    const cost = offer.pricing_mode === "per_hour"
+      ? parseFloat(offer.price) * parseFloat(hours[offer.id] || "1")
+      : parseFloat(offer.price);
+    if (wallet && wallet.money_cents && parseFloat(wallet.money_cents) / 100 < cost) {
+      setMsg(`Insufficient balance. You have 💵 $${(wallet.money_cents / 100).toFixed(2)}, need 💵 $${cost.toFixed(2)}.`);
+      return;
     }
     try {
       const body = { offer: offer.id, pricing_mode: offer.pricing_mode };
@@ -164,6 +188,12 @@ function Browse() {
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
+      {wallet && (
+        <div className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">
+          Your balance: <span className="text-emerald-300">💵 ${(wallet.money_cents / 100).toFixed(2)}</span>
+        </div>
+      )}
+      {!walletLoading && !wallet && <p className="text-sm text-white/45">Couldn't load wallet balance.</p>}
       {showMap && <OfferMap offers={offers} center={coords ? [Number(coords.lat), Number(coords.lng)] : null} />}
       {loading && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Searching…</p>}
 
@@ -410,6 +440,7 @@ function Posts() {
   const [posts, setPosts] = useState([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [wallet, setWallet] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true); setMsg("");
@@ -421,8 +452,26 @@ function Posts() {
   }, [skill]);
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        const w = await api("/api/economy/wallet/");
+        if (on) setWallet(w.wallet);
+      } catch (e) {
+        // wallet fetch failed, silently continue
+        if (on) setWallet(null);
+      }
+    })();
+    return () => { on = false; };
+  }, []);
+
   async function unlock(post) {
     setMsg("");
+    if (wallet && wallet.money_cents && parseFloat(wallet.money_cents) / 100 < parseFloat(post.price)) {
+      setMsg(`Insufficient balance. You have 💵 $${(wallet.money_cents / 100).toFixed(2)}, need 💵 $${parseFloat(post.price).toFixed(2)}.`);
+      return;
+    }
     try {
       const updated = await api(`/api/lessonz/posts/${post.id}/unlock/`, { method: "POST", body: {} });
       setPosts((ps) => ps.map((x) => (x.id === post.id ? updated : x)));
@@ -440,6 +489,11 @@ function Posts() {
         <button className="neon-btn-primary !w-auto px-5" onClick={load}>Refresh</button>
       </div>
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
+      {wallet && (
+        <div className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">
+          Your balance: <span className="text-emerald-300">💵 ${(wallet.money_cents / 100).toFixed(2)}</span>
+        </div>
+      )}
       {loading && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         {posts.map((p) => (
