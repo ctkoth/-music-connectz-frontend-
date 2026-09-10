@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, Send, Briefcase, Users } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import MemberName from "../MemberName.jsx";
 
 /**
  * OpportunitieZ — feed of what other musicians are seeking,
@@ -73,7 +74,7 @@ export default function OpportunitieZ() {
                 )}
                 <div className="flex-1">
                   <p className="font-semibold text-white">
-                    @{opp.username}
+                    <MemberName username={opp.username} />
                     <span className="ml-2 text-[11px] font-normal text-white/40 uppercase tracking-wider">
                       {opp.tier}
                     </span>
