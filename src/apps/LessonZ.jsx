@@ -105,7 +105,8 @@ function Browse() {
       if (offer.pricing_mode === "per_hour") body.hours = hours[offer.id] || "1";
       body.method = methods[offer.id] || (offer.in_person_ok ? "in_person" : offer.remote_ok ? "remote" : "callz");
       const b = await api("/api/lessonz/bookings/", { method: "POST", body });
-      setMsg(`Requested "${offer.title}" — total $${b.agreed_total}. Waiting on the teacher.`);
+      const dur = offer.pricing_mode === "per_hour" ? `${b.hours || 1}h` : "1 lesson";
+      setMsg(`Requested "${offer.title}" (${dur}) from @${offer.teacher_username}. −💵 $${b.agreed_total} held in escrow. Waiting on teacher to confirm.`);
     } catch (e) {
       setMsg(e.message);
     }
@@ -171,7 +172,7 @@ function Browse() {
                        value={hours[o.id] || "1"} onChange={(e) => setHours({ ...hours, [o.id]: e.target.value })} />
               )}
               <button className="neon-btn-primary !w-auto flex-1 px-4 py-2 text-xs" onClick={() => book(o)}>
-                <GraduationCap size={14} /> Book {o.pricing_mode === "per_hour" ? `${hours[o.id] || 1}h` : "lesson"}
+                <GraduationCap size={14} /> −💵 ${o.pricing_mode === "per_hour" ? (o.price * (hours[o.id] || 1)).toFixed(2) : o.price}
               </button>
             </div>
           </div>
@@ -281,7 +282,16 @@ function Bookings() {
   async function act(id, action) {
     setMsg("");
     try {
-      await api(`/api/lessonz/bookings/${id}/${action}/`, { method: "POST", body: {} });
+      const b = await api(`/api/lessonz/bookings/${id}/${action}/`, { method: "POST", body: {} });
+      if (action === "accept") {
+        setMsg(`Accepted booking with @${b.student_username} for "${b.offer_title}". Mark complete when done.`);
+      } else if (action === "complete") {
+        setMsg(`Completed! +💵 $${b.agreed_total} charged to student and sent to you.`);
+      } else if (action === "decline") {
+        setMsg(`Declined — student will be notified and refunded.`);
+      } else if (action === "cancel") {
+        setMsg(`Cancelled — money refunded.`);
+      }
       load();
     } catch (e) {
       setMsg(e.message);
@@ -357,7 +367,7 @@ function Posts() {
     try {
       const updated = await api(`/api/lessonz/posts/${post.id}/unlock/`, { method: "POST", body: {} });
       setPosts((ps) => ps.map((x) => (x.id === post.id ? updated : x)));
-      setMsg(`Unlocked "${post.title}" — $${post.price} to ${post.teacher_username}.`);
+      setMsg(`Unlocked "${post.title}". −💵 $${post.price} from you, +💵 $${post.price} to @${post.teacher_username}.`);
     } catch (e) { setMsg(e.message); }
   }
 
@@ -371,7 +381,6 @@ function Posts() {
         <button className="neon-btn-primary !w-auto px-5" onClick={load}>Refresh</button>
       </div>
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
-      {showMap && <OfferMap offers={offers} center={coords ? [Number(coords.lat), Number(coords.lng)] : null} />}
       {loading && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         {posts.map((p) => (
@@ -390,7 +399,7 @@ function Posts() {
               </p>
             ) : (
               <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={() => unlock(p)}>
-                <GraduationCap size={14} /> Unlock for ${p.price}
+                <GraduationCap size={14} /> −💵 ${p.price}
               </button>
             )}
           </div>
