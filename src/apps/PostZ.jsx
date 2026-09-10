@@ -41,6 +41,7 @@ import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
+import { labelForSkill } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -376,7 +377,7 @@ export default function PostZ() {
             {cost.cost.amount > 0 ? (
               <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
                 {" — "}
-                {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+                {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
                 {!cost.affordable && (
                   <span className="text-mcz-ember">
                     {" "}You have {cost.energy} — we'll take what's there.

@@ -128,4 +128,21 @@ export const P = {
     plain: `${app} profile saved.`,
     slang: `${app} profile's saved.`,
   }),
+
+  /* ------------------------------------------------------------ VenueZ -- */
+  // Deliberately not "you're booked" — the host hasn't answered yet, and the
+  // address is what acceptance releases. A screen that says booked and then
+  // shows no doorstep has told somebody they're going somewhere they can't find.
+  venue_asked: {
+    plain: "Asked. The host answers, and the address comes with a yes.",
+    slang: "Asked. Host says yes, you get the address.",
+  },
+  venue_hosted: {
+    plain: "Room's up. You'll see who asks, and only you decide who's in.",
+    slang: "Room's up. You pick who's in.",
+  },
+  venue_rated: (score) => ({
+    plain: `Rated ${score}/10.`,
+    slang: `${score}/10 — logged.`,
+  }),
 };

@@ -22,6 +22,7 @@ import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { ENERGY, SPINAZ } from "../resources.js";
+import { labelForSkill } from "../personaSkills.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
@@ -419,7 +420,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           {cost?.cost?.amount > 0 && (
             <p className="text-[10px] text-white/35">
               The ⚡ is the combined price of the skills you named:{" "}
-              {cost.lines.filter((l) => l.cents > 0).map((l) => `${l.skill} ${l.cents}`).join(" + ")}.
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
               {/* Unlike a post, a take that can't be paid for is REFUSED, so
                   this says so rather than "we'll take what's there". */}
               {!cost.affordable && (
