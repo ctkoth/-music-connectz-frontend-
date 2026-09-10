@@ -197,7 +197,7 @@ export default function DupeZ() {
         </section>
       )}
 
-      {!groups.length && (
+      {!groups.length && !asList(data.weak_pairs).length && (
         <p className="text-[12px] text-white/45">
           {data.owner
             ? "No accounts share a strong signal with another. Nothing to do."
@@ -208,6 +208,25 @@ export default function DupeZ() {
       {groups.map((g, i) => (
         <Group key={i} g={g} owner={data.owner} busy={busy} act={act} />
       ))}
+
+      {asList(data.weak_pairs).length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+            Possible matches (weak signals only)
+          </h3>
+          {asList(data.weak_pairs).map((pair, i) => (
+            <div key={i} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <p className="text-[12px] text-white/80 mb-2">
+                <span className="font-semibold">@{pair.a}</span> — <span className="font-semibold">@{pair.b}</span>
+              </p>
+              <Signals pairs={[pair]} />
+              <p className="text-[11px] text-white/40 mt-2">
+                These accounts share a signal, but it could be a coincidence. Review before taking action.
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
