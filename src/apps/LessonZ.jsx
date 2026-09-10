@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi } from "lucide-react";
+import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi, AlertCircle } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -10,6 +10,30 @@ import MentionText from "../MentionParser.jsx";
 
 const SKILLS = ["mimez", "directz", "singz", "rapz", "dawz", "designz", "shotz", "writez",
   "guitar", "piano", "vocals", "drums", "bass", "violin", "saxophone", "dj"];
+
+function validatePrice(price) {
+  const p = parseFloat(price);
+  if (!price || p <= 0) return "Price must be greater than $0";
+  return null;
+}
+
+function validateHours(hours) {
+  const h = parseFloat(hours);
+  if (!hours || h <= 0) return "Hours must be greater than 0";
+  if (h > 24) return "Hours must be 24 or less";
+  return null;
+}
+
+function validateTitle(title) {
+  if (!title || !title.trim()) return "Title is required";
+  if (title.trim().length > 140) return "Title must be 140 characters or less";
+  return null;
+}
+
+function validateSkill(skill) {
+  if (!skill || !skill.trim()) return "Skill is required";
+  return null;
+}
 
 export default function LessonZ() {
   const [view, setView] = useState("browse"); // browse | teach | bookings | train
@@ -100,6 +124,13 @@ function Browse() {
 
   async function book(offer) {
     setMsg("");
+    if (offer.pricing_mode === "per_hour") {
+      const hoursErr = validateHours(hours[offer.id] || "1");
+      if (hoursErr) {
+        setMsg(hoursErr);
+        return;
+      }
+    }
     try {
       const body = { offer: offer.id, pricing_mode: offer.pricing_mode };
       if (offer.pricing_mode === "per_hour") body.hours = hours[offer.id] || "1";
@@ -195,8 +226,12 @@ function Teach() {
   const [elig, setElig] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const set = (k) => (e) =>
-    setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const [errors, setErrors] = useState({});
+  const set = (k) => (e) => {
+    const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setForm({ ...form, [k]: val });
+    setErrors({ ...errors, [k]: null });
+  };
 
   useEffect(() => {
     let on = true;
@@ -207,8 +242,22 @@ function Teach() {
   }, [form.skill]);
 
   async function publish() {
+    const errs = {};
+    const skillErr = validateSkill(form.skill);
+    if (skillErr) errs.skill = skillErr;
+    const titleErr = validateTitle(form.title);
+    if (titleErr) errs.title = titleErr;
+    const priceErr = validatePrice(form.price);
+    if (priceErr) errs.price = priceErr;
+
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
     setBusy(true);
     setMsg("");
+    setErrors({});
     try {
       const body = { ...form };
       if (navigator.geolocation) {
@@ -221,6 +270,7 @@ function Teach() {
       }
       await api("/api/lessonz/offers/", { method: "POST", body });
       setMsg(talk(P.lesson_offer_published));
+      setForm({ skill: "guitar", title: "", description: "", pricing_mode: "per_hour", price: "25.00", city: "", remote_ok: true, in_person_ok: true, callz_ok: false });
     } catch (e) {
       setMsg(e.message);
     } finally {
@@ -239,17 +289,26 @@ function Teach() {
         )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <input list="lessonz-skills" className="neon-input" placeholder="Skill (e.g. guitar, mimez…)"
-               value={form.skill} onChange={set("skill")} />
-        <datalist id="lessonz-skills">
-          {SKILLS.map((s) => <option key={s} value={s} />)}
-        </datalist>
-        <input className="neon-input" placeholder="Lesson title" value={form.title} onChange={set("title")} />
+        <div>
+          <input list="lessonz-skills" className={`neon-input ${errors.skill ? "border-mcz-pink" : ""}`} placeholder="Skill (e.g. guitar, mimez…)"
+                 value={form.skill} onChange={set("skill")} />
+          {errors.skill && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.skill}</p>}
+          <datalist id="lessonz-skills">
+            {SKILLS.map((s) => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <div>
+          <input className={`neon-input ${errors.title ? "border-mcz-pink" : ""}`} placeholder="Lesson title" value={form.title} onChange={set("title")} />
+          {errors.title && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.title}</p>}
+        </div>
         <select className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
           <option value="per_hour">Per hour</option>
           <option value="per_lesson">Per lesson</option>
         </select>
-        <input className="neon-input" placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
+        <div>
+          <input className={`neon-input ${errors.price ? "border-mcz-pink" : ""}`} placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
+          {errors.price && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.price}</p>}
+        </div>
         <input className="neon-input sm:col-span-2" placeholder="City (for distance search)" value={form.city} onChange={set("city")} />
         <textarea className="neon-input sm:col-span-2" rows={3} placeholder="What you'll cover…" value={form.description} onChange={set("description")} />
       </div>
@@ -416,13 +475,31 @@ function PostForm() {
   const [form, setForm] = useState({ skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const [errors, setErrors] = useState({});
+  const set = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value });
+    setErrors({ ...errors, [k]: null });
+  };
 
   async function publish() {
-    setBusy(true); setMsg("");
+    const errs = {};
+    const titleErr = validateTitle(form.title);
+    if (titleErr) errs.title = titleErr;
+    const priceErr = validatePrice(form.price);
+    if (priceErr) errs.price = priceErr;
+    const mediaErr = !form.media_ref || !form.media_ref.trim() ? "Media ref (upload id) is required" : null;
+    if (mediaErr) errs.media_ref = mediaErr;
+
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
+    setBusy(true); setMsg(""); setErrors({});
     try {
       await api("/api/lessonz/posts/", { method: "POST", body: form });
       setMsg(talk(P.lesson_post_published));
+      setForm({ skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" });
     } catch (e) { setMsg(e.message); } finally { setBusy(false); }
   }
 
@@ -433,15 +510,24 @@ function PostForm() {
         <select className="neon-input" value={form.skill} onChange={set("skill")}>
           {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <input className="neon-input" placeholder="Title" value={form.title} onChange={set("title")} />
-        <input className="neon-input" placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
+        <div>
+          <input className={`neon-input ${errors.title ? "border-mcz-pink" : ""}`} placeholder="Title" value={form.title} onChange={set("title")} />
+          {errors.title && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.title}</p>}
+        </div>
+        <div>
+          <input className={`neon-input ${errors.price ? "border-mcz-pink" : ""}`} placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
+          {errors.price && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.price}</p>}
+        </div>
         <select className="neon-input" value={form.visibility} onChange={set("visibility")}>
           <option value="public">Public — anyone</option>
           <option value="premium">Premium tier</option>
           <option value="statz">StatZ tier</option>
           <option value="private">Only me</option>
         </select>
-        <input className="neon-input" placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} />
+        <div>
+          <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} />
+          {errors.media_ref && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.media_ref}</p>}
+        </div>
         <input className="neon-input" placeholder="Preview ref (optional)" value={form.preview_ref} onChange={set("preview_ref")} />
         <textarea className="neon-input sm:col-span-2" rows={2} placeholder="What students will learn…" value={form.description} onChange={set("description")} />
       </div>
