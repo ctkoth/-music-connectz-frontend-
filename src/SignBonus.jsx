@@ -113,21 +113,66 @@ function AllGrid({ rows, field, mineKey, title }) {
       <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">
         {title}
       </p>
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {rows.map((b) => {
           const name = b[field];
+          const isOwn = name === mineKey;
+          const isDone = b.earned_base && b.earned_stretch;
           return (
             <div key={name}
-                 className={`rounded-xl border p-2 ${
-                   name === mineKey
-                     ? "border-mcz-gold/50 bg-mcz-gold/5"
-                     : "border-white/10 bg-black/20"
+                 className={`neon-frame group rounded-xl border p-3 transition-all ${
+                   isOwn
+                     ? "border-mcz-gold/60 bg-mcz-gold/10"
+                     : isDone
+                       ? "border-emerald-300/30 bg-emerald-300/5"
+                       : "border-white/10 bg-black/20 hover:border-white/20"
                  }`}>
-              <p className="text-sm font-semibold text-white/85">
-                {EMOJI[name]} {name} — {b.name}
+              {/* Badge header with icon and earned state */}
+              <div className="mb-2 flex items-start justify-between">
+                <p className="text-2xl">{EMOJI[name]}</p>
+                {isDone && (
+                  <span className="rounded-full bg-emerald-300/20 p-1">
+                    <Check size={14} className="text-emerald-300" />
+                  </span>
+                )}
+              </div>
+
+              {/* Badge name and type */}
+              <p className="text-sm font-semibold leading-tight text-white/90">
+                {b.name}
               </p>
-              <p className="text-xs text-white/55">{b.does}</p>
-              <p className="text-xs text-white/35">Further: {b.stretch}</p>
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-white/40">
+                {name}
+              </p>
+
+              {/* Actions with earn amounts */}
+              <div className="space-y-1">
+                <div className="flex items-start justify-between gap-2 text-xs">
+                  <span className={b.earned_base ? "line-through text-white/35" : "text-white/60"}>
+                    {b.does}
+                  </span>
+                  <span className={b.earned_base ? "line-through text-emerald-300/40" : "text-emerald-300/70"}>
+                    +{b.base_spinaz}{SPINAZ}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-2 text-xs">
+                  <span className={b.earned_stretch ? "line-through text-white/35" : "text-white/60"}>
+                    {b.stretch}
+                  </span>
+                  <span className={b.earned_stretch ? "line-through text-emerald-300/40" : "text-emerald-300/70"}>
+                    +{b.stretch_spinaz}{SPINAZ}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action button — cross-pollination */}
+              {!isDone && b.tab && (
+                <button
+                  onClick={() => goToTab(b.tab)}
+                  className="neon-btn mt-3 w-full !px-2 !py-1 text-xs opacity-0 transition group-hover:opacity-100">
+                  Go →
+                </button>
+              )}
             </div>
           );
         })}
