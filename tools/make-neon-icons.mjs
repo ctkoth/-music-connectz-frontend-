@@ -185,6 +185,33 @@ const G = {
     <path d="M186 186h-52M186 246h-56M186 296h-46M326 186h52M326 246h56M326 296h46"
           stroke="${a}" stroke-width="13" stroke-linecap="round"/>`,
 
+  // SoundCloud's own identity IS a cloud made of waveform bars, so the bars
+  // ARE the glyph: their tops trace the cloud silhouette rather than a cloud
+  // being drawn around them. Deliberately not a copy of SoundCloud's
+  // trademark — this is MCZ's neon house style saying which service the tab
+  // talks to, which is what an integration icon is for. A pixel-accurate
+  // logo would imply a partnership we do not have.
+  //
+  // The accent is C.ember (#ff5500), which the palette already held and which
+  // happens to be SoundCloud's own orange — so it reads correctly without a
+  // colour being added to the set for one tile.
+  soundcloudengagementz: (a, b) => `
+    <g stroke="${a}" stroke-width="16" stroke-linecap="round">
+      <path d="M150 268v-28"/>
+      <path d="M180 268v-52"/>
+      <path d="M210 268v-84"/>
+      <path d="M240 268v-116"/>
+      <path d="M270 268v-100"/>
+    </g>
+    <g stroke="${b}" stroke-width="16" stroke-linecap="round">
+      <path d="M300 268v-72"/>
+      <path d="M330 268v-44"/>
+      <path d="M360 268v-26"/>
+    </g>
+    <path d="M138 268h236" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-opacity="0.45"/>
+    <path d="M196 140a54 54 0 0 1 100 14" fill="none" stroke="${b}" stroke-width="12"
+          stroke-linecap="round" stroke-opacity="0.55"/>`,
+
   funnelz: (a, b) => `
     <path d="M132 116h248l-92 108v86l-64 30v-116z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M170 156h172" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.8"/>
@@ -262,6 +289,7 @@ const APPS = [
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
   ["funnelz", "FunnelZ", C.emerald, C.cyan],
+  ["soundcloudengagementz", "SoundCloud Engagement", C.ember, C.cyan],
   ["metz", "MetZ", C.cyan, C.gold],
   ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],

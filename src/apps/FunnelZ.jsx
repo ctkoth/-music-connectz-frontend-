@@ -9,6 +9,7 @@ import { Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
+import OfferCatalog from "./OfferCatalog.jsx";
 
 const DAY_OPTIONS = [7, 14, 30, 90];
 
@@ -56,8 +57,9 @@ export default function FunnelZ() {
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">FunnelZ</h2>
           <p className="text-xs text-white/45">
-            The join funnel, measured — landing → trial → register, real events and real unique
-            visitors, nothing modeled.
+            Both halves of the funnel: the join path measured — landing → trial → register,
+            real events and real unique visitors, nothing modeled — and every offer the
+            platform springs on a member, with the reason it exists.
           </p>
         </div>
       </header>
@@ -117,6 +119,14 @@ export default function FunnelZ() {
           )}
         </div>
       )}
+
+      {/* The other half. Measurement says where people stop; the catalogue
+          says what the platform does about it, and the two belong on one
+          screen because split across two tabs nobody ever looks at both —
+          which is the only way either number means anything. */}
+      <div className="border-t border-white/10 pt-5">
+        <OfferCatalog />
+      </div>
     </div>
   );
 }

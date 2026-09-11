@@ -256,6 +256,43 @@ An amount of `0` in a gain line means "there is a gain but it is not a number"
 member can see which resource is involved; inventing a figure to fill the slot
 would be the substance rule's failure case with a promotion attached.
 
+### The owner's half lives in FunnelZ, and a failure there IS worth saying
+
+`OfferCatalog.jsx` is the other end of the same feature, mounted under the
+join funnel in `FunnelZ.jsx`. The member panel is capped at three and shows
+only what is true for the person looking; this shows **every** offer including
+the ones that never fire, each with the `why` the server now sends.
+
+The two sit on one screen on purpose. Measurement says where people stop; the
+catalogue says what the platform does about it — and split across two tabs
+nobody ever looks at both, which is the only way either number means anything.
+
+One deliberate inversion of the member panel's rule: **a failed fetch here
+says so out loud.** The owner went looking for this, so silence would read as
+"there are no offers" rather than "the request failed". The member never asked
+for their panel, which is why that one stays quiet.
+
+This also closed a gap worth remembering: the offer engine shipped with its
+only surface inside PostZ, so the feature had no tab of its own and there was
+nothing for the owner to pin.
+
+### The icon registry can name a file that was never drawn
+
+`soundcloudengagementz.png` was registered in `ICONS` pointing at a neon SVG
+that **did not exist**, so it 404'd and fell back to the MCZ logo — silently,
+which is by design (`IconImg` falls back rather than showing a broken image)
+and is therefore the kind of thing nobody reports. If a tile looks like the
+logo, check `public/icons/` before assuming the registry is wrong.
+
+Its glyph is in `tools/make-neon-icons.mjs` like every other one — **edit the
+glyph there, never the generated SVG.** SoundCloud's own identity is a cloud
+made of waveform bars, so the bars trace the cloud silhouette rather than a
+cloud being drawn around them. Deliberately NOT a copy of their trademark:
+using a service's mark to say which service a tab talks to is ordinary
+nominative use, but a pixel-accurate logo implies a partnership we do not
+have. The accent is `C.ember` (#ff5500), which the palette already held and
+which happens to be SoundCloud's own orange.
+
 
 ## Conventions
 
