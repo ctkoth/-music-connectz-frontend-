@@ -33,6 +33,15 @@ const C = {
    heavy (12-16) because the dock draws these at 36px, where anything finer
    turns to mud. `a` is the app's accent, `b` a secondary from the palette. */
 const G = {
+  // QuestZ — a banner on a pole with the bolt it pays inside it. The quest
+  // board is the Energy on-ramp before reach exists, so the reward is IN the
+  // mark rather than beside it: this tab is the income, not a to-do list.
+  questz: (a, b) => `
+    <path d="M162 92v328" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M162 124h186l-38 58 38 58H162z" fill="none" stroke="${a}" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M252 146l-26 44h34l-26 44" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M198 352h152" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.4"/>`,
+
   onboardz: (a, b) => `
     <rect x="150" y="104" width="212" height="196" rx="26" fill="none" stroke="${a}" stroke-width="14"/>
     <path d="M186 162l26 26 52-56" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
@@ -261,6 +270,7 @@ const G = {
 // a set rather than a rainbow accident, and so apps that already have a
 // colour in code keep it (SingZ pink, RapZ amber, CollabZ yellow, BugZ cyan).
 const APPS = [
+  ["questz", "QuestZ", C.gold, C.emerald],
   ["onboardz", "OnboardZ", C.emerald, C.gold],
   ["playlistz", "PlaylistZ", C.cyan, C.pink],
   ["social_connectz", "Social ConnectZ", C.pink, C.cyan],
