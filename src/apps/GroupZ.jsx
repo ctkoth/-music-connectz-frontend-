@@ -15,9 +15,11 @@ const KINDS = [
 
 export default function GroupZ({ onViewProfile, onMessage }) {
   const [groups, setGroups] = useState(null);
+  const [tierLimit, setTierLimit] = useState(null);
   const [msg, setMsg] = useState("");
   const [names, setNames] = useState({});
   const [customTitle, setCustomTitle] = useState("");
+  const [customIcon, setCustomIcon] = useState("");
   const [failed, setFailed] = useState(false);
 
   // A failed load has to STOP the spinner. Leaving `groups` at null on a
@@ -26,14 +28,21 @@ export default function GroupZ({ onViewProfile, onMessage }) {
   // is the state every member saw for as long as there was no backend here.
   const load = useCallback(() => {
     api("/api/groupz/")
-      .then((d) => { setGroups(asList(d)); setFailed(false); })
+      .then((d) => {
+        setGroups(asList(d.groups || d));
+        setTierLimit(d.tier_limit);
+        setFailed(false);
+      })
       .catch((e) => { setMsg(e.message); setGroups([]); setFailed(true); });
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  async function ensure(kind, title = "") {
+  async function ensure(kind, title = "", icon = "") {
     setMsg("");
-    try { await api("/api/groupz/", { method: "POST", body: { kind, title } }); load(); }
+    try {
+      await api("/api/groupz/", { method: "POST", body: { kind, title, icon } });
+      load();
+    }
     catch (e) { setMsg(e.message); }
   }
   async function member(id, action) {
@@ -80,18 +89,42 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                   )}
                 </div>
                 {kind === "custom" && (
-                  <div className="mb-3 flex gap-2">
-                    <input className="neon-input !py-2" placeholder="New custom group name"
-                           value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} />
-                    <button className="neon-btn-primary !w-auto px-4 py-2 text-xs"
-                            onClick={() => { if (customTitle.trim()) { ensure("custom", customTitle.trim()); setCustomTitle(""); } }}>
-                      Create
-                    </button>
+                  <div className="mb-3 space-y-2">
+                    {tierLimit && (
+                      <p className="text-xs text-white/60">
+                        {tierLimit.current}/{tierLimit.limit} custom groups
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <input className="neon-input !py-2" placeholder="New custom group name"
+                             value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} />
+                      <input className="neon-input !py-2 w-20" placeholder="Icon (emoji)"
+                             value={customIcon} onChange={(e) => setCustomIcon(e.target.value.slice(0, 10))}
+                             maxLength="10" />
+                      <button className="neon-btn-primary !w-auto px-4 py-2 text-xs"
+                              onClick={() => {
+                                if (customTitle.trim() && tierLimit && tierLimit.current < tierLimit.limit) {
+                                  ensure("custom", customTitle.trim(), customIcon);
+                                  setCustomTitle("");
+                                  setCustomIcon("");
+                                } else if (tierLimit && tierLimit.current >= tierLimit.limit) {
+                                  setMsg(`You've reached your ${tierLimit.limit} custom group limit.`);
+                                }
+                              }}
+                              disabled={tierLimit && tierLimit.current >= tierLimit.limit}>
+                        Create
+                      </button>
+                    </div>
                   </div>
                 )}
                 {rows.map((g) => (
                   <div key={g.id} className="mb-2 rounded-xl bg-black/25 p-3">
-                    {g.title && <p className="mb-1 text-sm font-medium">{g.title}</p>}
+                    {g.title && (
+                      <p className="mb-1 text-sm font-medium flex items-center gap-2">
+                        {g.icon && <span className="text-lg">{g.icon}</span>}
+                        {g.title}
+                      </p>
+                    )}
                     <div className="mb-2 space-y-1">
                       {g.members.length === 0 && <span className="text-xs text-white/40">No members yet.</span>}
                       {g.members.map((m) => (
