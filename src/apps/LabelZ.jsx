@@ -15,8 +15,14 @@ export default function LabelZ() {
   const [offer, setOffer] = useState({ label_id: "", artist: "", title: "Artist Agreement", terms_text: "", advance_display: "", signed_name: "" });
   const [signName, setSignName] = useState({});
 
+  // `data` staying null on a rejection meant the early return below rendered a
+  // spinner FOREVER — and, because that return happens before the line that
+  // prints `msg`, with the reason never shown at all. An empty shape stops the
+  // spinner and lets the error through.
   const load = useCallback(() => {
-    api("/api/labelz/").then(setData).catch((e) => setMsg(e.message));
+    api("/api/labelz/")
+      .then(setData)
+      .catch((e) => { setMsg(e.message); setData({ labels: [], can_create: false }); });
     api("/api/labelz/contracts/").then(setContracts).catch(() => setContracts({ as_artist: [], as_owner: [] }));
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -28,8 +34,12 @@ export default function LabelZ() {
   }
   async function sendOffer() {
     setMsg("");
-    try { await api("/api/labelz/contracts/", { method: "POST", body: offer }); setMsg(talk(P.label_offered)); load(); }
-    catch (e) { setMsg(e.message); }
+    try {
+      const result = await api("/api/labelz/contracts/", { method: "POST", body: offer });
+      const link = result.open_in ? ` [Watch it →](/labelz?contract=${result.id})` : "";
+      setMsg(talk(P.label_offered) + link);
+      load();
+    } catch (e) { setMsg(e.message); }
   }
   async function respond(id, action) {
     setMsg("");
@@ -70,8 +80,11 @@ export default function LabelZ() {
           <button className="neon-btn-primary !w-auto px-5" onClick={createLabel}><Plus size={16} /> Create label</button>
         </div>
       ) : (
+        // The reason comes from the server. Naming the tiers here would be the
+        // second place that ladder lives, which is how the "20 free prompts"
+        // figure reached nine screens and drifted apart in all of them.
         <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
-          Creating a label requires Premium/StatZ tier or the A&amp;R Scout / Manager persona — set yours in ProfileZ.
+          {data.why_not || "Founding a label isn't open on your account yet."}
         </p>
       )}
 

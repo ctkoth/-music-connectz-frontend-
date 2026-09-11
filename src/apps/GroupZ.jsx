@@ -3,6 +3,7 @@ import { Loader2, UserMinus, UserPlus, Mail, Eye } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
+import { goToTab } from "../goto.js";
 
 const KINDS = [
   ["friends", "FriendZ", "groupz_friendz.png"],
@@ -17,9 +18,16 @@ export default function GroupZ({ onViewProfile, onMessage }) {
   const [msg, setMsg] = useState("");
   const [names, setNames] = useState({});
   const [customTitle, setCustomTitle] = useState("");
+  const [failed, setFailed] = useState(false);
 
+  // A failed load has to STOP the spinner. Leaving `groups` at null on a
+  // rejection left this tab spinning forever with the reason printed above it
+  // — which reads as the app hanging rather than as a request that failed, and
+  // is the state every member saw for as long as there was no backend here.
   const load = useCallback(() => {
-    api("/api/groupz/").then((d) => setGroups(asList(d))).catch((e) => setMsg(e.message));
+    api("/api/groupz/")
+      .then((d) => { setGroups(asList(d)); setFailed(false); })
+      .catch((e) => { setMsg(e.message); setGroups([]); setFailed(true); });
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -65,7 +73,7 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                   <p className="flex items-center gap-2 font-semibold">
                     <IconImg icon={icon} alt="" className="h-7 w-7 rounded-lg" /> {label}
                   </p>
-                  {rows.length === 0 && kind !== "custom" && (
+                  {rows.length === 0 && kind !== "custom" && !failed && (
                     <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={() => ensure(kind)}>
                       Create
                     </button>
@@ -96,16 +104,37 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                         </div>
                       ))}
                     </div>
-                    <div className="flex gap-2">
-                      <input className="neon-input !py-2 text-sm" placeholder="username"
-                             value={names[g.id] || ""} onChange={(e) => setNames({ ...names, [g.id]: e.target.value })} />
-                      <button className="neon-btn-primary !w-auto px-3 py-2 text-xs" onClick={() => member(g.id, "add")}>
-                        <UserPlus size={14} />
-                      </button>
-                      <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" onClick={() => member(g.id, "remove")}>
-                        <UserMinus size={14} />
-                      </button>
-                    </div>
+                    {/* FriendZ and FanZ are the follow graph, not a list you
+                        edit — you don't add a fan, somebody decides to follow
+                        you. An add box that always fails reads as the feature
+                        being broken, so the row says what DOES change it and
+                        offers the jump instead. The server decides which is
+                        which; this never assumes by kind. */}
+                    {g.can_add === false ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {g.note && <p className="text-xs text-white/45">{g.note}</p>}
+                        {g.tab && g.tab !== "groupz" && (
+                          <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs"
+                                  onClick={() => goToTab(g.tab)}>
+                            Open {g.tab} →
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {g.note && <p className="mb-2 text-xs text-white/45">{g.note}</p>}
+                        <div className="flex gap-2">
+                          <input className="neon-input !py-2 text-sm" placeholder="username"
+                                 value={names[g.id] || ""} onChange={(e) => setNames({ ...names, [g.id]: e.target.value })} />
+                          <button className="neon-btn-primary !w-auto px-3 py-2 text-xs" onClick={() => member(g.id, "add")}>
+                            <UserPlus size={14} />
+                          </button>
+                          <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" onClick={() => member(g.id, "remove")}>
+                            <UserMinus size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

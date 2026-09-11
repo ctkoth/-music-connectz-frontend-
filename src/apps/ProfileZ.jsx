@@ -25,21 +25,34 @@ function Verify18Card() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // A verify return (?verify=done) — refetch status and acknowledge.
+    // A verify return (?verify=done) — refetch status and show what happened.
     if (new URLSearchParams(window.location.search).get("verify") === "done") {
-      setMsg("Thanks! If your ID cleared, your 18+ badge appears within a minute.");
+      api("/api/economy/identity/").then((freshStatus) => {
+        setSt(freshStatus);
+        if (freshStatus.status === "verified") {
+          setMsg("✓ Verified 18+ — you can now: bet in BattleZ, adjust adult content filters.");
+        } else if (freshStatus.status === "pending") {
+          setMsg("Waiting for Stripe to verify your ID — check back in a few minutes.");
+        } else if (freshStatus.status === "failed") {
+          setMsg("Verification timed out or failed. Try again.");
+        } else {
+          setMsg("Thanks! Check back for your 18+ status.");
+        }
+      }).catch(() => setMsg("Couldn't load verification status."));
       window.history.replaceState({}, "", window.location.pathname);
+    } else {
+      api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
     }
-    api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
   }, []);
 
   async function start() {
     setBusy(true); setMsg("");
     try {
       const r = await api("/api/economy/identity/", { method: "POST", body: {} });
-      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); return; }
+      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); setShowModal(false); return; }
       if (r?.url) { window.location.href = r.url; return; }
       setMsg("Couldn't start verification — try again.");
     } catch (e) {
@@ -60,13 +73,39 @@ function Verify18Card() {
       ) : (
         <>
           <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled}>
+          <button className="re-btn !w-auto px-4" onClick={() => setShowModal(true)} disabled={busy || !st.stripe_enabled}>
             {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : "Verify I'm 18+"}
           </button>
           {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
         </>
       )}
       {msg && <p className="text-[11px] text-white/70">{msg}</p>}
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="neon-frame w-full max-w-sm space-y-4 p-6 m-4">
+            <div className="flex items-start justify-between">
+              <p className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck size={16} className="text-mcz-ember" /> Age Verification</p>
+              <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white/70"><X size={16} /></button>
+            </div>
+            <div className="space-y-3 text-[11px] text-white/70">
+              <p>Verify with a government ID + selfie via Stripe Identity (takes ~5 min).</p>
+              <div className="rounded-lg bg-white/5 p-3 space-y-2">
+                <p className="font-semibold text-white">What it unlocks:</p>
+                <ul className="space-y-1 pl-4">
+                  <li>• Bet money in BattleZ</li>
+                  <li>• Access adult content</li>
+                </ul>
+              </div>
+              <p className="flex items-center gap-2"><Check size={13} className="text-emerald-400" /> <span>Free • No personal data stored</span></p>
+            </div>
+            <div className="flex gap-2">
+              <button className="flex-1 neon-btn-primary text-sm py-2" onClick={() => { setShowModal(false); start(); }}>Start Verification</button>
+              <button className="flex-1 neon-btn-ghost text-sm py-2" onClick={() => setShowModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
