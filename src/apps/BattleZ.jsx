@@ -332,6 +332,7 @@ function Detail({ id, onBack, onFlash, seed }) {
                   {["host", "opponent"].map((side) => (
                     <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}>
                       Back @{b.scoreboard?.[side]?.username}
+                      <span className="ml-1 text-mcz-ember">−🍥 (amount via prompt)</span>
                     </button>
                   ))}
                 </div>
@@ -595,7 +596,7 @@ export default function BattleZ() {
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
             </button>
             <p className="text-[10px] text-white/35">
-              Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
+              <span className="text-emerald-300">Free to send.</span> Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.
             </p>
           </div>
@@ -633,9 +634,11 @@ export default function BattleZ() {
                       disabled={busy || !form.title.trim()}>
                 {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
               </button>
-              {Number(form.entry_spinaz || 0) > 0 && (
-                <span className="text-sm text-emerald-300">+{Number(form.entry_spinaz)} {SPINAZ}/entry</span>
-              )}
+              <span className="text-sm text-emerald-300">
+                {Number(form.entry_spinaz || 0) > 0
+                  ? <>+{Number(form.entry_spinaz)} {SPINAZ}/entry</>
+                  : <>Free to host</>}
+              </span>
             </div>
           </div>
         </>
