@@ -56,6 +56,7 @@ const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
 const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const PersonalitieZ = lazy(lazyRoute(() => import("./apps/PersonalitieZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
@@ -371,6 +372,7 @@ const TABS = [
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  { key: "personalitiez", label: "PersonalitieZ", icon: "personalitiez.png", el: <PersonalitieZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
