@@ -179,6 +179,76 @@ const CN_ZODIAC_EMOJI = { Rat:"🐀",Ox:"🐂",Tiger:"🐅",Rabbit:"🐇",Dragon
 const PREMIUM_ICONS = new Set(["personaz_designer_manga.png"]);
 
 
+// Autocomplete for similar artists input
+function ArtistAutocomplete({ value, onChange, onSelect, placeholder = "Add similar artist..." }) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  async function search(q) {
+    if (!q.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await api(`/api/economy/artist-search/?q=${encodeURIComponent(q)}&limit=10`);
+      setSuggestions((res.results || []).filter(a => !value.includes(a)));
+      setShowSuggestions(true);
+    } catch (e) {
+      setSuggestions([]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleInput(e) {
+    const q = e.target.value;
+    setQuery(q);
+    if (q.trim()) search(q);
+    else setSuggestions([]);
+  }
+
+  function add(artist) {
+    onSelect(artist);
+    setQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={handleInput}
+        onFocus={() => query && setShowSuggestions(true)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+        placeholder={placeholder}
+        className="neon-input text-xs w-full"
+      />
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute top-full z-10 w-full mt-1 bg-black/90 border border-white/20 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+          {suggestions.map((artist) => (
+            <button
+              key={artist}
+              type="button"
+              onClick={() => add(artist)}
+              className="w-full px-3 py-1.5 text-left text-xs text-white/80 hover:bg-white/10 transition"
+            >
+              {artist}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Skill picker for one PersonaZ — 2.2's openSkillModal, with the start date it
 // never had. The date is the point: the server derives a member's experience
 // from the earliest one across all their skills, so an undated skill is a claim
@@ -254,7 +324,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                     </button>
 
                     {on && (
-                      <div className="mt-1 space-y-1 pl-3">
+                      <div className="mt-1 space-y-2 pl-3">
                         {rows.map((pr, i) => (
                           <div key={i} className="flex flex-wrap items-center gap-1.5">
                             <span className="text-[10px] text-white/40">{i === 0 ? "Started" : "Again"}</span>
@@ -298,6 +368,54 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                                 ? <span className="text-emerald-300"> · active</span>
                                 : act?.lastPlayed && <span className="text-white/35"> · last played {act.lastPlayed.slice(0, 4)}</span>}
                             </span>
+                          )}
+                        </div>
+
+                        {/* Similar Artists */}
+                        <div className="border-t border-white/10 pt-2 mt-2">
+                          <p className="text-[10px] text-white/50 mb-1">Similar artists on this skill</p>
+                          <ArtistAutocomplete
+                            value={picked[label]?.similar_artists || []}
+                            onChange={() => {}}
+                            onSelect={(artist) => {
+                              const cur = picked[label]?.similar_artists || [];
+                              if (!cur.includes(artist)) {
+                                onChange(Object.values({
+                                  ...picked,
+                                  [label]: {
+                                    ...picked[label],
+                                    name: label,
+                                    similar_artists: [...cur, artist]
+                                  }
+                                }));
+                              }
+                            }}
+                          />
+                          {(picked[label]?.similar_artists || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {picked[label].similar_artists.map((artist, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1.5 rounded-full bg-mcz-cyan/10 border border-mcz-cyan/30 px-2 py-1 text-[10px] text-white">
+                                  {artist}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = picked[label].similar_artists.filter((_, i) => i !== idx);
+                                      onChange(Object.values({
+                                        ...picked,
+                                        [label]: {
+                                          ...picked[label],
+                                          name: label,
+                                          similar_artists: updated
+                                        }
+                                      }));
+                                    }}
+                                    className="text-white/40 hover:text-white"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
