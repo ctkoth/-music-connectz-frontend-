@@ -178,7 +178,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
    * happened to the four `boss_take_*` names this replaced. */
   function step(kind, meta = {}) {
     if (!trial) return;
-    track(kind, { app_key: appKey, ...meta });
+    try {
+      track(kind, { app_key: appKey, ...meta });
+    } catch {
+      // Belt and braces, and earned: the calls this replaced sat OUTSIDE the
+      // try blocks around them, so one bad line in the measurement took the
+      // recorder down with it. `track` guards itself, but the guard that
+      // matters is the one between a measurement and the feature it measures
+      // — and it belongs here, once, rather than at six call sites.
+    }
   }
 
   // The size ceiling, in bytes, as published by the server. One copy of the
