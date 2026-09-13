@@ -420,6 +420,88 @@ Cards hand off through `MemberName`, which already opens the profile modal and
 prefills a MessageZ compose. A second implementation of "open this member" is
 the one that drifts.
 
+## The recorder audit: five ways a take dies, and what each one used to say
+
+The trial recorder was audited end to end after a camera take and a mic take
+both failed on the same screen. Five separate defects, and the common thread
+is that every one of them reported a cause that was not the cause.
+
+**1. Every `getUserMedia` failure was "access was refused."** The catch
+discarded the error. `mediaError()` names them now, because they need
+opposite answers:
+
+| `err.name` | What is actually wrong |
+|---|---|
+| `NotAllowedError` / `SecurityError` | genuinely blocked |
+| `NotFoundError` | there is no mic/camera on this device |
+| `NotReadableError` / `TrackStartError` | **another app is holding it** — Zoom, Teams, OBS, another tab |
+| `OverconstrainedError` | OUR constraints are impossible here |
+| — | no `mediaDevices` at all → usually a non-https origin, not the browser |
+
+The two that mattered most were `NotReadableError` and `NotFoundError`: both
+sent somebody off to re-grant a permission they had already granted, forever,
+while the real cause went unmentioned. `OverconstrainedError` is ours to fix
+rather than report, so it retries once with plain settings before saying
+anything.
+
+**2. A recording that captured nothing became a take.** `onstop` attached
+whatever it had, including an empty Blob, and the send then uploaded zero
+bytes — which on the trial door cost the visitor the one free take they came
+for, to learn nothing. Empty is refused at the recorder now, and `submit`
+refuses a zero-byte blob from the file picker too.
+
+**3. The player said `0:00 / 0:00` on a good take.** A MediaRecorder WebM
+carries no Duration in its header — it was written as a live stream — so the
+element has nothing to read. Somebody staring at 0:00 cannot tell that from a
+recording that genuinely captured nothing, which is the difference between
+"send it" and "this is broken". The real length and size, which the recorder
+already counts, are printed under the player with a line saying the 0:00 is
+the file's header rather than their take.
+
+**4. Chromium changed what it records, and nobody noticed.** `bestMime` put
+`audio/mp4` second, from a time when no Chromium build could record it and
+the entry existed for Safari. Chromium can now, so it won the list — and
+asking for bare `audio/mp4` lets the browser choose the codec, which it does:
+`audio/mp4;codecs=opus`. Opus inside MP4 is legal, unusual, and not a pairing
+this pipeline had ever been fed. The order now puts `audio/webm;codecs=opus`
+first and names Safari's codec explicitly instead of leaving it open.
+
+**5. No `onerror` on the MediaRecorder at all**, so a recorder that died
+mid-take said nothing.
+
+### It was verified in a browser, not reasoned about
+
+Headless Chromium with `--use-fake-device-for-media-stream` records real
+audio and video through the exact `bestMime` order that ships. That is how
+the `audio/mp4;codecs=opus` switch was found — it is not visible in the
+source. The takes it produced are committed in the backend as
+`apps/economy/testdata_takes/` and its `RealBrowserRecordingTests` posts all
+three at the live trial endpoint, so a future browser change fails a test
+instead of a member.
+
+That run also corrected a belief: Django's multipart parser strips
+`;codecs=…` into `content_type_extra` before a view sees it, which
+`gemini_mime`'s docstring had claimed it did not.
+
+## The trial says NO before you perform, not after
+
+`available`, `already_used`, `configured` and `cap_reached` have been in
+`GET /api/<key>/trial/` from the start and **nothing ever read them**. So the
+door showed a stranger a recorder, let them do a take, and refused it on Send.
+That is the cost/gain rule broken in the most expensive way available, because
+the thing they spent was a performance.
+
+`blocked` renders the specific reason above the recorder and hides the
+controls. A null `price` is a failed fetch, not a refusal, and blocks nothing.
+
+The failure card underneath leads with the **server's** sentence now. Its
+first version mapped every 5xx to "the coach is down at our end, send the same
+take again" — wrong advice for a 502 "the audio was silent" and a flat
+contradiction of a 503 "free takes are all spoken for today", while a 429 got
+"try a shorter clip" when the real answer was that an account lifts the cap.
+The server already knows which it is; the card's job is the next move, not a
+second opinion about the cause.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via

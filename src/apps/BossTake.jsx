@@ -5,6 +5,7 @@
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
@@ -40,6 +41,42 @@ const failReason = (e) => {
   return "refused";                   // 400/401/403/413/429 — we said no
 };
 
+/** What actually went wrong when getUserMedia said no.
+ *
+ * Every failure here used to be reported as "access was refused", because the
+ * catch discarded the error. That is wrong for most of them and actively
+ * misleading for two: a camera held by Zoom, OBS or another tab throws
+ * NotReadableError, and a machine with no camera at all throws NotFoundError
+ * — both of which sent somebody off to re-grant a permission they had already
+ * granted, forever, while the real cause sat unmentioned.
+ *
+ * `retry` marks the one case worth trying again automatically: our own
+ * constraints were impossible on this device, which is our problem to solve,
+ * not something to tell a member about. */
+function mediaError(err, video) {
+  const thing = video ? "camera" : "microphone";
+  switch (err?.name) {
+    case "NotAllowedError":
+    case "SecurityError":
+      return { why: "denied", msg: `The ${thing} was blocked. Allow it in the address-bar icon, `
+        + `then press record again${video ? " — or record audio only" : ""}. You can also upload a clip instead.` };
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return { why: "notfound", msg: `No ${thing} on this device — nothing to allow. `
+        + "Upload a clip instead and the coach scores it the same." };
+    case "NotReadableError":
+    case "TrackStartError":
+      return { why: "inuse", msg: `Something else is using the ${thing} — another tab, or an app `
+        + "like Zoom, Teams or OBS. Close it and press record again, or upload a clip." };
+    case "OverconstrainedError":
+      return { why: "constrained", retry: true,
+               msg: `This ${thing} couldn't do what we asked for. Trying again with plain settings…` };
+    default:
+      return { why: "other", msg: `The ${thing} didn't start (${err?.name || "unknown error"}). `
+        + "Upload a clip instead — it scores the same." };
+  }
+}
+
 const DIFFICULTY_LABEL = {
   starter: "Starter 🌱", builder: "Builder 🧩",
   performer: "Performer 🌟", stageboss: "Stage Boss 👑",
@@ -50,6 +87,14 @@ const DIFFICULTY_LABEL = {
 const mmssOf = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const mb = (n) => (n / 1024 / 1024).toFixed(1);
+
+/** A size a person can read, at the size takes actually come in.
+ *
+ * `mb()` is right for a cap and wrong for a take: a good eight-second clip is
+ * around 30KB, and 30KB in megabytes to one decimal is "0.0MB" — which is
+ * exactly as alarming as the 0:00 this line was added to explain away. It
+ * said "00:03 · 0.0MB" under a perfectly good recording. */
+const sizeLabel = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))}KB` : `${mb(n)}MB`);
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -160,7 +205,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // Why the last send came back with nothing, or "". Separate from `msg`
   // because a visitor at the trial door needs the way FORWARD, and a red line
   // is not one — see the card below.
-  const [failed, setFailed] = useState("");
+  // The whole failure, not a label for it: {why, status, data}. The server
+  // says something specific on every one of these — which cap, which cause —
+  // and a card that keeps only a category throws that away.
+  const [failed, setFailed] = useState(null);
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
@@ -270,6 +318,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
            || "Trim it to the section you want scored, or record video at a shorter length."));
       setShowUploadLimitPrompt(true);
       step("try_failed", { why: "too_big" });
+      setFailed({ why: "too_big", status: 0, data: {} });
       return;
     }
     if (url) URL.revokeObjectURL(url);
@@ -297,20 +346,46 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     // 900kbps request produced a 20Mbps file. MP4 stays last for Safari, which
     // cannot record WebM at all. The server relabels all of these correctly
     // (see _RELABEL in vocalcoach.py), so the choice is purely about size.
+    // AUDIO ORDER CHANGED, and the reason is a moving target.
+    //
+    // `audio/mp4` sat second, from a time when no Chromium build could record
+    // it and the entry was there for Safari. Chromium can now — so it wins
+    // the list, and asking for bare "audio/mp4" lets it pick the codec: it
+    // picks Opus, and hands back `audio/mp4;codecs=opus`. Opus inside MP4 is
+    // a legal but unusual pairing, and it is not what the coach's pipeline
+    // has ever actually been fed. Verified in headless Chromium — the takes
+    // in the backend's testdata_takes/ are that recorder's real output.
+    //
+    // So the widely-exercised container goes first and Safari's stays last
+    // with its codec named rather than left to the browser. Nothing here is
+    // a guess about what Gemini accepts — the server relabels every one of
+    // these (see vocalcoach._RELABEL) — it is about which combination has
+    // actually been through the coach and back.
     const wanted = video
       ? ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
-      : ["audio/ogg;codecs=opus", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
+      : ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm",
+         "audio/mp4;codecs=mp4a.40.2", "audio/mp4"];
     return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
   }
 
-  async function startRec(video = false) {
+  async function startRec(video = false, relaxed = false) {
     setMsg(""); setStopNote("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      return setMsg("This browser can't record. Attach a file instead.");
+      // The usual cause is not the browser. `mediaDevices` is undefined on any
+      // origin that isn't https (or localhost), and "this browser can't
+      // record" sends somebody to install a different browser to fix a URL.
+      if (typeof window !== "undefined" && window.isSecureContext === false) {
+        step("try_mic_denied", { video, why: "insecure" });
+        return setMsg("Recording needs a secure (https) connection — this page isn't on one. "
+          + "Upload a clip instead and the coach scores it the same.");
+      }
+      step("try_mic_denied", { video, why: "other" });
+      return setMsg("This browser can't record. Upload a clip instead — it scores the same.");
     }
-    step("try_record", { video });
+    if (!relaxed) step("try_record", { video });
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
+        relaxed ? { audio: true, ...(video ? { video: true } : {}) } :
         video
           // `max`, not bare values. A bare `width: 640` is an IDEAL the camera
           // may overshoot, and overshoot it did — straight to 1080p.
@@ -348,8 +423,28 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             + "It's still a take: send it, or record a shorter one.");
         }
       };
+      mr.onerror = (e) => {
+        setMsg(`The recorder stopped with an error (${e?.error?.name || "unknown"}). `
+          + "Upload a clip instead — it scores the same.");
+        step("try_failed", { why: "empty" });
+      };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        // A take with no bytes in it is not a take.
+        //
+        // This attached whatever it had, including nothing — which is exactly
+        // what a 0:00 / 0:00 player is: an empty Blob wearing a filename. The
+        // send then uploaded zero bytes, the coach answered 502, and it cost
+        // the visitor their one free take to find out. Refuse it here, where
+        // the reason is still knowable.
+        const total = chunks.current.reduce((n, c) => n + c.size, 0);
+        if (!total) {
+          setRecording(false);
+          step("try_failed", { why: "empty" });
+          return setMsg(`The ${video ? "camera" : "microphone"} was open but captured nothing — `
+            + "no audio reached the recorder. Check the input isn't muted or set to the wrong "
+            + "device, or upload a clip instead.");
+        }
         // Keep the recorder's own mime — the server normalises it — but give
         // the file an extension that matches, so an attached-file round trip
         // and a recorded one look the same to everything downstream.
@@ -366,11 +461,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       setSecs(0);
       setRecording(true);
       playSound("record_start");
-    } catch {
-      step("try_mic_denied", { video });
-      setMsg(video
-        ? "Camera access was refused. Allow it, record audio only, or attach a file instead."
-        : "Microphone access was refused. Allow it, or attach a file instead.");
+    } catch (err) {
+      const { why, msg: line, retry } = mediaError(err, video);
+      // Our constraints were impossible on this device. That is ours to fix,
+      // not something to hand the member as a refusal — one retry with plain
+      // settings, then whatever it says the second time is real.
+      if (retry && !relaxed) {
+        setMsg(line);
+        return startRec(video, true);
+      }
+      step("try_mic_denied", { video, why });
+      setMsg(line);
     }
   }
 
@@ -387,12 +488,22 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   function discard() {
     if (url) URL.revokeObjectURL(url);
     setBlob(null); setIsVideo(false); setUrl(""); setResult(null); setMsg(""); setSecs(0);
-    setBytes(0); setStopNote(""); setShowUploadLimitPrompt(false); setFailed("");
+    setBytes(0); setStopNote(""); setShowUploadLimitPrompt(false); setFailed(null);
   }
 
   async function submit() {
     if (!blob && !fromPost) return;
-    setBusy(true); setScoringElapsed(0); setMsg(""); setResult(null); setFailed("");
+    // An empty file is a round trip that can only fail, and on the trial door
+    // it costs the visitor the one free take they came for. The recorder
+    // refuses to attach a 0-byte take now; this catches the same shape
+    // arriving from a file picker.
+    if (blob && !blob.size) {
+      step("try_failed", { why: "empty" });
+      setFailed({ why: "empty", status: 0, data: {} });
+      return setMsg("That file is empty — there's no audio in it to score. "
+        + "Record again, or pick a different clip.");
+    }
+    setBusy(true); setScoringElapsed(0); setMsg(""); setResult(null); setFailed(null);
     step("try_send");
     try {
       // A handed-over post is already stored, so it rides as its id. Uploading
@@ -415,7 +526,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
       setResult(out);
-      if (out?.score == null) step("try_failed", { why: "empty" });
+      if (out?.score == null) {
+        step("try_failed", { why: "empty" });
+        setFailed({ why: "empty", status: 200, data: {} });
+      }
       else step("try_scored");
       // The score landing is the moment worth hearing. The prompt it spent
       // is announced separately, and only when one was actually spent — a
@@ -426,7 +540,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
-      setFailed(failReason(e));
+      setFailed({ why: failReason(e), status: e?.status, data: e?.data || {} });
       playSound("error");
       step("try_failed", { why: failReason(e) });
     } finally { setBusy(false); }
@@ -448,6 +562,24 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   }
 
   const mmss = mmssOf(secs);
+
+  // Whether this visitor can have a take AT ALL, answered before they perform
+  // one.
+  //
+  // `available`, `already_used`, `configured` and `cap_reached` have been in
+  // GET /api/<key>/trial/ the whole time and nothing has ever read them. So
+  // the door showed a stranger a recorder, let them do a take, and refused it
+  // on Send — the cost/gain rule broken the most expensive way there is,
+  // because the thing they spent was a performance. `price` null means the
+  // fetch failed, and a failed fetch is not a refusal: nothing is blocked.
+  const blocked = trial && price && price.available === false;
+  const blockedNote = !blocked ? "" : !price.configured
+    ? "The coach isn't switched on right now. That's our end, not yours — nothing here will fix it, so don't spend a take on it."
+    : price.already_used
+      ? `You've already had a free take ${price.per_address ? `(${price.per_address})` : "today"}. An account gets you more, every day.`
+      : price.cap_reached
+        ? "Today's free takes are all spoken for — they're capped so we can keep giving them away. Tomorrow, or make an account now."
+        : "The free take isn't available right now.";
 
   return (
     <div className="neon-frame space-y-4 p-4">
@@ -596,7 +728,22 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           already have skips the one step nobody has to say yes to; the mic
           stays right beside it for whoever would rather sing now. A member is
           already past that, so their recorder keeps the order it had. */}
-      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
+      {/* Stated before the recorder, not after the performance. */}
+      {blocked && (
+        <div className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.07] p-4">
+          <p className="text-[12px] font-semibold text-white">No free take right now</p>
+          <p className="text-[11px] leading-relaxed text-white/70">{blockedNote}</p>
+          {/* An account is the honest answer to both of the caps. It is not
+              the answer to our own outage, so it isn't offered for that one. */}
+          {price.configured && (
+            <Link to="/register" className="re-btn re-btn-emerald !w-auto px-4">
+              Make a free account
+            </Link>
+          )}
+        </div>
+      )}
+
+      <div className={`flex flex-wrap items-center gap-2 ${blocked ? "hidden" : ""} ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
         {trial && !recording && (
@@ -633,7 +780,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         )}
       </div>
-      {trial && !blob && !recording && (
+      {trial && !blocked && !blob && !recording && (
         <p className="text-[11px] text-white/40">
           Eight seconds is enough to score. A voice note you already have works —
           nothing to install, nothing to allow.
@@ -662,6 +809,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {isVideo
             ? <video src={url} controls playsInline className="w-full rounded-lg" />
             : <audio src={url} controls className="w-full" />}
+          {/* What is actually in the take, measured by us.
+              The player says 0:00 / 0:00 on a perfectly good recording,
+              every time: a MediaRecorder WebM carries no Duration in its
+              header because it was written as a live stream, so the element
+              has nothing to read. Somebody looking at 0:00 has no way to tell
+              that from a recording that genuinely captured nothing — which is
+              the difference between "send it" and "something is broken". We
+              counted the seconds and the bytes on the way in; this is them. */}
+          {blob && (
+            <p className="text-[11px] text-white/45">
+              {secs > 0 && <>{mmss} · </>}{sizeLabel(blob.size)}
+              <span className="text-white/30">
+                {" "}— the player may show 0:00 for a browser recording; that's the file's
+                header, not your take.
+              </span>
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
@@ -678,7 +842,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </div>
       )}
 
-      {msg && (
+      {/* Suppressed on the trial when the card below is showing it: the two
+          were rendering the same failure in two different sets of words, one
+          of them invented here. */}
+      {msg && !(trial && failed) && (
         <p className="flex items-start gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] text-mcz-ember">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
         </p>
@@ -686,37 +853,60 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
       {/* A spinner that ends in a red line is a bounce.
           Somebody at the trial door came for a number and did not get one, and
-          what they need next is the move that gets them one — not a restated
-          error. It never invents a partial score: a made-up number here would
-          be the substance rule broken at the exact moment somebody is deciding
-          whether anything on this platform is real. It says what went wrong
-          and what to do, and nothing was charged either way. */}
-      {trial && failed && !busy && !result && (
-        <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.06] p-4">
-          <p className="text-[12px] font-semibold text-white">
-            No score came back — and nothing was charged for it.
-          </p>
-          <p className="text-[11px] leading-relaxed text-white/70">
-            {failed === "network"
-              ? "The take never reached us. That is usually the connection, not the take — try sending it again."
-              : failed === "server"
-                ? "The coach is down at our end, not yours. Give it a minute and send the same take again."
-                : failed === "empty"
-                  ? "The coach listened and couldn't read a take out of it. A clearer eight to fifteen seconds of just you is usually all it needs."
-                  : "The coach wouldn't take that one. A shorter clip — eight to fifteen seconds of just you — usually goes through."}
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {blob && (
-              <button className="neon-btn-primary !w-auto px-4" onClick={submit} disabled={busy}>
-                <Play size={15} /> Send it again
-              </button>
-            )}
-            <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy}>
-              <Upload size={15} /> Try a shorter clip
-            </button>
+          what they need next is the move that gets them one. It never invents
+          a partial score: a made-up number at the exact moment somebody is
+          deciding whether any of this is real is the substance rule's worst
+          case.
+
+          It leads with the SERVER'S sentence, not a category of its own. The
+          first version of this card mapped every 5xx to "the coach is down at
+          our end, give it a minute and send the same take again" — which is
+          the wrong advice for a 502 "the audio was silent" (resending the
+          identical take fails identically) and a flat contradiction of a 503
+          "free takes are all spoken for today". A 429 got "try a shorter
+          clip", when the actual answer is that today's free take is spent and
+          an account is what lifts it. The server already knows which of those
+          it is and says so; the card's job is the NEXT MOVE, not a second
+          opinion about the cause. */}
+      {trial && failed && !busy && !result && (() => {
+        const spent = !!failed.data?.already_used || !!failed.data?.retry_tomorrow;
+        // Resending helps a dropped connection. It cannot help a take the
+        // coach read and refused, and it cannot help a used-up allowance.
+        const resendable = blob && (failed.why === "network" || failed.why === "server") && !spent;
+        return (
+          <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.06] p-4">
+            <p className="text-[12px] font-semibold text-white">
+              {spent
+                ? "No score this time — and nothing was charged for it."
+                : "No score came back — and nothing was charged for it."}
+            </p>
+            <p className="text-[11px] leading-relaxed text-white/70">
+              {msg || (failed.why === "network"
+                ? "The take never reached us. That is usually the connection rather than the take."
+                : "The coach couldn't read a take out of that one.")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {resendable && (
+                <button className="neon-btn-primary !w-auto px-4" onClick={submit} disabled={busy}>
+                  <Play size={15} /> Send it again
+                </button>
+              )}
+              {/* The allowance is spent, so the honest next move is the thing
+                  that lifts it — not another attempt at the same wall. */}
+              {spent ? (
+                <Link to="/register" className="re-btn re-btn-emerald !w-auto px-4">
+                  Make a free account
+                </Link>
+              ) : (
+                <button className="re-btn re-btn-emerald !w-auto px-4"
+                        onClick={() => fileInput.current?.click()} disabled={busy}>
+                  <Upload size={15} /> Try a shorter clip
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showUploadLimitPrompt && !trial && price?.max_mb_is_tier_limit && (
         <TierUpgradePrompt

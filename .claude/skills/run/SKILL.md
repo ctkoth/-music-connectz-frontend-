@@ -81,6 +81,50 @@ the absolute path, as `drive.mjs` does. The browser binary is
 `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`; `/opt/pw-browsers/chromium`
 is a directory, not the binary, and the version in that path moves.
 
+**`up.sh` runs the system `python`, which may not have Django.** A fresh
+container has no Django at all and `pip install -r requirements.txt` dies on
+PyJWT ("Cannot uninstall PyJWT 2.7.0, RECORD file not found" — it came from
+apt). The migrate step then fails with `ModuleNotFoundError: No module named
+'django'`, which reads like a broken repo. Build a venv and put it on PATH for
+the call:
+
+```bash
+python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -r "$MCZ_BACKEND/requirements.txt" cffi
+PATH=/tmp/venv/bin:$PATH .claude/skills/run/up.sh
+```
+
+**The trial recorder is HIDDEN locally unless `GEMINI_API_KEY` is set**, and
+that is the app being right. `GET /api/<key>/trial/` answers
+`configured: false`, so `available` is false, so BossTake renders "No free
+take right now — the coach isn't switched on" and hides the controls rather
+than letting a visitor perform a take it cannot score. Nothing is broken; you
+just cannot reach the recorder. Any non-empty value gets you to it, and the
+send then fails at Gemini with a real 502 — which is useful, because that is
+the path the failure card exists for:
+
+```bash
+pkill -f "[m]anage.py runserver"
+cd "$MCZ_BACKEND" && GEMINI_API_KEY=local-fake nohup python manage.py runserver 8000 --noreload &
+```
+
+**Driving the recorder needs a fake device AND a permission grant.** Chromium
+denies getUserMedia to a headless context otherwise, and you end up testing
+the denial branch by accident:
+
+```js
+chromium.launch({ executablePath, args: [
+  "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
+await ctx.grantPermissions(["microphone", "camera"], { origin: "http://localhost:5174" });
+```
+
+Leave BOTH off to test the denial branch on purpose — that is how the
+"blocked / in use / no device" messages get checked.
+
+**Read the screenshot, not the page text.** A regex over `innerText` for the
+take's size matched "up to 100MB" in the help copy and reported a passing
+take. The screenshot showed `00:03 · 0.0MB` — a real bug (a 32KB take
+rendering as zero) that the text check had just declared fine.
+
 ## What the seed gives you
 
 `seed.py` is idempotent — re-run it whenever you want a clean slate. It makes
