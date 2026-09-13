@@ -6,6 +6,7 @@
 // against a UUID that identifies the BROWSER for this funnel, never a
 // person. The owner reads the counts back at GET /api/auth/funnel/summary/.
 import { api } from "./api.js";
+import { deviceShape } from "./useScreenShape.js";
 
 const ANON_ID_KEY = "mcz_anon_id";
 
@@ -69,15 +70,35 @@ export function channel() {
   return readSrc();
 }
 
+/** What kind of screen this is, measured — never sniffed from a user agent.
+ *
+ * Ambient like the channel, and for a sharper reason: the trial's first move
+ * is a browser mic dialog, and a permission cliff on a phone is not a cliff
+ * on a laptop. Totalled together the one number hides whichever is real, and
+ * the two need opposite fixes.
+ *
+ * Wrapped because a measurement must never be the thing that breaks a page:
+ * a headless renderer or an odd embed with no `matchMedia` returns nothing
+ * and the event still goes, just unshaped — which is exactly what every
+ * event sent before this shipped is. */
+function device() {
+  try {
+    return deviceShape();
+  } catch {
+    return "";
+  }
+}
+
 export function track(kind, meta = {}) {
   const anon_id = anonId();
   if (!anon_id) return;
   // Attached here rather than at each call site, so a step added later is
   // attributed without anybody remembering to pass it.
   const src = readSrc();
-  const withSrc = src ? { ...meta, src } : meta;
+  const dev = device();
+  const full = { ...meta, ...(src ? { src } : {}), ...(dev ? { dev } : {}) };
   try {
-    api("/api/auth/funnel/", { method: "POST", auth: false, body: { kind, anon_id, meta: withSrc } }).catch(() => {});
+    api("/api/auth/funnel/", { method: "POST", auth: false, body: { kind, anon_id, meta: full } }).catch(() => {});
   } catch {
     /* never let tracking take the page down with it */
   }

@@ -294,6 +294,95 @@ have. The accent is `C.ember` (#ff5500), which the palette already held and
 which happens to be SoundCloud's own orange.
 
 
+## A call to a helper nobody imported is a dead button, and nothing here caught it
+
+`src/apps/BossTake.jsx` called `track(...)` in four places and imported it in
+none. `startRec` fires it BEFORE `getUserMedia`, so pressing **Record** threw
+`ReferenceError: track is not defined` and stopped — no mic prompt, no message,
+nothing moved. `submit` fires it one line after `setBusy(true)`, so **Send it
+to the coach** was a spinner that never ended. That is the whole trial: a
+visitor could neither record nor send, on the one screen a stranger ever sees.
+
+It shipped in the commit added to *measure* why that screen wasn't converting,
+and it stood for four days. The funnel read 13 people opening the trial and 1
+getting a score, and the missing line is a large part of the answer.
+
+**Nothing in this repo could have caught it.** There is no ESLint config, and
+Vite builds with esbuild, which does not resolve free identifiers — an
+undefined global is a runtime error by design, so the bundle is valid and the
+button is not. `npm run build` was green the entire time.
+
+`src/imports.test.mjs` is the check that would have. It is deliberately not a
+linter: it takes the names each shared helper module EXPORTS, and for every
+source file that CALLS one of those names, asserts the file imports it or
+declares it. Comments are stripped first — half the comments in this codebase
+name the helper they explain, and a test that cries wolf is a test somebody
+deletes. It runs in `npm test`.
+
+It found a second one immediately: **`BattleZ.jsx` called `uploadWork()`,
+`hasBlobs()` and `primaryMedia()` and imported none of them**, so entering a
+battle threw at the same point. Both are fixed. If you add a helper module
+whose exports move between files, add it to `HELPERS` there.
+
+Two things worth taking from it beyond the fix:
+
+- **A tracking call is not free.** These four sat outside the `try` blocks
+  around them, so an analytics line took the feature down with it. Measurement
+  goes inside the guard, or after the thing it measures.
+- **A silent dead button is the worst failure this app can ship.** No error, no
+  console message a member would report, and a screen that looks fine. It is
+  found by somebody trying the product, or by a test, and nobody was trying the
+  product.
+
+## The trial door: five coaches nobody could find, and a recorder that led with a permission prompt
+
+`TrialTake.jsx` hardcoded `{ singz: "SingZ", rapz: "RapZ" }`. The backend
+mounts **seven** — GuitarZ, BassZ, KeyZ, DrumZ and ViolinZ each had a working,
+scored, no-account coach that nothing linked to. Five doors, built, that no
+visitor could find and that the funnel could not show as a drop-off, because a
+step nobody can reach never appears as one. The list comes from
+`GET /api/economy/trialdoorz/` now, which reads it off the mounted routes; the
+two-door `FALLBACK` is for a failed fetch, not a second list.
+
+On the trial only, **Upload a clip is the primary control and the mic sits
+beside it.** A visitor's first move was a browser permission prompt, from a
+site they had never heard of, usually on a phone, before being given anything
+— and a file they already have skips the one step nobody has to say yes to. A
+member's recorder keeps the order it had; they are already past that.
+
+A failed take renders a **card with the next move**, not only a red line. It
+never invents a partial score: a made-up number at the exact moment somebody is
+deciding whether any of this is real is the substance rule's worst case.
+
+`BossTake`'s `step()` fires the funnel's own kinds (`try_record`,
+`try_mic_denied`, `try_attach`, `try_send`, `try_failed`, `try_scored`) and
+**only on the trial** — a member's recorder is not a step on the way to having
+an account, and counting both would put K-Oth's own takes in the number that
+says whether strangers get a score.
+
+## FunnelZ shows the three rates first, and who was on the other end
+
+The server has computed a per-channel breakdown since `?src=` shipped and
+**FunnelZ never rendered it** — the data existed and the screen did not. It
+does now, beside three more things:
+
+- **The headline.** Landing → trial, trial → scored, scored → account, pinned
+  above the eleven step rows. Which of the three doors is shut is the whole
+  decision; reading it off the rows means arithmetic every time, which is how a
+  funnel gets looked at once and never again. Each carries BOTH counts — 100%
+  of two people is not a working funnel, and a bare percentage cannot say so.
+  A `pct` of `null` renders as `—`: nobody reached the top of that step, which
+  is an empty measurement and not a 0%.
+- **The screen.** Phone, tablet or desktop, from `deviceShape()` in
+  `useScreenShape.js` — measured from width and `pointer: coarse`, never the
+  user agent, same as everything else in that file. The trial opens with a mic
+  dialog, and a permission cliff on a handset is not one on a laptop.
+- **Who joined.** Genders and age bands off `Profile`, deliberately NOT part of
+  the funnel rows: a funnel row is a browser with no account, so it has no age
+  and no gender, and attaching either would break the promise that nothing
+  there is joined back to a person. `unset` is a row rather than a rounding
+  error, and the account total travels with the split.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via

@@ -13,6 +13,131 @@ import OfferCatalog from "./OfferCatalog.jsx";
 
 const DAY_OPTIONS = [7, 14, 30, 90];
 
+// The three rates the whole platform turns on, pinned above everything else.
+//
+// Eleven step rows are a detail tab: which of the three doors is shut is the
+// decision, and reading it off the rows means doing arithmetic every time —
+// which is how a funnel gets looked at once and never again. The server
+// computes them (`headline`); this only renders.
+function Headline({ rows }) {
+  if (!rows?.length) return null;
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {rows.map((r) => (
+        <div key={r.key} className="re-card space-y-1">
+          <p className="text-[10px] uppercase tracking-widest text-white/40">{r.label}</p>
+          {/* `pct` is null when nobody reached the top of the step. A 0%
+              against no visitors reads as a broken product; it is an empty
+              measurement, and the two need opposite responses. */}
+          <p className={`font-display text-3xl font-extrabold ${
+            r.pct == null ? "text-white/25"
+              : r.pct >= 35 ? "text-emerald-300"
+                : r.pct >= 10 ? "text-mcz-gold" : "text-mcz-ember"}`}>
+            {r.pct == null ? "—" : `${r.pct}%`}
+          </p>
+          {/* The denominator travels with the rate. 100% of two people is not
+              a working funnel, and a bare percentage cannot say so. */}
+          <p className="text-[11px] text-white/45">
+            {r.to.toLocaleString()} of {r.from.toLocaleString()}
+          </p>
+          <p className="text-[11px] leading-relaxed text-white/35">{r.note}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// One breakdown of the funnel by one ambient fact about a visit — the channel
+// it came from, or the screen it happened on. Both answer the same shape of
+// question, so they are one component: a table of buckets against the steps
+// that decide anything.
+function Breakdown({ title, blurb, rows, field, note, steps }) {
+  // The steps worth carrying across. A per-channel table of all eleven is a
+  // spreadsheet; these three are what change a decision.
+  const COLS = [
+    ["landing_view", "Landed"],
+    ["try_view", "Opened trial"],
+    ["try_scored", "Scored"],
+    ["register_success", "Joined"],
+  ].filter(([k]) => steps?.[k]);
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">{title}</p>
+      <p className="text-[11px] leading-relaxed text-white/35">{blurb}</p>
+      {rows?.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-[12px]">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-widest text-white/35">
+                <th className="py-1 pr-3 font-semibold">{field}</th>
+                {COLS.map(([k, l]) => (
+                  <th key={k} className="py-1 pr-3 text-right font-semibold">{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r[field]} className="border-t border-white/[0.06]">
+                  <td className="py-1.5 pr-3 font-semibold text-white">{r[field]}</td>
+                  {COLS.map(([k]) => (
+                    <td key={k} className={`py-1.5 pr-3 text-right ${r[k] ? "text-white/75" : "text-white/20"}`}>
+                      {r[k]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // An empty table has to say WHICH nothing it is. "No traffic" and
+        // "nothing tagged" are different problems and look identical here.
+        <p className="text-[11px] text-white/35">{note}</p>
+      )}
+    </div>
+  );
+}
+
+// Who actually joined. Not part of the funnel rows above and that is the
+// point: a funnel row is a browser with no account, so it has no age and no
+// gender to report, and attaching either would break the promise that nothing
+// there is ever joined back to a person.
+function WhoJoined({ members }) {
+  if (!members) return null;
+  const { total, genders = [], ages = [] } = members;
+  const bar = (n) => `${Math.max(2, total ? (n / total) * 100 : 0)}%`;
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
+        Who joined · {total.toLocaleString()} {total === 1 ? "account" : "accounts"}
+      </p>
+      <p className="text-[11px] leading-relaxed text-white/35">{members.note}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {[["Gender", genders, "gender"], ["Age", ages, "band"]].map(([label, rows, key]) => (
+          <div key={label} className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-widest text-white/35">{label}</p>
+            {rows.filter((r) => r.members > 0 || r[key] === "unset").map((r) => (
+              <div key={r[key]} className="space-y-1">
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className={r[key] === "unset" ? "text-white/40" : "text-white/80"}>
+                    {r[key]}
+                  </span>
+                  <span className="text-white/45">{r.members}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className={`h-full rounded-full ${r[key] === "unset" ? "bg-white/20" : "bg-mcz-cyan"}`}
+                       style={{ width: bar(r.members) }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function FunnelZ() {
   const { user } = useAuth();
   const isOwner = !!user?.is_owner;
@@ -88,6 +213,8 @@ export default function FunnelZ() {
         </p>
       )}
 
+      {steps && !loading && <Headline rows={data.headline} />}
+
       {steps && !loading && (
         <div className="space-y-2">
           <p className="text-[11px] text-white/35">
@@ -117,6 +244,25 @@ export default function FunnelZ() {
               carrying the tracking calls hasn't reached everyone yet.
             </p>
           )}
+        </div>
+      )}
+
+      {steps && !loading && (
+        <div className="space-y-5 border-t border-white/10 pt-5">
+          <Breakdown
+            title="Where they came from"
+            blurb="Add ?src=<channel> to any link you post. A channel with arrivals and no scores is sending the wrong people; one with scores and no joins is a door problem — and those need opposite fixes."
+            rows={data.sources} field="src" steps={steps} note={data.sources_note}
+          />
+          {/* Measured, never sniffed. The trial's first move is a browser mic
+              dialog, and a permission cliff on a phone is not a cliff on a
+              laptop — one number covering both hides whichever is real. */}
+          <Breakdown
+            title="What screen they were on"
+            blurb="Phone, tablet or desktop, measured from the screen itself. The trial opens with a mic permission prompt, which is a different obstacle on a handset than on a laptop."
+            rows={data.devices} field="dev" steps={steps} note={data.devices_note}
+          />
+          <WhoJoined members={data.members} />
         </div>
       )}
 

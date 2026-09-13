@@ -62,6 +62,26 @@ export function shapeOf({ w, h, coarse }) {
   };
 }
 
+/** Which of three screens this is: phone, tablet, desktop.
+ *
+ * The funnel needs a bucket, not a layout — "the mic dialog loses people on
+ * phones" is a different bug from "the mic dialog loses people", and one
+ * number covering both hides whichever is real. It is derived from the SAME
+ * two measurements the layout uses (the short edge, and whether the pointer
+ * is a finger) rather than from a user agent, for the reason at the top of
+ * this file: a UA string lies by design and has to be re-taught every time a
+ * device ships. A desktop browser squeezed to phone width reports "phone",
+ * which is right — what we are measuring is the screen somebody is looking
+ * at, not the machine under it.
+ */
+export function deviceShape({ w, h, coarse } = read()) {
+  if (!coarse) return "desktop";
+  // Short edge, so a phone held sideways is still a phone. 600px is the usual
+  // divide between a handset and a tablet in portrait; nothing here needs it
+  // finer, and a finer one would only be more confidently wrong.
+  return Math.min(w, h) >= 600 ? "tablet" : "phone";
+}
+
 const read = () => shapeOf({
   w: typeof window === "undefined" ? 1280 : window.innerWidth,
   h: typeof window === "undefined" ? 800 : window.innerHeight,
