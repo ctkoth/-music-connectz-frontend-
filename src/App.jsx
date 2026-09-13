@@ -60,6 +60,7 @@ const PersonalitieZ = lazy(lazyRoute(() => import("./apps/PersonalitieZ.jsx")));
 const PreferencesZ = lazy(lazyRoute(() => import("./apps/PreferencesZ.jsx")));
 const SubstancesZ = lazy(lazyRoute(() => import("./apps/SubstancesZ.jsx")));
 const VybeZConnectz = lazy(lazyRoute(() => import("./apps/VybeZConnectz.jsx")));
+const LilithZ = lazy(lazyRoute(() => import("./apps/LilithZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
@@ -178,6 +179,7 @@ export const CUSTOM_ICONS = {
   "lilith_today2.png": "/icons/lilith_today2.png",
   "lilith_trash.png": "/icons/lilith_trash.png",
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
+  "lilithz.png": "/icons/lilith_today.png",
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
   "messagez.png": "/icons/messagez.png",
@@ -379,6 +381,7 @@ const TABS = [
   { key: "preferencesz", label: "PreferencesZ", icon: "preferencesz.png", el: <PreferencesZ /> },
   { key: "substancesz", label: "SubstancesZ", icon: "substancesz.png", el: <SubstancesZ /> },
   { key: "vybeez_connectz", label: "VybeZ", icon: "vybeez_connectz.png", el: <VybeZConnectz /> },
+  { key: "lilithz", label: "LilithZ", icon: "lilithz.png", el: <LilithZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
