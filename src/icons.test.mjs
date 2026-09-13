@@ -40,10 +40,8 @@ const OWED = {
   "opportunitiez.png": "have: opportunitiez.png — commit it",
   "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
   "statsz.png": "have: statsz.png — commit it",
-  // Art exists AND the registry has the wrong extension, so committing the
-  // file alone will not fix these two. The registry line has to change with it.
-  "chordz.png": "have: chordz.jpg — the registry says .png; one of the two must move",
-  "tunerz.png": "have: tunerz.jpg — the registry says .png; one of the two must move",
+  "chordz.jpg": "have: chordz.jpg — commit it",
+  "tunerz.jpg": "have: tunerz.jpg — commit it",
   // No artwork anywhere. These were added from a wishlist, not a folder.
   "characterz.png": "never drawn",
   "codez.png": "never drawn",

@@ -253,8 +253,13 @@ export const CUSTOM_ICONS = {
   "journalz.png": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
   "metz.png": "/icons/metz-neon.svg",
-  "tunerz.png": "/icons/tunerz.png",
-  "chordz.png": "/icons/chordz.png",
+  // .jpg, both of them — that is what the artwork actually is. They were
+  // registered as .png, so committing the files would not have fixed either
+  // one: the path would still have named a file that isn't there, and
+  // IconImg would have gone on quietly serving the MCZ logo. The key matches
+  // the file for the same reason the path does.
+  "tunerz.jpg": "/icons/tunerz.jpg",
+  "chordz.jpg": "/icons/chordz.jpg",
   "drumz.png": "/icons/drumz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -389,8 +394,8 @@ const TABS = [
   { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
   { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
   { key: "metz", label: "MetZ", icon: "metz.png", el: <MetZ /> },
-  { key: "tunerz", label: "TunerZ", icon: "tunerz.png", el: <TunerZ /> },
-  { key: "chordz", label: "ChordZ", icon: "chordz.png", el: <ChordZ /> },
+  { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
+  { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
   { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
