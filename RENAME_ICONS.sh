@@ -110,7 +110,7 @@ copy "Callz. User.png" "callz_user.png"
 # Point the registry path back at the real file once each lands — the key is
 # already right.
 copy "CoachZ.jpg"     "coachz.jpg"      # -> registry already says /icons/coachz.jpg
-copy "toolz.metz.jpg" "metz.jpg"        # -> registry says metz-neon.svg AND key "metz.png"; both move to .jpg
+copy "toolz.metz.jpg" "metz.jpg"        # -> registry says metz-neon.svg; key is already metz.jpg
 copy "tunerz.jpg"     "tunerz.jpg"      # -> registry says tunerz-neon.svg
 copy "chordz.jpg"     "chordz.jpg"      # -> registry says chordz-neon.svg
 # RecordingZ has no tab and no registry key in this build — the art has

@@ -257,7 +257,10 @@ export const CUSTOM_ICONS = {
   "habitz.png": "/icons/habitz.png",
   "journalz.png": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
-  "metz.png": "/icons/metz-neon.svg",
+  // .jpg like chordz and tunerz — the art is toolz.metz.jpg, so a .png key
+  // would have meant committing the file fixed nothing. On the neon glyph
+  // until it lands; only this path moves then.
+  "metz.jpg": "/icons/metz-neon.svg",
   // On the neon placeholder until the artwork is committed.
   //
   // The KEY names the file that is coming — .jpg, which is what the art
@@ -397,7 +400,7 @@ const TABS = [
   { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
   { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
   { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
-  { key: "metz", label: "MetZ", icon: "metz.png", el: <MetZ /> },
+  { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
   { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
