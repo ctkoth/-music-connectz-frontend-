@@ -378,7 +378,7 @@ const TABS = [
   { key: "personalitiez", label: "PersonalitieZ", icon: "personalitiez.png", el: <PersonalitieZ /> },
   { key: "preferencesz", label: "PreferencesZ", icon: "preferencesz.png", el: <PreferencesZ /> },
   { key: "substancesz", label: "SubstancesZ", icon: "substancesz.png", el: <SubstancesZ /> },
-  { key: "vybeez_connectz", label: "VybeZ ConnectZ", icon: "vybeez_connectz.png", el: <VybeZConnectz /> },
+  { key: "vybeez_connectz", label: "VybeZ", icon: "vybeez_connectz.png", el: <VybeZConnectz /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
