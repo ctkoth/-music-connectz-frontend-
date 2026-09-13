@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
+import { track } from "./track.js";
 import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
@@ -59,6 +60,11 @@ const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
+// Logged-out doors. PersonalityTest is a trial like /try; MetZ and ChordZ are
+// the same components the app mounts as tabs — they make no API calls and
+// read no session, so serving them to a stranger costs nothing and needs no
+// second implementation.
+const PersonalityTest = lazy(lazyRoute(() => import("./apps/PersonalityTest.jsx")));
 const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
 const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
 const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
@@ -1109,6 +1115,42 @@ function OAuthCallback() {
   );
 }
 
+/** A tab component served to somebody with no account.
+ *
+ * MetZ and ChordZ make no API calls and read no session, so the tab IS the
+ * public tool — there is no second implementation to drift. This is only the
+ * chrome around it: a way back to the front door, and the one line that says
+ * what an account would add, because a free tool with no next step is a
+ * bounce with a metronome in it.
+ */
+function PublicTool({ title, el }) {
+  useEffect(() => { track("landing_view"); }, []);
+  return (
+    <div className="mx-auto min-h-screen max-w-3xl px-4 py-8">
+      <header className="mb-6 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
+        </Link>
+        <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
+      </header>
+      <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{title}</h1>
+      <p className="mb-4 text-sm text-white/55">Free, no account, nothing to install.</p>
+      <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
+      <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
+        <p className="mb-3 text-sm text-white/80">
+          The tools are free forever. The coach is the reason people stay — one take,
+          scored, no account needed either.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link to="/test" className="re-btn re-btn-cyan !w-auto px-5">Two-minute PersonalitieZ test</Link>
+          <Link to="/try" className="re-btn !w-auto px-5">Get a take scored</Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
@@ -1124,6 +1166,11 @@ export default function App() {
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
+      <Route path="/test" element={<PersonalityTest />} />
+      <Route path="/test/:depth" element={<PersonalityTest />} />
+      {/* The two tools that are pure client audio. No account, no server. */}
+      <Route path="/tool/metz" element={<PublicTool title="MetZ" el={<MetZ />} />} />
+      <Route path="/tool/chordz" element={<PublicTool title="ChordZ" el={<ChordZ />} />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a

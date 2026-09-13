@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Mic2, Star, Users2, Wallet } from "lucide-react";
+import { Compass, Download, Mic2, Music4, Star, Timer, Users2, Wallet } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
 import { WINDOWS_EXE } from "./downloadBuilds.js";
@@ -41,8 +41,79 @@ function useCommunityStats() {
   return stats;
 }
 
+/** Every door a stranger can walk through, in order of how much it asks.
+ *
+ * The funnel's own numbers set this order: 103 arrived, 13 opened the
+ * recorder, 1 got a score. The 87% did not decline a coaching session — they
+ * declined a microphone, from a site they had never heard of, usually on a
+ * phone, before being given anything. One door with a high floor is not a
+ * funnel, it is a filter.
+ *
+ * So the test goes first (nothing to allow, ~90 seconds, ends knowing
+ * something about YOU, which is the part that actually converts), the coaches
+ * sit in the middle as the payoff, and the two pure-client tools are last —
+ * free forever, useful to a stranger, and cheap to us because they never
+ * touch the server.
+ */
+function TrialDoors({ coaches }) {
+  // Whole class strings, never `text-${accent}`. Tailwind's JIT scans source
+  // for complete names, so an interpolated one is never emitted and the icon
+  // silently renders in the inherited colour — a build that "passes" and a
+  // design that quietly doesn't.
+  const Card = ({ to, Icon, title, blurb, floor, ring, tint }) => (
+    <Link to={to} className={`re-card block text-left transition ${ring}`}>
+      <div className="flex items-start gap-3">
+        <Icon size={18} className={`mt-0.5 shrink-0 ${tint}`} />
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-white">{title}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-white/55">{blurb}</p>
+          {/* What it asks of you, before you press it. */}
+          <p className="mt-1.5 text-[11px] text-emerald-300">{floor}</p>
+        </div>
+      </div>
+    </Link>
+  );
+  return (
+    <div className="mt-8">
+      <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-white/45">
+        Try it without an account
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card to="/test" Icon={Compass} ring="hover:border-mcz-cyan/50" tint="text-mcz-cyan"
+              title="What kind of collaborator are you?"
+              blurb="Sixteen statements about how you actually work. Four letters back, and people can find you by them."
+              floor="Free · no account · ~90 seconds · nothing to allow" />
+        <Card to="/try" Icon={Mic2} ring="hover:border-mcz-pink/50" tint="text-mcz-pink"
+              title="Get one take scored"
+              blurb={coaches.length > 2
+                ? `A real AI coach marks it out of 10 and tells you what cost you the rest. ${coaches.map((c) => c.label).join(", ")}.`
+                : "A real AI coach marks it out of 10 and tells you what cost you the rest."}
+              floor="Free · no account · needs a mic, or upload a clip" />
+        <Card to="/tool/metz" Icon={Timer} ring="hover:border-mcz-gold/50" tint="text-mcz-gold"
+              title="MetZ — metronome"
+              blurb="Tempo, time signature, subdivisions. Runs in the browser and never phones home."
+              floor="Free forever · no account" />
+        <Card to="/tool/chordz" Icon={Music4} ring="hover:border-mcz-purple/50" tint="text-mcz-purple"
+              title="ChordZ — chords and progressions"
+              blurb="Voicings and progressions you can hear. Also entirely in the browser."
+              floor="Free forever · no account" />
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const stats = useCommunityStats();
+  // The coaches come from the server, so a new instrument reaches the front
+  // door without anybody editing this page — the same list /try renders.
+  const [coaches, setCoaches] = useState([]);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/trialdoorz/", { auth: false })
+      .then((d) => on && Array.isArray(d?.doors) && setCoaches(d.doors))
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
   useEffect(() => { track("landing_view"); }, []);
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
@@ -88,6 +159,8 @@ export default function Landing() {
           <Link to="/login" className="text-white/55 hover:text-white">Already a member? Log in</Link>
         </div>
       </div>
+
+      <TrialDoors coaches={coaches} />
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {FEATURES.map(({ Icon, title, body }) => (
