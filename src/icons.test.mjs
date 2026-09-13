@@ -40,9 +40,12 @@ const OWED = {
   "opportunitiez.png": "have: opportunitiez.png — commit it",
   "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
   "statsz.png": "have: statsz.png — commit it",
-  // (The eight that used to sit here with "never drawn" have generated
-  // glyphs now and are not a debt: nothing was ever going to be drawn for
-  // them by hand, so the glyph IS the icon, exactly like postz and funnelz.)
+  // Eight keys used to sit here as "never drawn" — characterz, codez,
+  // console, editor, mistakez, search, taskz, welcome. They were deleted
+  // rather than drawn: no tab, no component and no screen ever asked for
+  // one, so they were registry entries for icons nothing could render, and
+  // art for them would have been eight more files in the deploy that nobody
+  // sees. `git show 2217037` has the glyphs if a screen ever arrives.
 };
 
 // Keys deliberately pointing at a generated `-neon.svg` because the real
