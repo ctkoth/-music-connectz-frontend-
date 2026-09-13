@@ -208,7 +208,10 @@ export const CUSTOM_ICONS = {
   "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz.png",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
-  "personaz_coach.jpg": "/icons/personaz.coach.jpg",
+  // Underscored like every other personaz_<role>, and matching its own key.
+  // The dotted path was the source filename, which is what the import script
+  // is for.
+  "personaz_coach.jpg": "/icons/personaz_coach.jpg",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
   // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
@@ -255,7 +258,9 @@ export const CUSTOM_ICONS = {
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
   "habitz.png": "/icons/habitz.png",
-  "journalz.png": "/icons/journalz-neon.svg",
+  // .jpg — the art is journalz.jpg. Fourth of the four extension
+  // mismatches; on the neon glyph until it lands, then only the path moves.
+  "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
   // .jpg like chordz and tunerz — the art is toolz.metz.jpg, so a .png key
   // would have meant committing the file fixed nothing. On the neon glyph
@@ -404,7 +409,7 @@ const TABS = [
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
   { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
-  { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
+  { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },

@@ -117,4 +117,11 @@ copy "chordz.jpg"     "chordz.jpg"      # -> registry says chordz-neon.svg
 # nowhere to be rendered yet, so this only parks it.
 copy "recordingz.jpg" "recordingz.jpg"
 
+# The remaining four the audit still reports. With these, every registry entry
+# that is missing art has a line here, so one run imports the lot.
+copy "journalz.jpg"        "journalz.jpg"        # -> registry says journalz-neon.svg
+copy "personaz.coach.jpg"  "personaz_coach.jpg"  # -> underscored, like every personaz_<role>
+copy "statsz.png"          "statsz.png"
+copy "opportunitiez.png"   "opportunitiez.png"
+
 echo done

@@ -61,6 +61,7 @@ const OWED = {
 const PLACEHOLDER = {
   "chordz.jpg": "have: chordz.jpg on Corey's machine — commit it and point the path back",
   "metz.jpg": "have: toolz.metz.jpg on Corey's machine — commit it as metz.jpg and point the path back",
+  "journalz.jpg": "have: journalz.jpg on Corey's machine — commit it and point the path back",
   "tunerz.jpg": "have: tunerz.jpg on Corey's machine — commit it and point the path back",
 };
 
