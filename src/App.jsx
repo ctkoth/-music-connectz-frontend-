@@ -108,14 +108,19 @@ function RouteFallback() {
 // designed artwork, and next to the actual icon set they read as low-detail.
 // The registry points at the artwork.
 //
-// Three keys still hold a neon SVG, each for its own reason:
+// Some keys still hold a neon SVG. This comment used to say "three" and name
+// them; there were six by then and there are eight now, which is the failure
+// this whole file's audit exists for — a hand-kept list nobody re-checks.
+// **`node tools/icon-audit.mjs` prints the live list.** Only the reasons that
+// carry information are worth writing down:
 //
 //   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
-//   * journalz.png— the artwork exists on Corey's machine and has never been
-//                   committed. Pointing at a file that is not in the repo does
-//                   not error, it silently falls back to the MCZ logo, so this
-//                   stays on the SVG until the PNG lands.
 //   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
+//   * journalz.png, chordz.jpg, tunerz.jpg — the artwork exists on Corey's
+//                   machine and has never been committed. Pointing at a file
+//                   that is not in the repo does not error, it silently falls
+//                   back to the MCZ logo, so these hold the generated glyph
+//                   instead. src/icons.test.mjs tracks the debt.
 //
 // The generator stays in `tools/` — it is what made the three above, and it is
 // how a new tab gets a placeholder before there is art for it.
@@ -253,13 +258,20 @@ export const CUSTOM_ICONS = {
   "journalz.png": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
   "metz.png": "/icons/metz-neon.svg",
-  // .jpg, both of them — that is what the artwork actually is. They were
-  // registered as .png, so committing the files would not have fixed either
-  // one: the path would still have named a file that isn't there, and
-  // IconImg would have gone on quietly serving the MCZ logo. The key matches
-  // the file for the same reason the path does.
-  "tunerz.jpg": "/icons/tunerz.jpg",
-  "chordz.jpg": "/icons/chordz.jpg",
+  // On the neon placeholder until the artwork is committed.
+  //
+  // The KEY names the file that is coming — .jpg, which is what the art
+  // actually is; they were registered .png, so committing the files would
+  // have fixed neither. The VALUE is where the icon lives right now, and a
+  // generated glyph of a tuning fork beats the MCZ logo on the TunerZ tab by
+  // a distance. That split is the point of having a registry at all: when
+  // the jpgs land, one path each changes and nothing else moves.
+  //
+  // These are the only two of the fourteen missing icons with a placeholder
+  // to fall back to — see src/icons.test.mjs, which keeps both the
+  // placeholder and the debt visible.
+  "tunerz.jpg": "/icons/tunerz-neon.svg",
+  "chordz.jpg": "/icons/chordz-neon.svg",
   "drumz.png": "/icons/drumz.png",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.

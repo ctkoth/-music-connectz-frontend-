@@ -40,8 +40,6 @@ const OWED = {
   "opportunitiez.png": "have: opportunitiez.png — commit it",
   "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
   "statsz.png": "have: statsz.png — commit it",
-  "chordz.jpg": "have: chordz.jpg — commit it",
-  "tunerz.jpg": "have: tunerz.jpg — commit it",
   // No artwork anywhere. These were added from a wishlist, not a folder.
   "characterz.png": "never drawn",
   "codez.png": "never drawn",
@@ -53,6 +51,21 @@ const OWED = {
   "welcome.png": "never drawn",
 };
 
+// Keys deliberately pointing at a generated `-neon.svg` because the real
+// artwork is not committed yet. Distinct from OWED: these render something
+// meaningful rather than the MCZ logo, so they are not broken — but the art
+// is still owed, and without a list saying so a placeholder quietly becomes
+// the permanent answer.
+//
+// NOT exhaustive, deliberately: other keys sit on a `-neon.svg` because that
+// glyph IS the icon (postz, funnelz, soundcloudengagementz), and calling
+// those a debt would invent one. `node tools/icon-audit.mjs` prints every key
+// on an SVG; this lists the ones somebody is waiting on art for.
+const PLACEHOLDER = {
+  "chordz.jpg": "have: chordz.jpg on Corey's machine — commit it and point the path back",
+  "tunerz.jpg": "have: tunerz.jpg on Corey's machine — commit it and point the path back",
+};
+
 const fileFor = (url) => join(ROOT, "public", url.replace(/^\//, ""));
 
 test("every registered icon is a file that is actually committed", () => {
@@ -62,6 +75,27 @@ test("every registered icon is a file that is actually committed", () => {
   assert.deepEqual(missing, [],
     `\nThese render the MCZ logo and nothing says so:\n  ${missing.join("\n  ")}\n`
     + "Commit the art, or add the key to OWED in this file with a reason.\n");
+});
+
+test("a placeholder is a real committed file, and says it is a placeholder", () => {
+  // Both halves matter. A PLACEHOLDER entry pointing at nothing is an OWED
+  // entry wearing a better name and still renders the logo; and one pointing
+  // at ordinary artwork is no longer a placeholder, so it should be neither
+  // listed here nor treated as a debt.
+  const reg = registry();
+  const wrong = Object.keys(PLACEHOLDER).map((key) => {
+    const url = reg[key];
+    if (!url) return `${key}: not in the registry at all`;
+    if (!existsSync(fileFor(url))) return `${key} -> ${url}: the placeholder itself is missing`;
+    if (!url.endsWith("-neon.svg")) return `${key} -> ${url}: real art, so drop it from PLACEHOLDER`;
+    return null;
+  }).filter(Boolean);
+  assert.deepEqual(wrong, [], `\n  ${wrong.join("\n  ")}\n`);
+});
+
+test("nothing is both owed and placeheld", () => {
+  const both = Object.keys(OWED).filter((k) => k in PLACEHOLDER);
+  assert.deepEqual(both, [], `a key cannot be in both lists: ${both}`);
 });
 
 test("the owed list cannot outlive the fix", () => {

@@ -32,6 +32,10 @@ const say = (title, rows, note) => {
 
 console.log(`registry ${Object.keys(reg).length} entries · public/icons ${files.length} files`);
 
+say("ON A NEON PLACEHOLDER (art still owed)",
+  Object.entries(reg).filter(([, u]) => u.endsWith("-neon.svg")).map(([k, u]) => `${k} -> ${u}`),
+  "renders a generated glyph rather than the logo. src/icons.test.mjs holds the debt in PLACEHOLDER.");
+
 say("REGISTERED, NOT COMMITTED",
   Object.entries(reg)
     .filter(([, u]) => !existsSync(join(ROOT, "public", u.replace(/^\//, ""))))
