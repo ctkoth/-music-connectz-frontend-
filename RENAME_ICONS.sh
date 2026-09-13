@@ -100,4 +100,21 @@ copy "writez.png" "writez.png"
 copy "ZodiacZ.png" "zodiacz.png"
 copy "Callz. Ai.png" "callz_ai.png"
 copy "Callz. User.png" "callz_user.png"
+# ---- The neon signs Corey pasted into chat on Sep 13 -------------------------
+# An image in a chat message is not a file — it never reaches the repo — so
+# these five have to come off the machine they live on. Destination names are
+# what src/App.jsx already asks for, so dropping them in is the whole job.
+#
+# CoachZ, MetZ, TunerZ and ChordZ each replace a fallback: CoachZ is showing
+# the MCZ logo right now, and the other three are on a generated -neon.svg.
+# Point the registry path back at the real file once each lands — the key is
+# already right.
+copy "CoachZ.jpg"     "coachz.jpg"      # -> registry already says /icons/coachz.jpg
+copy "toolz.metz.jpg" "metz.jpg"        # -> registry says metz-neon.svg AND key "metz.png"; both move to .jpg
+copy "tunerz.jpg"     "tunerz.jpg"      # -> registry says tunerz-neon.svg
+copy "chordz.jpg"     "chordz.jpg"      # -> registry says chordz-neon.svg
+# RecordingZ has no tab and no registry key in this build — the art has
+# nowhere to be rendered yet, so this only parks it.
+copy "recordingz.jpg" "recordingz.jpg"
+
 echo done
