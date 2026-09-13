@@ -383,6 +383,43 @@ does now, beside three more things:
   there is joined back to a person. `unset` is a row rather than a rounding
   error, and the account total travels with the split.
 
+## VybeZ gives the member search its first caller, and PersonalitieZ is one filter
+
+`GET /api/economy/members/` — regions, genders, both zodiacs, sober,
+substances, five range gates and distance — **had no caller anywhere in this
+app.** Implemented, working, reachable only by typing a URL. Same shape as the
+five trial coaches nothing linked to: built, and invisible.
+
+`VybeZ.jsx` is its surface. It is a screen before it is a feature.
+
+`PersonalitieZ.jsx` is four declared axes (I/E, N/S, T/F, J/P), set in ProfileZ
+and filtered from that one search — which is why it is a shared component and
+not part of VybeZ. `MembersView` is THE member search, so a filter added there
+is one CollabZ, BattleZ, VenueZ and MessageZ get for free; a personality field
+that only worked in the dating screen would be the fourth copy of a profile
+filter within a year.
+
+Four things not to soften:
+
+- **Every axis is a THREE-state control.** Pressing the side you are already
+  on clears it. "Hasn't said" has to be reachable, and a member who taps the
+  wrong one and cannot get back to blank has been given a personality by the
+  interface.
+- **The axes, labels and slot order come from `/api/economy/personalityz/`.**
+  Nothing about them is typed into a screen — a client splitting the letters
+  itself would be the second place the slot order lives.
+- **Neither side is better, and the copy says so.** It is a declaration, not a
+  score, and it never moves a rating or a skill level. No type nicknames and
+  no personality descriptions: Myers-Briggs is somebody's trademark, and this
+  stores what a member told us rather than publishing a theory about them.
+- **The "nobody matched" line is the SERVER'S**, rendered unreworded. An empty
+  grid means either nobody matches or nobody has said, and only the server
+  knows which — on a field this new it is nearly always the second.
+
+Cards hand off through `MemberName`, which already opens the profile modal and
+prefills a MessageZ compose. A second implementation of "open this member" is
+the one that drifts.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via
