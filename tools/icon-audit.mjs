@@ -32,9 +32,10 @@ const say = (title, rows, note) => {
 
 console.log(`registry ${Object.keys(reg).length} entries · public/icons ${files.length} files`);
 
-say("ON A NEON PLACEHOLDER (art still owed)",
+say("ON A GENERATED GLYPH",
   Object.entries(reg).filter(([, u]) => u.endsWith("-neon.svg")).map(([k, u]) => `${k} -> ${u}`),
-  "renders a generated glyph rather than the logo. src/icons.test.mjs holds the debt in PLACEHOLDER.");
+  "renders a -neon.svg rather than the MCZ logo. For most of these the glyph IS the icon; "
+  + "the few where real art is still owed are listed in PLACEHOLDER in src/icons.test.mjs.");
 
 say("REGISTERED, NOT COMMITTED",
   Object.entries(reg)

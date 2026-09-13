@@ -40,15 +40,9 @@ const OWED = {
   "opportunitiez.png": "have: opportunitiez.png — commit it",
   "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
   "statsz.png": "have: statsz.png — commit it",
-  // No artwork anywhere. These were added from a wishlist, not a folder.
-  "characterz.png": "never drawn",
-  "codez.png": "never drawn",
-  "console.png": "never drawn",
-  "editor.png": "never drawn",
-  "mistakez.png": "never drawn",
-  "search.png": "never drawn",
-  "taskz.png": "never drawn",
-  "welcome.png": "never drawn",
+  // (The eight that used to sit here with "never drawn" have generated
+  // glyphs now and are not a debt: nothing was ever going to be drawn for
+  // them by hand, so the glyph IS the icon, exactly like postz and funnelz.)
 };
 
 // Keys deliberately pointing at a generated `-neon.svg` because the real

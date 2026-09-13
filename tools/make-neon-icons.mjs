@@ -255,6 +255,57 @@ const G = {
     <circle cx="190" cy="160" r="6" fill="${b}"/>
     <circle cx="320" cy="160" r="6" fill="${b}"/>
     <circle cx="255" cy="240" r="8" fill="${b}"/>`,
+
+  /* The eight below have no artwork and, at the time of writing, no screen
+     either — they are registry keys nothing renders yet. They are drawn so
+     that if a screen arrives it opens with a glyph instead of the MCZ logo;
+     if one never does, the registry entry is what should go, not the art. */
+
+  characterz: (a, b) => `
+    <circle cx="256" cy="164" r="52" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M158 300c0-54 44-84 98-84s98 30 98 84z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M204 150l-30-26M308 150l30-26" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="234" cy="160" r="10" fill="${b}"/>
+    <circle cx="278" cy="160" r="10" fill="${b}"/>`,
+
+  codez: (a, b) => `
+    <path d="M196 132l-64 74 64 74" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M316 132l64 74-64 74" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M286 108l-60 196" stroke="${b}" stroke-width="15" stroke-linecap="round"/>`,
+
+  console: (a, b) => `
+    <rect x="140" y="112" width="232" height="180" rx="20" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M140 158h232" stroke="${a}" stroke-width="12" stroke-opacity="0.6"/>
+    <path d="M182 196l34 30-34 30" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M244 256h74" stroke="${b}" stroke-width="15" stroke-linecap="round"/>`,
+
+  editor: (a, b) => `
+    <path d="M164 108h124l60 60v132a20 20 0 0 1-20 20H164a20 20 0 0 1-20-20V128a20 20 0 0 1 20-20z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M288 108v60h60" fill="none" stroke="${a}" stroke-width="13" stroke-linejoin="round" stroke-opacity="0.7"/>
+    <path d="M330 196l40 40-88 88h-40v-40z" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round"/>`,
+
+  mistakez: (a, b) => `
+    <circle cx="216" cy="266" r="42" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M258 266V116l96 26" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M310 128l88 88M398 128l-88 88" stroke="${b}" stroke-width="16" stroke-linecap="round"/>`,
+
+  search: (a, b) => `
+    <circle cx="228" cy="188" r="76" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M284 244l76 76" stroke="${b}" stroke-width="18" stroke-linecap="round"/>
+    <path d="M196 154a46 46 0 0 1 38-22" fill="none" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-opacity="0.6"/>`,
+
+  taskz: (a, b) => `
+    <rect x="150" y="104" width="212" height="196" rx="24" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M186 156l24 24 46-50" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M186 226l24 24 46-50" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M280 158h44M280 228h44" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.7"/>`,
+
+  welcome: (a, b) => `
+    <path d="M164 300V132a16 16 0 0 1 12-16l104-24v232z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="252" cy="212" r="12" fill="${a}"/>
+    <path d="M280 300h68V156" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round" stroke-opacity="0.7"/>
+    <path d="M330 96l10 26 28 4-20 20 5 28-23-14-23 14 5-28-20-20 28-4z" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
@@ -294,6 +345,17 @@ const APPS = [
   ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],
   ["drumz", "DrumZ", C.ember, C.gold],
+  // Registry keys with no artwork AND, right now, no screen — see the note
+  // above their glyphs. Generated so a screen that arrives opens with
+  // something rather than the MCZ logo.
+  ["characterz", "CharacterZ", C.purple, C.cyan],
+  ["codez", "CodeZ", C.emerald, C.cyan],
+  ["console", "Console", C.cyan, C.emerald],
+  ["editor", "Editor", C.gold, C.cyan],
+  ["mistakez", "MistakeZ", C.ember, C.pink],
+  ["search", "Search", C.cyan, C.gold],
+  ["taskz", "TaskZ", C.emerald, C.gold],
+  ["welcome", "Welcome", C.pink, C.gold],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't

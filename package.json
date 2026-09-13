@@ -28,11 +28,12 @@
     "@capacitor/cli": "6.1.2",
     "@vitejs/plugin-react": "4.3.1",
     "autoprefixer": "10.4.20",
+    "playwright": "^1.63.0",
     "postcss": "8.4.47",
     "tailwindcss": "3.4.13",
     "vite": "5.4.8"
   },
   "author": "Corey Knap (Bi K-Oth) <ctkoth>",
   "license": "UNLICENSED",
-  "description": "Music ConnectZ \u2014 gamified music creator platform by Corey Knap"
+  "description": "Music ConnectZ — gamified music creator platform by Corey Knap"
 }
