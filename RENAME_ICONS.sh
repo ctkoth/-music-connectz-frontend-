@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # Normalize your icon files into public/icons/ with registry names.
+#
+# IT COPIES. Point SRC at a folder OUTSIDE the repo — a source folder, your
+# OneDrive icons directory, wherever the art actually lives. Pointing it at
+# public/icons itself leaves the messy original beside the clean copy, both
+# get committed, and the deploy ships the same image twice under two names.
+# That is exactly what happened: 57 byte-identical pairs, cleaned up in the
+# commit that added this warning. Run `node tools/icon-audit.mjs` afterwards.
 #   bash RENAME_ICONS.sh ~/path/to/your/icons/folder
 # Converts jpg->png names as-is (the app serves them fine either way; keep the
 # extension in the DEST name — browsers read content, but consistent .png keys

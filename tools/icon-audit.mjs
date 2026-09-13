@@ -43,8 +43,10 @@ say("WILL 404 ON A CASE-SENSITIVE HOST",
   "Windows serves these; Vercel and Cloudflare Pages do not. Rename to lowercase, no spaces.");
 
 // The same icon under two or three spellings — dots vs underscores vs
-// squashed. Grouped by the name with every separator removed, which is what
-// makes `lilith.today.png`, `lilith_today.png` and `lilithtoday.png` one row.
+// squashed. Grouped by the name with every separator removed, so
+// `lilith.today.png` and `lilith_today.png` read as one row — that pair was
+// real, and 57 more like it, because RENAME_ICONS.sh COPIES to the clean name
+// instead of moving, and both ends got committed.
 const byShape = {};
 for (const f of files) {
   const key = f.toLowerCase().replace(/[.\-_ ]/g, "").replace(/(png|jpe?g|webp|svg)$/, "");
