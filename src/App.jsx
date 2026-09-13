@@ -57,6 +57,9 @@ const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const PersonalitieZ = lazy(lazyRoute(() => import("./apps/PersonalitieZ.jsx")));
+const PreferencesZ = lazy(lazyRoute(() => import("./apps/PreferencesZ.jsx")));
+const SubstancesZ = lazy(lazyRoute(() => import("./apps/SubstancesZ.jsx")));
+const VybeZConnectz = lazy(lazyRoute(() => import("./apps/VybeZConnectz.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
@@ -373,6 +376,9 @@ const TABS = [
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "personalitiez", label: "PersonalitieZ", icon: "personalitiez.png", el: <PersonalitieZ /> },
+  { key: "preferencesz", label: "PreferencesZ", icon: "preferencesz.png", el: <PreferencesZ /> },
+  { key: "substancesz", label: "SubstancesZ", icon: "substancesz.png", el: <SubstancesZ /> },
+  { key: "vybeez_connectz", label: "VybeZ ConnectZ", icon: "vybeez_connectz.png", el: <VybeZConnectz /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
