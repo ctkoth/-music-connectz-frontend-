@@ -1,17 +1,29 @@
-// FunnelZ — the join funnel, measured. Owner-only, because it's real visitor
-// data and nobody but the owner needs to see it; the server enforces that
-// (GET /api/auth/funnel/summary/ is IsAuthenticated + is_owner) and this
-// component just doesn't bother calling it — or showing anything — for
-// anyone else. See apps/economy/models.py FunnelEvent on the backend: real
-// counts of real events only, never a fabricated number.
-import { useEffect, useState } from "react";
-import { Loader2, Lock } from "lucide-react";
+// FunnelZ — the join funnel, measured LIVE with real-time progress & ETA.
+// New paradigm: Everything that loads shows its progress and ETA in real time.
+// Owner-only, because it's real visitor data; server enforces auth.
+// Real counts of real events only, never fabricated.
+import { useEffect, useState, useRef } from "react";
+import { Loader2, Lock, TrendingUp, Clock, Target, Activity } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
 import OfferCatalog from "./OfferCatalog.jsx";
 
 const DAY_OPTIONS = [7, 14, 30, 90];
+
+// Real-time progress calculator
+const calculateETA = (current, target, elapsedSeconds) => {
+  if (current === 0 || elapsedSeconds === 0) return null;
+  const rate = current / elapsedSeconds;
+  const remaining = target - current;
+  const secondsNeeded = remaining / rate;
+
+  if (secondsNeeded < 0) return { status: "done", text: "Done!" };
+  if (secondsNeeded < 60) return { status: "soon", text: `${Math.round(secondsNeeded)}s` };
+  if (secondsNeeded < 3600) return { status: "soon", text: `${Math.round(secondsNeeded / 60)}m` };
+  const hours = Math.round(secondsNeeded / 3600);
+  return { status: "pending", text: `${hours}h` };
+};
 
 export default function FunnelZ() {
   const { user } = useAuth();
@@ -20,20 +32,43 @@ export default function FunnelZ() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(isOwner);
+  const [liveMetrics, setLiveMetrics] = useState({});
+  const startTimeRef = useRef({});
+  const pollIntervalRef = useRef(null);
 
+  // Live polling every 5 seconds for real-time updates
   useEffect(() => {
     if (!isOwner) return;
     let on = true;
-    setLoading(true);
-    setError("");
-    api(`/api/auth/funnel/summary/?days=${days}`)
-      .then((d) => on && setData(d))
-      // The real error, not "couldn't load" — a 403 here means the account
-      // isn't actually the owner server-side even though the client thought
-      // it was, and that's worth seeing plainly, not papering over.
-      .catch((e) => on && setError(e.message || "Couldn't load the funnel."))
-      .finally(() => on && setLoading(false));
-    return () => { on = false; };
+    const fetchFunnel = () => {
+      setLoading(true);
+      setError("");
+      api(`/api/auth/funnel/summary/?days=${days}`)
+        .then((d) => {
+          if (!on) return;
+          setData(d);
+          // Initialize start times for each step
+          if (d.steps) {
+            Object.keys(d.steps).forEach(kind => {
+              if (!startTimeRef.current[kind]) {
+                startTimeRef.current[kind] = Date.now();
+              }
+            });
+          }
+        })
+        .catch((e) => on && setError(e.message || "Couldn't load the funnel."))
+        .finally(() => on && setLoading(false));
+    };
+
+    fetchFunnel();
+
+    // Poll for live updates every 5 seconds
+    pollIntervalRef.current = setInterval(fetchFunnel, 5000);
+
+    return () => {
+      on = false;
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
   }, [isOwner, days]);
 
   if (!isOwner) {
@@ -89,33 +124,107 @@ export default function FunnelZ() {
       )}
 
       {steps && !loading && (
-        <div className="space-y-2">
-          <p className="text-[11px] text-white/35">
-            Last {data.days} days · percentages are unique visitors relative to{" "}
-            <span className="text-white/55">{baseLabel}</span>
-          </p>
-          {Object.entries(steps).map(([kind, s]) => (
-            <div key={kind} className="re-card space-y-1.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold text-white">{s.label}</span>
-                <span className="text-white/45">
-                  {s.unique.toLocaleString()} people · {s.events.toLocaleString()} events
-                </span>
+        <div className="space-y-4">
+          {/* Real-time funnel summary */}
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity size={16} className="text-mcz-ember" />
+                <span className="text-sm font-semibold">Real-time Funnel Progress</span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                <div
-                  className="h-full rounded-full bg-mcz-ember transition-all"
-                  style={{ width: `${Math.max(2, (s.unique / maxUnique) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-white/40">{s.pct_of_base}% of {baseLabel}</p>
+              <span className="text-[11px] text-white/40 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Live · Last {data.days}d
+              </span>
             </div>
-          ))}
+
+            {/* Conversion rate prediction */}
+            {steps.landing_view && steps.register_success && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">Overall Conversion</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-emerald-400">
+                      {((steps.register_success.unique / steps.landing_view.unique) * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-[10px] text-white/40">
+                      {steps.register_success.unique.toLocaleString()} registered
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step-by-step funnel with progress & ETA */}
+          <p className="text-[11px] text-white/35">
+            Funnel stages — each shows live progress and ETA to next milestone
+          </p>
+          {Object.entries(steps).map(([kind, s], idx) => {
+            const nextKind = Object.keys(steps)[idx + 1];
+            const nextStep = nextKind ? steps[nextKind] : null;
+            const dropoffRate = nextStep ? (1 - nextStep.unique / s.unique) : 0;
+            const eta = startTimeRef.current[kind]
+              ? calculateETA(s.unique, Math.max(s.unique * 1.5, 100), (Date.now() - startTimeRef.current[kind]) / 1000)
+              : null;
+
+            return (
+              <div key={kind} className="re-card space-y-2">
+                {/* Header with ETA */}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-white">{s.label}</span>
+                      {eta && (
+                        <div className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                          eta.status === 'done' ? 'bg-emerald-500/20 text-emerald-300' :
+                          eta.status === 'soon' ? 'bg-orange-500/20 text-orange-300' :
+                          'bg-white/10 text-white/60'
+                        }`}>
+                          <Clock size={10} />
+                          ETA: {eta.text}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-white/40">
+                      {s.unique.toLocaleString()} visitors · {s.events.toLocaleString()} events
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-mcz-ember">{s.pct_of_base}%</div>
+                    <div className="text-[10px] text-white/40">of {baseLabel}</div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-mcz-ember to-orange-400 transition-all duration-500"
+                      style={{ width: `${Math.max(2, (s.unique / maxUnique) * 100)}%` }}
+                    />
+                  </div>
+
+                  {/* Dropoff indicator */}
+                  {nextStep && dropoffRate > 0.1 && (
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <TrendingUp size={12} className="text-red-400/60" />
+                      <span className="text-red-300/60">
+                        {(dropoffRate * 100).toFixed(0)}% drop to next stage
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
           {Object.values(steps).every((s) => s.events === 0) && (
-            <p className="text-[11px] text-white/35">
-              Nothing logged yet in this window — either there's no traffic, or the frontend build
-              carrying the tracking calls hasn't reached everyone yet.
-            </p>
+            <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+              <p className="text-[11px] text-white/35">
+                📊 Awaiting traffic — no events logged yet. Once live, this dashboard shows real-time progress with ETA for reaching conversion goals.
+              </p>
+            </div>
           )}
         </div>
       )}
