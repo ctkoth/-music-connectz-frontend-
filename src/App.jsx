@@ -133,7 +133,13 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  "coachz.jpg": "/icons/CoachZ.jpg",
+  // Lowercase, like every other path here. It was "/icons/CoachZ.jpg" — the
+  // filename on the machine the art was drawn on, and Windows does not care
+  // about case. Vercel and Cloudflare Pages do, so that path would have 404'd
+  // in production while working locally, and IconImg's fallback would have
+  // hidden it in both places. The file still has to be committed (see
+  // src/icons.test.mjs) — committed lowercase.
+  "coachz.jpg": "/icons/coachz.jpg",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
