@@ -28,6 +28,10 @@ import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
+// Called on both entry paths and imported on neither — `hasBlobs` and
+// `uploadWork` threw ReferenceError the moment somebody entered a battle,
+// which is the same missing line that had the trial's Record button dead.
+import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
 
 function Work({ item }) {

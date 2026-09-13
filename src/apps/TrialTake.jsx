@@ -11,11 +11,26 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
+import { api } from "../api.js";
 import { track } from "../track.js";
 import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
-const APPS = { singz: "SingZ", rapz: "RapZ" };
+
+// The doors the front door offers come from GET /api/economy/trialdoorz/,
+// which reads them off the mounted routes.
+//
+// This was `{ singz: "SingZ", rapz: "RapZ" }` — and `INSTRUMENT_APP_KEYS`
+// mounts SEVEN. GuitarZ, BassZ, KeyZ, DrumZ and ViolinZ each had a working,
+// scored, no-account coach that nothing on the internet linked to: five
+// doors, built and paid for, that no visitor could find and no funnel could
+// show as a drop-off, because a step nobody can reach never appears as one.
+// A hardcoded list here is how that happened, so there isn't one any more.
+//
+// FALLBACK, not a second list: if the endpoint is down the two doors that
+// have always existed still open, because a trial screen that renders
+// nothing is worse than one that renders less than it could.
+const FALLBACK = [{ app_key: "singz", label: "SingZ" }, { app_key: "rapz", label: "RapZ" }];
 
 export function storedTrialToken() {
   try {
@@ -35,13 +50,35 @@ export function clearTrialToken() {
 
 export default function TrialTake() {
   const { appKey = "singz" } = useParams();
-  const app = APPS[appKey] ? appKey : "singz";
+  const [doors, setDoors] = useState(FALLBACK);
+  // Whether the answer above is the server's or the fallback's. `try_view`
+  // waits for it: firing on the fallback and again on the real list would
+  // count one visitor twice and, on a door the fallback doesn't know, count
+  // them at the wrong door first.
+  const [doorsLoaded, setDoorsLoaded] = useState(false);
+  const known = doors.some((d) => d.app_key === appKey);
+  const app = known ? appKey : "singz";
+  const label = doors.find((d) => d.app_key === app)?.label || "SingZ";
   const [scored, setScored] = useState(false);
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
   const [bossTakeReady, setBossTakeReady] = useState(false);
 
-  useEffect(() => { track("try_view", { app_key: app }); }, [app]);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/trialdoorz/", { auth: false })
+      .then((d) => { if (on && d?.doors?.length) setDoors(d.doors); })
+      .catch(() => {})
+      // Loaded either way: a failed fetch leaves the two fallback doors open,
+      // and a visit that goes unmeasured because a side request 404'd is a
+      // visit this funnel would have to explain later.
+      .finally(() => on && setDoorsLoaded(true));
+    return () => { on = false; };
+  }, []);
+
+  // Fired once the door list is known, so an unknown /try/<key> is counted as
+  // the door it actually opened rather than as one that does not exist.
+  useEffect(() => { if (doorsLoaded) track("try_view", { app_key: app }); }, [app, doorsLoaded]);
 
   function keep(result) {
     if (!result) return;
@@ -57,7 +94,6 @@ export default function TrialTake() {
     }
     if (result.score != null) setScore(result.score);
     setScored(true);
-    track("try_scored", { app_key: app });
   }
 
   // The whole viral loop, such as it is: somebody gets a number they're proud
@@ -66,8 +102,8 @@ export default function TrialTake() {
   // to a signup form is how you waste a recommendation.
   const shareUrl = `${window.location.origin}/try/${app}`;
   const shareText = score != null
-    ? `I scored ${score}/10 on my ${APPS[app]} take 🎤 — real AI coach, free, no account. Get yours scored:`
-    : `Got my ${APPS[app]} take scored free by an AI coach 🎤 — no account needed. Try it:`;
+    ? `I scored ${score}/10 on my ${label} take 🎤 — real AI coach, free, no account. Get yours scored:`
+    : `Got my ${label} take scored free by an AI coach 🎤 — no account needed. Try it:`;
 
   async function share() {
     // Only ever count a share that actually went out. navigator.share
@@ -104,21 +140,31 @@ export default function TrialTake() {
           One take scored — free, instantly
         </h1>
         <p className="mt-1 text-sm text-white/55">
-          Record ~30 seconds and get exact feedback from the same AI coach our {APPS[app]} members use.
-          One free daily take. Join after to keep your takes and track progress.
+          Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
+          feedback from the same AI coach our {label} members use. One free daily take. Join after
+          to keep your takes and track progress.
         </p>
-        <div className="mt-3 flex gap-2">
-          {Object.entries(APPS).map(([k, label]) => (
-            <Link key={k} to={`/try/${k}`}
-                  className={`pill ${k === app ? "pill-on" : "hover:text-white"}`}>
-              {label}
+        {/* Every door, not the two that were linked. A drummer who lands on
+            a page offering "SingZ or RapZ" correctly concludes this place is
+            not for drummers — and DrumZ has scored drum takes the whole
+            time. */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {doors.map((d) => (
+            <Link key={d.app_key} to={`/try/${d.app_key}`}
+                  title={d.coach ? `Scored by the ${d.coach}` : undefined}
+                  className={`pill ${d.app_key === app ? "pill-on" : "hover:text-white"}`}>
+              {d.label}
             </Link>
           ))}
         </div>
       </div>
 
       <div className="mb-6 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Real feedback example</p>
+        {/* An illustration of the SHAPE of the answer, not somebody's real
+            take. It used to be headed "Real feedback example", which claims a
+            member said it — a small lie on the one screen whose entire job is
+            proving the scoring is not decoration. */}
+        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">What comes back</p>
         <p className="mt-2 text-sm text-white/85">
           <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
         </p>
@@ -127,7 +173,10 @@ export default function TrialTake() {
       {!bossTakeReady && (
         <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
           <Loader2 className="mr-2 animate-spin text-cyan-300" size={18} />
-          <span className="text-sm text-white/60">Checking mic access…</span>
+          {/* Not "Checking mic access" — nothing here touches the mic. This
+              waits on the coach's own price and rubric, and saying otherwise
+              puts a permission prompt in somebody's head before there is one. */}
+          <span className="text-sm text-white/60">Loading the coach…</span>
         </div>
       )}
 

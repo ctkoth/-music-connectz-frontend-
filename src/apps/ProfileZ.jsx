@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
 import { api, tokenStore } from "../api.js";
+import PersonalitieZ from "../PersonalitieZ.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
@@ -458,6 +459,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
   const [subs, setSubs] = useState({});        // SubstanceZ: {key: "sometimes"|"often"}
   const [sober, setSober] = useState(false);   // sober BY CHOICE — a claim, not a blank
+  // PersonalitieZ, as the server stores it: a 4-slot code with "-" for an
+  // axis not answered. Kept as the code rather than four pieces of state so
+  // what this screen holds is exactly what the column holds.
+  const [personality, setPersonality] = useState("");
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -534,6 +539,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         ? Object.fromEntries(d.substances.map((k) => [k, "yes"]))
         : (d?.substances || {}));
       setSober(!!d?.sober);
+      setPersonality(d?.personality || "");
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
     }).catch(() => {});
   }, []);
@@ -586,11 +592,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       });
       await api("/api/economy/profile/", {
         method: "POST",
-        body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners, nationalities: nats },
+        body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
+                nationalities: nats, personality },
       });
       setMe(d);
       setSaved(true);
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ and PersonalitieZ are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -830,6 +837,14 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           })}
         </div>
       </div>
+
+      {/* PersonalitieZ — four axes, three states each. It sits beside the
+          other declared metrics rather than in a dating screen of its own,
+          because it is one declaration that every member search filters on:
+          CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
+          column. A personality field that only worked in the dating app
+          would be the fourth copy of a profile filter within a year. */}
+      <PersonalitieZ value={personality} onChange={setPersonality} />
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
       <div>

@@ -58,6 +58,7 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
 const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
 const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
 const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
@@ -351,6 +352,10 @@ const TABS = [
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  // VybeZ gives /api/economy/members/ its first caller. That search — regions,
+  // genders, both zodiacs, sober, substances, five range gates and distance —
+  // has been implemented and reachable only by typing a URL.
+  { key: "vybez", label: "VybeZ", icon: "social_connectz.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
