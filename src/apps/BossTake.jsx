@@ -88,6 +88,14 @@ const mmssOf = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const mb = (n) => (n / 1024 / 1024).toFixed(1);
 
+/** A size a person can read, at the size takes actually come in.
+ *
+ * `mb()` is right for a cap and wrong for a take: a good eight-second clip is
+ * around 30KB, and 30KB in megabytes to one decimal is "0.0MB" — which is
+ * exactly as alarming as the 0:00 this line was added to explain away. It
+ * said "00:03 · 0.0MB" under a perfectly good recording. */
+const sizeLabel = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))}KB` : `${mb(n)}MB`);
+
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
 
@@ -811,7 +819,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               counted the seconds and the bytes on the way in; this is them. */}
           {blob && (
             <p className="text-[11px] text-white/45">
-              {secs > 0 && <>{mmss} · </>}{mb(blob.size)}MB
+              {secs > 0 && <>{mmss} · </>}{sizeLabel(blob.size)}
               <span className="text-white/30">
                 {" "}— the player may show 0:00 for a browser recording; that's the file's
                 header, not your take.
