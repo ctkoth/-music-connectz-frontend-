@@ -38,12 +38,12 @@ const OWED = {
   // public/icons/ (lowercase, no spaces) and delete the line here.
   "coachz.jpg": "have: CoachZ.jpg — commit it lowercase as coachz.jpg",
   "opportunitiez.png": "have: opportunitiez.png — commit it",
-  // GroupZ. Partners had NO art at all and fell back to groupz.png; the other
-  // two render the groupz_* PNGs today. Drop all three into public/icons/ and
-  // delete these lines — GroupZ.jsx already prefers them.
-  "friendz.jpg": "Corey has friendz.jpg locally — commit it to public/icons/",
-  "fanz.jpg": "Corey has fanz.jpg locally — commit it to public/icons/",
-  "partnerz.jpg": "Corey has partnerz.jpg locally — Partners has no art at all without it",
+  // PartnerZ is the only GroupZ kind with no art — FriendZ and FanZ render
+  // groupz_friendz.png and groupz_fanz.png, which are committed. Corey also
+  // has friendz.jpg and fanz.jpg locally; those are optional replacements and
+  // are deliberately NOT registered, because pointing at them regressed two
+  // working icons to the MCZ logo.
+  "partnerz.jpg": "Corey has partnerz.jpg locally — PartnerZ has no art at all without it",
   "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
   "statsz.png": "have: statsz.png — commit it",
   // Eight keys used to sit here as "never drawn" — characterz, codez,

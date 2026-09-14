@@ -24,11 +24,14 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 
-// Corey's art where it exists, the groupz_* set where it does not yet — see
-// OWED in icons.test.mjs. `IconImg` falls back to the logo either way.
+// The art that is actually in the repo. Pointing FriendZ and FanZ at Corey's
+// uncommitted friendz.jpg / fanz.jpg REGRESSED them — both had real art under
+// the groupz_* names and started rendering the MCZ logo instead, silently,
+// which is the soundcloudengagementz.png trap exactly. `partnerz.jpg` stays
+// because PartnerZ has no art at all either way and the OWED list names it.
 const KIND = {
-  friends: { label: "FriendZ", icon: "friendz.jpg" },
-  fans: { label: "FanZ", icon: "fanz.jpg" },
+  friends: { label: "FriendZ", icon: "groupz_friendz.png" },
+  fans: { label: "FanZ", icon: "groupz_fanz.png" },
   partners: { label: "PartnerZ", icon: "partnerz.jpg" },
   custom: { label: "Custom", icon: "groupz_custom.png" },
   blocked: { label: "Blocked", icon: "groupz_blocked.png" },
