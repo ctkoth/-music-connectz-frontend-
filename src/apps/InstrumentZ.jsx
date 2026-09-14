@@ -2,6 +2,7 @@ import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import { RapzProfilePanel, SingzProfilePanel } from "./GameProfilePanel.jsx";
 import { IconImg } from "../App.jsx";
 import BossTake from "./BossTake.jsx";
+import ProgressPanel from "./ProgressPanel.jsx";
 
 // Generic SkillZ instrument app view — one component powers DrumZ/ViolinZ/
 // GuitarZ/BassZ/KeyZ (and any future instrument) via props.
@@ -27,7 +28,14 @@ export default function InstrumentZ({ appKey, icon, title, tagline, accent }) {
           browser or upload a file. The dimensions differ per instrument and
           come from /api/<appKey>/coach/. */}
       <BossTake appKey={appKey} />
-      <SkillZPanel basePath={`/api/${appKey}`} accent={accent} />
+      {/* Directly under the recorder, because it is the same take seen over
+          time — and because the three scores a single clip cannot show
+          (consistency, health, goal match) are the ones the coach's own caveat
+          points at from one screen up. */}
+      <ProgressPanel appKey={appKey} />
+      <div data-tour={`${appKey}-drills`}>
+        <SkillZPanel basePath={`/api/${appKey}`} accent={accent} />
+      </div>
     </div>
   );
 }

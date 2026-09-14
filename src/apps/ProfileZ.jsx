@@ -9,6 +9,7 @@ import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears } from "../persona
 import { useCharLimit } from "../limits.js";
 import { saveVoice, useVoice } from "../voice.js";
 import CharLimit from "../CharLimit.jsx";
+import CopyLink from "../CopyLink.jsx";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
@@ -613,7 +614,14 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       <header className="flex items-center gap-4">
         <IconImg icon="personaz.png" alt="ProfileZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
-          <h2 className="font-display text-3xl font-extrabold" style={{ color: "#ffcf3f" }}>{me.username}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-3xl font-extrabold" style={{ color: "#ffcf3f" }}>{me.username}</h2>
+            {/* Your own link, on your own profile, in plain sight. This is the
+                one people actually need — it is what you paste into a bio or
+                send to a venue, and reading it out of the URL bar of a page
+                you have to navigate to first is why nobody had it. */}
+            <CopyLink username={me.username} />
+          </div>
           <p className="flex flex-wrap gap-2 pt-1 text-sm">
             <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
             {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}

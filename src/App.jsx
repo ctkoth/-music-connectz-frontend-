@@ -86,6 +86,7 @@ const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
 const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
 const DupeZ = lazy(lazyRoute(() => import("./apps/DupeZ.jsx")));
 const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
+const Lilith = lazy(lazyRoute(() => import("./apps/Lilith.jsx")));
 const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
@@ -417,6 +418,7 @@ const TABS = [
   { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
+  { key: "lilith", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },

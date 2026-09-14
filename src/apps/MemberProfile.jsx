@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X, Edit, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
+import CopyLink from "../CopyLink.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
@@ -65,7 +66,12 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
               <h3 className="truncate font-display text-xl font-extrabold">
                 {data?.display_name || username}
               </h3>
-              <p className="truncate text-xs text-white/45">@{username}</p>
+              {/* The handle and the way to hand it to somebody, together.
+                  A profile is a pitch, and a pitch you cannot send is a page. */}
+              <p className="flex items-center gap-1 text-xs text-white/45">
+                <span className="truncate">@{username}</span>
+                <CopyLink username={username} label="" />
+              </p>
               {/* The title and the medals sit with the name, because that is
                   what a title is for — it qualifies the person, not the page. */}
               <BadgeWear badges={data?.badges} title={data?.badge_title}

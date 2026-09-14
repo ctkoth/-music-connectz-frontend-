@@ -17,6 +17,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
+import CopyLink from "../CopyLink.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -62,7 +63,13 @@ export default function PublicProfile() {
         <div className="neon-frame space-y-4 p-5">
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{p.display_name}</h1>
-            <p className="text-sm text-white/45">@{p.username}</p>
+            <p className="flex flex-wrap items-center gap-1.5 text-sm text-white/45">
+              <span>@{p.username}</span>
+              {/* This is the page being linked TO, so the button is the
+                  shortest path from "I like this person's work" to sending it
+                  to somebody else. */}
+              <CopyLink username={p.username} />
+            </p>
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
