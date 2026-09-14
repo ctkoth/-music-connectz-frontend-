@@ -91,10 +91,23 @@ function FretboardDiagram({ chord, rootNote }) {
       <div className="mb-4 font-mono text-sm text-slate-400">
         <div>Standard Tuning (E-A-D-G-B-E)</div>
       </div>
-      <div className="flex gap-6">
+      {/* A six-string diagram cannot wrap — three strings on a second row
+          is not a chord chart. So it does the other thing the responsive
+          rule allows for a diagram: tries to fit with a tighter gap, and
+          scrolls ITSELF rather than pushing the page sideways. At 320px
+          this hung 160px off the edge and took the whole page with it. */}
+      <div className="-mx-2 overflow-x-auto px-2">
+      <div className="flex w-max gap-2 sm:gap-6">
         {chord.map((fret, idx) => (
           <div key={idx} className="text-center">
-            <div className="mb-2 h-16 w-12 border-4 border-slate-400 bg-slate-800">
+            {/* `relative` is the fix for a real drawing bug, not just an
+                overflow one. The fret dot below is `absolute` and this box
+                was not positioned, so the dot resolved against whatever
+                positioned ancestor it could find further up the page —
+                drawing the marker in the wrong place AND escaping the
+                diagram's own scroll container to push the whole page
+                sideways. */}
+            <div className="relative mb-2 h-16 w-12 border-4 border-slate-400 bg-slate-800">
               {Array.from({ length: 5 }).map((_, fretIdx) => (
                 <div key={fretIdx} className="border-b border-slate-500 h-3"></div>
               ))}
@@ -119,6 +132,7 @@ function FretboardDiagram({ chord, rootNote }) {
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

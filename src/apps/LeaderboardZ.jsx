@@ -52,7 +52,11 @@ export default function LeaderboardZ({ period = "week" }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Wraps at narrow widths. The title and the period toggle could not
+          both fit on a 320px screen and neither would give, so the toggle
+          hung 58px off the right edge — invisible, because the overflow is
+          on the side with no scrollbar. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <Trophy size={20} className="text-mcz-gold" /> Leaderboards
         </h2>

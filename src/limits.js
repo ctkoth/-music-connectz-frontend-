@@ -139,3 +139,40 @@ export function useUploadLimit() {
     },
   };
 }
+
+/**
+ * The whole public tier ladder, from the server: what each tier's limits are
+ * and what it costs a month.
+ *
+ * `TierUpgradePrompt.jsx` carried its own copy of this table — the upload,
+ * storage and character ladders AND the prices ("$6/mo", "$15/mo"). Two copies
+ * of a limit is the "20 free prompts in nine places" pattern, and the client's
+ * copy is always the one nobody updates when the real one moves. A price is
+ * worse than a limit: a panel quoting a figure Stripe then charges differently
+ * is not drift, it is a member being shown a price that is not the price.
+ */
+export function useTierLadder() {
+  const [lim, setLim] = useState(cache);
+
+  useEffect(() => {
+    let on = true;
+    listeners.add(setLim);
+    loadLimits().then((d) => on && setLim(d));
+    return () => { on = false; listeners.delete(setLim); };
+  }, []);
+
+  return {
+    tiers: lim?.tiers || null,   // null until it lands — never a guessed table
+    avatarMaxMb: lim?.avatar_max_mb ?? null,
+    tier: lim?.tier || "free",
+    ready: !!lim?.tiers,
+  };
+}
+
+/** "$6/mo", or "Free" at zero. Cents in, because that is what the server
+ *  stores and rounding it anywhere else invents a price. */
+export function monthPrice(cents) {
+  if (!cents) return "Free";
+  const dollars = cents / 100;
+  return `$${Number.isInteger(dollars) ? dollars : dollars.toFixed(2)}/mo`;
+}

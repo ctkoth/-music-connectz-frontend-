@@ -355,7 +355,11 @@ function TunerZ() {
         )}
 
         {/* Microphone Control */}
-        <div className="mb-8 flex gap-4">
+        {/* Third copy of the same MetZ/DrumZ row. "Start Listening" is a
+            wider label than "Play", so this one broke at 320px even after
+            the other two were fixed — found by walking all 42 tabs rather
+            than the six a spot check had named. */}
+        <div className="mb-8 flex flex-wrap justify-center gap-4">
           <button
             onClick={startListening}
             disabled={isListening}

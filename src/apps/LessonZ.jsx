@@ -53,7 +53,9 @@ export default function LessonZ() {
         </div>
       </header>
 
-      <div className="flex gap-2">
+      {/* Five tabs, 172px past the edge at 320px — the last two were simply
+          unreachable on a small phone. */}
+      <div className="flex flex-wrap gap-2">
         {[["posts", "Lesson posts"], ["browse", "Live lessons"], ["teach", "Teach"], ["bookings", "My bookings"], ["train", "SkillZ"]].map(
           ([k, label]) => (
             <button

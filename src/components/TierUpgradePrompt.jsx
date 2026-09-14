@@ -1,14 +1,28 @@
 import { ArrowRight } from "lucide-react";
+import { monthPrice, useTierLadder } from "../limits.js";
 
 /**
  * Shows tier benefits when user hits a limit (e.g., char limit, storage).
  * Helps convert Free → Premium by showing the upgrade path, not just the wall.
  */
 export default function TierUpgradePrompt({ limit, current, userTier = "free", onUpgrade }) {
-  const limits = {
-    char: { free: 400, premium: 1500, statz: Infinity },
-    upload_mb: { free: 100, premium: 1024, statz: 10240 },
-    storage_mb: { free: 500, premium: 5120, statz: 102400 },
+  // The ladder AND the prices come from the server. This file used to carry
+  // its own copy of both — three limit tables and "$6/mo" / "$15/mo" typed in
+  // — which is the pattern that put "20 free prompts" in nine places. The
+  // price half is worse than the limit half: an upgrade panel quoting a figure
+  // Stripe then charges differently is a member being shown a price that is
+  // not the price.
+  const ladder = useTierLadder();
+
+  // Nothing is rendered until the real numbers arrive. A fallback table here
+  // would be the copy this change exists to delete, and a panel that flashes
+  // stale figures for a moment has still shown them.
+  if (!ladder.ready) return null;
+
+  const valueFor = (t) => {
+    const row = ladder.tiers[t] || {};
+    if (limit === "char") return row.char_limit_unlimited ? Infinity : row.char_limit;
+    return row[limit];
   };
 
   const tiers = [
@@ -19,7 +33,7 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free", o
       borderColor: "border-white/10",
       bgColor: "bg-white/5",
       current: userTier === "free",
-      limit: limits[limit]?.free,
+      limit: valueFor("free"),
     },
     {
       name: "Premium",
@@ -28,8 +42,8 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free", o
       borderColor: "border-mcz-cyan/30",
       bgColor: "bg-mcz-cyan/10",
       current: userTier === "premium",
-      limit: limits[limit]?.premium,
-      price: "$6/mo",
+      limit: valueFor("premium"),
+      price: monthPrice(ladder.tiers.premium?.month_cents),
     },
     {
       name: "StatZ",
@@ -38,8 +52,8 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free", o
       borderColor: "border-mcz-gold/30",
       bgColor: "bg-mcz-gold/10",
       current: userTier === "statz",
-      limit: limits[limit]?.statz,
-      price: "$15/mo",
+      limit: valueFor("statz"),
+      price: monthPrice(ladder.tiers.statz?.month_cents),
     },
   ];
 

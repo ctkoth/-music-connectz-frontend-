@@ -221,7 +221,8 @@ function MetZ() {
         </div>
 
         {/* Controls */}
-        <div className="flex gap-4">
+        {/* px-6 buttons with a gap-4 between them do not fit a 320px phone. */}
+        <div className="flex flex-wrap justify-center gap-4">
           <button
             onClick={handlePlay}
             disabled={isPlaying}

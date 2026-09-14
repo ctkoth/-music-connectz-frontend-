@@ -229,7 +229,9 @@ function DrumZ() {
         </div>
 
         {/* Playback Controls */}
-        <div className="mb-8 flex gap-4">
+        {/* Same px-6 buttons as MetZ, same 320px problem — fixed there and not
+            here, which is what a shared style and two copies gets you. */}
+        <div className="mb-8 flex flex-wrap justify-center gap-4">
           <button
             onClick={handlePlay}
             disabled={isPlaying}

@@ -10,6 +10,7 @@ import { useCharLimit } from "../limits.js";
 import { saveVoice, useVoice } from "../voice.js";
 import CharLimit from "../CharLimit.jsx";
 import CopyLink from "../CopyLink.jsx";
+import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
@@ -280,9 +281,15 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
 // Profile picture — view what you have, pick a new one, preview it, save.
 // The picture lives on the economy profile (/api/economy/profile/), not on
 // /api/auth/me/, so this reads its own copy rather than threading it through.
-const AVATAR_MAX_MB = 8;
+// The cap comes from the server (`avatar_max_mb`), which is the same number
+// ProfileAvatarView refuses on. It was `const AVATAR_MAX_MB = 8` here — a
+// second copy of a real server limit, and the copy that would not move when
+// the real one did.
+const AVATAR_MAX_MB_FALLBACK = 8;
 
 function AvatarCard() {
+  // The cap the server actually refuses on, rather than a copy of it.
+  const { avatarMaxMb: avatarCap } = useTierLadder();
   const [url, setUrl] = useState(null);       // what's saved on the server
   const [preview, setPreview] = useState(""); // local object URL, pre-save
   const [file, setFile] = useState(null);
@@ -304,7 +311,8 @@ function AvatarCard() {
     if (!f) return;
     setMsg("");
     if (!f.type.startsWith("image/")) return setMsg("That file isn't an image. Use a JPG, PNG, WebP or GIF.");
-    if (f.size > AVATAR_MAX_MB * 1024 * 1024) return setMsg(`That image is too big — keep it under ${AVATAR_MAX_MB}MB.`);
+    const capMb = avatarCap ?? AVATAR_MAX_MB_FALLBACK;
+    if (f.size > capMb * 1024 * 1024) return setMsg(`That image is too big — keep it under ${capMb}MB.`);
     if (preview) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
