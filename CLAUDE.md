@@ -620,3 +620,62 @@ backend the full suite plus a column-width check on any new migration), then
 merge and push. The merge is still the deliberate act; the deliberation is the
 verification, not a question. Backend first whenever a screen needs a new
 endpoint.
+
+---
+
+## RapZ renders what the backend sends; it doesn't invent dimensions
+
+RapZ is a rapper's coach, and the five dimensions it scores are **Flow 🌊, Timing ⏱️, Breath 🫁, Clarity 🔍, and Delivery 🔥**. A rapper can opt in to lyricism scoring too. All of these dimensions come from `apps/economy/instruments.py` on the backend, served by the coach endpoint.
+
+**The labels come FROM THE BACKEND.** `src/apps/BossTake.jsx` and the coach display do not know what "Flow" means — they ask the endpoint. The endpoint sends back: `{ flow: "Flow 🌊", timing: "Timing ⏱️", ... }`. If a new dimension is added to the coach without updating that dictionary, the frontend renders a blank label and a number with no meaning. That is a silent failure, which is why `test_instrument_routes` on the backend guards both directions: every key the coach produces, the dictionary declares.
+
+**The caveat is also from the backend.** `GET /api/rapz/coach/` or whichever instrument returns a `caveat` field that says what one take can show and what it cannot. RapZ's caveat is: "Flow, timing, breath, clarity and delivery are what one take can show. Consistency, health and goal match come from your history, not a single clip — they're on your progress screen."
+
+A take score without that caveat is misleading. A member seeing "Consistency — 7/10" after their first verse believes they are inconsistent, which is false — consistency is a week's worth of takes, not one clip. The caveat is what stops that misreading.
+
+### Style Match rides alongside the five dimensions
+
+The model scores Style Match at the same time it scores Flow and Timing — it is what the model already hears when it listens, not an extra call. The response includes both a **number** (0-100, so it can trend and be recommended) and **prose** ("your delivery is methodical, which is closer to old-school than Trap").
+
+Neither alone is enough. The number without prose is decoration; the prose without a number cannot be trended or recommended on. Both together answer what the take does *right now* rather than inventing a fixed rating.
+
+### Register is finally on the screen
+
+A rap take arrives with a detected register: Bass, Baritone, Tenor, etc. RapZ's profile in `instruments.py` now declares `range_label: "Your register"` and `ranges: VOCAL_RANGES`, the same eight-class system SingZ uses. A member who took both apps gets told the same range by the same model — because pitch is pitch — and can see whether their singing register and their rapping register match.
+
+This was always detected. It was just invisible because the screen had nowhere to show it. Now it goes somewhere.
+
+---
+
+## Every score must have a description served alongside it — this is a frontend rule too
+
+The backend sends dimension labels and a caveat. The frontend's job is simple: **render them visibly, not in a distant help page or a tooltip that appears on hover.** A number with no description beside it is a number with no meaning.
+
+When rendering scores:
+
+- **The label is beside or above the number.** "Flow 🌊 — 7/10" is complete; "7/10" alone is noise.
+- **The caveat is visible on the same screen.** A member should not have to search to find out whether a score is from one take or many. The cost/gain rule applies: the description is part of the score's price, and it must be up front.
+- **Prose explanations (like Style Match's insight) stay with the number.** A score that says "good" with no reason why teaches nothing. A score that says "good because you're hitting the beat tight" teaches the member what to keep doing.
+- **If a dimension goes missing (blank label from the backend), render nothing or render an error.** Don't invent a label, don't show a bare number. A blank label means the frontend and backend disagree about what dimensions exist, which is a test failure, not something to hide.
+
+The substance rule applies to the screen too: *could a member improve their performance without seeing these descriptions?* No. They would not know what improved. So the descriptions are not optional, not tucked away, not a nice-to-have. They are the other half of the score.
+
+### Why the score response stays keyed, never free-form prose
+
+A coach endpoint that returns free-form text — "Your flow is great, your timing is tight, your breath control needs work" — looks good on the surface. But that prose cannot be:
+- **Trended** — no way to compare "great" to last week's "improving"
+- **Recommended** — no way to say "members with high Delivery get 50% more plays"
+- **Stored in history** — no way to show a member's Delivery progression
+- **Surfaced at a glance** — no way to sort or filter by dimension
+
+The keyed response with one number per dimension is what makes scores useful. The prose rides alongside (Style Match includes it), but it never *replaces* the number.
+
+When building a new coach or scorer:
+
+1. **Define the dimensions in `instruments.py`** — `_RAP`, `_DRUMS`, whatever. One dictionary, one source of truth.
+2. **Return a keyed response** — one key per dimension, always a number, always present.
+3. **Include prose explanations** as a separate field if they add insight (Style Match), but never as the dimension itself.
+4. **Serve a caveat** that says what one clip can and cannot show.
+5. **Test that every key in the dictionary is scored and every key scored is declared** — `test_instrument_routes` does this on the backend.
+
+A score with no description is a broken feature. A description with no number is a broken feature. Both together are the feature.
