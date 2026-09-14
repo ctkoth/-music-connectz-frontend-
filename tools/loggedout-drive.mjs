@@ -13,13 +13,17 @@
  *   node tools/loggedout-drive.mjs [baseUrl]
  */
 import { chromium } from 'playwright';
+// Playwright finds its own browser. `PW_CHROME` is only for a machine that
+// pins one (this repo's container sets PLAYWRIGHT_BROWSERS_PATH), and
+// hardcoding that path made every tool in here fail anywhere else.
+const LAUNCH = process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {};
+
 
 const BASE = process.argv[2] || 'http://localhost:5173';
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const INSTRUMENTS = ['singz', 'rapz', 'guitarz', 'bassz', 'keyz', 'drumz', 'violinz'];
 
 const browser = await chromium.launch({
-  executablePath: CHROME,
+  ...LAUNCH,
   args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
          '--autoplay-policy=no-user-gesture-required'],
 });

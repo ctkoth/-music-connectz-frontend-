@@ -33,11 +33,12 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
+    "playwright": "^1.63.0",
     "postcss": "8.4.47",
     "tailwindcss": "3.4.13",
     "vite": "5.4.8"
   },
   "author": "Corey Knap (Bi K-Oth) <ctkoth>",
   "license": "UNLICENSED",
-  "description": "Music ConnectZ \u2014 gamified music creator platform by Corey Knap"
+  "description": "Music ConnectZ — gamified music creator platform by Corey Knap"
 }

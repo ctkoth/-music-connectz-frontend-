@@ -14,14 +14,18 @@
  *   node tools/tab-audit.mjs [baseUrl]
  */
 import { chromium } from 'playwright';
+// Playwright finds its own browser. `PW_CHROME` is only for a machine that
+// pins one (this repo's container sets PLAYWRIGHT_BROWSERS_PATH), and
+// hardcoding that path made every tool in here fail anywhere else.
+const LAUNCH = process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {};
+
 import { readFileSync } from 'fs';
 
 const BASE = process.argv[2] || 'http://localhost:5173';
 const [access, refresh] = readFileSync('/tmp/mczlog/tok.txt', 'utf8').trim().split('\n');
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 const browser = await chromium.launch({
-  executablePath: CHROME,
+  ...LAUNCH,
   args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
 });
 const ctx = await browser.newContext({ permissions: ['microphone', 'camera'] });

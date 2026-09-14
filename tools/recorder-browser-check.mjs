@@ -1,9 +1,14 @@
 import { chromium } from 'playwright';
+// Playwright finds its own browser. `PW_CHROME` is only for a machine that
+// pins one (this repo's container sets PLAYWRIGHT_BROWSERS_PATH), and
+// hardcoding that path made every tool in here fail anywhere else.
+const LAUNCH = process.env.PW_CHROME ? { executablePath: process.env.PW_CHROME } : {};
+
 
 const URL = 'http://localhost:5173/try/singz';
 
 async function run(label, args, drive) {
-  const browser = await chromium.launch({ args, executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const browser = await chromium.launch({ args, ...LAUNCH });
   const ctx = await browser.newContext({ permissions: ['microphone', 'camera'] });
   const page = await ctx.newPage();
   const errs = [];
