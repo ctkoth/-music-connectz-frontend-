@@ -29,7 +29,7 @@ import { asList } from "../shape.js";
 const KIND = {
   friends: { label: "FriendZ", icon: "friendz.jpg" },
   fans: { label: "FanZ", icon: "fanz.jpg" },
-  partners: { label: "Partners", icon: "partnerz.jpg" },
+  partners: { label: "PartnerZ", icon: "partnerz.jpg" },
   custom: { label: "Custom", icon: "groupz_custom.png" },
   blocked: { label: "Blocked", icon: "groupz_blocked.png" },
 };
@@ -106,10 +106,6 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                   <p className="flex items-center gap-2 font-semibold">
                     <IconImg icon={meta.icon} alt="" className="h-7 w-7 rounded-lg" /> {meta.label}
                   </p>
-                  {kind === "partners" && list.length === 0 && (
-                    <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs"
-                            onClick={() => create("partners")}>Create</button>
-                  )}
                 </div>
 
                 {kind === "custom" && (
@@ -173,10 +169,12 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                       ))}
                     </div>
 
-                    {/* FanZ has no box. It is not a refusal the member has to
-                        discover by being told off — the control simply isn't
-                        there, and the note above says why. */}
-                    {g.kind !== "fans" && (
+                    {/* FanZ and PartnerZ have no box. Neither is a refusal the
+                        member discovers by being told off — the control simply
+                        isn't there, and the note above says what puts somebody
+                        on the list. FanZ is somebody else's act; PartnerZ is
+                        three finished collabs, which is two people's. */}
+                    {g.kind !== "fans" && g.kind !== "partners" && (
                       <div className="flex flex-wrap gap-2">
                         <input className="neon-input !py-2 min-w-0 flex-1 text-sm"
                                placeholder={g.kind === "blocked" ? "username to block"

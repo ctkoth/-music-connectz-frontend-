@@ -679,7 +679,7 @@ const TAB_ABOUT = {
   venuez: "📍 VenueZ — CollabZ in a room. Whoever receives the skill pays for it, priced from whoever brings it: a performance charges the visitor at your rates, a session charges you at theirs. The area is public; the address is released only to somebody you accept.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
-  groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
+  groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
