@@ -8,6 +8,7 @@ import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 import { onHandoff } from "../handoff.js";
 import MentionText from "../MentionParser.jsx";
+import KarmaRewards from "../KarmaRewards.jsx";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -55,6 +56,11 @@ export default function MessageZ() {
           </p>
         </div>
       </header>
+
+      {/* Answering somebody who has never messaged you pays, and sending does
+          not — which is exactly backwards from what anybody assumes, so it is
+          said here rather than discovered. */}
+      <KarmaRewards />
 
       <form onSubmit={send} className="neon-frame space-y-3 p-4" data-tour="messagez-compose">
         <input className="neon-input" placeholder="To (username)" value={to} onChange={(e) => setTo(e.target.value)} required />

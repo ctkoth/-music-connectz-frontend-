@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import OfferPanel from "../OfferPanel.jsx";
+import KarmaRewards from "../KarmaRewards.jsx";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
@@ -280,6 +281,12 @@ export default function PostZ() {
           nobody got. It renders NOTHING when the server has nothing true to
           say, so on most visits this line costs a member zero pixels. */}
       <OfferPanel />
+      {/* What rating, voting and commenting pay, and how much of today's
+          allowance is left — above the feed, because this is the screen where
+          all three happen and a reward found out afterwards is a coincidence.
+          Collapsed to one line of counters by default: a price list between a
+          member and their feed is a price list nobody reads. */}
+      <KarmaRewards />
 
       <header className="flex items-center gap-3">
         <IconImg icon="postz.png" alt="PostZ" className="h-11 w-11 rounded-xl" />
