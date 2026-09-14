@@ -9,6 +9,11 @@ const RAP_STYLES = ["boom-bap","trap","chopper","drill","conscious","emo","melod
   "west-coast","east-coast","dirty-south","lofi","hyperpop","freestyle","battle","storytelling"];
 
 export function RapzProfilePanel() {
+  // `useSay()` returns the speaker; `talk` is the name every other file
+  // binds it to. Both Save handlers called `talk(...)` and neither bound
+  // it, so pressing Save threw ReferenceError — the dead-button failure
+  // this codebase has now shipped three times.
+  const talk = useSay();
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/rapz/profile/").then(setP).catch(() => {}); }, []);
@@ -44,6 +49,11 @@ export function RapzProfilePanel() {
 }
 
 export function SingzProfilePanel() {
+  // `useSay()` returns the speaker; `talk` is the name every other file
+  // binds it to. Both Save handlers called `talk(...)` and neither bound
+  // it, so pressing Save threw ReferenceError — the dead-button failure
+  // this codebase has now shipped three times.
+  const talk = useSay();
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/singz/profile/").then(setP).catch(() => {}); }, []);

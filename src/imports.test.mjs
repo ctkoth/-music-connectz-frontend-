@@ -109,3 +109,4 @@ test("a helper a file calls is a helper that file imports", () => {
   }
   assert.deepEqual(problems, [], `\n${problems.join("\n")}\n`);
 });
+
