@@ -175,6 +175,14 @@ export const CUSTOM_ICONS = {
   "fruity_mobius.png": "/icons/fruity_mobius.png",
   "groupz.png": "/icons/groupz.png",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
+  // Corey's GroupZ art, named the way he has it locally. OWED in
+  // icons.test.mjs until the files are committed — registering a key whose
+  // file does not exist is the soundcloudengagementz.png trap (404, silent
+  // fallback to the logo, nobody reports it), so the test names these until
+  // the art lands rather than letting them rot.
+  "friendz.jpg": "/icons/friendz.jpg",
+  "fanz.jpg": "/icons/fanz.jpg",
+  "partnerz.jpg": "/icons/partnerz.jpg",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
   "groupz_friendz.png": "/icons/groupz_friendz.png",
