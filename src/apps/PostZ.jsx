@@ -526,6 +526,26 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const loadSocial = () => api(`/api/economy/social/?item=${encodeURIComponent(item)}`)
     .then(setSocial).catch(() => setSocial(null));
 
+  // Vote on a comment. The response carries the whole social payload back, so
+  // the counts on screen are the server's rather than a local guess — the same
+  // rule the rating control follows, and it matters more here because the
+  // reward is capped and the client must never claim a ⚡ that wasn't paid.
+  const voteComment = async (c, value) => {
+    try {
+      const next = await api("/api/economy/social/react/", {
+        method: "POST", body: { item, comment_id: c.id, value },
+      });
+      setSocial(next);
+      // `onFlash`, not `flash` — inside PostCard the toast arrives as a prop,
+      // and the bare name is the undefined-identifier bug this repo already
+      // shipped once on the Record button. esbuild resolves neither.
+      if (next?.voted?.energy) onFlash(`+${next.voted.energy} ${ENERGY} for voting`);
+      else if (next?.voted?.capped) onFlash("That's today's voting ⚡ — the vote still counts.");
+    } catch (e) {
+      onFlash(e.message || "That vote didn't go through.");
+    }
+  };
+
   const loadProgression = () => api(`/api/economy/postz/${post.id}/progression/`)
     .then(setProgression).catch(() => setProgression(null));
 
@@ -994,8 +1014,46 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <div className="re-label">Comments · {comments.length}</div>
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
-            <span className="font-semibold text-mcz-ember">{c.user}</span>{" "}
-            <span className="text-white/80">{c.body}</span>
+            <div>
+              <span className="font-semibold text-mcz-ember">{c.user}</span>{" "}
+              <span className="text-white/80">{c.body}</span>
+            </div>
+            {/* Up and down on a comment. Both pay the voter the SAME +1 ⚡ —
+                stated on the control, before it is pressed — because paying
+                more for an upvote would be the app buying its own praise, and
+                paying only for one would leave half the signal unused.
+
+                An hour after a comment lands, its net score is what its author
+                earns. That is the blueprint's own rule ("energy equal to its
+                median rating 1 hour after it's posted") and it is why comments
+                needed a vote at all. */}
+            <div className="mt-1 flex items-center gap-2 text-[11px]">
+              <button
+                onClick={() => voteComment(c, c.my_vote === 1 ? 0 : 1)}
+                title={`+1 ${ENERGY} for voting`}
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${
+                  c.my_vote === 1 ? "bg-emerald-400/15 text-emerald-300"
+                                  : "text-white/40 hover:bg-white/10 hover:text-white/70"}`}>
+                <ThumbsUp size={11} /> {c.up ?? 0}
+              </button>
+              <button
+                onClick={() => voteComment(c, c.my_vote === -1 ? 0 : -1)}
+                title={`+1 ${ENERGY} for voting — a downvote pays the same`}
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${
+                  c.my_vote === -1 ? "bg-mcz-ember/15 text-mcz-ember"
+                                   : "text-white/40 hover:bg-white/10 hover:text-white/70"}`}>
+                <ThumbsDown size={11} /> {c.down ?? 0}
+              </button>
+              {!c.my_vote && (
+                <span className="text-emerald-300/70">+1 {ENERGY} either way</span>
+              )}
+              {/* What it earned once settled. `null` is "not settled yet" and
+                  0 is "settled, nobody voted it up" — different things, so
+                  they read differently. */}
+              {c.karma_energy > 0 && (
+                <span className="text-emerald-300">earned +{c.karma_energy} {ENERGY}</span>
+              )}
+            </div>
           </div>
         ))}
         {canComment ? (
