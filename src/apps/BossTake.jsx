@@ -167,6 +167,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [genre, setGenre] = useState("R&B");
   const [range, setRange] = useState("tenor");
   const [difficulty, setDifficulty] = useState("builder");
+  // Have the coach judge the WRITING as well as the performance. Off by
+  // default and deliberately so: somebody working on breath control has not
+  // asked for their lyrics to be marked, and scoring a member on something
+  // they did not submit for scoring is how a coach stops being trusted.
+  //
+  // Only offered where the server says the coach can do it (`rates_lyrics`) —
+  // a drum take has no words, and a toggle a screen cannot honour is the
+  // switch that changes nothing.
+  const [rateLyrics, setRateLyrics] = useState(false);
   // RapZ picks a style the way SingZ picks a range. The list comes from the
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
@@ -651,7 +660,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
               : { post_id: fromPost.post_id }),
-            genre, range, difficulty, ...(style ? { style } : {}) }
+            genre, range, difficulty, ...(style ? { style } : {}),
+            // A take handed over from PostZ takes the toggle too. It was
+            // missing here while the upload path had it, which is the quiet
+            // half of a feature: the control renders on both screens and only
+            // one of them honours it.
+            ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}) }
         : (() => {
             const f = new FormData();
             f.append("take", blob, takeName);
@@ -659,6 +673,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("range", range);
             f.append("difficulty", difficulty);
             if (style) f.append("style", style);
+            if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             return f;
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
@@ -785,6 +800,27 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </select>
         </label>
       </div>
+
+      {/* The server says whether this coach has words to read. Rendering it
+          off a hardcoded ["singz","rapz"] would be the two-door TrialTake
+          mistake again — a list in the client that the backend has already
+          moved past. */}
+      {price?.rates_lyrics && (
+        <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={rateLyrics}
+                 onChange={(e) => setRateLyrics(e.target.checked)}
+                 className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-mcz-cyan" />
+          <span>
+            Rate my lyrics too
+            <span className="block text-white/35">
+              Adds a {Object.values(price.lyric_scores || { writing: "Writing 📝" })[0]}{" "}
+              score — rhymes, structure, imagery, how the hook lands. It judges the
+              craft, not what you're talking about. If the words aren't clear enough
+              to catch, it says so instead of guessing.
+            </span>
+          </span>
+        </label>
+      )}
 
       {/* A post arrived from PostZ. It IS the take — there is nothing to record
           and nothing to upload, so the recorder steps aside and the only thing
@@ -1156,8 +1192,34 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
+          {/* What it made of the writing, and — first — what it actually
+              heard. The words come before the verdict on purpose: a lyric
+              review is worth nothing if the member cannot check it was
+              listening to the right words, and this is the one field on the
+              screen where a confident wrong answer is hardest to spot. */}
+          {(result.lyrics_note || result.lyrics_read) && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-white/40">📝 Your words</p>
+              {result.lyrics_read && (
+                <p className="whitespace-pre-wrap text-[12px] italic leading-relaxed text-white/55">
+                  {result.lyrics_read}
+                </p>
+              )}
+              {result.lyrics_note && (
+                <p className="text-[12px] leading-relaxed text-white/75">{result.lyrics_note}</p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
-            {Object.entries(price?.scores || {}).map(([k, label]) => (
+            {/* The take's OWN dimensions. `result.rated_lyrics` rather than
+                the toggle's current state: the member may have switched it
+                since, and a chip row that follows a checkbox instead of the
+                take would relabel a score that was never given. */}
+            {Object.entries({
+              ...(price?.scores || {}),
+              ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
+            }).map(([k, label]) => (
               <span key={k} className="pill">
                 {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
                   {result.scores?.[k] ?? "—"}
