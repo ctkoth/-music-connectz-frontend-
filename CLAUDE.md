@@ -89,6 +89,27 @@ When adding a screen, ask what a member would want to DO with each row, and
 give them the link. A read-only surface is usually an unfinished one.
 
 
+## The escrow window was never on the screen, and PartnerZ is what put it there
+
+`auto_release_days` has been in every deal `CollabZ.jsx` renders since the tab
+was written, and **no screen ever read it.** So a member funded a deal — the
+most expensive button in the app — told the amount and not the days: not how
+long their money sits, and not when their own last chance to dispute it shuts.
+The cost of funding is the amount AND the window, and only half of it was on
+the control.
+
+`EscrowWindow` states both, before the Fund button rather than after.
+
+It is also the only place being somebody's **PartnerZ** is visible.
+`auto_release_partnerz` says whether the window was shortened because the
+payers and payees have finished work together before; without the sentence, a
+deal releasing four days sooner than the card beside it reads as a bug rather
+than a reward. The backend's CLAUDE.md has the rule and why it is a benefit
+rather than a payout — the short version is that a 🍥 stipend for holding a
+status is farmable and a faster escrow between two people is not, because a
+faker owns both wallets.
+
+
 ## WidgetZ: a link opens ON the screen, and the tier buys where, not whether
 
 `<a target="_blank">` on a member's links was the dead end the cross-pollination

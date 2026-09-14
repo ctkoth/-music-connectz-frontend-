@@ -15,7 +15,7 @@
 // cost/gain rule — a price you discover by paying it is a bill.
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight, Check, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
+  ArrowRight, Check, Clock, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
   Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -47,6 +47,36 @@ function Amount({ cents, currency }) {
   return currency === "spinaz"
     ? <span>{cents} {SPINAZ}</span>
     : <span>{money(cents)} {MONEY}</span>;
+}
+
+// The escrow window, before the money goes in rather than after.
+//
+// The server has shipped `auto_release_days` since CollabZ was written and no
+// screen ever read it — so a payer funded a deal without being told how long
+// their cash sits or when their last chance to dispute it closes. That is the
+// cost/gain rule broken on the most expensive button in the app: the cost of
+// funding is not only the amount, it is the amount AND the days.
+//
+// It is also where PartnerZ becomes visible. A window that is quietly four
+// days shorter than the one on the card beside it reads as a bug; named, it
+// is the only thing being somebody's PartnerZ is worth.
+function EscrowWindow({ deal }) {
+  const days = deal.auto_release_days;
+  if (!days) return null;
+  const base = deal.auto_release_default_days;
+  return (
+    <p className="text-[11px] text-white/50">
+      <Clock size={11} className="mr-1 inline align-[-1px]" />
+      Releases itself {days} day{days === 1 ? "" : "s"} after it's funded unless
+      somebody disputes it.
+      {deal.auto_release_partnerz && base > days && (
+        <span className="text-emerald-300">
+          {" "}PartnerZ — {base - days} days sooner than usual, because you've
+          finished work together before.
+        </span>
+      )}
+    </p>
+  );
 }
 
 function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
@@ -160,6 +190,8 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
           </li>
         ))}
       </ul>
+
+      {["draft", "funded", "delivered"].includes(deal.status) && <EscrowWindow deal={deal} />}
 
       <div className="flex flex-wrap gap-2">
         {deal.status === "draft" && me.pays_cents > 0 && (
