@@ -820,16 +820,31 @@ function Home() {
               says what this tab is. The control used to be text with a ⓘ — the
               icon is the thing the spec points at, and the thing a member's
               thumb actually finds. */}
-          <button data-tour="tab-info" className="flex flex-1 items-center justify-center gap-2"
+          {/* `min-w-0` is load-bearing, not tidying. A flex item's default
+              `min-width: auto` means this button could not shrink below its
+              own text however much `flex-1` asked it to — so on a phone the
+              tab name simply pushed the whole right-hand cluster off the
+              screen. PostZ fitted, MessageZ went 2px over, and KeyConnectZ
+              went 21px over with the Log out button entirely past the edge.
+              Every long tab name (OpportunitieZ, MembershipZ,
+              SoundCloudEngagementZ) was doing the same thing.
+
+              It read as fine because the overflow is on the RIGHT, where a
+              sticky header shows no scrollbar and nothing looks wrong until
+              you go to press the control that isn't there. */}
+          <button data-tour="tab-info"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-2"
                   onClick={() => setInfoKey(tab)} title="What is this tab?">
             {active?.icon && (
               <IconImg icon={active.icon} alt="" className="h-7 w-7 shrink-0 rounded-lg" />
             )}
             <span className="min-w-0 text-center">
-              <span className="block text-[11px] font-semibold text-white/70">
+              {/* Truncate rather than wrap: a two-line tab name would grow the
+                  sticky header on the screen with the least height to spare. */}
+              <span className="block truncate text-[11px] font-semibold text-white/70">
                 {active?.label} <span className="text-white/30">ⓘ</span>
               </span>
-              <span className="block text-[9px] text-white/35">{today}</span>
+              <span className="block truncate text-[9px] text-white/35">{today}</span>
             </span>
           </button>
 
