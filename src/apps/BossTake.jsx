@@ -244,6 +244,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // Whether the take now running came from the camera. A ref, not state,
   // because the size stop reads it from inside the recorder's own callback.
   const videoRec = useRef(false);
+  // The live camera, while it is recording. Without it a video take is
+  // recorded blind: you cannot tell whether you are in frame, whether the
+  // light is usable, or — before the facingMode fix above — that you were
+  // pointing the wrong camera at the ceiling. A recorder you cannot see
+  // yourself in is one people press once.
+  const preview = useRef(null);
+  const [previewOn, setPreviewOn] = useState(false);
 
   /** One step of the JOIN funnel, from the trial door only.
    *
@@ -478,7 +485,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           // may overshoot, and overshoot it did — straight to 1080p.
           ? { audio: true,
               video: { width: { max: 854 }, height: { max: 480 },
-                       frameRate: { max: 30 } } }
+                       frameRate: { max: 30 },
+                       // THE FRONT CAMERA. With no facingMode a phone hands
+                       // back the BACK camera, so a member who pressed
+                       // "record on camera" to sing was filming the ceiling —
+                       // and with no preview (below) there was nothing on
+                       // screen to tell them. That is most of what "the camera
+                       // doesn't work" actually was.
+                       //
+                       // `ideal`, never `exact`: exact fails outright on a
+                       // laptop with one camera, which would turn a wrong
+                       // camera into no camera.
+                       facingMode: { ideal: "user" } } }
           : { audio: true });
       chunks.current = [];
       setBytes(0);
@@ -498,12 +516,27 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // performs, so it is said before rather than after.
       if (audioTrack && audioTrack.muted) {
         stream.getTracks().forEach((t) => t.stop());
+        setPreviewOn(false);
         step("try_failed", { why: "empty" });
         return setMsg(`"${audioTrack.label || "That input"}" is open but sending no audio — `
           + "it's muted at the device or the operating system. Unmute it, pick a "
           + "different input, or upload a clip instead.");
       }
       startMeter(stream);
+      if (video) {
+        setPreviewOn(true);
+        // Attached after the element mounts. `muted` is not cosmetic: an
+        // unmuted preview plays the member's own microphone back through
+        // their speakers, which is feedback in a room without headphones —
+        // the same reason the level meter never connects to the destination.
+        setTimeout(() => {
+          if (preview.current) {
+            preview.current.srcObject = stream;
+            preview.current.play?.().catch(() => { /* autoplay policy; the
+              frame still shows, and this is a preview rather than playback */ });
+          }
+        }, 0);
+      }
       // Same reason: `secs` in `onstop` would be whatever it was at the moment
       // recording started, which is zero.
       const startedAt = Date.now();
@@ -541,6 +574,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        setPreviewOn(false);
+        if (preview.current) preview.current.srcObject = null;
         // null means the meter never ran, so it gets no opinion. A reading of
         // 0 from a context that DID run is a fact.
         const peak = stopMeter();
@@ -813,10 +848,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <span>
             Rate my lyrics too
             <span className="block text-white/35">
-              Adds a {Object.values(price.lyric_scores || { writing: "Writing 📝" })[0]}{" "}
-              score — rhymes, structure, imagery, how the hook lands. It judges the
-              craft, not what you're talking about. If the words aren't clear enough
-              to catch, it says so instead of guessing.
+              Scores{" "}
+              {Object.values(price.lyric_scores || {}).join(", ").toLowerCase()
+                || "rhyme scheme, punchlines, story, imagery and freshness"}
+              {" "}— weighted by the style you picked, so a dimension that style
+              isn't asking for reads "—" rather than a low mark. It judges the
+              craft, not what you're talking about, and if the words aren't clear
+              enough to catch it says so instead of guessing.
             </span>
           </span>
         </label>
@@ -958,6 +996,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           Eight seconds is enough to score. A voice note you already have works —
           nothing to install, nothing to allow.
         </p>
+      )}
+
+      {/* The camera, live, while it rolls. Mirrored, because a selfie preview
+          that is not mirrored reads as somebody else's face and people
+          instinctively correct the wrong way — the RECORDING is not mirrored,
+          only what they watch. */}
+      {previewOn && recording && (
+        <video ref={preview} muted playsInline autoPlay
+               className="w-full -scale-x-100 rounded-lg border border-mcz-ember/30" />
       )}
 
       {recording && (

@@ -95,3 +95,47 @@ export function useCharLimit() {
     clamp: (text) => (unlimited ? text : (text || "").slice(0, limit)),
   };
 }
+
+/**
+ * The per-upload size cap for the signed-in member, from the server.
+ *
+ * `upload_mb` has been in `/api/economy/limits/` since it shipped and most of
+ * the file inputs in this app never read it — a member could attach a 500MB
+ * video to a post, wait through the upload, and be refused by a 413 at the
+ * end. Checking it here costs nothing and turns a wasted wait into a sentence.
+ *
+ * `check(file)` returns null when the file is fine, or the reason it isn't —
+ * so a caller cannot accidentally treat "no cap loaded yet" as "too big".
+ * Until the limits land it refuses NOTHING: guessing low would refuse files
+ * the member's tier actually allows, and the server is the real gate either
+ * way.
+ */
+export function useUploadLimit() {
+  const [lim, setLim] = useState(cache);
+
+  useEffect(() => {
+    let on = true;
+    listeners.add(setLim);
+    loadLimits().then((d) => on && setLim(d));
+    return () => { on = false; listeners.delete(setLim); };
+  }, []);
+
+  const mb = lim?.upload_mb ?? null;
+  return {
+    mb,
+    tier: lim?.tier || "free",
+    ready: !!lim,
+    check: (file) => {
+      if (!file) return "No file.";
+      // An empty file is a round trip that can only fail. It happens for real:
+      // a cancelled export, a sync placeholder, a recording that captured
+      // nothing.
+      if (!file.size) return "That file is empty — there's nothing in it to upload.";
+      if (mb && file.size > mb * 1024 * 1024) {
+        return `That's ${(file.size / 1024 / 1024).toFixed(1)}MB — your tier allows `
+             + `${mb}MB per upload. A shorter clip, or a tier up raises it.`;
+      }
+      return null;
+    },
+  };
+}

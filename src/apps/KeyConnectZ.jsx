@@ -81,6 +81,15 @@ export default function KeyConnectZ() {
   }
 
   async function uploadWallpaper(file) {
+    // The cap was already printed under this button ("Up to {n}MB") and
+    // nothing checked it, so the number was a claim rather than a rule and
+    // the member found out by waiting. It is the server's number either way.
+    const capMb = state?.wallpaper_max_mb;
+    if (!file?.size) return setMsg("That file is empty — there's nothing in it to set.");
+    if (capMb && file.size > capMb * 1024 * 1024) {
+      return setMsg(`That's ${(file.size / 1024 / 1024).toFixed(1)}MB — keep a wallpaper `
+        + `under ${capMb}MB.`);
+    }
     setBusy(true); setMsg("");
     try {
       const body = new FormData();

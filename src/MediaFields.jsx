@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
 import { playSound } from "./sound.js";
+import { useUploadLimit } from "./limits.js";
 
 // One of each — the order they preview in. The tag is how each renders.
 const SLOTS = [["audio", "audio"], ["video", "video"], ["image", "img"]];
@@ -25,6 +26,10 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
   const [msg, setMsg] = useState("");
+  // The member's own per-upload cap, from the server. This composer had no
+  // size check at all: a 500MB video attached silently, the member waited
+  // out the upload, and the server refused it with a 413 at the end.
+  const upload = useUploadLimit();
   const [localUrls, setLocalUrls] = useState({});
   const rec = useRef(null);
   const chunks = useRef([]);
@@ -49,12 +54,30 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   // only that slot's URL, so attaching a video no longer silently discards the
   // audio the member just recorded.
   function attach(blob, slot) {
+    // ONE object URL, not two. This used to make a second one on the next
+    // line and hand that to the caller, so every attach leaked a blob URL for
+    // the life of the page — invisible, and it pins the whole file in memory.
+    // Only the tracked one is revoked, so only the tracked one may exist.
+    const url = URL.createObjectURL(blob);
     setLocalUrls((cur) => {
       if (cur[slot]) URL.revokeObjectURL(cur[slot]);
-      return { ...cur, [slot]: URL.createObjectURL(blob) };
+      return { ...cur, [slot]: url };
     });
-    const url = URL.createObjectURL(blob);
     set({ [`${slot}_url`]: url, [`${slot}_blob`]: blob });
+  }
+
+  /** A picked file, checked before it is attached. Returns whether it landed.
+   *
+   *  Refusing here rather than at upload is the cost/gain rule applied to
+   *  somebody's time: a file that cannot be sent should say so while they are
+   *  still choosing one, not after they have watched a progress bar.
+   */
+  function pickFile(file, slot) {
+    const why = upload.check(file);
+    if (why) { setMsg(why); playSound("error"); return false; }
+    setMsg("");
+    attach(file, slot);
+    return true;
   }
 
   function discardSlot(slot) {
@@ -113,19 +136,19 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
           </button>
         )}
         <input ref={audioInput} type="file" accept="audio/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "audio"); playSound("upload_audio"); } }} />
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "audio")) playSound("upload_audio"); }} />
         <button type="button" className="re-btn re-btn-cyan !w-auto px-3 text-xs"
                 onClick={() => audioInput.current?.click()} disabled={recording}>
           <Upload size={13} /> Audio
         </button>
         <input ref={videoInput} type="file" accept="video/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "video"); playSound("upload_video"); } }} />
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "video")) playSound("upload_video"); }} />
         <button type="button" className="re-btn re-btn-purple !w-auto px-3 text-xs"
                 onClick={() => videoInput.current?.click()} disabled={recording}>
           <Film size={13} /> Video
         </button>
         <input ref={imageInput} type="file" accept="image/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { attach(f, "image"); playSound("upload_image"); } }} />
+               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "image")) playSound("upload_image"); }} />
         <button type="button" className="re-btn re-btn-gold !w-auto px-3 text-xs"
                 onClick={() => imageInput.current?.click()}>
           <ImageIcon size={13} /> Image

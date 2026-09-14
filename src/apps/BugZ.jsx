@@ -49,6 +49,9 @@ export default function BugZ() {
 
   function attach(f) {
     if (!f) return;
+    // A zero-byte screenshot is a round trip that can only fail, and it
+    // happens for real — a cancelled export, a sync placeholder.
+    if (!f.size) return setMsg("That file is empty — there's nothing in it to attach.");
     const capMb = meta?.max_mb;
     if (capMb && f.size > capMb * 1024 * 1024) {
       return setMsg(`That's ${(f.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `

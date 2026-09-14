@@ -24,6 +24,7 @@ import { asList } from "../shape.js";
 import { ENERGY } from "../resources.js";
 import { goToTab } from "../goto.js";
 import { playSound } from "../sound.js";
+import { useUploadLimit } from "../limits.js";
 import MentionText from "../MentionParser.jsx";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -36,6 +37,9 @@ const STATUS_TONE = {
 };
 
 export default function GameZ() {
+  // The member's own per-upload cap, from the server — one number, not a
+  // ladder retyped in the client.
+  const uploadLimit = useUploadLimit();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -90,6 +94,11 @@ export default function GameZ() {
 
   async function attach(game, file) {
     if (!file) return;
+    // Checked here rather than left to the 413. The recovery below (the tier
+    // prompt) is good, but it fires AFTER the upload — which on a big asset
+    // is a long wait to be told a number we already knew.
+    const why = uploadLimit.check(file);
+    if (why) { playSound("error"); setMsg(why); return; }
     setBusy(true); setMsg("");
     try {
       const fd = new FormData();
@@ -220,7 +229,12 @@ export default function GameZ() {
                   )}
                   <label className="re-btn re-btn-emerald !w-auto cursor-pointer px-4">
                     <Upload size={15} /> Add asset
+                    {/* `accept` was missing entirely, so the picker offered
+                        every file on the device for a game asset. It is a
+                        filter and not a guarantee — a member can still pick
+                        anything — which is why `attach` checks the size too. */}
                     <input type="file" className="hidden" disabled={busy}
+                           accept="image/*,audio/*,video/*,.json,.txt,.glb,.gltf"
                            onChange={(e) => {
                              const f = e.target.files?.[0];
                              e.target.value = "";
