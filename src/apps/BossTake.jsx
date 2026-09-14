@@ -212,6 +212,26 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
+  // WHAT THE MICROPHONE IS ACTUALLY SENDING, while it is being sent.
+  //
+  // "The microphone was open but captured nothing" names three possible causes
+  // — muted input, wrong device, or a take too short to encode — and cannot
+  // say which. That is the exact fault the recorder audit was about: every
+  // failure reported a cause that was not the cause. Bytes arriving is not the
+  // same question as sound arriving, either: a muted input still produces a
+  // perfectly valid file full of silence, which the coach then refuses with a
+  // 502 after the visitor has already spent their one free take.
+  //
+  // So the level is measured off the live stream and shown while recording. A
+  // meter that never moves is the member's answer before they finish
+  // performing, not ours afterwards.
+  const meter = useRef(null);         // {ctx, analyser, raf, peak, source}
+  const [level, setLevel] = useState(0);      // 0-1, right now
+  const [heard, setHeard] = useState(false);  // did it ever cross the floor
+  // The device the browser actually opened. When somebody has three inputs and
+  // the browser picked the HDMI one, this is the only thing on screen that
+  // says so.
+  const [inputName, setInputName] = useState("");
   // Whether the take now running came from the camera. A ref, not state,
   // because the size stop reads it from inside the recorder's own callback.
   const videoRec = useRef(false);
@@ -368,6 +388,64 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
   }
 
+  // Anything above this counts as "the input is live". It is deliberately
+  // low — a fifth of a percent of full scale — because the job is telling
+  // SILENCE from SOUND, not judging whether somebody sang loudly enough. Room
+  // tone from a working microphone clears it easily; a muted input does not
+  // clear it at all.
+  const SILENCE_FLOOR = 0.002;
+
+  function startMeter(stream) {
+    // Best-effort, and nothing downstream depends on it. If WebAudio is
+    // unavailable or the context will not start, the meter simply never
+    // reports — which leaves the recorder exactly as it was, rather than
+    // making a claim about the take from a measurement that did not run.
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      const source = ctx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      // NOT connected to ctx.destination, deliberately: that would play the
+      // member's own microphone back through their speakers, which is
+      // feedback in a room with no headphones.
+      const buf = new Float32Array(analyser.fftSize);
+      const state = { ctx, analyser, source, raf: 0, peak: 0 };
+      const tick = () => {
+        analyser.getFloatTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        state.peak = Math.max(state.peak, rms);
+        setLevel(rms);
+        if (rms > SILENCE_FLOOR) setHeard(true);
+        state.raf = requestAnimationFrame(tick);
+      };
+      state.raf = requestAnimationFrame(tick);
+      meter.current = state;
+    } catch {
+      meter.current = null;
+    }
+  }
+
+  function stopMeter() {
+    const m = meter.current;
+    meter.current = null;
+    setLevel(0);
+    if (!m) return null;
+    try { cancelAnimationFrame(m.raf); } catch { /* nothing to cancel */ }
+    try { m.source.disconnect(); } catch { /* already gone */ }
+    // `running` is the only state a reading can be trusted from. A context the
+    // autoplay policy left suspended produces a flat line that looks exactly
+    // like a muted microphone, and reporting that as silence would be this
+    // recorder's oldest bug wearing a new hat.
+    const ran = m.ctx.state === "running";
+    try { m.ctx.close(); } catch { /* already closed */ }
+    return ran ? m.peak : null;
+  }
+
   async function startRec(video = false, relaxed = false) {
     setMsg(""); setStopNote("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -396,6 +474,30 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       chunks.current = [];
       setBytes(0);
       videoRec.current = video;
+      setHeard(false);
+      setLevel(0);
+      const audioTrack = stream.getAudioTracks()[0];
+      // Held as a local as well as in state. `onstop` closes over the values
+      // that existed when `startRec` ran, so reading `inputName` in there
+      // would always give the PREVIOUS take's device — a stale closure is how
+      // a message that exists to name the right cause ends up naming the
+      // wrong one, which is the whole fault being fixed here.
+      const label = audioTrack?.label || "";
+      setInputName(label);
+      // `muted` on a track means the SOURCE is delivering nothing — the
+      // browser's own word for it, not a guess. Known before the member
+      // performs, so it is said before rather than after.
+      if (audioTrack && audioTrack.muted) {
+        stream.getTracks().forEach((t) => t.stop());
+        step("try_failed", { why: "empty" });
+        return setMsg(`"${audioTrack.label || "That input"}" is open but sending no audio — `
+          + "it's muted at the device or the operating system. Unmute it, pick a "
+          + "different input, or upload a clip instead.");
+      }
+      startMeter(stream);
+      // Same reason: `secs` in `onstop` would be whatever it was at the moment
+      // recording started, which is zero.
+      const startedAt = Date.now();
       // Ask for a modest bitrate on video so a minute of take lands inside the
       // size cap. This is a HINT and phones ignore it — the byte count below is
       // what actually holds the line.
@@ -430,6 +532,19 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        // null means the meter never ran, so it gets no opinion. A reading of
+        // 0 from a context that DID run is a fact.
+        const peak = stopMeter();
+        const named = label ? `"${label}"` : (video ? "The camera" : "The microphone");
+        const held = (Date.now() - startedAt) / 1000;
+        // ...and a take too short for the analyser to have sampled anything is
+        // not evidence either. Verified in a browser rather than reasoned
+        // about: a 300ms take of a REAL tone came back reading zero peak and
+        // was reported as silent, which is this recorder's oldest bug — a
+        // message naming a cause that was not the cause — reintroduced by the
+        // thing written to end it. Below the floor, the meter says nothing.
+        const MEASURABLE_AFTER = 1.5;
+        const silent = peak !== null && peak <= SILENCE_FLOOR && held >= MEASURABLE_AFTER;
         // A take with no bytes in it is not a take.
         //
         // This attached whatever it had, including nothing — which is exactly
@@ -441,9 +556,31 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         if (!total) {
           setRecording(false);
           step("try_failed", { why: "empty" });
-          return setMsg(`The ${video ? "camera" : "microphone"} was open but captured nothing — `
-            + "no audio reached the recorder. Check the input isn't muted or set to the wrong "
-            + "device, or upload a clip instead.");
+          // Three different causes, and until the meter existed this line had
+          // to list all three and let the member guess. Now it can say which.
+          if (held < 2) {
+            return setMsg("That was too short for the recorder to produce anything — "
+              + "it writes the file in one-second pieces. Hold it for a few seconds; "
+              + "eight is enough to score.");
+          }
+          if (silent) {
+            return setMsg(`${named} was open and never heard a sound — the level meter `
+              + "stayed flat the whole way through. It's muted, or the browser is on a "
+              + "different input than you think. Pick another input, or upload a clip.");
+          }
+          return setMsg(`${named} was open but the recorder produced no file. `
+            + "That's the browser rather than your input — upload a clip instead, "
+            + "it scores the same.");
+        }
+        // Bytes without sound. A muted input still produces a perfectly valid
+        // file full of silence, and sending it costs a free take to be told
+        // the audio was silent. Said here, where the take is still in hand:
+        // it is attached either way, because a meter that got it wrong must
+        // not be the reason somebody loses a performance.
+        if (silent) {
+          setStopNote(`Recorded, but ${named} never rose above silence for the whole take. `
+            + "If that's not right, check the input and record again — the coach can't "
+            + "score a silent file.");
         }
         // Keep the recorder's own mime — the server normalises it — but give
         // the file an extension that matches, so an attached-file round trip
@@ -788,12 +925,48 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       )}
 
       {recording && (
-        <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" />
-          Recording — {mmss}
-          {videoRec.current && ` / ${mmssOf(VIDEO_MAX_SECONDS)}`}
-          {bytes > 0 && ` · ${mb(bytes)}MB${price?.max_mb ? ` of ${price.max_mb}MB` : ""}`}
-        </p>
+        <div className="space-y-1.5">
+          <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" />
+            Recording — {mmss}
+            {videoRec.current && ` / ${mmssOf(VIDEO_MAX_SECONDS)}`}
+            {bytes > 0 && ` · ${mb(bytes)}MB${price?.max_mb ? ` of ${price.max_mb}MB` : ""}`}
+          </p>
+          {/* The live input level, and the device it is coming from.
+              Bytes ticking up says the recorder is writing; it says nothing
+              about whether anything is being recorded INTO it. A muted mic
+              produces a perfectly good file full of silence, and until this
+              bar existed the first anyone knew was a 502 after the take was
+              over — which on the trial door costs the visitor the one free
+              take they came for. A bar that never moves is the answer while
+              there is still time to do something about it.
+
+              `Math.min(1, level * 8)` is a display scale, not a measurement:
+              speech RMS sits around 0.05-0.15, so an unscaled bar would look
+              broken at normal volume. */}
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full transition-[width] duration-75 ${
+                  heard ? "bg-emerald-400" : "bg-white/25"}`}
+                style={{ width: `${Math.min(100, level * 800)}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[10px] text-white/40">
+              {heard ? "input live" : "no sound yet"}
+            </span>
+          </div>
+          {!heard && secs >= 3 && (
+            <p className="text-[11px] text-mcz-ember">
+              Nothing has reached {inputName ? `"${inputName}"` : "the microphone"} in {secs}s.
+              Stop, check the input isn't muted, or upload a clip instead — the coach
+              can't score silence.
+            </p>
+          )}
+          {heard && inputName && (
+            <p className="text-[10px] text-white/35">Input: {inputName}</p>
+          )}
+        </div>
       )}
 
       {/* The recorder stopped itself. Said plainly, in its own line, because
