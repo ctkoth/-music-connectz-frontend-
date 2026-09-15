@@ -114,6 +114,20 @@ export function WidgetProvider({ children }) {
       return;
     }
 
+    // The tier's ceiling on how many may be tiled at once. The number is the
+    // server's (`widgets_open`), never a copy kept here — and a failed policy
+    // fetch leaves it undefined, which opens rather than blocks: a member must
+    // not lose a working board because one request did not land.
+    const cap = policy?.widgets_open;
+    if (cap && live.current.length >= cap) {
+      // The oldest UNFOCUSED one makes room. Closing the focused widget would
+      // shut the thing somebody is looking at to open the thing they just
+      // asked for, and refusing outright would be the ladder rule broken — the
+      // tier buys how many are up at once, never whether a link opens.
+      const victim = live.current.find((w) => !w.focused) || live.current[0];
+      setWidgets((ws) => ws.filter((w) => w.id !== victim.id));
+    }
+
     const id = nextId++;
     setWidgets((ws) => [...ws, { id, req: url, url, owner, label: label || url, state: "resolving", span: 1 }]);
     setMinimized(false);
@@ -139,7 +153,10 @@ export function WidgetProvider({ children }) {
     // back to — they named it, and a row that renamed itself on opening would
     // be a different row than the one that was pressed.
     patch(id, { ...spec, label: label || spec?.label || url, state: "ready" });
-  }, [patch, close]);
+    // `policy` is in here because the cap above reads it. It arrives from a
+    // fetch AFTER mount, so a callback that closed over the first render would
+    // hold null forever and the ceiling would never apply at all.
+  }, [patch, close, policy]);
 
   const value = useMemo(
     () => ({ policy, widgets, open, close, minimized, setMinimized,
