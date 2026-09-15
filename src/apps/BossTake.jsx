@@ -176,6 +176,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // a drum take has no words, and a toggle a screen cannot honour is the
   // switch that changes nothing.
   const [rateLyrics, setRateLyrics] = useState(false);
+  // Have the coach judge the RECORDING as well as the playing. Off by default
+  // for the same reason as lyrics, and one more: most takes here are a phone in
+  // a bedroom, so a coach that scored production by default would be marking
+  // somebody down for their room — a number they could raise by buying an
+  // interface rather than by getting better.
+  const [rateMix, setRateMix] = useState(false);
   // RapZ picks a style the way SingZ picks a range. The list comes from the
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
@@ -700,7 +706,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // missing here while the upload path had it, which is the quiet
             // half of a feature: the control renders on both screens and only
             // one of them honours it.
-            ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}) }
+            ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
+            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
         : (() => {
             const f = new FormData();
             f.append("take", blob, takeName);
@@ -709,6 +716,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (style) f.append("style", style);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
+            if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
             return f;
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
@@ -855,6 +863,30 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               isn't asking for reads "—" rather than a low mark. It judges the
               craft, not what you're talking about, and if the words aren't clear
               enough to catch it says so instead of guessing.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {/* The other half of "score the performance, not the mix". The coach is
+          told to ignore production unless this is on, so this is the only way
+          to hear about it — and it stays off by default because a phone
+          recording of a great take is still a great take. */}
+      {price?.rates_mix && (
+        <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={rateMix}
+                 onChange={(e) => setRateMix(e.target.checked)}
+                 className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-mcz-cyan" />
+          <span>
+            Rate my mix too
+            <span className="block text-white/35">
+              Scores{" "}
+              {Object.values(price.mix_scores || {}).join(", ").toLowerCase()
+                || "balance, low end, space and level"}
+              {" "}— the recording judged as a recording. Leave it off and
+              production is ignored entirely: room noise and a phone mic never
+              pull your performance scores down either way. It rates the mix you
+              made, never the gear you used.
             </span>
           </span>
         </label>
@@ -1186,7 +1218,30 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </div>
       )}
 
-      {result && (
+      {/* The coach heard no performance — silence, a room, a TV, the wrong
+          file. That is not a bad take, it is not a take, and the two need
+          opposite answers: one is what to fix, the other is what to send.
+          Rendering a 2 here would be the substance rule's worst case, at the
+          exact moment a stranger is deciding whether any of this is real.
+          So: no number, no dimension chips, and the next move instead. */}
+      {result?.unscorable ? (
+        <div className="space-y-3 border-t border-white/10 pt-3">
+          <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-3">
+            <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/70">
+              🎧 Nothing to score yet
+            </p>
+            <p className="pt-1.5 text-[12px] leading-relaxed text-white/80">
+              {result.unscorable}
+            </p>
+          </div>
+          {/* `discard`, not a partial reset — it also revokes the object URL
+              and clears the player, so the old take doesn't sit there under
+              the invitation to record a new one. */}
+          <button className="neon-btn" onClick={discard}>
+            Try another take
+          </button>
+        </div>
+      ) : result && (
         <div className="space-y-3 border-t border-white/10 pt-3">
           <div className="flex items-baseline gap-3">
             <span className={`font-display text-4xl font-extrabold ${scoreColor(result.score)}`}>
@@ -1258,6 +1313,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
+          {/* Kept apart from the performance notes above, because that is the
+              whole claim the toggle makes: production is scored in its own box
+              or not at all. */}
+          {result.mix_note && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-white/40">🎚️ Your mix</p>
+              <p className="text-[12px] leading-relaxed text-white/75">{result.mix_note}</p>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {/* The take's OWN dimensions. `result.rated_lyrics` rather than
                 the toggle's current state: the member may have switched it
@@ -1266,6 +1331,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             {Object.entries({
               ...(price?.scores || {}),
               ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
+              ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
             }).map(([k, label]) => (
               <span key={k} className="pill">
                 {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
