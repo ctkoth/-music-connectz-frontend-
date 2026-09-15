@@ -231,13 +231,17 @@ export default function TrialTake() {
                   {tier.label}
                 </p>
                 <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Scored takes: {tier.key === "free" ? "1/day" : tier.key === "premium" ? "3/day" : "Unlimited"}</li>
-                  <li>✓ Upload: {tier.upload_mb}MB</li>
-                  <li>✓ Storage: {tier.storage_mb}MB</li>
+                  <li>✓ Scored takes: {tier.key === "free" ? "3/day" : tier.key === "premium" ? "5/day" : "Unlimited"}</li>
+                  <li>✓ Upload: {tier.key === "free" ? "100MB" : tier.key === "premium" ? "1GB" : "10GB"}</li>
+                  <li>✓ Storage: {tier.key === "free" ? "500MB" : tier.key === "premium" ? "5GB" : "100GB"}</li>
+                  {tier.key === "statz" && <li className="mt-1 text-mcz-gold font-semibold">✓ No limits</li>}
                   {tier.price_cents > 0 && (
                     <li className="mt-2 pt-2 border-t border-white/10 text-emerald-300">
                       ${(tier.price_cents / 100).toFixed(2)}/mo
                     </li>
+                  )}
+                  {tier.key === "free" && (
+                    <li className="mt-2 text-white/60 italic">Get started free</li>
                   )}
                 </ul>
               </div>
