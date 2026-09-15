@@ -331,9 +331,12 @@ export default function Lilith() {
           because a free member has a working task manager and should be told
           that is not the thing being sold. */}
       <p className="text-[11px] text-white/35">
-        Your tier: {board?.tier}. {limits.auto_schedule
-          ? "Auto-schedule, persona automation and AI breakdowns are on."
-          : "StatZ adds auto-schedule, persona automation and AI breakdowns — the task manager itself is the same at every tier."}
+        Your tier: {board?.tier}. Auto-schedule plans{" "}
+        {limits.auto_schedule_days} day{limits.auto_schedule_days === 1 ? "" : "s"}{" "}
+        ahead, {limits.automation_rules} automation rule
+        {limits.automation_rules === 1 ? "" : "s"} and {limits.recurring_quests}{" "}
+        quest chain{limits.recurring_quests === 1 ? "" : "s"} — a tier up raises
+        each. Everything here works at every tier.
       </p>
     </div>
   );
