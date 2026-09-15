@@ -63,6 +63,7 @@ export default function TrialTake() {
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
   const [bossTakeReady, setBossTakeReady] = useState(false);
+  const [stats, setStats] = useState(null);
 
   useEffect(() => {
     let on = true;
@@ -73,6 +74,17 @@ export default function TrialTake() {
       // and a visit that goes unmeasured because a side request 404'd is a
       // visit this funnel would have to explain later.
       .finally(() => on && setDoorsLoaded(true));
+    return () => { on = false; };
+  }, []);
+
+  useEffect(() => {
+    let on = true;
+    api("/api/trial/public/stats/?days=30", { auth: false })
+      .then((d) => { if (on && d?.headline) setStats(d); })
+      .catch(() => {})
+      // Failed fetch does not render error: a stats panel that silently fails
+      // is better than one that blocks or screams about an API problem.
+      .finally(() => {});
     return () => { on = false; };
   }, []);
 
@@ -169,6 +181,21 @@ export default function TrialTake() {
           <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
         </p>
       </div>
+
+      {stats && (
+        <div className="mb-6 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">What members do</p>
+          <div className="mt-3 space-y-2">
+            {stats.headline.map((h) => (
+              <div key={h.key} className="flex items-center justify-between text-sm">
+                <span className="text-white/75">{h.label}</span>
+                <span className="text-emerald-300">{h.pct}%</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-white/45">Last {stats.days} days across all visitors</p>
+        </div>
+      )}
 
       {!bossTakeReady && (
         <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
