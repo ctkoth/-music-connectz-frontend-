@@ -18,6 +18,7 @@ import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight } from "../goto.js";
 import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
+import ConnectionZ from "../ConnectionZ.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
@@ -798,6 +799,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             of the rule. */}
         <div className="border-t border-white/10 pt-3">
           <SignBonus onOpenBirthday={() => spotlight("birthday")} />
+        </div>
+
+        {/* A link you can make and never unmake is one a mistake is permanent
+            in — and the mistake here signs you into the wrong account forever,
+            because a known provider_uid wins before any other check. */}
+        <div className="border-t border-white/10 pt-3" data-tour="connections">
+          <ConnectionZ connections={me?.connections} onChange={setMe} />
         </div>
       </div>
 
