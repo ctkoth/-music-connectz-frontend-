@@ -19,6 +19,7 @@ import { spotlight } from "../goto.js";
 import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
 import ConnectionZ from "../ConnectionZ.jsx";
+import VisibilitieZ from "../VisibilitieZ.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
@@ -806,6 +807,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             because a known provider_uid wins before any other check. */}
         <div className="border-t border-white/10 pt-3" data-tour="connections">
           <ConnectionZ connections={me?.connections} onChange={setMe} />
+        </div>
+
+        {/* Set per field, because "public" is not one decision. Somebody can
+            want their first name found and their birthday not. */}
+        <div className="border-t border-white/10 pt-3" data-tour="visibility">
+          <VisibilitieZ visibility={me?.visibility} onChange={setMe} />
         </div>
       </div>
 
