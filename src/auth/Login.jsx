@@ -6,6 +6,7 @@ import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { AuthShell } from "./Register.jsx";
 import { track } from "../track.js";
+import { api } from "../api.js";
 
 export default function Login() {
   const { login } = useAuth();
@@ -23,6 +24,33 @@ export default function Login() {
     try {
       await login(form);
       track("login_success");
+
+      // If there's a pending OAuth link from the "I already have one" flow, link it now
+      const pendingProvider = sessionStorage.getItem("mcz_oauth_provider");
+      const pendingToken = sessionStorage.getItem("mcz_oauth_pending");
+      if (pendingProvider && pendingToken) {
+        try {
+          // The pending token contains the OAuth info; send it to the link endpoint
+          const code = new URL(window.location).searchParams.get("code") || "";
+          const redirectUri = `${window.location.origin}/oauth/callback`;
+
+          await api(`/api/auth/oauth/${pendingProvider}/link/`, {
+            method: "POST",
+            body: {
+              code: pendingToken, // This is a bit of a hack — the pending token acts as proof
+              redirect_uri: redirectUri,
+            },
+          });
+          sessionStorage.removeItem("mcz_oauth_pending");
+          sessionStorage.removeItem("mcz_oauth_provider");
+          track("oauth_linked_after_login", { provider: pendingProvider });
+        } catch (linkErr) {
+          // Link failed, but login succeeded — still redirect, they can link manually later
+          console.warn("OAuth link failed after login:", linkErr);
+          track("oauth_link_failed", { provider: pendingProvider, error: linkErr.message });
+        }
+      }
+
       navigate("/");
     } catch (err) {
       setError(err.message);
