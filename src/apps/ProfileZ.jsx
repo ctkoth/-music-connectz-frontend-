@@ -20,6 +20,7 @@ import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
 import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
+import SoundCloudImport from "../SoundCloudImport.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
@@ -483,6 +484,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const [deleting, setDeleting] = useState(false);
   // Chosen PersonaZ artwork, and which persona's icon picker is open.
   const [icons, setIcons] = useState(loadPersonaIcons);
+  // The PUBLIC SoundCloud client id, from the same open endpoint the login
+  // buttons read. Never a build-time copy — that is how a client id ends up
+  // stale in one place and right in another.
+  const [scClientId, setScClientId] = useState("");
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
@@ -527,6 +532,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setDeleting(false);
     }
   }
+
+  useEffect(() => {
+    api("/api/auth/oauth-config/", { auth: false })
+      .then((c) => setScClientId(c?.soundcloud || ""))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
@@ -813,6 +824,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             want their first name found and their birthday not. */}
         <div className="border-t border-white/10 pt-3" data-tour="visibility">
           <VisibilitieZ visibility={me?.visibility} onChange={setMe} />
+        </div>
+
+        {/* Sits with the sign-ins above it: importing a catalogue is the same
+            SoundCloud authorisation, spent on a track list instead of a
+            login. */}
+        <div className="border-t border-white/10 pt-3" data-tour="sc-import">
+          <SoundCloudImport clientId={scClientId} />
         </div>
       </div>
 

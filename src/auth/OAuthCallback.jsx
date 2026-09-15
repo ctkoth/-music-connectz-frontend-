@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import AccountChoice from "./AccountChoice.jsx";
 import { AuthShell } from "./Register.jsx";
+import { finishImport, importPending } from "../SoundCloudImport.jsx";
 
 export default function OAuthCallback() {
   const { oauth, login } = useAuth();
@@ -29,6 +30,17 @@ export default function OAuthCallback() {
         }
         if (!state || state !== returnedState) {
           throw new Error("OAuth state mismatch — request may have been intercepted");
+        }
+
+        // A SoundCloud IMPORT reuses this whole dance — same authorize URL,
+        // same redirect, same state check — and differs only in what the code
+        // is spent on. Checked before the sign-in exchange because a code is
+        // single-use: spending it on a sign-in would leave the import with
+        // nothing to present.
+        if (importPending()) {
+          const out = await finishImport(code);
+          navigate(`/post?imported=${out?.imported ?? 0}`);
+          return;
         }
 
         // Exchange code for user (backend will either auto-signin or ask "do you have one?")

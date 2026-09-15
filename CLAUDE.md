@@ -621,6 +621,13 @@ merge and push. The merge is still the deliberate act; the deliberation is the
 verification, not a question. Backend first whenever a screen needs a new
 endpoint.
 
+**Corey's second standing instruction: apply your recommendation, don't ask.**
+When you have weighed something and have a view, take it — the recommendation
+IS the decision. It does not license skipping the weighing, and it does not
+cover a choice that is genuinely not the code's to make (a price, a name,
+whether a real credential gets stored). Decide, ship, and say plainly what you
+decided and what it cost, so somebody who disagrees can reverse it.
+
 ---
 
 ## RapZ renders what the backend sends; it doesn't invent dimensions
