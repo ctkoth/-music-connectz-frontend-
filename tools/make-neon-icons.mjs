@@ -313,12 +313,41 @@ const G = {
     <path d="M284 286a58 58 0 0 1 116 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
     <path d="M228 218h24M260 218h24" stroke="${a}" stroke-width="14" stroke-linecap="round"/>
     <circle cx="256" cy="218" r="22" fill="none" stroke="${b}" stroke-width="12"/>`,
+
+  // ---- Lilith buckets with no art -----------------------------------------
+  // Lilith renders six buckets and had icons for four, so inbox and someday
+  // drew nothing at all while their neighbours had art — a strip that reads as
+  // half-finished rather than deliberate. These are stand-ins in the neon
+  // chassis; the other four are bespoke PNGs, so the strip is mixed until
+  // matching art lands. Present-and-different beats absent, and swapping one
+  // back is a single registry line.
+  //
+  // rewardz and automationz are NOT here on purpose: the blueprint names them
+  // but `models.BUCKETS` does not, so nothing can render them. Art for a
+  // screen that does not exist is what the eight deleted keys already taught.
+
+  // A tray with something dropping into it. Deliberately not an envelope —
+  // MessageZ owns that shape, and these sit two tabs apart.
+  lilith_inbox: (a, b) => `
+    <path d="M132 208v76a20 20 0 0 0 20 20h208a20 20 0 0 0 20-20v-76" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M132 208h72l18 34h68l18-34h72" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M256 96v82" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M222 148l34 34 34-34" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // A crescent and a star — "not now, but not dropped". Not a clock: Today and
+  // Upcoming are the time-bound ones, and Someday is the bucket with no date.
+  lilith_someday: (a, b) => `
+    <path d="M318 112a104 104 0 1 0 74 152 116 116 0 0 1-74-152z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M168 128l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M360 236l8 20 20 8-20 8-8 20-8-20-20-8 20-8z" fill="none" stroke="${b}" stroke-width="10" stroke-linejoin="round" stroke-opacity="0.75"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
 // a set rather than a rainbow accident, and so apps that already have a
 // colour in code keep it (SingZ pink, RapZ amber, CollabZ yellow, BugZ cyan).
 const APPS = [
+  ["lilith_inbox", "Inbox", C.cyan, C.emerald],
+  ["lilith_someday", "Someday", C.purple, C.gold],
   ["coachz", "CoachZ", C.emerald, C.cyan],
   ["personaz_coach", "Coach", C.emerald, C.gold],
   ["statsz", "StatZ", C.gold, C.cyan],

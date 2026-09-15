@@ -30,9 +30,12 @@ import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
 
+// All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
+// here, so those two tabs drew nothing while their neighbours had art.
 const BUCKET_ICON = {
-  today: "lilith_today.png", upcoming: "lilith_upcoming.png",
-  anytime: "lilith_anytime.png", logbook: "lilith_logbook.png",
+  inbox: "lilith_inbox.png", today: "lilith_today.png",
+  upcoming: "lilith_upcoming.png", anytime: "lilith_anytime.png",
+  someday: "lilith_someday.png", logbook: "lilith_logbook.png",
 };
 
 /** "+1 🍥 +10 ⭐" — the gain, in the resource emoji, never a bare number.
