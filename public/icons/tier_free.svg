@@ -1,0 +1,21 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="512" height="512" fill="#1a1a1a"/>
+  <rect x="40" y="40" width="432" height="432" fill="none" stroke="#00ffff" stroke-width="3" opacity="0.8" filter="url(#glow)" rx="8"/>
+  
+  <g fill="none" stroke="#00ff88" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M 256 80 L 290 170 L 385 185 L 315 250 L 335 345 L 256 300 L 177 345 L 197 250 L 127 185 L 222 170 Z"/>
+  </g>
+  
+  <text x="256" y="380" font-family="Arial, sans-serif" font-size="56" font-weight="bold" text-anchor="middle" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow)">FREE</text>
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#00ff88" filter="url(#glow)">Start here</text>
+</svg>

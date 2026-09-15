@@ -230,13 +230,11 @@ export default function TrialTake() {
                   ? "border-emerald-300/20 bg-emerald-300/5"
                   : "border-white/10 bg-white/5"
               }`}>
-                {tier.key !== "free" && (
-                  <img
-                    src={`/icons/tier_${tier.key}.png`}
-                    alt={tier.label}
-                    className="mb-2 h-8 w-8"
-                  />
-                )}
+                <img
+                  src={`/icons/tier_${tier.key}.${tier.key === "free" ? "svg" : "png"}`}
+                  alt={tier.label}
+                  className="mb-2 h-8 w-8"
+                />
                 <p className={`mb-2 font-semibold ${
                   tier.key === "statz"
                     ? "text-mcz-gold"
