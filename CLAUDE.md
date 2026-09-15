@@ -641,7 +641,7 @@ Neither alone is enough. The number without prose is decoration; the prose witho
 
 ### Register is finally on the screen
 
-A rap take arrives with a detected register: Bass, Baritone, Tenor, etc. RapZ's profile in `instruments.py` now declares `range_label: "Your register"` and `ranges: VOCAL_RANGES`, the same eight-class system SingZ uses. A member who took both apps gets told the same range by the same model — because pitch is pitch — and can see whether their singing register and their rapping register match.
+A rap take arrives with a detected register: Bass, Baritone, Tenor, etc. RapZ's profile in `instruments.py` now declares `range_label: "Your register"` and `ranges: VOCAL_RANGES`, the same eight-class system SingZ uses. A member who took both apps gets told the same range by the same model — because pitch is pitch — and can see whether their singing register and rapping register match.
 
 This was always detected. It was just invisible because the screen had nowhere to show it. Now it goes somewhere.
 

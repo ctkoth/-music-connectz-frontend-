@@ -9,6 +9,7 @@ import { openable } from "./openable.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
+import OAuthCallback from "./auth/OAuthCallback.jsx";
 import AdFrame from "./AdFrame.jsx";
 import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -1035,109 +1036,6 @@ function Home() {
   );
 }
 
-function OAuthCallback() {
-  const { oauth } = useAuth();
-  const navigate = useNavigate();
-  const [error, setError] = useState("");
-  // The server could not tell whether this is a new member or an existing one
-  // arriving a second way, so it asked. Held here until they answer.
-  const [choice, setChoice] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const ran = useRef(false);
-
-  useEffect(() => {
-    if (ran.current) return; // StrictMode double-invokes; the values below are single-use
-    ran.current = true;
-
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const returnedState = params.get("state");
-
-    // Read then immediately clear: each of these belongs to exactly one
-    // sign-in attempt and must not be reusable by the next request.
-    const provider = sessionStorage.getItem("mcz_oauth_provider");
-    const expectedState = sessionStorage.getItem("mcz_oauth_state");
-    const verifier = sessionStorage.getItem("mcz_oauth_verifier");
-    sessionStorage.removeItem("mcz_oauth_provider");
-    sessionStorage.removeItem("mcz_oauth_state");
-    sessionStorage.removeItem("mcz_oauth_verifier");
-
-    const denied = params.get("error_description") || params.get("error");
-    if (denied) {
-      setError(denied);
-      return;
-    }
-    if (!code) {
-      navigate("/login", { replace: true });
-      return;
-    }
-    // The state check is what stops someone handing you a link that finishes
-    // THEIR sign-in in YOUR browser. It was generated and stored in start(),
-    // but nothing verified it came back, which left the flow open to CSRF.
-    // A missing provider means this tab never began a sign-in at all — don't
-    // guess one, or a stray code gets replayed against the wrong provider.
-    if (!provider || !expectedState) {
-      setError("This sign-in didn't start in this tab. Please try again from the login screen.");
-      return;
-    }
-    if (returnedState !== expectedState) {
-      setError("Sign-in couldn't be verified. Please start again from the login screen.");
-      return;
-    }
-
-    const redirect =
-      import.meta.env.VITE_OAUTH_REDIRECT || `${window.location.origin}/oauth/callback`;
-    const body = { code, redirect_uri: redirect };
-    if (verifier) body.code_verifier = verifier;
-    oauth(provider, body)
-      .then((res) => {
-        // A question, not a result. Nothing is signed in yet.
-        if (res?.needs_choice) return setChoice(res);
-        navigate("/", { replace: true });
-      })
-      .catch((e) => setError(e.message));
-  }, [oauth, navigate]);
-
-  // "I'm new." The authorization code was spent on the first exchange, so the
-  // answer carries the signed result of it rather than replaying the code.
-  const createNew = () => {
-    setBusy(true);
-    oauth(choice.provider, { pending: choice.pending })
-      .then(() => navigate("/", { replace: true }))
-      .catch((e) => { setError(e.message); setChoice(null); })
-      .finally(() => setBusy(false));
-  };
-
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-white/60">
-      {error ? (
-        <>
-          <p className="text-mcz-pink">{error}</p>
-          <button className="neon-btn-ghost !w-auto px-4 py-2" onClick={() => navigate("/login")}>
-            Back to login
-          </button>
-        </>
-      ) : choice ? (
-        <div className="w-full max-w-md px-4">
-          <AccountChoice
-            choice={choice}
-            busy={busy}
-            onCreate={createNew}
-            // "I already have one" is never taken on trust — saying so merges
-            // nothing. They sign in the way they already can, and link the
-            // provider from their account afterwards.
-            onSignIn={() => navigate("/login", { replace: true })}
-          />
-        </div>
-      ) : (
-        <>
-          <Loader2 className="animate-spin" size={20} /> Finishing sign-in…
-        </>
-      )}
-    </div>
-  );
-}
 
 /** A tab component served to somebody with no account.
  *

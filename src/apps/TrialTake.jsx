@@ -63,6 +63,8 @@ export default function TrialTake() {
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
   const [bossTakeReady, setBossTakeReady] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [tiers, setTiers] = useState(null);
 
   useEffect(() => {
     let on = true;
@@ -73,6 +75,26 @@ export default function TrialTake() {
       // and a visit that goes unmeasured because a side request 404'd is a
       // visit this funnel would have to explain later.
       .finally(() => on && setDoorsLoaded(true));
+    return () => { on = false; };
+  }, []);
+
+  useEffect(() => {
+    let on = true;
+    api("/api/trial/public/stats/?days=30", { auth: false })
+      .then((d) => { if (on && d?.headline) setStats(d); })
+      .catch(() => {})
+      // Failed fetch does not render error: a stats panel that silently fails
+      // is better than one that blocks or screams about an API problem.
+      .finally(() => {});
+    return () => { on = false; };
+  }, []);
+
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/tiers/", { auth: false })
+      .then((d) => { if (on && d?.tiers) setTiers(d.tiers); })
+      .catch(() => {})
+      .finally(() => {});
     return () => { on = false; };
   }, []);
 
@@ -169,6 +191,115 @@ export default function TrialTake() {
           <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
         </p>
       </div>
+
+      {stats && (
+        <div className="mb-6 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">What members do</p>
+          <div className="mt-3 space-y-2">
+            {stats.headline.map((h) => (
+              <div key={h.key} className="flex items-center justify-between text-sm">
+                <span className="text-white/75">{h.label}</span>
+                <span className="text-emerald-300">{h.pct}%</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-white/45">Last {stats.days} days across all visitors</p>
+        </div>
+      )}
+
+      {tiers && (
+        <div className="mb-6">
+          <style>{`
+            @keyframes statz-pulse {
+              0%, 100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.3), inset 0 0 20px rgba(255, 165, 0, 0.1); }
+              50% { box-shadow: 0 0 30px rgba(255, 165, 0, 0.5), inset 0 0 30px rgba(255, 165, 0, 0.2); }
+            }
+            .statz-glow {
+              animation: statz-pulse 2.5s ease-in-out infinite;
+            }
+          `}</style>
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+            All membership tiers
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {tiers.map((tier) => (
+              <div key={tier.key} className={`rounded-lg border p-3 ${
+                tier.key === "statz"
+                  ? "border-mcz-gold/30 bg-mcz-gold/5 statz-glow"
+                  : tier.key === "premium"
+                  ? "border-emerald-300/20 bg-emerald-300/5"
+                  : "border-white/10 bg-white/5"
+              }`}>
+                <div className="flex items-start justify-between mb-2">
+                  <img
+                    src={`/icons/tier_${tier.key}.${tier.key === "free" ? "svg" : "png"}`}
+                    alt={tier.label}
+                    className="h-8 w-8"
+                  />
+                  {tier.key === "statz" && tier.founding && (
+                    <span className="text-[10px] font-bold text-mcz-gold bg-mcz-gold/20 px-2 py-1 rounded">
+                      🔥 Founding 50
+                    </span>
+                  )}
+                </div>
+                <p className={`mb-2 font-semibold ${
+                  tier.key === "statz"
+                    ? "text-mcz-gold"
+                    : tier.key === "premium"
+                    ? "text-emerald-300"
+                    : "text-white"
+                }`}>
+                  {tier.label}
+                </p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Scored takes: {tier.key === "free" ? "3/day" : tier.key === "premium" ? "5/day" : "Unlimited"}</li>
+                  <li>✓ Upload: {tier.key === "free" ? "100MB" : tier.key === "premium" ? "1GB" : "10GB"}</li>
+                  <li>✓ Storage: {tier.key === "free" ? "500MB" : tier.key === "premium" ? "5GB" : "100GB"}</li>
+                  {tier.key === "statz" && <li className="mt-1 text-mcz-gold font-semibold">✓ No limits</li>}
+
+                  {/* Founding pricing for StatZ */}
+                  {tier.key === "statz" && tier.founding && (
+                    <>
+                      <li className="mt-3 pt-2 border-t border-mcz-gold/20">
+                        <div className="space-y-1">
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase">Lifetime:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.lifetime_cents / 100).toFixed(0)}</div>
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase mt-1">Yearly:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.year_cents / 100).toFixed(0)}/yr</div>
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase mt-1">Monthly:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.month_cents / 100).toFixed(2)}/mo</div>
+                        </div>
+                      </li>
+                      {tier.founding.remaining > 0 && (
+                        <li className="mt-2 pt-2 border-t border-mcz-gold/20 text-mcz-gold font-semibold text-[10px]">
+                          ⚡ {tier.founding.remaining} seats left
+                          {tier.founding.remaining <= 10 && <span className="block text-[9px] mt-1 text-mcz-ember">Act fast — running out!</span>}
+                        </li>
+                      )}
+                      {tier.founding.sold_out && (
+                        <li className="mt-2 pt-2 border-t border-mcz-gold/20 text-mcz-ember font-semibold text-[10px]">
+                          ✗ Sold out
+                        </li>
+                      )}
+                      <li className="mt-2 text-[9px] text-white/50 italic">Regular: ${(tier.price_cents / 100).toFixed(2)}/mo</li>
+                    </>
+                  )}
+
+                  {/* Regular pricing for Free and Premium */}
+                  {tier.key !== "statz" && tier.price_cents > 0 && (
+                    <li className="mt-2 pt-2 border-t border-white/10 text-emerald-300">
+                      ${(tier.price_cents / 100).toFixed(2)}/mo
+                    </li>
+                  )}
+                  {tier.key === "free" && (
+                    <li className="mt-2 text-white/60 italic">Get started free</li>
+                  )}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!bossTakeReady && (
         <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
