@@ -776,6 +776,26 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         ? "Today's free takes are all spoken for — they're capped so we can keep giving them away. Tomorrow, or make an account now."
         : "The free take isn't available right now.";
 
+  // A shut door is a funnel step. `blocked` hides EVERY control — upload, mic
+  // and camera all vanish — so a visitor who was refused and one who looked
+  // and left produce the same two rows: a try_view and nothing after it. 18
+  // opened the trial and 1 started the recorder, and nothing could say which
+  // of those the other 17 were; they need opposite fixes.
+  //
+  // Fired once per mount, from the state that actually drove the render, so
+  // it can never disagree with what the visitor was shown.
+  const toldNo = useRef(false);
+  useEffect(() => {
+    if (!blocked || toldNo.current) return;
+    toldNo.current = true;
+    step("try_blocked", {
+      why: !price.configured ? "not_configured"
+        : price.already_used ? "already_used"
+        : price.cap_reached ? "cap_reached"
+        : undefined,
+    });
+  }, [blocked, price]);
+
   return (
     <div className="neon-frame space-y-4 p-4">
       <div>

@@ -138,6 +138,16 @@ function WhoJoined({ members }) {
   );
 }
 
+// Pairs where the first CANNOT outnumber the second, because reaching the
+// first requires passing through the second. A violation is not a surprising
+// result, it is the instrument disagreeing with itself.
+const IMPOSSIBLE = [
+  ["try_scored", "try_send"],
+  ["try_send", "try_view"],
+  ["try_record", "try_view"],
+  ["register_success", "landing_view"],
+];
+
 export default function FunnelZ() {
   const { user } = useAuth();
   const isOwner = !!user?.is_owner;
@@ -238,6 +248,30 @@ export default function FunnelZ() {
               <p className="text-[11px] text-white/40">{s.pct_of_base}% of {baseLabel}</p>
             </div>
           ))}
+          {/* A step cannot have more people than the step it is reached
+              THROUGH. When it does, the instrument changed mid-window and
+              these rows are two different instruments averaged together —
+              which is worth saying loudly, because every decision below is
+              read off them. Checked here rather than served, because it is
+              arithmetic on rows the screen already has.
+
+              It happens for a good reason: each of these kinds was ADDED at
+              some point, so any window spanning that date has real events
+              before it and real events after, and no way to tell them
+              apart. */}
+          {IMPOSSIBLE.map(([after, before]) => {
+            const a = steps[after], b = steps[before];
+            if (!a || !b || a.unique <= b.unique) return null;
+            return (
+              <p key={after} className="re-card text-[11px] leading-relaxed text-mcz-ember">
+                <strong>{a.label}</strong> counts {a.unique} people and{" "}
+                <strong>{b.label}</strong> counts {b.unique} — which cannot happen,
+                since nobody reaches the first without the second. This window spans
+                a change to what gets logged, so these rows mix two different
+                instruments. Trust a window that starts after the change.
+              </p>
+            );
+          })}
           {Object.values(steps).every((s) => s.events === 0) && (
             <p className="text-[11px] text-white/35">
               Nothing logged yet in this window — either there's no traffic, or the frontend build
