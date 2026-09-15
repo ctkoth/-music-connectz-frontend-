@@ -34,25 +34,28 @@ function registry() {
 // Registry keys whose file is knowingly not in the repo, and why. Each renders
 // the MCZ logo until the art lands. Keep the reason specific enough to act on.
 const OWED = {
-  // Art exists on Corey's machine, never committed. Drop the file in
-  // public/icons/ (lowercase, no spaces) and delete the line here.
-  "coachz.jpg": "have: CoachZ.jpg — commit it lowercase as coachz.jpg",
-  "opportunitiez.png": "have: opportunitiez.png — commit it",
-  // PartnerZ is the only GroupZ kind with no art — FriendZ and FanZ render
-  // groupz_friendz.png and groupz_fanz.png, which are committed. Corey also
-  // has friendz.jpg and fanz.jpg locally; those are optional replacements and
-  // are deliberately NOT registered, because pointing at them regressed two
-  // working icons to the MCZ logo.
-  "partnerz.jpg": "Corey has partnerz.jpg locally — PartnerZ has no art at all without it",
-  "personaz_coach.jpg": "have: personaz.coach.jpg — commit it as personaz_coach.jpg",
-  "statsz.png": "have: statsz.png — commit it",
-  // Eight keys used to sit here as "never drawn" — characterz, codez,
-  // console, editor, mistakez, search, taskz, welcome. They were deleted
-  // rather than drawn: no tab, no component and no screen ever asked for
-  // one, so they were registry entries for icons nothing could render, and
-  // art for them would have been eight more files in the deploy that nobody
-  // sees. `git show 2217037` has the glyphs if a screen ever arrives.
+  // EMPTY, and the five that were here are the reason to read this note.
+  //
+  // coachz, personaz_coach, statsz, opportunitiez and partnerz all sat here as
+  // "Corey has the art, commit it". Each rendered the MCZ logo in the meantime
+  // — which is the failure this file exists for, because a tile that looks
+  // like the logo looks deliberate and nobody reports it.
+  //
+  // They now point at generated neon icons (`<key>-neon.svg`) built from
+  // glyphs in tools/make-neon-icons.mjs, in the same chassis as every other
+  // icon in the set. So the debt changed shape: nothing falls back to the logo
+  // any more, and what is still owed is bespoke art REPLACING a stand-in,
+  // which is a preference rather than a defect.
+  //
+  // To swap one back: drop the file in public/icons/ (lowercase, no spaces)
+  // and point its CUSTOM_ICONS line at it instead of the -neon.svg.
+  //
+  // Eight keys before that were deleted rather than drawn — characterz, codez,
+  // console, editor, mistakez, search, taskz, welcome. No tab, component or
+  // screen ever asked for one, so they were registry entries for icons nothing
+  // could render. `git show 2217037` has the glyphs if a screen ever arrives.
 };
+
 
 // Keys deliberately pointing at a generated `-neon.svg` because the real
 // artwork is not committed yet. Distinct from OWED: these render something

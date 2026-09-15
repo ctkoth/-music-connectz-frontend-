@@ -152,7 +152,7 @@ export const CUSTOM_ICONS = {
   // in production while working locally, and IconImg's fallback would have
   // hidden it in both places. The file still has to be committed (see
   // src/icons.test.mjs) — committed lowercase.
-  "coachz.jpg": "/icons/coachz.jpg",
+  "coachz.jpg": "/icons/coachz-neon.svg",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
@@ -182,7 +182,7 @@ export const CUSTOM_ICONS = {
   // not exist is the soundcloudengagementz.png trap (404, silent fallback to
   // the logo, nobody reports it), so the test names it rather than letting it
   // rot unnoticed.
-  "partnerz.jpg": "/icons/partnerz.jpg",
+  "partnerz.jpg": "/icons/partnerz-neon.svg",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
   "groupz_friendz.png": "/icons/groupz_friendz.png",
@@ -208,7 +208,7 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez.png",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ.png",
-  "opportunitiez.png": "/icons/opportunitiez.png",
+  "opportunitiez.png": "/icons/opportunitiez-neon.svg",
   "offerz.png": "/icons/offerz.png",
   "adz.png": "/icons/adz.png",
   "money.png": "/icons/money.png",
@@ -226,7 +226,7 @@ export const CUSTOM_ICONS = {
   // Underscored like every other personaz_<role>, and matching its own key.
   // The dotted path was the source filename, which is what the import script
   // is for.
-  "personaz_coach.jpg": "/icons/personaz_coach.jpg",
+  "personaz_coach.jpg": "/icons/personaz_coach-neon.svg",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
   // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
@@ -257,7 +257,7 @@ export const CUSTOM_ICONS = {
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz.png",
   "spinaz.png": "/icons/spinaz.png",
-  "statsz.png": "/icons/statsz.png",
+  "statsz.png": "/icons/statsz-neon.svg",
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
   "trump_toupee.png": "/icons/trump_toupee.png",

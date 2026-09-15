@@ -263,12 +263,67 @@ const G = {
 
 
 
+
+  // ---- the five that were rendering the MCZ logo -------------------------
+  // Registered in CUSTOM_ICONS pointing at art that was never committed, so
+  // each fell back to the logo — silently, which is why they survived. These
+  // are stand-ins in the house chassis: drop the real art in public/icons/ and
+  // point the registry back at it.
+
+  // A whistle with two call arcs. NOT a speech bubble and not a person — the
+  // coach app is the instruction, and `personaz_coach` below is the human, so
+  // the two must not read as the same icon at 36px.
+  coachz: (a, b) => `
+    <circle cx="214" cy="212" r="66" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M274 178h64a26 26 0 0 1 0 52h-64" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M186 146l40-34" stroke="${a}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M356 150a86 86 0 0 1 0 124" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M394 118a140 140 0 0 1 0 188" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
+
+  // The coach PERSONA: a person, with the whistle on a lanyard so it reads as
+  // the same role as the app above without repeating its shape.
+  personaz_coach: (a, b) => `
+    <circle cx="256" cy="140" r="44" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M168 300a88 88 0 0 1 176 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M224 186l32 54 32-54" fill="none" stroke="${b}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8"/>
+    <circle cx="256" cy="262" r="26" fill="none" stroke="${b}" stroke-width="13"/>`,
+
+  // Three rising bars and a trend line. The top tier, so it climbs.
+  statsz: (a, b) => `
+    <path d="M154 300v-72M256 300v-126M358 300v-180" stroke="${a}" stroke-width="26" stroke-linecap="round"/>
+    <path d="M136 186l60-52 60 34 84-82" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M300 86h56v56" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // A door standing open with light coming through it. An opportunity is a way
+  // in, so the glyph is the opening rather than a briefcase or a handshake —
+  // both of which already belong to other tabs here.
+  opportunitiez: (a, b) => `
+    <path d="M168 300V112h104v188" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M272 124l88-26v216l-88 26" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <circle cx="292" cy="212" r="9" fill="${a}"/>
+    <path d="M118 212h34M126 168h26M126 256h26" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>`,
+
+  // Two figures joined by a link. GroupZ is a crowd and CollabZ is two rounded
+  // panels; PartnerZ is specifically a PAIR who have finished work together,
+  // so it is two of them and the thing holding them together.
+  partnerz: (a, b) => `
+    <circle cx="170" cy="150" r="38" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M112 286a58 58 0 0 1 116 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="342" cy="150" r="38" fill="none" stroke="${b}" stroke-width="15"/>
+    <path d="M284 286a58 58 0 0 1 116 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M228 218h24M260 218h24" stroke="${a}" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="218" r="22" fill="none" stroke="${b}" stroke-width="12"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
 // a set rather than a rainbow accident, and so apps that already have a
 // colour in code keep it (SingZ pink, RapZ amber, CollabZ yellow, BugZ cyan).
 const APPS = [
+  ["coachz", "CoachZ", C.emerald, C.cyan],
+  ["personaz_coach", "Coach", C.emerald, C.gold],
+  ["statsz", "StatZ", C.gold, C.cyan],
+  ["opportunitiez", "OpportunitieZ", C.cyan, C.gold],
+  ["partnerz", "PartnerZ", C.purple, C.emerald],
   ["onboardz", "OnboardZ", C.emerald, C.gold],
   ["playlistz", "PlaylistZ", C.cyan, C.pink],
   ["social_connectz", "Social ConnectZ", C.pink, C.cyan],
