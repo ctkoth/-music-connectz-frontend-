@@ -230,11 +230,18 @@ export default function TrialTake() {
                   ? "border-emerald-300/20 bg-emerald-300/5"
                   : "border-white/10 bg-white/5"
               }`}>
-                <img
-                  src={`/icons/tier_${tier.key}.${tier.key === "free" ? "svg" : "png"}`}
-                  alt={tier.label}
-                  className="mb-2 h-8 w-8"
-                />
+                <div className="flex items-start justify-between mb-2">
+                  <img
+                    src={`/icons/tier_${tier.key}.${tier.key === "free" ? "svg" : "png"}`}
+                    alt={tier.label}
+                    className="h-8 w-8"
+                  />
+                  {tier.key === "statz" && tier.founding && (
+                    <span className="text-[10px] font-bold text-mcz-gold bg-mcz-gold/20 px-2 py-1 rounded">
+                      🔥 Founding 50
+                    </span>
+                  )}
+                </div>
                 <p className={`mb-2 font-semibold ${
                   tier.key === "statz"
                     ? "text-mcz-gold"
@@ -249,7 +256,37 @@ export default function TrialTake() {
                   <li>✓ Upload: {tier.key === "free" ? "100MB" : tier.key === "premium" ? "1GB" : "10GB"}</li>
                   <li>✓ Storage: {tier.key === "free" ? "500MB" : tier.key === "premium" ? "5GB" : "100GB"}</li>
                   {tier.key === "statz" && <li className="mt-1 text-mcz-gold font-semibold">✓ No limits</li>}
-                  {tier.price_cents > 0 && (
+
+                  {/* Founding pricing for StatZ */}
+                  {tier.key === "statz" && tier.founding && (
+                    <>
+                      <li className="mt-3 pt-2 border-t border-mcz-gold/20">
+                        <div className="space-y-1">
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase">Lifetime:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.lifetime_cents / 100).toFixed(0)}</div>
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase mt-1">Yearly:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.year_cents / 100).toFixed(0)}/yr</div>
+                          <div className="font-semibold text-mcz-gold text-[10px] uppercase mt-1">Monthly:</div>
+                          <div className="text-emerald-300 font-bold">${(tier.founding.month_cents / 100).toFixed(2)}/mo</div>
+                        </div>
+                      </li>
+                      {tier.founding.remaining > 0 && (
+                        <li className="mt-2 pt-2 border-t border-mcz-gold/20 text-mcz-gold font-semibold text-[10px]">
+                          ⚡ {tier.founding.remaining} seats left
+                          {tier.founding.remaining <= 10 && <span className="block text-[9px] mt-1 text-mcz-ember">Act fast — running out!</span>}
+                        </li>
+                      )}
+                      {tier.founding.sold_out && (
+                        <li className="mt-2 pt-2 border-t border-mcz-gold/20 text-mcz-ember font-semibold text-[10px]">
+                          ✗ Sold out
+                        </li>
+                      )}
+                      <li className="mt-2 text-[9px] text-white/50 italic">Regular: ${(tier.price_cents / 100).toFixed(2)}/mo</li>
+                    </>
+                  )}
+
+                  {/* Regular pricing for Free and Premium */}
+                  {tier.key !== "statz" && tier.price_cents > 0 && (
                     <li className="mt-2 pt-2 border-t border-white/10 text-emerald-300">
                       ${(tier.price_cents / 100).toFixed(2)}/mo
                     </li>
