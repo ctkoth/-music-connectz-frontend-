@@ -30,16 +30,12 @@ export default function Login() {
       const pendingToken = sessionStorage.getItem("mcz_oauth_pending");
       if (pendingProvider && pendingToken) {
         try {
-          // The pending token contains the OAuth info; send it to the link endpoint
-          const code = new URL(window.location).searchParams.get("code") || "";
-          const redirectUri = `${window.location.origin}/oauth/callback`;
-
+          // `pending`, not `code` — the authorization code was spent on the
+          // exchange that produced this token, so the signed result of that
+          // exchange is what proves the sign-in happened.
           await api(`/api/auth/oauth/${pendingProvider}/link/`, {
             method: "POST",
-            body: {
-              code: pendingToken, // This is a bit of a hack — the pending token acts as proof
-              redirect_uri: redirectUri,
-            },
+            body: { pending: pendingToken },
           });
           sessionStorage.removeItem("mcz_oauth_pending");
           sessionStorage.removeItem("mcz_oauth_provider");
