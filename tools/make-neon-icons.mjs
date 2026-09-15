@@ -340,12 +340,63 @@ const G = {
     <path d="M318 112a104 104 0 1 0 74 152 116 116 0 0 1-74-152z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
     <path d="M168 128l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round"/>
     <path d="M360 236l8 20 20 8-20 8-8 20-8-20-20-8 20-8z" fill="none" stroke="${b}" stroke-width="10" stroke-linejoin="round" stroke-opacity="0.75"/>`,
+
+  // ---- sub-types: the modal apps inside BattleZ and CollabZ ---------------
+  // Named <parent>.<subtype>, matching collabz.coverz.png which was already
+  // committed. Each has to read as its PARENT plus one distinguishing mark —
+  // they sit side by side on the parent's page, so the differences must be the
+  // legible part at 36px, not the similarities.
+
+  // Three-way: two crowds facing off with a third mark between. The cypher is
+  // the one with MORE than one artist a side.
+  "battlez.cypher": (a, b) => `
+    <circle cx="150" cy="158" r="30" fill="none" stroke="${a}" stroke-width="13"/>
+    <circle cx="206" cy="196" r="24" fill="none" stroke="${a}" stroke-width="12" stroke-opacity="0.7"/>
+    <circle cx="362" cy="158" r="30" fill="none" stroke="${b}" stroke-width="13"/>
+    <circle cx="306" cy="196" r="24" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.7"/>
+    <path d="M110 300a54 54 0 0 1 108 0M294 300a54 54 0 0 1 108 0" fill="none" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M256 118v72M256 214v58" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
+  // One versus one: a single figure each side of a hard divide.
+  "battlez.1v1": (a, b) => `
+    <circle cx="164" cy="156" r="38" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M106 292a58 58 0 0 1 116 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="348" cy="156" r="38" fill="none" stroke="${b}" stroke-width="15"/>
+    <path d="M290 292a58 58 0 0 1 116 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 96v320" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-dasharray="26 22" stroke-opacity="0.85"/>`,
+
+  // Freestyle: a mic with motion off it — unplanned, still moving.
+  "battlez.freestyle": (a, b) => `
+    <rect x="222" y="92" width="68" height="112" rx="34" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M180 186a76 76 0 0 0 152 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 262v46" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M118 150c22 22 22 58 0 80M148 170c10 10 10 26 0 36" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M394 150c-22 22-22 58 0 80M364 170c-10 10-10 26 0 36" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round"/>`,
+
+  // Remix: two arrows chasing each other round a centre. The loop is the point.
+  "collabz.remixez": (a, b) => `
+    <path d="M150 196a106 106 0 0 1 180-52" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M296 88l40 50-56 22" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M362 216a106 106 0 0 1-180 52" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M216 324l-40-50 56-22" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // Originalz: a star on a blank sheet — the one that is not derived from
+  // anything, which is what separates it from CoverZ and RemixeZ beside it.
+  "collabz.originalz": (a, b) => `
+    <path d="M160 96h142l52 52v216a20 20 0 0 1-20 20H160a20 20 0 0 1-20-20V116a20 20 0 0 1 20-20z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M300 96v56h54" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M248 196l20 44 48 6-35 33 9 47-42-23-42 23 9-47-35-33 48-6z" fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
 // a set rather than a rainbow accident, and so apps that already have a
 // colour in code keep it (SingZ pink, RapZ amber, CollabZ yellow, BugZ cyan).
 const APPS = [
+  ["battlez.cypher", "Cypher", C.ember, C.cyan],
+  ["battlez.1v1", "1v1", C.ember, C.pink],
+  ["battlez.freestyle", "Freestyle", C.ember, C.gold],
+  ["collabz.remixez", "RemixeZ", C.cyan, C.purple],
+  ["collabz.originalz", "OriginalZ", C.cyan, C.gold],
   ["lilith_inbox", "Inbox", C.cyan, C.emerald],
   ["lilith_someday", "Someday", C.purple, C.gold],
   ["coachz", "CoachZ", C.emerald, C.cyan],
