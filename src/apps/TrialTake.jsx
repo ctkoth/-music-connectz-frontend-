@@ -209,6 +209,15 @@ export default function TrialTake() {
 
       {tiers && (
         <div className="mb-6">
+          <style>{`
+            @keyframes statz-pulse {
+              0%, 100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.3), inset 0 0 20px rgba(255, 165, 0, 0.1); }
+              50% { box-shadow: 0 0 30px rgba(255, 165, 0, 0.5), inset 0 0 30px rgba(255, 165, 0, 0.2); }
+            }
+            .statz-glow {
+              animation: statz-pulse 2.5s ease-in-out infinite;
+            }
+          `}</style>
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-white/50">
             All membership tiers
           </p>
@@ -216,7 +225,7 @@ export default function TrialTake() {
             {tiers.map((tier) => (
               <div key={tier.key} className={`rounded-lg border p-3 ${
                 tier.key === "statz"
-                  ? "border-mcz-gold/30 bg-mcz-gold/5"
+                  ? "border-mcz-gold/30 bg-mcz-gold/5 statz-glow"
                   : tier.key === "premium"
                   ? "border-emerald-300/20 bg-emerald-300/5"
                   : "border-white/10 bg-white/5"
