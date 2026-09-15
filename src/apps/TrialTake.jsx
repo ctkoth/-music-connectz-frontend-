@@ -64,6 +64,7 @@ export default function TrialTake() {
   const [shared, setShared] = useState("");
   const [bossTakeReady, setBossTakeReady] = useState(false);
   const [stats, setStats] = useState(null);
+  const [tiers, setTiers] = useState(null);
 
   useEffect(() => {
     let on = true;
@@ -84,6 +85,15 @@ export default function TrialTake() {
       .catch(() => {})
       // Failed fetch does not render error: a stats panel that silently fails
       // is better than one that blocks or screams about an API problem.
+      .finally(() => {});
+    return () => { on = false; };
+  }, []);
+
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/tiers/", { auth: false })
+      .then((d) => { if (on && d?.tiers) setTiers(d.tiers); })
+      .catch(() => {})
       .finally(() => {});
     return () => { on = false; };
   }, []);
@@ -194,6 +204,45 @@ export default function TrialTake() {
             ))}
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-white/45">Last {stats.days} days across all visitors</p>
+        </div>
+      )}
+
+      {tiers && (
+        <div className="mb-6">
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+            All membership tiers
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {tiers.map((tier) => (
+              <div key={tier.key} className={`rounded-lg border p-3 ${
+                tier.key === "statz"
+                  ? "border-mcz-gold/30 bg-mcz-gold/5"
+                  : tier.key === "premium"
+                  ? "border-emerald-300/20 bg-emerald-300/5"
+                  : "border-white/10 bg-white/5"
+              }`}>
+                <p className={`mb-2 font-semibold ${
+                  tier.key === "statz"
+                    ? "text-mcz-gold"
+                    : tier.key === "premium"
+                    ? "text-emerald-300"
+                    : "text-white"
+                }`}>
+                  {tier.label}
+                </p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Scored takes: {tier.key === "free" ? "1/day" : tier.key === "premium" ? "3/day" : "Unlimited"}</li>
+                  <li>✓ Upload: {tier.upload_mb}MB</li>
+                  <li>✓ Storage: {tier.storage_mb}MB</li>
+                  {tier.price_cents > 0 && (
+                    <li className="mt-2 pt-2 border-t border-white/10 text-emerald-300">
+                      ${(tier.price_cents / 100).toFixed(2)}/mo
+                    </li>
+                  )}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
