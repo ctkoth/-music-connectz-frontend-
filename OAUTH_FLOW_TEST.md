@@ -39,10 +39,12 @@ Implemented a complete "I already have one" flow that allows users to:
 10. Login.jsx:
     - Authenticates user
     - Checks sessionStorage for pending OAuth
-    - Calls `POST /api/auth/oauth/soundcloud/link/` with pending token
+    - Calls `POST /api/auth/oauth/soundcloud/link/` with `{ pending: <token> }`
     - Backend OAuthLinkView:
-      - Detects pending token via `_is_pending_token()`
-      - Decodes token with `_read_pending()`
+      - Reads the token under its own `pending` key — the same key the
+        register path uses. Never `code`: the authorization code was spent
+        on the first exchange and cannot be replayed
+      - Decodes and verifies the signature with `_read_pending()`
       - Verifies provider matches
       - Creates OAuthIdentity linking SoundCloud to authenticated user
     - Frontend clears sessionStorage
@@ -116,11 +118,19 @@ if info.get("email") and info.get("email_verified"):
 - Changed from: raising error on unverified email
 - Now: Only matches verified emails, lets unverified fall through to "ask user" flow
 
-#### 2. OAuthLinkView Enhancement [apps/accounts/views.py:508-585]
-- Added support for pending tokens in `code` parameter
-- `_is_pending_token()` detects Django-signed tokens
-- `_read_pending()` decodes tokens to get OAuth info
+#### 2. OAuthLinkView Enhancement [apps/accounts/views.py]
+- Accepts a pending token under its own `pending` key, beside the existing
+  fresh-exchange path
+- `_read_pending()` verifies the signature and decodes the OAuth info
 - Allows authenticated users to link pending OAuth identities
+
+**This shipped broken once, and the shape of the mistake is worth keeping.**
+The first version smuggled the token in as `code` and guessed which one it
+had by testing the string for a `.` and a `:`. `signing.dumps` only prefixes
+a `.` when it compresses, which it does not at this size — so every real
+token tested False, fell through to the fresh-exchange branch, and was
+posted to the provider as an authorization code it had never issued. A
+shape heuristic cannot answer "is this ours"; a signature can.
 
 ### Frontend Changes
 
@@ -246,17 +256,21 @@ When testing with real OAuth credentials:
 
 - [ ] Backend OAuthLinkView:
   - [ ] Requires authentication (IsAuthenticated permission)
-  - [ ] Accepts pending token in code parameter
-  - [ ] Distinguishes pending token from real OAuth code
+  - [ ] Reads the pending token from the `pending` key, never `code`
+  - [ ] Rejects a tampered or expired token on the signature
   - [ ] Validates provider matches token
   - [ ] Checks for existing OAuthIdentity
   - [ ] Creates OAuthIdentity on success
   - [ ] Returns proper error messages
 
-- [ ] Backend _is_pending_token():
-  - [ ] Returns True for Django-signed tokens
-  - [ ] Returns False for real OAuth codes
-  - [ ] Doesn't false-positive on edge cases
+Verified against a running API, with a real signed token:
+
+| Case | Expected |
+|---|---|
+| `pending` token, first time | linked; `OAuthIdentity` row written |
+| same token again | "already linked to your account" |
+| SoundCloud token at `/spotify/link/` | "that sign-in was for a different provider" |
+| tampered signature | "could not be verified. Start again." |
 
 - [ ] Backend _user_from_oauth():
   - [ ] Only auto-links if email_verified=True
