@@ -196,6 +196,22 @@ export default function PostZ() {
     api("/api/auth/stats/").then((st) => setIsOwner(!!st?.is_owner)).catch(() => {});
   }, []);
 
+  // The landing OAuthCallback.jsx sends a member to after a SoundCloud
+  // import, carrying the count — this is the one place that reads it.
+  // Without this the confirmation the redirect exists for never fired: the
+  // import ran, the drafts were there to scroll to, but nothing said so.
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("imported");
+    if (n == null) return;
+    const count = parseInt(n, 10) || 0;
+    setToast(count > 0
+      ? `🎧 ${count} track${count === 1 ? "" : "s"} imported as private drafts — Publish each one when you're ready.`
+      : "No new tracks to import — everything from SoundCloud is already here.");
+    setTimeout(() => setToast(""), 5000);
+    // Strip the param so a refresh doesn't re-show a stale confirmation.
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   // One post changed in place, or removed when `next` is null. Beats reloading
   // the feed: a re-sort under somebody's thumb after they edited a caption is
   // its own small betrayal.
@@ -580,6 +596,36 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   // uploaded used to need posting again, which threw away every rating on it.
   const canEdit = post.mine || isOwner;
 
+  // What PUBLISHING this one would cost, quoted before the button rather than
+  // discovered by pressing it — the same rule the composer's own price
+  // follows. A post with no skills_used (every SoundCloud import, since a
+  // track carries no priced skill) is free by construction and needs no
+  // request to know that; the server's own math (post_cost_cents minus what
+  // was already charged) is the same shortfall `postz._edit` charges.
+  const [publishCost, setPublishCost] = useState(null);
+  useEffect(() => {
+    if (post.visibility !== "private" || !canEdit) return;
+    if (!post.skills_used?.length) { setPublishCost(0); return; }
+    api(`/api/economy/postz/cost/?skills=${encodeURIComponent(post.skills_used.join(","))}`)
+      .then((d) => setPublishCost(Math.max(0, (d?.cost?.amount || 0) - (post.skill_cost_cents || 0))))
+      .catch(() => setPublishCost(null));
+  }, [post.visibility, post.skills_used, post.skill_cost_cents, canEdit]);
+
+  async function publish() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const next = await api("/api/economy/postz/", {
+        method: "POST",
+        body: { edit_id: post.id, visibility: "public" },
+      });
+      onChanged(post.id, next);
+      onFlash("Published — it's live in the feed now.");
+    } catch (e) {
+      onFlash(e.message || "Couldn't publish that.");
+    } finally { setBusy(false); }
+  }
+
   async function saveEdit() {
     const t = eTitle.trim();
     if (!t || busy) return;
@@ -748,6 +794,20 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.freestyle && <span className="text-mcz-gold">· 🆓 Freestyle</span>}
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
+            )}
+            {/* Every imported SoundCloud track lands here — private, shown to
+                nobody, until this is pressed. The cost sits ON the control,
+                before it, same as the composer's own Post button: a price
+                found out by pressing it is a bill, not a price. */}
+            {canEdit && post.visibility === "private" && (
+              <button onClick={publish} disabled={busy}
+                      title="Make this post public"
+                      className="pill !px-1.5 !py-0 !text-[9px] !border-emerald-300/50 !text-emerald-300 hover:!bg-emerald-300/10">
+                Publish
+                {publishCost > 0
+                  ? <span className="ml-1 text-mcz-ember">−{publishCost} {ENERGY}</span>
+                  : <span className="ml-1 text-emerald-300/70">Free</span>}
+              </button>
             )}
             {/* Progression indicators */}
             {post.battle_eligible_at && (
