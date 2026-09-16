@@ -36,6 +36,13 @@ const VIDEO_MAX_SECONDS = 90;
 // that is supposed to hold none.
 const failReason = (e) => {
   const status = e?.status;
+  // Nobody answered inside the time we are willing to make somebody wait.
+  // Counted apart from "network" because the fixes are opposite: a dropped
+  // connection is the member's link, an unanswered request is ours. This is
+  // the row the 853-second spinner would have written, had anything been able
+  // to write one — it wrote nothing, forever, which is why it took a
+  // screenshot to find.
+  if (e?.timedOut) return "timeout";
   if (!status) return "network";      // fetch never reached us
   if (status >= 500) return "server";
   return "refused";                   // 400/401/403/413/429 — we said no
@@ -217,6 +224,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // in the response is a bill, not a price.
   const [price, setPrice] = useState(null);
   const [scoringElapsed, setScoringElapsed] = useState(0);
+  // Bytes on the wire: { loaded, total, pct, bytesPerSecond, etaSeconds, done }
+  // while the take uploads, null once the server has it. Only the multipart
+  // path can produce this — a take handed over from PostZ is already stored,
+  // so there is nothing to send and nothing to measure.
+  const [upload, setUpload] = useState(null);
   // Why the last send came back with nothing, or "". Separate from `msg`
   // because a visitor at the trial door needs the way FORWARD, and a red line
   // is not one — see the card below.
@@ -282,6 +294,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // The size ceiling, in bytes, as published by the server. One copy of the
   // number, on the server, where the transport that imposes it lives.
   const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
+  // The longest the server will now let a take run before it gives up and
+  // says so. From the server, because a ceiling the screen invented would be
+  // the second place that number lives — and the whole point of showing it is
+  // that it is the real one.
+  const coachCeiling = price?.coach_budget_seconds || 0;
 
   useEffect(() => {
     // The trial's "one free take each" is counted per BROWSER now, not per IP
@@ -695,7 +712,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       return setMsg("That file is empty — there's no audio in it to score. "
         + "Record again, or pick a different clip.");
     }
-    setBusy(true); setScoringElapsed(0); setMsg(""); setResult(null); setFailed(null);
+    setBusy(true); setScoringElapsed(0); setUpload(null); setMsg(""); setResult(null); setFailed(null);
     step("try_send");
     try {
       // A handed-over post is already stored, so it rides as its id. Uploading
@@ -728,7 +745,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             if (trial) f.append("anon_id", anonId());
             return f;
           })();
-      const out = await api(path, { method: "POST", body, auth: !trial });
+      const out = await api(path, {
+        method: "POST", body, auth: !trial,
+        // Only a FormData body has bytes to report. A handed-over post is
+        // already on the server, so `api` ignores this and the panel falls
+        // straight through to the scoring phase, which is correct.
+        onProgress: setUpload,
+      });
       setResult(out);
       if (out?.score == null) {
         step("try_failed", { why: "empty" });
@@ -1246,16 +1269,54 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         />
       )}
 
+      {/* Two phases, told apart, because they fail differently and only one
+          of them can honestly show a percentage.
+          *
+          * This was a spinner and a rising second count, and a member watched
+          * it reach 853s on a take that was never coming back. A number that
+          * only goes up is not progress — it cannot distinguish "working" from
+          * "hung", which is the one thing the person watching needs to know.
+          *
+          * UPLOADING is measurable: bytes sent over bytes total, so it gets a
+          * real bar, a percent and an ETA. SCORING is not — the model takes
+          * as long as it takes and reports nothing on the way — so it gets no
+          * fake bar. It gets the CEILING instead: the longest this can now
+          * run before the server gives up and says so. "0:42 of up to 1:40" is
+          * a wait somebody can sit through; "853s" is one they abandon. */}
       {busy && !result && (
         <div className="space-y-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/5 p-4">
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="animate-spin text-mcz-cyan" size={18} />
-            <span className="text-sm text-white/75">Scoring your take…</span>
+            <span className="text-sm text-white/75">
+              {upload && !upload.done ? "Sending your take…" : "Scoring your take…"}
+            </span>
           </div>
-          <div className="flex justify-between text-[11px] text-white/50">
-            <span>The AI coach is listening</span>
-            <span>{scoringElapsed}s</span>
-          </div>
+
+          {upload && !upload.done ? (
+            <>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-mcz-cyan transition-[width] duration-200"
+                     style={{ width: `${upload.pct}%` }} />
+              </div>
+              <div className="flex justify-between text-[11px] text-white/50">
+                <span>
+                  {upload.pct}% · {sizeLabel(upload.loaded)} of {sizeLabel(upload.total)}
+                  {upload.bytesPerSecond ? ` · ${sizeLabel(upload.bytesPerSecond)}/s` : ""}
+                </span>
+                {/* Null until there is enough of a sample to mean anything. A
+                    wrong ETA is worse than none, because people plan around it. */}
+                <span>{upload.etaSeconds != null ? `${mmssOf(upload.etaSeconds)} left` : "…"}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between text-[11px] text-white/50">
+              <span>The AI coach is listening</span>
+              <span>
+                {mmssOf(scoringElapsed)}
+                {coachCeiling ? ` of up to ${mmssOf(coachCeiling)}` : ""}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

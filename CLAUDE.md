@@ -428,6 +428,71 @@ deciding whether any of this is real is the substance rule's worst case.
 an account, and counting both would put K-Oth's own takes in the number that
 says whether strangers get a score.
 
+## A number that only goes up is not progress
+
+A member sent a 3:05 take and watched **"Scoring your take… 853s"** on a
+spinner that could not end. The backend's CLAUDE.md has the full arithmetic —
+the short version is that one request could legally run for 39 minutes, and
+853s is the ACTIVE-poll loop one tick from the end of its own worst case.
+
+The client's share of that was two things:
+
+**`api.js` had no timeout of any kind.** No `AbortController`, no `signal`.
+`fetch` with no signal waits exactly as long as the other end is willing to,
+which was forever. It is bounded now, and deliberately bounded LONGER than the
+server's own `COACH_BUDGET_SECONDS`, so a server that answers in time is
+always the one that decides and this only fires when nothing answered at all.
+
+**The panel showed a rising second count**, which cannot distinguish "working"
+from "hung" — the single thing the person watching needs to know. It is two
+phases now, told apart because they fail differently and only one of them can
+honestly show a percentage.
+
+### Uploading is measurable, so it gets a bar, a percent and an ETA
+
+`fetch` **cannot report upload progress.** It has no equivalent of
+`xhr.upload.onprogress`, and a streaming request body needs HTTP/2 plus duplex
+support that is not dependable — so a screen built on `fetch` can show a
+spinner and literally nothing else while 40MB goes up. That is most of what
+853 seconds felt like from the member's side: the thing they were watching had
+no idea whether anything was moving.
+
+So the multipart path is XHR. It is the older API and it is the one that can
+answer *how far, how fast, how much longer*. Pass `onProgress` to `api()` and
+the request switches transport.
+
+Three things in that meter are load-bearing:
+
+- **The rate is measured over a trailing window**, not since the start. A link
+  that begins fast and dies would otherwise keep reporting its opening average
+  and count down to an arrival that is not coming. There is a test that stalls
+  a connection and asserts the estimate gets WORSE.
+- **`etaSeconds` is null until there is a real sample.** A number computed
+  from the first 200ms is wrong by an order of magnitude, and **a wrong ETA is
+  worse than none, because people plan around it.**
+- **The bound is STALL, not total.** Getting this wrong would have replaced
+  one bug with another: the free tier allows a 100MB take, and 100MB on a
+  2 Mbps phone link is **six and a half minutes of entirely healthy
+  transfer**. Any total generous enough for that cannot catch a dead
+  connection; any total tight enough to catch one kills real uploads from
+  exactly the members most likely to be on a phone. So while bytes move it has
+  all the time it needs, and it gives up when nothing has moved for 45s —
+  which is also the only thing the member can tell apart from outside.
+
+### Scoring is NOT measurable, so it gets no fake bar
+
+The model takes as long as it takes and reports nothing on the way. Inventing
+a percentage there would be the substance rule with a progress bar attached.
+It shows the **ceiling** instead — `coach_budget_seconds`, from the server —
+so the line reads `01:02 of up to 01:40`. A wait with a stated end is one
+somebody sits through; an open-ended one is one they abandon, which is exactly
+what 853 seconds was.
+
+A timed-out request carries `timedOut`, which `failReason` maps to the
+`timeout` funnel slug — counted apart from `network`, because a dropped
+connection is the member's link and an unanswered request is ours, and those
+need opposite fixes.
+
 ## The trial door said no to the wrong people, and boasted about the wrong number
 
 A second audit, asking what stops a stranger getting a score rather than what

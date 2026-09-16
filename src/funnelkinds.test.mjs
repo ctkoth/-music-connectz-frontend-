@@ -115,7 +115,8 @@ test("the mirror does not rot in the other direction either", () => {
 // server.
 const SERVER_WHY = {
   // views.py FunnelEventView._WHY
-  try_failed: new Set(["too_big", "refused", "network", "empty", "server"]),
+  try_failed: new Set(["too_big", "refused", "network", "empty", "server",
+                       "timeout"]),
   // views.py FunnelEventView._MIC
   try_mic_denied: new Set(["denied", "notfound", "inuse", "constrained",
                            "insecure", "other"]),
