@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, X, Check, Loader2 } from "lucide-react";
 import { api } from "../api.js";
-import { track } from "../track.js";
 
 /**
  * Displays user's in-app notifications (habit reminders, etc).
@@ -26,7 +25,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       const response = await api("/api/economy/notifications/", { method: "GET" });
       setNotifications(response.notifications || []);
       setUnread(response.unread || 0);
-      track("notifications_viewed", { count: response.notifications?.length || 0 });
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     } finally {
@@ -46,7 +44,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
-      track("notification_marked_read", { notification_id: notificationId });
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     } finally {
@@ -63,7 +60,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       });
       setUnread(response.unread || 0);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      track("all_notifications_marked_read", { count: notifications.length });
     } catch (err) {
       console.error("Failed to mark all as read:", err);
     } finally {

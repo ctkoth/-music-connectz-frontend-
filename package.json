@@ -12,7 +12,7 @@
     "cap:sync": "npm run build && cap sync",
     "android:open": "npm run cap:sync && cap open android",
     "ios:open": "npm run cap:sync && cap open ios",
-    "test": "eslint src && node --test seo/meta.test.mjs src/widgets.test.mjs src/imports.test.mjs src/icons.test.mjs",
+    "test": "eslint src && node --test \"seo/**/*.test.mjs\" \"src/**/*.test.mjs\"",
     "lint": "eslint src"
   },
   "dependencies": {

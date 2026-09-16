@@ -31,7 +31,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
         sound_enabled: soundEnabled,
       };
       await api("/api/economy/habits/", { method: "POST", body });
-      track("onboarding_habit_created", { app_key: appKey, frequency });
+      track("onboard_habit", { app_key: appKey, frequency });
       setStep("preferences");
     } catch (err) {
       console.error("Failed to create habit:", err);
@@ -43,7 +43,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
   }
 
   function completeOnboarding() {
-    track("onboarding_preferences_confirmed", {
+    track("onboard_prefs", {
       notifications_enabled: notificationsEnabled,
       language,
       sound_enabled: soundEnabled,
@@ -52,7 +52,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
   }
 
   function skip() {
-    track("onboarding_habit_skipped", { app_key: appKey });
+    track("onboard_skip", { app_key: appKey });
     onComplete?.();
   }
 

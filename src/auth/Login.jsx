@@ -44,7 +44,7 @@ export default function Login() {
             body: { pending: pendingToken },
           });
           clearPending();
-          track("oauth_linked_after_login", { provider: pendingProvider });
+          track("oauth_linked", { provider: pendingProvider });
         } catch (linkErr) {
           // The member answered "I already have one" to get this account
           // linked, so a link that did not happen is the thing they came for
@@ -57,7 +57,7 @@ export default function Login() {
           // expires in fifteen minutes, so keeping it only means a stale
           // retry on some later login.
           clearPending();
-          track("oauth_link_failed", { provider: pendingProvider, error: linkErr.message });
+          track("oauth_link_fail", { provider: pendingProvider, error: linkErr.message });
           setLinkFailed({ provider: pendingProvider, reason: linkErr.message });
           return; // stay put — the retry control is the button on this screen
         }

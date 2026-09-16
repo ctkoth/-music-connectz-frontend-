@@ -355,6 +355,53 @@ Two things worth taking from it beyond the fix:
   found by somebody trying the product, or by a test, and nobody was trying the
   product.
 
+## Eleven funnel kinds were being fired at a closed set that rejects them
+
+The recorder story above ("a client typo measures zero instead of measuring
+wrong") happened again, and the audit that found it found **eleven** at once.
+
+`track()` POSTs to `/api/auth/funnel/`, which checks the kind against the
+server's `FUNNEL_KINDS` and answers **400** to anything else. That is the right
+design. But `track()` is fire-and-forget with a `.catch(() => {})`, so from
+inside this app a rejected kind is indistinguishable from a recorded one:
+nothing red, nothing in the console, and the number the owner reads is a
+confident zero.
+
+The eleven, and what happened to each:
+
+- **Five were wanted and were added to `FUNNEL_KINDS`** — `onboard_habit`,
+  `onboard_skip`, `onboard_prefs`, `oauth_linked`, `oauth_link_fail`. The
+  funnel ended at "account created", and an account that never finishes
+  onboarding is a row rather than a member; the OAuth pair is the only way
+  anybody would learn the "I already have one" link had broken *again*, since
+  the client deliberately swallows that failure so a member is never blocked
+  by it.
+- **Six were deleted at the call site** — three in `NotificationsPanel.jsx`,
+  three in `SoundzPanel.jsx`. Engagement telemetry from a signed-in member on
+  a table whose whole promise is that it is a browser with no account and is
+  never joined against Users. They cost a 400 per press and measured nothing.
+
+Three things came out of it that are worth more than the fix:
+
+- **`src/funnelkinds.test.mjs` mirrors the server's list** and scans `src/` for
+  `track("x")` / `step("x")`. It also mirrors the `why` slug lists — a `why`
+  outside `_WHY` / `_MIC` / `_BLOCKED` is dropped the same silent way, leaving
+  a row that says a take failed and cannot say why.
+- **`npm test` named each test file, so a new one did not run.** `funnelkinds`
+  passed locally and was absent from the suite; the count stayed at 34 while a
+  third test was added. It is a glob now (`"src/**/*.test.mjs"`), because the
+  list was the same trap one level up — and a test that does not run is not a
+  test, which is the exact subject of the section above it.
+- **`FunnelEvent.kind` is `varchar(20)`.** Four of the five new names arrived
+  longer (`onboarding_preferences_confirmed` is 32), so they are terse now to
+  match the rest of the list. Django's system check refuses the model outright,
+  which means that one would have failed the build rather than shipped quietly
+  — the loud failure, for once.
+
+A closed set catches a typo and **cannot catch an omission**: a kind the server
+has never heard of and a kind it simply has not been told about look identical
+from the client. That is what the mirror test is for.
+
 ## The trial door: five coaches nobody could find, and a recorder that led with a permission prompt
 
 `TrialTake.jsx` hardcoded `{ singz: "SingZ", rapz: "RapZ" }`. The backend

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Volume2, X, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
-import { track } from "../track.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
 /**
@@ -37,7 +36,6 @@ export default function SoundzPanel({ isOpen, onClose }) {
       setSoundEnabled(response.sound_enabled ?? true);
       setVolume(response.sound_volume ?? 100);
       setSelectedPack(response.sound_pack ?? "default");
-      track("soundz_panel_opened");
     } catch (err) {
       console.error("Failed to fetch preferences:", err);
     } finally {
@@ -53,7 +51,6 @@ export default function SoundzPanel({ isOpen, onClose }) {
         method: "POST",
         body: data,
       });
-      track("soundz_preference_updated", { field, value });
     } catch (err) {
       console.error("Failed to update preference:", err);
     } finally {
@@ -77,8 +74,6 @@ export default function SoundzPanel({ isOpen, onClose }) {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.2);
-
-      track("soundz_preview_played", { pack: selectedPack });
     } catch (err) {
       console.error("Could not play preview:", err);
     }
