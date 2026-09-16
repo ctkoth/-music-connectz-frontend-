@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
+import ReligionZ from "../ReligionZ.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
@@ -475,6 +476,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // axis not answered. Kept as the code rather than four pieces of state so
   // what this screen holds is exactly what the column holds.
   const [personality, setPersonality] = useState("");
+  // ReligionZ — one declared branch (the leaf key, e.g. "catholic"), or ""
+  // for "hasn't said". Same shape as personality: what this screen holds is
+  // exactly what the column holds.
+  const [religion, setReligion] = useState("");
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -565,6 +570,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         : (d?.substances || {}));
       setSober(!!d?.sober);
       setPersonality(d?.personality || "");
+      setReligion(d?.religion || "");
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
     }).catch(() => {});
   }, []);
@@ -618,11 +624,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       await api("/api/economy/profile/", {
         method: "POST",
         body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
-                nationalities: nats, personality },
+                nationalities: nats, personality, religion },
       });
       setMe(d);
       setSaved(true);
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ and PersonalitieZ are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ and ReligionZ are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -897,6 +903,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           column. A personality field that only worked in the dating app
           would be the fourth copy of a profile filter within a year. */}
       <PersonalitieZ value={personality} onChange={setPersonality} />
+
+      {/* ReligionZ — one declared branch out of fifty, grouped into
+          families (Christianity → Catholic, Lutheran, ...; Islam → Sunni,
+          Shia, ...). Same shape and same reasoning as PersonalitieZ above:
+          a declaration filterable everywhere, never a score. */}
+      <ReligionZ value={religion} onChange={setReligion} />
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
       <div>

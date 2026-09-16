@@ -12,12 +12,13 @@
 // Cross-pollination: no card here is a dead end. Every one opens a profile,
 // a message, or a collab — a grid of people you cannot do anything with is a
 // contact sheet, not a connection app.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, SlidersHorizontal, UserRound } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
+import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -37,7 +38,7 @@ function Chip({ on, children, ...rest }) {
   );
 }
 
-function MemberCard({ m }) {
+function MemberCard({ m, religionLabel }) {
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center gap-3">
@@ -65,6 +66,12 @@ function MemberCard({ m }) {
         {m.sign && <span className="pill">{m.sign}</span>}
         {m.sign_cn?.animal && <span className="pill">{m.sign_cn.emoji} {m.sign_cn.animal}</span>}
         {m.sober && <span className="pill !border-emerald-300/40 !text-emerald-300">sober</span>}
+        {/* The label comes from the SAME lookup the filter builds, off the
+            server's own list — never re-derived from the key by guessing at
+            a title case, which is the second place this list would live. */}
+        {m.religion && religionLabel[m.religion] && (
+          <span className="pill">🕊️ {religionLabel[m.religion]}</span>
+        )}
         {(m.regions || []).slice(0, 2).map((r) => <span key={r} className="pill">{r}</span>)}
       </div>
 
@@ -83,6 +90,7 @@ function MemberCard({ m }) {
 
 export default function VybeZ() {
   const [personality, setPersonality] = useState({});
+  const [religions, setReligions] = useState([]);
   const [genders, setGenders] = useState([]);
   const [soberOnly, setSoberOnly] = useState(false);
   const [ageMin, setAgeMin] = useState("");
@@ -96,10 +104,23 @@ export default function VybeZ() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Fetched ONCE at the screen level and handed down as a lookup, never
+  // per-card — a card component calling this hook itself would mean up to
+  // a hundred cards on one page each firing their own request, the exact
+  // per-row cost this app has already paid for once (see the feed/member
+  // search N+1 writeup in CLAUDE.md).
+  const religionList = useReligions();
+  const religionLabel = useMemo(
+    () => Object.fromEntries(religionList.map((r) => [r.key, r.label])),
+    [religionList],
+  );
+
   const search = useCallback(() => {
     const parts = [];
     const p = personalityQuery(personality);
     if (p) parts.push(p);
+    const rq = religionQuery(religions);
+    if (rq) parts.push(rq);
     if (genders.length) parts.push(`genders=${genders.join(",")}`);
     if (soberOnly) parts.push("sober=1");
     if (ageMin) parts.push(`age_min=${ageMin}`);
@@ -120,7 +141,7 @@ export default function VybeZ() {
       // worst bug class in this app, and it has shipped twice.
       .catch((e) => setError(e.message || "Couldn't run that search."))
       .finally(() => setLoading(false));
-  }, [personality, genders, soberOnly, ageMin, ageMax, maxKm]);
+  }, [personality, religions, genders, soberOnly, ageMin, ageMax, maxKm]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -169,29 +190,32 @@ export default function VybeZ() {
         </div>
 
         {more && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="text-[11px] text-white/50">
-              Age from
-              <input type="number" min={AGE_FLOOR} max={AGE_CEIL} value={ageMin}
-                     onChange={(e) => setAgeMin(e.target.value)} className="neon-input !py-2 text-xs" />
-            </label>
-            <label className="text-[11px] text-white/50">
-              Age to
-              <input type="number" min={AGE_FLOOR} max={AGE_CEIL} value={ageMax}
-                     onChange={(e) => setAgeMax(e.target.value)} className="neon-input !py-2 text-xs" />
-            </label>
-            <label className="text-[11px] text-white/50">
-              Within (km)
-              <input type="number" min={1} value={maxKm} disabled={!originShared}
-                     onChange={(e) => setMaxKm(e.target.value)} className="neon-input !py-2 text-xs" />
-              {/* A distance filter with no origin silently matches nobody, so
-                  it says why rather than looking broken. */}
-              {!originShared && (
-                <span className="mt-1 block text-[10px] text-white/35">
-                  Turn on location sharing in ProfileZ to search by distance.
-                </span>
-              )}
-            </label>
+          <div className="space-y-4">
+            <ReligionFilter value={religions} onChange={setReligions} />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="text-[11px] text-white/50">
+                Age from
+                <input type="number" min={AGE_FLOOR} max={AGE_CEIL} value={ageMin}
+                       onChange={(e) => setAgeMin(e.target.value)} className="neon-input !py-2 text-xs" />
+              </label>
+              <label className="text-[11px] text-white/50">
+                Age to
+                <input type="number" min={AGE_FLOOR} max={AGE_CEIL} value={ageMax}
+                       onChange={(e) => setAgeMax(e.target.value)} className="neon-input !py-2 text-xs" />
+              </label>
+              <label className="text-[11px] text-white/50">
+                Within (km)
+                <input type="number" min={1} value={maxKm} disabled={!originShared}
+                       onChange={(e) => setMaxKm(e.target.value)} className="neon-input !py-2 text-xs" />
+                {/* A distance filter with no origin silently matches nobody, so
+                    it says why rather than looking broken. */}
+                {!originShared && (
+                  <span className="mt-1 block text-[10px] text-white/35">
+                    Turn on location sharing in ProfileZ to search by distance.
+                  </span>
+                )}
+              </label>
+            </div>
           </div>
         )}
       </div>
@@ -211,7 +235,7 @@ export default function VybeZ() {
       {!loading && !error && (
         rows.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {rows.map((m) => <MemberCard key={m.username} m={m} />)}
+            {rows.map((m) => <MemberCard key={m.username} m={m} religionLabel={religionLabel} />)}
           </div>
         ) : (
           <div className="re-card space-y-1 text-center">
