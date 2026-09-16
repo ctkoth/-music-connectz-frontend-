@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { api } from "./api.js";
+import { clearFlowMarkers } from "./oauthProviders.jsx";
 
 // Bring a SoundCloud catalogue in as DRAFT posts.
 //
@@ -54,6 +55,9 @@ export default function SoundCloudImport({ clientId }) {
       return;
     }
     setBusy(true);
+    // A connect-flow marker abandoned mid-flow in this tab must not turn this
+    // import into a link attempt on the way back.
+    clearFlowMarkers();
     const state = rand();
     sessionStorage.setItem("mcz_oauth_provider", "soundcloud");
     sessionStorage.setItem("mcz_oauth_state", state);

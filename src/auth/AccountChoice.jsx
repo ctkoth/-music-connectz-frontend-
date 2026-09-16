@@ -45,6 +45,18 @@ export default function AccountChoice({ choice, onCreate, onSignIn, busy }) {
         <p className="text-[11px] text-white/40">
           Everyone gets one account, so it's worth a second to get this right.
         </p>
+
+        {/* A HINT, never a decision — dupez's own rule for every signal it
+            reports. `possible_match` is a normalized-handle guess (a
+            SoundCloud "KOTH" against an existing "K-Oth"), so it says "is
+            this you?" and leaves both buttons exactly as they were. Nothing
+            is pre-selected and nothing signs anybody in on this alone. */}
+        {choice.possible_match && (
+          <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-xs text-white/70">
+            This looks like it might be <b className="text-mcz-cyan">@{choice.possible_match}</b>.
+            If that's you, sign in below instead of making a new one.
+          </p>
+        )}
       </div>
 
       <button

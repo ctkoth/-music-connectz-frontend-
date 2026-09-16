@@ -5,6 +5,7 @@ import { useAuth } from "./AuthContext.jsx";
 import AccountChoice from "./AccountChoice.jsx";
 import { AuthShell } from "./Register.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
+import { finishConnect, connectPending } from "../connectOAuth.js";
 
 export default function OAuthCallback() {
   const { oauth, login } = useAuth();
@@ -40,6 +41,25 @@ export default function OAuthCallback() {
         if (importPending()) {
           const out = await finishImport(code);
           navigate(`/post?imported=${out?.imported ?? 0}`);
+          return;
+        }
+
+        // A logged-in member linking a new provider from ConnectionZ. Same
+        // reason it's checked before the sign-in exchange: the code is
+        // single-use, and this member is already signed in, so the "do you
+        // already have an account?" question ahead doesn't apply to them —
+        // routing them through it would sign them OUT of the account they
+        // came here to add a provider to. Own try/catch: a failed link sends
+        // them back to their profile with the reason, never the generic
+        // "sign-in failed" screen below, which assumes nobody is logged in.
+        if (connectPending()) {
+          try {
+            await finishConnect(provider, code, verifier);
+            navigate(`/profile?connected=${encodeURIComponent(provider)}`);
+          } catch (e) {
+            navigate(`/profile?connect_failed=${encodeURIComponent(e.message)}`
+              + `&provider=${encodeURIComponent(provider)}`);
+          }
           return;
         }
 

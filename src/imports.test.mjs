@@ -33,7 +33,7 @@ const HELPERS = [
   "src/limits.js", "src/rulez.js", "src/handoff.js", "src/openable.js",
   "src/voice.js", "src/listen.js", "src/uploadWork.js", "src/widgetz.js",
   "src/useScreenShape.js", "src/resources.js", "src/pageTitle.js",
-  "src/recorder.js",
+  "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js",
 ];
 
 // `src/mcz2/` is the 2.2 reference app and is not mounted — see CLAUDE.md.
