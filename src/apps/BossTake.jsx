@@ -15,6 +15,7 @@ import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { mediaError, bestMime, sizeLabel } from "../recorder.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -48,42 +49,6 @@ const failReason = (e) => {
   return "refused";                   // 400/401/403/413/429 — we said no
 };
 
-/** What actually went wrong when getUserMedia said no.
- *
- * Every failure here used to be reported as "access was refused", because the
- * catch discarded the error. That is wrong for most of them and actively
- * misleading for two: a camera held by Zoom, OBS or another tab throws
- * NotReadableError, and a machine with no camera at all throws NotFoundError
- * — both of which sent somebody off to re-grant a permission they had already
- * granted, forever, while the real cause sat unmentioned.
- *
- * `retry` marks the one case worth trying again automatically: our own
- * constraints were impossible on this device, which is our problem to solve,
- * not something to tell a member about. */
-function mediaError(err, video) {
-  const thing = video ? "camera" : "microphone";
-  switch (err?.name) {
-    case "NotAllowedError":
-    case "SecurityError":
-      return { why: "denied", msg: `The ${thing} was blocked. Allow it in the address-bar icon, `
-        + `then press record again${video ? " — or record audio only" : ""}. You can also upload a clip instead.` };
-    case "NotFoundError":
-    case "DevicesNotFoundError":
-      return { why: "notfound", msg: `No ${thing} on this device — nothing to allow. `
-        + "Upload a clip instead and the coach scores it the same." };
-    case "NotReadableError":
-    case "TrackStartError":
-      return { why: "inuse", msg: `Something else is using the ${thing} — another tab, or an app `
-        + "like Zoom, Teams or OBS. Close it and press record again, or upload a clip." };
-    case "OverconstrainedError":
-      return { why: "constrained", retry: true,
-               msg: `This ${thing} couldn't do what we asked for. Trying again with plain settings…` };
-    default:
-      return { why: "other", msg: `The ${thing} didn't start (${err?.name || "unknown error"}). `
-        + "Upload a clip instead — it scores the same." };
-  }
-}
-
 const DIFFICULTY_LABEL = {
   starter: "Starter 🌱", builder: "Builder 🧩",
   performer: "Performer 🌟", stageboss: "Stage Boss 👑",
@@ -94,14 +59,6 @@ const DIFFICULTY_LABEL = {
 const mmssOf = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const mb = (n) => (n / 1024 / 1024).toFixed(1);
-
-/** A size a person can read, at the size takes actually come in.
- *
- * `mb()` is right for a cap and wrong for a take: a good eight-second clip is
- * around 30KB, and 30KB in megabytes to one decimal is "0.0MB" — which is
- * exactly as alarming as the 0:00 this line was added to explain away. It
- * said "00:03 · 0.0MB" under a perfectly good recording. */
-const sizeLabel = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))}KB` : `${mb(n)}MB`);
 
 const scoreColor = (n) =>
   n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
@@ -398,38 +355,6 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     setResult(null);
     setMsg("");
     if (!recorded) step("try_attach");
-  }
-
-  // Record into a container the coach's model can actually read. Chrome's
-  // default is audio/webm, which Gemini does not accept as audio — the server
-  // relabels it to video/webm now, but recording straight into ogg or mp4 where
-  // the browser supports it means the take never needs rescuing.
-  function bestMime(video) {
-    // VP8 first for video, not MP4. Android records MP4 through a hardware
-    // encoder that commonly ignores videoBitsPerSecond — which is how a
-    // 900kbps request produced a 20Mbps file. MP4 stays last for Safari, which
-    // cannot record WebM at all. The server relabels all of these correctly
-    // (see _RELABEL in vocalcoach.py), so the choice is purely about size.
-    // AUDIO ORDER CHANGED, and the reason is a moving target.
-    //
-    // `audio/mp4` sat second, from a time when no Chromium build could record
-    // it and the entry was there for Safari. Chromium can now — so it wins
-    // the list, and asking for bare "audio/mp4" lets it pick the codec: it
-    // picks Opus, and hands back `audio/mp4;codecs=opus`. Opus inside MP4 is
-    // a legal but unusual pairing, and it is not what the coach's pipeline
-    // has ever actually been fed. Verified in headless Chromium — the takes
-    // in the backend's testdata_takes/ are that recorder's real output.
-    //
-    // So the widely-exercised container goes first and Safari's stays last
-    // with its codec named rather than left to the browser. Nothing here is
-    // a guess about what Gemini accepts — the server relabels every one of
-    // these (see vocalcoach._RELABEL) — it is about which combination has
-    // actually been through the coach and back.
-    const wanted = video
-      ? ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
-      : ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm",
-         "audio/mp4;codecs=mp4a.40.2", "audio/mp4"];
-    return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
   }
 
   // Anything above this counts as "the input is live". It is deliberately

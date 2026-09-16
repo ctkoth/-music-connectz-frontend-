@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
 import { playSound } from "./sound.js";
 import { useUploadLimit } from "./limits.js";
+import { mediaError, bestMime, sizeLabel } from "./recorder.js";
 
 // One of each — the order they preview in. The tag is how each renders.
 const SLOTS = [["audio", "audio"], ["video", "video"], ["image", "img"]];
@@ -76,6 +77,11 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
     const why = upload.check(file);
     if (why) { setMsg(why); playSound("error"); return false; }
     setMsg("");
+    // `secs` is only the duration of a browser RECORDING — an attached file's
+    // own length isn't measured here. Clear it so a stale count from an
+    // earlier take doesn't get printed under a file that has nothing to do
+    // with it.
+    if (slot === "audio") setSecs(0);
     attach(file, slot);
     return true;
   }
@@ -97,10 +103,30 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       chunks.current = [];
-      const mr = new MediaRecorder(stream);
+      // Same ordered mime list BossTake's coach recorder uses, not the bare
+      // browser default — see recorder.js for why the order is load-bearing.
+      const mimeType = bestMime(false);
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mr.ondataavailable = (e) => e.data.size && chunks.current.push(e.data);
+      // A recorder that dies mid-take used to say nothing at all.
+      mr.onerror = (e) => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        setMsg(`The recorder stopped with an error (${e?.error?.name || "unknown"}). `
+          + "Attach a file instead.");
+      };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        const total = chunks.current.reduce((n, c) => n + c.size, 0);
+        // A recording that captured nothing used to become a take anyway —
+        // onstop attached whatever it had, including an empty Blob, and the
+        // member's next step (posting, entering a battle, attaching to a
+        // deal) spent on zero bytes. Refuse it here, where the reason is
+        // still knowable, the same rule BossTake's recorder already follows.
+        if (!total) {
+          return setMsg("That recording didn't capture anything — hold the button for a "
+            + "few seconds and try again, or attach a file instead.");
+        }
         attach(new Blob(chunks.current, { type: mr.mimeType || "audio/webm" }), "audio");
       };
       rec.current = mr;
@@ -108,8 +134,11 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
       setSecs(0);
       setRecording(true);
       playSound("record_start");
-    } catch {
-      setMsg("Microphone access was refused. Attach a file instead.");
+    } catch (err) {
+      // Every failure used to be reported as "access was refused" — wrong for
+      // most of them, and actively misleading for a camera or mic another
+      // app is holding, or a device with none at all. See recorder.js.
+      setMsg(mediaError(err, false).msg);
     }
   }
 
@@ -174,6 +203,19 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
           </div>
           <Tag src={v[`${slot}_url`]} controls={slot !== "image"} alt=""
                className={slot === "audio" ? "w-full" : "w-full rounded-lg"} />
+          {/* A MediaRecorder WebM carries no Duration in its header, so a
+              recorded clip plays as 0:00 / 0:00 even when it's fine — the
+              same confusion BossTake's recorder audit fixed there. What we
+              actually counted on the way in is the only honest signal. */}
+          {slot === "audio" && v.audio_blob && (
+            <p className="text-[11px] text-white/45">
+              {secs > 0 && <>{mmss} · </>}{sizeLabel(v.audio_blob.size)}
+              <span className="text-white/30">
+                {" "}— the player may show 0:00 for a browser recording; that's the file's
+                header, not your take.
+              </span>
+            </p>
+          )}
         </div>
       ))}
 
