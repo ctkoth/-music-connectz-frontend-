@@ -498,6 +498,56 @@ does now, beside three more things:
   there is joined back to a person. `unset` is a row rather than a rounding
   error, and the account total travels with the split.
 
+## The signup form found out the username was taken by submitting
+
+`check-username/` has existed the whole time, behind `IsAuthenticated`, and
+therefore unreachable from the only screen that needs it — so the way you
+learned a handle was taken was to fill in the entire form and press the
+button. It is open logged-out now, for the same reason `rulez` and
+`trialdoorz` are, and `Register.jsx` asks **on blur**: one request when they
+move to the next field, no debounce to get wrong.
+
+Two things it renders, and both are the server's:
+
+- **The rule, before a handle is picked.** The response carries `rule` whether
+  the answer is yes or no, so the field states "3-20 characters: letters,
+  numbers, and underscores only" up front rather than only after somebody
+  breaks it. It is seeded by one blank check on mount.
+- **The refusal, unreworded.** It is the same `username_problem` the register
+  endpoint refuses with, so the inline note and the submit can never disagree
+  about why.
+
+A failed check renders nothing and blocks nothing — they press the button and
+the server decides, exactly as before this existed.
+
+## Every number on the signup screen was typed into it
+
+`Register.jsx` had **"3 scored takes/day"**, **"5 scored takes/day"**, **"2x
+faster Energy"** and both referral amounts in its copy: the tenth place a tier
+number lived, on the screen where being wrong costs the most. They come from
+`/api/economy/tiers/` now, which grew `daily_prompts`, `energy_per_hour` and a
+`join` block because it served upload and storage limits and not the allowance
+the screen was actually selling on.
+
+Three things worth keeping:
+
+- **The "2x" was already wrong.** Energy is `reach ÷ divisor` with a floor,
+  and reach is 0 until an external account is verified — so everybody reading
+  a SIGNUP page is on the floor, where it is 2 and 6 ⚡/hour. 3x. The copy
+  understated the thing it was selling, to the one audience that is by
+  definition on the other number.
+- **"Advanced analytics" and "Priority support" were on the Premium card and
+  neither exists anywhere in the codebase.** A signup page selling two
+  features that were never built. Gone, replaced by what the ladder actually
+  ladders.
+- **The welcome bonus is finally stated.** `SIGNUP_WELCOME_SPINAZ` is paid on
+  every registration and was named on no screen — the gain half of the
+  cost/gain rule, which is the half that gets forgotten. A reward found out by
+  accident is a coincidence, and a coincidence changes nobody's behaviour.
+
+The cards render **only** when the fetch succeeded. No tiers means no card,
+never an invented figure — same rule the offers panel follows.
+
 ## VybeZ gives the member search its first caller, and PersonalitieZ is one filter
 
 `GET /api/economy/members/` — regions, genders, both zodiacs, sober,
