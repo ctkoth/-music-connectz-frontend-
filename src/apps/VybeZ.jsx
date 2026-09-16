@@ -19,6 +19,7 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
+import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -38,7 +39,7 @@ function Chip({ on, children, ...rest }) {
   );
 }
 
-function MemberCard({ m, religionLabel }) {
+function MemberCard({ m, religionLabel, languageLabel }) {
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center gap-3">
@@ -72,6 +73,11 @@ function MemberCard({ m, religionLabel }) {
         {m.religion && religionLabel[m.religion] && (
           <span className="pill">🕊️ {religionLabel[m.religion]}</span>
         )}
+        {Object.entries(m.languages || {}).slice(0, 3).map(([key, level]) => (
+          languageLabel[key] && (
+            <span key={key} className="pill">🗣️ {languageLabel[key]} · {level}</span>
+          )
+        ))}
         {(m.regions || []).slice(0, 2).map((r) => <span key={r} className="pill">{r}</span>)}
       </div>
 
@@ -91,6 +97,7 @@ function MemberCard({ m, religionLabel }) {
 export default function VybeZ() {
   const [personality, setPersonality] = useState({});
   const [religions, setReligions] = useState([]);
+  const [langFilter, setLangFilter] = useState([]);
   const [genders, setGenders] = useState([]);
   const [soberOnly, setSoberOnly] = useState(false);
   const [ageMin, setAgeMin] = useState("");
@@ -114,6 +121,11 @@ export default function VybeZ() {
     () => Object.fromEntries(religionList.map((r) => [r.key, r.label])),
     [religionList],
   );
+  const languageList = useLanguages();
+  const languageLabel = useMemo(
+    () => Object.fromEntries(languageList.map((l) => [l.key, l.label])),
+    [languageList],
+  );
 
   const search = useCallback(() => {
     const parts = [];
@@ -121,6 +133,8 @@ export default function VybeZ() {
     if (p) parts.push(p);
     const rq = religionQuery(religions);
     if (rq) parts.push(rq);
+    const lq = languageQuery(langFilter);
+    if (lq) parts.push(lq);
     if (genders.length) parts.push(`genders=${genders.join(",")}`);
     if (soberOnly) parts.push("sober=1");
     if (ageMin) parts.push(`age_min=${ageMin}`);
@@ -141,7 +155,7 @@ export default function VybeZ() {
       // worst bug class in this app, and it has shipped twice.
       .catch((e) => setError(e.message || "Couldn't run that search."))
       .finally(() => setLoading(false));
-  }, [personality, religions, genders, soberOnly, ageMin, ageMax, maxKm]);
+  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -192,6 +206,7 @@ export default function VybeZ() {
         {more && (
           <div className="space-y-4">
             <ReligionFilter value={religions} onChange={setReligions} />
+            <LanguageFilter value={langFilter} onChange={setLangFilter} />
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="text-[11px] text-white/50">
                 Age from
@@ -235,7 +250,9 @@ export default function VybeZ() {
       {!loading && !error && (
         rows.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {rows.map((m) => <MemberCard key={m.username} m={m} religionLabel={religionLabel} />)}
+            {rows.map((m) => (
+              <MemberCard key={m.username} m={m} religionLabel={religionLabel} languageLabel={languageLabel} />
+            ))}
           </div>
         ) : (
           <div className="re-card space-y-1 text-center">

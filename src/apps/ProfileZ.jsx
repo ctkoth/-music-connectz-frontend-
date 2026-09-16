@@ -3,6 +3,7 @@ import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Load
 import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
 import ReligionZ from "../ReligionZ.jsx";
+import LanguageZ from "../LanguageZ.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
@@ -480,6 +481,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // for "hasn't said". Same shape as personality: what this screen holds is
   // exactly what the column holds.
   const [religion, setReligion] = useState("");
+  // LanguageZ — {lang_key: "beginner"|"intermediate"|"fluent"}. Same shape
+  // SubstanceZ already holds for "what, and how often".
+  const [languages, setLanguages] = useState({});
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -571,6 +575,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setSober(!!d?.sober);
       setPersonality(d?.personality || "");
       setReligion(d?.religion || "");
+      setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
     }).catch(() => {});
   }, []);
@@ -624,11 +629,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       await api("/api/economy/profile/", {
         method: "POST",
         body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
-                nationalities: nats, personality, religion },
+                nationalities: nats, personality, religion, languages },
       });
       setMe(d);
       setSaved(true);
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ and ReligionZ are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ and LanguageZ are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -909,6 +914,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           Shia, ...). Same shape and same reasoning as PersonalitieZ above:
           a declaration filterable everywhere, never a score. */}
       <ReligionZ value={religion} onChange={setReligion} />
+
+      {/* LanguageZ — languages spoken AND how well, grouped by region.
+          Multi-select where ReligionZ is one-of, because a member commonly
+          speaks several languages and (usually) practises one religion. */}
+      <LanguageZ value={languages} onChange={setLanguages} />
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
       <div>
