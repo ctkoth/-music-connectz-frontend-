@@ -92,7 +92,6 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
-const DrumZ = lazy(lazyRoute(() => import("./apps/DrumZ.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -425,6 +424,23 @@ const TABS = [
   { key: "rapz", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+  // These four had a real, scored, tested backend coach — /api/<key>/coach/,
+  // /trial/, /progress/ and a SkillZ tree, all mounted — and no route a
+  // signed-in member could reach any of it from. InstrumentZ has powered
+  // them "via props" per its own comment since it was written; nothing ever
+  // instantiated it here. See the note in InstrumentZ.jsx.
+  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#eab308"
+        tagline="Guitar training — timing, tone, technique, dynamics and cleanliness scored on every take, Boss Mode included." /> },
+  { key: "bassz", label: "BassZ", icon: "bassz.png",
+    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#7c3aed"
+        tagline="Bass training — timing, tone, technique, dynamics and note length scored on every take, Boss Mode included." /> },
+  { key: "keyz", label: "KeyZ", icon: "keyz.png",
+    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#38bdf8"
+        tagline="Keys training — timing, tone, technique, dynamics and voicing scored on every take, Boss Mode included." /> },
+  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
+        tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -436,7 +452,13 @@ const TABS = [
   { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
-  { key: "drumz", label: "DrumZ", icon: "drumz.png", el: <DrumZ /> },
+  // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
+  // rendered inside InstrumentZ now rather than standing alone) and gained
+  // the scored Boss Take coach the backend already had mounted at
+  // /api/drumz/coach/ with nothing here pointing at it.
+  { key: "drumz", label: "DrumZ", icon: "drumz.png",
+    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#ef4444"
+        tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "lilith", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
