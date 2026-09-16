@@ -10,7 +10,13 @@ import { deviceShape } from "./useScreenShape.js";
 
 const ANON_ID_KEY = "mcz_anon_id";
 
-function anonId() {
+/** This browser's funnel UUID, also the trial's "one free take each" key.
+ *
+ * Exported because the trial door needs the SAME id the funnel uses: the
+ * server counts a visitor's free take against it, and a second id generated
+ * somewhere else would be a second visitor. Blank when storage is unreadable
+ * — the server treats that as "unknown", never as a match. */
+export function anonId() {
   try {
     let id = localStorage.getItem(ANON_ID_KEY);
     if (!id) {

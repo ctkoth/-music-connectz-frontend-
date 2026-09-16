@@ -12,7 +12,7 @@ import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
-import { track } from "../track.js";
+import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 
@@ -284,7 +284,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
 
   useEffect(() => {
-    api(path, { auth: !trial })
+    // The trial's "one free take each" is counted per BROWSER now, not per IP
+    // address — a carrier's shared CGNAT address meant one stranger spent the
+    // take for everybody behind it. The server needs the same id the funnel
+    // uses, on the GET as well as the POST, or the door reports availability
+    // it will not honour a moment later.
+    api(trial ? `${path}?anon_id=${encodeURIComponent(anonId())}` : path, { auth: !trial })
       .then((p) => {
         setPrice(p);
         onReady?.();
@@ -717,6 +722,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             if (style) f.append("style", style);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            // Same id as the GET above, and as the funnel's. Blank in a
+            // private window, which the server reads as "unknown" rather than
+            // as a visitor who has already been here.
+            if (trial) f.append("anon_id", anonId());
             return f;
           })();
       const out = await api(path, { method: "POST", body, auth: !trial });
@@ -772,9 +781,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     ? "The coach isn't switched on right now. That's our end, not yours — nothing here will fix it, so don't spend a take on it."
     : price.already_used
       ? `You've already had a free take ${price.per_address ? `(${price.per_address})` : "today"}. An account gets you more, every day.`
-      : price.cap_reached
-        ? "Today's free takes are all spoken for — they're capped so we can keep giving them away. Tomorrow, or make an account now."
-        : "The free take isn't available right now.";
+      // Never phrased as something they did. The per-address ceiling was ONE
+      // for most of this app's life, so a mobile carrier's shared address
+      // meant a stranger spent the take and the next visitor got told they
+      // had used theirs — a false accusation on the one screen a stranger
+      // ever sees, and unanswerable, because there is nothing they can do
+      // about somebody else's phone.
+      : price.address_busy
+        ? "This network has already used today's free takes — that's the connection you're on, not you. Common on mobile data, where thousands of phones share one address. An account gets you the coach on any connection."
+        : price.cap_reached
+          ? "Today's free takes are all spoken for — they're capped so we can keep giving them away. Tomorrow, or make an account now."
+          : "The free take isn't available right now.";
 
   // A shut door is a funnel step. `blocked` hides EVERY control — upload, mic
   // and camera all vanish — so a visitor who was refused and one who looked
@@ -791,6 +808,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     step("try_blocked", {
       why: !price.configured ? "not_configured"
         : price.already_used ? "already_used"
+        // Ordered above cap_reached because it is the narrower claim, and
+        // below already_used because a visitor who really has had their take
+        // should be told that rather than blamed on their network.
+        : price.address_busy ? "address_busy"
         : price.cap_reached ? "cap_reached"
         : undefined,
     });

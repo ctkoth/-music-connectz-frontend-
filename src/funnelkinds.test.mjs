@@ -120,7 +120,8 @@ const SERVER_WHY = {
   try_mic_denied: new Set(["denied", "notfound", "inuse", "constrained",
                            "insecure", "other"]),
   // views.py FunnelEventView._BLOCKED
-  try_blocked: new Set(["already_used", "cap_reached", "not_configured"]),
+  try_blocked: new Set(["already_used", "cap_reached", "not_configured",
+                        "address_busy"]),
 };
 
 /** Every slug the recorder can put in a `why`.

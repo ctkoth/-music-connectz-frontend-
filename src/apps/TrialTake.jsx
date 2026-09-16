@@ -80,7 +80,10 @@ export default function TrialTake() {
 
   useEffect(() => {
     let on = true;
-    api("/api/trial/public/stats/?days=30", { auth: false })
+    // /api/trial/public/stats/ is not where this is mounted — it 404'd on
+    // every visit since it shipped, and the 404 was swallowed below, so the
+    // panel simply never appeared and nothing said why.
+    api("/api/economy/trial/public/stats/?days=30", { auth: false })
       .then((d) => { if (on && d?.headline) setStats(d); })
       .catch(() => {})
       // Failed fetch does not render error: a stats panel that silently fails
@@ -192,18 +195,40 @@ export default function TrialTake() {
         </p>
       </div>
 
-      {stats && (
+      {/* Counts, never rates.
+        *
+        * This panel used to render the JOIN FUNNEL'S three conversion rates —
+        * under the heading "What members do", on the door, to the stranger
+        * standing in the funnel. At the numbers that produced it that read
+        * "Tried → Scored 5%" and "Scored → Registered 0%": a measurement of
+        * how well OUR door works, presented as a reason to walk through it.
+        * The three rates belong in FunnelZ, where the owner reads them, and
+        * FunnelZ already has them.
+        *
+        * `enough` is the server's call, not a threshold kept over here. Below
+        * it nothing renders at all — "3 takes scored" is worse than silence,
+        * which is the same rule the funnel's own `pct: null` follows. */}
+      {stats?.enough && (
         <div className="mb-6 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">What members do</p>
-          <div className="mt-3 space-y-2">
-            {stats.headline.map((h) => (
-              <div key={h.key} className="flex items-center justify-between text-sm">
-                <span className="text-white/75">{h.label}</span>
-                <span className="text-emerald-300">{h.pct}%</span>
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+            Already happening here
+          </p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-white/75">Takes scored</span>
+              <span className="text-emerald-300">{stats.takes_scored.toLocaleString()}</span>
+            </div>
+            {stats.takes_scored_window > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-white/75">In the last {stats.days} days</span>
+                <span className="text-emerald-300">{stats.takes_scored_window.toLocaleString()}</span>
               </div>
-            ))}
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-white/75">Instruments with a coach</span>
+              <span className="text-emerald-300">{stats.doors}</span>
+            </div>
           </div>
-          <p className="mt-3 text-[11px] leading-relaxed text-white/45">Last {stats.days} days across all visitors</p>
         </div>
       )}
 

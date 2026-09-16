@@ -428,6 +428,53 @@ deciding whether any of this is real is the substance rule's worst case.
 an account, and counting both would put K-Oth's own takes in the number that
 says whether strangers get a score.
 
+## The trial door said no to the wrong people, and boasted about the wrong number
+
+A second audit, asking what stops a stranger getting a score rather than what
+stops us measuring one. Three things, and all three cost real visitors.
+
+**1. The free take was counted per IP ADDRESS, not per person.** Mobile
+carriers run CGNAT — thousands of subscribers behind one address — so the
+first person on that carrier spent the take for all of them, and the rest were
+told *"You've already had a free take"* about one they never had. Most
+visitors arrive on a phone. It is counted per BROWSER now, so `BossTake` sends
+`anonId()` on the trial GET **and** the POST — the same id `track.js` already
+keeps, because a second id generated here would be a second visitor. The GET
+matters as much as the POST: a door that reports availability it will not
+honour a moment later is worse than one that says no up front.
+
+**2. `address_busy` is a fourth "no", and it gets its own sentence.** The copy
+never phrases it as something the visitor did, because they did not do it and
+cannot fix it — it names the connection, says it is common on mobile data, and
+offers the account, which genuinely is the answer. It is also its own
+`try_blocked` slug, so the funnel can stop counting it as `already_used`.
+
+**3. An unscorable take used to burn the free take.** Silence, the wrong file,
+room noise — the coach listens, finds no performance, and that still spent the
+one take they came for. Server-side fix (`TrialTake.scored`), but worth knowing
+here: the retry a member makes after "no performance here" is now a retry that
+works.
+
+### The stats panel was showing strangers our conversion rate
+
+`TrialTake.jsx` rendered `/api/trial/public/stats/` under the heading **"What
+members do"** as three percentages. Those percentages were the JOIN FUNNEL'S —
+landing → trial → scored → account. At the numbers that produced it, a visitor
+deciding whether to try would have read *"Tried → Scored 5%"* and *"Scored →
+Registered 0%"*, presented as a reason to sign up.
+
+It never actually rendered, which is the only reason that never shipped in
+front of anybody: the path is `/api/economy/trial/public/stats/`, so the call
+404'd, and the `.catch(() => {})` meant nothing said so. The endpoint behind it
+was a 500 anyway.
+
+Both are fixed, and what it renders changed: **counts, never rates** — takes
+scored, and how many instruments have a coach. A conversion rate is a fact
+about our door, and it belongs in FunnelZ where the owner reads it. `enough` is
+the SERVER's call, and below it the panel renders nothing at all, because "3
+takes scored" is worse than silence — the same rule `pct: null` follows one
+section down.
+
 ## FunnelZ shows the three rates first, and who was on the other end
 
 The server has computed a per-channel breakdown since `?src=` shipped and
