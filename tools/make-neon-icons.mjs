@@ -49,6 +49,22 @@ const G = {
     <circle cx="212" cy="180" r="15" fill="${b}"/>
     <circle cx="300" cy="180" r="15" fill="${b}"/>`,
 
+  // VybeZ: the member search. It rendered `social_connectz.png` — the exact
+  // same heart as the Social ConnectZ tab beside it — so two different tabs
+  // carried one mark and neither said which was which.
+  //
+  // They are different things and the glyph has to say so: Social ConnectZ is
+  // the ROOM (a heart, who is here), VybeZ is LOOKING (regions, genders, both
+  // zodiacs, sober, substances, five range gates and distance). So: a lens
+  // with a heart inside it. At tab-strip size the circle-and-handle
+  // silhouette is unmistakable against a plain heart, which is the only test
+  // a 24px icon has to pass.
+  vybez: (a, b) => `
+    <circle cx="228" cy="214" r="112" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M228 268c-34-24-54-41-54-63a31 31 0 0 1 54-19 31 31 0 0 1 54 19c0 22-20 39-54 63z"
+          fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M312 298l74 74" stroke="${a}" stroke-width="20" stroke-linecap="round"/>`,
+
   profilez: (a, b) => `
     <path d="M300 118h84v70a42 42 0 0 1-84 0z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.85"/>
     <path d="M148 112h150v86a75 75 0 0 1-150 0z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
@@ -407,6 +423,9 @@ const APPS = [
   ["onboardz", "OnboardZ", C.emerald, C.gold],
   ["playlistz", "PlaylistZ", C.cyan, C.pink],
   ["social_connectz", "Social ConnectZ", C.pink, C.cyan],
+  // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
+  // that belongs together while never being mistaken for each other.
+  ["vybez", "VybeZ", C.cyan, C.pink],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
   ["money", "MembershipZ", C.gold, C.emerald],

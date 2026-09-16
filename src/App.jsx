@@ -261,6 +261,7 @@ export const CUSTOM_ICONS = {
   "singz.png": "/icons/singz-neon.svg",
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
+  "vybez.png": "/icons/vybez-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz.png",
@@ -401,7 +402,11 @@ const TABS = [
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
   // genders, both zodiacs, sober, substances, five range gates and distance —
   // has been implemented and reachable only by typing a URL.
-  { key: "vybez", label: "VybeZ", icon: "social_connectz.png", el: <VybeZ /> },
+  // Its own mark. It rendered `social_connectz.png` — the identical heart the
+  // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
+  // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
+  // LOOKING, so the glyph is a lens with a heart in it.
+  { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
@@ -943,9 +948,25 @@ function Home() {
                   <li key={a.name} className="flex items-start gap-2 text-[12px]">
                     <span className="shrink-0">{a.emoji}</span>
                     <span className="min-w-0">
-                      <span className={a.built ? "text-white/80" : "text-white/40"}>
-                        {a.name}
-                      </span>
+                      {/* A built app that names a tab is a DOOR, not a line
+                          of text. `tab` has been in the payload since `_app`
+                          was written and nothing ever read it — the
+                          cross-pollination rule broken on the one screen
+                          whose entire job is telling a member what this app
+                          has. A read-only surface is usually an unfinished
+                          one. */}
+                      {a.built && a.tab ? (
+                        <button
+                          onClick={() => { setInfoKey(null); openTab(a.tab); }}
+                          className="text-left text-white/80 underline decoration-white/25 underline-offset-2 hover:text-mcz-cyan"
+                        >
+                          {a.name}
+                        </button>
+                      ) : (
+                        <span className={a.built ? "text-white/80" : "text-white/40"}>
+                          {a.name}
+                        </span>
+                      )}
                       {!a.built && (
                         <span className="ml-1 text-[10px] text-mcz-gold">not built yet</span>
                       )}

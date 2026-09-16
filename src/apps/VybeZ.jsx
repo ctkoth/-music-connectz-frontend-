@@ -122,12 +122,25 @@ export default function VybeZ() {
       .finally(() => setLoading(false));
   }, [personality, genders, soberOnly, ageMin, ageMax, maxKm]);
 
-  useEffect(() => { search(); }, [search]);
+  // Debounced, because three of these filters are TEXT INPUTS and `search`
+  // is in the effect's deps. Typing "25" into age-min fired two full member
+  // searches; filling all three numeric fields fired seven or eight. That
+  // search is the heaviest read on the platform (regions, genders, both
+  // zodiacs, sober, substances, five range gates and distance), so a
+  // keystroke was never an acceptable trigger for it.
+  //
+  // One delay for every filter rather than a special case for the text ones:
+  // a toggle answering 300ms later is imperceptible, and two code paths into
+  // one search is how the two come to disagree about what was asked.
+  useEffect(() => {
+    const t = setTimeout(search, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
-        <IconImg icon="social_connectz.png" alt="VybeZ" className="h-11 w-11 rounded-xl" />
+        <IconImg icon="vybez.png" alt="VybeZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">VybeZ</h2>
           <p className="text-xs text-white/45">

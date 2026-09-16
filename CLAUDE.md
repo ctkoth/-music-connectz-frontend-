@@ -613,6 +613,57 @@ Three things worth keeping:
 The cards render **only** when the fetch succeeded. No tiers means no card,
 never an invented figure — same rule the offers panel follows.
 
+## VybeZ searched on every keystroke, and wore another tab's icon
+
+Two things, and the first is the expensive one.
+
+**`useEffect(() => search(), [search])` with `search` a `useCallback` over the
+filter values** — and three of those filters are TEXT INPUTS. So typing "25"
+into age-min fired two full member searches, and filling age-min, age-max and
+max-km fired seven or eight. That search is the heaviest read on the platform,
+and it was measured at **8.3 queries per member** (322 for a 39-member search)
+before the backend fix, so a single number typed into a box was ~650 queries.
+
+Debounced at 300ms, with ONE delay for every filter rather than a special case
+for the text ones: a toggle answering 300ms later is imperceptible, and two
+code paths into one search is how the two come to disagree about what was
+asked.
+
+**And it rendered `social_connectz.png`** — the identical heart the Social
+ConnectZ tab four rows above it carries — in the tab strip AND in its own
+header. Two tabs wearing one mark, neither saying which was which.
+
+They are different things and the glyph has to say so: Social ConnectZ is the
+ROOM (who is here), VybeZ is LOOKING (regions, genders, both zodiacs, sober,
+substances, five range gates and distance). So `vybez` is a lens with a heart
+inside it, cyan-to-pink against Social ConnectZ's pink-to-cyan — a pair that
+belongs together and can never be confused. At tab-strip size the
+circle-and-handle silhouette is unmistakable against a plain heart, which is
+the only test a 24px icon has to pass. Verified in a browser at 150px and
+32px, not reasoned about.
+
+Glyph in `tools/make-neon-icons.mjs` like every other one — **edit it there,
+never the generated SVG.**
+
+## LogicZ told members four live features did not exist
+
+The modal renders `built: false` as a gold **"not built yet"**. So a stale
+flag does not merely fail to advertise something — it actively tells people
+not to go looking for a feature that is right there. That is the
+five-trial-coaches failure with a label on it.
+
+Four were wrong: **VybeZ** (listed as "VibeZ", and a mounted tab with its own
+route), **PersonalitieZ** (live in ProfileZ, with its own `/test` route), and
+**Freestyle** and **Battle Cypher** (the server accepts all three battle
+kinds, BattleZ offers them in a picker, and both have drawn icons).
+
+**`tab` had been in the payload since `_app` was written and this screen never
+read it.** So the modal listed apps and gave a member nowhere to go — the
+cross-pollination rule broken on the one screen whose entire job is telling
+somebody what this app has. A built row with a tab is a button now. An unbuilt
+one never gets a link, because a door to a tab that cannot do the thing is
+worse than no door.
+
 ## VybeZ gives the member search its first caller, and PersonalitieZ is one filter
 
 `GET /api/economy/members/` — regions, genders, both zodiacs, sober,
