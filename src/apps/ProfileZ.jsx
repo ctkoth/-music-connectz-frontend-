@@ -488,6 +488,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // buttons read. Never a build-time copy — that is how a client id ends up
   // stale in one place and right in another.
   const [scClientId, setScClientId] = useState("");
+  // The audiences a profile field may name, this member's own custom groups
+  // included. Served, never built here.
+  const { audiences } = useTierLadder();
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
@@ -823,7 +826,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         {/* Set per field, because "public" is not one decision. Somebody can
             want their first name found and their birthday not. */}
         <div className="border-t border-white/10 pt-3" data-tour="visibility">
-          <VisibilitieZ visibility={me?.visibility} onChange={setMe} />
+          <VisibilitieZ visibility={me?.visibility} audiences={audiences} onChange={setMe} />
         </div>
 
         {/* Sits with the sign-ins above it: importing a catalogue is the same

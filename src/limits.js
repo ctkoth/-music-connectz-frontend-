@@ -165,6 +165,11 @@ export function useTierLadder() {
     tiers: lim?.tiers || null,   // null until it lands — never a guessed table
     avatarMaxMb: lim?.avatar_max_mb ?? null,
     tier: lim?.tier || "free",
+    // The audiences a profile field may name, INCLUDING this member's own
+    // custom groups. Served rather than built here, so the visibility control
+    // offers real groups and "who can see this" reads from the same place as
+    // "who is in my circle".
+    audiences: lim?.audiences || null,
     ready: !!lim?.tiers,
   };
 }
