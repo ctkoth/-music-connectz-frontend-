@@ -566,7 +566,7 @@ function SoundToggle() {
   );
 }
 
-function CommunityBar({ onOpenMember }) {
+function CommunityBar({ onOpenMember, onOpenMembership }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
@@ -628,7 +628,14 @@ function CommunityBar({ onOpenMember }) {
             💵 ${(stats.my_money / 100).toFixed(2)}
           </button>
         )}
-        <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
+        {/* A fact with nowhere to take it — the cross-pollination rule's own
+            failure case. Every other pill here opens something; this one just
+            named a tier and stopped, on the one platform-wide surface that
+            sells the ladder it's sitting on. */}
+        <button onClick={() => onOpenMembership?.()}
+                className="pill uppercase !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+          {stats.my_tier}
+        </button>
         {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
       </div>
       {stats.online_members?.length > 0 && (
@@ -915,7 +922,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} />
+        <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")} />
         <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>
