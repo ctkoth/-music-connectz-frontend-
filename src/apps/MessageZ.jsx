@@ -9,6 +9,7 @@ import { asList } from "../shape.js";
 import { onHandoff } from "../handoff.js";
 import MentionText from "../MentionParser.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
+import MemberName from "../MemberName.jsx";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -107,7 +108,10 @@ function MsgList({ title, rows, who }) {
         {rows.length === 0 && <p className="p-4 text-sm text-white/45">Nothing yet.</p>}
         {rows.map((m) => (
           <div key={m.id} className="px-4 py-3 text-sm">
-            <p className="text-xs text-white/50">{who === "from" ? `From ${m.from}` : `To ${m.to}`}</p>
+            <p className="flex items-center gap-1 text-xs text-white/50">
+              {who === "from" ? "From" : "To"}
+              <MemberName username={who === "from" ? m.from : m.to} bare />
+            </p>
             <p><MentionText text={m.body} /></p>
           </div>
         ))}

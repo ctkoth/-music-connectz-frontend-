@@ -39,6 +39,7 @@ import { IconImg } from "../App.jsx";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
 import MentionText from "../MentionParser.jsx";
+import MemberName from "../MemberName.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
@@ -785,8 +786,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
                  className="h-10 w-10 rounded-lg object-cover" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold text-white">
-            {post.author}{post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
+          <div className="truncate text-sm font-bold">
+            <MemberName username={post.author} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
@@ -1082,7 +1083,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
             <div>
-              <span className="font-semibold text-mcz-ember">{c.user}</span>{" "}
+              <MemberName username={c.user} bare />{" "}
               <span className="text-white/80">{c.body}</span>
             </div>
             {/* Up and down on a comment. Both pay the voter the SAME +1 ⚡ —
