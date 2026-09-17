@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, TrendingUp } from "lucide-react";
 import { api } from "../api.js";
+import { goToSpot } from "../goto.js";
 
 /**
  * StatsZSummary — quick card showing top instrument score for ProfileZ
@@ -56,7 +57,11 @@ export default function StatsZSummary() {
   };
 
   return (
-    <div className="neon-frame space-y-3 p-4">
+    <button
+      type="button"
+      onClick={() => goToSpot(topInstrument.appKey, `${topInstrument.appKey}-progress`)}
+      className="neon-frame block w-full space-y-3 p-4 text-left transition hover:border-emerald-400/40"
+    >
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <TrendingUp size={13} className="text-emerald-400" /> Your top instrument
       </p>
@@ -67,6 +72,6 @@ export default function StatsZSummary() {
         </div>
         <p className="text-[11px] text-white/40">{topInstrument.count} take{topInstrument.count !== 1 ? "s" : ""}</p>
       </div>
-    </div>
+    </button>
   );
 }

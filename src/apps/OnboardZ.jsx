@@ -311,7 +311,10 @@ export default function OnboardZ() {
                         </button>
                       </div>
                     ) : me?.zodiac ? (
-                      <p className="mt-1 text-[11px] text-mcz-ember">Your ZodiacZ: {me.zodiac}</p>
+                      <button type="button" onClick={() => goToSpot("profilez", "birthday")}
+                              className="mt-1 flex items-center gap-1 text-[11px] text-mcz-ember hover:underline">
+                        Your ZodiacZ: {me.zodiac} — see what it's worth <ArrowRight size={11} />
+                      </button>
                     ) : null}
                   </div>
                 )}

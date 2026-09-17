@@ -1017,6 +1017,16 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               Next drill · {post.score.next_drill}
             </p>
           )}
+          {/* This score lives in that instrument's own progress history too —
+              same rule ProgressPanel's "Recent takes" already follows for a
+              take opened the other direction, applied here for a post opened
+              first. */}
+          <button
+            onClick={() => goToSpot(post.score.app_key || "singz", `${post.score.app_key || "singz"}-progress`)}
+            className="mt-2 text-[11px] font-semibold text-mcz-cyan hover:underline"
+          >
+            Open in {(post.score.app_key || "singz").toUpperCase()} →
+          </button>
         </div>
       )}
 

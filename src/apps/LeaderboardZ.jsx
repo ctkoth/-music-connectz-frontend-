@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Flame, Zap, Trophy, Link as LinkIcon, TrendingUp, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
 import { SPINAZ, ENERGY } from "../resources.js";
+import { goToSpot } from "../goto.js";
 
 /**
  * LeaderboardZ — real competition on real metrics.
@@ -123,10 +124,28 @@ export default function LeaderboardZ({ period = "week" }) {
         )}
       </div>
 
-      {/* Instrument-specific leaderboards shown in SkillZ component */}
-      <p className="text-xs text-white/40 mt-6">
-        💡 Each instrument has its own XP leaderboard — visit SkillZ to see your ranking
-      </p>
+      {/* Instrument-specific leaderboards shown in SkillZ, inside each
+          instrument's own tab — "SkillZ" is never one tab, so the honest
+          fix is a door per instrument rather than a single guessed
+          destination. `InstrumentLeaderboardCard` below could render one of
+          these live, but that's 7 more API calls on a screen that already
+          loads in one — a call this fix doesn't make for you. */}
+      <div className="mt-6 space-y-1.5">
+        <p className="text-xs text-white/40">
+          💡 Each instrument has its own XP leaderboard — see your ranking:
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries({
+            singz: "🎤 SingZ", rapz: "🎙️ RapZ", guitarz: "🎸 GuitarZ",
+            bassz: "🅱️ BassZ", keyz: "⌨️ KeyZ", drumz: "🥁 DrumZ", violinz: "🎻 ViolinZ",
+          }).map(([key, label]) => (
+            <button key={key} onClick={() => goToSpot(key, `${key}-drills`)}
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan">
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
