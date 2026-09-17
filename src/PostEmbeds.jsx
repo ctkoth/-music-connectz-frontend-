@@ -4,6 +4,7 @@ import { api } from "./api.js";
 import { asList } from "./shape.js";
 import TierUpgradePrompt from "./components/TierUpgradePrompt.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
+import { goToTab } from "./goto.js";
 
 // One frame, sized by what the server said it is.
 //
@@ -142,7 +143,7 @@ export default function PostEmbeds({ post, canEdit }) {
                   userTier={user?.tier || "free"}
                   onUpgrade={() => {
                     setShowUpgradePrompt(false);
-                    window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+                    goToTab("membershipz");
                   }}
                 />
               )}

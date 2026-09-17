@@ -3,6 +3,7 @@ import { HardDrive, AlertTriangle } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import TierUpgradePrompt from "./TierUpgradePrompt.jsx";
+import { goToTab } from "../goto.js";
 
 /**
  * Shows storage usage and warns when approaching tier limit.
@@ -99,7 +100,7 @@ export default function StorageWarning() {
           userTier={user?.tier || "free"}
           onUpgrade={() => {
             setShowUpgradePrompt(false);
-            window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "membershipz", target: "" } }));
+            goToTab("membershipz");
           }}
         />
       )}

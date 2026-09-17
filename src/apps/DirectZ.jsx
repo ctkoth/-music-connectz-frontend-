@@ -27,6 +27,7 @@ import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { goToTab } from "../goto.js";
 
 const mmss = (s) =>
   s >= 3600 ? `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`
@@ -262,7 +263,7 @@ export default function DirectZ() {
             userTier={user?.tier || "free"}
             onUpgrade={() => {
               setShowUploadLimitPrompt(false);
-              window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+              goToTab("membershipz");
             }}
           />
         )}

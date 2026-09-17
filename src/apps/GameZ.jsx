@@ -268,7 +268,7 @@ export default function GameZ() {
           userTier={user?.tier || "free"}
           onUpgrade={() => {
             setShowUploadLimitPrompt(false);
-            window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: { tab: "settings", target: "membership" } }));
+            goToTab("membershipz");
           }}
         />
       )}

@@ -1190,7 +1190,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           limit="upload_mb"
           current={0}
           userTier={user?.tier || "free"}
-          onUpgrade={() => goToSpot("settings", "membership")}
+          onUpgrade={() => goToSpot("membershipz")}
         />
       )}
 

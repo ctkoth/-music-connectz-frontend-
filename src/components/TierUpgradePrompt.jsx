@@ -1,11 +1,22 @@
 import { ArrowRight } from "lucide-react";
 import { monthPrice, useTierLadder } from "../limits.js";
+import { goToTab } from "../goto.js";
 
 /**
  * Shows tier benefits when user hits a limit (e.g., char limit, storage).
  * Helps convert Free → Premium by showing the upgrade path, not just the wall.
+ *
+ * `onUpgrade` defaults to opening MembershipZ directly rather than asking
+ * every caller to wire it. Four callers hand-rolled their own
+ * `mcz-goto-tab` dispatch instead — three with `detail` as an object
+ * (`goto.js`'s listener only ever matches a bare string) and one aiming at
+ * `"settings"`, a tab key that has never existed outside the unmounted
+ * `src/mcz2/` reference app — so every "Upgrade" button built on this
+ * component was silently dead. One correct default here is the fix that
+ * can't drift into a fifth broken copy.
  */
-export default function TierUpgradePrompt({ limit, current, userTier = "free", onUpgrade }) {
+export default function TierUpgradePrompt({ limit, current, userTier = "free",
+                                             onUpgrade = () => goToTab("membershipz") }) {
   // The ladder AND the prices come from the server. This file used to carry
   // its own copy of both — three limit tables and "$6/mo" / "$15/mo" typed in
   // — which is the pattern that put "20 free prompts" in nine places. The
