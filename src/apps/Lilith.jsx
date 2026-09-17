@@ -242,7 +242,8 @@ export default function Lilith() {
       {board?.at_task_limit && (
         <p className="text-[12px] text-mcz-ember">
           {limits.active_tasks} open tasks is this tier's ceiling. Finish or delete one,
-          or a tier up raises it.
+          or <button type="button" onClick={() => goToSpot("membershipz")}
+                      className="font-semibold underline">a tier up raises it</button>.
         </p>
       )}
 
@@ -325,7 +326,9 @@ export default function Lilith() {
           </form>
         ) : (
           <p className="text-[12px] text-mcz-ember">
-            {limits.routines} routines is this tier's ceiling. A tier up raises it.
+            {limits.routines} routines is this tier's ceiling.{" "}
+            <button type="button" onClick={() => goToSpot("membershipz")}
+                    className="font-semibold underline">A tier up raises it.</button>
           </p>
         )}
       </section>
@@ -338,8 +341,10 @@ export default function Lilith() {
         {limits.auto_schedule_days} day{limits.auto_schedule_days === 1 ? "" : "s"}{" "}
         ahead, {limits.automation_rules} automation rule
         {limits.automation_rules === 1 ? "" : "s"} and {limits.recurring_quests}{" "}
-        quest chain{limits.recurring_quests === 1 ? "" : "s"} — a tier up raises
-        each. Everything here works at every tier.
+        quest chain{limits.recurring_quests === 1 ? "" : "s"} —{" "}
+        <button type="button" onClick={() => goToSpot("membershipz")} className="underline">
+          a tier up raises each
+        </button>. Everything here works at every tier.
       </p>
     </div>
   );

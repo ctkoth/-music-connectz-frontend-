@@ -145,7 +145,10 @@ function Chips({ value, onChange, placeholder, prefix = "", max, icon: Icon }) {
       </div>
       {max != null && (
         <p className="text-[10px] text-white/30">
-          {list.length}/{max} — your tier's room. More on Premium.
+          {list.length}/{max} — your tier's room.{" "}
+          <button type="button" onClick={() => goToSpot("membershipz", "")} className="underline">
+            More on Premium.
+          </button>
         </p>
       )}
     </div>

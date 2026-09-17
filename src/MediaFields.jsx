@@ -16,6 +16,7 @@ import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } 
 import { playSound } from "./sound.js";
 import { useUploadLimit } from "./limits.js";
 import { mediaError, bestMime, sizeLabel } from "./recorder.js";
+import { goToTab } from "./goto.js";
 
 // One of each — the order they preview in. The tag is how each renders.
 const SLOTS = [["audio", "audio"], ["video", "video"], ["image", "img"]];
@@ -27,6 +28,10 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
   const [msg, setMsg] = useState("");
+  // Set alongside msg only when the check() that produced it was specifically
+  // the tier's size cap — every other message here (no file, empty file, a
+  // recorder error) has no upgrade path to offer.
+  const [tierLimited, setTierLimited] = useState(false);
   // The member's own per-upload cap, from the server. This composer had no
   // size check at all: a 500MB video attached silently, the member waited
   // out the upload, and the server refused it with a 413 at the end.
@@ -74,9 +79,15 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
    *  still choosing one, not after they have watched a progress bar.
    */
   function pickFile(file, slot) {
-    const why = upload.check(file);
-    if (why) { setMsg(why); playSound("error"); return false; }
+    const problem = upload.check(file);
+    if (problem) {
+      setMsg(problem.msg);
+      setTierLimited(problem.tierLimited);
+      playSound("error");
+      return false;
+    }
     setMsg("");
+    setTierLimited(false);
     // `secs` is only the duration of a browser RECORDING — an attached file's
     // own length isn't measured here. Clear it so a stale count from an
     // earlier take doesn't get printed under a file that has nothing to do
@@ -97,6 +108,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
 
   async function startRec() {
     setMsg("");
+    setTierLimited(false);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       return setMsg("This browser can't record. Attach a file instead.");
     }
@@ -226,6 +238,12 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
       {msg && (
         <p className="flex items-start gap-1.5 text-[11px] text-mcz-ember">
           <AlertTriangle size={12} className="mt-0.5 shrink-0" /> {msg}
+          {tierLimited && (
+            <button type="button" onClick={() => goToTab("membershipz")}
+                    className="shrink-0 font-semibold text-mcz-cyan hover:underline">
+              See MembershipZ
+            </button>
+          )}
         </p>
       )}
     </div>

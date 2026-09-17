@@ -789,7 +789,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
           <p className="mt-1 text-[11px] text-white/35">
             {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
-            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> — a tier up gets you there.
+            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> —{" "}
+            <button type="button" onClick={() => goToSpot("membershipz")}
+                    className="text-mcz-cyan hover:underline">
+              a tier up gets you there
+            </button>.
           </p>
         )}
       </div>

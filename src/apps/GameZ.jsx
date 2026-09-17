@@ -97,8 +97,17 @@ export default function GameZ() {
     // Checked here rather than left to the 413. The recovery below (the tier
     // prompt) is good, but it fires AFTER the upload — which on a big asset
     // is a long wait to be told a number we already knew.
-    const why = uploadLimit.check(file);
-    if (why) { playSound("error"); setMsg(why); return; }
+    const problem = uploadLimit.check(file);
+    if (problem) {
+      playSound("error");
+      setMsg(problem.msg);
+      // The fast, pre-flight path used to skip straight past the tier
+      // comparison panel below — it only ever showed up on the SLOW path,
+      // after a wasted upload came back with a 413. A tier-limited file is
+      // exactly the case that panel exists for.
+      if (problem.tierLimited) setShowUploadLimitPrompt(true);
+      return;
+    }
     setBusy(true); setMsg("");
     try {
       const fd = new FormData();

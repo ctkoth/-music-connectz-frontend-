@@ -104,8 +104,10 @@ export function useCharLimit() {
  * video to a post, wait through the upload, and be refused by a 413 at the
  * end. Checking it here costs nothing and turns a wasted wait into a sentence.
  *
- * `check(file)` returns null when the file is fine, or the reason it isn't —
- * so a caller cannot accidentally treat "no cap loaded yet" as "too big".
+ * `check(file)` returns null when the file is fine, or `{ msg, tierLimited }`
+ * when it isn't — `tierLimited` is what lets a caller tell "your tier's cap"
+ * apart from "no file"/"empty file" and show an upgrade path only where one
+ * genuinely exists, rather than parsing the sentence back apart to find out.
  * Until the limits land it refuses NOTHING: guessing low would refuse files
  * the member's tier actually allows, and the server is the real gate either
  * way.
@@ -126,14 +128,19 @@ export function useUploadLimit() {
     tier: lim?.tier || "free",
     ready: !!lim,
     check: (file) => {
-      if (!file) return "No file.";
+      if (!file) return { msg: "No file.", tierLimited: false };
       // An empty file is a round trip that can only fail. It happens for real:
       // a cancelled export, a sync placeholder, a recording that captured
       // nothing.
-      if (!file.size) return "That file is empty — there's nothing in it to upload.";
+      if (!file.size) {
+        return { msg: "That file is empty — there's nothing in it to upload.", tierLimited: false };
+      }
       if (mb && file.size > mb * 1024 * 1024) {
-        return `That's ${(file.size / 1024 / 1024).toFixed(1)}MB — your tier allows `
-             + `${mb}MB per upload. A shorter clip, or a tier up raises it.`;
+        return {
+          msg: `That's ${(file.size / 1024 / 1024).toFixed(1)}MB — your tier allows `
+             + `${mb}MB per upload. A shorter clip, or a tier up raises it.`,
+          tierLimited: true,
+        };
       }
       return null;
     },
