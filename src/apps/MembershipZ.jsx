@@ -96,8 +96,13 @@ export default function MembershipZ() {
 
       {msg && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-white/85">{msg}</p>}
 
-      {/* Founding StatZ offer — the live headline deal. */}
-      <div className="re-card space-y-3 border-mcz-ember/40">
+      {/* Founding StatZ offer — the live headline deal.
+          `data-tour="membershipz-founding"` matches the target name
+          `offerz_engine.py`'s founding-seat offer already sends — that offer
+          has been calling goToSpot("membershipz", "membershipz-founding")
+          since it shipped, and with no anchor here it silently degraded to
+          just opening the bare tab. */}
+      <div className="re-card space-y-3 border-mcz-ember/40" data-tour="membershipz-founding">
         <div className="flex items-center justify-between">
           <span className="re-label flex items-center gap-2"><Crown size={14} className="text-mcz-ember" /> Founding StatZ · 50% off, forever</span>
           {seatsLeft != null && !soldOut && (
@@ -129,8 +134,11 @@ export default function MembershipZ() {
         {mine === "statz" && <p className="text-[11px] text-emerald-300">You're already on StatZ — thank you! 🎉</p>}
       </div>
 
-      {/* Tier comparison */}
-      <div className="re-card overflow-x-auto">
+      {/* Tier comparison. Same story as the founding anchor above:
+          `offerz_engine.py`'s "Compare the tiers" prompt-wall offer has
+          targeted "membershipz-plans" since it shipped, with nothing here
+          to land on. */}
+      <div className="re-card overflow-x-auto" data-tour="membershipz-plans">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
             <tr className="text-left text-white/45">
@@ -219,8 +227,10 @@ export default function MembershipZ() {
         </details>
       </div>
 
-      {/* Premium — mid tier, buyable now. */}
-      <div className="re-card space-y-3">
+      {/* Premium — mid tier, buyable now. Anchor for every screen that's
+          gating a Premium-only feature specifically (not StatZ, not the
+          founding deal) rather than the ladder in general. */}
+      <div className="re-card space-y-3" data-tour="membershipz-premium">
         <span className="re-label flex items-center gap-2"><Zap size={13} className="text-mcz-cyan" /> Premium</span>
         <p className="text-xs text-white/60">Half the platform fee, double energy per top-up, and 5 AI prompts a day.</p>
         <div className="grid gap-2 sm:grid-cols-2">
