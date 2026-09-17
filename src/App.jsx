@@ -6,6 +6,7 @@ import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell } fr
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
+import { goToSpot } from "./goto.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
@@ -566,7 +567,7 @@ function SoundToggle() {
   );
 }
 
-function CommunityBar({ onOpenMember, onOpenMembership }) {
+function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
@@ -636,7 +637,14 @@ function CommunityBar({ onOpenMember, onOpenMembership }) {
                 className="pill uppercase !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
           {stats.my_tier}
         </button>
-        {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
+        {/* Same gap as the tier pill just above: a fact (your sign) with no
+            way to reach the panel that says what it's actually worth. */}
+        {stats.my_zodiac && (
+          <button onClick={() => onOpenBirthday?.()}
+                  className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
+            {stats.my_zodiac}
+          </button>
+        )}
       </div>
       {stats.online_members?.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -922,7 +930,8 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")} />
+        <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")}
+                      onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash */}
         <ErrorBoundary key={tab} label={active?.label}>

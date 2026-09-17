@@ -17,7 +17,8 @@ import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
-import { spotlight } from "../goto.js";
+import { spotlight, goToTab } from "../goto.js";
+import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
 import ConnectionZ from "../ConnectionZ.jsx";
@@ -467,6 +468,7 @@ function VoiceCard() {
 }
 
 export default function ProfileZ({ onViewProfile, onMessage }) {
+  const { openTransactions } = useTransactionModal();
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
@@ -658,21 +660,45 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             <CopyLink username={me.username} />
           </div>
           <p className="flex flex-wrap gap-2 pt-1 text-sm">
-            <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
-            {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}
+            {/* Your own tier, on your own identity page — even more relevant
+                here than the top bar's copy of this same pill, which already
+                opens MembershipZ. */}
+            <button type="button" onClick={() => goToTab("membershipz")}
+                    className="pill uppercase !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+              {me.tier} tier
+            </button>
+            {/* The sign is set right here on this page; what it's WORTH lives
+                in the SignBonus panel further down (spotlight("birthday")
+                already lands there for the "no birthday" case below). */}
+            {me.zodiac && (
+              <button type="button" onClick={() => spotlight("birthday")}
+                      className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
+                {ZODIAC_EMOJI[me.zodiac]} {me.zodiac}
+              </button>
+            )}
             {me.zodiac_cn && (
-              <span className="pill"
-                    title={me.zodiac_cn.approximate
-                      ? "Worked out from your birth year — that year's lunar new year date isn't in our table, so if you were born in January or early February this may be the neighbouring animal."
-                      : `Year of the ${me.zodiac_cn.animal}`}>
+              <button type="button" onClick={() => spotlight("birthday")}
+                      title={me.zodiac_cn.approximate
+                        ? "Worked out from your birth year — that year's lunar new year date isn't in our table, so if you were born in January or early February this may be the neighbouring animal."
+                        : `Year of the ${me.zodiac_cn.animal}`}
+                      className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
                 {CN_ZODIAC_EMOJI[me.zodiac_cn.animal] || me.zodiac_cn.emoji} {me.zodiac_cn.animal}
                 {/* Said, not hidden: a sign somebody is told is theirs,
                     wrongly, is worse than one the app admits it is unsure of. */}
                 {me.zodiac_cn.approximate && <span className="ml-1 text-white/30">?</span>}
-              </span>
+              </button>
             )}
-            <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
-            <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
+            {/* Same figures CommunityBar shows in the top bar, already wired
+                to open their LogZ history there — this header had the
+                identical numbers sitting inert. */}
+            <button type="button" onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                    className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+              <Zap size={11} className="inline" /> {me.energy} Energy
+            </button>
+            <button type="button" onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                    className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+              {SPINAZ} {me.spinaz} SpinaZ
+            </button>
           </p>
           {/* Worn, not filed away. The medals sit on the card the room sees,
               and tapping one drops you at the panel that switches it. */}
@@ -1162,7 +1188,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             </div>
             {!premium && (
               <p className="mt-4 text-[11px] text-white/45">
-                The PersonaZ is free for everyone — only the alternate artwork needs Premium. Upgrade in MembershipZ to unlock it.
+                The PersonaZ is free for everyone — only the alternate artwork needs Premium.{" "}
+                <button type="button" onClick={() => { setPickingIcon(null); goToTab("membershipz"); }}
+                        className="text-mcz-cyan hover:underline">
+                  Upgrade in MembershipZ to unlock it.
+                </button>
               </p>
             )}
           </div>
