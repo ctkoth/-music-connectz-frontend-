@@ -1,0 +1,9 @@
+# Exclude Django/Python backend files from Vercel (frontend-only deployment)
+apps/
+music_connectz/
+manage.py
+requirements.txt
+render.yaml
+build.sh
+start.sh
+config_snippets/
