@@ -149,13 +149,22 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  // Lowercase, like every other path here. It was "/icons/CoachZ.jpg" — the
-  // filename on the machine the art was drawn on, and Windows does not care
-  // about case. Vercel and Cloudflare Pages do, so that path would have 404'd
-  // in production while working locally, and IconImg's fallback would have
-  // hidden it in both places. The file still has to be committed (see
-  // src/icons.test.mjs) — committed lowercase.
-  "coachz.jpg": "/icons/coachz-neon.svg",
+  // Lowercase, like every other path here — the case-sensitivity trap
+  // this comment used to describe ("/icons/CoachZ.jpg" working locally and
+  // 404ing on Vercel/Cloudflare Pages) is moot now that real art is
+  // committed lowercase; see src/icons.test.mjs for the check that would
+  // catch it coming back.
+  //
+  // MEASURED, not guessed: this is the header/dock icon (~24-28px live in
+  // the tab strip), and this art is a detailed neon-sign illustration —
+  // two figures, a brick wall, hand-lettering — that was drawn to be
+  // looked at, not to be a postage stamp. Cropped and zoomed from an
+  // actual rendered run: at real size it reads as an unreadable colored
+  // blob, not "two people singing". Applied anyway per instruction, but
+  // unlike crewz.png (no live tab yet) this ships small and illegible
+  // TODAY, not as a future risk. Worth a simpler glyph — one mic, one
+  // clear symbol — replacing this the same way vybez's did.
+  "coachz.jpg": "/icons/coachz.jpg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
   "collabz.originalz.png": "/icons/collabz.originalz.png",
   "collabz.remixez.png": "/icons/collabz.remixez.png",
