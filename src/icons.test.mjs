@@ -69,9 +69,9 @@ const OWED = {
 // on an SVG; this lists the ones somebody is waiting on art for.
 const PLACEHOLDER = {
   "chordz.jpg": "have: chordz.jpg on Corey's machine — commit it and point the path back",
-  "metz.jpg": "have: toolz.metz.jpg on Corey's machine — commit it as metz.jpg and point the path back",
   "journalz.jpg": "have: journalz.jpg on Corey's machine — commit it and point the path back",
-  "tunerz.jpg": "have: tunerz.jpg on Corey's machine — commit it and point the path back",
+  "metz.jpg": "metz.jpg is committed but measured illegible at 28-36px (busy neon-sign frame + text banner) — a simplified illustration is owed",
+  "tunerz.jpg": "tunerz.jpg is committed but measured illegible at 28-36px (busy neon-sign frame + text banner) — a simplified illustration is owed",
 };
 
 const fileFor = (url) => join(ROOT, "public", url.replace(/^\//, ""));
