@@ -27,8 +27,9 @@ import { asList } from "../shape.js";
 // The art that is actually in the repo. Pointing FriendZ and FanZ at Corey's
 // uncommitted friendz.jpg / fanz.jpg REGRESSED them — both had real art under
 // the groupz_* names and started rendering the MCZ logo instead, silently,
-// which is the soundcloudengagementz.png trap exactly. `partnerz.jpg` stays
-// because PartnerZ has no art at all either way and the OWED list names it.
+// which is the soundcloudengagementz.png trap exactly. `partnerz.jpg` used to
+// have no art at all and sat on a neon placeholder; it has real art now too,
+// committed under the same key so nothing else here had to change.
 const KIND = {
   friends: { label: "FriendZ", icon: "groupz_friendz.png" },
   fans: { label: "FanZ", icon: "groupz_fanz.png" },
