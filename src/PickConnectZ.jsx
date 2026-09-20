@@ -1,11 +1,21 @@
 // PickConnectZ — the quick-nav dock.
 //
-// The tab bar lists every app; this dock is the curated shortcut row. It holds
+// This dock is the only nav in the app — there is no tab bar any more, and
+// the full 45-app list lives behind the search-by-intent drawer (⊞). It holds
 // two kinds of slot: apps the member pinned themselves, and "AI picks", which
 // are simply the apps they open most (tracked locally, never sent anywhere).
 //
 // Pin allowance follows the blueprint: Free pins 2 and lets the picks fill the
 // rest, Premium and StatZ pin as many as they like.
+//
+// "Way less appz, more memberz": a brand-new member with no pins and no usage
+// used to see one line of hint text and an empty bar — technically minimal,
+// but it hands them nothing to press, and the only way forward was the same
+// 45-icon drawer this dock exists to keep people out of on day one.
+// STARTER_APPS is what a day-one loop actually is here — post something, get
+// it coached, hear from someone, be findable — shown as plain suggestions
+// (not pins, so they never eat into the Free tier's 2-pin limit) until the
+// member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
 import { Home, LayoutGrid, Pin, Search, Sparkles, X } from "lucide-react";
 import { IconImg, slugFor } from "./App.jsx";
@@ -16,6 +26,11 @@ const USAGE_KEY = "mcz_app_usage";
 const PINS_KEY = "mcz_pinned_apps";
 const AI_PICK_COUNT = 5;
 const FREE_PIN_LIMIT = 2;
+// The one loop a new member needs before anything else means anything: post
+// something, have it coached, be heard from, be findable. Four apps, not
+// forty-five — everything past this is one search away, never deleted, never
+// hidden past a single tap on ⊞.
+const STARTER_APPS = ["postz", "singz", "messagez", "profilez"];
 
 export const readStore = (k) => {
   try {
@@ -109,6 +124,10 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
     .slice(0, AI_PICK_COUNT);
   const atLimit = pinnedApps.length >= limit;
   const shown = apps.filter((a) => matchesApp(a, q));
+  // Only relevant on the very first visit — the moment pins or real usage
+  // exist, the dock is telling that member's OWN story instead of a generic
+  // one, and this list gets out of the way for good.
+  const starterApps = STARTER_APPS.map((k) => byKey[k]).filter(Boolean);
 
   // Escape closes it. ITS340's events chapter is blunt about this and so is
   // every keyboard user: an overlay you can only dismiss by finding and
@@ -257,9 +276,15 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
 
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
           {aiPicks.length === 0 && pinnedApps.length === 0 ? (
-            <span className="px-2 text-[11px] text-white/35">
-              Tap ⊞ for every app — your most-used ones land here →
-            </span>
+            <>
+              <span className="shrink-0 px-1 text-[11px] text-white/35">Start here:</span>
+              {starterApps.map((a) => (
+                <DockButton key={a.key} app={a} active={current === a.key} onClick={() => onOpen(a.key)} />
+              ))}
+              <span className="px-2 text-[11px] text-white/35">
+                or tap ⊞ for every app — your most-used ones land here →
+              </span>
+            </>
           ) : (
             <>
               {aiPicks.map((a) => (
