@@ -157,12 +157,24 @@ export const CUSTOM_ICONS = {
   // src/icons.test.mjs) — committed lowercase.
   "coachz.jpg": "/icons/coachz-neon.svg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
-  "collabz.originalz.png": "/icons/collabz.originalz-neon.svg",
-  "collabz.remixez.png": "/icons/collabz.remixez-neon.svg",
+  "collabz.originalz.png": "/icons/collabz.originalz.png",
+  "collabz.remixez.png": "/icons/collabz.remixez.png",
   "collabz.png": "/icons/collabz.png",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
+  // Updated art, deliberately heavier than the rest of this set — five
+  // figures, a camera, a mixer, headphones. Fine at the size this was drawn
+  // to be admired at; CrewZ has no live tab yet (grep confirms — only
+  // src/mcz2/, which is not mounted), so nothing here is rendering it small
+  // today. Before it gets one, size-check it at 24-28px (tab strip) and
+  // 36-44px (dock) the way vybez's glyph was — "recognition rather than
+  // recall" is the whole test a small icon has to pass, and this much
+  // detail is likely to compress into noise at that size where the cleaner
+  // CollabZ/CoverZ/OriginalZ/RemixeZ marks won't. If it doesn't read, this
+  // is still the right art for a banner or the CrewZ screen's own header,
+  // just not for the 32px tile — same call the neon-icon toolchain makes
+  // for every other tab in this file.
   "crewz.png": "/icons/crewz.png",
   "dawz.png": "/icons/dawz.png",
   "dawz_formulawon.png": "/icons/dawz_formulawon.png",
