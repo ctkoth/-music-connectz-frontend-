@@ -297,22 +297,13 @@ export const CUSTOM_ICONS = {
   // mismatches; on the neon glyph until it lands, then only the path moves.
   "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz.png",
-  // .jpg like chordz and tunerz — the art is toolz.metz.jpg, so a .png key
-  // would have meant committing the file fixed nothing. On the neon glyph
-  // until it lands; only this path moves then.
+  // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
+  // illegible at the 28-36px this app actually renders it — a busy neon-sign
+  // frame plus a two-line text banner eats the pixel budget a metronome or
+  // tuner silhouette needs, the exact CoachZ failure mode. The existing
+  // hand-drawn glyphs stay wired until a simplified illustration replaces
+  // them; verified in a live browser, not assumed.
   "metz.jpg": "/icons/metz-neon.svg",
-  // On the neon placeholder until the artwork is committed.
-  //
-  // The KEY names the file that is coming — .jpg, which is what the art
-  // actually is; they were registered .png, so committing the files would
-  // have fixed neither. The VALUE is where the icon lives right now, and a
-  // generated glyph of a tuning fork beats the MCZ logo on the TunerZ tab by
-  // a distance. That split is the point of having a registry at all: when
-  // the jpgs land, one path each changes and nothing else moves.
-  //
-  // These are the only two of the fourteen missing icons with a placeholder
-  // to fall back to — see src/icons.test.mjs, which keeps both the
-  // placeholder and the debt visible.
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
   "drumz.png": "/icons/drumz.png",
