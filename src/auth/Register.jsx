@@ -160,7 +160,7 @@ export default function Register() {
           {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
         </div>
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
-        <Field icon={Phone} type="tel" placeholder="Phone number" value={form.phone} onChange={set("phone")} autoComplete="tel" />
+        <Field icon={Phone} type="tel" placeholder="Phone number (optional)" value={form.phone} onChange={set("phone")} autoComplete="tel" required={false} />
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
@@ -228,11 +228,16 @@ export default function Register() {
   );
 }
 
-function Field({ icon: Icon, ...props }) {
+function Field({ icon: Icon, required = true, ...props }) {
+  // `required` used to be inferred from the placeholder text ("Phone number"
+  // was the one field this compared against), so renaming or rewording any
+  // placeholder silently changed what the form would block on. It's an
+  // explicit prop now — the one field that is optional (phone) says so, and
+  // nothing here can make a field required by accident again.
   return (
     <div className="relative">
       <Icon size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
-      <input className="neon-input pl-10" {...props} required={props.placeholder !== "Phone number"} />
+      <input className="neon-input pl-10" {...props} required={required} />
     </div>
   );
 }
