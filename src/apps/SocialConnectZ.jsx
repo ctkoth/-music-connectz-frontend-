@@ -1,55 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
-import { MapPin, Search, Heart } from "lucide-react";
+// Social ConnectZ — who's actually here, filterable by NationalitieZ heritage.
+//
+// This screen used to render six invented people (NovaBeatz, SopranoSol,
+// KxngDrill, MiaMix, DreVision, SeoulKeys) from a hardcoded SEED array, with
+// only the CURRENT member's own localStorage-cached profile merged in on top
+// — never another real member, because the real member search
+// (`GET /api/economy/members/`) had no caller here at all. VybeZ already
+// wired that same endpoint for its filter-heavy search; Social ConnectZ is
+// the ROOM (who is here) rather than VybeZ's LOOKING (who matches what),
+// but "who is here" was fake for the entire life of this screen — a member
+// searching their own heritage would find five strangers who do not exist
+// and never themselves unless they had already saved a profile.
+//
+// Real members now, real avatars (a member's own uploaded custom icon, via
+// `_avatar_url` server-side — never a generic persona placeholder standing
+// in for a person), and a persona chip is only shown when the member has
+// actually claimed one.
+import { useCallback, useEffect, useState } from "react";
+import { MapPin, Search, UserRound } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
-import { personaName, loadSocial, NATIONALITIES } from "./socialData.js";
+import MemberName from "../MemberName.jsx";
+import { NATIONALITIES } from "./socialData.js";
 
 const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
 
-// Seed directory — each member carries NationalitieZ so heritage filtering is
-// demoable. Real members merge in from the shared store as profiles are saved.
-const SEED = [
-  { user: "NovaBeatz", icon: "personaz_producer.png", persona: "Producer", location: "Atlanta, GA", nationalities: ["African American", "Jamaican"], looking: "collab" },
-  { user: "SopranoSol", icon: "personaz_indieartist.png", persona: "Indie Artist", location: "Los Angeles, CA", nationalities: ["Mexican", "Filipino"], looking: "collab" },
-  { user: "KxngDrill", icon: "personaz_ghostwriter.png", persona: "Ghostwriter", location: "Chicago, IL", nationalities: ["Nigerian"], looking: "romance" },
-  { user: "MiaMix", icon: "personaz_mixengineer.png", persona: "Mix Engineer", location: "London, UK", nationalities: ["British", "Irish"], looking: "collab" },
-  { user: "DreVision", icon: "personaz_videographer.png", persona: "Videographer", location: "Toronto, CA", nationalities: ["Haitian", "Canadian"], looking: "romance" },
-  { user: "SeoulKeys", icon: "personaz_producer.png", persona: "Producer", location: "Seoul, KR", nationalities: ["Korean"], looking: "collab" },
-];
-
 export default function SocialConnectZ() {
-  const [me, setMe] = useState(null);
+  const [rows, setRows] = useState([]);
   const [nat, setNat] = useState("");
   const [q, setQ] = useState("");
-  const [dir, setDir] = useState(SEED);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    api("/api/auth/me/").then(setMe).catch(() => setMe(null));
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
+    return api("/api/economy/members/")
+      .then((d) => setRows(d.members || []))
+      // The real error. A directory that quietly shows nobody on a 500 reads
+      // as "no members" rather than "the request failed" — the exact
+      // distinction the funnel's own `pct: null` rule exists to keep clear.
+      .catch((e) => setError(e.message || "Couldn't load Social ConnectZ."))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const rebuild = () => {
-      const s = loadSocial();
-      const mine = s.profile;
-      if (mine?.user && (mine.nationalities?.length || mine.persona)) {
-        setDir([{ ...mine, self: true }, ...SEED.filter((m) => m.user !== mine.user)]);
-      } else {
-        setDir(SEED);
-      }
-    };
-    rebuild();
-    window.addEventListener("mcz-social", rebuild);
-    return () => window.removeEventListener("mcz-social", rebuild);
-  }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    return dir.filter((m) => {
-      const natMatch = !nat || (m.nationalities || []).includes(nat);
-      const text = `${m.user} ${personaName(m.persona)} ${m.location}`.toLowerCase();
-      const qMatch = !q || text.includes(q.toLowerCase());
-      return natMatch && qMatch;
-    });
-  }, [dir, nat, q]);
+  const filtered = rows.filter((m) => {
+    const natMatch = !nat || (m.nationalities || []).includes(nat);
+    const personaNames = (m.personas || []).map((p) => p.name).join(" ");
+    const text = `${m.username} ${m.display_name || ""} ${personaNames} ${(m.regions || []).join(" ")}`.toLowerCase();
+    const qMatch = !q || text.includes(q.toLowerCase());
+    return natMatch && qMatch;
+  });
 
   return (
     <div className="space-y-5">
@@ -57,7 +59,7 @@ export default function SocialConnectZ() {
         <IconImg icon="social_connectz.png" alt="Social ConnectZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">Social ConnectZ</h2>
-          <p className="text-xs text-white/45">Discover creators — filter by NationalitieZ heritage.</p>
+          <p className="text-xs text-white/45">Who's here — filter by NationalitieZ heritage.</p>
         </div>
       </header>
 
@@ -69,7 +71,7 @@ export default function SocialConnectZ() {
       <div className="re-card space-y-3" data-tour="social-feed">
         <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3">
           <Search size={16} className="text-white/40" />
-          <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, city…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, region…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
@@ -83,28 +85,35 @@ export default function SocialConnectZ() {
             <button className="re-link shrink-0 px-2 text-xs" onClick={() => setNat("")}>Clear</button>
           )}
         </div>
-        <p className="re-label">{filtered.length} creator{filtered.length !== 1 ? "s" : ""} match</p>
+        <p className="re-label">
+          {loading ? "Loading…" : `${filtered.length} creator${filtered.length !== 1 ? "s" : ""} match`}
+        </p>
       </div>
+
+      {error && (
+        <p className="re-card text-sm text-mcz-pink">{error}</p>
+      )}
 
       {/* Results */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div key={m.user} className={`re-card ${m.self ? "!border-mcz-ember/40" : ""}`}>
+          <div key={m.username} className="re-card">
             <div className="mb-2 flex items-center gap-3">
-              <IconImg icon={m.icon || "personaz.png"} alt="" className="h-11 w-11 rounded-full object-cover" />
+              {m.avatar
+                ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
+                : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5">
+                    <UserRound size={18} className="text-white/40" />
+                  </div>}
               <div className="flex-1">
-                <div className="text-sm font-bold text-white">
-                  {m.user}{m.self && <span className="ml-2 text-[10px] text-mcz-ember">you</span>}
-                </div>
-                <div className="text-[11px] text-white/50">{personaName(m.persona)}</div>
+                <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
+                {m.personas?.[0]?.name && (
+                  <div className="text-[11px] text-white/50">{m.personas[0].name}</div>
+                )}
               </div>
-              {m.looking === "romance"
-                ? <span className="pill !border-mcz-pink/40 !text-mcz-pink"><Heart size={10} className="inline" /> Romance</span>
-                : <span className="pill !border-mcz-ember/40 !text-mcz-ember">Collab</span>}
             </div>
-            {m.location && (
+            {(m.regions || []).length > 0 && (
               <div className="mb-2 flex items-center gap-1 text-[11px] text-white/45">
-                <MapPin size={11} /> {m.location}
+                <MapPin size={11} /> {m.regions.join(", ")}
               </div>
             )}
             <div className="flex flex-wrap gap-1">
@@ -119,10 +128,17 @@ export default function SocialConnectZ() {
                 </button>
               ))}
             </div>
+            {/* Nothing is a dead end — the same handoff every other member
+                list on this platform uses, not a second implementation. */}
+            <div className="pt-2">
+              <MemberName username={m.username} />
+            </div>
           </div>
         ))}
-        {filtered.length === 0 && (
-          <p className="text-sm text-white/45">No creators match that heritage yet.</p>
+        {!loading && !error && filtered.length === 0 && (
+          <p className="text-sm text-white/45">
+            {rows.length === 0 ? "No members yet." : "No creators match that heritage yet."}
+          </p>
         )}
       </div>
     </div>
