@@ -149,22 +149,18 @@ export const CUSTOM_ICONS = {
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  // Lowercase, like every other path here — the case-sensitivity trap
-  // this comment used to describe ("/icons/CoachZ.jpg" working locally and
-  // 404ing on Vercel/Cloudflare Pages) is moot now that real art is
-  // committed lowercase; see src/icons.test.mjs for the check that would
-  // catch it coming back.
-  //
-  // MEASURED, not guessed: this is the header/dock icon (~24-28px live in
-  // the tab strip), and this art is a detailed neon-sign illustration —
-  // two figures, a brick wall, hand-lettering — that was drawn to be
-  // looked at, not to be a postage stamp. Cropped and zoomed from an
-  // actual rendered run: at real size it reads as an unreadable colored
-  // blob, not "two people singing". Applied anyway per instruction, but
-  // unlike crewz.png (no live tab yet) this ships small and illegible
-  // TODAY, not as a future risk. Worth a simpler glyph — one mic, one
-  // clear symbol — replacing this the same way vybez's did.
-  "coachz.jpg": "/icons/coachz.jpg",
+  // The detailed illustration Corey sent (two figures, a brick wall,
+  // hand-lettering) measured illegible at this icon's real size — cropped
+  // and zoomed from an actual rendered run, it read as a colored blob at
+  // the ~24-28px the tab strip and dock actually draw it. `public/icons/
+  // coachz.jpg` still holds that art (kept, not deleted — it's real work
+  // and may suit a banner or the CoachZ screen's own header someday), but
+  // the small icon points at the house glyph instead: a whistle with two
+  // call arcs, already hand-drawn in tools/make-neon-icons.mjs (`coachz`)
+  // for exactly this reason — deliberately NOT a person or a speech
+  // bubble, so it can't be mistaken for `personaz_coach` (the human) at
+  // the same size. One clear symbol, the same fix vybez's icon got.
+  "coachz.jpg": "/icons/coachz-neon.svg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
   "collabz.originalz.png": "/icons/collabz.originalz.png",
   "collabz.remixez.png": "/icons/collabz.remixez.png",
