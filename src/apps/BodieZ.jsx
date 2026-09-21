@@ -1,18 +1,25 @@
-// BodieZ 💪🏽 — strength-training and workout planning.
+// BodieZ 💪🏽 — strength-training and workout planning, Jefit for the routine
+// library, Lilith's own scheduler for organizing it.
 //
-// v1 of the blueprint's BodieZ tab: a movement library, saved routines, and a
-// live/finished session log with sets and weight, plus a Progress read built
-// from logged sets rather than a formula — the substance rule applied to a
-// gym app: "could a member get a good number without doing the work?" No —
-// every number here is a count or a sum of what was actually logged.
+// v1 shipped a movement library, saved routines, and a live/finished session
+// log with sets and weight, plus a Progress read built from logged sets
+// rather than a formula — the substance rule applied to a gym app: "could a
+// member get a good number without doing the work?" No — every number here
+// is a count or a sum of what was actually logged.
+//
+// This adds the piece the blueprint names outright: Inbox/Today/Upcoming/
+// Anytime/Someday/Trash for routines, the same bucket shape Lilith already
+// gives a task. The Scheduler tab renders it, and never retypes a bucket
+// label or emoji the server didn't send — a client that split them itself
+// would be the second place they live, and the two would drift.
 //
 // Deliberately not built yet: BodyMap, Nutrition, Community, an AI Coach, and
 // any XP/streak reward. The backend module explains why XP is left out rather
 // than guessed at — this screen follows that and shows plain counts instead.
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Play, Square, Trash2 } from "lucide-react";
+import { CalendarDays, Loader2, Plus, Play, Square, Trash2 } from "lucide-react";
 import { api } from "../api.js";
-import { asList } from "../shape.js";
+import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 
 const MUSCLE_LABEL = {
@@ -22,14 +29,14 @@ const MUSCLE_LABEL = {
 
 const TABS = [
   { key: "today", label: "Today" },
-  { key: "routines", label: "Routines" },
+  { key: "scheduler", label: "Scheduler" },
   { key: "progress", label: "Progress" },
 ];
 
 export default function BodieZ() {
   const [tab, setTab] = useState("today");
   const [exercises, setExercises] = useState([]);
-  const [routines, setRoutines] = useState([]);
+  const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   const [progress, setProgress] = useState(null);
   const [err, setErr] = useState("");
@@ -39,12 +46,12 @@ export default function BodieZ() {
     setBusy(true);
     Promise.all([
       api("/api/economy/bodiez/exercises/"),
-      api("/api/economy/bodiez/routines/"),
+      api("/api/economy/bodiez/board/"),
       api("/api/economy/bodiez/sessions/"),
       api("/api/economy/bodiez/progress/"),
-    ]).then(([ex, rt, sess, prog]) => {
+    ]).then(([ex, b, sess, prog]) => {
       setExercises(asList(ex.exercises));
-      setRoutines(asList(rt.routines));
+      setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
       setSession(open || null);
       setProgress(prog);
@@ -53,6 +60,12 @@ export default function BodieZ() {
       .finally(() => setBusy(false));
   };
   useEffect(load, []);
+
+  const buckets = asDict(board?.buckets);
+  const bucketLabels = asList(board?.bucket_labels);
+  // Every routine, flattened across every bucket — TodayView's "start from a
+  // routine" picker doesn't care which bucket a routine is sitting in.
+  const routines = bucketLabels.flatMap((b) => asList(buckets[b.key]));
 
   async function startSession(routineId) {
     setErr("");
@@ -87,20 +100,36 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
-  async function createRoutine(title) {
+  async function createRoutine(title, bucket) {
     try {
-      const r = await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: [] },
+      await api("/api/economy/bodiez/routines/", {
+        method: "POST", body: { title, exercises: [], bucket },
       });
-      setRoutines([r, ...routines]);
+      load();
     } catch (e) { setErr(e.message); }
   }
 
   async function deleteRoutine(id) {
-    if (!window.confirm("Delete this routine?")) return;
+    if (!window.confirm("Delete this routine? (Trash is undo-able — this isn't.)")) return;
     try {
       await api(`/api/economy/bodiez/routines/${id}/`, { method: "DELETE" });
-      setRoutines(routines.filter((r) => r.id !== id));
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  async function moveRoutine(id, bucket) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/`, { method: "PATCH", body: { bucket } });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  async function scheduleRoutine(id, dateStr) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/`, {
+        method: "PATCH", body: { scheduled_for: dateStr, bucket: dateStr ? "upcoming" : undefined },
+      });
+      load();
     } catch (e) { setErr(e.message); }
   }
 
@@ -137,9 +166,10 @@ export default function BodieZ() {
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
             />
           )}
-          {tab === "routines" && (
-            <RoutinesView routines={routines} onCreate={createRoutine} onDelete={deleteRoutine}
-                          onStart={startSession} sessionOpen={!!session} />
+          {tab === "scheduler" && (
+            <SchedulerView buckets={buckets} bucketLabels={bucketLabels}
+                          onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
+                          onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session} />
           )}
           {tab === "progress" && <ProgressView progress={progress} />}
         </>
@@ -232,36 +262,93 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
   );
 }
 
-function RoutinesView({ routines, onCreate, onDelete, onStart, sessionOpen }) {
+// Same scheduler shape Lilith gives a task, applied to a routine instead:
+// Inbox for an idea, Today for what you're doing now, Upcoming for a dated
+// training day, Anytime for a backup you can reach for whenever, Someday for
+// a program you're not starting yet, Trash for "gone, but not yet forever".
+function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSchedule, onStart, sessionOpen }) {
   const [title, setTitle] = useState("");
+  const [bucket, setBucket] = useState("inbox");
+  const rows = asList(buckets[bucket]);
+  const otherBuckets = bucketLabels.filter((b) => b.key !== bucket);
+
   return (
     <div className="space-y-3">
       <div className="re-card flex flex-wrap gap-2">
         <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New routine name"
                value={title} onChange={(e) => setTitle(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-4 py-2 text-xs"
-                onClick={() => { if (title.trim()) { onCreate(title.trim()); setTitle(""); } }}>
+                onClick={() => { if (title.trim()) { onCreate(title.trim(), bucket); setTitle(""); } }}>
           Create
         </button>
       </div>
-      {routines.length === 0 && <p className="text-xs text-white/40">No routines yet.</p>}
-      {routines.map((r) => (
-        <div key={r.id} className="re-card flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-white">{r.title}</p>
-            <p className="text-xs text-white/45">{asList(r.exercises).length} exercise{asList(r.exercises).length === 1 ? "" : "s"}</p>
+
+      <div className="flex flex-wrap gap-1.5">
+        {bucketLabels.map((b) => (
+          <button key={b.key} onClick={() => setBucket(b.key)}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all ${
+              bucket === b.key ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/40"
+                               : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
+            {b.label}
+            <span className="text-white/35">{asList(buckets[b.key]).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {rows.length === 0 && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          Nothing in here.
+        </p>
+      )}
+      {rows.map((r) => (
+        <div key={r.id} className="re-card space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white">{r.title}</p>
+              <p className="text-xs text-white/45">
+                {asList(r.exercises).length} exercise{asList(r.exercises).length === 1 ? "" : "s"}
+                {r.scheduled_for && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-mcz-cyan">
+                    <CalendarDays size={11} /> {r.scheduled_for}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {bucket !== "trash" && (
+                <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                        disabled={sessionOpen}
+                        title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
+                        onClick={() => onStart(r.id)}>
+                  <Play size={13} /> Start
+                </button>
+              )}
+              <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                      onClick={() => onDelete(r.id)} title="Delete permanently">
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
-                    disabled={sessionOpen}
-                    title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
-                    onClick={() => onStart(r.id)}>
-              <Play size={13} /> Start
-            </button>
-            <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
-                    onClick={() => onDelete(r.id)}>
-              <Trash2 size={14} />
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {bucket === "upcoming" ? (
+              <input type="date" defaultValue={r.scheduled_for || ""}
+                     className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
+                     onChange={(e) => onSchedule(r.id, e.target.value)} />
+            ) : (
+              <button onClick={() => {
+                        const d = window.prompt("Schedule for (YYYY-MM-DD):", "");
+                        if (d) onSchedule(r.id, d);
+                      }}
+                      className="text-[11px] text-white/40 hover:text-white/70 inline-flex items-center gap-1">
+                <CalendarDays size={12} /> Schedule
+              </button>
+            )}
+            {otherBuckets.map((b) => (
+              <button key={b.key} onClick={() => onMove(r.id, b.key)}
+                      className="text-[11px] text-white/40 hover:text-white/70">
+                Move to {b.label}
+              </button>
+            ))}
           </div>
         </div>
       ))}
