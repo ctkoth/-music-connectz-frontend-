@@ -57,6 +57,7 @@ const VenueZ = lazy(lazyRoute(() => import("./apps/VenueZ.jsx")));
 const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
 const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
 const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
+const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
@@ -473,6 +474,7 @@ const TABS = [
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+  { key: "dawz", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
   // below. The route and TABS entry still exist for anyone who is the
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
@@ -735,6 +737,7 @@ const TAB_ABOUT = {
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
+  dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
