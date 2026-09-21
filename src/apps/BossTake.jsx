@@ -1281,6 +1281,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
 
+          {/* The SONG, kept out of the performance number entirely — its own
+              card, its own label, its own score, right beside the one it is
+              easiest to confuse with. A take can connect with real listeners
+              while the performance underneath still has real work to do;
+              rendering these as one grid or one number is exactly the
+              confusion this card exists to end. Absent (not 0) when the take
+              was a warm-up or exercise with no actual song to react to. */}
+          {result.song_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.song_score)}`}>
+                🎶 {result.song_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-amber-300/80">
+                  Song — separate from the performance score above
+                </p>
+                {result.song_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.song_why}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Where you are, and where you're going. A score with no
               destination is a number, not coaching — so the two sit together,
               current read first. Each row hides itself when the coach had
