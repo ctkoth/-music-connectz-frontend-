@@ -38,7 +38,7 @@
 // guessed at — this screen follows that and shows plain counts instead.
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, Plus, Play,
+  Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, PlayCircle, Plus, Play,
   Sparkles, Square, Target, Trash2, Wand2, X,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -54,7 +54,8 @@ const MUSCLE_LABEL = {
 // retyped as a value the server wouldn't recognize.
 const EQUIPMENT_LABEL = {
   bodyweight: "Bodyweight", dumbbell: "Dumbbell", barbell: "Barbell",
-  machine: "Machine", band: "Band",
+  ez_bar: "EZ Bar", kettlebell: "Kettlebell", machine: "Machine",
+  cable: "Cable / Pulley", band: "Band",
 };
 
 // Every BodyMap status the server can send, and how it reads — a color and a
@@ -584,6 +585,7 @@ function RoutineDesigner({ routine, exercises, onSave, onClose }) {
               <p className="text-[11px] text-white/40">
                 {MUSCLE_LABEL[ex?.muscle_group] || ex?.muscle_group}
                 {ex?.equipment && ` · ${EQUIPMENT_LABEL[ex.equipment] || ex.equipment}`}
+                {ex?.demo_url && <> · <DemoLink url={ex.demo_url} /></>}
               </p>
             </div>
             <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="sets"
@@ -810,11 +812,31 @@ function buildBalancedRoutine(bodymap, exercises, equipment) {
   return picked;
 }
 
-function BuildRoutine({ bodymap, exercises, onBuildRoutine }) {
+// A demo link when the server has a real one — never a placeholder, never
+// fabricated. See BodieZExercise.demo_url's own docstring: nothing here has
+// been through the malware scan WidgetZ requires before a link is framed, so
+// this always opens outside, the same way an unscanned member link does.
+function DemoLink({ url }) {
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer"
+       className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-mcz-cyan hover:underline">
+      <PlayCircle size={12} /> Demo
+    </a>
+  );
+}
+
+// Goal picker: which REAL, cited rep/set/rest scheme Build a Routine writes
+// onto every pick. `goals` comes from the server (BodieZCoachView) — never
+// retyped here, or this becomes the second place "8-12 reps for hypertrophy"
+// lives, and the two drift the way a tier number always does.
+function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
   const [equipment, setEquipment] = useState("");
+  const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
   const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment),
     [bodymap, exercises, equipment]);
+  const goal = goalKey ? goals?.[goalKey] : null;
 
   return (
     <div className="re-card space-y-2">
@@ -830,27 +852,51 @@ function BuildRoutine({ bodymap, exercises, onBuildRoutine }) {
             Picks one exercise per muscle group, starting with whatever BodyMap
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                  value={equipment} onChange={(e) => setEquipment(e.target.value)}>
-            <option value="">Any equipment</option>
-            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+          <div className="flex flex-wrap gap-2">
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+              <option value="">Any equipment</option>
+              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            {goals && (
+              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                      value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+                <option value="">General (3 sets x 10)</option>
+                {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
+              </select>
+            )}
+          </div>
+          {goal && (
+            <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
+              <p className="font-semibold text-fuchsia-200">
+                {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest
+              </p>
+              <p className="mt-0.5">{goal.why}</p>
+              <p className="mt-1 text-white/35">{goal.citation}</p>
+            </div>
+          )}
           {picks.length === 0 ? (
             <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
           ) : (
             <div className="space-y-1">
               {picks.map((ex) => (
-                <p key={ex.id} className="text-xs text-white/60">
-                  {MUSCLE_LABEL[ex.muscle_group]} — {ex.name}
-                </p>
+                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
+                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
+                  <DemoLink url={ex.demo_url} />
+                </div>
               ))}
             </div>
           )}
           <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
                   disabled={picks.length === 0}
                   onClick={() => onBuildRoutine(
-                    `Coach routine — ${new Date().toLocaleDateString()}`,
-                    picks.map((ex, i) => ({ exercise_id: ex.id, order: i, sets: 3, reps: 10, weight_kg: null }))
+                    `Coach routine — ${goal ? goal.label : "General"} — ${new Date().toLocaleDateString()}`,
+                    picks.map((ex, i) => ({
+                      exercise_id: ex.id, order: i,
+                      sets: goal ? goal.sets : 3,
+                      reps: goal ? goal.reps_low : 10,
+                      weight_kg: null,
+                    }))
                   )}>
             <Plus size={13} /> Save to Scheduler
           </button>
@@ -877,7 +923,7 @@ function CoachView({ coach, bodymap, exercises, onBuildRoutine }) {
       </p>
 
       {bodymap && exercises?.length > 0 && (
-        <BuildRoutine bodymap={bodymap} exercises={exercises} onBuildRoutine={onBuildRoutine} />
+        <BuildRoutine bodymap={bodymap} exercises={exercises} goals={coach.goals} onBuildRoutine={onBuildRoutine} />
       )}
 
       {rows.length === 0 && (
