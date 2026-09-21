@@ -13,11 +13,19 @@
 // label or emoji the server didn't send — a client that split them itself
 // would be the second place they live, and the two would drift.
 //
-// Deliberately not built yet: BodyMap, Nutrition, Community, an AI Coach, and
-// any XP/streak reward. The backend module explains why XP is left out rather
+// BodyMap and Coach are both arithmetic over logged sets, never a model —
+// the backend module explains why ("a recommendation engine that can't show
+// its work is directz_ai_rating with a friendlier name"), and this screen
+// follows that by rendering the server's own `why` on every Coach row rather
+// than inventing a friendlier sentence for it.
+//
+// Deliberately not built yet: Nutrition, Community, Goals, Recovery, and any
+// XP/streak reward. The backend module explains why XP is left out rather
 // than guessed at — this screen follows that and shows plain counts instead.
 import { useEffect, useState } from "react";
-import { CalendarDays, Loader2, Plus, Play, Square, Trash2 } from "lucide-react";
+import {
+  Activity, CalendarDays, Loader2, Plus, Play, Sparkles, Square, Trash2,
+} from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
@@ -27,9 +35,22 @@ const MUSCLE_LABEL = {
   legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
 };
 
+// Every BodyMap status the server can send, and how it reads — a color and a
+// plain sentence, never retyped anywhere numeric (the counts stay the
+// server's).
+const BODYMAP_STATUS = {
+  recent: { color: "text-emerald-300 bg-emerald-500/10 ring-emerald-400/30", said: "Trained recently" },
+  balanced: { color: "text-mcz-cyan bg-mcz-cyan/10 ring-mcz-cyan/30", said: "Balanced" },
+  overworked: { color: "text-mcz-ember bg-mcz-ember/10 ring-mcz-ember/30", said: "Overworked" },
+  undertrained: { color: "text-amber-300 bg-amber-500/10 ring-amber-400/30", said: "Undertrained" },
+  untrained: { color: "text-white/40 bg-white/5 ring-white/10", said: "Never trained" },
+};
+
 const TABS = [
   { key: "today", label: "Today" },
   { key: "scheduler", label: "Scheduler" },
+  { key: "bodymap", label: "BodyMap" },
+  { key: "coach", label: "Coach" },
   { key: "progress", label: "Progress" },
 ];
 
@@ -39,6 +60,8 @@ export default function BodieZ() {
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [bodymap, setBodymap] = useState(null);
+  const [coach, setCoach] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -49,12 +72,16 @@ export default function BodieZ() {
       api("/api/economy/bodiez/board/"),
       api("/api/economy/bodiez/sessions/"),
       api("/api/economy/bodiez/progress/"),
-    ]).then(([ex, b, sess, prog]) => {
+      api("/api/economy/bodiez/bodymap/"),
+      api("/api/economy/bodiez/coach/"),
+    ]).then(([ex, b, sess, prog, bm, co]) => {
       setExercises(asList(ex.exercises));
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
       setSession(open || null);
       setProgress(prog);
+      setBodymap(bm);
+      setCoach(co);
       setErr("");
     }).catch((e) => setErr(e.message || "Couldn't load BodieZ."))
       .finally(() => setBusy(false));
@@ -171,6 +198,8 @@ export default function BodieZ() {
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session} />
           )}
+          {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
+          {tab === "coach" && <CoachView coach={coach} />}
           {tab === "progress" && <ProgressView progress={progress} />}
         </>
       )}
@@ -350,6 +379,76 @@ function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSc
               </button>
             ))}
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Which muscles were trained recently, which are going stale, which are
+// getting hit every session — every status and count is the server's own
+// word, never a fabricated 0-100 "balance score" nobody could check.
+function BodyMapView({ bodymap }) {
+  if (!bodymap) return null;
+  const muscles = asList(bodymap.muscles);
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-white/45">
+        Trailing {bodymap.window_days} days. "Overworked" counts separate training
+        days, not sets — five sets in one session isn't five sessions.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {muscles.map((m) => {
+          const s = BODYMAP_STATUS[m.status] || BODYMAP_STATUS.untrained;
+          return (
+            <div key={m.muscle_group} className="re-card flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">{m.label}</p>
+                <p className="text-xs text-white/45">
+                  {m.last_trained
+                    ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
+                    : "Never trained"}
+                  {m.sets_last_7d > 0 && ` · ${m.sets_last_7d} set${m.sets_last_7d === 1 ? "" : "s"} this week`}
+                </p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${s.color}`}>
+                {s.said}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// One recommendation per exercise, built from comparing the member's own
+// last two logged sessions — arithmetic, not a model, and every row shows
+// the numbers behind it rather than asking to be trusted.
+function CoachView({ coach }) {
+  if (!coach) return null;
+  const exercises = asList(coach.exercises);
+  const labels = asDict(coach.labels);
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-white/45 inline-flex items-center gap-1">
+        <Activity size={12} /> Built from your own logged sets — no AI, no guessing.
+        An exercise untouched {coach.stale_after_days}+ days gets flagged to reintroduce or swap.
+      </p>
+      {exercises.length === 0 && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          Log a couple of sessions and Coach will have something to say.
+        </p>
+      )}
+      {exercises.map((row) => (
+        <div key={row.exercise_id} className="re-card space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-white">{row.exercise_name}</p>
+            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-fuchsia-500/10 px-2.5 py-1 text-[11px] font-semibold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
+              <Sparkles size={11} /> {labels[row.recommendation] || row.recommendation}
+            </span>
+          </div>
+          <p className="text-xs text-white/60">{row.why}</p>
         </div>
       ))}
     </div>
