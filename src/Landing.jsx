@@ -1,9 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Compass, Download, Mic2, Music4, Star, Timer, Users2, Wallet } from "lucide-react";
+import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2, Wallet } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
 import { WINDOWS_EXE } from "./downloadBuilds.js";
+import { MONEY } from "./resources.js";
+
+const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
+
+// Real tier prices, read the same way Register.jsx and the BodieZ trial
+// result screen already do — never typed into this page. The signup screen
+// was the tenth place a tier number lived once; a landing page is the
+// eleventh, and the fix is the same one: fetch it, or render nothing.
+function useTiers() {
+  const [tiers, setTiers] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/tiers/", { auth: false }).then((d) => on && setTiers(d)).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  return tiers;
+}
 
 // The logged-out homepage.
 //
@@ -86,9 +103,13 @@ function TrialDoors({ coaches }) {
         <Card to="/try" Icon={Mic2} ring="hover:border-mcz-pink/50" tint="text-mcz-pink"
               title="Get one take scored"
               blurb={coaches.length > 2
-                ? `A real AI coach marks it out of 10 and tells you what cost you the rest. ${coaches.map((c) => c.label).join(", ")}.`
-                : "A real AI coach marks it out of 10 and tells you what cost you the rest."}
+                ? `A real AI coach marks it out of 10 and tells you what cost you the rest. Record it or upload a clip. ${coaches.map((c) => c.label).join(", ")}.`
+                : "A real AI coach marks it out of 10 and tells you what cost you the rest. Record it or upload a clip."}
               floor="Free · no account · needs a mic, or upload a clip" />
+        <Card to="/try/bodiez" Icon={Dumbbell} ring="hover:border-emerald-400/50" tint="text-emerald-300"
+              title="Log a set — BodieZ"
+              blurb="Pick a real exercise, log a set, get a real estimated 1RM and a preview of what Coach tells members. Sign up and it becomes a real routine — nothing you build here is lost."
+              floor="Free · no account · keeps what you build if you sign up" />
         <Card to="/tool/metz" Icon={Timer} ring="hover:border-mcz-gold/50" tint="text-mcz-gold"
               title="MetZ — metronome"
               blurb="Tempo, time signature, subdivisions. Runs in the browser and never phones home."
@@ -102,8 +123,66 @@ function TrialDoors({ coaches }) {
   );
 }
 
+// StatZ is the focal upgrade — flashing ring, biggest type on the page after
+// the headline — because it's the one that answers the question every trial
+// door above just raised: "does any of this survive?" BodieZ already keeps a
+// picked exercise as a real routine on signup; SingZ/RapZ's claim token
+// already carries a scored take into the account the same way. StatZ is what
+// turns "one free take" into "every take, every routine, forever" — which is
+// the actual gain, stated up front, per the cost/gain rule.
+//
+// Free/Premium sits BELOW it, deliberately smaller and unstyled — plain
+// links, no card, no color. Not because they don't matter (a free account is
+// still the thing that claims a trial), but because a page that flashes two
+// things at once teaches a visitor to ignore the flashing. One focal point.
+function UpgradeCTAs({ tiers }) {
+  if (!tiers) return null;
+  const statz = tiers.tiers?.find((t) => t.key === "statz");
+  if (!statz) return null;
+  const founding = statz.founding;
+
+  return (
+    <div className="mt-8 space-y-3">
+      <Link
+        to="/register?tier=statz"
+        className="group relative block overflow-hidden rounded-2xl border-2 border-mcz-cyan/60 bg-gradient-to-br from-mcz-cyan/15 via-fuchsia-500/10 to-transparent p-5 text-center shadow-neon transition hover:border-mcz-cyan"
+      >
+        {/* The flashing cue — a pulsing ring behind the card, never on the
+            price itself, so the number stays readable while the attention
+            cue moves. */}
+        <span className="pointer-events-none absolute inset-0 animate-pulse rounded-2xl ring-2 ring-mcz-cyan/40" />
+        <span className="relative mb-2 inline-flex items-center gap-1.5 rounded-full bg-mcz-cyan/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-mcz-cyan">
+          <Sparkles size={12} className="animate-pulse" /> StatZ
+        </span>
+        <p className="relative font-display text-lg font-extrabold text-white sm:text-xl">
+          Keep everything you just tried — every routine, every take, permanently
+        </p>
+        <p className="relative mx-auto mt-1.5 max-w-md text-[12px] text-white/60">
+          The exercise you logged in BodieZ becomes a real routine. Every scored take
+          claims into your coach history. StatZ is the tier built for someone who's
+          already building something here.
+        </p>
+        <p className="relative mt-3 text-2xl font-extrabold text-mcz-cyan">
+          {usd(statz.price_cents)} {MONEY}<span className="text-sm text-white/50">/mo</span>
+        </p>
+        {founding && !founding.sold_out && (
+          <p className="relative mt-1 text-xs font-semibold text-mcz-ember">
+            or {usd(founding.lifetime_cents)} {MONEY} lifetime — {founding.remaining} founding seats left
+          </p>
+        )}
+      </Link>
+
+      <p className="text-center text-xs text-white/40">
+        Prefer to start free? <Link to="/register" className="text-white/55 underline hover:text-white">Create a free account</Link>
+        {" "}— <Link to="/register?tier=premium" className="text-white/55 underline hover:text-white">or Premium</Link>, upgrade whenever.
+      </p>
+    </div>
+  );
+}
+
 export default function Landing() {
   const stats = useCommunityStats();
+  const tiers = useTiers();
   // The coaches come from the server, so a new instrument reaches the front
   // door without anybody editing this page — the same list /try renders.
   const [coaches, setCoaches] = useState([]);
@@ -161,6 +240,8 @@ export default function Landing() {
       </div>
 
       <TrialDoors coaches={coaches} />
+
+      <UpgradeCTAs tiers={tiers} />
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {FEATURES.map(({ Icon, title, body }) => (
