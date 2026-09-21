@@ -25,12 +25,20 @@
 // "custom" goal: this screen renders the `kinds` the server sends rather
 // than assuming a fifth exists.
 //
-// Deliberately not built yet: Nutrition, Community, Recovery, and any
-// XP/streak reward. The backend module explains why XP is left out rather
-// than guessed at — this screen follows that and shows plain counts instead.
+// Recovery is a daily self check-in — soreness, sleep quality, fatigue —
+// never inferred from training data, same reason a coach score is never
+// guessed at from a form. `rest_suggested` is a bool with a real, named
+// reason attached (trained often this week, or the member's own reading ran
+// high), never a blended "readiness score" — the backend module explains why
+// at length and cites its reasoning; this screen just renders both reasons
+// separately rather than folding them into one number.
+//
+// Deliberately not built yet: Nutrition, Community, and any XP/streak
+// reward. The backend module explains why XP is left out rather than
+// guessed at — this screen follows that and shows plain counts instead.
 import { useEffect, useState } from "react";
 import {
-  Activity, CalendarDays, Loader2, Plus, Play, Sparkles, Square, Target, Trash2,
+  Activity, CalendarDays, Loader2, Moon, Plus, Play, Sparkles, Square, Target, Trash2,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -58,6 +66,7 @@ const TABS = [
   { key: "bodymap", label: "BodyMap" },
   { key: "coach", label: "Coach" },
   { key: "goals", label: "Goals" },
+  { key: "recovery", label: "Recovery" },
   { key: "progress", label: "Progress" },
 ];
 
@@ -71,6 +80,7 @@ export default function BodieZ() {
   const [coach, setCoach] = useState(null);
   const [goals, setGoals] = useState(null);
   const [weightLogs, setWeightLogs] = useState([]);
+  const [recovery, setRecovery] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -85,7 +95,8 @@ export default function BodieZ() {
       api("/api/economy/bodiez/coach/"),
       api("/api/economy/bodiez/goals/"),
       api("/api/economy/bodiez/weightlog/"),
-    ]).then(([ex, b, sess, prog, bm, co, g, wl]) => {
+      api("/api/economy/bodiez/recovery/"),
+    ]).then(([ex, b, sess, prog, bm, co, g, wl, rec]) => {
       setExercises(asList(ex.exercises));
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
@@ -95,6 +106,7 @@ export default function BodieZ() {
       setCoach(co);
       setGoals(g);
       setWeightLogs(asList(wl.logs));
+      setRecovery(rec);
       setErr("");
     }).catch((e) => setErr(e.message || "Couldn't load BodieZ."))
       .finally(() => setBusy(false));
@@ -195,6 +207,13 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  async function logRecovery(body) {
+    try {
+      await api("/api/economy/bodiez/recovery/", { method: "POST", body });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
@@ -239,6 +258,7 @@ export default function BodieZ() {
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
                       onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} />
           )}
+          {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
         </>
       )}
@@ -635,6 +655,87 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+const REST_REASON_LABEL = {
+  trained_often: "Trained several days this week",
+  self_reported: "Your last check-in ran high",
+};
+
+// A daily check-in, and a rest signal with its real reasons stated
+// separately — never a blended "readiness score", because a number built
+// from self-report AND training load averaged together is a number nobody
+// could check.
+function RecoveryView({ recovery, onLog }) {
+  const [soreness, setSoreness] = useState(3);
+  const [sleepQuality, setSleepQuality] = useState(3);
+  const [fatigue, setFatigue] = useState(3);
+  const [notes, setNotes] = useState("");
+  if (!recovery) return null;
+  const logs = asList(recovery.logs);
+  const reasons = asList(recovery.rest_suggested_because);
+
+  const submit = () => {
+    onLog({ soreness, sleep_quality: sleepQuality, fatigue, notes: notes.trim() });
+    setNotes("");
+  };
+
+  const Scale = ({ label, value, onChange }) => (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-xs text-white/60">{label}</span>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} onClick={() => onChange(n)}
+                  className={`h-7 w-7 rounded-full text-[11px] font-semibold transition ${
+                    value === n ? "bg-mcz-cyan text-black" : "bg-white/10 text-white/50 hover:bg-white/20"
+                  }`}>
+            {n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {recovery.rest_suggested && (
+        <div className="re-card flex items-start gap-2 border-mcz-cyan/40 bg-mcz-cyan/10">
+          <Moon size={16} className="mt-0.5 shrink-0 text-mcz-cyan" />
+          <div>
+            <p className="text-sm font-semibold text-mcz-cyan">A rest day might be worth it.</p>
+            <p className="text-xs text-white/50">
+              {reasons.map((r) => REST_REASON_LABEL[r] || r).join(" — ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="re-card space-y-2">
+        <p className="re-label">Today's check-in</p>
+        <Scale label="Soreness" value={soreness} onChange={setSoreness} />
+        <Scale label="Sleep quality" value={sleepQuality} onChange={setSleepQuality} />
+        <Scale label="Fatigue" value={fatigue} onChange={setFatigue} />
+        <input className="neon-input !py-2 w-full text-sm" placeholder="Notes (optional)"
+               value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={280} />
+        <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={submit}>
+          Log today
+        </button>
+      </div>
+
+      <div className="space-y-1">
+        {logs.length === 0 && <p className="text-xs text-white/40">No check-ins yet.</p>}
+        {logs.map((l) => (
+          <div key={l.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-xs">
+            <span className="text-white/70">{new Date(l.logged_at).toLocaleDateString()}</span>
+            <span className="text-white/50">
+              Soreness {l.soreness} · Sleep {l.sleep_quality} · Fatigue {l.fatigue}
+              {l.notes && ` — ${l.notes}`}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
