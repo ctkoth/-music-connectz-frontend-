@@ -769,7 +769,7 @@ function Home() {
   const logic = infoTab ? logicz[infoTab.key] : null;
   const today = new Date().toLocaleDateString();
   // PickConnectZ dock — pinned apps + the ones this member opens most.
-  const { usage, pins, togglePin } = usePickConnectZ(tab);
+  const { usage, pins, hidden, togglePin, toggleHide } = usePickConnectZ(tab);
   // FunnelZ is owner-only real visitor data — not something to advertise in
   // the drawer for everyone. The route and TABS entry still exist (so the
   // info modal, ⓘ, and a direct link work for the owner); this only trims
@@ -1098,10 +1098,12 @@ function Home() {
           apps={dockApps}
           usage={usage}
           pins={pins}
+          hidden={hidden}
           tier={user?.tier}
           current={tab}
           onOpen={openTab}
           onTogglePin={togglePin}
+          onToggleHide={toggleHide}
         />
       </div>
       </WidgetProvider>

@@ -17,13 +17,14 @@
 // (not pins, so they never eat into the Free tier's 2-pin limit) until the
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
-import { Home, LayoutGrid, Pin, Search, Sparkles, X } from "lucide-react";
+import { Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X } from "lucide-react";
 import { IconImg, slugFor } from "./App.jsx";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 
 const USAGE_KEY = "mcz_app_usage";
 const PINS_KEY = "mcz_pinned_apps";
+const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
 const FREE_PIN_LIMIT = 2;
 // The one loop a new member needs before anything else means anything: post
@@ -67,6 +68,13 @@ export const isPremiumTier = (tier) => tierInfo(tier).limit === Infinity;
 export function usePickConnectZ(currentKey) {
   const [usage, setUsage] = useState(() => readStore(USAGE_KEY) || {});
   const [pins, setPins] = useState(() => readStore(PINS_KEY) || []);
+  // Which apps this member has cleared out of the ⊞ grid. Purely a local
+  // declutter — never sent anywhere, never affects what the account can
+  // reach. Hiding an app never unpins it: a pinned app stays in the dock
+  // even if its tile is cleared from the search grid, because the dock and
+  // the grid answer different questions ("what do I use" vs "what's in the
+  // way while I look for something else").
+  const [hidden, setHidden] = useState(() => readStore(HIDDEN_KEY) || []);
 
   useEffect(() => {
     if (!currentKey) return;
@@ -85,7 +93,15 @@ export function usePickConnectZ(currentKey) {
     });
   }, []);
 
-  return { usage, pins, togglePin };
+  const toggleHide = useCallback((key) => {
+    setHidden((h) => {
+      const next = h.includes(key) ? h.filter((k) => k !== key) : [...h, key];
+      writeStore(HIDDEN_KEY, next);
+      return next;
+    });
+  }, []);
+
+  return { usage, pins, hidden, togglePin, toggleHide };
 }
 
 function DockButton({ app, active, badge, onClick }) {
@@ -105,8 +121,9 @@ function DockButton({ app, active, badge, onClick }) {
   );
 }
 
-export default function Dock({ apps, usage, pins, tier, current, onOpen, onTogglePin }) {
+export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide }) {
   const [drawer, setDrawer] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
   // Thirty apps with invented names, listed as a grid of artwork. Finding one
   // meant remembering it existed and then recognising its picture — recall
   // twice over, which `Interaction Design` (Rogers/Sharp/Preece) names as the
@@ -123,7 +140,13 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
     .sort((a, b) => (usage[b.key] || 0) - (usage[a.key] || 0))
     .slice(0, AI_PICK_COUNT);
   const atLimit = pinnedApps.length >= limit;
-  const shown = apps.filter((a) => matchesApp(a, q));
+  const matched = apps.filter((a) => matchesApp(a, q));
+  // Hidden apps drop out of the grid by default — that is the entire point
+  // of clearing one — but "hidden" must never mean "gone": a member who
+  // cleared the wrong tile flips this switch, sees it dimmed with the rest,
+  // and taps it once to bring it back.
+  const shown = showHidden ? matched : matched.filter((a) => !hidden.includes(a.key));
+  const hiddenCount = hidden.filter((k) => byKey[k]).length;
   // Only relevant on the very first visit — the moment pins or real usage
   // exist, the dock is telling that member's OWN story instead of a generic
   // one, and this list gets out of the way for good.
@@ -163,14 +186,24 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
                 : `${tierLabel} · ${pinnedApps.length}/${limit} pinned`}
               {atLimit && limit !== Infinity && " · upgrade for more"}
             </span>
-            <button
-              onClick={() => setDrawer(false)}
-              className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
-              title="Close"
-              aria-label="Close the app list"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-2">
+              {hiddenCount > 0 && (
+                <button
+                  onClick={() => setShowHidden((s) => !s)}
+                  className="text-[11px] text-white/45 underline hover:text-white/70"
+                >
+                  {showHidden ? "Hide cleared apps" : `${hiddenCount} cleared — show`}
+                </button>
+              )}
+              <button
+                onClick={() => setDrawer(false)}
+                className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                title="Close"
+                aria-label="Close the app list"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
           <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
             <Search size={14} className="shrink-0 text-white/40" />
@@ -211,6 +244,7 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
             {shown.map((a) => {
               const pinned = pins.includes(a.key);
               const pinDisabled = !pinned && atLimit;
+              const isHidden = hidden.includes(a.key);
               return (
                 <div key={a.key} className="relative">
                   <a
@@ -220,6 +254,8 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
                     // mostly read on one.
                     title={`${a.label} — ${purposeOf(a.key) || "open it"}. Ctrl/cmd-click for a new tab.`}
                     className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 transition ${
+                      isHidden ? "opacity-40" : ""
+                    } ${
                       current === a.key
                         ? "border-mcz-ember bg-white/[0.08] shadow-neon"
                         : "border-white/10 hover:bg-white/5"
@@ -254,6 +290,26 @@ export default function Dock({ apps, usage, pins, tier, current, onOpen, onToggl
                     }`}
                   >
                     <Pin size={9} />
+                  </button>
+                  {/* Top-left, mirroring the pin at top-right: this one clears
+                      the tile from the grid entirely rather than adding it
+                      anywhere — a member with 45 apps and four they use gets
+                      to make this screen say so. Pinning and clearing don't
+                      fight each other: a pinned app can still be cleared from
+                      here, because the dock is a different question from
+                      this grid, and clearing never touches a pin. */}
+                  <button
+                    onClick={() => onToggleHide(a.key)}
+                    aria-label={isHidden ? `Restore ${a.label} to the grid` : `Clear ${a.label} from the grid`}
+                    aria-pressed={isHidden}
+                    title={isHidden ? `Restore ${a.label}` : `Not using ${a.label}? Clear it from this grid.`}
+                    className={`absolute -left-1 -top-1 rounded-full p-1 transition ${
+                      isHidden
+                        ? "bg-emerald-500/80 text-black"
+                        : "bg-black/70 text-white/35 hover:text-white/70"
+                    }`}
+                  >
+                    {isHidden ? <Plus size={9} /> : <Minus size={9} />}
                   </button>
                 </div>
               );
