@@ -10,7 +10,7 @@
 // a second visitor.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Dumbbell, Loader2, Sparkles } from "lucide-react";
+import { Dumbbell, Loader2, PlayCircle, Sparkles } from "lucide-react";
 import { api } from "../api.js";
 import { anonId, track } from "../track.js";
 import { asList } from "../shape.js";
@@ -23,11 +23,19 @@ const MUSCLE_LABEL = {
   legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
 };
 
+const EQUIPMENT_LABEL = {
+  bodyweight: "Bodyweight", dumbbell: "Dumbbell", barbell: "Barbell",
+  ez_bar: "EZ Bar", kettlebell: "Kettlebell", machine: "Machine",
+  cable: "Cable / Pulley", band: "Band",
+};
+
 export default function BodieZTrial() {
   const [state, setState] = useState(null);
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [goalKey, setGoalKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [err, setErr] = useState("");
@@ -70,12 +78,22 @@ export default function BodieZTrial() {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
   }
 
+  const goalPreview = goalKey ? state?.goals?.[goalKey] : null;
+
   if (result) {
     return (
       <div className="mx-auto max-w-md space-y-4">
         <div className="re-card space-y-2 text-center">
           <Dumbbell className="mx-auto text-fuchsia-300" size={28} />
-          <p className="text-sm font-semibold text-white">{result.exercise.name}</p>
+          <p className="text-sm font-semibold text-white">
+            {result.exercise.name}
+            {result.exercise.demo_url && (
+              <a href={result.exercise.demo_url} target="_blank" rel="noreferrer"
+                 className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[11px] font-normal text-mcz-cyan hover:underline">
+                <PlayCircle size={12} /> Demo
+              </a>
+            )}
+          </p>
           <p className="text-xs text-white/50">{result.reps} reps{result.weight_kg != null ? ` @ ${result.weight_kg}kg` : ""}</p>
           {result.estimated_1rm_kg != null ? (
             <p className="text-3xl font-extrabold text-mcz-cyan">{result.estimated_1rm_kg}kg</p>
@@ -100,10 +118,23 @@ export default function BodieZTrial() {
           Make an account — this exercise becomes a real routine, kept
         </Link>
 
+        {goalPreview && (
+          <div className="re-card space-y-1">
+            <p className="re-label">{goalPreview.label} scheme, for reference</p>
+            <p className="text-xs font-semibold text-fuchsia-200">
+              {goalPreview.sets} sets x {goalPreview.reps_low}-{goalPreview.reps_high} reps, {goalPreview.rest_seconds}s rest
+            </p>
+            <p className="text-[11px] text-white/50">{goalPreview.why}</p>
+            <p className="text-[11px] text-white/30">{goalPreview.citation}</p>
+          </div>
+        )}
+
         {result.upgrade && (
           <div className="re-card space-y-1 text-center">
             <p className="text-xs text-white/60">
-              Want Coach on every exercise, BodyMap, Goals and Recovery? That's StatZ.
+              Coach can build a whole routine from a goal like this — muscle gain, toning
+              or fat loss, real cited rep schemes, not a guess. That's a member feature. StatZ
+              gets you Coach on every exercise, BodyMap, Goals and Recovery too.
             </p>
             <p className="text-sm font-semibold text-mcz-cyan">
               {usd(result.upgrade.month_cents)} {MONEY}/mo
@@ -136,7 +167,10 @@ export default function BodieZTrial() {
     );
   }
 
-  const exercises = asList(state.exercises);
+  const allExercises = asList(state.exercises);
+  const exercises = equipment ? allExercises.filter((ex) => ex.equipment === equipment) : allExercises;
+  const goals = state.goals || {};
+  const goal = goalKey ? goals[goalKey] : null;
 
   return (
     <div className="mx-auto max-w-md space-y-3">
@@ -147,6 +181,27 @@ export default function BodieZTrial() {
       </div>
       {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
       <div className="re-card space-y-2">
+        <div className="flex gap-2">
+          <select className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
+                  value={equipment} onChange={(e) => { setEquipment(e.target.value); setExerciseId(""); }}>
+            <option value="">Any equipment</option>
+            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          {Object.keys(goals).length > 0 && (
+            <select className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
+                    value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+              <option value="">Any goal</option>
+              {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
+            </select>
+          )}
+        </div>
+        {goal && (
+          <p className="rounded-lg bg-fuchsia-500/5 px-2.5 py-1.5 text-[11px] text-white/55">
+            <span className="font-semibold text-fuchsia-200">
+              {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest
+            </span> — {goal.why}
+          </p>
+        )}
         <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
           <option value="">Exercise…</option>
@@ -155,8 +210,8 @@ export default function BodieZTrial() {
           ))}
         </select>
         <div className="flex gap-2">
-          <input className="neon-input !py-2 flex-1 text-sm" placeholder="reps" type="number" min="1"
-                 value={reps} onChange={(e) => setReps(e.target.value)} />
+          <input className="neon-input !py-2 flex-1 text-sm" placeholder={goal ? `reps (${goal.reps_low}-${goal.reps_high})` : "reps"}
+                 type="number" min="1" value={reps} onChange={(e) => setReps(e.target.value)} />
           <input className="neon-input !py-2 flex-1 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
                  value={weight} onChange={(e) => setWeight(e.target.value)} />
         </div>
