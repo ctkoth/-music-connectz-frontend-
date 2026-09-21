@@ -122,6 +122,97 @@ function AllowanceLadder({ price }) {
   );
 }
 
+/** Coach Corey, read aloud — the house voice free at every tier, Premium can
+ * sample any catalog voice once, StatZ can save a standing choice. Never on
+ * the trial: this is a member's own take, on their own account, and the
+ * StatZ upsell inside the picker has nothing to say to a visitor who has no
+ * tier yet.
+ *
+ * The text read aloud is assembled client-side from the fields already on
+ * screen — nothing new is asked of the server, and it stays under
+ * MAX_SPEAK_CHARS by construction (verdict + now + goal + two fixes is
+ * nowhere near 2000 characters for any take this coach has ever produced).
+ */
+function CoachVoicePlayer({ result }) {
+  const [voices, setVoices] = useState(null);
+  const [chosen, setChosen] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    api("/api/economy/coachvoice/").then(setVoices).catch(() => {});
+  }, []);
+
+  const text = [
+    result.verdict,
+    result.now && `Where you're at: ${result.now}`,
+    result.goal && `What you're aiming at: ${result.goal}`,
+    ...(result.fixes || []).slice(0, 2),
+  ].filter(Boolean).join(" ");
+
+  async function play(voiceId) {
+    setBusy(true); setErr("");
+    try {
+      const d = await api("/api/economy/coachvoice/speak/", {
+        method: "POST", body: voiceId ? { text, voice: voiceId } : { text },
+      });
+      const audio = new Audio(`data:${d.mime};base64,${d.audio_b64}`);
+      audioRef.current = audio;
+      audio.play();
+      setVoices((v) => v && { ...v, speak_used_today: d.speak_used_today, speak_remaining: d.speak_remaining });
+    } catch (e) {
+      setErr(e.message || "Couldn't play that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveDefault() {
+    if (!chosen) return;
+    try {
+      const d = await api("/api/economy/coachvoice/", { method: "PATCH", body: { voice: chosen } });
+      setVoices(d);
+      setChosen("");
+    } catch (e) {
+      setErr(e.message || "Couldn't save that.");
+    }
+  }
+
+  if (!voices || !text) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      <button onClick={() => play(chosen || undefined)} disabled={busy}
+              className="neon-btn-ghost !w-auto inline-flex items-center gap-1 px-3 py-1.5 text-xs">
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+        Hear it — {(voices.voices.find((v) => v.id === (chosen || voices.voice)) || {}).label || "Coach Corey"}
+      </button>
+      {voices.can_sample && (
+        <select className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
+                value={chosen} onChange={(e) => setChosen(e.target.value)}>
+          <option value="">{voices.voices.find((v) => v.id === voices.voice)?.label} (yours)</option>
+          {voices.voices.filter((v) => v.id !== voices.voice).map((v) => (
+            <option key={v.id} value={v.id}>{v.label} — sample</option>
+          ))}
+        </select>
+      )}
+      {!voices.can_sample && (
+        <span className="text-white/35">
+          Premium can sample other voices; StatZ can save one —{" "}
+          <button className="re-link" onClick={() => goToSpot("membershipz")}>upgrade</button>
+        </span>
+      )}
+      {voices.can_choose && chosen && chosen !== voices.voice && (
+        <button className="re-link text-[10px]" onClick={saveDefault}>
+          save as my coach's voice
+        </button>
+      )}
+      {err && <span className="text-mcz-ember">{err}</span>}
+    </div>
+  );
+}
+
 // `trial` swaps the member coach for the no-account door. Same recorder, same
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
@@ -1280,6 +1371,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+
+          {!trial && <CoachVoicePlayer result={result} />}
 
           {/* The SONG, kept out of the performance number entirely — its own
               card, its own label, its own score, right beside the one it is
