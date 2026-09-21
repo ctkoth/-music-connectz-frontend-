@@ -125,7 +125,11 @@ function DockButton({ app, active, badge, onClick }) {
 export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit }) {
   const [drawer, setDrawer] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
-  const canSplit = isStatZTier(tier) && !!onSplit;
+  // SplitZ: StatZ keeps it, Premium samples it (every open carries an
+  // upgrade nudge — App.jsx renders that banner since it owns the pane).
+  // Free doesn't see the button at all, same as WidgetZ's page-framing:
+  // some capabilities are a tier line, not a taste of one.
+  const canSplit = isPremiumTier(tier) && !!onSplit;
   // Thirty apps with invented names, listed as a grid of artwork. Finding one
   // meant remembering it existed and then recognising its picture — recall
   // twice over, which `Interaction Design` (Rogers/Sharp/Preece) names as the
@@ -313,17 +317,17 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                   >
                     {isHidden ? <Plus size={9} /> : <Minus size={9} />}
                   </button>
-                  {/* StatZ only, bottom-right so it never crowds the pin/clear
-                      corners: opens this app in a real side-by-side pane next
-                      to whatever is already open — two mounted React trees,
-                      never an iframe of ourselves. Never for the app already
-                      on screen; splitting a screen with itself is a no-op
-                      dressed as a feature. */}
+                  {/* SplitZ, Premium+ only, bottom-right so it never crowds
+                      the pin/clear corners: opens this app in a real
+                      side-by-side pane next to whatever is already open —
+                      two mounted React trees, never an iframe of ourselves.
+                      Never for the app already on screen; splitting a screen
+                      with itself is a no-op dressed as a feature. */}
                   {canSplit && current !== a.key && (
                     <button
                       onClick={() => { onSplit(a.key); setDrawer(false); }}
-                      aria-label={`Open ${a.label} beside the current app`}
-                      title={`Open ${a.label} beside the current app (StatZ)`}
+                      aria-label={`SplitZ: open ${a.label} beside the current app`}
+                      title={`SplitZ: open ${a.label} beside the current app`}
                       className="absolute -bottom-1 -right-1 rounded-full bg-mcz-cyan/80 p-1 text-black transition hover:bg-mcz-cyan"
                     >
                       <Columns2 size={9} />

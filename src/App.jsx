@@ -12,7 +12,7 @@ import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import AdFrame from "./AdFrame.jsx";
-import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
+import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -760,10 +760,11 @@ function Home() {
   const [notificationsOpen, setNotificationsOpen] = useState(false); // habit reminders panel
   const [soundzOpen, setSoundzOpen] = useState(false); // sound preferences panel
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
-  // StatZ split view — a second app mounted beside the first, real React
-  // trees, never an iframe. Nulls out on every tab change: a split is a
-  // "look at these two together" moment, not a standing layout that should
-  // survive navigating away and quietly still be there ten screens later.
+  // SplitZ — a second app mounted beside the first, real React trees, never
+  // an iframe. StatZ keeps it; Premium samples it with an upgrade nudge on
+  // the pane. Nulls out on every tab change: a split is a "look at these two
+  // together" moment, not a standing layout that should survive navigating
+  // away and quietly still be there ten screens later.
   const [splitKey, setSplitKey] = useState(null);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -960,7 +961,7 @@ function Home() {
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash.
-            StatZ's split pane sits beside it as a genuinely separate mounted
+            SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
             other down with it. */}
         <div className={splitKey ? "grid gap-4 lg:grid-cols-2" : ""}>
@@ -973,14 +974,27 @@ function Home() {
                 <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
                   <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""
                            className="h-4 w-4 rounded object-cover" />
-                  {TABS.find((t) => t.key === splitKey)?.label}
+                  SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
                 </span>
                 <button onClick={() => setSplitKey(null)}
                         className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
-                        aria-label="Close split view">
+                        aria-label="Close SplitZ">
                   <X size={13} />
                 </button>
               </div>
+              {/* Premium is SAMPLING, not keeping — the CTA sits on the pane
+                  every time it opens, cost/gain-style, because a StatZ perk
+                  discovered by using it once and losing it the next session
+                  reads as a bug rather than a reason to upgrade. */}
+              {!isStatZTier(user?.tier) && (
+                <button
+                  onClick={() => { setSplitKey(null); openTab("membershipz"); }}
+                  className="mb-2 flex w-full items-center justify-between rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-left text-[11px] text-mcz-gold hover:bg-mcz-gold/15"
+                >
+                  <span>✨ You're sampling SplitZ — StatZ keeps it permanently.</span>
+                  <span className="shrink-0 font-semibold underline">Upgrade →</span>
+                </button>
+              )}
               <ErrorBoundary key={splitKey} label={TABS.find((t) => t.key === splitKey)?.label}>
                 <Suspense fallback={<RouteFallback />}>{appEl(splitKey)}</Suspense>
               </ErrorBoundary>
