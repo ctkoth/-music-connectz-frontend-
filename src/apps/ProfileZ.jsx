@@ -284,6 +284,70 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
   );
 }
 
+// Bio, interests and pet peeves — for ONE persona, not the account-level bio
+// above. A "Session bassist, night owl" GhostWriter and a "Loud, opinionated"
+// Manager are different roles a member plays, and one shared bio line would
+// flatten them into a single voice. Declared, never scored — the same reason
+// PersonalitieZ is a declaration and not a quiz result.
+function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
+  const [bio, setBio] = useState(persona.bio || "");
+  const [interests, setInterests] = useState((persona.interests || []).join(", "));
+  const [petPeeves, setPetPeeves] = useState((persona.pet_peeves || []).join(", "));
+
+  function save() {
+    onChange({
+      bio: bio.trim(),
+      interests: interests.split(",").map((s) => s.trim()).filter(Boolean),
+      pet_peeves: petPeeves.split(",").map((s) => s.trim()).filter(Boolean),
+    });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+         onClick={onClose}>
+      <div className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold">{personaLabel} — bio &amp; interests</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="mb-4 text-[11px] text-white/45">
+          What you say about THIS role — separate from your account bio above.
+          Nothing here is scored or inferred; it's what you type.
+        </p>
+
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">Bio</span>
+          <textarea className="neon-input min-h-[80px] w-full text-sm" maxLength={500}
+                    value={bio} onChange={(e) => setBio(e.target.value)}
+                    placeholder="A couple sentences about this role." />
+        </label>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+            Interests <span className="normal-case text-white/30">(comma-separated)</span>
+          </span>
+          <input className="neon-input w-full text-sm" value={interests}
+                 onChange={(e) => setInterests(e.target.value)}
+                 placeholder="vinyl, analog synths, late-night sessions" />
+        </label>
+        <label className="mb-4 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+            Pet peeves <span className="normal-case text-white/30">(comma-separated)</span>
+          </span>
+          <input className="neon-input w-full text-sm" value={petPeeves}
+                 onChange={(e) => setPetPeeves(e.target.value)}
+                 placeholder="late gear, off-tempo clicks" />
+        </label>
+
+        <button className="re-btn !w-auto px-5" onClick={save}>Save</button>
+      </div>
+    </div>
+  );
+}
+
 // Profile picture — view what you have, pick a new one, preview it, save.
 // The picture lives on the economy profile (/api/economy/profile/), not on
 // /api/auth/me/, so this reads its own copy rather than threading it through.
@@ -504,6 +568,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const { audiences } = useTierLadder();
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
+  const [pickingFlavor, setPickingFlavor] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
   const [bio, setBio] = useState("");
   // What you wear: the badges you show and the title you picked out of them.
@@ -559,7 +624,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       // Server may hold the old string form or the dict form — normalize once.
       setSel((d.personas || []).map((x) =>
         typeof x === "string" ? { key: x, name: x, skills: [] }
-                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [] }));
+                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
+                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
@@ -600,6 +666,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const skillsOf = (key) => (sel.find((x) => x.key === key)?.skills) || [];
   function setSkills(key, skills) {
     setSel((cur) => cur.map((x) => (x.key === key ? { ...x, skills } : x)));
+  }
+  const personaOf = (key) => sel.find((x) => x.key === key) || {};
+  function setFlavor(key, flavor) {
+    setSel((cur) => cur.map((x) => (x.key === key ? { ...x, ...flavor } : x)));
   }
 
   function toggleNat(name) {
@@ -912,6 +982,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                     + Skills
                   </button>
                 )}
+                {hasPersona(key) && (
+                  <button onClick={() => setPickingFlavor(key)}
+                    className="mt-1 w-full rounded-lg border border-mcz-gold/30 py-1 text-[10px] font-semibold text-mcz-gold hover:bg-mcz-gold/10">
+                    + Bio &amp; interests
+                  </button>
+                )}
                 {hasVariants && (
                   <button
                     onClick={() => setPickingIcon(key)}
@@ -1139,6 +1215,16 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           skills={skillsOf(pickingSkills)}
           onChange={(sk) => setSkills(pickingSkills, sk)}
           onClose={() => setPickingSkills(null)}
+        />
+      )}
+
+      {pickingFlavor && (
+        <FlavorModal
+          personaKey={pickingFlavor}
+          personaLabel={(PERSONAS.find(([k]) => k === pickingFlavor) || [])[1] || pickingFlavor}
+          persona={personaOf(pickingFlavor)}
+          onChange={(flavor) => setFlavor(pickingFlavor, flavor)}
+          onClose={() => setPickingFlavor(null)}
         />
       )}
 
