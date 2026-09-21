@@ -36,9 +36,10 @@
 // Deliberately not built yet: Nutrition, Community, and any XP/streak
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, CalendarDays, Loader2, Moon, Plus, Play, Sparkles, Square, Target, Trash2,
+  Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, Plus, Play,
+  Sparkles, Square, Target, Trash2, Wand2, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -47,6 +48,13 @@ import { IconImg } from "../App.jsx";
 const MUSCLE_LABEL = {
   chest: "Chest", back: "Back", shoulders: "Shoulders", arms: "Arms",
   legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
+};
+
+// Same shape the server's EQUIPMENT_CHOICES declare — read to filter by, never
+// retyped as a value the server wouldn't recognize.
+const EQUIPMENT_LABEL = {
+  bodyweight: "Bodyweight", dumbbell: "Dumbbell", barbell: "Barbell",
+  machine: "Machine", band: "Band",
 };
 
 // Every BodyMap status the server can send, and how it reads — a color and a
@@ -161,6 +169,34 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // Jefit-style routine building: each entry is
+  // { exercise_id, order, sets, reps, weight_kg }. The server's write path
+  // for routines/<id>/ already accepts any shape here (confirmed —
+  // BodieZRoutineDetailView.patch stores `exercises` as-is beyond checking
+  // each exercise_id exists), so this needed no backend change.
+  async function saveRoutineExercises(id, exerciseList) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/`, {
+        method: "PATCH", body: { exercises: exerciseList },
+      });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  // Coach's "Build a routine" — a routine assembled from BodyMap's own real
+  // status (undertrained/untrained muscles first), never a model's guess.
+  // It lands in the Scheduler's Inbox exactly like a hand-built routine, so
+  // it goes through the same designer to be tweaked or started.
+  async function createRoutineFromExercises(title, exerciseList) {
+    try {
+      await api("/api/economy/bodiez/routines/", {
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox" },
+      });
+      setTab("scheduler");
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   async function deleteRoutine(id) {
     if (!window.confirm("Delete this routine? (Trash is undo-able — this isn't.)")) return;
     try {
@@ -248,12 +284,16 @@ export default function BodieZ() {
             />
           )}
           {tab === "scheduler" && (
-            <SchedulerView buckets={buckets} bucketLabels={bucketLabels}
+            <SchedulerView buckets={buckets} bucketLabels={bucketLabels} exercises={exercises}
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
-                          onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session} />
+                          onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
+                          onSaveExercises={saveRoutineExercises} />
           )}
           {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
-          {tab === "coach" && <CoachView coach={coach} />}
+          {tab === "coach" && (
+            <CoachView coach={coach} bodymap={bodymap} exercises={exercises}
+                      onBuildRoutine={createRoutineFromExercises} />
+          )}
           {tab === "goals" && (
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
                       onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} />
@@ -261,6 +301,95 @@ export default function BodieZ() {
           {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
         </>
+      )}
+    </div>
+  );
+}
+
+// Fetched once per exercise per session (never re-fetched for the same
+// exercise) — "last time" is a real logged row, from `/exercises/<id>/history/`,
+// never a suggested target. Cached in state so switching between exercises in
+// the same session doesn't re-request numbers that can't have changed mid-set.
+function useHistory(exerciseId) {
+  const [history, setHistory] = useState(undefined); // undefined = loading, null = no history
+  useEffect(() => {
+    if (!exerciseId) { setHistory(undefined); return; }
+    setHistory(undefined);
+    let alive = true;
+    api(`/api/economy/bodiez/exercises/${exerciseId}/history/`)
+      .then((h) => { if (alive) setHistory(h.last_session || null); })
+      .catch(() => { if (alive) setHistory(null); });
+    return () => { alive = false; };
+  }, [exerciseId]);
+  return history;
+}
+
+function LastTime({ exerciseId }) {
+  const last = useHistory(exerciseId);
+  if (last === undefined) return <p className="text-[11px] text-white/30">Loading last time…</p>;
+  if (!last) return <p className="text-[11px] text-white/30">No history yet for this exercise.</p>;
+  return (
+    <p className="text-[11px] text-mcz-cyan/80">
+      Last time ({new Date(last.started_at).toLocaleDateString()}): {" "}
+      {last.sets.map((s, i) => (
+        <span key={s.id}>
+          {i > 0 && " · "}
+          {s.reps}{s.weight_kg != null ? `@${s.weight_kg}kg` : ""}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+// One row of the logger: the routine's target for this exercise, the real
+// last-time reference pulled from history, and a form pre-filled from the
+// target so logging a planned set is one tap rather than four fields typed
+// from scratch every time.
+function LoggerRow({ planned, doneSets, onLogSet }) {
+  const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
+  const [weight, setWeight] = useState(planned?.weight_kg != null ? String(planned.weight_kg) : "");
+  const targetSets = planned?.sets || 3;
+  const done = doneSets.length;
+
+  return (
+    <div className="re-card space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-white">{planned.name}</p>
+          <p className="text-xs text-white/45">
+            {MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
+            {planned.equipment && ` · ${EQUIPMENT_LABEL[planned.equipment] || planned.equipment}`}
+            {" · "}Target {targetSets} sets
+            {planned.reps ? ` x${planned.reps}` : ""}
+            {planned.weight_kg != null ? ` @ ${planned.weight_kg}kg` : ""}
+          </p>
+        </div>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
+          done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                              : "bg-white/5 text-white/50 ring-white/10"}`}>
+          {done}/{targetSets} sets
+        </span>
+      </div>
+      <LastTime exerciseId={planned.exercise_id} />
+      <div className="flex flex-wrap gap-2">
+        <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1"
+               value={reps} onChange={(e) => setReps(e.target.value)} />
+        <input className="neon-input !py-2 w-24 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
+               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                disabled={!reps}
+                onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight))}>
+          <Plus size={13} /> Log set
+        </button>
+      </div>
+      {doneSets.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {doneSets.map((s) => (
+            <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
+              {s.reps}{s.weight_kg != null ? `@${s.weight_kg}kg` : ""}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -284,7 +413,9 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
             <p className="re-label">Or start from a routine:</p>
             <div className="flex flex-wrap gap-2">
               {routines.map((r) => (
-                <button key={r.id} className="pill" onClick={() => onStart(r.id)}>{r.title}</button>
+                <button key={r.id} className="pill" onClick={() => onStart(r.id)}>
+                  {r.title} <span className="text-white/40">({asList(r.exercises).length})</span>
+                </button>
               ))}
             </div>
           </div>
@@ -292,6 +423,23 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
       </div>
     );
   }
+
+  const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
+  const planned = routine ? asList(routine.exercises)
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((e) => {
+      const ex = exercises.find((x) => x.id === e.exercise_id);
+      return { ...e, name: ex?.name || `Exercise #${e.exercise_id}`,
+               muscle_group: ex?.muscle_group, equipment: ex?.equipment };
+    }) : [];
+  const setsByExercise = {};
+  for (const s of asList(session.sets)) {
+    (setsByExercise[s.exercise_id] ||= []).push(s);
+  }
+  const loggedExerciseIds = new Set(asList(session.sets).map((s) => s.exercise_id));
+  const extraExerciseIds = [...loggedExerciseIds].filter(
+    (id) => !planned.some((p) => p.exercise_id === id));
 
   return (
     <div className="space-y-3">
@@ -308,8 +456,28 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
         </button>
       </div>
 
+      {planned.length > 0 && (
+        <div className="space-y-2">
+          <p className="re-label">Your plan</p>
+          {planned.map((p) => (
+            <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
+                       onLogSet={onLogSet} />
+          ))}
+        </div>
+      )}
+
+      {extraExerciseIds.map((id) => {
+        const ex = exercises.find((x) => x.id === id);
+        return (
+          <LoggerRow key={id}
+                     planned={{ exercise_id: id, name: ex?.name || `Exercise #${id}`,
+                                muscle_group: ex?.muscle_group, equipment: ex?.equipment, sets: setsByExercise[id].length }}
+                     doneSets={setsByExercise[id]} onLogSet={onLogSet} />
+        );
+      })}
+
       <div className="re-card space-y-2">
-        <p className="re-label">Log a set</p>
+        <p className="re-label">Add an unplanned exercise</p>
         <div className="flex flex-wrap gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
@@ -332,19 +500,142 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
           </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="space-y-1">
-        {asList(session.sets).length === 0 && (
-          <p className="text-xs text-white/40">No sets logged yet.</p>
-        )}
-        {asList(session.sets).map((s) => (
-          <div key={s.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
-            <span className="text-white/80">{s.exercise_name} — set {s.set_number}</span>
-            <span className="text-white/60">
-              {s.reps} reps{s.weight_kg != null ? ` @ ${s.weight_kg}kg` : " (bodyweight)"}
-            </span>
+// The Jefit signature move: pick exercises off the library, filtered by
+// muscle group AND equipment (both already served on every exercise row —
+// no backend change needed), give each a target sets/reps/weight, reorder
+// and remove. Saved shape is `{exercise_id, order, sets, reps, weight_kg}`,
+// which the logger reads back to show a target beside each input.
+function RoutineDesigner({ routine, exercises, onSave, onClose }) {
+  const [rows, setRows] = useState(
+    () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((e) => ({ ...e })));
+  const [muscle, setMuscle] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  const filtered = useMemo(() => exercises.filter((ex) =>
+    (!muscle || ex.muscle_group === muscle) && (!equipment || ex.equipment === equipment)
+  ), [exercises, muscle, equipment]);
+
+  const addExercise = (exerciseId) => {
+    if (rows.some((r) => r.exercise_id === exerciseId)) return;
+    setRows([...rows, { exercise_id: exerciseId, sets: 3, reps: 10, weight_kg: null }]);
+    setDirty(true);
+  };
+  const removeExercise = (exerciseId) => {
+    setRows(rows.filter((r) => r.exercise_id !== exerciseId));
+    setDirty(true);
+  };
+  const moveRow = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = rows.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    setRows(next);
+    setDirty(true);
+  };
+  const patchRow = (i, patch) => {
+    const next = rows.slice();
+    next[i] = { ...next[i], ...patch };
+    setRows(next);
+    setDirty(true);
+  };
+
+  const save = () => {
+    onSave(rows.map((r, i) => ({
+      exercise_id: r.exercise_id, order: i,
+      sets: r.sets ? Number(r.sets) : undefined,
+      reps: r.reps ? Number(r.reps) : undefined,
+      weight_kg: r.weight_kg === "" || r.weight_kg == null ? null : Number(r.weight_kg),
+    })));
+    setDirty(false);
+  };
+
+  return (
+    <div className="re-card space-y-3 border-fuchsia-400/30">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-white">Designing "{routine.title}"</p>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+
+      {rows.length === 0 && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-white/40">
+          No exercises yet — add some from the library below.
+        </p>
+      )}
+      {rows.map((r, i) => {
+        const ex = exercises.find((x) => x.id === r.exercise_id);
+        return (
+          <div key={r.exercise_id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+            <div className="flex flex-col">
+              <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
+                      disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>
+              <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
+                      disabled={i === rows.length - 1} onClick={() => moveRow(i, 1)}><ChevronDown size={13} /></button>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white truncate">{ex?.name || `#${r.exercise_id}`}</p>
+              <p className="text-[11px] text-white/40">
+                {MUSCLE_LABEL[ex?.muscle_group] || ex?.muscle_group}
+                {ex?.equipment && ` · ${EQUIPMENT_LABEL[ex.equipment] || ex.equipment}`}
+              </p>
+            </div>
+            <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="sets"
+                   value={r.sets ?? ""} onChange={(e) => patchRow(i, { sets: e.target.value })} />
+            <span className="text-white/30 text-xs">×</span>
+            <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="reps"
+                   value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
+            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="0" step="0.5" placeholder="kg"
+                   value={r.weight_kg ?? ""} onChange={(e) => patchRow(i, { weight_kg: e.target.value })} />
+            <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                    onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
           </div>
-        ))}
+        );
+      })}
+
+      <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40" disabled={!dirty}
+              onClick={save}>
+        Save routine
+      </button>
+
+      <div className="border-t border-white/10 pt-3 space-y-2">
+        <p className="re-label">Add from the library</p>
+        <div className="flex flex-wrap gap-2">
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                  value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+            <option value="">All muscle groups</option>
+            {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                  value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+            <option value="">All equipment</option>
+            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </div>
+        <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+          {filtered.map((ex) => {
+            const already = rows.some((r) => r.exercise_id === ex.id);
+            return (
+              <button key={ex.id} disabled={already} onClick={() => addExercise(ex.id)}
+                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition ${
+                        already ? "bg-white/5 text-white/25" : "bg-white/5 text-white/70 hover:bg-white/10"}`}>
+                <span className="flex items-center gap-1.5">
+                  <Dumbbell size={12} className="shrink-0 text-white/30" /> {ex.name}
+                </span>
+                <span className="text-white/35">
+                  {MUSCLE_LABEL[ex.muscle_group]} · {EQUIPMENT_LABEL[ex.equipment]}
+                </span>
+              </button>
+            );
+          })}
+          {filtered.length === 0 && <p className="text-[11px] text-white/30 px-1">No exercises match.</p>}
+        </div>
       </div>
     </div>
   );
@@ -354,11 +645,14 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
 // Inbox for an idea, Today for what you're doing now, Upcoming for a dated
 // training day, Anytime for a backup you can reach for whenever, Someday for
 // a program you're not starting yet, Trash for "gone, but not yet forever".
-function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSchedule, onStart, sessionOpen }) {
+function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, onMove, onSchedule,
+                          onStart, sessionOpen, onSaveExercises }) {
   const [title, setTitle] = useState("");
   const [bucket, setBucket] = useState("inbox");
+  const [designing, setDesigning] = useState(null);
   const rows = asList(buckets[bucket]);
   const otherBuckets = bucketLabels.filter((b) => b.key !== bucket);
+  const designingRoutine = designing != null ? rows.find((r) => r.id === designing) : null;
 
   return (
     <div className="space-y-3">
@@ -373,7 +667,7 @@ function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSc
 
       <div className="flex flex-wrap gap-1.5">
         {bucketLabels.map((b) => (
-          <button key={b.key} onClick={() => setBucket(b.key)}
+          <button key={b.key} onClick={() => { setBucket(b.key); setDesigning(null); }}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all ${
               bucket === b.key ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/40"
                                : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
@@ -382,6 +676,12 @@ function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSc
           </button>
         ))}
       </div>
+
+      {designingRoutine && (
+        <RoutineDesigner routine={designingRoutine} exercises={exercises}
+                          onSave={(list) => { onSaveExercises(designingRoutine.id, list); }}
+                          onClose={() => setDesigning(null)} />
+      )}
 
       {rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
@@ -404,12 +704,18 @@ function SchedulerView({ buckets, bucketLabels, onCreate, onDelete, onMove, onSc
             </div>
             <div className="flex gap-2">
               {bucket !== "trash" && (
-                <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
-                        disabled={sessionOpen}
-                        title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
-                        onClick={() => onStart(r.id)}>
-                  <Play size={13} /> Start
-                </button>
+                <>
+                  <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                          onClick={() => setDesigning(designing === r.id ? null : r.id)}>
+                    <Dumbbell size={13} /> {designing === r.id ? "Close" : "Design"}
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                          disabled={sessionOpen}
+                          title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
+                          onClick={() => onStart(r.id)}>
+                    <Play size={13} /> Start
+                  </button>
+                </>
               )}
               <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                       onClick={() => onDelete(r.id)} title="Delete permanently">
@@ -481,12 +787,87 @@ function BodyMapView({ bodymap }) {
   );
 }
 
+// Which muscles BodyMap has real status for and haven't been trained enough
+// — "untrained" first, then "undertrained" — read off the SAME status this
+// screen's BodyMap tab already shows, never a fresh guess. Picking exercises
+// this way is arithmetic over real training-load data, same as every other
+// number Coach shows; it never touches a rating or a skill level.
+const NEED_ORDER = { untrained: 0, undertrained: 1, balanced: 2, recent: 3, overworked: 4 };
+
+function buildBalancedRoutine(bodymap, exercises, equipment) {
+  const muscles = asList(bodymap?.muscles)
+    .slice()
+    .sort((a, b) => (NEED_ORDER[a.status] ?? 9) - (NEED_ORDER[b.status] ?? 9));
+  const picked = [];
+  for (const m of muscles) {
+    if (m.muscle_group === "cardio") continue;
+    const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group
+      && (!equipment || ex.equipment === equipment));
+    if (pool.length === 0) continue;
+    picked.push(pool[0]);
+    if (picked.length >= 6) break;
+  }
+  return picked;
+}
+
+function BuildRoutine({ bodymap, exercises, onBuildRoutine }) {
+  const [equipment, setEquipment] = useState("");
+  const [open, setOpen] = useState(false);
+  const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment),
+    [bodymap, exercises, equipment]);
+
+  return (
+    <div className="re-card space-y-2">
+      <button className="flex w-full items-center justify-between text-left" onClick={() => setOpen(!open)}>
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+          <Wand2 size={14} className="text-fuchsia-300" /> Build a routine from BodyMap
+        </span>
+        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+      </button>
+      {open && (
+        <div className="space-y-2 pt-1">
+          <p className="text-xs text-white/45">
+            Picks one exercise per muscle group, starting with whatever BodyMap
+            calls untrained or undertrained — real training-load data, not a guess.
+          </p>
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                  value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+            <option value="">Any equipment</option>
+            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          {picks.length === 0 ? (
+            <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
+          ) : (
+            <div className="space-y-1">
+              {picks.map((ex) => (
+                <p key={ex.id} className="text-xs text-white/60">
+                  {MUSCLE_LABEL[ex.muscle_group]} — {ex.name}
+                </p>
+              ))}
+            </div>
+          )}
+          <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
+                  disabled={picks.length === 0}
+                  onClick={() => onBuildRoutine(
+                    `Coach routine — ${new Date().toLocaleDateString()}`,
+                    picks.map((ex, i) => ({ exercise_id: ex.id, order: i, sets: 3, reps: 10, weight_kg: null }))
+                  )}>
+            <Plus size={13} /> Save to Scheduler
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // One recommendation per exercise, built from comparing the member's own
 // last two logged sessions — arithmetic, not a model, and every row shows
-// the numbers behind it rather than asking to be trusted.
-function CoachView({ coach }) {
+// the numbers behind it rather than asking to be trusted. "Build a routine"
+// above it is the same rule applied to a whole routine instead of one
+// exercise: it reads BodyMap's real status, never invents one.
+function CoachView({ coach, bodymap, exercises, onBuildRoutine }) {
   if (!coach) return null;
-  const exercises = asList(coach.exercises);
+  const rows = asList(coach.exercises);
   const labels = asDict(coach.labels);
   return (
     <div className="space-y-3">
@@ -494,12 +875,17 @@ function CoachView({ coach }) {
         <Activity size={12} /> Built from your own logged sets — no AI, no guessing.
         An exercise untouched {coach.stale_after_days}+ days gets flagged to reintroduce or swap.
       </p>
-      {exercises.length === 0 && (
+
+      {bodymap && exercises?.length > 0 && (
+        <BuildRoutine bodymap={bodymap} exercises={exercises} onBuildRoutine={onBuildRoutine} />
+      )}
+
+      {rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
           Log a couple of sessions and Coach will have something to say.
         </p>
       )}
-      {exercises.map((row) => (
+      {rows.map((row) => (
         <div key={row.exercise_id} className="re-card space-y-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-white">{row.exercise_name}</p>
