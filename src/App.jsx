@@ -76,6 +76,7 @@ const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
 const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
+const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
@@ -1207,6 +1208,12 @@ export default function App() {
       <Route path="/p/:id" element={<PublicPost />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
+      {/* Matched BEFORE /try/:appKey — route order matters here, or the
+          param route below would swallow this one first. BodieZ is not a
+          scored instrument (no audio, no model), so it gets its own small
+          trial screen rather than a mode bolted onto TrialTake's
+          recorder-first flow. */}
+      <Route path="/try/bodiez" element={<BodieZTrial />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
       <Route path="/test" element={<PersonalityTest />} />
       <Route path="/test/:depth" element={<PersonalityTest />} />

@@ -181,6 +181,12 @@ export default function TrialTake() {
               {d.label}
             </Link>
           ))}
+          {/* Not one of these instruments — no audio, no model, so it isn't in
+              `doors` and doesn't belong mixed into a list that's otherwise
+              "scored by the coach". Its own pill, same reachability rule as
+              the rest of this list: a door nothing links to is a door no
+              visitor can find. */}
+          <Link to="/try/bodiez" className="pill hover:text-white">Lift a set — BodieZ</Link>
         </div>
       </div>
 
