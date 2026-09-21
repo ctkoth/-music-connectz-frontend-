@@ -19,12 +19,18 @@
 // follows that by rendering the server's own `why` on every Coach row rather
 // than inventing a friendlier sentence for it.
 //
-// Deliberately not built yet: Nutrition, Community, Goals, Recovery, and any
+// Goals are four kinds — strength, frequency, count, bodyweight — and every
+// one reads its progress off data this app already logs, never a member's
+// own report of how they're doing. There is deliberately no free-text
+// "custom" goal: this screen renders the `kinds` the server sends rather
+// than assuming a fifth exists.
+//
+// Deliberately not built yet: Nutrition, Community, Recovery, and any
 // XP/streak reward. The backend module explains why XP is left out rather
 // than guessed at — this screen follows that and shows plain counts instead.
 import { useEffect, useState } from "react";
 import {
-  Activity, CalendarDays, Loader2, Plus, Play, Sparkles, Square, Trash2,
+  Activity, CalendarDays, Loader2, Plus, Play, Sparkles, Square, Target, Trash2,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -51,6 +57,7 @@ const TABS = [
   { key: "scheduler", label: "Scheduler" },
   { key: "bodymap", label: "BodyMap" },
   { key: "coach", label: "Coach" },
+  { key: "goals", label: "Goals" },
   { key: "progress", label: "Progress" },
 ];
 
@@ -62,6 +69,8 @@ export default function BodieZ() {
   const [progress, setProgress] = useState(null);
   const [bodymap, setBodymap] = useState(null);
   const [coach, setCoach] = useState(null);
+  const [goals, setGoals] = useState(null);
+  const [weightLogs, setWeightLogs] = useState([]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -74,7 +83,9 @@ export default function BodieZ() {
       api("/api/economy/bodiez/progress/"),
       api("/api/economy/bodiez/bodymap/"),
       api("/api/economy/bodiez/coach/"),
-    ]).then(([ex, b, sess, prog, bm, co]) => {
+      api("/api/economy/bodiez/goals/"),
+      api("/api/economy/bodiez/weightlog/"),
+    ]).then(([ex, b, sess, prog, bm, co, g, wl]) => {
       setExercises(asList(ex.exercises));
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
@@ -82,6 +93,8 @@ export default function BodieZ() {
       setProgress(prog);
       setBodymap(bm);
       setCoach(co);
+      setGoals(g);
+      setWeightLogs(asList(wl.logs));
       setErr("");
     }).catch((e) => setErr(e.message || "Couldn't load BodieZ."))
       .finally(() => setBusy(false));
@@ -160,6 +173,28 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  async function createGoal(body) {
+    try {
+      await api("/api/economy/bodiez/goals/", { method: "POST", body });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  async function deleteGoal(id) {
+    if (!window.confirm("Delete this goal?")) return;
+    try {
+      await api(`/api/economy/bodiez/goals/${id}/`, { method: "DELETE" });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  async function logWeight(weightKg) {
+    try {
+      await api("/api/economy/bodiez/weightlog/", { method: "POST", body: { weight_kg: weightKg } });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
@@ -200,6 +235,10 @@ export default function BodieZ() {
           )}
           {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
           {tab === "coach" && <CoachView coach={coach} />}
+          {tab === "goals" && (
+            <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
+                      onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} />
+          )}
           {tab === "progress" && <ProgressView progress={progress} />}
         </>
       )}
@@ -449,6 +488,151 @@ function CoachView({ coach }) {
             </span>
           </div>
           <p className="text-xs text-white/60">{row.why}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// A progress bar built from server numbers only — `pct` null renders as
+// "no data yet" rather than a fabricated 0%, the same distinction BodyMap's
+// `untrained` status makes for a muscle group nothing has touched.
+function GoalBar({ pct }) {
+  if (pct == null) {
+    return <p className="text-[11px] text-white/40">No data logged toward this yet.</p>;
+  }
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-400 to-mcz-cyan transition-all"
+           style={{ width: `${Math.max(2, pct)}%` }} />
+    </div>
+  );
+}
+
+function NewGoalForm({ kinds, exercises, onCreate }) {
+  const [kind, setKind] = useState(kinds[0]?.key || "count");
+  const [title, setTitle] = useState("");
+  const [targetValue, setTargetValue] = useState("");
+  const [exerciseId, setExerciseId] = useState("");
+  const [targetReps, setTargetReps] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+
+  const submit = () => {
+    if (!title.trim() || !targetValue) return;
+    if (kind === "strength" && !exerciseId) return;
+    onCreate({
+      kind, title: title.trim(), target_value: Number(targetValue),
+      exercise_id: kind === "strength" ? Number(exerciseId) : undefined,
+      target_reps: kind === "strength" && targetReps ? Number(targetReps) : undefined,
+      target_date: targetDate || undefined,
+    });
+    setTitle(""); setTargetValue(""); setExerciseId(""); setTargetReps(""); setTargetDate("");
+  };
+
+  return (
+    <div className="re-card space-y-2">
+      <p className="re-label">New goal</p>
+      <div className="flex flex-wrap gap-2">
+        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                value={kind} onChange={(e) => setKind(e.target.value)}>
+          {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+        </select>
+        <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Name this goal"
+               value={title} onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {kind === "strength" && (
+          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                  value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
+            <option value="">Exercise…</option>
+            {exercises.map((ex) => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+          </select>
+        )}
+        <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.5"
+               placeholder={kind === "strength" ? "kg" : kind === "frequency" ? "x/week" : kind === "bodyweight" ? "target kg" : "target"}
+               value={targetValue} onChange={(e) => setTargetValue(e.target.value)} />
+        {kind === "strength" && (
+          <input className="neon-input !py-2 w-24 text-sm" type="number" min="1" placeholder="reps (opt.)"
+                 value={targetReps} onChange={(e) => setTargetReps(e.target.value)} />
+        )}
+        <input className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
+               type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+        <button className="neon-btn-primary !w-auto px-4 py-2 text-xs inline-flex items-center gap-1" onClick={submit}>
+          <Plus size={13} /> Set goal
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight }) {
+  const [weightInput, setWeightInput] = useState("");
+  if (!goals) return null;
+  const rows = asList(goals.goals);
+  const kinds = asList(goals.kinds);
+  const needsWeightLog = rows.some((g) => g.kind === "bodyweight");
+
+  return (
+    <div className="space-y-3">
+      <NewGoalForm kinds={kinds} exercises={exercises} onCreate={onCreate} />
+
+      {needsWeightLog && (
+        <div className="re-card space-y-2">
+          <p className="re-label">Log your weight</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.1"
+                   placeholder="kg" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} />
+            <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs"
+                    onClick={() => { if (weightInput) { onLogWeight(Number(weightInput)); setWeightInput(""); } }}>
+              Log
+            </button>
+            {weightLogs[0] && (
+              <span className="text-[11px] text-white/40">
+                Last: {weightLogs[0].weight_kg}kg on {new Date(weightLogs[0].logged_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {rows.length === 0 && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          No goals set yet.
+        </p>
+      )}
+      {rows.map((g) => (
+        <div key={g.id} className="re-card space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                <Target size={13} className="shrink-0 text-fuchsia-300" /> {g.title}
+              </p>
+              <p className="text-xs text-white/45">
+                {g.exercise_name ? `${g.exercise_name} — ` : ""}
+                target {g.target_value}{g.kind === "strength" || g.kind === "bodyweight" ? "kg" : ""}
+                {g.target_reps ? ` x${g.target_reps}` : ""}
+                {g.target_date && ` by ${g.target_date}`}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {g.achieved && (
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
+                  Achieved ✓
+                </span>
+              )}
+              <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                      onClick={() => onDelete(g.id)}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+          <GoalBar pct={g.pct} />
+          {g.current_value != null && (
+            <p className="text-[11px] text-white/40">
+              Currently {g.current_value}{g.kind === "strength" || g.kind === "bodyweight" ? "kg" : ""}
+              {g.pct != null && ` · ${g.pct}%`}
+            </p>
+          )}
         </div>
       ))}
     </div>
