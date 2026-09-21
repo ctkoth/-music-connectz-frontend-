@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
@@ -12,7 +12,7 @@ import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import AdFrame from "./AdFrame.jsx";
-import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
+import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -760,6 +760,12 @@ function Home() {
   const [notificationsOpen, setNotificationsOpen] = useState(false); // habit reminders panel
   const [soundzOpen, setSoundzOpen] = useState(false); // sound preferences panel
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
+  // SplitZ — a second app mounted beside the first, real React trees, never
+  // an iframe. StatZ keeps it; Premium samples it with an upgrade nudge on
+  // the pane. Nulls out on every tab change: a split is a "look at these two
+  // together" moment, not a standing layout that should survive navigating
+  // away and quietly still be there ten screens later.
+  const [splitKey, setSplitKey] = useState(null);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
   }, []);
@@ -780,8 +786,22 @@ function Home() {
   // paths would let the URL say one thing while the screen showed another.
   const openTab = (key) => {
     setTab(key);
+    setSplitKey(null);
     navigate(`/${slugFor(key)}`, { replace: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // The two special-cased apps need callbacks a bare `t.el` doesn't carry, so
+  // both the primary pane and the split pane resolve through this one
+  // function rather than duplicating the ProfileZ/GroupZ branches.
+  const appEl = (key) => {
+    if (key === "profilez") {
+      return <ProfileZ onViewProfile={setMemberKey} onMessage={() => openTab("messagez")} />;
+    }
+    if (key === "groupz") {
+      return <GroupZ onViewProfile={setMemberKey} onMessage={() => openTab("messagez")} />;
+    }
+    return TABS.find((t) => t.key === key)?.el;
   };
 
   const go = (delta) => {
@@ -940,24 +960,47 @@ function Home() {
         <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
-        {/* keyed by tab so switching apps clears a previous app's crash */}
-        <ErrorBoundary key={tab} label={active?.label}>
-          <Suspense fallback={<RouteFallback />}>
-            {active?.key === "profilez" ? (
-              <ProfileZ
-                onViewProfile={setMemberKey}
-                onMessage={(u) => { openTab("messagez"); }}
-              />
-            ) : active?.key === "groupz" ? (
-              <GroupZ
-                onViewProfile={setMemberKey}
-                onMessage={(u) => { openTab("messagez"); }}
-              />
-            ) : (
-              active?.el
-            )}
-          </Suspense>
-        </ErrorBoundary>
+        {/* keyed by tab so switching apps clears a previous app's crash.
+            SplitZ's pane sits beside it as a genuinely separate mounted
+            tree with its own boundary — one pane crashing must not take the
+            other down with it. */}
+        <div className={splitKey ? "grid gap-4 lg:grid-cols-2" : ""}>
+          <ErrorBoundary key={tab} label={active?.label}>
+            <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+          </ErrorBoundary>
+          {splitKey && (
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-mcz-cyan/10 px-3 py-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
+                  <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""
+                           className="h-4 w-4 rounded object-cover" />
+                  SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
+                </span>
+                <button onClick={() => setSplitKey(null)}
+                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                        aria-label="Close SplitZ">
+                  <X size={13} />
+                </button>
+              </div>
+              {/* Premium is SAMPLING, not keeping — the CTA sits on the pane
+                  every time it opens, cost/gain-style, because a StatZ perk
+                  discovered by using it once and losing it the next session
+                  reads as a bug rather than a reason to upgrade. */}
+              {!isStatZTier(user?.tier) && (
+                <button
+                  onClick={() => { setSplitKey(null); openTab("membershipz"); }}
+                  className="mb-2 flex w-full items-center justify-between rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-left text-[11px] text-mcz-gold hover:bg-mcz-gold/15"
+                >
+                  <span>✨ You're sampling SplitZ — StatZ keeps it permanently.</span>
+                  <span className="shrink-0 font-semibold underline">Upgrade →</span>
+                </button>
+              )}
+              <ErrorBoundary key={splitKey} label={TABS.find((t) => t.key === splitKey)?.label}>
+                <Suspense fallback={<RouteFallback />}>{appEl(splitKey)}</Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Tab description modal — opened by clicking the active tab / its icon. */}
@@ -1104,6 +1147,7 @@ function Home() {
           onOpen={openTab}
           onTogglePin={togglePin}
           onToggleHide={toggleHide}
+          onSplit={setSplitKey}
         />
       </div>
       </WidgetProvider>
