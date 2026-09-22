@@ -16,6 +16,7 @@ import { anonId, track } from "../track.js";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { pickForDay } from "../bodiezPick.js";
+import EquipmentPicker, { toggleEquipment } from "./EquipmentPicker.jsx";
 
 const TRIAL_SPLIT_KEY = "mcz_trial_split";
 
@@ -43,12 +44,6 @@ const MUSCLE_LABEL = {
   legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
 };
 
-const EQUIPMENT_LABEL = {
-  bodyweight: "Bodyweight", dumbbell: "Dumbbell", barbell: "Barbell",
-  ez_bar: "EZ Bar", kettlebell: "Kettlebell", machine: "Machine",
-  cable: "Cable / Pulley", band: "Band",
-};
-
 // Same header + door strip every /try/<instrument> page already renders, so
 // a visitor who lands here (the landing page routes people to this door
 // directly) isn't stuck with the browser's own back button as the only way
@@ -65,24 +60,6 @@ function Header() {
       </Link>
       <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
     </header>
-  );
-}
-
-// Equipment is a set of TOGGLES, not a single-select — "barbell OR
-// dumbbell" is a real answer for somebody who has both at home but not a
-// squat rack, and a single-select forced them to filter the library down
-// to one at a time and switch back and forth to compare. Selecting none
-// means "any equipment", the same as the old select's blank option.
-function EquipmentPicker({ selected, onToggle }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => (
-        <button key={k} type="button" onClick={() => onToggle(k)}
-                className={`pill ${selected.includes(k) ? "pill-on" : "hover:text-white"}`}>
-          {l}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -121,8 +98,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
 
-  const toggleEquipment = (k) =>
-    setEquipment((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
+  const onToggleEquipment = (k) => setEquipment((cur) => toggleEquipment(cur, k));
 
   const preview = useMemo(() => {
     if (!split) return [];
@@ -186,7 +162,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
             <p className="mb-1 text-[11px] text-white/40">
               Equipment — pick any that apply, or leave blank for everything
             </p>
-            <EquipmentPicker selected={equipment} onToggle={toggleEquipment} />
+            <EquipmentPicker selected={equipment} onToggle={onToggleEquipment} />
           </div>
           {goal && (
             <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
@@ -407,8 +383,7 @@ export default function BodieZTrial() {
     : allExercises;
   const goals = state.goals || {};
   const goal = goalKey ? goals[goalKey] : null;
-  const toggleEquipment = (k) =>
-    setEquipment((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
+  const onToggleEquipment = (k) => setEquipment((cur) => toggleEquipment(cur, k));
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
@@ -427,7 +402,7 @@ export default function BodieZTrial() {
             Equipment — pick any that apply, or leave blank for everything
           </p>
           <EquipmentPicker selected={equipment}
-                           onToggle={(k) => { toggleEquipment(k); setExerciseId(""); }} />
+                           onToggle={(k) => { onToggleEquipment(k); setExerciseId(""); }} />
         </div>
         <div className="flex gap-2">
           {Object.keys(goals).length > 0 && (

@@ -39,6 +39,11 @@ const HELPERS = [
   // the same "build a week for free, keep it on register" helpers this
   // file's own docstring is warning about.
   "src/apps/TrialTake.jsx", "src/apps/BodieZTrial.jsx", "src/bodiezPick.js",
+  // BodieZ.jsx and BodieZTrial.jsx both reach into EquipmentPicker.jsx by
+  // bare name now (EQUIPMENT_LABEL, toggleEquipment, the default export) —
+  // the multi-select equipment fix that replaced four separate single-selects
+  // with one shared component.
+  "src/apps/EquipmentPicker.jsx",
 ];
 
 // `src/mcz2/` is the 2.2 reference app and is not mounted — see CLAUDE.md.
