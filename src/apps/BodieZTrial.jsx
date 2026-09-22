@@ -29,6 +29,38 @@ const EQUIPMENT_LABEL = {
   cable: "Cable / Pulley", band: "Band",
 };
 
+// Same header + door strip every /try/<instrument> page already renders, so
+// a visitor who lands here (the landing page routes people to this door
+// directly) isn't stuck with the browser's own back button as the only way
+// off the screen — the cross-pollination rule applies to the trial doors
+// themselves, not just to what they score.
+const FALLBACK_DOORS = [{ app_key: "singz", label: "SingZ" }, { app_key: "rapz", label: "RapZ" }];
+
+function Header() {
+  return (
+    <header className="mb-6 flex items-center justify-between">
+      <Link to="/" className="flex items-center gap-2">
+        <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+        <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
+      </Link>
+      <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
+    </header>
+  );
+}
+
+function DoorStrip({ doors }) {
+  return (
+    <div className="mb-4 flex flex-wrap gap-2">
+      {doors.map((d) => (
+        <Link key={d.app_key} to={`/try/${d.app_key}`} className="pill hover:text-white">
+          {d.label}
+        </Link>
+      ))}
+      <Link to="/try/bodiez" className="pill pill-on">Lift a set — BodieZ</Link>
+    </div>
+  );
+}
+
 export default function BodieZTrial() {
   const [state, setState] = useState(null);
   const [exerciseId, setExerciseId] = useState("");
@@ -40,6 +72,7 @@ export default function BodieZTrial() {
   const [result, setResult] = useState(null);
   const [err, setErr] = useState("");
   const [viewed, setViewed] = useState(false);
+  const [doors, setDoors] = useState(FALLBACK_DOORS);
 
   useEffect(() => {
     api(`/api/economy/bodiez/trial/?anon_id=${encodeURIComponent(anonId())}`, { auth: false })
@@ -49,6 +82,14 @@ export default function BodieZTrial() {
       })
       .catch((e) => setErr(e.message || "Couldn't load the trial."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/trialdoorz/", { auth: false })
+      .then((d) => { if (on && d?.doors?.length) setDoors(d.doors); })
+      .catch(() => {});
+    return () => { on = false; };
   }, []);
 
   const submit = async () => {
@@ -72,16 +113,29 @@ export default function BodieZTrial() {
   };
 
   if (err && !state) {
-    return <p className="re-card text-sm text-mcz-pink">{err}</p>;
+    return (
+      <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
+        <Header />
+        <p className="re-card text-sm text-mcz-pink">{err}</p>
+      </div>
+    );
   }
   if (!state) {
-    return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+    return (
+      <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
+        <Header />
+        <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
+      </div>
+    );
   }
 
   const goalPreview = goalKey ? state?.goals?.[goalKey] : null;
 
   if (result) {
     return (
+      <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
+        <Header />
+        <DoorStrip doors={doors} />
       <div className="mx-auto max-w-md space-y-4">
         <div className="re-card space-y-2 text-center">
           <Dumbbell className="mx-auto text-fuchsia-300" size={28} />
@@ -170,6 +224,7 @@ export default function BodieZTrial() {
           </div>
         )}
       </div>
+      </div>
     );
   }
 
@@ -179,9 +234,13 @@ export default function BodieZTrial() {
       : state.cap_reached ? "Free takes are all spoken for today."
       : "The trial isn't open right now.";
     return (
-      <div className="re-card space-y-2 text-center">
-        <p className="text-sm text-white/70">{why}</p>
-        <Link to="/register" className="neon-btn-primary inline-block px-5 py-2 text-sm">Make an account</Link>
+      <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
+        <Header />
+        <DoorStrip doors={doors} />
+        <div className="re-card space-y-2 text-center">
+          <p className="text-sm text-white/70">{why}</p>
+          <Link to="/register" className="neon-btn-primary inline-block px-5 py-2 text-sm">Make an account</Link>
+        </div>
       </div>
     );
   }
@@ -192,6 +251,9 @@ export default function BodieZTrial() {
   const goal = goalKey ? goals[goalKey] : null;
 
   return (
+    <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
+      <Header />
+      <DoorStrip doors={doors} />
     <div className="mx-auto max-w-md space-y-3">
       <div className="text-center">
         <Dumbbell className="mx-auto mb-1 text-fuchsia-300" size={28} />
@@ -239,6 +301,7 @@ export default function BodieZTrial() {
           {busy ? "Scoring…" : "Log it"}
         </button>
       </div>
+    </div>
     </div>
   );
 }
