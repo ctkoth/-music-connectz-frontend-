@@ -45,19 +45,17 @@ import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { pickForDay } from "../bodiezPick.js";
+import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 
 const MUSCLE_LABEL = {
   chest: "Chest", back: "Back", shoulders: "Shoulders", arms: "Arms",
   legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
 };
 
-// Same shape the server's EQUIPMENT_CHOICES declare — read to filter by, never
-// retyped as a value the server wouldn't recognize.
-const EQUIPMENT_LABEL = {
-  bodyweight: "Bodyweight", dumbbell: "Dumbbell", barbell: "Barbell",
-  ez_bar: "EZ Bar", kettlebell: "Kettlebell", machine: "Machine",
-  cable: "Cable / Pulley", band: "Band",
-};
+// EQUIPMENT_LABEL moved to EquipmentPicker.jsx — same shape the server's
+// EQUIPMENT_CHOICES declare, read to filter by, never retyped as a value the
+// server wouldn't recognize. One copy now instead of three (this file had
+// its own, the trial door had its own).
 
 // Every BodyMap status the server can send, and how it reads — a color and a
 // plain sentence, never retyped anywhere numeric (the counts stay the
@@ -534,11 +532,12 @@ function RoutineDesigner({ routine, exercises, onSave, onClose }) {
     () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((e) => ({ ...e })));
   const [muscle, setMuscle] = useState("");
-  const [equipment, setEquipment] = useState("");
+  const [equipment, setEquipment] = useState([]);
   const [dirty, setDirty] = useState(false);
 
   const filtered = useMemo(() => exercises.filter((ex) =>
-    (!muscle || ex.muscle_group === muscle) && (!equipment || ex.equipment === equipment)
+    (!muscle || ex.muscle_group === muscle)
+    && (equipment.length === 0 || equipment.includes(ex.equipment))
   ), [exercises, muscle, equipment]);
 
   const addExercise = (exerciseId) => {
@@ -627,18 +626,13 @@ function RoutineDesigner({ routine, exercises, onSave, onClose }) {
 
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="re-label">Add from the library</p>
-        <div className="flex flex-wrap gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                  value={muscle} onChange={(e) => setMuscle(e.target.value)}>
-            <option value="">All muscle groups</option>
-            {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                  value={equipment} onChange={(e) => setEquipment(e.target.value)}>
-            <option value="">All equipment</option>
-            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-        </div>
+        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                value={muscle} onChange={(e) => setMuscle(e.target.value)}>
+          <option value="">All muscle groups</option>
+          {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <EquipmentPicker selected={equipment}
+                         onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
         <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
           {filtered.map((ex) => {
             const already = rows.some((r) => r.exercise_id === ex.id);
@@ -816,14 +810,18 @@ function BodyMapView({ bodymap }) {
 const NEED_ORDER = { untrained: 0, undertrained: 1, balanced: 2, recent: 3, overworked: 4 };
 
 function buildBalancedRoutine(bodymap, exercises, equipment) {
+  const matches = (ex) => {
+    if (!equipment) return true;
+    if (Array.isArray(equipment)) return equipment.length === 0 || equipment.includes(ex.equipment);
+    return ex.equipment === equipment;
+  };
   const muscles = asList(bodymap?.muscles)
     .slice()
     .sort((a, b) => (NEED_ORDER[a.status] ?? 9) - (NEED_ORDER[b.status] ?? 9));
   const picked = [];
   for (const m of muscles) {
     if (m.muscle_group === "cardio") continue;
-    const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group
-      && (!equipment || ex.equipment === equipment));
+    const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group && matches(ex));
     if (pool.length === 0) continue;
     picked.push(pool[0]);
     if (picked.length >= 6) break;
@@ -850,7 +848,7 @@ function DemoLink({ url }) {
 // retyped here, or this becomes the second place "8-12 reps for hypertrophy"
 // lives, and the two drift the way a tier number always does.
 function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
-  const [equipment, setEquipment] = useState("");
+  const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
   const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment),
@@ -871,20 +869,15 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
             Picks one exercise per muscle group, starting with whatever BodyMap
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
-          <div className="flex flex-wrap gap-2">
+          {goals && (
             <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
-              <option value="">Any equipment</option>
-              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+              <option value="">General (3 sets x 10)</option>
+              {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
             </select>
-            {goals && (
-              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                      value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
-                <option value="">General (3 sets x 10)</option>
-                {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
-              </select>
-            )}
-          </div>
+          )}
+          <EquipmentPicker selected={equipment}
+                           onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
           {goal && (
             <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
               <p className="font-semibold text-fuchsia-200">
@@ -938,7 +931,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
 // real BodieZRoutine per day in one batch.
 function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
   const [days, setDays] = useState("");
-  const [equipment, setEquipment] = useState("");
+  const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
   const split = days ? splits?.[days] : null;
@@ -976,11 +969,6 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                 <option key={k} value={k}>{splits[k].label}</option>
               ))}
             </select>
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
-              <option value="">Any equipment</option>
-              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
             {goals && (
               <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
@@ -989,6 +977,8 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
               </select>
             )}
           </div>
+          <EquipmentPicker selected={equipment}
+                           onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
           {goal && (
             <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
               <p className="font-semibold text-fuchsia-200">
