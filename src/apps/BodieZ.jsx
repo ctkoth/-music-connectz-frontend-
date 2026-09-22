@@ -198,6 +198,23 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // The split builder's answer to "does BodieZ cover every muscle across a
+  // real week": one routine PER DAY, not one routine total. Posted
+  // sequentially and reloaded once at the end — `createRoutineFromExercises`
+  // reloads per call, which would be N refetches and N tab-switches for a
+  // 6-day split; this does the same POSTs without either.
+  async function createSplitRoutines(days) {
+    try {
+      for (const day of days) {
+        await api("/api/economy/bodiez/routines/", {
+          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox" },
+        });
+      }
+      setTab("scheduler");
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   async function deleteRoutine(id) {
     if (!window.confirm("Delete this routine? (Trash is undo-able — this isn't.)")) return;
     try {
@@ -293,7 +310,8 @@ export default function BodieZ() {
           {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
           {tab === "coach" && (
             <CoachView coach={coach} bodymap={bodymap} exercises={exercises}
-                      onBuildRoutine={createRoutineFromExercises} />
+                      onBuildRoutine={createRoutineFromExercises}
+                      onBuildSplit={createSplitRoutines} />
           )}
           {tab === "goals" && (
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
@@ -906,12 +924,145 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
   );
 }
 
+// Picks exercises for ONE day of a split — same "untrained/undertrained
+// first" arithmetic buildBalancedRoutine uses for a whole-body routine,
+// scoped to whichever muscles that day's split assigns. One exercise per
+// muscle on the day, same as the single-routine builder, so a 5-day
+// "Chest" day is one real chest exercise rather than every chest exercise
+// in the library.
+function pickForDay(dayMuscles, bodymap, exercises, equipment) {
+  const statusByMuscle = {};
+  for (const m of asList(bodymap?.muscles)) statusByMuscle[m.muscle_group] = m.status;
+  const ordered = dayMuscles.slice().sort(
+    (a, b) => (NEED_ORDER[statusByMuscle[a]] ?? 9) - (NEED_ORDER[statusByMuscle[b]] ?? 9));
+  const picked = [];
+  for (const muscle of ordered) {
+    const pool = exercises.filter((ex) => ex.muscle_group === muscle
+      && (!equipment || ex.equipment === equipment));
+    if (pool.length > 0) picked.push(pool[0]);
+  }
+  return picked;
+}
+
+// "Does BodieZ cover every muscle in split days, 1-6 days a week?" — it
+// didn't, until this. `splits` is the server's SPLITS table (bodiez.py) —
+// real, named conventions (full body / upper-lower / push-pull-legs /
+// body-part split), never invented here. Picking a day count previews
+// every day's label and muscles before anything saves, then writes one
+// real BodieZRoutine per day in one batch.
+function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
+  const [days, setDays] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [goalKey, setGoalKey] = useState("");
+  const [open, setOpen] = useState(false);
+  const split = days ? splits?.[days] : null;
+  const goal = goalKey ? goals?.[goalKey] : null;
+
+  const preview = useMemo(() => {
+    if (!split) return [];
+    return split.days.map((day) => ({
+      ...day, picks: pickForDay(day.muscles, bodymap, exercises, equipment),
+    }));
+  }, [split, bodymap, exercises, equipment]);
+
+  const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
+
+  return (
+    <div className="re-card space-y-2">
+      <button className="flex w-full items-center justify-between text-left" onClick={() => setOpen(!open)}>
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+          <CalendarDays size={14} className="text-mcz-cyan" /> Build a week — split by training days
+        </span>
+        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+      </button>
+      {open && (
+        <div className="space-y-2 pt-1">
+          <p className="text-xs text-white/45">
+            Pick how many days a week you train and BodieZ builds one real routine
+            per day — full body, upper/lower, push/pull/legs or a body-part split,
+            each covering every muscle group across the week.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={days} onChange={(e) => setDays(e.target.value ? Number(e.target.value) : "")}>
+              <option value="">Days per week…</option>
+              {splits && Object.keys(splits).map((k) => (
+                <option key={k} value={k}>{splits[k].label}</option>
+              ))}
+            </select>
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+              <option value="">Any equipment</option>
+              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            {goals && (
+              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                      value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+                <option value="">General (3 sets x 10)</option>
+                {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
+              </select>
+            )}
+          </div>
+          {goal && (
+            <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
+              <p className="font-semibold text-fuchsia-200">
+                {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest — every day
+              </p>
+              <p className="mt-0.5">{goal.why}</p>
+              <p className="mt-1 text-white/35">{goal.citation}</p>
+            </div>
+          )}
+          {preview.length > 0 && (
+            <div className="space-y-2">
+              {preview.map((day) => (
+                <div key={day.label} className="rounded-lg bg-white/5 px-2.5 py-2">
+                  <p className="text-xs font-semibold text-white">{day.label}</p>
+                  {day.picks.length === 0 ? (
+                    <p className="text-[11px] text-mcz-ember">No exercises match this equipment for this day.</p>
+                  ) : (
+                    day.picks.map((ex) => (
+                      <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
+                        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
+                        <DemoLink url={ex.demo_url} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              ))}
+              {days > 1 && (
+                <p className="text-[11px] text-white/35">
+                  "Arms" appears on more than one day above where the split names a Push and a
+                  Pull day — the library doesn't separate biceps from triceps, so the whole arms
+                  bucket rides on both rather than being silently dropped from one.
+                </p>
+              )}
+            </div>
+          )}
+          <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
+                  disabled={!allPicked}
+                  onClick={() => onBuildSplit(preview.map((day) => ({
+                    title: `${split.label.replace(/^\d+ days?\/week — /, "")} — ${day.label}${goal ? ` — ${goal.label}` : ""}`,
+                    exercises: day.picks.map((ex, i) => ({
+                      exercise_id: ex.id, order: i,
+                      sets: goal ? goal.sets : 3,
+                      reps: goal ? goal.reps_low : 10,
+                      weight_kg: null,
+                    })),
+                  })))}>
+            <Plus size={13} /> Save {days || ""} routine{days === 1 ? "" : "s"} to Scheduler
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // One recommendation per exercise, built from comparing the member's own
 // last two logged sessions — arithmetic, not a model, and every row shows
 // the numbers behind it rather than asking to be trusted. "Build a routine"
 // above it is the same rule applied to a whole routine instead of one
 // exercise: it reads BodyMap's real status, never invents one.
-function CoachView({ coach, bodymap, exercises, onBuildRoutine }) {
+function CoachView({ coach, bodymap, exercises, onBuildRoutine, onBuildSplit }) {
   if (!coach) return null;
   const rows = asList(coach.exercises);
   const labels = asDict(coach.labels);
@@ -923,7 +1074,11 @@ function CoachView({ coach, bodymap, exercises, onBuildRoutine }) {
       </p>
 
       {bodymap && exercises?.length > 0 && (
-        <BuildRoutine bodymap={bodymap} exercises={exercises} goals={coach.goals} onBuildRoutine={onBuildRoutine} />
+        <>
+          <BuildRoutine bodymap={bodymap} exercises={exercises} goals={coach.goals} onBuildRoutine={onBuildRoutine} />
+          <SplitBuilder bodymap={bodymap} exercises={exercises} goals={coach.goals} splits={coach.splits}
+                        onBuildSplit={onBuildSplit} />
+        </>
       )}
 
       {rows.length === 0 && (
