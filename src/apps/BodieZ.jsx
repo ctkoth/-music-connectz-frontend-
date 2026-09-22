@@ -44,6 +44,7 @@ import {
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
+import { pickForDay } from "../bodiezPick.js";
 
 const MUSCLE_LABEL = {
   chest: "Chest", back: "Back", shoulders: "Shoulders", arms: "Arms",
@@ -924,25 +925,10 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
   );
 }
 
-// Picks exercises for ONE day of a split — same "untrained/undertrained
-// first" arithmetic buildBalancedRoutine uses for a whole-body routine,
-// scoped to whichever muscles that day's split assigns. One exercise per
-// muscle on the day, same as the single-routine builder, so a 5-day
-// "Chest" day is one real chest exercise rather than every chest exercise
-// in the library.
-function pickForDay(dayMuscles, bodymap, exercises, equipment) {
-  const statusByMuscle = {};
-  for (const m of asList(bodymap?.muscles)) statusByMuscle[m.muscle_group] = m.status;
-  const ordered = dayMuscles.slice().sort(
-    (a, b) => (NEED_ORDER[statusByMuscle[a]] ?? 9) - (NEED_ORDER[statusByMuscle[b]] ?? 9));
-  const picked = [];
-  for (const muscle of ordered) {
-    const pool = exercises.filter((ex) => ex.muscle_group === muscle
-      && (!equipment || ex.equipment === equipment));
-    if (pool.length > 0) picked.push(pool[0]);
-  }
-  return picked;
-}
+// pickForDay moved to ../bodiezPick.js — the trial door's split builder
+// needs it too, and it must not drag this whole file (BodyMap, sessions,
+// progress, recovery) into Register's bundle just to reuse one lookup. See
+// that file's own comment for why.
 
 // "Does BodieZ cover every muscle in split days, 1-6 days a week?" — it
 // didn't, until this. `splits` is the server's SPLITS table (bodiez.py) —

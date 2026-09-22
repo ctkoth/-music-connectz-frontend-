@@ -5,6 +5,7 @@ import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 import { track } from "../track.js";
 import { api } from "../api.js";
@@ -20,6 +21,10 @@ export default function Register() {
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
+  // A week built on the BodieZ trial door's split builder — free, no account,
+  // computed client-side. It only survives as real routines if this
+  // registration completes; see BodieZTrial.jsx's own comment on why.
+  const trialSplit = storedTrialSplit();
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,8 +98,10 @@ export default function Register() {
     setError("");
     setBusy(true);
     try {
-      await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
+      await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken,
+                       trial_split: trialSplit || undefined });
       clearTrialToken();
+      clearTrialSplit();
       track("register_success");
       // Show habit onboarding before going home — new users hook into daily returns
       setShowHabitOnboarding(true);

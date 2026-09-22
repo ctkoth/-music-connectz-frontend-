@@ -34,6 +34,11 @@ const HELPERS = [
   "src/voice.js", "src/listen.js", "src/uploadWork.js", "src/widgetz.js",
   "src/useScreenShape.js", "src/resources.js", "src/pageTitle.js",
   "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js",
+  // Register.jsx reaches into both of these by bare name: the trial-claim
+  // pair from TrialTake.jsx, and the trial-split pair from BodieZTrial.jsx —
+  // the same "build a week for free, keep it on register" helpers this
+  // file's own docstring is warning about.
+  "src/apps/TrialTake.jsx", "src/apps/BodieZTrial.jsx", "src/bodiezPick.js",
 ];
 
 // `src/mcz2/` is the 2.2 reference app and is not mounted — see CLAUDE.md.

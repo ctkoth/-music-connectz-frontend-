@@ -52,6 +52,28 @@ export const APP_PURPOSE = {
   venuez:      { does: "Meet up and play in one room", words: "venue room gig session jam live in person meet studio space book host" },
   gamez:       { does: "Build and play games",           words: "game play build arcade web unity fun" },
   soundz:      { does: "Change what the app sounds like", words: "sound audio noise sfx effects volume mute pack" },
+  // Missing from the day this file was written until an audit found VybeZ
+  // unreachable by anything a stranger would actually type — "dating",
+  // "match", "filter", "zodiac", "sober" all returned nothing, because this
+  // map only worked if you already knew the invented name. Same gap as the
+  // five trial coaches nothing once linked to: built, and invisible, this
+  // time from the SEARCH rather than the nav.
+  vybez:       { does: "Find members by filters",        words: "dating match filter search browse region zodiac sober distance personality vibe" },
+  bodiez:      { does: "Log workouts and build routines", words: "workout exercise gym lift squat routine fitness strength train bodybuilding weights" },
+  coachz:      { does: "Manage your teaching studio",    words: "coach teach studio students lessons tutor mentor" },
+  statsz:      { does: "Your scores across every instrument", words: "stats scores dashboard history progress overview takes" },
+  opportunitiez: { does: "See what musicians are looking for", words: "opportunity gig job looking for seeking wanted post" },
+  guitarz:     { does: "Record guitar and get scored",   words: "guitar record score take practice coach chords" },
+  bassz:       { does: "Record bass and get scored",     words: "bass record score take practice coach groove" },
+  keyz:        { does: "Record keys and get scored",     words: "keys piano keyboard record score take practice coach" },
+  violinz:     { does: "Record violin and get scored",   words: "violin strings bow record score take practice coach" },
+  drumz:       { does: "Record drums and get scored",    words: "drums drumming beat record score take practice coach" },
+  metz:        { does: "Metronome",                      words: "metronome tempo bpm beat click time signature practice" },
+  tunerz:      { does: "Tune an instrument",              words: "tuner tune pitch pegs string guitar bass in tune" },
+  chordz:      { does: "Chords and progressions",         words: "chords progression voicing theory scale music" },
+  dawz:        { does: "Vote for the next DAW build",     words: "daw record produce mix beat maker software studio" },
+  lilith:      { does: "Task manager",                    words: "tasks todo reminders manage organize checklist" },
+  dupez:       { does: "Sort out a duplicate account",     words: "duplicate account merge second another mine claim" },
 };
 
 /** Does this app match what somebody typed? Matches the app's own name, its
