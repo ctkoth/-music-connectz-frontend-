@@ -68,6 +68,24 @@ function Header() {
   );
 }
 
+// Equipment is a set of TOGGLES, not a single-select — "barbell OR
+// dumbbell" is a real answer for somebody who has both at home but not a
+// squat rack, and a single-select forced them to filter the library down
+// to one at a time and switch back and forth to compare. Selecting none
+// means "any equipment", the same as the old select's blank option.
+function EquipmentPicker({ selected, onToggle }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => (
+        <button key={k} type="button" onClick={() => onToggle(k)}
+                className={`pill ${selected.includes(k) ? "pill-on" : "hover:text-white"}`}>
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function DoorStrip({ doors }) {
   return (
     <div className="mb-4 flex flex-wrap gap-2">
@@ -97,11 +115,14 @@ function DoorStrip({ doors }) {
 // build, kept only if they finish the thing the CTA promises.
 function TrialSplitBuilder({ exercises, splits, goals }) {
   const [days, setDays] = useState("");
-  const [equipment, setEquipment] = useState("");
+  const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
+
+  const toggleEquipment = (k) =>
+    setEquipment((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
 
   const preview = useMemo(() => {
     if (!split) return [];
@@ -153,11 +174,6 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
                 <option key={k} value={k}>{splits[k].label}</option>
               ))}
             </select>
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
-                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
-              <option value="">Any equipment</option>
-              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
             {goals && (
               <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
@@ -165,6 +181,12 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
               </select>
             )}
+          </div>
+          <div>
+            <p className="mb-1 text-[11px] text-white/40">
+              Equipment — pick any that apply, or leave blank for everything
+            </p>
+            <EquipmentPicker selected={equipment} onToggle={toggleEquipment} />
           </div>
           {goal && (
             <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
@@ -214,7 +236,7 @@ export default function BodieZTrial() {
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
-  const [equipment, setEquipment] = useState("");
+  const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
@@ -380,9 +402,13 @@ export default function BodieZTrial() {
   }
 
   const allExercises = asList(state.exercises);
-  const exercises = equipment ? allExercises.filter((ex) => ex.equipment === equipment) : allExercises;
+  const exercises = equipment.length
+    ? allExercises.filter((ex) => equipment.includes(ex.equipment))
+    : allExercises;
   const goals = state.goals || {};
   const goal = goalKey ? goals[goalKey] : null;
+  const toggleEquipment = (k) =>
+    setEquipment((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
@@ -396,12 +422,14 @@ export default function BodieZTrial() {
       </div>
       {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
       <div className="re-card space-y-2">
+        <div>
+          <p className="mb-1 text-[11px] text-white/40">
+            Equipment — pick any that apply, or leave blank for everything
+          </p>
+          <EquipmentPicker selected={equipment}
+                           onToggle={(k) => { toggleEquipment(k); setExerciseId(""); }} />
+        </div>
         <div className="flex gap-2">
-          <select className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
-                  value={equipment} onChange={(e) => { setEquipment(e.target.value); setExerciseId(""); }}>
-            <option value="">Any equipment</option>
-            {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
           {Object.keys(goals).length > 0 && (
             <select className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
                     value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
