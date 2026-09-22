@@ -129,12 +129,31 @@ export default function BodieZTrial() {
           </div>
         )}
 
+        {result.splits && (
+          <div className="re-card space-y-1">
+            <p className="re-label">Coach builds a full week too</p>
+            <p className="text-[11px] text-white/50">
+              Pick 1-6 training days and Coach writes one real routine per day —
+              full body, upper/lower, push/pull/legs or a body-part split — every
+              muscle group covered across the week. Also a member feature.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {Object.values(result.splits).map((s) => (
+                <span key={s.label} className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-white/50">
+                  {s.label.replace(/^\d+ days?\/week — /, "")}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {result.upgrade && (
           <div className="re-card space-y-1 text-center">
             <p className="text-xs text-white/60">
-              Coach can build a whole routine from a goal like this — muscle gain, toning
-              or fat loss, real cited rep schemes, not a guess. That's a member feature. StatZ
-              gets you Coach on every exercise, BodyMap, Goals and Recovery too.
+              Coach can build a whole routine — or a whole week — from a goal like this:
+              muscle gain, toning or fat loss, real cited rep schemes, not a guess. That's
+              a member feature. StatZ gets you Coach on every exercise, BodyMap, Goals and
+              Recovery too.
             </p>
             <p className="text-sm font-semibold text-mcz-cyan">
               {usd(result.upgrade.month_cents)} {MONEY}/mo
