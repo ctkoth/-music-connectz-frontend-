@@ -123,6 +123,7 @@ export default function BodieZ() {
 
   const buckets = asDict(board?.buckets);
   const bucketLabels = asList(board?.bucket_labels);
+  const dayTagLabels = asList(board?.day_tag_labels);
   // Every routine, flattened across every bucket — TodayView's "start from a
   // routine" picker doesn't care which bucket a routine is sitting in.
   const routines = bucketLabels.flatMap((b) => asList(buckets[b.key]));
@@ -160,10 +161,22 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
-  async function createRoutine(title, bucket) {
+  async function createRoutine(title, bucket, dayTag) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: [], bucket },
+        method: "POST", body: { title, exercises: [], bucket, day_tag: dayTag || "" },
+      });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  // day_tag and description are the two routine-level fields with no other
+  // writer — bucket has moveRoutine, scheduled_for has scheduleRoutine, this
+  // is theirs. Both PATCH together since the Scheduler edits them together.
+  async function editRoutineMeta(id, dayTag, description) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/`, {
+        method: "PATCH", body: { day_tag: dayTag, description },
       });
       load();
     } catch (e) { setErr(e.message); }
@@ -301,10 +314,11 @@ export default function BodieZ() {
             />
           )}
           {tab === "scheduler" && (
-            <SchedulerView buckets={buckets} bucketLabels={bucketLabels} exercises={exercises}
+            <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
+                          exercises={exercises}
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
-                          onSaveExercises={saveRoutineExercises} />
+                          onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta} />
           )}
           {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
           {tab === "coach" && (
@@ -660,29 +674,57 @@ function RoutineDesigner({ routine, exercises, onSave, onClose }) {
 // Inbox for an idea, Today for what you're doing now, Upcoming for a dated
 // training day, Anytime for a backup you can reach for whenever, Someday for
 // a program you're not starting yet, Trash for "gone, but not yet forever".
-function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, onMove, onSchedule,
-                          onStart, sessionOpen, onSaveExercises }) {
+// The Jefit thing this whole file was missing: several distinct routines can
+// share one weekday, member picks at run time which "Mon" they're doing. So
+// day_tag is not the workflow bucket (inbox/today/…) and not a calendar date
+// (scheduled_for) — it's a recurring label a routine can carry independent of
+// either, and several routines can carry the SAME one. `dayFilter` is what
+// makes that visible: "3 Monday routines" at a glance instead of scrolling.
+function DayTagPicker({ value, labels, onChange, className }) {
+  return (
+    <select value={value || ""} onChange={(e) => onChange(e.target.value)}
+            className={className || "rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"}>
+      <option value="">No day</option>
+      {labels.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+    </select>
+  );
+}
+
+function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, onCreate, onDelete, onMove, onSchedule,
+                          onStart, sessionOpen, onSaveExercises, onEditMeta }) {
   const [title, setTitle] = useState("");
+  const [newDayTag, setNewDayTag] = useState("");
   const [bucket, setBucket] = useState("inbox");
+  const [dayFilter, setDayFilter] = useState("");
   const [designing, setDesigning] = useState(null);
-  const rows = asList(buckets[bucket]);
+  const allRows = asList(buckets[bucket]);
+  const rows = dayFilter ? allRows.filter((r) => r.day_tag === dayFilter) : allRows;
   const otherBuckets = bucketLabels.filter((b) => b.key !== bucket);
-  const designingRoutine = designing != null ? rows.find((r) => r.id === designing) : null;
+  const designingRoutine = designing != null ? allRows.find((r) => r.id === designing) : null;
+  const dayLabel = (k) => dayTagLabels.find((d) => d.key === k)?.label || k;
+  // Counts across the WHOLE bucket, not the filtered view, so the chip row
+  // itself is the "you have 3 Monday routines" readout.
+  const dayCounts = dayTagLabels.reduce((acc, d) => {
+    acc[d.key] = allRows.filter((r) => r.day_tag === d.key).length;
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-3">
       <div className="re-card flex flex-wrap gap-2">
         <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New routine name"
                value={title} onChange={(e) => setTitle(e.target.value)} />
+        <DayTagPicker value={newDayTag} labels={dayTagLabels} onChange={setNewDayTag}
+                      className="neon-input !py-2 !w-auto text-sm" />
         <button className="neon-btn-primary !w-auto px-4 py-2 text-xs"
-                onClick={() => { if (title.trim()) { onCreate(title.trim(), bucket); setTitle(""); } }}>
+                onClick={() => { if (title.trim()) { onCreate(title.trim(), bucket, newDayTag); setTitle(""); setNewDayTag(""); } }}>
           Create
         </button>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
         {bucketLabels.map((b) => (
-          <button key={b.key} onClick={() => { setBucket(b.key); setDesigning(null); }}
+          <button key={b.key} onClick={() => { setBucket(b.key); setDesigning(null); setDayFilter(""); }}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all ${
               bucket === b.key ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/40"
                                : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
@@ -691,6 +733,23 @@ function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, o
           </button>
         ))}
       </div>
+
+      {dayTagLabels.some((d) => dayCounts[d.key] > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          <button onClick={() => setDayFilter("")}
+                  className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                    !dayFilter ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+            All
+          </button>
+          {dayTagLabels.filter((d) => dayCounts[d.key] > 0).map((d) => (
+            <button key={d.key} onClick={() => setDayFilter(dayFilter === d.key ? "" : d.key)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                      dayFilter === d.key ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+              {d.label} <span className="text-white/35">{dayCounts[d.key]}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {designingRoutine && (
         <RoutineDesigner routine={designingRoutine} exercises={exercises}
@@ -706,8 +765,15 @@ function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, o
       {rows.map((r) => (
         <div key={r.id} className="re-card space-y-2">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">{r.title}</p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="text-sm font-semibold text-white">{r.title}</p>
+                {r.day_tag && (
+                  <span className="shrink-0 rounded-full bg-mcz-cyan/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-cyan ring-1 ring-mcz-cyan/30">
+                    {dayLabel(r.day_tag)}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-white/45">
                 {asList(r.exercises).length} exercise{asList(r.exercises).length === 1 ? "" : "s"}
                 {r.scheduled_for && (
@@ -716,6 +782,7 @@ function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, o
                   </span>
                 )}
               </p>
+              {r.description && <p className="text-[11px] text-white/40 mt-0.5">{r.description}</p>}
             </div>
             <div className="flex gap-2">
               {bucket !== "trash" && (
@@ -752,6 +819,15 @@ function SchedulerView({ buckets, bucketLabels, exercises, onCreate, onDelete, o
                 <CalendarDays size={12} /> Schedule
               </button>
             )}
+            <DayTagPicker value={r.day_tag} labels={dayTagLabels}
+                          onChange={(v) => onEditMeta(r.id, v, r.description || "")} />
+            <button onClick={() => {
+                      const d = window.prompt("Routine description:", r.description || "");
+                      if (d != null) onEditMeta(r.id, r.day_tag || "", d);
+                    }}
+                    className="text-[11px] text-white/40 hover:text-white/70">
+              {r.description ? "Edit note" : "Add note"}
+            </button>
             {otherBuckets.map((b) => (
               <button key={b.key} onClick={() => onMove(r.id, b.key)}
                       className="text-[11px] text-white/40 hover:text-white/70">
