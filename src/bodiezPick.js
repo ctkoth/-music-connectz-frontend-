@@ -17,6 +17,16 @@
 // when there is none to sort by.
 const NEED_ORDER = { untrained: 0, undertrained: 1, balanced: 2, recent: 3, overworked: 4 };
 
+// `equipment` accepts either shape a caller might hold: a single string
+// (the member app's own single-select, unchanged) or an array (the trial
+// door's multi-select — "barbell OR dumbbell", not one at a time). Empty
+// string, empty array, or nothing at all all mean "no filter".
+function matchesEquipment(ex, equipment) {
+  if (!equipment) return true;
+  if (Array.isArray(equipment)) return equipment.length === 0 || equipment.includes(ex.equipment);
+  return ex.equipment === equipment;
+}
+
 export function pickForDay(dayMuscles, bodymap, exercises, equipment) {
   const statusByMuscle = {};
   for (const m of (bodymap?.muscles || [])) statusByMuscle[m.muscle_group] = m.status;
@@ -24,8 +34,7 @@ export function pickForDay(dayMuscles, bodymap, exercises, equipment) {
     (a, b) => (NEED_ORDER[statusByMuscle[a]] ?? 9) - (NEED_ORDER[statusByMuscle[b]] ?? 9));
   const picked = [];
   for (const muscle of ordered) {
-    const pool = exercises.filter((ex) => ex.muscle_group === muscle
-      && (!equipment || ex.equipment === equipment));
+    const pool = exercises.filter((ex) => ex.muscle_group === muscle && matchesEquipment(ex, equipment));
     if (pool.length > 0) picked.push(pool[0]);
   }
   return picked;
