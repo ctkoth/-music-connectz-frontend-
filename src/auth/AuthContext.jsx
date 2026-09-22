@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     return res.user;
   }
 
-  async function register({ username, email, phone, password, birthday, ref, trial_token }) {
+  async function register({ username, email, phone, password, birthday, ref, trial_token, trial_split }) {
     const res = await api("/api/auth/register/", {
       method: "POST",
       auth: false,
@@ -43,7 +43,9 @@ export function AuthProvider({ children }) {
       // got set at signup. `ref` credits the inviter 300 SpinaZ on a legit join.
       // trial_token was dropped here too — every /try → register conversion
       // silently lost the take it promised to save, since the backend claims
-      // it only when this field is sent.
+      // it only when this field is sent. trial_split is the same trap: a
+      // caller can pass it and it would vanish right here if this function
+      // kept building its own body from a shorter field list.
       body: {
         username,
         email,
@@ -52,6 +54,7 @@ export function AuthProvider({ children }) {
         birthday: birthday || null,
         ref: ref || "",
         trial_token: trial_token || "",
+        trial_split: trial_split || [],
       },
     });
     return persist(res);

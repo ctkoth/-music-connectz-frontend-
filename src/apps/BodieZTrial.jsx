@@ -8,13 +8,33 @@
 // this shares with every other trial door (see bodiez_trial.py) is the SAME
 // browser id the funnel already keys on — a second id minted here would be
 // a second visitor.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Dumbbell, Loader2, PlayCircle, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, PlayCircle, Sparkles } from "lucide-react";
 import { api } from "../api.js";
 import { anonId, track } from "../track.js";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
+import { pickForDay } from "../bodiezPick.js";
+
+const TRIAL_SPLIT_KEY = "mcz_trial_split";
+
+export function storedTrialSplit() {
+  try {
+    const raw = localStorage.getItem(TRIAL_SPLIT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearTrialSplit() {
+  try {
+    localStorage.removeItem(TRIAL_SPLIT_KEY);
+  } catch {
+    /* private-mode browsers throw on storage; losing the draft is survivable */
+  }
+}
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -57,6 +77,134 @@ function DoorStrip({ doors }) {
         </Link>
       ))}
       <Link to="/try/bodiez" className="pill pill-on">Lift a set — BodieZ</Link>
+    </div>
+  );
+}
+
+// The full week, built for free, no account — the same client-side lookup
+// `SplitBuilder` in BodieZ.jsx already runs for members (`pickForDay`), no AI,
+// no server round trip, so a stranger gets the SAME real thing a member would
+// see rather than a row of split names with nothing behind them. `bodymap` is
+// always null here — there is no fatigue history for a browser with no
+// account, and `pickForDay` already degrades cleanly without one.
+//
+// What survives is the difference from a member's build: nothing is saved
+// here (there is no account to save it to), so pressing "Keep this week"
+// stashes the built days in localStorage and sends the visitor to /register.
+// Register.jsx reads it back and posts it as `trial_split`, which only ever
+// becomes real BodieZRoutine rows if that registration actually completes —
+// the cost/gain rule applied to a whole week instead of one set: free to
+// build, kept only if they finish the thing the CTA promises.
+function TrialSplitBuilder({ exercises, splits, goals }) {
+  const [days, setDays] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [goalKey, setGoalKey] = useState("");
+  const [open, setOpen] = useState(false);
+  const split = days ? splits?.[days] : null;
+  const goal = goalKey ? goals?.[goalKey] : null;
+
+  const preview = useMemo(() => {
+    if (!split) return [];
+    return split.days.map((day) => ({
+      ...day, picks: pickForDay(day.muscles, null, exercises, equipment),
+    }));
+  }, [split, exercises, equipment]);
+
+  const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
+
+  function keepThisWeek() {
+    const built = preview.map((day) => ({
+      title: `${split.label.replace(/^\d+ days?\/week — /, "")} — ${day.label}${goal ? ` — ${goal.label}` : ""}`,
+      exercises: day.picks.map((ex, i) => ({
+        exercise_id: ex.id, order: i,
+        sets: goal ? goal.sets : 3,
+        reps: goal ? goal.reps_low : 10,
+        weight_kg: null,
+      })),
+    }));
+    try {
+      localStorage.setItem(TRIAL_SPLIT_KEY, JSON.stringify(built));
+    } catch {
+      /* private mode / quota — the CTA still lands on /register either way */
+    }
+  }
+
+  return (
+    <div className="re-card space-y-2">
+      <button className="flex w-full items-center justify-between text-left" onClick={() => setOpen(!open)}>
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+          <CalendarDays size={14} className="text-mcz-cyan" /> Build a week — free, no account
+        </span>
+        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+      </button>
+      {open && (
+        <div className="space-y-2 pt-1">
+          <p className="text-xs text-white/45">
+            Pick how many days a week you train and BodieZ builds one real routine per
+            day — full body, upper/lower, push/pull/legs or a body-part split, every
+            muscle group covered across the week. Nothing saves until you make an
+            account — the CTA below is what keeps it.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={days} onChange={(e) => setDays(e.target.value ? Number(e.target.value) : "")}>
+              <option value="">Days per week…</option>
+              {splits && Object.keys(splits).map((k) => (
+                <option key={k} value={k}>{splits[k].label}</option>
+              ))}
+            </select>
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+              <option value="">Any equipment</option>
+              {Object.entries(EQUIPMENT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            {goals && (
+              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                      value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+                <option value="">General (3 sets x 10)</option>
+                {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
+              </select>
+            )}
+          </div>
+          {goal && (
+            <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
+              <p className="font-semibold text-fuchsia-200">
+                {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest — every day
+              </p>
+              <p className="mt-0.5">{goal.why}</p>
+              <p className="mt-1 text-white/35">{goal.citation}</p>
+            </div>
+          )}
+          {preview.length > 0 && (
+            <div className="space-y-2">
+              {preview.map((day) => (
+                <div key={day.label} className="rounded-lg bg-white/5 px-2.5 py-2">
+                  <p className="text-xs font-semibold text-white">{day.label}</p>
+                  {day.picks.length === 0 ? (
+                    <p className="text-[11px] text-mcz-ember">No exercises match this equipment for this day.</p>
+                  ) : (
+                    day.picks.map((ex) => (
+                      <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
+                        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
+                        {ex.demo_url && (
+                          <a href={ex.demo_url} target="_blank" rel="noreferrer"
+                             className="inline-flex shrink-0 items-center gap-0.5 text-mcz-cyan hover:underline">
+                            <PlayCircle size={12} /> Demo
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <Link to="/register?trial=1" onClick={keepThisWeek}
+                className={`neon-btn-primary block w-full py-2 text-center text-xs ${!allPicked ? "pointer-events-none opacity-40" : ""}`}>
+            Make an account — keep this whole week, {days || "…"} real routine{days === 1 ? "" : "s"}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -184,21 +332,7 @@ export default function BodieZTrial() {
         )}
 
         {result.splits && (
-          <div className="re-card space-y-1">
-            <p className="re-label">Coach builds a full week too</p>
-            <p className="text-[11px] text-white/50">
-              Pick 1-6 training days and Coach writes one real routine per day —
-              full body, upper/lower, push/pull/legs or a body-part split — every
-              muscle group covered across the week. Also a member feature.
-            </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {Object.values(result.splits).map((s) => (
-                <span key={s.label} className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-white/50">
-                  {s.label.replace(/^\d+ days?\/week — /, "")}
-                </span>
-              ))}
-            </div>
-          </div>
+          <TrialSplitBuilder exercises={asList(state?.exercises)} splits={result.splits} goals={state?.goals} />
         )}
 
         {result.upgrade && (
@@ -301,6 +435,9 @@ export default function BodieZTrial() {
           {busy ? "Scoring…" : "Log it"}
         </button>
       </div>
+      {Object.keys(state.splits || {}).length > 0 && (
+        <TrialSplitBuilder exercises={allExercises} splits={state.splits} goals={goals} />
+      )}
     </div>
     </div>
   );
