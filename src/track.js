@@ -76,6 +76,36 @@ export function channel() {
   return readSrc();
 }
 
+/* --------------------------------------------------- trial door, once */
+
+// Which trial door this browser was last using, remembered the same way
+// `src` is — because `register_view` and `register_success` had exactly the
+// same hole `src` used to: neither ever carried `app_key`, so `by_door`
+// (FunnelSummaryView) could show a door's own view→scored chain but never
+// whether those visitors went on to register. `app_key` is ambient server-
+// side now (see FunnelEventView.AMBIENT); this is the client half — every
+// door-scoped call (try_view, try_scored, ...) remembers the door here, and
+// every later call in the same visit, even one that never mentions a door
+// itself, rides the last one seen.
+const DOOR_KEY = "mcz_last_door";
+
+function rememberDoor(meta) {
+  if (!meta?.app_key) return;
+  try {
+    sessionStorage.setItem(DOOR_KEY, meta.app_key);
+  } catch {
+    /* private mode — the event still carries app_key from meta directly */
+  }
+}
+
+function readDoor() {
+  try {
+    return sessionStorage.getItem(DOOR_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
 /** What kind of screen this is, measured — never sniffed from a user agent.
  *
  * Ambient like the channel, and for a sharper reason: the trial's first move
@@ -102,7 +132,14 @@ export function track(kind, meta = {}) {
   // attributed without anybody remembering to pass it.
   const src = readSrc();
   const dev = device();
-  const full = { ...meta, ...(src ? { src } : {}), ...(dev ? { dev } : {}) };
+  rememberDoor(meta);
+  const app_key = meta.app_key || readDoor();
+  const full = {
+    ...meta,
+    ...(src ? { src } : {}),
+    ...(dev ? { dev } : {}),
+    ...(app_key ? { app_key } : {}),
+  };
   try {
     api("/api/auth/funnel/", { method: "POST", auth: false, body: { kind, anon_id, meta: full } }).catch(() => {});
   } catch {

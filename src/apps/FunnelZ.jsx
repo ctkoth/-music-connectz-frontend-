@@ -141,12 +141,92 @@ function WhoJoined({ members }) {
 // Pairs where the first CANNOT outnumber the second, because reaching the
 // first requires passing through the second. A violation is not a surprising
 // result, it is the instrument disagreeing with itself.
+//
+// `try_scored` > `try_send` used to be on this list, checked against the
+// PLATFORM-WIDE totals. That held for every recorder-based door — nobody
+// gets scored without first sending a take to the coach — until BodieZ,
+// which scores a logged set or a built week with no recorder and therefore
+// no `try_send` at all. Once BodieZ has any traffic the aggregate reads
+// "impossible" FOREVER, not just across a tracking-change window, because
+// the two are never going to reconcile: they are two different funnels
+// being summed into one row. The real check still holds, just scoped to one
+// door at a time — see the recorder-only version in ByDoor below.
 const IMPOSSIBLE = [
-  ["try_scored", "try_send"],
   ["try_send", "try_view"],
   ["try_record", "try_view"],
   ["register_success", "landing_view"],
 ];
+
+// Recorder-specific: valid only for a door that HAS one.
+const RECORDER_IMPOSSIBLE = [["try_scored", "try_send"]];
+
+// BodieZ has no recorder, so most of the eleven generic step kinds
+// (try_record, try_mic_denied, try_attach, try_send, try_failed) can never
+// fire for it — rendering them would be a wall of zeros that reads as five
+// broken features rather than one door that works differently. Every door
+// gets these four; a recorder door gets the extra detail line below them.
+const DOOR_COLS = [
+  ["try_view", "Opened"],
+  ["try_scored", "Scored"],
+  ["register_view", "Register opened"],
+  ["register_success", "Joined"],
+];
+
+function ByDoor({ doors, note }) {
+  if (!doors?.length) return null;
+  const anyTraffic = doors.some((d) => d.steps.try_view > 0);
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">By door</p>
+      <p className="text-[11px] leading-relaxed text-white/35">{note}</p>
+      {!anyTraffic ? (
+        <p className="text-[11px] text-white/35">
+          No door has opened a trial yet in this window.
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {doors.filter((d) => d.steps.try_view > 0).map((d) => {
+            const s = d.steps;
+            const mismatch = d.has_recorder
+              && RECORDER_IMPOSSIBLE.some(([after, before]) => s[after] > s[before]);
+            return (
+              <div key={d.app_key} className="re-card space-y-1.5">
+                <p className="text-sm font-semibold text-white">{d.label}</p>
+                <div className="grid grid-cols-4 gap-1 text-center">
+                  {DOOR_COLS.map(([k, l]) => (
+                    <div key={k}>
+                      <p className="text-[9px] uppercase tracking-wide text-white/35">{l}</p>
+                      <p className={`text-sm font-semibold ${s[k] ? "text-white" : "text-white/25"}`}>
+                        {s[k] || 0}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                {d.has_recorder ? (
+                  <p className="text-[10px] text-white/35">
+                    {s.try_send || 0} sent to the coach
+                    {s.try_failed ? ` · ${s.try_failed} came back with no score` : ""}
+                    {s.try_mic_denied ? ` · ${s.try_mic_denied} refused the mic` : ""}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-white/35">
+                    No recorder — "scored" means a logged set or a built week.
+                  </p>
+                )}
+                {mismatch && (
+                  <p className="text-[10px] text-mcz-ember">
+                    Scored outnumbers sent — a window spanning a tracking change; trust a
+                    window that starts after it.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function FunnelZ() {
   const { user } = useAuth();
@@ -296,6 +376,7 @@ export default function FunnelZ() {
             blurb="Phone, tablet or desktop, measured from the screen itself. The trial opens with a mic permission prompt, which is a different obstacle on a handset than on a laptop."
             rows={data.devices} field="dev" steps={steps} note={data.devices_note}
           />
+          <ByDoor doors={data.by_door} note={data.by_door_note} />
           <WhoJoined members={data.members} />
         </div>
       )}
