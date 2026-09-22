@@ -81,6 +81,7 @@ const TABS = [
 export default function BodieZ() {
   const [tab, setTab] = useState("today");
   const [exercises, setExercises] = useState([]);
+  const [demoCredit, setDemoCredit] = useState("");
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   const [progress, setProgress] = useState(null);
@@ -106,6 +107,7 @@ export default function BodieZ() {
       api("/api/economy/bodiez/recovery/"),
     ]).then(([ex, b, sess, prog, bm, co, g, wl, rec]) => {
       setExercises(asList(ex.exercises));
+      setDemoCredit(ex.demo_credit || "");
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
       setSession(open || null);
@@ -200,10 +202,10 @@ export default function BodieZ() {
   // status (undertrained/untrained muscles first), never a model's guess.
   // It lands in the Scheduler's Inbox exactly like a hand-built routine, so
   // it goes through the same designer to be tweaked or started.
-  async function createRoutineFromExercises(title, exerciseList) {
+  async function createRoutineFromExercises(title, exerciseList, dayTag) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox" },
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", day_tag: dayTag || "" },
       });
       setTab("scheduler");
       load();
@@ -315,14 +317,14 @@ export default function BodieZ() {
           )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
-                          exercises={exercises}
+                          exercises={exercises} demoCredit={demoCredit}
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
                           onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta} />
           )}
           {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
           {tab === "coach" && (
-            <CoachView coach={coach} bodymap={bodymap} exercises={exercises}
+            <CoachView coach={coach} bodymap={bodymap} exercises={exercises} dayTagLabels={dayTagLabels}
                       onBuildRoutine={createRoutineFromExercises}
                       onBuildSplit={createSplitRoutines} />
           )}
@@ -541,7 +543,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
 // no backend change needed), give each a target sets/reps/weight, reorder
 // and remove. Saved shape is `{exercise_id, order, sets, reps, weight_kg}`,
 // which the logger reads back to show a target beside each input.
-function RoutineDesigner({ routine, exercises, onSave, onClose }) {
+function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
   const [rows, setRows] = useState(
     () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((e) => ({ ...e })));
@@ -640,6 +642,7 @@ function RoutineDesigner({ routine, exercises, onSave, onClose }) {
 
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="re-label">Add from the library</p>
+        {demoCredit && <p className="text-[11px] text-white/35">{demoCredit}</p>}
         <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                 value={muscle} onChange={(e) => setMuscle(e.target.value)}>
           <option value="">All muscle groups</option>
@@ -690,7 +693,7 @@ function DayTagPicker({ value, labels, onChange, className }) {
   );
 }
 
-function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, onCreate, onDelete, onMove, onSchedule,
+function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCredit, onCreate, onDelete, onMove, onSchedule,
                           onStart, sessionOpen, onSaveExercises, onEditMeta }) {
   const [title, setTitle] = useState("");
   const [newDayTag, setNewDayTag] = useState("");
@@ -752,7 +755,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, onCreat
       )}
 
       {designingRoutine && (
-        <RoutineDesigner routine={designingRoutine} exercises={exercises}
+        <RoutineDesigner routine={designingRoutine} exercises={exercises} demoCredit={demoCredit}
                           onSave={(list) => { onSaveExercises(designingRoutine.id, list); }}
                           onClose={() => setDesigning(null)} />
       )}
@@ -1109,12 +1112,144 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
   );
 }
 
+// The other half of "does BodieZ cover every muscle": SplitBuilder answers it
+// with the server's own named conventions (upper/lower, push/pull/legs), and
+// those conventions all assume legs are trainable. A member training around a
+// disability — two upper-body days a week, split by which muscles rather than
+// by a textbook's push/pull label — has no named split to reach for, and
+// forcing one on them would mean training legs on a day they can't. This
+// picks straight off the real muscle groups instead: no split name, no
+// assumption about which muscles belong on which day, just what the member
+// says today's day is for. Same exercise-and-goal machinery as BuildRoutine,
+// same "arms" caveat SplitBuilder already states, because the library still
+// only has one bucket for biceps/triceps/forearms.
+function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
+  const MUSCLES = ["chest", "back", "shoulders", "arms", "legs", "core"];
+  const [muscles, setMuscles] = useState([]);
+  const [equipment, setEquipment] = useState([]);
+  const [goalKey, setGoalKey] = useState("");
+  const [dayTag, setDayTag] = useState("");
+  const [perMuscle, setPerMuscle] = useState(2);
+  const [open, setOpen] = useState(false);
+  const goal = goalKey ? goals?.[goalKey] : null;
+
+  const toggleMuscle = (m) =>
+    setMuscles((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
+
+  const matches = (ex) => equipment.length === 0 || equipment.includes(ex.equipment);
+  const picks = useMemo(() => {
+    const out = [];
+    for (const m of muscles) {
+      const pool = exercises.filter((ex) => ex.muscle_group === m && matches(ex));
+      out.push(...pool.slice(0, perMuscle));
+    }
+    return out;
+  }, [muscles, exercises, equipment, perMuscle]);
+
+  const dayLabel = dayTagLabels.find((d) => d.key === dayTag)?.label;
+
+  return (
+    <div className="re-card space-y-2">
+      <button className="flex w-full items-center justify-between text-left" onClick={() => setOpen(!open)}>
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+          <Dumbbell size={14} className="text-emerald-300" /> Build a day — pick the muscles yourself
+        </span>
+        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+      </button>
+      {open && (
+        <div className="space-y-2 pt-1">
+          <p className="text-xs text-white/45">
+            No named split — just the muscles this day trains. Good for training around what
+            you can do, not what a textbook split assumes: e.g. arms + shoulders one day,
+            chest + back + core the next, however many days a week suits you.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {MUSCLES.map((m) => (
+              <button key={m} onClick={() => toggleMuscle(m)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                        muscles.includes(m) ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40"
+                                            : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+                {MUSCLE_LABEL[m]}
+              </button>
+            ))}
+          </div>
+          {muscles.includes("arms") && (
+            <p className="text-[11px] text-white/35">
+              "Arms" is one bucket for biceps, triceps and forearms — the library doesn't
+              separate them, so picking Arms pulls from all three rather than letting you
+              isolate one.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {dayTagLabels.length > 0 && (
+              <DayTagPicker value={dayTag} labels={dayTagLabels} onChange={setDayTag}
+                            className="neon-input !py-1.5 !w-auto text-xs" />
+            )}
+            {goals && (
+              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                      value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
+                <option value="">General (3 sets x 10)</option>
+                {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
+              </select>
+            )}
+            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={perMuscle} onChange={(e) => setPerMuscle(Number(e.target.value))}>
+              <option value={1}>1 exercise per muscle</option>
+              <option value={2}>2 exercises per muscle</option>
+              <option value={3}>3 exercises per muscle</option>
+            </select>
+          </div>
+          <EquipmentPicker selected={equipment}
+                           onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
+          {goal && (
+            <div className="rounded-lg bg-fuchsia-500/5 px-2.5 py-2 text-[11px] text-white/60">
+              <p className="font-semibold text-fuchsia-200">
+                {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest
+              </p>
+              <p className="mt-0.5">{goal.why}</p>
+              <p className="mt-1 text-white/35">{goal.citation}</p>
+            </div>
+          )}
+          {muscles.length === 0 ? (
+            <p className="text-xs text-white/40">Pick at least one muscle group above.</p>
+          ) : picks.length === 0 ? (
+            <p className="text-xs text-mcz-ember">No exercises match that equipment for these muscles.</p>
+          ) : (
+            <div className="space-y-1">
+              {picks.map((ex) => (
+                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
+                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
+                  <DemoLink url={ex.demo_url} />
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
+                  disabled={picks.length === 0}
+                  onClick={() => onBuildRoutine(
+                    `${dayLabel ? `${dayLabel} — ` : ""}${muscles.map((m) => MUSCLE_LABEL[m]).join("/")}${goal ? ` — ${goal.label}` : ""}`,
+                    picks.map((ex, i) => ({
+                      exercise_id: ex.id, order: i,
+                      sets: goal ? goal.sets : 3,
+                      reps: goal ? goal.reps_low : 10,
+                      weight_kg: null,
+                    })),
+                    dayTag
+                  )}>
+            <Plus size={13} /> Save to Scheduler
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // One recommendation per exercise, built from comparing the member's own
 // last two logged sessions — arithmetic, not a model, and every row shows
 // the numbers behind it rather than asking to be trusted. "Build a routine"
 // above it is the same rule applied to a whole routine instead of one
 // exercise: it reads BodyMap's real status, never invents one.
-function CoachView({ coach, bodymap, exercises, onBuildRoutine, onBuildSplit }) {
+function CoachView({ coach, bodymap, exercises, dayTagLabels, onBuildRoutine, onBuildSplit }) {
   if (!coach) return null;
   const rows = asList(coach.exercises);
   const labels = asDict(coach.labels);
@@ -1130,6 +1265,8 @@ function CoachView({ coach, bodymap, exercises, onBuildRoutine, onBuildSplit }) 
           <BuildRoutine bodymap={bodymap} exercises={exercises} goals={coach.goals} onBuildRoutine={onBuildRoutine} />
           <SplitBuilder bodymap={bodymap} exercises={exercises} goals={coach.goals} splits={coach.splits}
                         onBuildSplit={onBuildSplit} />
+          <MuscleDayBuilder exercises={exercises} goals={coach.goals} dayTagLabels={dayTagLabels || []}
+                            onBuildRoutine={onBuildRoutine} />
         </>
       )}
 
