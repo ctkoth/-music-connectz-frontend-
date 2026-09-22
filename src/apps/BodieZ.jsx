@@ -47,9 +47,15 @@ import { IconImg } from "../App.jsx";
 import { pickForDay } from "../bodiezPick.js";
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 
+// Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
+// migration 0145's docstring on the backend for why it stays: Burpee, Clean
+// and Press and the kettlebell lifts genuinely aren't one-muscle movements).
+// "Arms" and "Legs" are gone from here, not aliased — a client that still
+// rendered them would be showing a label the server can no longer produce.
 const MUSCLE_LABEL = {
-  chest: "Chest", back: "Back", shoulders: "Shoulders", arms: "Arms",
-  legs: "Legs", core: "Core", cardio: "Cardio", full_body: "Full Body",
+  abs: "Abs", back: "Back", biceps: "Biceps", cardio: "Cardio", chest: "Chest",
+  forearms: "Forearms", glutes: "Glutes", shoulders: "Shoulders", triceps: "Triceps",
+  upper_legs: "Upper Legs", lower_legs: "Lower Legs", full_body: "Full Body",
 };
 
 // EQUIPMENT_LABEL moved to EquipmentPicker.jsx — same shape the server's
@@ -1120,11 +1126,13 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
 // forcing one on them would mean training legs on a day they can't. This
 // picks straight off the real muscle groups instead: no split name, no
 // assumption about which muscles belong on which day, just what the member
-// says today's day is for. Same exercise-and-goal machinery as BuildRoutine,
-// same "arms" caveat SplitBuilder already states, because the library still
-// only has one bucket for biceps/triceps/forearms.
+// says today's day is for. Same exercise-and-goal machinery as BuildRoutine.
+// Cardio and Full Body are left off the toggle row for the same reason
+// SplitBuilder never assigns either to a day — "cardio day" and "full body
+// day" aren't what picking muscles for a day means.
 function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
-  const MUSCLES = ["chest", "back", "shoulders", "arms", "legs", "core"];
+  const MUSCLES = ["abs", "back", "biceps", "chest", "forearms", "glutes",
+                    "shoulders", "triceps", "upper_legs", "lower_legs"];
   const [muscles, setMuscles] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
@@ -1160,8 +1168,8 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
         <div className="space-y-2 pt-1">
           <p className="text-xs text-white/45">
             No named split — just the muscles this day trains. Good for training around what
-            you can do, not what a textbook split assumes: e.g. arms + shoulders one day,
-            chest + back + core the next, however many days a week suits you.
+            you can do, not what a textbook split assumes: e.g. biceps + triceps + forearms +
+            shoulders one day, chest + back + abs the next, however many days a week suits you.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {MUSCLES.map((m) => (
@@ -1173,13 +1181,6 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
               </button>
             ))}
           </div>
-          {muscles.includes("arms") && (
-            <p className="text-[11px] text-white/35">
-              "Arms" is one bucket for biceps, triceps and forearms — the library doesn't
-              separate them, so picking Arms pulls from all three rather than letting you
-              isolate one.
-            </p>
-          )}
           <div className="flex flex-wrap gap-2">
             {dayTagLabels.length > 0 && (
               <DayTagPicker value={dayTag} labels={dayTagLabels} onChange={setDayTag}
