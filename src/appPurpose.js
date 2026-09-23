@@ -71,6 +71,7 @@ export const APP_PURPOSE = {
   metz:        { does: "Metronome",                      words: "metronome tempo bpm beat click time signature practice" },
   tunerz:      { does: "Tune an instrument",              words: "tuner tune pitch pegs string guitar bass in tune" },
   chordz:      { does: "Chords and progressions",         words: "chords progression voicing theory scale music" },
+  toolz:       { does: "Audio, visual and app tools",     words: "tools toolz image editor layers translate transcribe clean storage cache utility" },
   dawz:        { does: "Vote for the next DAW build",     words: "daw record produce mix beat maker software studio" },
   lilith:      { does: "Task manager",                    words: "tasks todo reminders manage organize checklist" },
   dupez:       { does: "Sort out a duplicate account",     words: "duplicate account merge second another mine claim" },

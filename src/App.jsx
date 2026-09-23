@@ -52,6 +52,7 @@ const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const ImageZ = lazy(lazyRoute(() => import("./apps/ImageZ.jsx")));
 const CleanConnectZ = lazy(lazyRoute(() => import("./apps/CleanConnectZ.jsx")));
+const ToolZ = lazy(lazyRoute(() => import("./apps/ToolZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
@@ -357,6 +358,10 @@ export const CUSTOM_ICONS = {
   // Owner-only tab — reserved ahead of the artwork, same as the rest above;
   // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
   "funnelz.png": "/icons/funnelz-neon.svg",
+  // ToolZ launcher's own mark — already committed in public/icons/ (unlike
+  // toolz_lilith.png above, which is Lilith's own icon) and unregistered
+  // until this tab existed to use it.
+  "toolz.png": "/icons/toolz.png",
 };
 
 // Renders a registry icon; if the file is missing (still being remade),
@@ -439,6 +444,16 @@ const TABS = [
   // reference app until now. Free storage/cache cleanup, MusicConnectZ side
   // and/or the device's own caches.
   { key: "cleanconnectz", section: "ToolZ", label: "Clean ConnectZ", icon: "cleanconnectz.png", el: <CleanConnectZ /> },
+  // ToolZ itself, as a launcher — Corey's ask: "put the apps nestled in the
+  // parent tabs with their icons and corey voice description, clicking the
+  // icon opens the app." This is the UI-only version of that: a grid of
+  // tiles for ImageZ/Clean ConnectZ/KeyConnectZ, each linking to that app's
+  // OWN existing top-level route (see AppLauncher.jsx and apps/ToolZ.jsx).
+  // It does not move or nest those tabs' real routes — the larger
+  // restructure that would do that was explicitly declined earlier on this
+  // branch. Its own section is ToolZ too, so it sits with its siblings in
+  // the drawer as the entry point into the group.
+  { key: "toolz", section: "ToolZ", label: "ToolZ", icon: "toolz.png", el: <ToolZ /> },
   { key: "specz", section: "Account", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", section: "Account", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "adz", section: "Economy", label: "AdZ", icon: "adz.png", el: <AdZ /> },
