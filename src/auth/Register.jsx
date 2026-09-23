@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
+import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User, Clock } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
@@ -25,6 +25,17 @@ export default function Register() {
   // computed client-side. It only survives as real routines if this
   // registration completes; see BodieZTrial.jsx's own comment on why.
   const trialSplit = storedTrialSplit();
+
+  // OTP verification flow state
+  const [otpStep, setOtpStep] = useState("initial"); // "initial", "sent", "verified"
+  const [otpIdentifier, setOtpIdentifier] = useState("");
+  const [otpChannel, setOtpChannel] = useState(""); // "email" or "phone"
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
+  const [otpTimeRemaining, setOtpTimeRemaining] = useState(0);
+
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

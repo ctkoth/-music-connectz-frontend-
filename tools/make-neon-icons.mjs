@@ -49,21 +49,19 @@ const G = {
     <circle cx="212" cy="180" r="15" fill="${b}"/>
     <circle cx="300" cy="180" r="15" fill="${b}"/>`,
 
-  // VybeZ: the member search. It rendered `social_connectz.png` — the exact
-  // same heart as the Social ConnectZ tab beside it — so two different tabs
-  // carried one mark and neither said which was which.
-  //
-  // They are different things and the glyph has to say so: Social ConnectZ is
-  // the ROOM (a heart, who is here), VybeZ is LOOKING (regions, genders, both
-  // zodiacs, sober, substances, five range gates and distance). So: a lens
-  // with a heart inside it. At tab-strip size the circle-and-handle
-  // silhouette is unmistakable against a plain heart, which is the only test
-  // a 24px icon has to pass.
+  // VybeZ: the member search paired with musical discovery. Hearts and music
+  // notes integrated, cyan-to-pink gradient to pair against Social ConnectZ's
+  // pink-to-cyan. Social ConnectZ is the ROOM (who is here), VybeZ is LOOKING
+  // (regions, genders, both zodiacs, sober, substances, five range gates and
+  // distance). The combined hearts and notes read as "vibe discovery" — who to
+  // find and what to enjoy together.
   vybez: (a, b) => `
-    <circle cx="228" cy="214" r="112" fill="none" stroke="${a}" stroke-width="16"/>
-    <path d="M228 268c-34-24-54-41-54-63a31 31 0 0 1 54-19 31 31 0 0 1 54 19c0 22-20 39-54 63z"
-          fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
-    <path d="M312 298l74 74" stroke="${a}" stroke-width="20" stroke-linecap="round"/>`,
+    <path d="M256 140c22 28 34 44 34 62a34 34 0 0 1-68 0c0-18 12-34 34-62z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M302 156c22 28 34 44 34 62a34 34 0 0 1-68 0c0-18 12-34 34-62z" fill="none" stroke="${b}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M302 230c-30-20-48-33-48-48a28 28 0 0 1 48-17 28 28 0 0 1 48 17c0 15-18 28-48 48z" fill="none" stroke="${a}" stroke-width="14" stroke-linejoin="round"/>
+    <g stroke="${b}" stroke-width="14" stroke-linecap="round" fill="none">
+      <path d="M170 240v52M190 224v68M210 232v60"/>
+    </g>`,
 
   profilez: (a, b) => `
     <path d="M300 118h84v70a42 42 0 0 1-84 0z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.85"/>
