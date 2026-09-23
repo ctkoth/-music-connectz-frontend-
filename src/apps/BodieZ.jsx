@@ -88,6 +88,11 @@ export default function BodieZ() {
   const [tab, setTab] = useState("today");
   const [exercises, setExercises] = useState([]);
   const [demoCredit, setDemoCredit] = useState("");
+  // Set by BodyMap's "Build a day for just this muscle" CTA, read once by
+  // MuscleDayBuilder on the Coach tab then cleared — a jump that lands ON
+  // the control rather than dumping the member at the top of a new tab.
+  const [prefillMuscle, setPrefillMuscle] = useState(null);
+  const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("coach"); };
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   const [progress, setProgress] = useState(null);
@@ -328,9 +333,12 @@ export default function BodieZ() {
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
                           onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta} />
           )}
-          {tab === "bodymap" && <BodyMapView bodymap={bodymap} />}
+          {tab === "bodymap" && (
+            <BodyMapView bodymap={bodymap} exercises={exercises} onBuildForMuscle={jumpToMuscleBuild} />
+          )}
           {tab === "coach" && (
             <CoachView coach={coach} bodymap={bodymap} exercises={exercises} dayTagLabels={dayTagLabels}
+                      prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                       onBuildRoutine={createRoutineFromExercises}
                       onBuildSplit={createSplitRoutines} />
           )}
@@ -853,32 +861,78 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCre
 // Which muscles were trained recently, which are going stale, which are
 // getting hit every session — every status and count is the server's own
 // word, never a fabricated 0-100 "balance score" nobody could check.
-function BodyMapView({ bodymap }) {
+//
+// volume_score IS a score out of 10, and it earns the exception: it's
+// `sets_last_7d ÷ target_weekly_sets`, and BOTH numbers it's built from are
+// printed right beside it, so it's a ratio a member can check, not a black
+// box. Clicking a card expands it — the score's own citation, and every
+// exercise the library has for that muscle, because "here's your number" and
+// "here's nowhere to take it" is the exact dead end the cross-pollination
+// rule exists to close.
+function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
+  const [open, setOpen] = useState(null);
   if (!bodymap) return null;
   const muscles = asList(bodymap.muscles);
   return (
     <div className="space-y-3">
       <p className="text-xs text-white/45">
         Trailing {bodymap.window_days} days. "Overworked" counts separate training
-        days, not sets — five sets in one session isn't five sessions.
+        days, not sets — five sets in one session isn't five sessions. Tap a
+        muscle for your score and every exercise the library has for it.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {muscles.map((m) => {
           const s = BODYMAP_STATUS[m.status] || BODYMAP_STATUS.untrained;
+          const isOpen = open === m.muscle_group;
+          const pool = (exercises || []).filter((ex) => ex.muscle_group === m.muscle_group);
           return (
-            <div key={m.muscle_group} className="re-card flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">{m.label}</p>
-                <p className="text-xs text-white/45">
-                  {m.last_trained
-                    ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
-                    : "Never trained"}
-                  {m.sets_last_7d > 0 && ` · ${m.sets_last_7d} set${m.sets_last_7d === 1 ? "" : "s"} this week`}
-                </p>
-              </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${s.color}`}>
-                {s.said}
-              </span>
+            <div key={m.muscle_group} className={`re-card space-y-2 ${isOpen ? "sm:col-span-2" : ""}`}>
+              <button className="flex w-full items-center justify-between text-left"
+                      onClick={() => setOpen(isOpen ? null : m.muscle_group)}>
+                <div>
+                  <p className="text-sm font-semibold text-white inline-flex items-center gap-1.5">
+                    {m.label}
+                    <span className="rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
+                      {m.volume_score}/10
+                    </span>
+                  </p>
+                  <p className="text-xs text-white/45">
+                    {m.last_trained
+                      ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
+                      : "Never trained"}
+                    {m.sets_last_7d > 0 && ` · ${m.sets_last_7d} set${m.sets_last_7d === 1 ? "" : "s"} this week`}
+                  </p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${s.color}`}>
+                  {s.said}
+                </span>
+              </button>
+              {isOpen && (
+                <div className="space-y-2 border-t border-white/10 pt-2">
+                  <p className="text-[11px] text-white/35">
+                    Score = {m.sets_last_7d} set{m.sets_last_7d === 1 ? "" : "s"} logged this week ÷{" "}
+                    {bodymap.target_weekly_sets}-set weekly target, capped at 10. {bodymap.volume_citation}
+                  </p>
+                  {pool.length === 0 ? (
+                    <p className="text-xs text-white/40">No exercises in the library for {m.label} yet.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {pool.map((ex) => (
+                        <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
+                          <span>{ex.name} <span className="text-white/30">· {EQUIPMENT_LABEL[ex.equipment]}</span></span>
+                          <DemoLink url={ex.demo_url} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {onBuildForMuscle && (
+                    <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-[11px] inline-flex items-center gap-1"
+                            onClick={() => onBuildForMuscle(m.muscle_group)}>
+                      <Dumbbell size={12} /> Build a day for just {m.label}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1130,7 +1184,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
 // Cardio and Full Body are left off the toggle row for the same reason
 // SplitBuilder never assigns either to a day — "cardio day" and "full body
 // day" aren't what picking muscles for a day means.
-function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
+function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onInitialMuscleConsumed, onBuildRoutine }) {
   const MUSCLES = ["abs", "back", "biceps", "chest", "forearms", "glutes",
                     "shoulders", "triceps", "upper_legs", "lower_legs"];
   const [muscles, setMuscles] = useState([]);
@@ -1140,6 +1194,17 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
   const [perMuscle, setPerMuscle] = useState(2);
   const [open, setOpen] = useState(false);
   const goal = goalKey ? goals?.[goalKey] : null;
+
+  // BodyMap's "Build a day for just this muscle" lands HERE, on the control,
+  // pre-selected and open — the same rule `goToSpot` follows everywhere else
+  // in this app: a jump that dumps a member at the top of a tab they then
+  // have to go hunting through is where the cross-pollination rule dies.
+  useEffect(() => {
+    if (!initialMuscle) return;
+    setMuscles([initialMuscle]);
+    setOpen(true);
+    onInitialMuscleConsumed?.();
+  }, [initialMuscle]);
 
   const toggleMuscle = (m) =>
     setMuscles((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
@@ -1250,7 +1315,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, onBuildRoutine }) {
 // the numbers behind it rather than asking to be trusted. "Build a routine"
 // above it is the same rule applied to a whole routine instead of one
 // exercise: it reads BodyMap's real status, never invents one.
-function CoachView({ coach, bodymap, exercises, dayTagLabels, onBuildRoutine, onBuildSplit }) {
+function CoachView({ coach, bodymap, exercises, dayTagLabels, prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit }) {
   if (!coach) return null;
   const rows = asList(coach.exercises);
   const labels = asDict(coach.labels);
@@ -1267,6 +1332,7 @@ function CoachView({ coach, bodymap, exercises, dayTagLabels, onBuildRoutine, on
           <SplitBuilder bodymap={bodymap} exercises={exercises} goals={coach.goals} splits={coach.splits}
                         onBuildSplit={onBuildSplit} />
           <MuscleDayBuilder exercises={exercises} goals={coach.goals} dayTagLabels={dayTagLabels || []}
+                            initialMuscle={prefillMuscle} onInitialMuscleConsumed={onPrefillConsumed}
                             onBuildRoutine={onBuildRoutine} />
         </>
       )}
