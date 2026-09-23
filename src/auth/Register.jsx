@@ -148,7 +148,7 @@ export default function Register() {
         <div>
           <Field icon={User} placeholder="Username" value={form.username}
                  onChange={(e) => { setHandle(null); set("username")(e); }}
-                 onBlur={checkHandle} autoComplete="username" />
+                 onBlur={checkHandle} autoComplete="username" required={!form.email.trim() && !form.phone.trim()} />
           {/* The server's sentence, never a reworded one — it is the same
               `username_problem` the register endpoint refuses with, so the
               form and the submit can never disagree about why. */}
@@ -158,9 +158,22 @@ export default function Register() {
             </p>
           )}
           {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
+          {(form.email.trim() || form.phone.trim()) && !form.username.trim() && (
+            <p className="mt-1 text-[11px] text-white/50">Username is optional when email or phone is provided</p>
+          )}
         </div>
-        <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
-        <Field icon={Phone} type="tel" placeholder="Phone number (optional)" value={form.phone} onChange={set("phone")} autoComplete="tel" required={false} />
+        <div>
+          <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" required={!form.username.trim() && !form.phone.trim()} />
+          {(form.username.trim() || form.phone.trim()) && !form.email.trim() && (
+            <p className="mt-1 text-[11px] text-white/50">Email is optional when username or phone is provided</p>
+          )}
+        </div>
+        <div>
+          <Field icon={Phone} type="tel" placeholder="Phone number" value={form.phone} onChange={set("phone")} autoComplete="tel" required={!form.username.trim() && !form.email.trim()} />
+          {(form.username.trim() || form.email.trim()) && !form.phone.trim() && (
+            <p className="mt-1 text-[11px] text-white/50">Phone is optional when username or email is provided</p>
+          )}
+        </div>
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
