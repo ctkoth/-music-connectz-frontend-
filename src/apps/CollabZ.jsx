@@ -27,6 +27,7 @@ import { goToSpot } from "../goto.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
+import AppLauncher from "../AppLauncher.jsx";
 import { ENERGY, MONEY, SPINAZ } from "../resources.js";
 import { labelForSkill } from "../personaSkills.js";
 import Refused, { isInsufficient } from "../Refused.jsx";
@@ -35,6 +36,34 @@ import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+
+// This tab isn't the whole neighborhood — VenueZ, BattleZ and LabelZ are
+// three other collaboration-shaped apps a member might genuinely not know
+// exist as separate tabs, VenueZ and LabelZ especially. Unlike ToolZ, CollabZ
+// already has real content (deals, escrow, the form below), so this doesn't
+// replace the tab — it's a jump-row above the deal list, same AppLauncher
+// component ToolZ uses, reused rather than forked. No tile loops back to
+// CollabZ itself; you're already here.
+const SIBLING_TILES = [
+  {
+    icon: "venuez.png",
+    label: "VenueZ",
+    route: "/venue",
+    description: "Book a room together. Whoever RECEIVES the skill pays for it, at the other person's rates — a performance charges you at the host's price, a session charges the host at yours. The ask is priced before you send it, same rule as everything else here.",
+  },
+  {
+    icon: "battlez.png",
+    label: "BattleZ",
+    route: "/battle",
+    description: "One post versus another, judged by whoever shows up to rate it. Verified 18+ members can stake real money on themselves; everyone else wagers SpinaZ 🍥 as a spectator — never the two people actually battling.",
+  },
+  {
+    icon: "labelz.png",
+    label: "LabelZ",
+    route: "/label",
+    description: "Public label groups with e-signed artist agreements — splits, term length, an advance that settles off-platform. Starting a label needs Premium/StatZ tier or an A&R Scout / Manager persona, set in ProfileZ.",
+  },
+];
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -351,6 +380,13 @@ export default function CollabZ() {
       </header>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
+
+      <div>
+        <h3 className="mb-1 px-1 text-xs font-semibold uppercase tracking-widest text-white/45">
+          Also collaboration-shaped
+        </h3>
+        <AppLauncher tiles={SIBLING_TILES} />
+      </div>
 
       <div data-tour="collabz-deals" className="space-y-3">
       {deals === null ? (
