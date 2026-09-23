@@ -48,6 +48,7 @@ const DirectZ = lazy(lazyRoute(() => import("./apps/DirectZ.jsx")));
 const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
 const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
+const ParcelPrimate = lazy(lazyRoute(() => import("./apps/ParcelPrimate.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const ImageZ = lazy(lazyRoute(() => import("./apps/ImageZ.jsx")));
@@ -229,6 +230,9 @@ export const CUSTOM_ICONS = {
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
   "messagez.png": "/icons/messagez.png",
+  // Parcel Primate — no drawn artwork yet, generated glyph like journalz/
+  // funnelz above: a mail parcel, not the moodboard reference's lemur.
+  "parcelprimate.png": "/icons/parcelprimate-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
   "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
@@ -485,6 +489,12 @@ const TABS = [
     el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", section: "Social ConnectZ", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
+  // Parcel Primate — Corey's ask: "belongs in toolz and messagez groups".
+  // One screen, one route (/parcelprimate), reached two ways: this real top
+  // -level tab (section ToolZ, so the drawer and dock carry it there) and a
+  // tile inside MessageZ.jsx that links to the same route — not a second
+  // component, see ParcelPrimate.jsx's own header comment.
+  { key: "parcelprimate", section: "ToolZ", label: "Parcel Primate", icon: "parcelprimate.png", el: <ParcelPrimate /> },
   { key: "keyconnectz", section: "ToolZ", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "occ", section: "ToolZ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", section: "Economy", label: "LogZ", icon: "logz.png", el: <LogZ /> },

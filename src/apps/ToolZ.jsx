@@ -24,6 +24,12 @@ const TILES = [
     route: "/keyconnect",
     description: "Translate and hear it read back. Free at every tier — being understood isn't a luxury. Your daily transcribe and speak allowance is on the screen before you use it.",
   },
+  {
+    icon: "parcelprimate.png",
+    label: "Parcel Primate",
+    route: "/parcelprimate",
+    description: "Build a mailing list and send a real campaign to it. Free up to 100 recipients/day, then it's priced on the button before you send — also reachable from MessageZ.",
+  },
 ];
 
 export default function ToolZ() {

@@ -402,6 +402,20 @@ const G = {
     <path d="M160 96h142l52 52v216a20 20 0 0 1-20 20H160a20 20 0 0 1-20-20V116a20 20 0 0 1 20-20z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M300 96v56h54" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M248 196l20 44 48 6-35 33 9 47-42-23-42 23 9-47-35-33 48-6z" fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>`,
+  // Parcel Primate — a mail parcel, not the moodboard's lemur. Corey's
+  // reference image draws a cartoon primate mascot; that's his own moodboard
+  // art for what the FEATURE should feel like, not something to reproduce
+  // pixel-for-pixel as a UI icon (same discipline as the SoundCloud glyph's
+  // nominative-use precedent above). So this reads as the thing the feature
+  // actually does — a parcel of mail going out — with two small rounded
+  // "ears" on the flap as the one wink at the name, abstract enough to never
+  // be mistaken for a drawn character at 24px.
+  parcelprimate: (a, b) => `
+    <rect x="152" y="150" width="208" height="150" rx="18" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M152 168l104 72 104-72" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="196" cy="120" r="20" fill="none" stroke="${a}" stroke-width="12"/>
+    <circle cx="316" cy="120" r="20" fill="none" stroke="${a}" stroke-width="12"/>
+    <path d="M186 258h60" stroke="${b}" stroke-width="12" stroke-linecap="round" stroke-opacity="0.75"/>`,
 };
 
 // key → [label, accent, secondary]. Colours are assigned so the dock reads as
@@ -456,6 +470,7 @@ const APPS = [
   ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],
   ["drumz", "DrumZ", C.ember, C.gold],
+  ["parcelprimate", "Parcel Primate", C.ember, C.cyan],
 ];
 
 // Which glyph a file uses — most are named for the app, a couple aren't

@@ -10,6 +10,7 @@ import { onHandoff } from "../handoff.js";
 import MentionText from "../MentionParser.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
 import MemberName from "../MemberName.jsx";
+import { Link } from "react-router-dom";
 
 export default function MessageZ() {
   const [data, setData] = useState(null);
@@ -91,11 +92,28 @@ export default function MessageZ() {
       {!data ? (
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       ) : (
+        // Inbox/Outbox per the blueprint — a filtered view of these same
+        // direct-message rows (sent vs received), not a new mail system.
         <div className="grid gap-4 sm:grid-cols-2">
           <MsgList title="Inbox" rows={asList(data.inbox)} who="from" />
-          <MsgList title="Sent" rows={asList(data.sent)} who="to" />
+          <MsgList title="Outbox" rows={asList(data.sent)} who="to" />
         </div>
       )}
+
+      {/* Parcel Primate lives elsewhere (external mailing lists, real
+          SendGrid spend) — this is only the second door into it Corey asked
+          for ("belongs in toolz and messagez groups"), not a second copy of
+          it. Its own contacts and campaigns are never mixed with these DMs. */}
+      <Link to="/parcelprimate"
+        className="neon-frame flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-mcz-ember hover:bg-white/[0.07]">
+        <IconImg icon="parcelprimate.png" alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-white">Parcel Primate</div>
+          <p className="text-[12px] leading-snug text-white/50">
+            Sending to an outside mailing list, not another member? That's here — build a list, draft a campaign, send it.
+          </p>
+        </div>
+      </Link>
     </div>
   );
 }
