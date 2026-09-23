@@ -17,7 +17,7 @@ import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
-import { spotlight, goToTab } from "../goto.js";
+import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
@@ -1275,7 +1275,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             {!premium && (
               <p className="mt-4 text-[11px] text-white/45">
                 The PersonaZ is free for everyone — only the alternate artwork needs Premium.{" "}
-                <button type="button" onClick={() => { setPickingIcon(null); goToTab("membershipz"); }}
+                <button type="button" onClick={() => { setPickingIcon(null); goToSpot("membershipz", "membershipz-plans"); }}
                         className="text-mcz-cyan hover:underline">
                   Upgrade in MembershipZ to unlock it.
                 </button>
