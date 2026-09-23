@@ -50,6 +50,7 @@ const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
+const ImageZ = lazy(lazyRoute(() => import("./apps/ImageZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
@@ -417,6 +418,10 @@ const TABS = [
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
+  // occ_spec.py's EXPORT_ROUTES has routed image OCC exports to
+  // {"app": "imagez", "target": "imagez:library"} since it was written — a
+  // dead door until this tab existed to receive them.
+  { key: "imagez", label: "ImageZ", icon: "imagez.png", el: <ImageZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
