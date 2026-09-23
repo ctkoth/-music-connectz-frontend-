@@ -51,6 +51,7 @@ const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const ImageZ = lazy(lazyRoute(() => import("./apps/ImageZ.jsx")));
+const CleanConnectZ = lazy(lazyRoute(() => import("./apps/CleanConnectZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
 const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
@@ -400,11 +401,22 @@ export const slugFor = (key) =>
 export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
+// `section` groups tabs for display ONLY — it is Corey's option (a): a visual
+// header in the all-apps drawer (PickConnectZ.jsx), never a route, never a
+// nested/modal restructuring (that's option (b), explicitly declined). Every
+// tab keeps its own flat key, its own URL, its own place in TABS — `goto.js`,
+// `goToSpot` and every deep link are untouched. Where the blueprint doc
+// itself names a top-level tab that groups sub-apps ("=Social ConnectZ",
+// "=CollabZ", "=ToolZ", "=CallZ"/"=RoyaltieZ"/"=BugZ"), that section keeps the
+// blueprint's own name; the rest (PostZ, Training, Personal, Account,
+// Platform, Getting Started) are functional groupings the blueprint doesn't
+// name explicitly, since it only ever specified a handful of top-level tabs
+// with their sub-apps nested — not a taxonomy over the other ~40 tabs.
 const TABS = [
-  { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
-  { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
-  { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
-  { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "onboardz", section: "Getting Started", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
+  { key: "postz", section: "PostZ", label: "PostZ", icon: "postz.png", el: <PostZ /> },
+  { key: "playlistz", section: "PostZ", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
+  { key: "social", section: "Social ConnectZ", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
   // genders, both zodiacs, sober, substances, five range gates and distance —
   // has been implemented and reachable only by typing a URL.
@@ -412,27 +424,32 @@ const TABS = [
   // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
   // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
   // LOOKING, so the glyph is a lens with a heart in it.
-  { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
-  { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
-  { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
-  { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
-  { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
-  { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
+  { key: "vybez", section: "Social ConnectZ", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
+  { key: "soundcloudengagementz", section: "Training", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
+  { key: "coachz", section: "Training", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
+  { key: "profilez", section: "Account", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
+  { key: "statsz", section: "PostZ", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
+  { key: "opportunitiez", section: "PostZ", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   // occ_spec.py's EXPORT_ROUTES has routed image OCC exports to
   // {"app": "imagez", "target": "imagez:library"} since it was written — a
   // dead door until this tab existed to receive them.
-  { key: "imagez", label: "ImageZ", icon: "imagez.png", el: <ImageZ /> },
-  { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
-  { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
-  { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
-  { key: "offerz", label: "OfferZ", icon: "offerz.png", el: <OfferZ /> },
-  { key: "mimez", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
-  { key: "directz", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
-  { key: "lessonz", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
-  { key: "singz", label: "SingZ", icon: "singz.png",
+  { key: "imagez", section: "ToolZ", label: "ImageZ", icon: "imagez.png", el: <ImageZ /> },
+  // Ported from the single unmounted copy in src/mcz2/Mcz2App.jsx
+  // (CleanConnectZPage) — real, working, and reachable only by editing the
+  // reference app until now. Free storage/cache cleanup, MusicConnectZ side
+  // and/or the device's own caches.
+  { key: "cleanconnectz", section: "ToolZ", label: "Clean ConnectZ", icon: "cleanconnectz.png", el: <CleanConnectZ /> },
+  { key: "specz", section: "Account", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
+  { key: "membershipz", section: "Account", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
+  { key: "adz", section: "Economy", label: "AdZ", icon: "adz.png", el: <AdZ /> },
+  { key: "offerz", section: "Economy", label: "OfferZ", icon: "offerz.png", el: <OfferZ /> },
+  { key: "mimez", section: "Personal", label: "MimeZ", icon: "mimez.png", el: <MimeZ /> },
+  { key: "directz", section: "Personal", label: "DirectZ", icon: "directz.png", el: <DirectZ /> },
+  { key: "lessonz", section: "Personal", label: "LessonZ", icon: "lessonz.png", el: <LessonZ /> },
+  { key: "singz", section: "Training", label: "SingZ", icon: "singz.png",
     el: <InstrumentZ appKey="singz" icon="singz.png" title="SingZ" accent="#f472b6"
         tagline="Vocal training game — range detection, quests, Boss SongZ, voice health first." /> },
-  { key: "rapz", label: "RapZ", icon: "rapz.png",
+  { key: "rapz", section: "Training", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
   // These four had a real, scored, tested backend coach — /api/<key>/coach/,
@@ -440,57 +457,62 @@ const TABS = [
   // signed-in member could reach any of it from. InstrumentZ has powered
   // them "via props" per its own comment since it was written; nothing ever
   // instantiated it here. See the note in InstrumentZ.jsx.
-  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+  { key: "guitarz", section: "Training", label: "GuitarZ", icon: "guitarz.png",
     el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#eab308"
         tagline="Guitar training — timing, tone, technique, dynamics and cleanliness scored on every take, Boss Mode included." /> },
-  { key: "bassz", label: "BassZ", icon: "bassz.png",
+  { key: "bassz", section: "Training", label: "BassZ", icon: "bassz.png",
     el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#7c3aed"
         tagline="Bass training — timing, tone, technique, dynamics and note length scored on every take, Boss Mode included." /> },
-  { key: "keyz", label: "KeyZ", icon: "keyz.png",
+  { key: "keyz", section: "Training", label: "KeyZ", icon: "keyz.png",
     el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#38bdf8"
         tagline="Keys training — timing, tone, technique, dynamics and voicing scored on every take, Boss Mode included." /> },
-  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+  { key: "violinz", section: "Training", label: "ViolinZ", icon: "violinz.png",
     el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
-  { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
-  { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
-  { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
-  { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
-  { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
-  { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
-  { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
-  { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
-  { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
-  { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
-  { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
+  { key: "messagez", section: "Social ConnectZ", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
+  { key: "keyconnectz", section: "ToolZ", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  { key: "occ", section: "ToolZ", label: "OCC", icon: "occ.png", el: <OCC /> },
+  { key: "logz", section: "Economy", label: "LogZ", icon: "logz.png", el: <LogZ /> },
+  { key: "royaltiez", section: "Economy", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
+  { key: "callz", section: "Economy", label: "CallZ", icon: "callz.png", el: <CallZ /> },
+  { key: "gamez", section: "Training", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
+  { key: "soundz", section: "Training", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
+  { key: "metz", section: "Training", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
+  { key: "tunerz", section: "Training", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
+  { key: "chordz", section: "Training", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
   // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
   // rendered inside InstrumentZ now rather than standing alone) and gained
   // the scored Boss Take coach the backend already had mounted at
   // /api/drumz/coach/ with nothing here pointing at it.
-  { key: "drumz", label: "DrumZ", icon: "drumz.png",
+  { key: "drumz", section: "Training", label: "DrumZ", icon: "drumz.png",
     el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#ef4444"
         tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
-  { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
-  { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
-  { key: "lilith", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
-  { key: "bodiez", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
-  { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
-  { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
-  { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
-  { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
-  { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
-  { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
-  { key: "dawz", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
+  { key: "journalz", section: "Personal", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
+  { key: "habitz", section: "Personal", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
+  { key: "lilith", section: "ToolZ", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
+  { key: "bodiez", section: "Personal", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
+  { key: "collabz", section: "CollabZ", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
+  { key: "venuez", section: "CollabZ", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
+  { key: "battlez", section: "CollabZ", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
+  { key: "labelz", section: "CollabZ", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
+  { key: "groupz", section: "Social ConnectZ", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
+  { key: "bugz", section: "Platform", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+  { key: "dawz", section: "ToolZ", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
   // below. The route and TABS entry still exist for anyone who is the
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
   // shows nothing to a non-owner even if they reach it another way.
-  { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
+  { key: "funnelz", section: "Platform", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
   // Not owner-only, unlike FunnelZ: a member needs to see their own
   // duplicates to say which one is theirs. The server decides what each
   // person is shown — the owner every group, a member only their own.
-  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
+  { key: "dupez", section: "Account", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
 ];
+
+// The order sections appear in the drawer — first appearance in TABS above,
+// deduped. Reading it off TABS rather than a second hardcoded list is the
+// same rule as everywhere else in this file: one place a tab's shape lives.
+export const SECTION_ORDER = [...new Set(TABS.map((t) => t.section))];
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -745,6 +767,7 @@ const TAB_ABOUT = {
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  cleanconnectz: "🧹 Clean ConnectZ — free up space. Sweep your MusicConnectZ uploads, clear your device's browser caches, or both. Always free.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
