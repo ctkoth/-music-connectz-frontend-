@@ -18,7 +18,7 @@
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
 import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X } from "lucide-react";
-import { IconImg, slugFor } from "./App.jsx";
+import { IconImg, slugFor, SECTION_ORDER } from "./App.jsx";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 
@@ -246,8 +246,21 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
             </p>
           )}
 
+          {/* Grouped by section — Corey's option (a): a visual header only.
+              Every tab keeps its own flat key/route/icon; this changes
+              nothing about navigation, only how the grid reads. A section
+              with nothing left in it after the search filter renders no
+              header — an empty "CollabZ" heading over blank space would
+              read as a bug, not as "nothing here matched". */}
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {shown.map((a) => {
+            {SECTION_ORDER.flatMap((sec) => {
+              const inSection = shown.filter((a) => a.section === sec);
+              if (!inSection.length) return [];
+              return [
+                <div key={`h-${sec}`} className="col-span-4 sm:col-span-6 -mb-1 mt-2 first:mt-0 px-1 text-[10px] font-bold uppercase tracking-wide text-white/35">
+                  {sec}
+                </div>,
+                ...inSection.map((a) => {
               const pinned = pins.includes(a.key);
               const pinDisabled = !pinned && atLimit;
               const isHidden = hidden.includes(a.key);
@@ -335,6 +348,8 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                   )}
                 </div>
               );
+                }),
+              ];
             })}
           </div>
         </div>
