@@ -20,6 +20,7 @@ import MemberName from "../MemberName.jsx";
 import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
+import { goToSpot } from "../goto.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -226,7 +227,8 @@ export default function VybeZ() {
                     it says why rather than looking broken. */}
                 {!originShared && (
                   <span className="mt-1 block text-[10px] text-white/35">
-                    Turn on location sharing in ProfileZ to search by distance.
+                    Turn on location sharing to search by distance —{" "}
+                    <button className="re-link" onClick={() => goToSpot("profilez", "visibility")}>ProfileZ</button>
                   </span>
                 )}
               </label>

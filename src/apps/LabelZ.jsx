@@ -5,6 +5,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
+import { goToSpot } from "../goto.js";
 
 export default function LabelZ() {
   const talk = useSay();
@@ -70,9 +71,13 @@ export default function LabelZ() {
           <button className="neon-btn-primary !w-auto px-5" onClick={createLabel}><Plus size={16} /> Create label</button>
         </div>
       ) : (
-        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
-          Creating a label requires Premium/StatZ tier or the A&amp;R Scout / Manager persona — set yours in ProfileZ.
-        </p>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50 space-y-1.5">
+          <p>Creating a label requires Premium/StatZ tier or the A&amp;R Scout / Manager persona.</p>
+          <div className="flex flex-wrap gap-3">
+            <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Upgrade in MembershipZ</button>
+            <button className="re-link" onClick={() => goToSpot("profilez", "personas")}>Set your persona in ProfileZ</button>
+          </div>
+        </div>
       )}
 
       <div>

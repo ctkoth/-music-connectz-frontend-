@@ -5,6 +5,7 @@ import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import EarnInstead from "../EarnInstead.jsx";
+import { goToSpot } from "../goto.js";
 
 // AdZ — Google AdMob rewarded video. The actual ad plays through the AdMob SDK
 // in the native (Capacitor) app; Google then calls the backend SSV endpoint to
@@ -76,7 +77,15 @@ export default function AdZ() {
               <span className="text-sm text-emerald-300">+1 {SPINAZ}</span>
             </div>
             {!cfg.personalized && (
-              <p className="text-[11px] text-white/40">You'll see family-friendly, non-personalized ads.{cfg.age == null ? " Add your birthday in ProfileZ for age-appropriate settings." : ""}</p>
+              <p className="text-[11px] text-white/40 inline-flex flex-wrap items-center gap-1">
+                You'll see family-friendly, non-personalized ads.
+                {cfg.age == null && (
+                  <>
+                    Add your birthday for age-appropriate settings —
+                    <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>ProfileZ</button>
+                  </>
+                )}
+              </p>
             )}
           </>
         ) : (
@@ -86,7 +95,10 @@ export default function AdZ() {
               Rewarded ads play in the Music ConnectZ mobile app. Install it to watch ads and earn SpinaZ — your balance syncs here automatically.
             </p>
             {cfg.age == null && (
-              <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Cake size={11} /> Add your birthday in ProfileZ so ads match your age.</p>
+              <p className="flex items-center gap-1.5 text-[11px] text-white/40">
+                <Cake size={11} /> Add your birthday so ads match your age —
+                <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>ProfileZ</button>
+              </p>
             )}
           </>
         )}

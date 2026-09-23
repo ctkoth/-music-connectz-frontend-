@@ -43,7 +43,10 @@ function Toggle({ toggle, on, allowed, onChange }) {
         <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{toggle.desc}</p>
         {!allowed && (
           <p className="mt-1 text-[10px] text-mcz-ember">
-            Needs {toggle.needs} — upgrade in MembershipZ.
+            Needs {toggle.needs} —{" "}
+            <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>
+              upgrade in MembershipZ
+            </button>
           </p>
         )}
       </div>
