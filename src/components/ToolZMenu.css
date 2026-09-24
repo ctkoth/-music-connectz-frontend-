@@ -207,6 +207,24 @@
   animation: glow-pulse 1.5s ease-in-out infinite;
 }
 
+/* App Group (for grouped categories) */
+.app-group {
+  margin-bottom: 2rem;
+}
+
+.group-title {
+  font-size: 1rem;
+  color: #00ffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+  letter-spacing: 2px;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
 /* Quick Stats */
 .toolz-stats {
   display: flex;
@@ -260,6 +278,11 @@
     font-size: 2rem;
   }
 
+  .group-title {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
   .toolz-stats {
     flex-direction: column;
   }
@@ -276,5 +299,14 @@
 
   .category-btn {
     width: 100%;
+  }
+
+  .group-title {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .app-group {
+    margin-bottom: 1.5rem;
   }
 }
