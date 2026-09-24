@@ -896,9 +896,9 @@ function Home() {
             </a>
           </div>
 
-          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
-             title="PostZ — ctrl/cmd-click for a new tab">
-            <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
+          <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
+             title="ToolZ — All Audio, Visual & App ToolZ">
+            <img src="/icons/toolz-main.svg" alt="ToolZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => e.currentTarget.src = "/icons/toolz.png"} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
