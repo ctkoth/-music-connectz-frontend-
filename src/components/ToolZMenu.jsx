@@ -32,7 +32,7 @@ const ICON_MAP = {
   funnelz: { svg: '/icons/funnelz.svg', emoji: '📉' },
   groupz: { svg: '/icons/groupz.svg', emoji: '👫' },
   merchz: { svg: '/icons/merchz.svg', emoji: '🛍️' },
-  lilith: { svg: '/icons/lilith.svg', emoji: '💃' },
+  lilith: { svg: '/icons/lilith.png', emoji: '💃' },
   bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
 };
 
