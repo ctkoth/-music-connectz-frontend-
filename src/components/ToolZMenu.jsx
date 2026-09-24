@@ -36,7 +36,22 @@ const ICON_MAP = {
   bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
 };
 
-// App categories and configuration with grouped apps
+// Flatten apps from grouped structure
+const flattenApps = (categoryData) => {
+  if (!Array.isArray(categoryData)) return [];
+
+  const result = [];
+  categoryData.forEach(item => {
+    if (item.group && item.apps) {
+      result.push(...item.apps);
+    } else if (item.key) {
+      result.push(item);
+    }
+  });
+  return result;
+};
+
+// App categories and configuration
 const TOOLZ_MENU = {
   'SocialiZeZ': [
     {
@@ -145,68 +160,124 @@ const TOOLZ_MENU = {
   ],
 };
 
-// Flatten grouped apps for simple categories
-const flattenMenuData = (data) => {
-  if (!Array.isArray(data)) return data;
-  const firstItem = data[0];
-  // If it has a 'group' key, it's grouped data - return as is
-  if (firstItem && firstItem.group) return data;
-  // Otherwise it's flat - return as is
-  return data;
-};
+// Category info for the main grid
+const CATEGORIES = [
+  { key: 'SocialiZeZ', label: 'SocialiZeZ', color: 'magenta', emoji: '👥' },
+  { key: 'CollabZ', label: 'CollabZ', color: 'cyan', emoji: '🤝' },
+  { key: 'BattleZ', label: 'BattleZ', color: 'red', emoji: '⚔️' },
+  { key: 'GroupZ', label: 'GroupZ', color: 'cyan', emoji: '👫' },
+  { key: 'ToolZ', label: 'ToolZ', color: 'yellow', emoji: '🔧' },
+  { key: 'IntelligenceZ', label: 'IntelligenceZ', color: 'magenta', emoji: '🧠' },
+  { key: 'ProfileZ', label: 'ProfileZ', color: 'cyan', emoji: '👤' },
+  { key: 'VenueZ', label: 'VenueZ', color: 'orange', emoji: '🎪' },
+  { key: 'MercheZ', label: 'MercheZ', color: 'magenta', emoji: '🛍️' },
+  { key: 'Lilith', label: 'Lilith', color: 'magenta', emoji: '💃' },
+  { key: 'BodieZ', label: 'BodieZ', color: 'orange', emoji: '💪' },
+];
 
 export default function ToolZMenu() {
-  const [activeCategory, setActiveCategory] = useState('SocialiZeZ');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [hoveredApp, setHoveredApp] = useState(null);
 
   const handleAppClick = (appKey) => {
     goToSpot(appKey, `${appKey}:main`);
   };
 
-  const renderAppsContent = () => {
-    const categoryData = TOOLZ_MENU[activeCategory];
-    const firstItem = categoryData[0];
+  const handleOpenOption = (appKey, openType) => {
+    // openType: 'window', 'page', 'split'
+    if (openType === 'window') {
+      window.open(`//${appKey}`, appKey);
+    } else if (openType === 'page') {
+      goToSpot(appKey, `${appKey}:main`);
+    } else if (openType === 'split') {
+      // Split window behavior - would need layout management
+      goToSpot(appKey, `${appKey}:main`);
+    }
+  };
 
-    // Check if this is grouped data
-    if (firstItem && firstItem.group) {
-      // Render with group headers
-      return (
-        <>
-          {categoryData.map((groupSection, idx) => (
-            <div key={idx} className="app-group">
-              <h3 className="group-title">{groupSection.group}</h3>
-              <div className="apps-grid">
-                {groupSection.apps.map((app) => (
-                  <AppCard
-                    key={app.key}
-                    app={app}
-                    hoveredApp={hoveredApp}
-                    setHoveredApp={setHoveredApp}
-                    handleAppClick={handleAppClick}
-                  />
-                ))}
+  if (selectedCategory) {
+    const apps = flattenApps(TOOLZ_MENU[selectedCategory]);
+    const category = CATEGORIES.find(c => c.key === selectedCategory);
+
+    return (
+      <div className="toolz-menu-container">
+        <div className="toolz-header">
+          <button
+            className="back-button"
+            onClick={() => setSelectedCategory(null)}
+          >
+            ← Back
+          </button>
+          <div className="toolz-icon-main">
+            <span className="category-emoji">{category.emoji}</span>
+          </div>
+          <h1>{category.label}</h1>
+        </div>
+
+        <div className="apps-detail-grid">
+          {apps.map((app) => (
+            <div key={app.key} className={`app-detail-card ${app.color}`}>
+              <div className="app-detail-header">
+                <div className="app-icon-small">
+                  {ICON_MAP[app.key] ? (
+                    ICON_MAP[app.key].svg.endsWith('.png') ? (
+                      <img src={ICON_MAP[app.key].svg} alt={app.label} />
+                    ) : (
+                      <svg className="icon-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <image href={ICON_MAP[app.key].svg} width="200" height="200" />
+                      </svg>
+                    )
+                  ) : (
+                    <span>{ICON_MAP[app.key]?.emoji || '🎵'}</span>
+                  )}
+                </div>
+                <div className="app-detail-info">
+                  <h3>{app.label}</h3>
+                  <p>{app.desc}</p>
+                </div>
+              </div>
+
+              <div className="app-open-options">
+                <button
+                  className="open-btn open-default"
+                  onClick={() => handleAppClick(app.key)}
+                  title="Open in current view"
+                >
+                  ▶ Open
+                </button>
+                <button
+                  className="open-btn open-window"
+                  onClick={() => handleOpenOption(app.key, 'window')}
+                  title="Open in new window"
+                >
+                  ⧉ Window
+                </button>
+                <button
+                  className="open-btn open-split"
+                  onClick={() => handleOpenOption(app.key, 'split')}
+                  title="Open in split view"
+                >
+                  ⊞ Split
+                </button>
               </div>
             </div>
           ))}
-        </>
-      );
-    } else {
-      // Render flat apps
-      return (
-        <div className="apps-grid">
-          {categoryData.map((app) => (
-            <AppCard
-              key={app.key}
-              app={app}
-              hoveredApp={hoveredApp}
-              setHoveredApp={setHoveredApp}
-              handleAppClick={handleAppClick}
-            />
-          ))}
         </div>
-      );
-    }
-  };
+
+        {/* Quick Stats */}
+        <div className="toolz-stats">
+          <div className="stat-item">
+            <span className="stat-icon">📱</span>
+            <span>{apps.length} Tools</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-icon">⚡</span>
+            <span>Ready to use</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="toolz-menu-container">
@@ -220,66 +291,35 @@ export default function ToolZMenu() {
         <p className="toolz-subtitle">Audio, Visual & App ToolZ</p>
       </div>
 
-      {/* Category Navigation */}
-      <div className="category-nav">
-        {Object.keys(TOOLZ_MENU).map((category) => (
+      {/* Category Grid */}
+      <div className="category-grid">
+        {CATEGORIES.map((category) => (
           <button
-            key={category}
-            className={`category-btn ${activeCategory === category ? 'active' : ''}`}
-            onClick={() => setActiveCategory(category)}
+            key={category.key}
+            className={`category-card ${category.color}`}
+            onClick={() => setSelectedCategory(category.key)}
           >
-            {category}
+            <div className="category-icon">{category.emoji}</div>
+            <div className="category-label">{category.label}</div>
           </button>
         ))}
-      </div>
-
-      {/* Apps Grid with Groups */}
-      <div className="apps-content">
-        {renderAppsContent()}
       </div>
 
       {/* Quick Stats */}
       <div className="toolz-stats">
         <div className="stat-item">
           <span className="stat-icon">🎵</span>
-          <span>7 Instruments</span>
+          <span>11 Categories</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">👥</span>
-          <span>Connect & Collab</span>
+          <span>30+ Apps</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">⭐</span>
-          <span>Track Progress</span>
+          <span>Explore & Create</span>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Separate component for app card
-function AppCard({ app, hoveredApp, setHoveredApp, handleAppClick }) {
-  const iconConfig = ICON_MAP[app.key];
-
-  return (
-    <div
-      className={`app-card ${app.color} ${hoveredApp === app.key ? 'hovered' : ''}`}
-      onClick={() => handleAppClick(app.key)}
-      onMouseEnter={() => setHoveredApp(app.key)}
-      onMouseLeave={() => setHoveredApp(null)}
-    >
-      <div className="app-icon">
-        {iconConfig ? (
-          <svg className="icon-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <image href={iconConfig.svg} width="200" height="200" />
-          </svg>
-        ) : (
-          iconConfig?.emoji || '🎵'
-        )}
-      </div>
-      <div className="app-label">{app.label}</div>
-      <div className="app-desc">{app.desc}</div>
-      {hoveredApp === app.key && <div className="app-glow" />}
     </div>
   );
 }
