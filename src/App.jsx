@@ -11,7 +11,6 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
-import AdFrame from "./AdFrame.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -1133,13 +1132,6 @@ function Home() {
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
-
-      {/* Above the dock, so it sits at the foot of the page without fighting
-          the fixed navigation. AdFrame renders nothing AT ALL unless the server
-          says this member may see a third-party ad — including its own spacing,
-          which is why there is no wrapper here. A wrapper would survive the
-          null and leave a teen looking at a padded gap where an advert isn't. */}
-      <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
         <Dock
           apps={dockApps}
