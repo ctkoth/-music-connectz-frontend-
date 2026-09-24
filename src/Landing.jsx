@@ -215,7 +215,7 @@ export default function Landing() {
           </p>
         )}
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-          Train your voice or your bars.<br className="hidden sm:block" /> Get scored by a coach that actually listens.
+          Train your voice, body, or barZ.<br className="hidden sm:block" /> Get scored by a coach that actually listens.
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-white/60 sm:text-base">
           Same AI coach real members use, same rubric, same score out of 10 — on pitch, timing and
