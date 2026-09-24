@@ -94,6 +94,8 @@ const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
 const EngagementZ = lazy(lazyRoute(() => import("./apps/EngagementZ.jsx")));
+const DisabilitieZ = lazy(lazyRoute(() => import("./apps/DisabilitieZ.jsx")));
+const RelationshipStatus = lazy(lazyRoute(() => import("./apps/RelationshipStatus.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -470,6 +472,8 @@ const TABS = [
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
+  { key: "disabilitiez", label: "DisabilitieZ", icon: "personaz.png", el: <DisabilitieZ /> },
+  { key: "relationships", label: "Relationships", icon: "personaz.png", el: <RelationshipStatus /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
   // below. The route and TABS entry still exist for anyone who is the
