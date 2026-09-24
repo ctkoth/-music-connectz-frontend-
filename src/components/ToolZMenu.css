@@ -114,6 +114,14 @@
   margin-bottom: 0.8rem;
 }
 
+.category-icon-img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  margin-bottom: 0.8rem;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
 .category-label {
   font-size: 1rem;
   letter-spacing: 1px;

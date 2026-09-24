@@ -161,19 +161,34 @@ const TOOLZ_MENU = {
   ],
 };
 
+// Category icon mapping for neon SVG icons
+const CATEGORY_ICON_MAP = {
+  'SocialiZeZ': '/icons/social_connectz-neon.svg',
+  'CollabZ': '/icons/collabz-neon.svg',
+  'BattleZ': '/icons/battlez-neon.svg',
+  'GroupZ': '/icons/groupz-neon.svg',
+  'ToolZ': '/icons/toolz-main-neon.svg',
+  'IntelligenceZ': '/icons/occ-neon.svg',
+  'ProfileZ': '/icons/personaz-neon.svg',
+  'VenueZ': '/icons/opportunitiez-neon.svg',
+  'MercheZ': '/icons/soundz-neon.svg',
+  'Lilith': '/icons/lilith_inbox-neon.svg',
+  'BodieZ': '/icons/bodiez-neon.svg',
+};
+
 // Category info for the main grid
 const CATEGORIES = [
-  { key: 'SocialiZeZ', label: 'SocialiZeZ', color: 'magenta', emoji: '👥' },
-  { key: 'CollabZ', label: 'CollabZ', color: 'cyan', emoji: '🤝' },
-  { key: 'BattleZ', label: 'BattleZ', color: 'red', emoji: '⚔️' },
-  { key: 'GroupZ', label: 'GroupZ', color: 'cyan', emoji: '👫' },
-  { key: 'ToolZ', label: 'ToolZ', color: 'yellow', emoji: '🔧' },
-  { key: 'IntelligenceZ', label: 'IntelligenceZ', color: 'magenta', emoji: '🧠' },
-  { key: 'ProfileZ', label: 'ProfileZ', color: 'cyan', emoji: '👤' },
-  { key: 'VenueZ', label: 'VenueZ', color: 'orange', emoji: '🎪' },
-  { key: 'MercheZ', label: 'MercheZ', color: 'magenta', emoji: '🛍️' },
-  { key: 'Lilith', label: 'Lilith', color: 'magenta', emoji: '💃' },
-  { key: 'BodieZ', label: 'BodieZ', color: 'orange', emoji: '💪' },
+  { key: 'SocialiZeZ', label: 'SocialiZeZ', color: 'magenta' },
+  { key: 'CollabZ', label: 'CollabZ', color: 'cyan' },
+  { key: 'BattleZ', label: 'BattleZ', color: 'red' },
+  { key: 'GroupZ', label: 'GroupZ', color: 'cyan' },
+  { key: 'ToolZ', label: 'ToolZ', color: 'yellow' },
+  { key: 'IntelligenceZ', label: 'IntelligenceZ', color: 'magenta' },
+  { key: 'ProfileZ', label: 'ProfileZ', color: 'cyan' },
+  { key: 'VenueZ', label: 'VenueZ', color: 'orange' },
+  { key: 'MercheZ', label: 'MercheZ', color: 'magenta' },
+  { key: 'Lilith', label: 'Lilith', color: 'magenta' },
+  { key: 'BodieZ', label: 'BodieZ', color: 'orange' },
 ];
 
 export default function ToolZMenu() {
@@ -210,7 +225,11 @@ export default function ToolZMenu() {
             ← Back
           </button>
           <div className="toolz-icon-main">
-            <span className="category-emoji">{category.emoji}</span>
+            {CATEGORY_ICON_MAP[category.key] ? (
+              <img src={CATEGORY_ICON_MAP[category.key]} alt={category.label} className="category-icon-img" />
+            ) : (
+              <span className="category-emoji">?</span>
+            )}
           </div>
           <h1>{category.label}</h1>
         </div>
@@ -300,7 +319,11 @@ export default function ToolZMenu() {
             className={`category-card ${category.color}`}
             onClick={() => setSelectedCategory(category.key)}
           >
-            <div className="category-icon">{category.emoji}</div>
+            {CATEGORY_ICON_MAP[category.key] ? (
+              <img src={CATEGORY_ICON_MAP[category.key]} alt={category.label} className="category-icon-img" />
+            ) : (
+              <div className="category-icon">?</div>
+            )}
             <div className="category-label">{category.label}</div>
           </button>
         ))}
