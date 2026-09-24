@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Shoulders">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#00ff88" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left shoulder -->
+    <circle cx="55" cy="70" r="20" fill="none" stroke="#00ff88" stroke-width="4"/>
+    <!-- Right shoulder -->
+    <circle cx="145" cy="70" r="20" fill="none" stroke="#22e6ff" stroke-width="4"/>
+    <!-- Traps connection -->
+    <path d="M75 80 L100 60 L125 80" fill="none" stroke="#ff00ff" stroke-width="3" stroke-opacity="0.7"/>
+    <!-- Deltoid curves -->
+    <path d="M45 75 Q40 85 50 95" fill="none" stroke="#00ff88" stroke-width="3" stroke-opacity="0.6"/>
+    <path d="M155 75 Q160 85 150 95" fill="none" stroke="#22e6ff" stroke-width="3" stroke-opacity="0.6"/>
+  </g>
+</svg>

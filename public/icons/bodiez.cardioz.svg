@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Cardio">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Heart shape -->
+    <path d="M100 140 C60 110 40 90 40 70 C40 55 50 45 60 45 C70 45 80 55 100 70 C120 55 130 45 140 45 C150 45 160 55 160 70 C160 90 140 110 100 140 Z" fill="none" stroke="#ff00ff" stroke-width="4"/>
+    <!-- Pulse lines -->
+    <path d="M30 100 L50 100 L60 85 L70 115 L80 95 L100 100" stroke="#00ff88" stroke-width="2" fill="none"/>
+    <path d="M100 100 L120 100 L130 85 L140 115 L150 100" stroke="#22e6ff" stroke-width="2" fill="none"/>
+  </g>
+</svg>

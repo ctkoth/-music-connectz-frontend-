@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Glutes">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left glute -->
+    <ellipse cx="75" cy="95" rx="18" ry="25" fill="none" stroke="#00ff88" stroke-width="4"/>
+    <!-- Right glute -->
+    <ellipse cx="125" cy="95" rx="18" ry="25" fill="none" stroke="#22e6ff" stroke-width="4"/>
+    <!-- Separation line -->
+    <line x1="100" y1="75" x2="100" y2="125" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.7"/>
+    <!-- Definition lines -->
+    <path d="M65 110 Q70 115 75 112" fill="none" stroke="#00ff88" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M135 110 Q130 115 125 112" fill="none" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.6"/>
+  </g>
+</svg>
