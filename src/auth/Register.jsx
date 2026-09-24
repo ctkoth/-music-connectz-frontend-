@@ -119,7 +119,7 @@ export default function Register() {
 
   return (
     <>
-    <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
+    <AuthShell title="Create your account" subtitle="Connect & elevate — post your work, find your people, get real feedback, and get paid for it.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>

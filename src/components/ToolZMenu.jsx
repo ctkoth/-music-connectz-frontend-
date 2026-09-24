@@ -57,8 +57,8 @@ const TOOLZ_MENU = {
     {
       group: 'Discovery',
       apps: [
-        { key: 'socialiZeZ', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & explore members' },
-        { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Search & filter by vibes' },
+        { key: 'socialiZeZ', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & find your level' },
+        { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Find your frequency' },
       ]
     },
     {
@@ -70,26 +70,26 @@ const TOOLZ_MENU = {
     {
       group: 'Share & Communicate',
       apps: [
-        { key: 'postz', label: 'PostZ', color: 'green', desc: 'Create & share music posts' },
-        { key: 'messagez', label: 'MessageZ', color: 'yellow', desc: 'Direct messaging' },
+        { key: 'postz', label: 'PostZ', color: 'green', desc: 'Share & connect' },
+        { key: 'messagez', label: 'MessageZ', color: 'yellow', desc: 'Connect meaningfully' },
       ]
     },
   ],
   'CollabZ': [
-    { key: 'collabz', label: 'CollabZ', color: 'cyan', desc: 'Create & manage collaborations' },
+    { key: 'collabz', label: 'CollabZ', color: 'cyan', desc: 'Build together, get better' },
   ],
   'BattleZ': [
-    { key: 'battlez', label: 'BattleZ', color: 'red', desc: 'Music battles & competitions' },
+    { key: 'battlez', label: 'BattleZ', color: 'red', desc: 'Face off & level up' },
   ],
   'GroupZ': [
-    { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Create & join groups' },
+    { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Belong & grow together' },
   ],
   'ToolZ': [
     {
       group: 'Vocal Instruments',
       apps: [
-        { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Voice coaching & performance' },
-        { key: 'rapz', label: 'RapZ', color: 'magenta', desc: 'Rap coaching & feedback' },
+        { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Reach your voice' },
+        { key: 'rapz', label: 'RapZ', color: 'magenta', desc: 'Flow with purpose' },
       ]
     },
     {

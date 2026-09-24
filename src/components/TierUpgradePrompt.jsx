@@ -104,7 +104,7 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free",
           onClick={onUpgrade}
           className="w-full flex items-center justify-center gap-2 rounded-lg bg-mcz-cyan/20 hover:bg-mcz-cyan/30 border border-mcz-cyan/50 text-mcz-cyan py-2 text-sm font-medium transition"
         >
-          Upgrade to Premium <ArrowRight size={14} />
+          Reach further — Premium <ArrowRight size={14} />
         </button>
       )}
     </div>

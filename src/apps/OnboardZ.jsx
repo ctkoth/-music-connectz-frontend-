@@ -26,8 +26,8 @@ const loadDone = () => { try { return JSON.parse(localStorage.getItem(OB_KEY)) |
 const SYSTEM = [
   ["PersonaZ are your classes",
    "And multiclass is the point. Producer and GhostWriter and Mix Engineer — every class you claim is another way somebody finds you. One class is a smaller surface, not a purer one."],
-  ["Experience is time served, not grind",
-   "Each skill carries the stretches you actually played it — start, and end if you stopped. Your experience is the SUM of those, so quitting for ten years does not quietly count as ten years of practice. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
+  ["Experience is real-world service, not grind",
+   "Each skill carries the stretches you actually played it — start, and end if you stopped. Your experience counts what you built with real people, so quitting for ten years does not quietly count as ten years of practice. Service to others is what makes the number worth showing."],
   ["Energy is mana, and it regenerates",
    "Hourly, on its own, at your median reach divided by your tier — Free ÷10, Premium ÷5, StatZ ÷1. Energy runs the AI tools. Rating other people's work tops it up on top of that."],
   [`SpinaZ ${SPINAZ} is coin`,
@@ -39,7 +39,7 @@ const SYSTEM = [
   ["ZodiacZ and NationalitieZ are your origin",
    "Neither is cosmetic. Both are live filters on Social ConnectZ, which makes them how your people find you."],
   ["BattleZ is PvP, CollabZ is co-op, GroupZ and LabelZ are guilds",
-   "And your ratings are your visible stats — given by other players, never by you. You cannot score your own work."],
+   "Your ratings are your visible stats — given by other players as real feedback, never by you. You cannot score your own work. Every rating you give lifts somebody else's visibility while building your own credibility."],
 ];
 
 function SystemCard() {
@@ -50,10 +50,10 @@ function SystemCard() {
         <Swords size={18} className="mt-0.5 shrink-0 text-mcz-ember" />
         <span className="flex-1">
           <span className="block text-sm font-bold text-white">
-            Music ConnectZ runs like an RPG
+            Level up and connect
           </span>
           <span className="block text-[12px] text-white/50">
-            Not as a theme — as the actual system. Here's the map.
+            Music ConnectZ runs like an RPG — not as a theme, but as the actual system. Every mechanic serves growth and community both.
           </span>
         </span>
         <ChevronDown size={16} className={`mt-1 shrink-0 text-white/40 transition ${open ? "rotate-180" : ""}`} />
