@@ -250,6 +250,32 @@ export const PERSONA_SKILLS = {
     },
   },
 
+  actor: {
+    "Acting": {
+      any_acting: "Any Acting Skill 🎭",
+      scene_work: "Scene Work 🎬",
+      character_development: "Character Development 🎭",
+      monologues: "Monologues 🗣️",
+      improv: "Improv 😂",
+      stage_acting: "Stage Acting 🎪",
+      screen_acting: "Screen Acting 🎥",
+      emotional_range: "Emotional Range 💫",
+    },
+  },
+
+  actress: {
+    "Acting": {
+      any_acting: "Any Acting Skill 🎭",
+      scene_work: "Scene Work 🎬",
+      character_development: "Character Development 🎭",
+      monologues: "Monologues 🗣️",
+      improv: "Improv 😂",
+      stage_acting: "Stage Acting 🎪",
+      screen_acting: "Screen Acting 🎥",
+      emotional_range: "Emotional Range 💫",
+    },
+  },
+
   mime: {
     "Performance": {
       any_mime: "Any Mime Skill 🤫",
@@ -258,6 +284,8 @@ export const PERSONA_SKILLS = {
       dance: "Dance 💃",
       drama: "Drama 🎭",
       comedy: "Comedy 😂",
+      pantomime: "Pantomime 🎭",
+      character_movement: "Character Movement 🎪",
     },
   },
 
@@ -391,6 +419,8 @@ export const PERSONA_LABELS = {
   designer: "🎨 Designer",
   videographer: "🎬 Videographer",
   developer: "💻 Developer",
+  actor: "🎭 Actor",
+  actress: "🎭 Actress",
   mime: "🤡 Mime",
   director: "🎬 Director",
   manager: "📋 Manager",
