@@ -405,7 +405,7 @@ const TABS = [
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
-  { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "social", label: "SocialiZeZ", icon: "socialiZez.svg", el: <SocialConnectZ /> },
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
   // genders, both zodiacs, sober, substances, five range gates and distance —
   // has been implemented and reachable only by typing a URL.
@@ -413,7 +413,7 @@ const TABS = [
   // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
   // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
   // LOOKING, so the glyph is a lens with a heart in it.
-  { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
+  { key: "vybez", label: "VybeZ", icon: "vybez.svg", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
