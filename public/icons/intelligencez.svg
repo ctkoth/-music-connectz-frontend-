@@ -1,0 +1,47 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-intel" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Brain outline -->
+  <path d="M70 70 Q60 70, 55 80 Q50 90, 60 105 Q70 115, 80 110 Q90 120, 100 120 Q110 120, 120 110 Q130 115, 140 105 Q150 90, 145 80 Q140 70, 130 70"
+        fill="none" stroke="#00ffff" stroke-width="2.5" filter="url(#glow-intel)"/>
+
+  <!-- Brain convolutions -->
+  <path d="M75 80 Q75 75, 80 75" fill="none" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-intel)"/>
+  <path d="M100 75 Q100 70, 105 70 Q110 75, 105 80" fill="none" stroke="#ffff00" stroke-width="1.5" filter="url(#glow-intel)"/>
+  <path d="M125 80 Q125 75, 120 75" fill="none" stroke="#00ff00" stroke-width="1.5" filter="url(#glow-intel)"/>
+
+  <circle cx="85" cy="90" r="4" fill="none" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-intel)"/>
+  <circle cx="100" cy="95" r="4" fill="none" stroke="#00ffff" stroke-width="1.5" filter="url(#glow-intel)"/>
+  <circle cx="115" cy="90" r="4" fill="none" stroke="#ffff00" stroke-width="1.5" filter="url(#glow-intel)"/>
+
+  <!-- Headphones - left ear -->
+  <path d="M50 110 Q45 120, 50 130 Q55 140, 60 135"
+        fill="none" stroke="#00ffff" stroke-width="2.5" filter="url(#glow-intel)"/>
+  <circle cx="58" cy="130" r="8" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-intel)"/>
+
+  <!-- Headphones - right ear -->
+  <path d="M150 110 Q155 120, 150 130 Q145 140, 140 135"
+        fill="none" stroke="#00ffff" stroke-width="2.5" filter="url(#glow-intel)"/>
+  <circle cx="142" cy="130" r="8" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-intel)"/>
+
+  <!-- Headband -->
+  <path d="M58 122 Q100 115, 142 122"
+        fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-intel)"/>
+
+  <!-- Sound waves from headphones -->
+  <path d="M40 130 L35 125 L35 135" stroke="#ffff00" stroke-width="1.5" fill="none" filter="url(#glow-intel)"/>
+  <path d="M160 130 L165 125 L165 135" stroke="#ffff00" stroke-width="1.5" fill="none" filter="url(#glow-intel)"/>
+
+  <!-- Audio bars inside brain -->
+  <rect x="92" y="85" width="2" height="8" fill="#00ff00" filter="url(#glow-intel)"/>
+  <rect x="100" y="82" width="2" height="14" fill="#00ff00" filter="url(#glow-intel)"/>
+  <rect x="108" y="85" width="2" height="8" fill="#00ff00" filter="url(#glow-intel)"/>
+</svg>

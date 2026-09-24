@@ -1,0 +1,42 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-collab" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Person 1 - Left -->
+  <circle cx="70" cy="50" r="10" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-collab)"/>
+  <path d="M60 65 L80 65 L75 85 L65 85 Z" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-collab)"/>
+
+  <!-- Person 2 - Right -->
+  <circle cx="130" cy="50" r="10" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-collab)"/>
+  <path d="M120 65 L140 65 L135 85 L125 85 Z" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-collab)"/>
+
+  <!-- Connection arrows -->
+  <path d="M80 75 Q90 80, 100 80 Q110 80, 120 75"
+        fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-collab)"/>
+
+  <!-- Notes/Document symbols -->
+  <rect x="50" y="100" width="30" height="40" rx="2" fill="none" stroke="#00ffff" stroke-width="1.5" filter="url(#glow-collab)"/>
+  <line x1="57" y1="107" x2="73" y2="107" stroke="#00ffff" stroke-width="1" filter="url(#glow-collab)"/>
+  <line x1="57" y1="115" x2="73" y2="115" stroke="#00ffff" stroke-width="1" filter="url(#glow-collab)"/>
+  <line x1="57" y1="123" x2="68" y2="123" stroke="#00ffff" stroke-width="1" filter="url(#glow-collab)"/>
+
+  <rect x="120" y="100" width="30" height="40" rx="2" fill="none" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-collab)"/>
+  <line x1="127" y1="107" x2="143" y2="107" stroke="#ff00ff" stroke-width="1" filter="url(#glow-collab)"/>
+  <line x1="127" y1="115" x2="143" y2="115" stroke="#ff00ff" stroke-width="1" filter="url(#glow-collab)"/>
+  <line x1="127" y1="123" x2="138" y2="123" stroke="#ff00ff" stroke-width="1" filter="url(#glow-collab)"/>
+
+  <!-- Central hub -->
+  <circle cx="100" cy="115" r="15" fill="none" stroke="#00ff00" stroke-width="2" filter="url(#glow-collab)"/>
+  <circle cx="100" cy="115" r="8" fill="none" stroke="#00ff00" stroke-width="1" filter="url(#glow-collab)"/>
+
+  <!-- Handshake symbol at bottom -->
+  <path d="M85 160 Q95 150, 100 155 Q105 150, 115 160"
+        fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-collab)"/>
+</svg>

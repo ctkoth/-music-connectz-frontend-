@@ -1,0 +1,36 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-skill" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Star 1 (bottom) -->
+  <path d="M50 150 L55 135 L70 135 L58 125 L63 110 L50 120 L37 110 L42 125 L30 135 L45 135 Z"
+        fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-skill)"/>
+
+  <!-- Star 2 (middle-right) -->
+  <path d="M120 130 L124 118 L137 118 L127 110 L131 98 L120 106 L109 98 L113 110 L103 118 L116 118 Z"
+        fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-skill)"/>
+
+  <!-- Star 3 (top) -->
+  <path d="M100 40 L106 20 L112 40 L135 40 L117 55 L123 75 L100 60 L77 75 L83 55 L65 40 Z"
+        fill="none" stroke="#ff00ff" stroke-width="2.5" filter="url(#glow-skill)"/>
+
+  <!-- Progression arrow -->
+  <path d="M70 170 Q85 160, 100 155 Q115 160, 130 170"
+        fill="none" stroke="#00ff00" stroke-width="2" filter="url(#glow-skill)"/>
+  <polygon points="130,170 128,165 135,168" fill="#00ff00" filter="url(#glow-skill)"/>
+
+  <!-- Badge circle -->
+  <circle cx="100" cy="100" r="30" fill="none" stroke="#ffff00" stroke-width="1.5" filter="url(#glow-skill)"/>
+  <circle cx="100" cy="100" r="25" fill="none" stroke="#00ffff" stroke-width="1" opacity="0.6" filter="url(#glow-skill)"/>
+
+  <!-- Level indicator lines -->
+  <line x1="75" y1="100" x2="85" y2="100" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-skill)"/>
+  <line x1="115" y1="100" x2="125" y2="100" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-skill)"/>
+</svg>

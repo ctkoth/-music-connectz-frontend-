@@ -1,0 +1,53 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lightbulb base -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Lightbulb outline -->
+  <path d="M100 30 C75 30, 60 45, 60 65 C60 85, 75 100, 85 120 L115 120 C125 100, 140 85, 140 65 C140 45, 125 30, 100 30"
+        fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow)"/>
+
+  <!-- Audio (headphones - left) -->
+  <path d="M50 70 Q45 75, 50 85 Q55 80, 50 70"
+        fill="#00ff00" filter="url(#glow)"/>
+  <circle cx="48" cy="80" r="4" fill="#00ff00" filter="url(#glow)"/>
+
+  <!-- Music note (top center) -->
+  <path d="M100 35 L100 55 M95 55 Q95 65, 105 65 Q115 65, 115 55"
+        fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow)"/>
+
+  <!-- Visual/Palette (right) -->
+  <circle cx="145" cy="75" r="8" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow)"/>
+  <circle cx="140" cy="70" r="2" fill="#ff3333" filter="url(#glow)"/>
+  <circle cx="150" cy="70" r="2" fill="#00ffff" filter="url(#glow)"/>
+  <circle cx="145" cy="80" r="2" fill="#00ff00" filter="url(#glow)"/>
+
+  <!-- Heart (center) -->
+  <path d="M95 95 Q90 90, 85 90 Q80 90, 80 95 Q80 100, 95 110 Q110 100, 110 95 Q110 90, 105 90 Q100 90, 95 95"
+        fill="#ff00ff" filter="url(#glow)"/>
+
+  <!-- Settings/Gear (lower right) -->
+  <circle cx="130" cy="105" r="6" fill="none" stroke="#00ffff" stroke-width="1.5" filter="url(#glow)"/>
+  <path d="M130 98 L130 102 M130 108 L130 112 M123 105 L127 105 M133 105 L137 105"
+        stroke="#00ffff" stroke-width="1" filter="url(#glow)"/>
+
+  <!-- Microphone (bottom) -->
+  <rect x="90" y="130" width="20" height="12" rx="2" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow)"/>
+  <path d="M95 142 L105 142" stroke="#ffff00" stroke-width="2" filter="url(#glow)"/>
+
+  <!-- Filament glow -->
+  <circle cx="100" cy="60" r="35" fill="none" stroke="rgba(0, 255, 255, 0.3)" stroke-width="2"/>
+
+  <!-- Socket (bottom) -->
+  <rect x="90" y="150" width="20" height="8" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow)"/>
+  <line x1="95" y1="150" x2="95" y2="158" stroke="#ffff00" stroke-width="1" filter="url(#glow)"/>
+  <line x1="100" y1="150" x2="100" y2="158" stroke="#ffff00" stroke-width="1" filter="url(#glow)"/>
+  <line x1="105" y1="150" x2="105" y2="158" stroke="#ffff00" stroke-width="1" filter="url(#glow)"/>
+</svg>
