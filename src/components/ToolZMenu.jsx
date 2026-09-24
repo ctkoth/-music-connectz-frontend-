@@ -30,11 +30,29 @@ const ICON_MAP = {
   directz: { svg: '/icons/directz.svg', emoji: '🎥' },
   statez: { svg: '/icons/statez.svg', emoji: '📈' },
   funnelz: { svg: '/icons/funnelz.svg', emoji: '📉' },
+  groupz: { svg: '/icons/groupz.svg', emoji: '👫' },
+  merchz: { svg: '/icons/merchz.svg', emoji: '🛍️' },
 };
 
 // App categories and configuration
 const TOOLZ_MENU = {
-  'Music Production': [
+  'SocialiZeZ': [
+    { key: 'socialiZeZ', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & explore members' },
+    { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating' },
+    { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Search & filter by vibes' },
+    { key: 'postz', label: 'PostZ', color: 'green', desc: 'Create & share music posts' },
+    { key: 'messagez', label: 'MessageZ', color: 'yellow', desc: 'Direct messaging' },
+  ],
+  'CollabZ': [
+    { key: 'collabz', label: 'CollabZ', color: 'cyan', desc: 'Create & manage collaborations' },
+  ],
+  'BattleZ': [
+    { key: 'battlez', label: 'BattleZ', color: 'red', desc: 'Music battles & competitions' },
+  ],
+  'GroupZ': [
+    { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Create & join groups' },
+  ],
+  'ToolZ': [
     { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Voice coaching & performance' },
     { key: 'rapz', label: 'RapZ', color: 'magenta', desc: 'Rap coaching & feedback' },
     { key: 'guitarz', label: 'GuitarZ', color: 'yellow', desc: 'Guitar coaching' },
@@ -42,40 +60,30 @@ const TOOLZ_MENU = {
     { key: 'keyz', label: 'KeyZ', color: 'cyan', desc: 'Keyboard coaching' },
     { key: 'drumz', label: 'DrumZ', color: 'magenta', desc: 'Drums coaching' },
     { key: 'violinz', label: 'ViolinZ', color: 'yellow', desc: 'String instrument coaching' },
-  ],
-  'Collaboration & Competition': [
-    { key: 'battlez', label: 'BattleZ', color: 'red', desc: 'Music battles & competitions' },
-    { key: 'collabz', label: 'CollabZ', color: 'cyan', desc: 'Create & manage collaborations' },
-    { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating' },
-  ],
-  'Social & Discovery': [
-    { key: 'socialiZeZ', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & explore members' },
-    { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Search & filter by vibes' },
-    { key: 'postz', label: 'PostZ', color: 'green', desc: 'Create & share music posts' },
-    { key: 'messagez', label: 'MessageZ', color: 'yellow', desc: 'Direct messaging' },
-  ],
-  'Learning & Progress': [
     { key: 'skillz', label: 'SkillZ', color: 'gold', desc: 'Track progression & badges' },
+    { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
+    { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
+    { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
+  ],
+  'IntelligenceZ': [
     { key: 'occ', label: 'OCC', color: 'magenta', desc: 'One-on-one coaching' },
     { key: 'bosttake', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes' },
     { key: 'onboardz', label: 'OnboardZ', color: 'green', desc: 'Get started guide' },
   ],
-  'Tools & Economy': [
-    { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
+  'ProfileZ': [
     { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
-    { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
-    { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
-    { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
     { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
   ],
-  'Analytics & Curation': [
-    { key: 'statez', label: 'StatZ', color: 'green', desc: 'Personal analytics' },
-    { key: 'funnelz', label: 'FunnelZ', color: 'yellow', desc: 'Platform metrics (owner)' },
+  'VenueZ': [
+    { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
+  ],
+  'MercheZ': [
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Shop merchandise & items' },
   ],
 };
 
 export default function ToolZMenu() {
-  const [activeCategory, setActiveCategory] = useState('Music Production');
+  const [activeCategory, setActiveCategory] = useState('SocialiZeZ');
   const [hoveredApp, setHoveredApp] = useState(null);
 
   const handleAppClick = (appKey) => {
