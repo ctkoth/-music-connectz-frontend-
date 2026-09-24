@@ -32,6 +32,8 @@ const ICON_MAP = {
   funnelz: { svg: '/icons/funnelz.svg', emoji: '📉' },
   groupz: { svg: '/icons/groupz.svg', emoji: '👫' },
   merchz: { svg: '/icons/merchz.svg', emoji: '🛍️' },
+  lilith: { svg: '/icons/lilith.svg', emoji: '📋' },
+  bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
 };
 
 // App categories and configuration
@@ -64,6 +66,8 @@ const TOOLZ_MENU = {
     { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
     { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
     { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
+    { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Task lists & reminders' },
+    { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Fitness & body tracking' },
   ],
   'IntelligenceZ': [
     { key: 'occ', label: 'OCC', color: 'magenta', desc: 'One-on-one coaching' },
