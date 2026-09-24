@@ -247,6 +247,30 @@ export default function Lilith() {
         </p>
       )}
 
+      {/* Suggested site activities — ways to stay engaged beyond app-specific tasks */}
+      {asList(board?.suggestions).length > 0 && (
+        <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+          <h3 className="text-[12px] font-semibold text-white/70">Something to do</h3>
+          <p className="text-[11px] text-white/40">
+            Lilith suggests these to keep your activity varied. XP for engaging, nothing more.
+          </p>
+          <div className="space-y-1.5">
+            {asList(board?.suggestions).map((s) => (
+              <div key={s.key}
+                   className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{s.title}</p>
+                  <p className="text-[11px] text-white/40">{s.note}</p>
+                </div>
+                <span className="whitespace-nowrap text-[11px] text-emerald-300">
+                  +{s.xp} {XP}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ul className="space-y-1.5">
         {rows.length === 0 && (
           <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/40">
