@@ -90,6 +90,7 @@ const PERSONAS = [
   ["manager", "Manager", "personaz_manager.png"],
   ["actor", "Actor", "personaz_actor.png"],
   ["actress", "Actress", "personaz_actress.png"],
+  ["dancer", "Dancer", "personaz_dancer.png"],
   ["mime", "Mime", "personaz_mime.png"],
   ["mixengineer", "Mix Engineer", "personaz_mixengineer.png"],
   ["producer", "Producer", "personaz_producer.png"],
