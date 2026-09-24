@@ -141,6 +141,7 @@ export const CUSTOM_ICONS = {
   "background.png": "/icons/background.png",
   "battlez.1v1.png": "/icons/battlez.1v1-neon.svg",
   "battlez.cypher.png": "/icons/battlez.cypher-neon.svg",
+  "battlez.cypher.jpg": "/icons/battlez.cypher-neon.svg",
   "battlez.freestyle.png": "/icons/battlez.freestyle-neon.svg",
   "battlez.png": "/icons/battlez-neon.svg",
   "boardz.png": "/icons/boardz.png",
