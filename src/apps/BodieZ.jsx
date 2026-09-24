@@ -58,6 +58,22 @@ const MUSCLE_LABEL = {
   upper_legs: "Upper Legs", lower_legs: "Lower Legs", full_body: "Full Body",
 };
 
+// Icon mapping for neon muscle group SVGs
+const MUSCLE_ICON_MAP = {
+  abs: "/icons/bodiez.absz.svg",
+  back: "/icons/bodiez.backz.svg",
+  biceps: "/icons/bodiez.bicepz.svg",
+  cardio: "/icons/bodiez.cardioz.svg",
+  chest: "/icons/bodiez.chestz.svg",
+  forearms: "/icons/bodiez.forearmz.svg",
+  glutes: "/icons/bodiez.glutez.svg",
+  shoulders: "/icons/bodiez.shoulderz.svg",
+  triceps: "/icons/bodiez.tricepz.svg",
+  upper_legs: "/icons/bodiez.upperlegz.svg",
+  lower_legs: "/icons/bodiez.lowerlegz.svg",
+  full_body: "/icons/bodiez.fullbodyz.svg",
+};
+
 // EQUIPMENT_LABEL moved to EquipmentPicker.jsx — same shape the server's
 // EQUIPMENT_CHOICES declare, read to filter by, never retyped as a value the
 // server wouldn't recognize. One copy now instead of three (this file had
@@ -889,19 +905,24 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
             <div key={m.muscle_group} className={`re-card space-y-2 ${isOpen ? "sm:col-span-2" : ""}`}>
               <button className="flex w-full items-center justify-between text-left"
                       onClick={() => setOpen(isOpen ? null : m.muscle_group)}>
-                <div>
-                  <p className="text-sm font-semibold text-white inline-flex items-center gap-1.5">
-                    {m.label}
-                    <span className="rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
-                      {m.volume_score}/10
-                    </span>
-                  </p>
-                  <p className="text-xs text-white/45">
-                    {m.last_trained
-                      ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
-                      : "Never trained"}
-                    {m.sets_last_7d > 0 && ` · ${m.sets_last_7d} set${m.sets_last_7d === 1 ? "" : "s"} this week`}
-                  </p>
+                <div className="flex items-center gap-2">
+                  {MUSCLE_ICON_MAP[m.muscle_group] && (
+                    <img src={MUSCLE_ICON_MAP[m.muscle_group]} alt={m.label} className="h-8 w-8 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-white inline-flex items-center gap-1.5">
+                      {m.label}
+                      <span className="rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
+                        {m.volume_score}/10
+                      </span>
+                    </p>
+                    <p className="text-xs text-white/45">
+                      {m.last_trained
+                        ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
+                        : "Never trained"}
+                      {m.sets_last_7d > 0 && ` · ${m.sets_last_7d} set${m.sets_last_7d === 1 ? "" : "s"} this week`}
+                    </p>
+                  </div>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${s.color}`}>
                   {s.said}
@@ -1239,9 +1260,12 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
           <div className="flex flex-wrap gap-1.5">
             {MUSCLES.map((m) => (
               <button key={m} onClick={() => toggleMuscle(m)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-all ${
                         muscles.includes(m) ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40"
                                             : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+                {MUSCLE_ICON_MAP[m] && (
+                  <img src={MUSCLE_ICON_MAP[m]} alt={MUSCLE_LABEL[m]} className="h-4 w-4 flex-shrink-0" />
+                )}
                 {MUSCLE_LABEL[m]}
               </button>
             ))}
