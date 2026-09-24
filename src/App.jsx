@@ -330,7 +330,7 @@ export const CUSTOM_ICONS = {
   "membership.png": "/icons/membership.png",
   "merchz.png": "/icons/merchz.png",
   "moodz.png": "/icons/moodz.png",
-  "onboardz.jpg": "/icons/onboardz.jpg",
+  "onboardz.jpg": "/icons/onboardz-neon.svg",
   "parcel.png": "/icons/parcel.png",
   "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
