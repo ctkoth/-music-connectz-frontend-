@@ -142,11 +142,11 @@ export const CUSTOM_ICONS = {
   "battlez.1v1.png": "/icons/battlez.1v1.png",
   "battlez.cypher.png": "/icons/battlez.cypher.jpg",
   "battlez.freestyle.png": "/icons/battlez.freestyle.png",
-  "battlez.png": "/icons/battlez.png",
+  "battlez.png": "/icons/battlez-neon.svg",
   "boardz.png": "/icons/boardz.png",
   "bodiez.png": "/icons/bodiez.png",
-  "bugz.png": "/icons/bugz.png",
-  "callz.png": "/icons/callz.png",
+  "bugz.png": "/icons/bugz-neon.svg",
+  "callz.png": "/icons/callz-neon.svg",
   "callz_ai.png": "/icons/callz_ai.png",
   "callz_ai.webp": "/icons/callz_ai.webp",
   "callz_user.png": "/icons/callz_user.png",
@@ -167,7 +167,7 @@ export const CUSTOM_ICONS = {
   "collabz.coverz.png": "/icons/collabz.coverz.png",
   "collabz.originalz.png": "/icons/collabz.originalz.png",
   "collabz.remixez.png": "/icons/collabz.remixez.png",
-  "collabz.png": "/icons/collabz.png",
+  "collabz.png": "/icons/collabz-neon.svg",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
@@ -200,7 +200,7 @@ export const CUSTOM_ICONS = {
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
-  "groupz.png": "/icons/groupz.png",
+  "groupz.png": "/icons/groupz-neon.svg",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
   "partnerz.jpg": "/icons/partnerz.jpg",
   "groupz_custom.png": "/icons/groupz_custom.png",
@@ -213,7 +213,7 @@ export const CUSTOM_ICONS = {
   "intelligence.png": "/icons/intelligence.png",
   "intuition.png": "/icons/intuition.png",
   "keyconnectz.png": "/icons/keyconnectz-neon.svg",
-  "labelz.png": "/icons/labelz.png",
+  "labelz.png": "/icons/labelz-neon.svg",
   "lessonz.png": "/icons/lessonz-neon.svg",
   "lilith_anytime.png": "/icons/lilith_anytime.png",
   "lilith_inbox.png": "/icons/lilith_inbox-neon.svg",
@@ -225,11 +225,11 @@ export const CUSTOM_ICONS = {
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
-  "messagez.png": "/icons/messagez.png",
+  "messagez.png": "/icons/messagez-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
   "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
-  "occ.png": "/icons/occ.png",
+  "occ.png": "/icons/occ-neon.svg",
   "opportunitiez.png": "/icons/opportunitiez-neon.svg",
   "offerz.png": "/icons/offerz-neon.svg",
   "adz.png": "/icons/adz-neon.svg",
@@ -237,7 +237,7 @@ export const CUSTOM_ICONS = {
   // New editions — neon signage dropped in Jul 16.
   "specz.png": "/icons/specz-neon.svg",
   "nationalitiez.png": "/icons/nationalitiez.png",
-  "onboardz.png": "/icons/onboardz.png",
+  "onboardz.png": "/icons/onboardz-neon.svg",
   // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
   // rest of the platform refers to and the value points at the SVG — the
   // same indirection "logo.png" → the .jpg already uses, and the reason this
@@ -278,7 +278,7 @@ export const CUSTOM_ICONS = {
   "vybez.png": "/icons/vybez-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
-  "playlistz.png": "/icons/playlistz.png",
+  "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
   "statsz.png": "/icons/statsz-neon.svg",
   "substancez.png": "/icons/substancez.png",
@@ -295,11 +295,11 @@ export const CUSTOM_ICONS = {
   // Live surfaces whose art was on disk but never registered — so they were
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
-  "habitz.png": "/icons/habitz.png",
+  "habitz.png": "/icons/habitz-neon.svg",
   // .jpg — the art is journalz.jpg. Fourth of the four extension
   // mismatches; on the neon glyph until it lands, then only the path moves.
   "journalz.jpg": "/icons/journalz-neon.svg",
-  "logz.png": "/icons/logz.png",
+  "logz.png": "/icons/logz-neon.svg",
   // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
   // illegible at the 28-36px this app actually renders it — a busy neon-sign
   // frame plus a two-line text banner eats the pixel budget a metronome or
@@ -309,7 +309,7 @@ export const CUSTOM_ICONS = {
   "metz.jpg": "/icons/metz-neon.svg",
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
-  "drumz.png": "/icons/drumz.png",
+  "drumz.png": "/icons/drumz-neon.svg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -413,7 +413,7 @@ const TABS = [
   // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
   // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
   // LOOKING, so the glyph is a lens with a heart in it.
-  { key: "vybez", label: "VybeZ", icon: "vybez.svg", el: <VybeZ /> },
+  { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
@@ -469,7 +469,7 @@ const TABS = [
         tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
-  { key: "lilith", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
+  { key: "lilith", label: "Lilith", icon: "lilith_inbox.png", el: <Lilith /> },
   { key: "bodiez", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
