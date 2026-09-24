@@ -284,8 +284,8 @@ export default function ToolZMenu() {
     <div className="toolz-menu-container">
       <div className="toolz-header">
         <div className="toolz-icon-main">
-          <svg className="icon-svg-main" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <image href="/icons/toolz-main.svg" width="200" height="200" />
+          <svg className="icon-svg-main" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <image href="/icons/toolz-main-neon.svg" width="512" height="512" />
           </svg>
         </div>
         <h1>ToolZ</h1>
