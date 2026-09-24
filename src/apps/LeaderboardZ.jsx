@@ -79,7 +79,7 @@ export default function LeaderboardZ({ period = "week" }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Top SpinaZ Earners */}
+        {/* ECONOMIC METRICS */}
         {leaderboards.spinaz_earners && (
           <LeaderboardCard
             title="Top Earners"
@@ -90,7 +90,6 @@ export default function LeaderboardZ({ period = "week" }) {
           />
         )}
 
-        {/* Top Energy Earners */}
         {leaderboards.energy_earners && (
           <LeaderboardCard
             title="Energy Masters"
@@ -101,7 +100,28 @@ export default function LeaderboardZ({ period = "week" }) {
           />
         )}
 
-        {/* Top Raters */}
+        {/* SOCIAL ENGAGEMENT */}
+        {leaderboards.followers && (
+          <LeaderboardCard
+            title="Most Followed"
+            icon="👥"
+            rows={leaderboards.followers}
+            metric="followers_count"
+            suffix=" followers"
+          />
+        )}
+
+        {leaderboards.verified_reach && leaderboards.verified_reach.length > 0 && (
+          <LeaderboardCard
+            title="Verified Reach"
+            icon="✓"
+            rows={leaderboards.verified_reach}
+            metric="verified_reach"
+            suffix=" reach"
+          />
+        )}
+
+        {/* PARTICIPATION */}
         {leaderboards.raters && (
           <LeaderboardCard
             title="Community Raters"
@@ -112,7 +132,6 @@ export default function LeaderboardZ({ period = "week" }) {
           />
         )}
 
-        {/* Top Referrers */}
         {leaderboards.referrers && (
           <LeaderboardCard
             title="Network Growth"
@@ -120,6 +139,38 @@ export default function LeaderboardZ({ period = "week" }) {
             rows={leaderboards.referrers}
             metric="referral_count"
             suffix=" joins"
+          />
+        )}
+
+        {/* ACHIEVEMENT & CONSISTENCY */}
+        {leaderboards.streaks && (
+          <LeaderboardCard
+            title="Longest Streaks"
+            icon="🔥"
+            rows={leaderboards.streaks}
+            metric="streak_days"
+            suffix=" days"
+          />
+        )}
+
+        {leaderboards.badges && (
+          <LeaderboardCard
+            title="Badge Collectors"
+            icon="🏆"
+            rows={leaderboards.badges}
+            metric="badges_earned"
+            suffix=" badges"
+          />
+        )}
+
+        {/* CONTENT CREATION */}
+        {leaderboards.content_creators && (
+          <LeaderboardCard
+            title="Most Posted"
+            icon="📝"
+            rows={leaderboards.content_creators}
+            metric="posts_count"
+            suffix=" posts"
           />
         )}
       </div>
