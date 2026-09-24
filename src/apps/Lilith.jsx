@@ -132,7 +132,7 @@ export default function Lilith() {
   }
 
   async function loadTags(task) {
-    const loaded = await call(`/api/lilith/tags/?task_id=${task.id}`);
+    const loaded = await call(`/api/economy/lilith/tags/?task_id=${task.id}`);
     if (loaded) setTags(loaded);
   }
 
@@ -140,7 +140,7 @@ export default function Lilith() {
     e.preventDefault();
     if (!tagDraft.to_app_key || !tagDraft.to_target) return;
     if (!expandedTask) return;
-    const created = await call("/api/lilith/tag/", {
+    const created = await call("/api/economy/lilith/tag/", {
       method: "POST",
       body: { task_id: expandedTask.id, ...tagDraft },
     });
@@ -152,7 +152,7 @@ export default function Lilith() {
 
   async function removeTag(tagId) {
     if (!window.confirm("Remove this tag?")) return;
-    const gone = await call(`/api/lilith/tag/${tagId}/`, { method: "DELETE" });
+    const gone = await call(`/api/economy/lilith/tag/${tagId}/`, { method: "DELETE" });
     if (gone !== null && expandedTask) loadTags(expandedTask);
   }
 
