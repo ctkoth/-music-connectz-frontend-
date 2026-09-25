@@ -65,8 +65,9 @@ function Toggle({ toggle, on, allowed, onChange }) {
   );
 }
 
-function Task({ task, onAdvance, onUndo, onCancel }) {
+function Task({ task, onAdvance, onUndo, onCancel, onSendToLilith }) {
   const open = ["suggested", "queued", "running"].includes(task.status);
+  const [sent, setSent] = useState(false);
   return (
     <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2">
@@ -83,6 +84,15 @@ function Task({ task, onAdvance, onUndo, onCancel }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {/* Cross-pollination with Lilith — this still shows up ONLY where
+              the work actually gets done, Lilith just carries the reminder. */}
+          {open && !sent && (
+            <button onClick={() => { onSendToLilith(task); setSent(true); }}
+                    className="text-white/30 hover:text-mcz-cyan" title="Send to Lilith's Inbox">
+              <IconImg icon="taskz.png" alt="" className="h-3.5 w-3.5 rounded" />
+            </button>
+          )}
+          {sent && <span className="text-[9px] text-mcz-cyan/70">sent</span>}
           {task.undoable && (
             <button onClick={() => onUndo(task)} className="text-white/30 hover:text-mcz-gold"
                     title="Undo — inside your tier's window">
@@ -304,6 +314,22 @@ export default function OCC() {
     await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }).catch(() => {});
     loadTasks();
   };
+  // Cross-pollination: OCC's own queue is a place work SITS, not a place a
+  // member checks off a day's plan against everything else they're doing.
+  // Sending it to Lilith is a real to-do row there — `app_key: "occ"` makes
+  // the server mark it `source: "platform"`, so Lilith's XP-and-streak
+  // rewards apply but nothing mints twice for one piece of work (the OCC
+  // task itself still pays whatever completing it pays). Lilith renders the
+  // "Do it" jump back here on its own — this only has to create the row.
+  const sendToLilith = async (t) => {
+    try {
+      await api("/api/economy/lilith/tasks/", {
+        method: "POST",
+        body: { title: t.title, bucket: "inbox", app_key: "occ", target: "occ-taskz" },
+      });
+      flash("Sent to Lilith's Inbox.");
+    } catch (e) { flash(e.message || "Couldn't send that to Lilith."); }
+  };
 
   const canKeep = draft.title.trim() || draft.input_text.trim()
     || draft.description.trim() || work.media_url || work.image_url;
@@ -404,8 +430,10 @@ export default function OCC() {
       </p>
 
       {/* TaskZ — the spine. Git actions land here too. */}
-      <div className="re-card space-y-3">
-        <div className="re-label">📑 TaskZ</div>
+      <div className="re-card space-y-3" data-tour="occ-taskz">
+        <div className="re-label flex items-center gap-1.5">
+          <IconImg icon="taskz.png" alt="" className="h-5 w-5 rounded" /> TaskZ
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <input className="neon-input !w-auto flex-1 !py-2 text-xs" placeholder="What should OCC do?"
                  value={title} onChange={(e) => setTitle(e.target.value)}
@@ -425,7 +453,8 @@ export default function OCC() {
         ) : (
           <ul className="space-y-2">
             {tasks.map((t) => (
-              <Task key={t.id} task={t} onAdvance={advance} onUndo={undo} onCancel={cancel} />
+              <Task key={t.id} task={t} onAdvance={advance} onUndo={undo} onCancel={cancel}
+                    onSendToLilith={sendToLilith} />
             ))}
           </ul>
         )}

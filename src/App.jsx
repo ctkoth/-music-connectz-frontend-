@@ -145,7 +145,7 @@ export const CUSTOM_ICONS = {
   "battlez.freestyle.png": "/icons/battlez.freestyle-neon.svg",
   "battlez.png": "/icons/battlez-main.webp",
   "boardz.png": "/icons/boardz.png",
-  "bodiez.png": "/icons/bodiez.jpg",
+  "bodiez.png": "/icons/bodiez.png",
   "bugz.png": "/icons/bugz-neon.svg",
   "callz.png": "/icons/callz-neon.svg",
   "callz_ai.png": "/icons/callz_ai.png",
@@ -303,7 +303,7 @@ export const CUSTOM_ICONS = {
   // mismatches; on the neon glyph until it lands, then only the path moves.
   "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz-neon.svg",
-  "stepz.png": "/icons/stepz-good-bodiez.png",
+  "taskz.png": "/icons/taskz-neon.png",
   // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
   // illegible at the 28-36px this app actually renders it — a busy neon-sign
   // frame plus a two-line text banner eats the pixel budget a metronome or
@@ -409,7 +409,7 @@ const TABS = [
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
-  { key: "social", label: "SocialiZeZ", icon: "socialiZez.svg", el: <SocialConnectZ /> },
+  { key: "social", label: "SocialiZeZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
   // genders, both zodiacs, sober, substances, five range gates and distance —
   // has been implemented and reachable only by typing a URL.
