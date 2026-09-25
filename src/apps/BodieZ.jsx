@@ -1657,6 +1657,8 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
   const coachMedians = stepCoach?.medians || {};
   const coachCaveat = stepCoach?.caveat || "Step quality measures consistency, efficiency and form during exercises.";
   const overallScore = stepCoach?.overall_score || null;
+  const totalStepCount = stepCoach?.total_steps || 0;
+  const stepCountByMuscle = stepCoach?.step_counts || {};
 
   async function handleLogSteps() {
     const count = parseInt(stepInput, 10);
@@ -1676,6 +1678,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
   const muscleScores = Object.entries(coachMedians).map(([muscle, score]) => ({
     muscle: MUSCLE_LABEL[muscle] || muscle,
     score,
+    stepCount: stepCountByMuscle[muscle] || 0,
     status: bodymap?.status?.[muscle] || "unknown",
   })).sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -1725,9 +1728,15 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
 
           {showCoach && (
             <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-emerald-300">{Math.round(overallScore)}/10</p>
-                <p className="text-xs text-white/50">Overall step quality</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="text-center">
+                  <p className="text-3xl font-extrabold text-emerald-300">{Math.round(overallScore)}/10</p>
+                  <p className="text-xs text-white/50">Overall quality</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-extrabold text-mcz-cyan">{totalStepCount.toLocaleString()}</p>
+                  <p className="text-xs text-white/50">Total steps</p>
+                </div>
               </div>
 
               {Object.entries(coachScores).map(([key, score]) => (
@@ -1755,23 +1764,22 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
 
       {muscleScores.length > 0 && (
         <div className="re-card">
-          <p className="mb-3 text-sm font-semibold">Step quality by muscle group</p>
+          <p className="mb-3 text-sm font-semibold">Step quality & count by muscle group</p>
           <div className="space-y-2">
             {muscleScores.map((m) => (
-              <div key={m.muscle} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
-                <span className="text-xs font-semibold text-white/80">{m.muscle}</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-20">
-                    <div className="h-1.5 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-mcz-cyan to-emerald-400"
-                        style={{ width: `${Math.min((m.score || 0) * 10, 100)}%` }}
-                      />
-                    </div>
+              <div key={m.muscle} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-white/80">{m.muscle}</span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-mcz-cyan font-semibold">{m.stepCount.toLocaleString()} steps</span>
+                    <span className="text-emerald-300 font-extrabold">{Math.round(m.score || 0)}/10</span>
                   </div>
-                  <span className="text-sm font-extrabold text-emerald-300 min-w-[2rem] text-right">
-                    {Math.round(m.score || 0)}/10
-                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-mcz-cyan to-emerald-400"
+                    style={{ width: `${Math.min((m.score || 0) * 10, 100)}%` }}
+                  />
                 </div>
               </div>
             ))}
