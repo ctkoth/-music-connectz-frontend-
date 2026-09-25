@@ -98,6 +98,7 @@ const TABS = [
   { key: "goals", label: "Goals" },
   { key: "recovery", label: "Recovery" },
   { key: "progress", label: "Progress" },
+  { key: "stepz", label: "StepZ" },
 ];
 
 export default function BodieZ() {
@@ -117,6 +118,7 @@ export default function BodieZ() {
   const [goals, setGoals] = useState(null);
   const [weightLogs, setWeightLogs] = useState([]);
   const [recovery, setRecovery] = useState(null);
+  const [steps, setSteps] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -132,7 +134,8 @@ export default function BodieZ() {
       api("/api/economy/bodiez/goals/"),
       api("/api/economy/bodiez/weightlog/"),
       api("/api/economy/bodiez/recovery/"),
-    ]).then(([ex, b, sess, prog, bm, co, g, wl, rec]) => {
+      api("/api/economy/bodiez/steps/").catch(() => ({ steps: [], today_total: 0, daily_goal: 10000 })),
+    ]).then(([ex, b, sess, prog, bm, co, g, wl, rec, st]) => {
       setExercises(asList(ex.exercises));
       setDemoCredit(ex.demo_credit || "");
       setBoard(b);
@@ -144,6 +147,7 @@ export default function BodieZ() {
       setGoals(g);
       setWeightLogs(asList(wl.logs));
       setRecovery(rec);
+      setSteps(st);
       setErr("");
     }).catch((e) => setErr(e.message || "Couldn't load BodieZ."))
       .finally(() => setBusy(false));
@@ -309,6 +313,13 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  async function logSteps(count) {
+    try {
+      await api("/api/economy/bodiez/steps/", { method: "POST", body: { count } });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
@@ -364,6 +375,7 @@ export default function BodieZ() {
           )}
           {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
+          {tab === "stepz" && <StepZView steps={steps} onLogSteps={logSteps} />}
         </>
       )}
     </div>
@@ -1623,6 +1635,104 @@ function ProgressView({ progress }) {
         <p className="text-2xl font-extrabold text-white">{progress.total_volume_kg.toLocaleString()}</p>
         <p className="re-label">Total volume (kg)</p>
       </div>
+    </div>
+  );
+}
+
+function StepZView({ steps, onLogSteps }) {
+  const [stepInput, setStepInput] = useState("");
+  const [isLogging, setIsLogging] = useState(false);
+
+  if (!steps) return null;
+
+  const todayTotal = steps.today_total || 0;
+  const dailyGoal = steps.daily_goal || 10000;
+  const percentComplete = Math.min((todayTotal / dailyGoal) * 100, 100);
+  const stepList = asList(steps.steps || []);
+
+  async function handleLogSteps() {
+    const count = parseInt(stepInput, 10);
+    if (!count || count < 0) {
+      alert("Please enter a valid number of steps");
+      return;
+    }
+    setIsLogging(true);
+    try {
+      await onLogSteps(count);
+      setStepInput("");
+    } finally {
+      setIsLogging(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="re-card">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-3xl font-extrabold text-emerald-300">{todayTotal.toLocaleString()}</p>
+            <p className="re-label">Steps today</p>
+            <p className="mt-1 text-xs text-white/50">Goal: {dailyGoal.toLocaleString()}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-extrabold text-mcz-cyan">{Math.round(percentComplete)}%</p>
+            <p className="re-label">Complete</p>
+          </div>
+        </div>
+
+        <div className="mt-4 h-2 w-full rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-mcz-cyan to-emerald-400 transition-all duration-500"
+            style={{ width: `${percentComplete}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="re-card space-y-3">
+        <p className="text-sm font-semibold">Log steps</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min="0"
+            placeholder="Enter steps"
+            value={stepInput}
+            onChange={(e) => setStepInput(e.target.value)}
+            disabled={isLogging}
+            className="flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
+          />
+          <button
+            className="neon-btn-primary px-4 py-2 disabled:opacity-50"
+            onClick={handleLogSteps}
+            disabled={isLogging}
+          >
+            {isLogging ? <Loader2 className="animate-spin" size={16} /> : "Log"}
+          </button>
+        </div>
+        <p className="text-xs text-white/40">
+          Log steps from your smartwatch or manually enter them. Every step counts toward your daily goal.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-white/70">Recent logs</p>
+        {stepList.length === 0 && (
+          <p className="text-xs text-white/40">No steps logged yet today.</p>
+        )}
+        {stepList.map((log) => (
+          <div key={log.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+            <span className="text-xs text-white/70">
+              {new Date(log.logged_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+            <span className="text-sm font-semibold text-emerald-300">+{log.count.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+
+      {stepList.length > 0 && (
+        <div className="re-card text-center">
+          <p className="text-xs text-white/50">Total entries today: {stepList.length}</p>
+        </div>
+      )}
     </div>
   );
 }

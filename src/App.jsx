@@ -303,6 +303,7 @@ export const CUSTOM_ICONS = {
   // mismatches; on the neon glyph until it lands, then only the path moves.
   "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz-neon.svg",
+  "stepz.png": "/icons/stepz-good-bodiez.png",
   // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
   // illegible at the 28-36px this app actually renders it — a busy neon-sign
   // frame plus a two-line text banner eats the pixel budget a metronome or
