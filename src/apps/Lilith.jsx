@@ -164,7 +164,7 @@ export default function Lilith() {
   return (
     <div className="space-y-5" data-tour="lilith">
       <header className="flex items-center gap-4">
-        <IconImg icon="toolz_lilith.png" alt="Lilith" className="h-14 w-14 rounded-2xl shadow-neon" />
+        <IconImg icon="lilithz.png" alt="Lilith" className="h-14 w-14 rounded-2xl shadow-neon" />
         <div className="flex-1">
           <h2 className="font-display text-2xl font-extrabold text-fuchsia-300">Lilith</h2>
           {/* Her line, from the server. She is warm and never a nag — a task

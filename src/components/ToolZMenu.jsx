@@ -12,8 +12,8 @@ const ICON_MAP = {
   keyz: { svg: '/icons/keyz.png', emoji: '🎹' },
   drumz: { svg: '/icons/drumz-neon.svg', emoji: '🥁' },
   violinz: { svg: '/icons/violinz.png', emoji: '🎻' },
-  battlez: { svg: '/icons/battlez-neon.svg', emoji: '⚔️' },
-  collabz: { svg: '/icons/collabz-neon.svg', emoji: '🤝' },
+  battlez: { svg: '/icons/battlez-main.webp', emoji: '⚔️' },
+  collabz: { svg: '/icons/collabz.jpg', emoji: '🤝' },
   infernoz: { svg: '/icons/offerz-neon.svg', emoji: '🔥' },
   socialiZeZ: { svg: '/icons/social_connectz-neon.svg', emoji: '👥' },
   vybez: { svg: '/icons/vybez-neon.svg', emoji: '💫' },
@@ -33,7 +33,7 @@ const ICON_MAP = {
   funnelz: { svg: '/icons/funnelz-neon.svg', emoji: '📉' },
   groupz: { svg: '/icons/groupz-neon.svg', emoji: '👫' },
   merchz: { svg: '/icons/soundz-neon.svg', emoji: '🛍️' },
-  lilith: { svg: '/icons/lilith_inbox-neon.svg', emoji: '💃' },
+  lilith: { svg: '/icons/lilith.taskz.webp', emoji: '💃' },
   bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
 };
 
@@ -164,15 +164,15 @@ const TOOLZ_MENU = {
 // Category icon mapping for neon SVG icons
 const CATEGORY_ICON_MAP = {
   'SocialiZeZ': '/icons/social_connectz-neon.svg',
-  'CollabZ': '/icons/collabz-neon.svg',
-  'BattleZ': '/icons/battlez-neon.svg',
+  'CollabZ': '/icons/collabz.jpg',
+  'BattleZ': '/icons/battlez-main.webp',
   'GroupZ': '/icons/groupz-neon.svg',
   'ToolZ': '/icons/toolz-main-neon.svg',
-  'IntelligenceZ': '/icons/occ-neon.svg',
+  'IntelligenceZ': '/icons/intelligencez.jpg',
   'ProfileZ': '/icons/personaz-neon.svg',
   'VenueZ': '/icons/opportunitiez-neon.svg',
   'MercheZ': '/icons/soundz-neon.svg',
-  'Lilith': '/icons/lilith_inbox-neon.svg',
+  'Lilith': '/icons/lilith.taskz.webp',
   'BodieZ': '/icons/bodiez-neon.svg',
 };
 
@@ -240,12 +240,12 @@ export default function ToolZMenu() {
               <div className="app-detail-header">
                 <div className="app-icon-small">
                   {ICON_MAP[app.key] ? (
-                    ICON_MAP[app.key].svg.endsWith('.png') ? (
-                      <img src={ICON_MAP[app.key].svg} alt={app.label} />
-                    ) : (
+                    ICON_MAP[app.key].svg.endsWith('.svg') ? (
                       <svg className="icon-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
                         <image href={ICON_MAP[app.key].svg} width="200" height="200" />
                       </svg>
+                    ) : (
+                      <img src={ICON_MAP[app.key].svg} alt={app.label} />
                     )
                   ) : (
                     <span>{ICON_MAP[app.key]?.emoji || '🎵'}</span>
