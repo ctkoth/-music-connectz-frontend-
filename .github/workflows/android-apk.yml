@@ -33,7 +33,18 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+      # Explicit packages, deliberately excluding the default list this action
+      # falls back to when `packages` is omitted — that list includes the
+      # legacy "tools" package, which Google has removed from the SDK
+      # repository entirely. `sdkmanager tools` then fails with "Failed to
+      # find package 'tools'" (exit 1) before anything Android-specific ever
+      # runs — this broke every build on main for two pushes running, unable
+      # to get as far as `cap add android`. What Capacitor 6's Gradle project
+      # (compileSdk/targetSdk 34) actually needs is platform-tools, the
+      # platform, and one build-tools release; none of those is "tools".
       - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-34 build-tools;34.0.0"
 
       - name: Add Android platform
         run: npx --yes cap add android
