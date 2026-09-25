@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2, Wallet } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
-import { WINDOWS_EXE } from "./downloadBuilds.js";
+import { recommendedBuild } from "./downloadBuilds.js";
 import { MONEY } from "./resources.js";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
@@ -194,6 +194,7 @@ export default function Landing() {
     return () => { on = false; };
   }, []);
   useEffect(() => { track("landing_view"); }, []);
+  const build = recommendedBuild();
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
       <header className="mb-8 flex items-center gap-3">
@@ -265,20 +266,26 @@ export default function Landing() {
         <iframe src="https://ad-swap.web.app/frame.html?site=75veYPcDYKfignDb09N6" style={{border:0,width:"300px",height:"130px",maxWidth:"100%"}} loading="lazy" sandbox="allow-scripts allow-popups" title="Ad" />
       </div>
 
-      {/* Free, no account needed — the desktop build loads the live site, so
-          it's always whatever the web app is, never a version behind it. */}
+      {/* Free, no account needed — both builds load the live site, so they're
+          always whatever the web app is, never a version behind it. Picks
+          Android on an Android visitor rather than defaulting to Windows for
+          everyone; SpecZ (inside the app) still lists every option. */}
       <a
-        href={WINDOWS_EXE.href}
+        href={build.href}
         target="_blank"
         rel="noreferrer"
         className="mt-6 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
       >
         <Download size={15} className="shrink-0 text-mcz-cyan" />
         <div>
-          <span className="font-semibold text-white">{WINDOWS_EXE.emoji} Download for Windows (.exe)</span>
+          <span className="font-semibold text-white">
+            {build.emoji} Download for {build.key === "android" ? "Android (.apk)" : "Windows (.exe)"}
+          </span>
           <span className="ml-1.5 text-emerald-300">Free</span>
           <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
-            {WINDOWS_EXE.note} Unsigned build — SmartScreen: More info → Run anyway.
+            {build.note} {build.key === "android"
+              ? "You'll need to allow installs from this source."
+              : "Unsigned build — SmartScreen: More info → Run anyway."}
           </p>
         </div>
       </a>

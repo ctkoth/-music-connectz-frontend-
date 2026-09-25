@@ -20,3 +20,24 @@ export const BUILDS = [
 ];
 
 export const WINDOWS_EXE = BUILDS[0];
+
+// Best-effort device detection so Landing and Register — which show ONE
+// download tile, not a list — offer the build that actually installs on the
+// visitor's device instead of defaulting to Windows for everyone, Android
+// included. navigator.userAgent is spoofable; that's fine here, since the
+// worst case is a visitor sees the "wrong" tile and the full list in SpecZ
+// still has every option regardless of what this guesses.
+export function detectPlatform() {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua)) return "android";
+  if (/windows/i.test(ua)) return "win";
+  return "other";
+}
+
+// The single tile Landing/Register lead with. Android on an Android visitor,
+// the Windows installer for everyone else (iOS/Mac/Linux have no build yet,
+// so Windows stays the fallback rather than showing nothing).
+export function recommendedBuild() {
+  return BUILDS.find((b) => b.key === detectPlatform()) || WINDOWS_EXE;
+}
