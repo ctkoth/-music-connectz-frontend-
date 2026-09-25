@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Lower Legs">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left shin -->
+    <path d="M70 100 L65 155" stroke="#00ff88" stroke-width="5"/>
+    <!-- Left calf -->
+    <path d="M70 100 L72 155" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Right shin -->
+    <path d="M130 100 L135 155" stroke="#00ff88" stroke-width="5"/>
+    <!-- Right calf -->
+    <path d="M130 100 L128 155" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Knee area -->
+    <circle cx="70" cy="100" r="6" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.7"/>
+    <circle cx="130" cy="100" r="6" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.7"/>
+    <!-- Foot markers -->
+    <rect x="60" y="150" width="20" height="12" rx="2" fill="none" stroke="#00ff88" stroke-width="2"/>
+    <rect x="125" y="150" width="20" height="12" rx="2" fill="none" stroke="#00ff88" stroke-width="2"/>
+  </g>
+</svg>

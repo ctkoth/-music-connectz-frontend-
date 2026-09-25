@@ -11,7 +11,6 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
-import AdFrame from "./AdFrame.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -96,6 +95,7 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
 // A minimal, theme-matched fallback — Suspense shows this for the split
@@ -139,14 +139,15 @@ export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
   "background.png": "/icons/background.png",
-  "battlez.1v1.png": "/icons/battlez.1v1.png",
-  "battlez.cypher.png": "/icons/battlez.cypher.jpg",
-  "battlez.freestyle.png": "/icons/battlez.freestyle.png",
-  "battlez.png": "/icons/battlez.png",
+  "battlez.1v1.png": "/icons/battlez.1v1-neon.svg",
+  "battlez.cypher.png": "/icons/battlez.cypher-neon.svg",
+  "battlez.cypher.jpg": "/icons/battlez.cypher-neon.svg",
+  "battlez.freestyle.png": "/icons/battlez.freestyle-neon.svg",
+  "battlez.png": "/icons/battlez-main.webp",
   "boardz.png": "/icons/boardz.png",
   "bodiez.png": "/icons/bodiez.png",
-  "bugz.png": "/icons/bugz.png",
-  "callz.png": "/icons/callz.png",
+  "bugz.png": "/icons/bugz-neon.svg",
+  "callz.png": "/icons/callz-neon.svg",
   "callz_ai.png": "/icons/callz_ai.png",
   "callz_ai.webp": "/icons/callz_ai.webp",
   "callz_user.png": "/icons/callz_user.png",
@@ -165,9 +166,9 @@ export const CUSTOM_ICONS = {
   // the same size. One clear symbol, the same fix vybez's icon got.
   "coachz.jpg": "/icons/coachz-neon.svg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
-  "collabz.originalz.png": "/icons/collabz.originalz.png",
-  "collabz.remixez.png": "/icons/collabz.remixez.png",
-  "collabz.png": "/icons/collabz.png",
+  "collabz.originalz.png": "/icons/collabz.originalz-neon.svg",
+  "collabz.remixez.png": "/icons/collabz.remixez-neon.svg",
+  "collabz.png": "/icons/collabz.jpg",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
@@ -190,19 +191,19 @@ export const CUSTOM_ICONS = {
   "developz.png": "/icons/developz.png",
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
-  "violinz.png": "/icons/violinz.png",
-  "guitarz.png": "/icons/guitarz.png",
+  "violinz.png": "/icons/violinz-neon.svg",
+  "guitarz.png": "/icons/guitarz-neon.svg",
   "bassz.png": "/icons/bassz.png",
-  "keyz.png": "/icons/keyz.png",
+  "keyz.png": "/icons/keyz-neon.svg",
   "directz.png": "/icons/directz-neon.svg",
   "distributez.png": "/icons/distributez.png",
   "energy.png": "/icons/energy.png",
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
-  "groupz.png": "/icons/groupz.png",
+  "groupz.png": "/icons/groupz-neon.svg",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
-  "partnerz.jpg": "/icons/partnerz.jpg",
+  "partnerz.jpg": "/icons/partnerz-neon.svg",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
   "groupz_friendz.png": "/icons/groupz_friendz.png",
@@ -212,8 +213,9 @@ export const CUSTOM_ICONS = {
   "inbox_alt.png": "/icons/inbox_alt.png",
   "intelligence.png": "/icons/intelligence.png",
   "intuition.png": "/icons/intuition.png",
+  "intelligencez.png": "/icons/intelligencez.jpg",
   "keyconnectz.png": "/icons/keyconnectz-neon.svg",
-  "labelz.png": "/icons/labelz.png",
+  "labelz.png": "/icons/labelz-neon.svg",
   "lessonz.png": "/icons/lessonz-neon.svg",
   "lilith_anytime.png": "/icons/lilith_anytime.png",
   "lilith_inbox.png": "/icons/lilith_inbox-neon.svg",
@@ -223,13 +225,14 @@ export const CUSTOM_ICONS = {
   "lilith_today2.png": "/icons/lilith_today2.png",
   "lilith_trash.png": "/icons/lilith_trash.png",
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
+  "lilithz.png": "/icons/lilith.taskz.webp",
   "logo.png": "/mcz-logo-v5.jpg",
   "managez.png": "/icons/managez.png",
-  "messagez.png": "/icons/messagez.png",
+  "messagez.png": "/icons/messagez-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
   "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
-  "occ.png": "/icons/occ.png",
+  "occ.png": "/icons/occ-neon.svg",
   "opportunitiez.png": "/icons/opportunitiez-neon.svg",
   "offerz.png": "/icons/offerz-neon.svg",
   "adz.png": "/icons/adz-neon.svg",
@@ -237,7 +240,7 @@ export const CUSTOM_ICONS = {
   // New editions — neon signage dropped in Jul 16.
   "specz.png": "/icons/specz-neon.svg",
   "nationalitiez.png": "/icons/nationalitiez.png",
-  "onboardz.png": "/icons/onboardz.png",
+  "onboardz.png": "/icons/onboardz-neon.svg",
   // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
   // rest of the platform refers to and the value points at the SVG — the
   // same indirection "logo.png" → the .jpg already uses, and the reason this
@@ -266,19 +269,19 @@ export const CUSTOM_ICONS = {
   "pickconz.png": "/icons/pickconz.png",
   "preferencez.png": "/icons/preferencez.png",
   "producez.png": "/icons/producez.png",
-  "rapz.png": "/icons/rapz.png",
+  "rapz.png": "/icons/rapz-neon.svg",
   "ratez.png": "/icons/ratez.png",
   "royaltiez.png": "/icons/royaltiez-neon.svg",
   "scoutz.png": "/icons/scoutz.png",
   "sentencez.png": "/icons/sentencez.png",
   "shotz.png": "/icons/shotz.png",
-  "singz.png": "/icons/singz.png",
+  "singz.png": "/icons/singz-neon.svg",
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
-  "playlistz.png": "/icons/playlistz.png",
+  "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
   "statsz.png": "/icons/statsz-neon.svg",
   "substancez.png": "/icons/substancez.png",
@@ -295,11 +298,12 @@ export const CUSTOM_ICONS = {
   // Live surfaces whose art was on disk but never registered — so they were
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
-  "habitz.png": "/icons/habitz.png",
+  "habitz.png": "/icons/habitz-neon.svg",
   // .jpg — the art is journalz.jpg. Fourth of the four extension
   // mismatches; on the neon glyph until it lands, then only the path moves.
   "journalz.jpg": "/icons/journalz-neon.svg",
-  "logz.png": "/icons/logz.png",
+  "logz.png": "/icons/logz-neon.svg",
+  "taskz.png": "/icons/taskz-neon.png",
   // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
   // illegible at the 28-36px this app actually renders it — a busy neon-sign
   // frame plus a two-line text banner eats the pixel budget a metronome or
@@ -309,7 +313,8 @@ export const CUSTOM_ICONS = {
   "metz.jpg": "/icons/metz-neon.svg",
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
-  "drumz.png": "/icons/drumz.png",
+  "drumz.png": "/icons/drumz-neon.svg",
+  "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
@@ -329,7 +334,7 @@ export const CUSTOM_ICONS = {
   "membership.png": "/icons/membership.png",
   "merchz.png": "/icons/merchz.png",
   "moodz.png": "/icons/moodz.png",
-  "onboardz.jpg": "/icons/onboardz.jpg",
+  "onboardz.jpg": "/icons/onboardz-neon.svg",
   "parcel.png": "/icons/parcel.png",
   "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
@@ -400,10 +405,11 @@ export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
 const TABS = [
+  { key: "toolz", label: "ToolZ", icon: "toolz.png", el: <ToolZMenu /> },
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
-  { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  { key: "social", label: "SocialiZeZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
   // genders, both zodiacs, sober, substances, five range gates and distance —
   // has been implemented and reachable only by typing a URL.
@@ -467,7 +473,7 @@ const TABS = [
         tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
-  { key: "lilith", label: "Lilith", icon: "toolz_lilith.png", el: <Lilith /> },
+  { key: "lilith", label: "Lilith", icon: "lilithz.png", el: <Lilith /> },
   { key: "bodiez", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
@@ -722,7 +728,7 @@ const TAB_ABOUT = {
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
-  membershipz: "💳 MembershipZ — upgrade your tier for lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Founding members lock in 50% off for life.",
+  membershipz: "💳 MembershipZ — upgrade your tier to reach further. Lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Connect with more collaborators. Founding members lock in 50% off for life.",
   adz: "📺 AdZ — watch a short rewarded ad and earn SpinaZ. Ads play in the mobile app via AdMob; your reward lands automatically when the ad finishes.",
   offerz: "🎁 OfferZ — complete offers (surveys, sign-ups, installs) on the offerwall and earn SpinaZ, credited automatically once the provider confirms.",
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
@@ -894,9 +900,9 @@ function Home() {
             </a>
           </div>
 
-          <a {...openable("/post", () => openTab("postz"))} className="flex items-center gap-2"
-             title="PostZ — ctrl/cmd-click for a new tab">
-            <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
+          <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
+             title="ToolZ — All Audio, Visual & App ToolZ">
+            <img src="/icons/toolz-main.svg" alt="ToolZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => e.currentTarget.src = "/icons/toolz.png"} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
@@ -1130,13 +1136,6 @@ function Home() {
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
-
-      {/* Above the dock, so it sits at the foot of the page without fighting
-          the fixed navigation. AdFrame renders nothing AT ALL unless the server
-          says this member may see a third-party ad — including its own spacing,
-          which is why there is no wrapper here. A wrapper would survive the
-          null and leave a teen looking at a padded gap where an advert isn't. */}
-      <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
 
         <Dock
           apps={dockApps}

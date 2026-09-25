@@ -1,0 +1,36 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-battle" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Left sword -->
+  <line x1="60" y1="50" x2="85" y2="130" stroke="#ff3333" stroke-width="3" filter="url(#glow-battle)"/>
+  <polygon points="85,130 83,125 87,125" fill="#ff3333" filter="url(#glow-battle)"/>
+  <circle cx="60" cy="50" r="6" fill="none" stroke="#ff3333" stroke-width="2" filter="url(#glow-battle)"/>
+
+  <!-- Right sword -->
+  <line x1="140" y1="50" x2="115" y2="130" stroke="#00ffff" stroke-width="3" filter="url(#glow-battle)"/>
+  <polygon points="115,130 117,125 113,125" fill="#00ffff" filter="url(#glow-battle)"/>
+  <circle cx="140" cy="50" r="6" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-battle)"/>
+
+  <!-- VS text -->
+  <text x="100" y="110" font-size="48" font-weight="bold" text-anchor="middle" fill="none" stroke="#ffff00" stroke-width="1" filter="url(#glow-battle)" font-family="Arial">
+    VS
+  </text>
+
+  <!-- Impact effect - center -->
+  <circle cx="100" cy="90" r="25" fill="none" stroke="#ffff00" stroke-width="1.5" opacity="0.6" filter="url(#glow-battle)"/>
+  <circle cx="100" cy="90" r="18" fill="none" stroke="#ff00ff" stroke-width="1" opacity="0.4" filter="url(#glow-battle)"/>
+
+  <!-- Spark effects -->
+  <circle cx="75" cy="75" r="2" fill="#ffff00" filter="url(#glow-battle)"/>
+  <circle cx="125" cy="75" r="2" fill="#ffff00" filter="url(#glow-battle)"/>
+  <circle cx="80" cy="95" r="1.5" fill="#ff00ff" filter="url(#glow-battle)"/>
+  <circle cx="120" cy="95" r="1.5" fill="#ff00ff" filter="url(#glow-battle)"/>
+</svg>

@@ -63,6 +63,10 @@ export default function Lilith() {
   const [paid, setPaid] = useState(null);
   const [draft, setDraft] = useState({ title: "", kind: "standard", app_key: "", target: "" });
   const [routineTitle, setRoutineTitle] = useState("");
+  // Task/routine tagging
+  const [expandedTask, setExpandedTask] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [tagDraft, setTagDraft] = useState({ to_app_key: "", to_target: "", visibility: "private" });
 
   const load = () => {
     setBusy(true);
@@ -127,6 +131,31 @@ export default function Lilith() {
     if (out) { if (out.milestone) setPaid(out.milestone); load(); }
   }
 
+  async function loadTags(task) {
+    const loaded = await call(`/api/economy/lilith/tags/?task_id=${task.id}`);
+    if (loaded) setTags(loaded);
+  }
+
+  async function addTag(e) {
+    e.preventDefault();
+    if (!tagDraft.to_app_key || !tagDraft.to_target) return;
+    if (!expandedTask) return;
+    const created = await call("/api/economy/lilith/tag/", {
+      method: "POST",
+      body: { task_id: expandedTask.id, ...tagDraft },
+    });
+    if (created) {
+      setTagDraft({ to_app_key: "", to_target: "", visibility: "private" });
+      loadTags(expandedTask);
+    }
+  }
+
+  async function removeTag(tagId) {
+    if (!window.confirm("Remove this tag?")) return;
+    const gone = await call(`/api/economy/lilith/tag/${tagId}/`, { method: "DELETE" });
+    if (gone !== null && expandedTask) loadTags(expandedTask);
+  }
+
   if (!board && !err) {
     return <p className="flex items-center gap-2 text-white/50">
       <Loader2 className="animate-spin" size={16} /> Loading…</p>;
@@ -135,7 +164,7 @@ export default function Lilith() {
   return (
     <div className="space-y-5" data-tour="lilith">
       <header className="flex items-center gap-4">
-        <IconImg icon="toolz_lilith.png" alt="Lilith" className="h-14 w-14 rounded-2xl shadow-neon" />
+        <IconImg icon="lilithz.png" alt="Lilith" className="h-14 w-14 rounded-2xl shadow-neon" />
         <div className="flex-1">
           <h2 className="font-display text-2xl font-extrabold text-fuchsia-300">Lilith</h2>
           {/* Her line, from the server. She is warm and never a nag — a task
@@ -247,6 +276,30 @@ export default function Lilith() {
         </p>
       )}
 
+      {/* Suggested site activities — ways to stay engaged beyond app-specific tasks */}
+      {asList(board?.suggestions).length > 0 && (
+        <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+          <h3 className="text-[12px] font-semibold text-white/70">Something to do</h3>
+          <p className="text-[11px] text-white/40">
+            Lilith suggests these to keep your activity varied. XP for engaging, nothing more.
+          </p>
+          <div className="space-y-1.5">
+            {asList(board?.suggestions).map((s) => (
+              <div key={s.key}
+                   className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{s.title}</p>
+                  <p className="text-[11px] text-white/40">{s.note}</p>
+                </div>
+                <span className="whitespace-nowrap text-[11px] text-emerald-300">
+                  +{s.xp} {XP}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <ul className="space-y-1.5">
         {rows.length === 0 && (
           <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/40">
@@ -255,9 +308,10 @@ export default function Lilith() {
         )}
         {rows.map((t) => (
           <li key={t.id}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={() => { setExpandedTask(t); loadTags(t); }}>
             {!t.done_at && (
-              <button onClick={() => tick(t)} title="Done"
+              <button onClick={(e) => { e.stopPropagation(); tick(t); }} title="Done"
                       className="shrink-0 rounded-md border border-emerald-400/40 p-1 text-emerald-300 hover:bg-emerald-400/10">
                 <Check size={14} />
               </button>
@@ -278,20 +332,97 @@ export default function Lilith() {
             {/* Nothing is a dead end: a task that names an app opens the
                 control that completes it, not the tab it lives on. */}
             {t.open_in?.tab && (
-              <button onClick={() => goToSpot(t.open_in.tab, t.open_in.target)}
+              <button onClick={(e) => { e.stopPropagation(); goToSpot(t.open_in.tab, t.open_in.target); }}
                       className="flex shrink-0 items-center gap-1 rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                 Do it <ArrowRight size={12} />
               </button>
             )}
             {!t.done_at && bucket !== "today" && (
-              <button onClick={() => move(t, "today")}
+              <button onClick={(e) => { e.stopPropagation(); move(t, "today"); }}
                       className="shrink-0 text-[11px] text-white/40 hover:text-white/70">Today</button>
             )}
-            <button onClick={() => remove(t)} title="Delete"
+            <button onClick={(e) => { e.stopPropagation(); remove(t); }} title="Delete"
                     className="shrink-0 text-white/25 hover:text-mcz-ember"><Trash2 size={14} /></button>
           </li>
         ))}
       </ul>
+
+      {/* Task detail panel with tagging — opens when a task is clicked */}
+      {expandedTask && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setExpandedTask(null)} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-black/95 p-4 backdrop-blur">
+            <div className="mx-auto max-w-2xl space-y-4">
+              {/* Header with close button */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">{expandedTask.title}</h3>
+                <button onClick={() => setExpandedTask(null)} className="text-white/40 hover:text-white/70">
+                  <span className="text-2xl">×</span>
+                </button>
+              </div>
+
+              {/* Task details */}
+              <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3 text-[12px]">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span className="text-white/60">
+                    Kind: <span className="text-white">{kinds.find((k) => k.key === expandedTask.kind)?.label || expandedTask.kind}</span>
+                  </span>
+                  {expandedTask.done_at && (
+                    <span className="text-emerald-300">✓ Completed</span>
+                  )}
+                </div>
+                {!expandedTask.done_at && <Gain {...asDict(expandedTask.pays)} />}
+              </div>
+
+              {/* Tagged with section */}
+              <div className="space-y-2">
+                <h4 className="text-[13px] font-semibold text-white">Tagged with</h4>
+                {tags.length === 0 ? (
+                  <p className="text-[11px] text-white/40">No tags yet. Add one below.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {tags.map((tag) => (
+                      <li key={tag.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">
+                        <button onClick={() => goToSpot(tag.to_app_key, tag.to_target)}
+                                className="flex-1 text-left text-mcz-cyan hover:underline truncate">
+                          {tag.to_app_key}: {tag.to_target}
+                        </button>
+                        <span className="ml-2 text-white/40 text-[10px]">{tag.visibility}</span>
+                        <button onClick={() => removeTag(tag.id)} className="ml-2 text-white/30 hover:text-mcz-ember">
+                          <Trash2 size={12} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Add tag form */}
+              <form onSubmit={addTag} className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                <h4 className="text-[13px] font-semibold text-white">Add a tag</h4>
+                <input
+                  type="text" placeholder="App key (e.g., 'postz', 'battlez')" value={tagDraft.to_app_key}
+                  onChange={(e) => setTagDraft({ ...tagDraft, to_app_key: e.target.value })}
+                  className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
+                <input
+                  type="text" placeholder="Target (e.g., 'post:123' or 'user:abc')" value={tagDraft.to_target}
+                  onChange={(e) => setTagDraft({ ...tagDraft, to_target: e.target.value })}
+                  className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
+                <select value={tagDraft.visibility}
+                        onChange={(e) => setTagDraft({ ...tagDraft, visibility: e.target.value })}
+                        className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px]">
+                  <option value="private">Private (just me)</option>
+                  <option value="shared">Shared (collaborators)</option>
+                  <option value="public">Public (everyone)</option>
+                </select>
+                <button type="submit" className="w-full rounded-md bg-mcz-cyan/20 py-1.5 text-[12px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/30">
+                  Add tag
+                </button>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
 
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <h3 className="flex items-center gap-2 font-display text-sm font-bold">

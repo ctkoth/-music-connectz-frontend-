@@ -137,7 +137,7 @@ export default function Login() {
         </Link>
         {" "}or{" "}
         <Link to="/try" className="text-mcz-cyan hover:underline">
-          try a free scored take first
+          score & connect with our coach first
         </Link>
       </p>
     </AuthShell>

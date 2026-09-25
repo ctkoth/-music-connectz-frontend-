@@ -9,7 +9,7 @@ import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 import { track } from "../track.js";
 import { api } from "../api.js";
-import { WINDOWS_EXE } from "../downloadBuilds.js";
+import { recommendedBuild } from "../downloadBuilds.js";
 import RuleNote from "../RuleNote.jsx";
 
 export default function Register() {
@@ -119,7 +119,7 @@ export default function Register() {
 
   return (
     <>
-    <AuthShell title="Create your account" subtitle="Free to join — post your work, get real feedback, and get paid for it.">
+    <AuthShell title="Create your account" subtitle="Connect & elevate — post your work, find your people, get real feedback, and get paid for it.">
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>
@@ -250,6 +250,7 @@ function Field({ icon: Icon, required = true, ...props }) {
 }
 
 export function AuthShell({ title, subtitle, children }) {
+  const build = recommendedBuild();
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
@@ -261,20 +262,26 @@ export function AuthShell({ title, subtitle, children }) {
       </div>
       <div className="neon-frame space-y-5 p-6">{children}</div>
 
-      {/* Free, no account needed — the desktop build loads the live site, so
-          it's always whatever the web app is, never a version behind it. */}
+      {/* Free, no account needed — both builds load the live site, so they're
+          always whatever the web app is, never a version behind it. Picks
+          Android on an Android visitor rather than defaulting to Windows for
+          everyone; SpecZ (inside the app) still lists every option. */}
       <a
-        href={WINDOWS_EXE.href}
+        href={build.href}
         target="_blank"
         rel="noreferrer"
         className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
       >
         <Download size={15} className="shrink-0 text-mcz-cyan" />
         <div>
-          <span className="font-semibold text-white">{WINDOWS_EXE.emoji} Download for Windows (.exe)</span>
+          <span className="font-semibold text-white">
+            {build.emoji} Download for {build.key === "android" ? "Android (.apk)" : "Windows (.exe)"}
+          </span>
           <span className="ml-1.5 text-emerald-300">Free</span>
           <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
-            {WINDOWS_EXE.note} Unsigned build — SmartScreen: More info → Run anyway.
+            {build.note} {build.key === "android"
+              ? "You'll need to allow installs from this source."
+              : "Unsigned build — SmartScreen: More info → Run anyway."}
           </p>
         </div>
       </a>

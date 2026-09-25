@@ -199,7 +199,7 @@ export default function SoundzPanel({ isOpen, onClose }) {
                           </div>
                           {isLocked && (
                             <a href="/settings/membership" className="text-xs text-mcz-cyan hover:underline mt-1 block">
-                              Upgrade to Premium
+                              Reach further
                             </a>
                           )}
                         </button>
