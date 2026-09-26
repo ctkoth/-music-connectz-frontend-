@@ -70,16 +70,28 @@ export function AuthProvider({ children }) {
   }
 
   async function oauth(provider, payload) {
+    // A take scored at /try before there was an account. `register()` has
+    // always sent it; `oauth()` never did, so somebody who scored and then
+    // joined with Google, Spotify or SoundCloud lost the take the trial page
+    // had just promised to save — and those are the one-tap doors most phone
+    // visitors would actually use. Read straight from storage rather than
+    // importing TrialTake, which would drag a route component into the auth
+    // context. An older server ignores the field it does not know.
+    let trial_token = "";
+    try { trial_token = localStorage.getItem("mcz_trial_token") || ""; } catch { /* private mode */ }
     const res = await api(`/api/auth/oauth/${provider}/`, {
       method: "POST",
       auth: false,
-      body: payload,
+      body: trial_token ? { ...payload, trial_token } : payload,
     });
     // The server could not tell whether this is a new member or one signing in
     // a second way, so it asked instead of guessing. Nothing went wrong and
     // nobody is signed in yet: hand the question back un-persisted, because
     // `persist` would store an undefined token and set a user that isn't one.
     if (res?.needs_choice) return res;
+    // The take is attached now (or the server declined it); either way it is
+    // not to be offered to the next sign-in on this browser.
+    if (trial_token) { try { localStorage.removeItem("mcz_trial_token"); } catch { /* private mode */ } }
     return persist(res);
   }
 

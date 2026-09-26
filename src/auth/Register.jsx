@@ -167,13 +167,26 @@ export default function Register() {
           {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
         </div>
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
+        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+
+        {/* Phone and birthday are both optional, so they no longer stand
+            between a visitor and the button. Three fields is the form; the
+            other two are one tap away for whoever wants ZodiacZ at signup.
+            Left OPEN if either already has a value (a browser autofill, or a
+            failed submit that kept the form), so nothing typed is ever hidden. */}
+        <details className="group" open={!!(form.phone || form.birthday)}>
+          <summary className="cursor-pointer text-[11px] text-white/45 hover:text-white/70">
+            Optional: phone, birthday (unlocks your ZodiacZ sign)
+          </summary>
+          <div className="mt-3 space-y-3">
         <Field icon={Phone} type="tel" placeholder="Phone number (optional)" value={form.phone} onChange={set("phone")} autoComplete="tel" required={false} />
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
           <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
         </div>
-        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+          </div>
+        </details>
 
         {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
