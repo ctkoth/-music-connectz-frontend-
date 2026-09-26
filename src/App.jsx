@@ -19,6 +19,7 @@ import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
 import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
+import { ICON_DEFAULTS } from "./iconManifest.js";
 
 // Every screen below used to be a static import, which means a cold visitor
 // hitting the logged-out Landing page paid for the ENTIRE authenticated app —
@@ -95,6 +96,7 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
 const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
 
@@ -247,6 +249,10 @@ export const CUSTOM_ICONS = {
   // registry maps names to paths instead of just globbing a folder.
   "postz.png": "/icons/postz-neon.svg",
   "personaz.png": "/icons/personaz-neon.svg",
+  // ProfileZ used to borrow personaz.png. It has its own art in Corey's folder
+  // now (profilez.png, applied through ICON_DEFAULTS once committed); until then
+  // it keeps the glyph it was already showing.
+  "profilez.png": "/icons/personaz-neon.svg",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
   // Underscored like every other personaz_<role>, and matching its own key.
   // The dotted path was the source filename, which is what the import script
@@ -362,8 +368,15 @@ export const CUSTOM_ICONS = {
   "funnelz.png": "/icons/funnelz-neon.svg",
 };
 
+// The sources an icon key may be drawn from, best first. Corey's own artwork
+// (ICON_DEFAULTS, built from his icon folder) always leads; the registry entry —
+// often a generated glyph — is the backup, never the other way round; the MCZ
+// logo is the last resort. ICON_DEFAULTS lists only committed files, so the
+// first source is never a known 404.
+export const iconSources = (icon) => [...new Set([ICON_DEFAULTS[icon], CUSTOM_ICONS[icon]].filter(Boolean))];
+
 // Renders a registry icon; if the file is missing (still being remade),
-// falls back to the MCZ logo instead of a broken image.
+// falls back to the next source and then the MCZ logo instead of a broken image.
 export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // A key can be registered before its artwork lands — that is deliberate, so
   // dropping the file into public/icons/ is the only step needed to light it
@@ -371,14 +384,20 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // shown instead of the MCZ logo (OCC passes the tab's emoji, which still
   // means the right thing where a generic logo would mean nothing).
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [icon]);
+  const [n, setN] = useState(0);
+  useEffect(() => { setFailed(false); setN(0); }, [icon]);
   if (failed && fallback !== null) return fallback;
+  const sources = iconSources(icon);
   return (
     <img
-      src={CUSTOM_ICONS[icon] || "/mcz-logo-v4.png"}
+      src={sources[n] || "/mcz-logo-v4.png"}
       alt={alt}
       className={className}
       onError={(e) => {
+        if (n + 1 < sources.length) {
+          setN(n + 1);
+          return;
+        }
         if (fallback !== null) {
           setFailed(true);
           return;
@@ -420,7 +439,7 @@ const TABS = [
   { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
-  { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
+  { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
@@ -491,6 +510,11 @@ const TABS = [
   // duplicates to say which one is theirs. The server decides what each
   // person is shown — the owner every group, a member only their own.
   { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
+  // The icon folder as a tree: each parent icon with its children named by
+  // filename (battlez.png -> battlez.cypher.png). Owner-only — it is the
+  // audit of which art is committed, wired, owed or unplaced, and the members
+  // have no use for a list of what is missing.
+  { key: "iconz", label: "IconZ", icon: "logo.png", el: <IconZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -787,7 +811,7 @@ function Home() {
   // the drawer for everyone. The route and TABS entry still exist (so the
   // info modal, ⓘ, and a direct link work for the owner); this only trims
   // what the Dock lists.
-  const dockApps = user?.is_owner ? TABS : TABS.filter((t) => t.key !== "funnelz");
+  const dockApps = user?.is_owner ? TABS : TABS.filter((t) => t.key !== "funnelz" && t.key !== "iconz");
 
   // One way in and out of a tab: set the state AND the address, together. Two
   // paths would let the URL say one thing while the screen showed another.

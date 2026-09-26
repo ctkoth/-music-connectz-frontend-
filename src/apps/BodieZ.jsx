@@ -44,6 +44,7 @@ import {
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
+import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 
@@ -73,6 +74,11 @@ const MUSCLE_ICON_MAP = {
   lower_legs: "/icons/bodiez.lowerlegz.svg",
   full_body: "/icons/bodiez.fullbodyz.svg",
 };
+
+// Corey's own muscle art (bodiez.<muscle>.jpg) leads once it is committed —
+// MUSCLE_ART lists only files that exist — and the neon SVGs above are the
+// backup, the same order every other icon in the app follows.
+const muscleIcon = (m) => MUSCLE_ART[m] || MUSCLE_ICON_MAP[m];
 
 // EQUIPMENT_LABEL moved to EquipmentPicker.jsx — same shape the server's
 // EQUIPMENT_CHOICES declare, read to filter by, never retyped as a value the
@@ -921,8 +927,8 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
               <button className="flex w-full items-center justify-between text-left"
                       onClick={() => setOpen(isOpen ? null : m.muscle_group)}>
                 <div className="flex items-center gap-2">
-                  {MUSCLE_ICON_MAP[m.muscle_group] && (
-                    <img src={MUSCLE_ICON_MAP[m.muscle_group]} alt={m.label} className="h-8 w-8 flex-shrink-0" />
+                  {muscleIcon(m.muscle_group) && (
+                    <img src={muscleIcon(m.muscle_group)} alt={m.label} className="h-8 w-8 flex-shrink-0" />
                   )}
                   <div>
                     <p className="text-sm font-semibold text-white inline-flex items-center gap-1.5">
@@ -1278,8 +1284,8 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-all ${
                         muscles.includes(m) ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40"
                                             : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
-                {MUSCLE_ICON_MAP[m] && (
-                  <img src={MUSCLE_ICON_MAP[m]} alt={MUSCLE_LABEL[m]} className="h-4 w-4 flex-shrink-0" />
+                {muscleIcon(m) && (
+                  <img src={muscleIcon(m)} alt={MUSCLE_LABEL[m]} className="h-4 w-4 flex-shrink-0" />
                 )}
                 {MUSCLE_LABEL[m]}
               </button>

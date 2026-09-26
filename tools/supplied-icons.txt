@@ -1,0 +1,117 @@
+# The icon folder listing Corey supplied on 2026-09-26 (basenames, exactly as named on his machine).
+# tools/build-icon-manifest.mjs normalizes these; edit this list, never src/iconManifest.js.
+battlez.1v1.png
+Battlez.cypher.jpg
+battlez.cypher.png
+battlez.freestyle.png
+battlez.png
+BoardZ.jpg
+bodiez.abz.jpg
+bodiez.backz.jpg
+bodiez.bicepz.jpg
+bodiez.chestz.jpg
+bodiez.forearmz.jpg
+bodiez.glutez.jpg
+bodiez.lowerlegz.jpg
+bodiez.png
+bodiez.shoulderz.jpg
+bodiez.totalbody.jpg
+bodiez.tricepz.jpg
+bodiez.upperlegz.jpg
+bodiez.uppper-legz.jpg
+bodiez-old.jpg
+bugz.png
+Builder.jpg
+builder.png
+callz.ai.png
+callz.user.png
+chordz.jpg
+CoachZ.jpg
+collabz.coverz.png
+Collabz.originalz.png
+collabz.png
+collabz.remixez.png
+Crewz icon.jpg
+dawz.arsenal.jpg
+dawz.azrael.png
+Dawz.FormulaWon.jpg
+dawz.fruity.png
+dawz.intuitionz.jpg
+Dawz.jpg
+dawz.trump.png
+dawz.witch.png
+distributez.png
+drumz.jpg
+fanz.jpg
+filez.jpg
+friends.png
+friendz.jpg
+Gamez.png
+gitz.png
+groupz..fanz.jpg
+groupz.blocked.png
+groupz.custom.png
+groupz.friendz.jpg
+groupz.partnerz.jpg
+groupz.png
+home.jpg
+ImgResizer_lilith.upcoming (1).png
+ImgResizer_Tellz.png
+intelligence.imageconz.png
+intelligence.instconz.jpg
+intelligence.ocular.png
+intelligence.sentenceconz.png
+Intelligencez.png
+karmaz (2).jpg
+karmaz.jpg
+labelz.png
+languagez.jpg
+lilith.png
+lilith.routinez.jpg
+lilith.someday.png
+lilith.taskz.jpg
+lilith.today.png
+logo.jpg
+LogZ.png
+mcz-logo-v5.jpg
+messagez.inbox.png
+messagez.outbox.jpg
+messagez.parcel.png
+messagez.png
+nationalitiez.png
+opportunitiez.png
+partners.png
+personaz.actor.jpg
+personaz.actress.jpg
+personaz.coach.jpg
+personaz.developer.png
+personaz.jpg
+personaz.manager.png
+personaz.mix engineer.png
+personaz.videographer.png
+pivkconnectz.png
+profilez.png
+profilez.preferencez.png
+profilez.religionz.jpg
+rapz.png
+recordingz.jpg
+singz.png
+socializez.infernoZ.jpg
+socializez.jpg
+socializez.vybez.jpg
+statsz - Copy.png
+statsz.png
+stepz-good-bodiez.png
+SubstanceZ.png
+Toolz .png
+toolz.cleanconz.png
+toolz.journalz.jpg
+toolz.jpg
+toolz.metz - Copy.jpg
+toolz.metz.jpg
+toolz.tunerz.jpg
+tunerz - Copy.jpg
+tunerz.jpg
+whatineedz.png
+xp.jpg
+analyticsz.png
