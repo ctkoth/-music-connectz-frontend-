@@ -35,6 +35,10 @@ const ICON_MAP = {
   merchz: { svg: '/icons/soundz-neon.svg', emoji: '🛍️' },
   lilith: { svg: '/icons/lilith.taskz.webp', emoji: '💃' },
   bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
+  journalz: { svg: '/icons/journalz-neon.svg', emoji: '📔' },
+  metz: { svg: '/icons/metz-neon.svg', emoji: '🎚️' },
+  tunerz: { svg: '/icons/tunerz-neon.svg', emoji: '🎯' },
+  chordz: { svg: '/icons/chordz-neon.svg', emoji: '🎼' },
 };
 
 // Flatten apps from grouped structure
@@ -109,9 +113,29 @@ const TOOLZ_MENU = {
       ]
     },
     {
-      group: 'Progress & Analytics',
+      group: 'Practice Tools',
+      apps: [
+        { key: 'metz', label: 'MetZ', color: 'gold', desc: 'Metronome — tempo, time signature, subdivisions' },
+        { key: 'tunerz', label: 'TunerZ', color: 'cyan', desc: 'Tune any instrument by ear' },
+        { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
+        { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
+      ]
+    },
+    {
+      group: 'DirectZ',
+      apps: [
+        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
+      ]
+    },
+    {
+      group: 'SkillZ',
       apps: [
         { key: 'skillz', label: 'SkillZ', color: 'gold', desc: 'Track progression & badges' },
+      ]
+    },
+    {
+      group: 'Progress & Analytics',
+      apps: [
         { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
       ]
     },
@@ -143,7 +167,6 @@ const TOOLZ_MENU = {
       group: 'Your Profile',
       apps: [
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
-        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
       ]
     },
   ],
