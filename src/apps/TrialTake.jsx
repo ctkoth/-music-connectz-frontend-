@@ -13,6 +13,7 @@ import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { api } from "../api.js";
 import { track } from "../track.js";
+import { doorCopy } from "../doorCopy.js";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
 
@@ -57,7 +58,11 @@ export default function TrialTake() {
   const [doorsLoaded, setDoorsLoaded] = useState(false);
   const known = doors.some((d) => d.app_key === appKey);
   const app = known ? appKey : "singz";
-  const label = doors.find((d) => d.app_key === app)?.label || "SingZ";
+  const door = doors.find((d) => d.app_key === app);
+  const label = door?.label || "SingZ";
+  // Headline, what-it-scores and the example answer come from this door's own
+  // server fields, so the drum door talks about drums (see doorCopy.js).
+  const copy = doorCopy(door, label);
   const [scored, setScored] = useState(false);
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
@@ -125,10 +130,11 @@ export default function TrialTake() {
   // of and currently has nowhere to put it. The share carries a link back to
   // this exact door — the free one, no account — because sending a stranger
   // to a signup form is how you waste a recommendation.
-  const shareUrl = `${window.location.origin}/try/${app}`;
-  const shareText = score != null
-    ? `I scored ${score}/10 on my ${label} take 🎤 — real AI coach, free, no account. Get yours scored:`
-    : `Got my ${label} take scored free by an AI coach 🎤 — no account needed. Try it:`;
+  // `?src=share` makes a share its own channel in FunnelZ: a friend arriving
+  // from one is otherwise indistinguishable from direct traffic, and whether
+  // the loop below works at all is the one thing this tag can answer.
+  const shareUrl = `${window.location.origin}/try/${app}?src=share`;
+  const shareText = copy.shareText(score);
 
   async function share() {
     // Only ever count a share that actually went out. navigator.share
@@ -162,12 +168,12 @@ export default function TrialTake() {
 
       <div className="mb-4">
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">
-          One take scored — free, instantly
+          {copy.headline}
         </h1>
         <p className="mt-1 text-sm text-white/55">
           Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
-          feedback from the same AI coach our {label} members use. One free daily take. Join after
-          to keep your takes and track progress.
+          feedback from the same AI coach our {label} members use. {copy.scoredOn} One free daily
+          take. Join after to keep your takes and track progress.
         </p>
         {/* Every door, not the two that were linked. A drummer who lands on
             a page offering "SingZ or RapZ" correctly concludes this place is
@@ -197,7 +203,7 @@ export default function TrialTake() {
             proving the scoring is not decoration. */}
         <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">What comes back</p>
         <p className="mt-2 text-sm text-white/85">
-          <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
+          <span className="font-bold text-emerald-300">Score: 7/10</span> — {copy.example}
         </p>
       </div>
 
