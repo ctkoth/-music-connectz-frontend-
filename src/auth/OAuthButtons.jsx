@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
+import AccountChoice from "./AccountChoice.jsx";
+import { track } from "../track.js";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { GoogleG, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers } from "../oauthProviders.jsx";
@@ -16,7 +19,16 @@ const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#fff
 
 export default function OAuthButtons({ onSuccess, onError }) {
   const { oauth } = useAuth();
+  const navigate = useNavigate();
   const googleBtn = useRef(null);
+  // The server's "do you already have an account?" answer. A NEW Google
+  // visitor always gets it (no identity yet, nothing to match), and this
+  // component used to hand that answer straight to `onSuccess` — which on
+  // Register and Login is `() => navigate("/")`. So the one-tap door, for
+  // anybody who had never been here, ended on the home page signed out: no
+  // account, no message, nothing to say why.
+  const [choice, setChoice] = useState(null);
+  const [choiceBusy, setChoiceBusy] = useState(false);
   const [busy, setBusy] = useState("");
   // Provider client IDs served by the backend (GET /api/auth/oauth/config/).
   // null while loading; {} means "loaded, nothing configured".
@@ -79,7 +91,9 @@ export default function OAuthButtons({ onSuccess, onError }) {
         callback: async (resp) => {
           try {
             setBusy("google");
-            onSuccess?.(await oauth("google", { credential: resp.credential }));
+            const res = await oauth("google", { credential: resp.credential });
+            if (res?.needs_choice) setChoice(res);
+            else onSuccess?.(res);
           } catch (e) { onError?.(e.message); } finally { setBusy(""); }
         },
       });
@@ -141,6 +155,32 @@ export default function OAuthButtons({ onSuccess, onError }) {
       sessionStorage.removeItem("mcz_oauth_verifier");
     }
     window.location.href = p.auth(encodeURIComponent(id), state, challenge);
+  }
+
+  async function createFromChoice() {
+    setChoiceBusy(true);
+    try {
+      const res = await oauth(choice.provider, { pending: choice.pending });
+      track("register_success");
+      onSuccess?.(res);
+    } catch (e) {
+      onError?.(e.message);
+      setChoiceBusy(false);
+    }
+  }
+
+  function signInInstead() {
+    // Same hand-off OAuthCallback uses: Login links the provider after sign-in.
+    sessionStorage.setItem("mcz_oauth_pending", choice.pending);
+    sessionStorage.setItem("mcz_oauth_provider", choice.provider);
+    navigate("/login");
+  }
+
+  if (choice) {
+    return (
+      <AccountChoice choice={choice} onCreate={createFromChoice}
+                     onSignIn={signInInstead} busy={choiceBusy} />
+    );
   }
 
   // Google renders as its own GIS button when configured; otherwise it shows in

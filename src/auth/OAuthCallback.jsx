@@ -1,3 +1,4 @@
+import { track } from "../track.js";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -87,12 +88,20 @@ export default function OAuthCallback() {
   }, []);
 
   async function handleCreateNew() {
-    // User said "I'm new" — create account with the pending token
+    // User said "I'm new" — open the account from the signed pending token.
+    //
+    // This used to navigate to /register?pending=…&provider=… with a comment
+    // saying "Register.jsx handles it". Register.jsx never read any of those
+    // params, so every first-time visitor who tapped "I'm new" landed on the
+    // blank manual signup form — no account made, nothing linked, and the
+    // provider they had just authenticated with thrown away. The backend has
+    // always accepted `{ pending }` and opens the account from it.
     setSigningIn(true);
     try {
       if (!choice?.pending) throw new Error("Missing pending token");
-      // Navigate to register with the pending token — Register.jsx handles it
-      navigate(`/register?pending=${encodeURIComponent(choice.pending)}&provider=${choice.provider}&email=${encodeURIComponent(choice.email || "")}&suggested=${encodeURIComponent(choice.suggested_username || "")}`);
+      await oauth(choice.provider, { pending: choice.pending });
+      track("register_success");
+      navigate("/");
     } catch (e) {
       setError(e.message);
       setSigningIn(false);

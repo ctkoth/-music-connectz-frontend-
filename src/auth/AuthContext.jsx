@@ -78,11 +78,15 @@ export function AuthProvider({ children }) {
     // importing TrialTake, which would drag a route component into the auth
     // context. An older server ignores the field it does not know.
     let trial_token = "";
-    try { trial_token = localStorage.getItem("mcz_trial_token") || ""; } catch { /* private mode */ }
+    let ref = "";
+    try {
+      trial_token = localStorage.getItem("mcz_trial_token") || "";
+      ref = localStorage.getItem("mcz_ref") || "";   // set by Register from ?ref=
+    } catch { /* private mode */ }
     const res = await api(`/api/auth/oauth/${provider}/`, {
       method: "POST",
       auth: false,
-      body: trial_token ? { ...payload, trial_token } : payload,
+      body: { ...payload, ...(trial_token ? { trial_token } : {}), ...(ref ? { ref } : {}) },
     });
     // The server could not tell whether this is a new member or one signing in
     // a second way, so it asked instead of guessing. Nothing went wrong and
@@ -91,7 +95,10 @@ export function AuthProvider({ children }) {
     if (res?.needs_choice) return res;
     // The take is attached now (or the server declined it); either way it is
     // not to be offered to the next sign-in on this browser.
-    if (trial_token) { try { localStorage.removeItem("mcz_trial_token"); } catch { /* private mode */ } }
+    try {
+      if (trial_token) localStorage.removeItem("mcz_trial_token");
+      if (ref) localStorage.removeItem("mcz_ref");
+    } catch { /* private mode */ }
     return persist(res);
   }
 

@@ -87,6 +87,11 @@ export default function Register() {
   }
 
   useEffect(() => {
+    // The invite lives in this page's URL, and a provider sign-in leaves the
+    // page and comes back to /oauth/callback without it — so the inviter
+    // would go uncredited for anybody who joined with a provider button.
+    // Kept for AuthContext.oauth() to send along.
+    if (ref) { try { localStorage.setItem("mcz_ref", ref); } catch { /* private mode */ } }
     track("register_view", { has_ref: !!ref, has_trial: !!trialToken });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
