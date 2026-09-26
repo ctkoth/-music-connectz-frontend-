@@ -21,9 +21,12 @@ export const TIER_BLURB = {
 export const TIER_MATRIX = [
   ["Character limit — posts, DMs, comments, prompts", "400", "1,500", "Unlimited"],
   ["Energy per hour", "reach ÷ 10", "reach ÷ 5", "reach ÷ 1"],
-  ["Free AI prompts a day", "1", "5", "10"],
-  ["Per-upload size", "40 MB", "400 MB", "4 GB"],
-  ["Storage", "400 MB", "5 GB", "100 GB"],
+  // These three rows had drifted from catalog.TIER_LIMITS / models.PROMPT_ALLOWANCE
+  // (1 / 40 MB / 400 MB were stale). Mirror the server; the source of truth is
+  // /api/economy/limits/, so change catalog.py first and this second.
+  ["Free AI prompts a day", "3", "5", "10"],
+  ["Per-upload size", "100 MB", "1 GB", "10 GB"],
+  ["Storage", "500 MB", "5 GB", "100 GB"],
   ["Edit window on anything you post", "4 min", "40 min", "4 hours"],
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
   ["DistributeZ submissions", "1 / month", "Unlimited", "Unlimited + licensing"],
