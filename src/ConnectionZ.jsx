@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Link2Off, Plus } from "lucide-react";
 import { api } from "./api.js";
-import { PROVIDERS } from "./oauthProviders.jsx";
+import { PROVIDERS, isInAppBrowser } from "./oauthProviders.jsx";
 import { startConnect } from "./connectOAuth.js";
 
 // Linking a provider shipped without an unlink, and `_user_from_oauth` matches
@@ -71,6 +71,17 @@ export default function ConnectionZ({ connections, onChange }) {
     if (!id) return;
     setError("");
     setDone("");
+    // Spotify offers "Continue with Facebook" on its own login screen, and
+    // Facebook refuses that login outright from inside the Facebook/Instagram
+    // app's embedded browser — it dead-ends on a page that never redirects
+    // back, stranding the connect attempt with nothing to show for it. Warn
+    // before we send the member there instead of after.
+    if (isInAppBrowser() && (provider.key === "facebook" || provider.key === "spotify")) {
+      setError(
+        `Facebook sign-in doesn't work inside the ${/Instagram/i.test(navigator.userAgent) ? "Instagram" : "Facebook"} app's browser. Open this page in Chrome or Safari and try again.`
+      );
+      return;
+    }
     setConnectBusy(provider.key);
     try {
       await startConnect(provider, id);
