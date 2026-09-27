@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { GoogleG, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers } from "../oauthProviders.jsx";
+import { GoogleG, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
 const VITE_ID = (key) => import.meta.env[`VITE_${key.toUpperCase()}_CLIENT_ID`] || "";
@@ -124,6 +124,18 @@ export default function OAuthButtons({ onSuccess, onError }) {
       return onError?.(id ? "Use the Google button above." : "Google sign-in isn't available yet.");
     }
     if (!id) return onError?.(`${p.label} sign-in isn't available right now.`);
+
+    // Facebook refuses to log anyone in from inside the Facebook or Instagram
+    // app's own embedded browser — it shows a dead-end page that never
+    // redirects back. That strands Spotify too, since Spotify itself offers
+    // "Continue with Facebook" on its own login screen. There is nothing we
+    // can do once the member is on Facebook's page, so warn before we send
+    // them there rather than let them hit a screen that goes nowhere.
+    if (isInAppBrowser() && (p.key === "facebook" || p.key === "spotify")) {
+      return onError?.(
+        `Facebook sign-in doesn't work inside the ${/Instagram/i.test(navigator.userAgent) ? "Instagram" : "Facebook"} app's browser. Open this page in Chrome or Safari and try again.`
+      );
+    }
 
     // This is an ordinary sign-in, not an import or a connect — a marker left
     // over from either of those, abandoned mid-flow in this tab, would

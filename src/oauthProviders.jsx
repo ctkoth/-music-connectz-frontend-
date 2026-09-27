@@ -53,20 +53,37 @@ export const SoundCloud = (p) => (
  * widget, no `state`/PKCE dance) that folding it in here would blur the one
  * thing every entry below actually has in common. `OAuthButtons.jsx` keeps
  * its own Google handling beside this list. */
+const RD = encodeURIComponent(REDIRECT);
+
 export const PROVIDERS = [
   { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954",
-    auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=user-read-email&state=${s}` },
+    auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=user-read-email&state=${s}` },
   { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
-    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&state=${s}` },
+    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&state=${s}` },
   { key: "microsoft",  label: "Microsoft",  Icon: Microsoft,  color: "#00A4EF",
-    auth: (id, s) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=User.Read&state=${s}` },
+    auth: (id, s) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=User.Read&state=${s}` },
   { key: "github",     label: "GitHub",     Icon: Github,     color: "#ffffff",
-    auth: (id, s) => `https://github.com/login/oauth/authorize?client_id=${id}&redirect_uri=${REDIRECT}&scope=read:user%20user:email&state=${s}` },
+    auth: (id, s) => `https://github.com/login/oauth/authorize?client_id=${id}&redirect_uri=${RD}&scope=read:user%20user:email&state=${s}` },
   { key: "twitter",    label: "Twitter / X", Icon: XTwitter,  color: "#ffffff", pkce: true,
-    auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
+    auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
   { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2",
-    auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=email,public_profile&state=${s}` },
+    auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=email,public_profile&state=${s}` },
 ];
+
+// Facebook refuses "Continue with Facebook" (its own login screen, or one
+// reached indirectly — Spotify offers Facebook as a login option, so
+// accounts.spotify.com/authorize can hand off to facebook.com mid-flow)
+// whenever it detects the request came from an embedded in-app WebView
+// (the Facebook or Instagram app's own browser) rather than a normal tab.
+// It shows a dead-end "can't log in" page that never redirects back, which
+// strands the WHOLE chain — including providers, like Spotify, that never
+// touch Facebook themselves unless the member picks that login option.
+// There is no fix on our end for what Facebook's own page does; the only
+// thing we control is warning the member before they hit it.
+export function isInAppBrowser() {
+  if (typeof navigator === "undefined") return false;
+  return /FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(navigator.userAgent || "");
+}
 // Instagram and TikTok are deliberately absent. The backend can only complete a
 // sign-in for google/github/apple plus its OAUTH2_PROVIDERS registry (spotify,
 // microsoft, facebook, soundcloud, twitter); anything else comes back as an
