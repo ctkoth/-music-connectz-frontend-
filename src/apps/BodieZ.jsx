@@ -360,6 +360,7 @@ export default function BodieZ() {
             <TodayView
               session={session} routines={routines} exercises={exercises}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
+              goals={coach?.goals}
             />
           )}
           {tab === "scheduler" && (
@@ -449,15 +450,24 @@ function Elapsed({ since }) {
 
 const REST_PRESETS = [30, 60, 90, 120, 180];
 const REST_KEY = "bodiez.restTarget";
+const REST_GOAL_KEY = "bodiez.restGoal";
 
 // Counts up from the last logged set's server timestamp, so a reload or a
 // locked phone doesn't reset it — and the number it shows is the same one the
 // server stores as rest_seconds on the next set. The target is only a nudge.
-function RestTimer({ sets }) {
+// The recommended rest per training goal is the server's (GOALS in
+// bodiez.py, each with its citation) — never retyped here.
+function RestTimer({ sets, goals }) {
   useTick();
-  const [target, setTarget] = useState(() => {
+  const goalList = Object.entries(asDict(goals)).filter(([, g]) => g?.rest_seconds);
+  const [goalKey, setGoalKey] = useState(() => {
+    try { return localStorage.getItem(REST_GOAL_KEY) || ""; } catch { return ""; }
+  });
+  const [custom, setCustom] = useState(() => {
     try { return Number(localStorage.getItem(REST_KEY)) || 90; } catch { return 90; }
   });
+  const goal = goalKey ? asDict(goals)[goalKey] : null;
+  const target = goal?.rest_seconds || custom;
   const [alerted, setAlerted] = useState(null);
   const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
   const elapsed = last ? secondsSince(last.created_at) : 0;
@@ -475,7 +485,9 @@ function RestTimer({ sets }) {
   }, [done, alerted, last]);
 
   if (!last) return null;
-  const pick = (t) => { setTarget(t); try { localStorage.setItem(REST_KEY, String(t)); } catch { /* blocked */ } };
+  const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
+  const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
+  const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
   const pct = Math.min(100, (elapsed / target) * 100);
 
   return (
@@ -489,10 +501,27 @@ function RestTimer({ sets }) {
       <div className="h-1.5 rounded-full bg-white/10">
         <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
       </div>
+      {goalList.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-white/40">Recommended for:</span>
+          {goalList.map(([k, g]) => (
+            <button key={k} onClick={() => pickGoal(k)}
+                    className={`pill !py-1 text-[11px] ${k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
+              {g.label} · {clock(g.rest_seconds)}
+            </button>
+          ))}
+        </div>
+      )}
+      {goal && (
+        <p className="text-[11px] text-white/45">
+          {goal.label}: {goal.sets} sets of {goal.reps_low}-{goal.reps_high}, {clock(goal.rest_seconds)} rest. {goal.why}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] text-white/40">Or:</span>
         {REST_PRESETS.map((t) => (
           <button key={t} onClick={() => pick(t)}
-                  className={`pill !py-1 text-[11px] ${t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
+                  className={`pill !py-1 text-[11px] ${!goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
             {clock(t)}
           </button>
         ))}
@@ -553,7 +582,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
   );
 }
 
-function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }) {
+function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, goals }) {
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
@@ -617,7 +646,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
         </button>
       </div>
 
-      <RestTimer sets={asList(session.sets)} />
+      <RestTimer sets={asList(session.sets)} goals={goals} />
 
       {planned.length > 0 && (
         <div className="space-y-2">
