@@ -182,7 +182,7 @@ export default function BodieZ() {
 
   async function finishSession() {
     if (!session) return;
-    if (!window.confirm("Finish this session?")) return;
+    if (!window.confirm(`End this session? You've been going ${clock(secondsSince(session.started_at))}.`)) return;
     try {
       await api(`/api/economy/bodiez/sessions/${session.id}/`, {
         method: "PATCH", body: { finish: true },
@@ -430,6 +430,78 @@ function LastTime({ exerciseId }) {
 // last-time reference pulled from history, and a form pre-filled from the
 // target so logging a planned set is one tap rather than four fields typed
 // from scratch every time.
+const secondsSince = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+const clock = (sec) => {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = sec % 60;
+  const mm = String(m).padStart(h ? 2 : 1, "0"), ss = String(x).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+};
+
+function useTick() {
+  const [, setN] = useState(0);
+  useEffect(() => { const t = setInterval(() => setN((n) => n + 1), 1000); return () => clearInterval(t); }, []);
+}
+
+function Elapsed({ since }) {
+  useTick();
+  return clock(secondsSince(since));
+}
+
+const REST_PRESETS = [30, 60, 90, 120, 180];
+const REST_KEY = "bodiez.restTarget";
+
+// Counts up from the last logged set's server timestamp, so a reload or a
+// locked phone doesn't reset it — and the number it shows is the same one the
+// server stores as rest_seconds on the next set. The target is only a nudge.
+function RestTimer({ sets }) {
+  useTick();
+  const [target, setTarget] = useState(() => {
+    try { return Number(localStorage.getItem(REST_KEY)) || 90; } catch { return 90; }
+  });
+  const [alerted, setAlerted] = useState(null);
+  const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
+  const elapsed = last ? secondsSince(last.created_at) : 0;
+  const done = last && elapsed >= target;
+
+  useEffect(() => {
+    if (!done || alerted === last.id) return;
+    setAlerted(last.id);
+    try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.25);
+    } catch { /* no audio */ }
+  }, [done, alerted, last]);
+
+  if (!last) return null;
+  const pick = (t) => { setTarget(t); try { localStorage.setItem(REST_KEY, String(t)); } catch { /* blocked */ } };
+  const pct = Math.min(100, (elapsed / target) * 100);
+
+  return (
+    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+      <div className="flex items-baseline justify-between">
+        <p className="re-label">Rest since {last.exercise_name || "last set"}</p>
+        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}>
+          {clock(elapsed)} <span className="text-sm text-white/40">/ {clock(target)}</span>
+        </p>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {REST_PRESETS.map((t) => (
+          <button key={t} onClick={() => pick(t)}
+                  className={`pill !py-1 text-[11px] ${t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
+            {clock(t)}
+          </button>
+        ))}
+        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Logging your next set saves this rest."}</span>
+      </div>
+    </div>
+  );
+}
+
 function LoggerRow({ planned, doneSets, onLogSet }) {
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(planned.weight_kg) : "");
@@ -457,7 +529,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
       </div>
       <LastTime exerciseId={planned.exercise_id} />
       <div className="flex flex-wrap gap-2">
-        <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1"
+        <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)} />
         <input className="neon-input !py-2 w-24 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
@@ -472,6 +544,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
           {doneSets.map((s) => (
             <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
               {s.reps}{s.weight_kg != null ? `@${s.weight_kg}kg` : ""}
+              {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
             </span>
           ))}
         </div>
@@ -533,13 +606,18 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
           <p className="text-sm font-semibold text-white">
             {session.routine_title || "Ad-hoc session"}
           </p>
-          <p className="text-xs text-white/45">Started {new Date(session.started_at).toLocaleTimeString()}</p>
+          <p className="text-xs text-white/45">
+            Started {new Date(session.started_at).toLocaleTimeString()} ·{" "}
+            <span className="font-mono text-mcz-cyan"><Elapsed since={session.started_at} /></span>
+          </p>
         </div>
         <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 onClick={onFinish}>
-          <Square size={13} /> Finish
+          <Square size={13} /> End session
         </button>
       </div>
+
+      <RestTimer sets={asList(session.sets)} />
 
       {planned.length > 0 && (
         <div className="space-y-2">
@@ -571,7 +649,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet }
               <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})</option>
             ))}
           </select>
-          <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1"
+          <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                  value={reps} onChange={(e) => setReps(e.target.value)} />
           <input className="neon-input !py-2 w-24 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
                  value={weight} onChange={(e) => setWeight(e.target.value)} />
