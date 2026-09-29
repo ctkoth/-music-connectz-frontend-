@@ -30,8 +30,14 @@ export const WINDOWS_EXE = BUILDS[0];
 export function detectPlatform() {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent || "";
-  if (/android/i.test(ua)) return "android";
-  if (/windows/i.test(ua)) return "win";
+  const hint = navigator.userAgentData?.platform || "";
+  if (/android/i.test(ua) || /android/i.test(hint)) return "android";
+  // Chrome's "Desktop site" on Android reports a Linux PC. A finger as the
+  // PRIMARY pointer (the same test useScreenShape.js uses) is that phone; a
+  // touchscreen Linux laptop still has a mouse as its primary pointer.
+  const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  if (/linux/i.test(ua) && !/CrOS/.test(ua) && navigator.maxTouchPoints > 0 && coarse) return "android";
+  if (/windows/i.test(ua) || /windows/i.test(hint)) return "win";
   return "other";
 }
 
@@ -40,4 +46,11 @@ export function detectPlatform() {
 // so Windows stays the fallback rather than showing nothing).
 export function recommendedBuild() {
   return BUILDS.find((b) => b.key === detectPlatform()) || WINDOWS_EXE;
+}
+
+// When the device couldn't be identified the Windows tile is only a guess,
+// so the Android build rides beside it rather than being hidden. An
+// identified Android or Windows visitor sees exactly one build.
+export function alternateBuild() {
+  return detectPlatform() === "other" ? BUILDS.find((b) => b.key === "android") : null;
 }

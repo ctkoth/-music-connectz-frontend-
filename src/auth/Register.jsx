@@ -9,7 +9,7 @@ import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 import { track } from "../track.js";
 import { api } from "../api.js";
-import { recommendedBuild } from "../downloadBuilds.js";
+import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
 import RuleNote from "../RuleNote.jsx";
 
 export default function Register() {
@@ -285,6 +285,12 @@ export function AuthShell({ title, subtitle, children }) {
           </p>
         </div>
       </a>
+      {alternateBuild() && (
+        <a href={alternateBuild().href} target="_blank" rel="noreferrer"
+           className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">
+          {alternateBuild().emoji} On Android? Get the {alternateBuild().label} instead
+        </a>
+      )}
     </div>
   );
 }

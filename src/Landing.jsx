@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2, Wallet } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
-import { recommendedBuild } from "./downloadBuilds.js";
+import { recommendedBuild, alternateBuild } from "./downloadBuilds.js";
 import { MONEY } from "./resources.js";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
@@ -289,6 +289,12 @@ export default function Landing() {
           </p>
         </div>
       </a>
+      {alternateBuild() && (
+        <a href={alternateBuild().href} target="_blank" rel="noreferrer"
+           className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">
+          {alternateBuild().emoji} On Android? Get the {alternateBuild().label} instead
+        </a>
+      )}
     </div>
   );
 }
