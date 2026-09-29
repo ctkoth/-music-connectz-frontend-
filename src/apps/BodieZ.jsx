@@ -215,6 +215,13 @@ export default function BodieZ() {
   // day_tag and description are the two routine-level fields with no other
   // writer — bucket has moveRoutine, scheduled_for has scheduleRoutine, this
   // is theirs. Both PATCH together since the Scheduler edits them together.
+  async function setRoutineGoal(id, goal) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/`, { method: "PATCH", body: { goal } });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   async function editRoutineMeta(id, dayTag, description) {
     try {
       await api(`/api/economy/bodiez/routines/${id}/`, {
@@ -242,10 +249,10 @@ export default function BodieZ() {
   // status (undertrained/untrained muscles first), never a model's guess.
   // It lands in the Scheduler's Inbox exactly like a hand-built routine, so
   // it goes through the same designer to be tweaked or started.
-  async function createRoutineFromExercises(title, exerciseList, dayTag) {
+  async function createRoutineFromExercises(title, exerciseList, dayTag, goal) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", day_tag: dayTag || "" },
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", day_tag: dayTag || "", goal: goal || "" },
       });
       setTab("scheduler");
       load();
@@ -261,7 +268,7 @@ export default function BodieZ() {
     try {
       for (const day of days) {
         await api("/api/economy/bodiez/routines/", {
-          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox" },
+          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "" },
         });
       }
       setTab("scheduler");
@@ -368,7 +375,8 @@ export default function BodieZ() {
                           exercises={exercises} demoCredit={demoCredit}
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
-                          onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta} />
+                          onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta}
+                          goals={coach?.goals} onSetGoal={setRoutineGoal} />
           )}
           {tab === "bodymap" && (
             <BodyMapView bodymap={bodymap} exercises={exercises} onBuildForMuscle={jumpToMuscleBuild} />
@@ -457,10 +465,13 @@ const REST_GOAL_KEY = "bodiez.restGoal";
 // server stores as rest_seconds on the next set. The target is only a nudge.
 // The recommended rest per training goal is the server's (GOALS in
 // bodiez.py, each with its citation) — never retyped here.
-function RestTimer({ sets, goals }) {
+function RestTimer({ sets, goals, routineGoal }) {
   useTick();
   const goalList = Object.entries(asDict(goals)).filter(([, g]) => g?.rest_seconds);
+  // A routine built for a goal starts on that goal's rest; the member's last
+  // pick only fills in for a routine (or ad-hoc session) that has none.
   const [goalKey, setGoalKey] = useState(() => {
+    if (routineGoal) return routineGoal;
     try { return localStorage.getItem(REST_GOAL_KEY) || ""; } catch { return ""; }
   });
   const [custom, setCustom] = useState(() => {
@@ -503,7 +514,9 @@ function RestTimer({ sets, goals }) {
       </div>
       {goalList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-white/40">Recommended for:</span>
+          <span className="text-[11px] text-white/40">
+            {routineGoal && goalKey === routineGoal ? "This routine's goal:" : "Recommended for:"}
+          </span>
           {goalList.map(([k, g]) => (
             <button key={k} onClick={() => pickGoal(k)}
                     className={`pill !py-1 text-[11px] ${k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
@@ -646,7 +659,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
         </button>
       </div>
 
-      <RestTimer sets={asList(session.sets)} goals={goals} />
+      <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal} />
 
       {planned.length > 0 && (
         <div className="space-y-2">
@@ -852,7 +865,7 @@ function DayTagPicker({ value, labels, onChange, className }) {
 }
 
 function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCredit, onCreate, onDelete, onMove, onSchedule,
-                          onStart, sessionOpen, onSaveExercises, onEditMeta }) {
+                          onStart, sessionOpen, onSaveExercises, onEditMeta, goals, onSetGoal }) {
   const [title, setTitle] = useState("");
   const [newDayTag, setNewDayTag] = useState("");
   const [bucket, setBucket] = useState("inbox");
@@ -982,6 +995,15 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCre
             )}
             <DayTagPicker value={r.day_tag} labels={dayTagLabels}
                           onChange={(v) => onEditMeta(r.id, v, r.description || "")} />
+            {goals && (
+              <select value={r.goal || ""} onChange={(e) => onSetGoal(r.id, e.target.value)}
+                      className="rounded border border-white/[0.08] bg-black/40 px-1.5 py-0.5 text-[11px] text-white/70 outline-none">
+                <option value="">No goal</option>
+                {Object.entries(goals).map(([k, g]) => (
+                  <option key={k} value={k}>{g.label} · {clock(g.rest_seconds)} rest</option>
+                ))}
+              </select>
+            )}
             <button onClick={() => {
                       const d = window.prompt("Routine description:", r.description || "");
                       if (d != null) onEditMeta(r.id, r.day_tag || "", d);
@@ -1196,7 +1218,8 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
                       sets: goal ? goal.sets : 3,
                       reps: goal ? goal.reps_low : 10,
                       weight_kg: null,
-                    }))
+                    })),
+                    "", goalKey
                   )}>
             <Plus size={13} /> Save to Scheduler
           </button>
@@ -1312,6 +1335,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                       reps: goal ? goal.reps_low : 10,
                       weight_kg: null,
                     })),
+                    goal: goalKey,
                   })))}>
             <Plus size={13} /> Save {days || ""} routine{days === 1 ? "" : "s"} to Scheduler
           </button>
@@ -1452,7 +1476,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                       reps: goal ? goal.reps_low : 10,
                       weight_kg: null,
                     })),
-                    dayTag
+                    dayTag, goalKey
                   )}>
             <Plus size={13} /> Save to Scheduler
           </button>
