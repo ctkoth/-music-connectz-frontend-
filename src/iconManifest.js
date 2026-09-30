@@ -33,10 +33,13 @@ export const ICON_DEFAULTS = {
   "logz.png": "/icons/logz.png",
   "messagez.png": "/icons/messagez.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
+  "personaz.png": "/icons/personaz.jpg",
+  "profilez.png": "/icons/profilez.png",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
   "substancez.png": "/icons/substancez.png",
   "toolz.png": "/icons/toolz.png",
+  "venuez.png": "/icons/venuez.png",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png"
 };
@@ -1049,10 +1052,10 @@ export const ICON_TREE = [
     "label": "PersonaZ",
     "root": {
       "file": "personaz.jpg",
-      "art": null,
+      "art": "/icons/personaz.jpg",
       "key": "personaz.png",
-      "status": "owed",
-      "note": ""
+      "status": "live",
+      "note": "replaces the generated glyph /icons/personaz-neon.svg"
     },
     "extra": [],
     "children": [
@@ -1146,10 +1149,10 @@ export const ICON_TREE = [
     "label": "ProfileZ",
     "root": {
       "file": "profilez.png",
-      "art": null,
+      "art": "/icons/profilez.png",
       "key": "profilez.png",
-      "status": "owed",
-      "note": ""
+      "status": "live",
+      "note": "replaces the generated glyph /icons/personaz-neon.svg"
     },
     "extra": [],
     "children": [
@@ -1374,6 +1377,19 @@ export const ICON_TREE = [
     "children": []
   },
   {
+    "parent": "venuez",
+    "label": "VenueZ",
+    "root": {
+      "file": "venuez.png",
+      "art": "/icons/venuez.png",
+      "key": "venuez.png",
+      "status": "live",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
+  },
+  {
     "parent": "whatineedz",
     "label": "WhatineedZ",
     "root": {
@@ -1449,6 +1465,5 @@ export const TAB_ICONS_WITHOUT_ART = [
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
-  "venuez.png",
   "violinz.png"
 ];
