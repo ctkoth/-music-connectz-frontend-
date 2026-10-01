@@ -61,24 +61,36 @@ jobs:
       # uninstall. The key lives in a secret, not the repo: this repo is
       # public, and a committed key would let anyone sign an "update" that
       # installs over a member's copy.
-      - name: Use the fixed signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
-        run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 is not set — this APK gets a throwaway key and will not install over the previous build."
-            exit 0
-          fi
-          mkdir -p ~/.android
-          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey > /dev/null
-
+      #
+      # Signed explicitly with apksigner after the build rather than by dropping
+      # the key at ~/.android/debug.keystore: run #275 did exactly that, the key
+      # step passed, and the APK still came out under a different key. A check
+      # that passes while the result is wrong is worse than none, so the
+      # fingerprint is now printed from the APK itself, not the keystore.
       - name: Assemble debug APK
         run: |
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/MusicConnectZ.apk"
+
+      - name: Sign with the fixed key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 is not set — this APK gets a throwaway key and will not install over the previous build."
+          else
+            KS="$RUNNER_TEMP/mcz.keystore"
+            printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > "$KS"
+            echo "Keystore:"
+            keytool -list -keystore "$KS" -storepass android -alias androiddebugkey | grep SHA-256
+            "$APKSIGNER" sign --ks "$KS" --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android MusicConnectZ.apk
+            rm -f "$KS"
+          fi
+          echo "APK:"
+          "$APKSIGNER" verify --print-certs MusicConnectZ.apk | grep -i "SHA-256"
 
       - name: Publish to the apk-latest release
         uses: softprops/action-gh-release@v2
