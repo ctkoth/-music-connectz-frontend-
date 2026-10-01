@@ -55,6 +55,24 @@ jobs:
       - name: Sync web assets into Android
         run: npx --yes cap sync android
 
+      # A fresh runner generates a fresh ~/.android/debug.keystore, so every
+      # build was signed by a different key and Android refused to install it
+      # over the previous one ("App not installed") — every update meant an
+      # uninstall. The key lives in a secret, not the repo: this repo is
+      # public, and a committed key would let anyone sign an "update" that
+      # installs over a member's copy.
+      - name: Use the fixed signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 is not set — this APK gets a throwaway key and will not install over the previous build."
+            exit 0
+          fi
+          mkdir -p ~/.android
+          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey > /dev/null
+
       - name: Assemble debug APK
         run: |
           cd android
