@@ -13,7 +13,7 @@
 // difference is a marker in sessionStorage that tells the callback to spend
 // the code on a LINK instead of a sign-in.
 import { api } from "./api.js";
-import { rand, pkceChallenge, clearFlowMarkers } from "./oauthProviders.jsx";
+import { rand, pkceChallenge, clearFlowMarkers, REDIRECT } from "./oauthProviders.jsx";
 
 const MARK = "mcz_oauth_connect";
 
@@ -44,7 +44,7 @@ export async function startConnect(provider, clientId) {
  *  sign-in mistaken for a link attempt. */
 export async function finishConnect(provider, code, codeVerifier) {
   sessionStorage.removeItem(MARK);
-  const body = { code, redirect_uri: `${window.location.origin}/oauth/callback` };
+  const body = { code, redirect_uri: REDIRECT };
   if (codeVerifier) body.code_verifier = codeVerifier;
   return api(`/api/auth/oauth/${provider}/link/`, { method: "POST", body });
 }
