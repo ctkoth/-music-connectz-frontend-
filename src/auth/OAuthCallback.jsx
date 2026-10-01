@@ -6,6 +6,7 @@ import AccountChoice from "./AccountChoice.jsx";
 import { AuthShell } from "./Register.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
 import { finishConnect, connectPending } from "../connectOAuth.js";
+import { REDIRECT } from "../oauthProviders.jsx";
 
 export default function OAuthCallback() {
   const { oauth, login } = useAuth();
@@ -64,7 +65,9 @@ export default function OAuthCallback() {
         }
 
         // Exchange code for user (backend will either auto-signin or ask "do you have one?")
-        const payload = { code, redirect_uri: window.location.origin + "/oauth/callback" };
+        // Must be byte-identical to the redirect_uri the authorize URL carried
+        // (REDIRECT) — Twitter, Facebook and GitHub reject the exchange otherwise.
+        const payload = { code, redirect_uri: REDIRECT };
         if (verifier) payload.code_verifier = verifier;
         const result = await oauth(provider, payload);
 
