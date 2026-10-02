@@ -36,7 +36,7 @@
 // Deliberately not built yet: Nutrition, Community, and any XP/streak
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, PlayCircle, Plus, Play,
   Sparkles, Square, Target, Trash2, Wand2, X,
@@ -46,6 +46,21 @@ import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
+import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+
+const UnitCtx = createContext("kg");
+const useUnit = () => useContext(UnitCtx);
+
+// A labelled input, because a placeholder disappears the moment a number is
+// typed and "12" next to "35" doesn't say which one is the weight.
+function Field({ label, className = "w-20", ...props }) {
+  return (
+    <label className={`flex flex-col gap-0.5 ${className}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">{label}</span>
+      <input className="neon-input !py-2 w-full text-sm" {...props} />
+    </label>
+  );
+}
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 
 // Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
@@ -109,6 +124,8 @@ const TABS = [
 
 export default function BodieZ() {
   const [tab, setTab] = useState("today");
+  const [unit, setUnitState] = useState(getUnit);
+  const setUnit = (u) => { setUnitState(u); saveUnit(u); };
   const [exercises, setExercises] = useState([]);
   const [demoCredit, setDemoCredit] = useState("");
   // Set by BodyMap's "Build a day for just this muscle" CTA, read once by
@@ -197,7 +214,7 @@ export default function BodieZ() {
     try {
       const s = await api(`/api/economy/bodiez/sessions/${session.id}/sets/`, {
         method: "POST",
-        body: { exercise_id: exerciseId, reps, weight_kg: weightKg === "" ? null : weightKg },
+        body: { exercise_id: exerciseId, reps, weight_kg: toKg(weightKg, unit) },
       });
       setSession({ ...session, sets: [...session.sets, s] });
     } catch (e) { setErr(e.message); }
@@ -317,7 +334,7 @@ export default function BodieZ() {
 
   async function logWeight(weightKg) {
     try {
-      await api("/api/economy/bodiez/weightlog/", { method: "POST", body: { weight_kg: weightKg } });
+      await api("/api/economy/bodiez/weightlog/", { method: "POST", body: { weight_kg: toKg(weightKg, unit) } });
       load();
     } catch (e) { setErr(e.message); }
   }
@@ -337,12 +354,21 @@ export default function BodieZ() {
   }
 
   return (
+    <UnitCtx.Provider value={unit}>
     <div className="space-y-5">
       <header className="flex items-center gap-3">
         <IconImg icon="bodiez.png" alt="BodieZ" className="h-11 w-11 rounded-xl" />
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-extrabold">BodieZ</h2>
           <p className="text-xs text-white/45">Strength training and workout planning.</p>
+        </div>
+        <div className="flex shrink-0 rounded-full bg-white/5 p-0.5 ring-1 ring-white/10" role="group" aria-label="Weight unit">
+          {["lb", "kg"].map((u) => (
+            <button key={u} onClick={() => setUnit(u)} aria-pressed={unit === u}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${unit === u ? "bg-mcz-cyan/20 text-mcz-cyan" : "text-white/45"}`}>
+              {u}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -397,6 +423,7 @@ export default function BodieZ() {
         </>
       )}
     </div>
+    </UnitCtx.Provider>
   );
 }
 
@@ -419,6 +446,7 @@ function useHistory(exerciseId) {
 }
 
 function LastTime({ exerciseId }) {
+  const unit = useUnit();
   const last = useHistory(exerciseId);
   if (last === undefined) return <p className="text-[11px] text-white/30">Loading last time…</p>;
   if (!last) return <p className="text-[11px] text-white/30">No history yet for this exercise.</p>;
@@ -428,7 +456,7 @@ function LastTime({ exerciseId }) {
       {last.sets.map((s, i) => (
         <span key={s.id}>
           {i > 0 && " · "}
-          {s.reps}{s.weight_kg != null ? `@${s.weight_kg}kg` : ""}
+          {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
         </span>
       ))}
     </p>
@@ -545,8 +573,13 @@ function RestTimer({ sets, goals, routineGoal }) {
 }
 
 function LoggerRow({ planned, doneSets, onLogSet }) {
+  const unit = useUnit();
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
-  const [weight, setWeight] = useState(planned?.weight_kg != null ? String(planned.weight_kg) : "");
+  const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
+  // A unit flip re-expresses the planned target; a number the member typed is left as typed.
+  useEffect(() => {
+    if (planned?.weight_kg != null) setWeight(String(fromKg(planned.weight_kg, unit)));
+  }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
 
@@ -560,7 +593,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
             {planned.equipment && ` · ${EQUIPMENT_LABEL[planned.equipment] || planned.equipment}`}
             {" · "}Target {targetSets} sets
             {planned.reps ? ` x${planned.reps}` : ""}
-            {planned.weight_kg != null ? ` @ ${planned.weight_kg}kg` : ""}
+            {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
         </div>
         <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
@@ -570,10 +603,10 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
         </span>
       </div>
       <LastTime exerciseId={planned.exercise_id} />
-      <div className="flex flex-wrap gap-2">
-        <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="Reps" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)} />
-        <input className="neon-input !py-2 w-24 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
+        <Field label={`Weight (${unit})`} className="w-24" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 disabled={!reps}
@@ -585,7 +618,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
         <div className="flex flex-wrap gap-1.5 pt-1">
           {doneSets.map((s) => (
             <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
-              {s.reps}{s.weight_kg != null ? `@${s.weight_kg}kg` : ""}
+              {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
             </span>
           ))}
@@ -596,6 +629,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
 }
 
 function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, goals }) {
+  const unit = useUnit();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
@@ -683,7 +717,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
 
       <div className="re-card space-y-2">
         <p className="re-label">Add an unplanned exercise</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
@@ -691,9 +725,9 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
               <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})</option>
             ))}
           </select>
-          <input className="neon-input !py-2 w-20 text-sm" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
+          <Field label="Reps" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                  value={reps} onChange={(e) => setReps(e.target.value)} />
-          <input className="neon-input !py-2 w-24 text-sm" placeholder="kg (optional)" type="number" min="0" step="0.5"
+          <Field label={`Weight (${unit})`} className="w-24" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                  value={weight} onChange={(e) => setWeight(e.target.value)} />
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
@@ -715,6 +749,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
 // and remove. Saved shape is `{exercise_id, order, sets, reps, weight_kg}`,
 // which the logger reads back to show a target beside each input.
 function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
+  const unit = useUnit();
   const [rows, setRows] = useState(
     () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((e) => ({ ...e })));
@@ -798,8 +833,10 @@ function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
             <span className="text-white/30 text-xs">×</span>
             <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="reps"
                    value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
-            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="0" step="0.5" placeholder="kg"
-                   value={r.weight_kg ?? ""} onChange={(e) => patchRow(i, { weight_kg: e.target.value })} />
+            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="0" step="0.5" placeholder={unit}
+                   aria-label={`Target weight (${unit})`} inputMode="decimal"
+                   value={r.weight_input ?? (fromKg(r.weight_kg, unit) ?? "")}
+                   onChange={(e) => patchRow(i, { weight_input: e.target.value, weight_kg: toKg(e.target.value, unit) })} />
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
           </div>
@@ -1549,6 +1586,7 @@ function GoalBar({ pct }) {
 }
 
 function NewGoalForm({ kinds, exercises, onCreate }) {
+  const unit = useUnit();
   const [kind, setKind] = useState(kinds[0]?.key || "count");
   const [title, setTitle] = useState("");
   const [targetValue, setTargetValue] = useState("");
@@ -1559,8 +1597,9 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
   const submit = () => {
     if (!title.trim() || !targetValue) return;
     if (kind === "strength" && !exerciseId) return;
+    const inKg = kind === "strength" || kind === "bodyweight";
     onCreate({
-      kind, title: title.trim(), target_value: Number(targetValue),
+      kind, title: title.trim(), target_value: inKg ? toKg(targetValue, unit) : Number(targetValue),
       exercise_id: kind === "strength" ? Number(exerciseId) : undefined,
       target_reps: kind === "strength" && targetReps ? Number(targetReps) : undefined,
       target_date: targetDate || undefined,
@@ -1588,7 +1627,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
           </select>
         )}
         <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.5"
-               placeholder={kind === "strength" ? "kg" : kind === "frequency" ? "x/week" : kind === "bodyweight" ? "target kg" : "target"}
+               placeholder={kind === "strength" ? unit : kind === "frequency" ? "x/week" : kind === "bodyweight" ? `target ${unit}` : "target"}
                value={targetValue} onChange={(e) => setTargetValue(e.target.value)} />
         {kind === "strength" && (
           <input className="neon-input !py-2 w-24 text-sm" type="number" min="1" placeholder="reps (opt.)"
@@ -1605,6 +1644,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
 }
 
 function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight }) {
+  const unit = useUnit();
   const [weightInput, setWeightInput] = useState("");
   if (!goals) return null;
   const rows = asList(goals.goals);
@@ -1620,14 +1660,14 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
           <p className="re-label">Log your weight</p>
           <div className="flex flex-wrap items-center gap-2">
             <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.1"
-                   placeholder="kg" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} />
+                   placeholder={unit} value={weightInput} onChange={(e) => setWeightInput(e.target.value)} />
             <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs"
                     onClick={() => { if (weightInput) { onLogWeight(Number(weightInput)); setWeightInput(""); } }}>
               Log
             </button>
             {weightLogs[0] && (
               <span className="text-[11px] text-white/40">
-                Last: {weightLogs[0].weight_kg}kg on {new Date(weightLogs[0].logged_at).toLocaleDateString()}
+                Last: {fmtWeight(weightLogs[0].weight_kg, unit)} on {new Date(weightLogs[0].logged_at).toLocaleDateString()}
               </span>
             )}
           </div>
@@ -1648,7 +1688,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
               </p>
               <p className="text-xs text-white/45">
                 {g.exercise_name ? `${g.exercise_name} — ` : ""}
-                target {g.target_value}{g.kind === "strength" || g.kind === "bodyweight" ? "kg" : ""}
+                target {g.kind === "strength" || g.kind === "bodyweight" ? fmtWeight(g.target_value, unit) : g.target_value}
                 {g.target_reps ? ` x${g.target_reps}` : ""}
                 {g.target_date && ` by ${g.target_date}`}
               </p>
@@ -1668,7 +1708,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
           <GoalBar pct={g.pct} />
           {g.current_value != null && (
             <p className="text-[11px] text-white/40">
-              Currently {g.current_value}{g.kind === "strength" || g.kind === "bodyweight" ? "kg" : ""}
+              Currently {g.kind === "strength" || g.kind === "bodyweight" ? fmtWeight(g.current_value, unit) : g.current_value}
               {g.pct != null && ` · ${g.pct}%`}
             </p>
           )}
@@ -1760,6 +1800,7 @@ function RecoveryView({ recovery, onLog }) {
 }
 
 function ProgressView({ progress }) {
+  const unit = useUnit();
   if (!progress) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-3">
@@ -1772,8 +1813,8 @@ function ProgressView({ progress }) {
         <p className="re-label">Sets logged</p>
       </div>
       <div className="re-card text-center">
-        <p className="text-2xl font-extrabold text-white">{progress.total_volume_kg.toLocaleString()}</p>
-        <p className="re-label">Total volume (kg)</p>
+        <p className="text-2xl font-extrabold text-white">{Math.round(fromKg(progress.total_volume_kg, unit)).toLocaleString()}</p>
+        <p className="re-label">Total volume ({unit})</p>
       </div>
     </div>
   );
