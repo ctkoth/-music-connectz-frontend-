@@ -11,7 +11,7 @@ function useCharsFor() {
   const { tiers } = useTierLadder();
   return (tier) => {
     const n = tiers?.[tier]?.char_limit ?? TIER_CHAR_LIMITS[tier];
-    return typeof n === "number" && n >= 1e8 ? "unlimited" : Number(n).toLocaleString();
+    return typeof n !== "number" || n >= 1e8 ? "unlimited" : n.toLocaleString();
   };
 }
 

@@ -14,7 +14,7 @@ export const TIER_ORDER = ["free", "premium", "statz"];
 export const TIER_BLURB = {
   free: "Everything you need to be here properly — post, rate, train, get found. The ceilings are real but nothing is locked away for show.",
   premium: "The ceilings move. More room to write, more to upload, faster Energy, and the apps that need a tier to open at all.",
-  statz: "The most room to write, the AI layer across every app, and the analytics that tell you what's actually working. This is the one built for people doing it for a living.",
+  statz: "No character limit, the AI layer across every app, and the analytics that tell you what's actually working. This is the one built for people doing it for a living.",
 };
 
 // [label, free, premium, statz] — a dash means the tier does not have it.
@@ -39,13 +39,13 @@ export const APP_BENEFITS = [
     app: "PostZ", icon: "postz.png",
     free: "Post, get rated, earn +1 Energy for every rating you give.",
     premium: "More room to write, and 40 minutes to fix a typo instead of 4.",
-    statz: "The most room to write of any tier, with four hours to edit.",
+    statz: "Write as long as the work needs — no cap at all — with four hours to edit.",
   },
   {
     app: "MessageZ", icon: "messagez.png",
     free: "DM anyone on the platform, free.",
     premium: "More room a message, so a pitch fits in one instead of five.",
-    statz: "The most room a message of any tier. Send the whole treatment.",
+    statz: "No limit. Send the whole treatment.",
   },
   {
     app: "SingZ · RapZ", icon: "singz.png",
@@ -128,7 +128,7 @@ export const APP_BENEFITS = [
     // the figures here is exactly how "20 free prompts" reached nine places.
     free: "The diary itself, forever — write every day, search every word, keep it private, and tag people without telling them anything. Your words are yours at every tier, and the account export always includes them.",
     premium: "On This Day — the same date in every year you've kept — and the whole journal out as one file. Plus the room a real habit needs: more entries a day, more tags, more people and more attachments on one.",
-    statz: "The most room on an entry of any tier, and the export whenever you want it.",
+    statz: "No character limit on an entry, the most room of any tier, and the export whenever you want it.",
   },
   {
     app: "ProfileZ", icon: "personaz.png",

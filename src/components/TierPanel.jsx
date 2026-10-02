@@ -29,7 +29,7 @@ export default function TierPanel({ tab, label, onGo }) {
               {ladder && (
                 <span className="text-white/45">
                   {ladder.month_cents ? `${money(ladder.month_cents)}/mo · ${money(ladder.year_cents)}/yr` : "free"}
-                  {" · "}{Number(ladder.char_limit).toLocaleString()} characters
+                  {" · "}{ladder.char_limit >= 1e8 ? "unlimited" : Number(ladder.char_limit).toLocaleString()} characters
                 </span>
               )}
             </p>
