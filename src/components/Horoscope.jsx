@@ -3,6 +3,7 @@ import { Loader2, X } from "lucide-react";
 import { api } from "../api.js";
 import { goToTab } from "../goto.js";
 import { StatzSample } from "./StatzSample.jsx";
+import ShareSheet from "./ShareSheet.jsx";
 
 // Today's detailed horoscope for a sign. Written once a day per sign by the
 // server (apps/economy/metricz.py) and free — the "free" is stated, because a
@@ -39,6 +40,7 @@ export function HoroscopeLayer() {
   const [err, setErr] = useState("");
   const [locked, setLocked] = useState(false);
   const [withSign, setWithSign] = useState("");
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     const h = (e) => {
@@ -172,6 +174,17 @@ export function HoroscopeLayer() {
               )}
             </div>
           </div>
+        )}
+
+        {r && (
+          <button className="mt-3 re-link text-xs" onClick={() => setSharing((v) => !v)}>Share today's {sign} reading</button>
+        )}
+        {sharing && r && (
+          <ShareSheet onClose={() => setSharing(false)} item={{
+            kind: "metric", title: `${d.emoji} ${sign} · today`,
+            text: level === "advanced" ? [r.career, r.affirmation && `“${r.affirmation}”`].filter(Boolean).join("\n\n") : [r.overview, r.music].filter(Boolean).join("\n\n"),
+            opens: [{ label: `${sign} members`, tab: "zodiacz", target: "" }],
+          }} />
         )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-[11px] text-white/45">

@@ -22,7 +22,7 @@ export default function PublicBattle() {
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
         <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">

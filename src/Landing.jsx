@@ -198,7 +198,7 @@ export default function Landing() {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
       <header className="mb-8 flex items-center gap-3">
-        <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-11 w-11 rounded-xl shadow-neon" />
+        <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-11 w-11 rounded-xl shadow-neon" />
         <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         <Link to="/login" className="ml-auto text-sm text-white/60 hover:text-white">Log in</Link>
       </header>
