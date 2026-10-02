@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Copy, Loader2, PenLine } from "lucide-react";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
@@ -29,6 +31,7 @@ function Price({ s }) {
 
 
 export default function SentenceConnectZ() {
+  const cl = useCharLimit();
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
   const [kind, setKind] = useState("lyrics");
@@ -118,11 +121,12 @@ export default function SentenceConnectZ() {
           <>
             <textarea
               className="neon-input min-h-28 w-full"
-              maxLength={2000}
+              maxLength={cl.limit}
               placeholder={kind === "lyrics" ? "What's the song about? Describe the topic, the story, the feeling." : "What should it say?"}
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              onChange={(e) => setTopic(cl.clamp(e.target.value))}
             />
+            <CharLimit cl={cl} value={topic} />
             <input className="neon-input w-full" maxLength={60} placeholder="Genre / style (optional)"
               value={genre} onChange={(e) => setGenre(e.target.value)} />
 

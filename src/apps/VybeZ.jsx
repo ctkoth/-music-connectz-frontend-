@@ -20,6 +20,7 @@ import MemberName from "../MemberName.jsx";
 import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
+import { SignLink } from "../components/Horoscope.jsx";
 import { goToSpot } from "../goto.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
@@ -65,7 +66,7 @@ function MemberCard({ m, religionLabel, languageLabel }) {
         {m.personality && (
           <span className="pill !border-mcz-cyan/40 !text-mcz-cyan">🧭 {m.personality}</span>
         )}
-        {m.sign && <span className="pill">{m.sign}</span>}
+        {m.sign && <SignLink sign={m.sign} />}
         {m.sign_cn?.animal && <span className="pill">{m.sign_cn.emoji} {m.sign_cn.animal}</span>}
         {m.sober && <span className="pill !border-emerald-300/40 !text-emerald-300">sober</span>}
         {/* The label comes from the SAME lookup the filter builds, off the

@@ -136,7 +136,8 @@ const KEYS = {
   "socializez.vybez.jpg": "vybez.png",
   "socializez.infernoz.jpg": "infernoz.png",
   "statsz.png": "statsz.png",
-  "substancez.png": "substancez.png",
+  "profilez.substancez.jpg": "substancez.png",
+  "profilez.zodiacz.jpg": "zodiacz.png",
   "tellz.png": "tellz.png",
   "toolz.cleanconz.png": "cleanconnectz.png",
   "toolz.journalz.jpg": "journalz.jpg",
@@ -147,6 +148,13 @@ const KEYS = {
   "analyticsz.png": "analytics.png",
   "skillz.png": "skillz.png",
   "directz.png": "directz.png",
+  "directz.reelz.jpg": "reelz.png",
+  "directz.episodez.jpg": "episodez.png",
+  "directz.moviez.jpg": "moviez.png",
+  "directz.voicezstylez.jpg": "voicezstylez.png",
+  "designz.mangaz.jpg": "mangaz.png",
+  "designz.characterz.jpg": "characterz.png",
+  "personaz.designer.jpg": "personaz_designer.png",
 };
 
 // Files with no key of their own that ARE used: BodieZ's muscle picker reads

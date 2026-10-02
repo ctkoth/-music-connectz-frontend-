@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { goToSpot } from '../goto.js';
+import { presetDirectzFormat } from '../directzPreset.js';
+import { canMini, slugFor } from '../App.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg } from '../App.jsx';
 import './ToolZMenu.css';
 
@@ -21,6 +24,9 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
+  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png",
+  reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
+  mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
@@ -30,7 +36,16 @@ const EMOJI = {
   funnelz: "📉", groupz: "👫", merchz: "🛍️", lilith: "💃", bodiez: "💪", journalz: "📔",
   metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
   mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
+  preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
 };
+
+// One app, several doors: CharacterZ and VoiceZ StyleZ sit under DesignZ AND
+// DirectZ (and VoiceZ StyleZ under MangaZ's group), because a character is
+// drawn in one place and directed in another. Same key, same app — listing it
+// twice is a second door, never a second copy.
+const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ', soon: true };
+const VOICEZ_STYLEZ = { key: 'voicezstylez', label: 'VoiceZ StyleZ', color: 'magenta', desc: 'Voices for your CharacterZ', soon: true };
 
 // Flatten apps from grouped structure
 const flattenApps = (categoryData) => {
@@ -80,14 +95,14 @@ const TOOLZ_MENU = {
     {
       group: 'Discovery',
       apps: [
-        { key: 'socialiZeZ', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & find your level' },
+        { key: 'socialiZeZ', tab: 'social', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & find your level' },
         { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Find your frequency' },
       ]
     },
     {
       group: 'Quick Connect',
       apps: [
-        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating' },
+        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating', soon: true },
       ]
     },
     {
@@ -121,7 +136,13 @@ const TOOLZ_MENU = {
     {
       group: 'DirectZ',
       apps: [
-        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
+        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Post a video into its length band' },
+        // DirectZ's children BY LENGTH — the three bands the server enforces.
+        { key: 'reelz', tab: 'directz', preset: 'reelz', label: 'ReelZ', color: 'magenta', desc: '30 seconds to 30 minutes' },
+        { key: 'episodez', tab: 'directz', preset: 'episodez', label: 'EpisodeZ', color: 'cyan', desc: '30 to 60 minutes' },
+        { key: 'moviez', tab: 'directz', preset: 'moviez', label: 'MovieZ', color: 'magenta', desc: '1 to 3 hours' },
+        CHARACTERZ,
+        VOICEZ_STYLEZ,
       ]
     },
     {
@@ -134,7 +155,7 @@ const TOOLZ_MENU = {
     {
       group: 'Utilities',
       apps: [
-        { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
+        { key: 'widgetz', tab: 'profilez', label: 'WidgetZ', color: 'magenta', desc: 'Your links open on screen — add them in ProfileZ' },
         { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
       ]
     },
@@ -144,7 +165,7 @@ const TOOLZ_MENU = {
     {
       group: 'Progression',
       apps: [
-        { key: 'skillz', label: 'SkillZ', color: 'gold', desc: 'Track progression & badges' },
+        { key: 'skillz', category: 'SkillZ', label: 'SkillZ', color: 'gold', desc: 'Every coach and its skill tree' },
       ]
     },
   ],
@@ -165,7 +186,7 @@ const TOOLZ_MENU = {
       group: 'AI Coaching',
       apps: [
         { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — AI that builds with you' },
-        { key: 'bosttake', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes' },
+        { key: 'bosttake', tab: 'singz', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes to a coach' },
       ]
     },
     {
@@ -182,12 +203,30 @@ const TOOLZ_MENU = {
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
       ]
     },
+    {
+      group: 'Members by metric',
+      apps: [
+        { key: 'preferencez', label: 'PreferenceZ', color: 'magenta', desc: 'Who members are attracted to (18+)' },
+        { key: 'substancez', label: 'SubstanceZ', color: 'green', desc: 'What members use, and how often (18+)' },
+        { key: 'zodiacz', label: 'ZodiacZ', color: 'yellow', desc: 'Every sign, its members, and today\'s horoscope' },
+      ]
+    },
+  ],
+  'DesignZ': [
+    {
+      group: 'Draw & create',
+      apps: [
+        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Comics and manga from your CharacterZ', soon: true },
+        CHARACTERZ,
+        VOICEZ_STYLEZ,
+      ]
+    },
   ],
   'VenueZ': [
     { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
   ],
   'MercheZ': [
-    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Shop merchandise & items' },
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Shop merchandise & items', soon: true },
   ],
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
@@ -200,7 +239,7 @@ const TOOLZ_MENU = {
 const CATEGORY_ICON_KEY = {
   SocialiZeZ: "social_connectz.png", CollabZ: "collabz.png", BattleZ: "battlez.png",
   GroupZ: "groupz.png", SkillZ: "skillz.png", ToolZ: "toolz.png", IntelligenceZ: "intelligencez.png",
-  ProfileZ: "profilez.png", VenueZ: "venuez.png", MercheZ: "merchz.png",
+  ProfileZ: "profilez.png", DesignZ: "designz.png", VenueZ: "venuez.png", MercheZ: "merchz.png",
   Lilith: "lilithz.png", BodieZ: "bodiez.png",
 };
 
@@ -214,6 +253,7 @@ const CATEGORIES = [
   { key: 'ToolZ', label: 'ToolZ', color: 'yellow' },
   { key: 'IntelligenceZ', label: 'IntelligenceZ', color: 'magenta' },
   { key: 'ProfileZ', label: 'ProfileZ', color: 'cyan' },
+  { key: 'DesignZ', label: 'DesignZ', color: 'magenta' },
   { key: 'VenueZ', label: 'VenueZ', color: 'orange' },
   { key: 'MercheZ', label: 'MercheZ', color: 'magenta' },
   { key: 'Lilith', label: 'Lilith', color: 'magenta' },
@@ -221,22 +261,31 @@ const CATEGORIES = [
 ];
 
 export default function ToolZMenu() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [hoveredApp, setHoveredApp] = useState(null);
 
-  const handleAppClick = (appKey) => {
-    goToSpot(appKey, `${appKey}:main`);
+  // Where a tile goes. Most tiles ARE a tab; some are a door into one (a
+  // DirectZ length band, the coach that takes a Boss Take) or into another
+  // ToolZ category. Every key here was checked against App.jsx's TABS — a
+  // tile whose key is not a tab is a button that does nothing.
+  const tabOf = (app) => app.tab || app.key;
+  const handleAppClick = (app) => {
+    if (app.category) { setSelectedCategory(app.category); return; }
+    if (app.preset) presetDirectzFormat(app.preset);
+    goToSpot(tabOf(app), `${tabOf(app)}:main`);
   };
 
-  const handleOpenOption = (appKey, openType) => {
-    // openType: 'window', 'page', 'split'
+  const handleOpenOption = (app, openType) => {
     if (openType === 'window') {
-      window.open(`//${appKey}`, appKey);
-    } else if (openType === 'page') {
-      goToSpot(appKey, `${appKey}:main`);
+      // `//rapz` is a protocol-relative URL — it opened a HOST called rapz.
+      if (app.preset) presetDirectzFormat(app.preset);
+      window.open(`/${slugFor(tabOf(app))}`, '_blank', 'noopener');
     } else if (openType === 'split') {
-      // Split window behavior - would need layout management
-      goToSpot(appKey, `${appKey}:main`);
+      if (app.preset) presetDirectzFormat(app.preset);
+      window.dispatchEvent(new CustomEvent('mcz-split', { detail: tabOf(app) }));
+    } else {
+      handleAppClick(app);
     }
   };
 
@@ -285,25 +334,34 @@ export default function ToolZMenu() {
               <div className="app-open-options">
                 <button
                   className="open-btn open-default"
-                  onClick={() => handleAppClick(app.key)}
+                  onClick={() => handleAppClick(app)}
                   title="Open in current view"
                 >
                   ▶ Open
                 </button>
                 <button
                   className="open-btn open-window"
-                  onClick={() => handleOpenOption(app.key, 'window')}
+                  onClick={() => handleOpenOption(app, 'window')}
                   title="Open in new window"
                 >
                   ⧉ Window
                 </button>
                 <button
                   className="open-btn open-split"
-                  onClick={() => handleOpenOption(app.key, 'split')}
+                  onClick={() => handleOpenOption(app, 'split')}
                   title="Open in split view"
                 >
                   ⊞ Split
                 </button>
+                {canMini(tabOf(app), user?.tier) && (
+                  <button
+                    className="open-btn open-split"
+                    onClick={() => window.dispatchEvent(new CustomEvent('mcz-mini', { detail: tabOf(app) }))}
+                    title="Dock it small beside any app — up to three at once"
+                  >
+                    ◱ Mini
+                  </button>
+                )}
               </div>
               )}
             </div>

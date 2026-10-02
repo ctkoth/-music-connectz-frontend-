@@ -26,6 +26,7 @@ import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import WhatINeed from "./WhatINeed.jsx";
+import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
@@ -746,8 +747,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                 in the SignBonus panel further down (spotlight("birthday")
                 already lands there for the "no birthday" case below). */}
             {me.zodiac && (
-              <button type="button" onClick={() => spotlight("birthday")}
-                      className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
+              <button type="button" onClick={() => openHoroscope(me.zodiac)} title={`Today's ${me.zodiac} horoscope`}
+                      className="pill cursor-pointer hover:!border-mcz-gold/60 hover:!text-mcz-gold transition active:scale-95">
                 {ZODIAC_EMOJI[me.zodiac]} {me.zodiac}
               </button>
             )}
@@ -1028,7 +1029,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       <LanguageZ value={languages} onChange={setLanguages} />
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
-      <div>
+      <div data-tour="preferencez">
         <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Heart size={13} className="text-mcz-pink" /> PreferenceZ — partner genderZ ({partners.length} selected)
         </p>
@@ -1050,7 +1051,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       </div>
 
       {/* SubstanceZ — declared use and how often, another searchable metric. */}
-      <div>
+      <div data-tour="substancez">
         <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
           SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})

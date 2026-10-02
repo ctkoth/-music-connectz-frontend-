@@ -13,7 +13,13 @@ const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, ""
 // The comparison rows, built from /api/economy/tiers/. This table used to be
 // a typed copy of the ladder, and it had drifted: "Free: 1 daily prompt" (it
 // is 3) and "SpecZ marketplace: StatZ only" (every tier can buy one).
+const fmtChars = (v) => (v >= 1e8 ? "Unlimited" : v.toLocaleString());
+const fmtMb = (v) => (v >= 1024 ? `${+(v / 1024).toFixed(1)} GB` : `${v} MB`);
 const PERK_ROWS = [
+  { label: "Characters — bio, posts, DMs, AI prompts", key: "char_limit", fmt: fmtChars },
+  { label: "Per-upload size", key: "upload_mb", fmt: fmtMb },
+  { label: "Storage", key: "storage_mb", fmt: fmtMb },
+  { label: "Energy per hour (before reach)", key: "energy_per_hour", fmt: (v) => `${v} ⚡` },
   { label: "Platform fee on your sales", key: "platform_fee_pct", fmt: (v) => `${v}%` },
   { label: "Energy per $1 topped up", key: "energy_per_dollar", fmt: (v) => `${v}×` },
   { label: "Daily free AI prompts", key: "daily_prompts", fmt: (v) => String(v) },
@@ -22,7 +28,7 @@ const PERK_ROWS = [
 
 function tierKey(t) {
   const s = (t || "").toLowerCase();
-  if (s.includes("statz") || s.includes("stats")) return "statz";
+  if (s.includes("statz") || s.includes("stats") || s.includes("debug")) return "statz";
   if (s.includes("premium") || s.includes("pro")) return "premium";
   return "free";
 }
@@ -41,6 +47,9 @@ export default function MembershipZ() {
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
   const [ladder, setLadder] = useState(null);
+  const [mem, setMem] = useState(null);       // /membership/ — the owner's switch rides here
+  const [billing, setBilling] = useState("month");
+  const loadMem = () => api("/api/economy/membership/").then(setMem).catch(() => {});
   useEffect(() => {
     api("/api/economy/tiers/", { auth: false })
       .then((d) => setLadder(Object.fromEntries((d.tiers || []).map((t) => [t.key, t]))))
@@ -51,6 +60,7 @@ export default function MembershipZ() {
     api("/api/auth/me/").then(setMe).catch(() => setMe({ tier: "free" }));
     api("/api/economy/founding/").then(setFounding).catch(() => setFounding(null));
     api("/api/economy/checkout/config/").then(setCfg).catch(() => setCfg({ stripe_enabled: false }));
+    loadMem();
     // Surface a checkout return (backend now redirects to /?checkout=…).
     const q = new URLSearchParams(window.location.search);
     if (q.get("checkout") === "success") setMsg(talk(P.membership_paid));
@@ -79,6 +89,23 @@ export default function MembershipZ() {
   }
   const buyFounding = (plan) => checkout("/api/economy/founding/checkout/", plan, plan);
   const buyPremium = (plan) => checkout("/api/economy/premium/checkout/", plan, "prem_" + plan);
+  const buyStatz = (plan) => checkout("/api/economy/statz/checkout/", plan, "statz_" + plan);
+  async function ownerSwitch(tier) {
+    setBusy("owner_" + tier);
+    try {
+      const r = await api("/api/economy/membership/", { method: "POST", body: { tier } });
+      setMem((m) => ({ ...m, tier: r.tier, owner_pinned: true }));
+      setMe((m) => ({ ...m, tier: r.tier }));
+      window.dispatchEvent(new Event("mcz-stats-refresh"));
+      setMsg(`Testing as ${tier === "debug" ? "Debug" : tier}. It stays until you pick another.`);
+    } catch (e) { setMsg(e.message); }
+    setBusy("");
+  }
+  const price = (t, iv) => ladder?.[t]?.[iv === "year" ? "year_cents" : "month_cents"];
+  const saving = (t) => {
+    const m = price(t, "month"), y = price(t, "year");
+    return m && y ? Math.round((1 - y / (m * 12)) * 100) : 0;
+  };
 
   if (!me) {
     return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading membership…</p>;
@@ -124,11 +151,11 @@ export default function MembershipZ() {
           <div className="grid gap-2 sm:grid-cols-3">
             <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine === "statz"} onClick={() => buyFounding("month")}>
               <span className="text-sm font-bold">{busy === "month" ? "…" : `${money(founding?.month_cents)}/mo`}</span>
-              <span className="text-[10px] font-normal opacity-70">was $15/mo</span>
+              <span className="text-[10px] font-normal opacity-70">was {money(price("statz", "month"))}/mo</span>
             </button>
             <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine === "statz"} onClick={() => buyFounding("year")}>
               <span className="text-sm font-bold">{busy === "year" ? "…" : `${money(founding?.year_cents)}/yr`}</span>
-              <span className="text-[10px] font-normal opacity-70">was $120/yr</span>
+              <span className="text-[10px] font-normal opacity-70">was {money(price("statz", "year"))}/yr</span>
             </button>
             <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine === "statz"} onClick={() => buyFounding("lifetime")}>
               <span className="text-sm font-bold">{busy === "lifetime" ? "…" : `${money(founding?.price_cents)} once`}</span>
@@ -151,8 +178,8 @@ export default function MembershipZ() {
             <tr className="text-left text-white/45">
               <th className="py-2 font-medium">Perk</th>
               <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Star size={14} /> Free <TierBadge k="free">Free</TierBadge></div></th>
-              <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Zap size={14} className="text-mcz-cyan" /> Premium <TierBadge k="premium">$6/mo</TierBadge></div></th>
-              <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Crown size={14} className="text-mcz-ember" /> StatZ <TierBadge k="statz">Founding</TierBadge></div></th>
+              <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Zap size={14} className="text-mcz-cyan" /> Premium <TierBadge k="premium">{ladder ? `${money(price("premium", "month"))}/mo` : "Premium"}</TierBadge></div></th>
+              <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Crown size={14} className="text-mcz-ember" /> StatZ <TierBadge k="statz">{ladder ? `${money(price("statz", "month"))}/mo` : "StatZ"}</TierBadge></div></th>
             </tr>
           </thead>
           <tbody>
@@ -236,26 +263,64 @@ export default function MembershipZ() {
         </details>
       </div>
 
-      {/* Premium — mid tier, buyable now. Anchor for every screen that's
-          gating a Premium-only feature specifically (not StatZ, not the
-          founding deal) rather than the ladder in general. */}
-      <div className="re-card space-y-3" data-tour="membershipz-premium">
-        <span className="re-label flex items-center gap-2"><Zap size={13} className="text-mcz-cyan" /> Premium</span>
-        <p className="text-xs text-white/60">Half the platform fee, double energy per top-up, and 5 AI prompts a day.</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine !== "free"} onClick={() => buyPremium("month")}>
-            <span className="text-sm font-bold">{busy === "prem_month" ? "…" : "$6/mo"}</span>
-            <span className="text-[10px] font-normal opacity-70">billed monthly</span>
+      {/* Premium and StatZ, monthly or yearly — every figure from
+          /api/economy/tiers/. These buttons used to say "$6/mo" and "$48/yr"
+          in the markup, and StatZ at full price had no button at all. */}
+      <div className="flex items-center gap-2" role="radiogroup" aria-label="Billing">
+        {[["month", "Monthly"], ["year", "Yearly"]].map(([k, l]) => (
+          <button key={k} onClick={() => setBilling(k)} role="radio" aria-checked={billing === k}
+            className={`rounded-full border px-4 py-1.5 text-sm ${billing === k ? "border-mcz-cyan bg-mcz-cyan/15" : "border-white/15 text-white/60"}`}>
+            {l}{k === "year" && ladder ? <span className="ml-1 text-[10px] text-emerald-300">save up to {Math.max(saving("premium"), saving("statz"))}%</span> : null}
           </button>
-          <button className="re-btn !w-auto flex-col !items-start gap-0 px-4 py-2" disabled={!!busy || mine !== "free"} onClick={() => buyPremium("year")}>
-            <span className="text-sm font-bold">{busy === "prem_year" ? "…" : "$48/yr"}</span>
-            <span className="text-[10px] font-normal opacity-70">2 months free</span>
-          </button>
-        </div>
-        {mine === "premium" && <p className="text-[11px] text-emerald-300">You're on Premium. 🎉</p>}
-        {mine === "statz" && <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Lock size={11} /> You're already on StatZ, which includes everything in Premium.</p>}
-        {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
+        ))}
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {[
+          { t: "premium", label: "Premium", Icon: Zap, tone: "text-mcz-cyan", anchor: "membershipz-premium",
+            buy: buyPremium, owned: mine !== "free", ownedMsg: mine === "premium" ? "You're on Premium. 🎉" : "You're on StatZ, which includes everything in Premium." },
+          { t: "statz", label: "StatZ", Icon: Crown, tone: "text-mcz-ember", anchor: "membershipz-statz",
+            buy: buyStatz, owned: mine === "statz", ownedMsg: "You're on StatZ. 🎉" },
+        ].map(({ t, label, Icon, tone, anchor, buy, owned, ownedMsg }) => (
+          <div key={t} className={`re-card space-y-2 ${t === mine ? "border-mcz-ember/50" : ""}`} data-tour={anchor}>
+            <span className="re-label flex items-center gap-2"><Icon size={13} className={tone} /> {label}</span>
+            <p className="text-[11px] leading-relaxed text-white/60">{TIER_BLURB[t]}</p>
+            {ladder && (
+              <p className="text-[11px] text-white/50">
+                {fmtChars(ladder[t].char_limit)} characters · {ladder[t].daily_prompts} free AI prompts a day · {fmtMb(ladder[t].upload_mb)} uploads
+              </p>
+            )}
+            <button className="neon-btn-primary !w-auto flex-col !items-start gap-0 px-4 py-2"
+              disabled={!!busy || owned || !ladder} onClick={() => buy(billing)}>
+              <span className="text-base font-bold">
+                {busy === `${t === "premium" ? "prem" : "statz"}_${billing}` ? "…"
+                  : ladder ? `−${money(price(t, billing))} 💵 /${billing === "year" ? "yr" : "mo"}` : "…"}
+              </span>
+              <span className="text-[10px] font-normal opacity-80">
+                {billing === "year" ? `billed yearly · ${saving(t)}% less than monthly` : "billed monthly · cancel any time"}
+              </span>
+            </button>
+            {owned && <p className="flex items-center gap-1.5 text-[11px] text-emerald-300"><Lock size={11} /> {ownedMsg}</p>}
+          </div>
+        ))}
+      </div>
+      {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
+
+      {/* The owner's test switch. The server answers 403 to anybody else, and
+          only sends `switchable` to the owner, so this renders for nobody else. */}
+      {mem?.switchable && (
+        <div className="re-card space-y-2 border-mcz-gold/40">
+          <span className="re-label flex items-center gap-2"><Star size={13} className="text-mcz-gold" /> Owner · test as a tier</span>
+          <p className="text-[11px] text-white/55">See exactly what a member on each tier sees. Your pick stays until you change it — StatZ is your default.</p>
+          <div className="flex flex-wrap gap-2">
+            {mem.switchable.map((t) => (
+              <button key={t} disabled={!!busy} onClick={() => ownerSwitch(t)}
+                className={`rounded-full border px-3 py-1 text-sm capitalize ${mem.tier === t ? "border-mcz-gold bg-mcz-gold/15 text-mcz-gold" : "border-white/15 text-white/70"}`}>
+                {busy === "owner_" + t ? "…" : t === "statz" ? "StatZ" : t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="flex items-center gap-1.5 text-[11px] text-white/40">
         <Sparkles size={12} /> Prices are grandfathered — founding members keep their rate even after public prices rise.

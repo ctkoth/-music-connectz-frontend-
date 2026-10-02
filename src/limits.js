@@ -12,6 +12,8 @@ let cache = null;          // resolved limits, shared across every mount
 let inFlight = null;       // one request even if ten components mount at once
 const listeners = new Set();
 
+// FALLBACK ONLY — what CharLimit shows if /limits/ hasn't answered. The live
+// numbers are the server's `tiers` ladder (useTierLadder).
 export const TIER_CHAR_LIMITS = { free: 400, premium: 1500, statz: "Unlimited" };
 
 export const TIER_LABEL = { free: "Free", premium: "Premium", statz: "StatZ", debug: "Debug" };

@@ -2,11 +2,11 @@
 
 Filename and registry audit only — nothing here was judged by looking at the
 art. 115 distinct supplied files: **37 live** (committed, now the default),
-**58 owed** (has a place, file not in git), **17 with no place**,
-**3 duplicates**, 0 already used as backup art. The lists below also
+**57 owed** (has a place, file not in git), **17 with no place**,
+**3 duplicates**, 1 already used as backup art. The lists below also
 show committed dotted files the tree picked up from public/icons.
 
-## Live — custom art is the default now (39)
+## Live — custom art is the default now (48)
 | File | Registry key | Note |
 |---|---|---|
 | `battlez.1v1.png` | `battlez.1v1.png` | replaces the generated glyph /icons/battlez.1v1-neon.svg |
@@ -16,6 +16,7 @@ show committed dotted files the tree picked up from public/icons.
 | `bodiez.png` | `bodiez.png` |  |
 | `bugz.png` | `bugz.png` | replaces the generated glyph /icons/bugz-neon.svg |
 | `builder.png` | `builder.png` |  |
+| `chordz.jpg` | `chordz.jpg` | replaces the generated glyph /icons/chordz-neon.svg |
 | `CoachZ.jpg` | `coachz.jpg` | on disk as "CoachZ.jpg"; commit it as coachz.jpg; replaces the generated glyph /icons/coachz-neon.svg |
 | `collabz.coverz.png` | `collabz.coverz.png` |  |
 | `Collabz.originalz.png` | `collabz.originalz.png` | on disk as "Collabz.originalz.png"; commit it as collabz.originalz.png; replaces the generated glyph /icons/collabz.originalz-neon.svg |
@@ -40,12 +41,20 @@ show committed dotted files the tree picked up from public/icons.
 | `socializez.infernoZ.jpg` | `infernoz.png` | on disk as "socializez.infernoZ.jpg"; commit it as socializez.infernoz.jpg |
 | `socializez.jpg` | `social_connectz.png` | replaces the generated glyph /icons/social_connectz-neon.svg |
 | `socializez.vybez.jpg` | `vybez.png` | replaces the generated glyph /icons/vybez-neon.svg |
-| `SubstanceZ.png` | `substancez.png` | on disk as "SubstanceZ.png"; commit it as substancez.png |
 | `Toolz .png` | `toolz.png` | on disk as "Toolz .png"; commit it as toolz.png |
 | `venuez.png` | `venuez.png` |  |
 | `intelligence.videoconz.png` | `videoconnectz.png` |  |
 | `intelligence.mixconz.png` | `mixconnectz.png` |  |
 | `viewz.png` | `viewz.png` |  |
+| `designz.characterz.jpg` | `characterz.png` |  |
+| `designz.mangaz.jpg` | `mangaz.png` |  |
+| `directz.episodez.jpg` | `episodez.png` |  |
+| `directz.moviez.jpg` | `moviez.png` |  |
+| `directz.reelz.jpg` | `reelz.png` |  |
+| `directz.voicezstylez.jpg` | `voicezstylez.png` |  |
+| `personaz.designer.jpg` | `personaz_designer.png` |  |
+| `profilez.substancez.jpg` | `substancez.png` |  |
+| `profilez.zodiacz.jpg` | `zodiacz.png` |  |
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
@@ -82,7 +91,7 @@ name; the committed file is the artwork, and it is the default now.
 | `tunerz.jpg` | `tunerz.jpg` | /icons/tunerz-neon.svg |
 | `onboardz.jpg` | `onboardz.png` | /icons/onboardz-neon.svg |
 
-## Owed — has a place, file not committed (58)
+## Owed — has a place, file not committed (57)
 The tab keeps the artwork it had until the file is pushed. Rename with
 `node tools/normalize-icons.mjs --apply`, commit, then rebuild the manifest.
 
@@ -103,7 +112,6 @@ The tab keeps the artwork it had until the file is pushed. Rename with
 | `bodiez.upperlegz.jpg` | — | BodieZ muscle picker |
 | `callz.ai.png` | `callz_ai.png` |  |
 | `callz.user.png` | `callz_user.png` |  |
-| `chordz.jpg` | `chordz.jpg` |  |
 | `Crewz icon.jpg` | `crewz.png` | on disk as "Crewz icon.jpg"; commit it as crewz.jpg |
 | `dawz.arsenal.jpg` | `arsenal.png` |  |
 | `dawz.azrael.png` | `azrael.png` |  |
@@ -147,11 +155,12 @@ The tab keeps the artwork it had until the file is pushed. Rename with
 | `toolz.tunerz.jpg` | `tunerz.jpg` |  |
 | `analyticsz.png` | `analytics.png` |  |
 
-## Committed backup art (13)
+## Committed backup art (14)
 Still what something draws today; custom art takes over where a default exists.
 
 | File | Registry key | Note |
 |---|---|---|
+| `SubstanceZ.png` | — | current art for registry key substancez.png, kept as the fallback; on disk as "SubstanceZ.png"; commit it as substancez.png |
 | `bodiez.absz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `bodiez.backz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `bodiez.bicepz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
@@ -217,5 +226,5 @@ Still what something draws today; custom art takes over where a default exists.
 - `specz.png` → /icons/specz-neon.svg
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 87 of 173 (most are the
+Registry keys with no supplied file: 85 of 179 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).
