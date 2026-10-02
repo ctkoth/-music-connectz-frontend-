@@ -203,10 +203,11 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (21)
+## Tabs and apps that ask for an icon no supplied file covers (23)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `callz.png` → /icons/callz-neon.svg
+- `facez.png` → /icons/facez.png
 - `funnelz.png` → /icons/funnelz-neon.svg
 - `guitarz.png` → /icons/guitarz-neon.svg
 - `habitz.png` → /icons/habitz-neon.svg
@@ -214,6 +215,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `keyz.png` → /icons/keyz-neon.svg
 - `lessonz.png` → /icons/lessonz-neon.svg
 - `logo.png` → /mcz-logo-v5.jpg
+- `merchz.png` → /icons/merchz.png
 - `mimez.png` → /icons/mimez-neon.svg
 - `money.png` → /icons/money-neon.svg
 - `offerz.png` → /icons/offerz-neon.svg
