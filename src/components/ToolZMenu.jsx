@@ -18,7 +18,7 @@ const ICON_KEY = {
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
   merchz: "merchz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
-  journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg",
+  journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
 };
@@ -28,7 +28,7 @@ const EMOJI = {
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", lilith: "💃", bodiez: "💪", journalz: "📔",
-  metz: "🎚️", tunerz: "🎯", chordz: "🎼",
+  metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
   mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
 };
 
@@ -128,6 +128,7 @@ const TOOLZ_MENU = {
       group: 'Progress & Analytics',
       apps: [
         { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
+        { key: 'viewz', label: 'ViewZ', color: 'cyan', desc: 'Who viewed your posts & profile — a DAW timeline (StatZ)' },
       ]
     },
     {

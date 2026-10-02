@@ -72,7 +72,7 @@ export default function ViewZ() {
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-4">
-        <IconImg icon="statsz.png" alt="ViewZ" className="h-16 w-16 rounded-2xl shadow-neon" />
+        <IconImg icon="viewz.png" alt="ViewZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
           <h2 className="font-display text-3xl font-extrabold text-mcz-cyan">ViewZ</h2>
           <p className="text-sm text-white/60">Who spent time on your posts and profile — every viewer a track, every visit a clip.</p>

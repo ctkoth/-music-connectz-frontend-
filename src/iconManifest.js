@@ -47,6 +47,7 @@ export const ICON_DEFAULTS = {
   "venuez.png": "/icons/venuez.png",
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
+  "viewz.png": "/icons/viewz.png",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
   "battlez.cypher.png": "/icons/battlez.cypher.jpg",
@@ -1436,6 +1437,19 @@ export const ICON_TREE = [
       "file": "venuez.png",
       "art": "/icons/venuez.png",
       "key": "venuez.png",
+      "status": "live",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
+  },
+  {
+    "parent": "viewz",
+    "label": "ViewZ",
+    "root": {
+      "file": "viewz.png",
+      "art": "/icons/viewz.png",
+      "key": "viewz.png",
       "status": "live",
       "note": ""
     },
