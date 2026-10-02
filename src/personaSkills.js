@@ -537,3 +537,28 @@ export const labelForSkill = (key) => {
   }
   return _skillLabels[key] || key;
 };
+
+/** How long a skill has been practised, in the unit that reads naturally:
+ *  "12 days", "5 weeks", "8 months", "3 years 2 months". Sums every stint,
+ *  never counts past today, and returns null for an undated skill — an
+ *  undated skill has no length, it does not have a length of zero. */
+export function skillDuration(skill) {
+  const today = new Date();
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  let days = 0, counted = false;
+  for (const p of periodsOf(typeof skill === "string" ? { start: skill } : skill)) {
+    const a = asDate(p.start);
+    if (!a) continue;
+    const b = Math.min(asDate(p.end)?.getTime() ?? now, now);
+    if (b < a.getTime()) continue;
+    days += Math.round((b - a.getTime()) / 86400000); counted = true;
+  }
+  if (!counted) return null;
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? "" : "s"}`;
+  if (days < 14) return n(days, "day");
+  if (days < 63) return n(Math.floor(days / 7), "week");
+  const months = Math.floor(days / 30.4375);
+  if (months < 24) return n(months, "month");
+  const y = Math.floor(months / 12), m = months % 12;
+  return m ? `${n(y, "year")} ${n(m, "month")}` : n(y, "year");
+}

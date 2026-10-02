@@ -24,7 +24,7 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
-  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png",
+  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
@@ -209,6 +209,7 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'preferencez', label: 'PreferenceZ', color: 'magenta', desc: 'Who members are attracted to (18+)' },
         { key: 'substancez', label: 'SubstanceZ', color: 'green', desc: 'What members use, and how often (18+)' },
+        { key: 'personaz', label: 'PersonaZ', color: 'magenta', desc: 'Every persona and skill — yours with start dates, or find who else has them' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'Faces for your AI videos — and rate others (18+)' },
         { key: 'zodiacz', label: 'ZodiacZ', color: 'yellow', desc: 'Every sign, its members, and today\'s horoscope' },
       ]
