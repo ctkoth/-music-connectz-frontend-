@@ -288,6 +288,9 @@ export default function CollabZ() {
       setMsg(r.ready
         ? `Release ready — "${r.title}" by ${r.artist_name}, filled in from this deal.`
         : `Release started. It still needs ${r.missing.join(", ")}.`);
+      // The release lives in DistributeZ — open it there rather than leaving
+      // a release nobody can find.
+      goToSpot("distributez", "distributez-releases");
     } catch (e) { setMsg(e.message || "Couldn't start that release."); }
   }
 

@@ -74,6 +74,7 @@ const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
 const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
 const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
+const DistributeZ = lazy(lazyRoute(() => import("./apps/DistributeZ.jsx")));
 const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
@@ -477,6 +478,7 @@ const TABS = [
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
   { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
   { key: "facez", label: "FaceZ", icon: "facez.png", el: <FaceZ /> },
+  { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
   { key: "merchz", label: "MercheZ", icon: "merchz.png", el: <MerchZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },

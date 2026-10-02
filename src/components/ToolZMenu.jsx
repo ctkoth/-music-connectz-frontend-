@@ -24,7 +24,7 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
-  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png",
+  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
@@ -143,6 +143,13 @@ const TOOLZ_MENU = {
         { key: 'moviez', tab: 'directz', preset: 'moviez', label: 'MovieZ', color: 'magenta', desc: '1 to 3 hours' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
+      ]
+    },
+    {
+      group: 'Release & Earn',
+      apps: [
+        { key: 'distributez', label: 'DistributeZ', color: 'cyan', desc: 'Your posts and collabs become releases — Free sends 1 a month' },
+        { key: 'royaltiez', label: 'RoyaltieZ', color: 'gold', desc: 'What your releases earn, and cashing it out' },
       ]
     },
     {
