@@ -22,6 +22,8 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import { useInViewTracker } from "../viewz.js";
+import ViewCount from "../components/ViewCount.jsx";
 import { celebrate } from "../celebrate.js";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -520,6 +522,7 @@ export default function PostZ() {
 function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const talk = useSay();
   const { user } = useAuth();
+  const seenRef = useInViewTracker(`post:${post.id}`);
   // Reactions, comments and my own rating live in the shared item space, keyed
   // `post:<id>` — the same space playlists and works use.
   const [social, setSocial] = useState(null);
@@ -784,7 +787,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const rating = social?.rating ?? post.rating;
 
   return (
-    <div className="re-card">
+    <div ref={seenRef} className="re-card">
       <div className="mb-3 flex items-center gap-3">
         <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
                  className="h-10 w-10 rounded-lg object-cover" />
@@ -1170,6 +1173,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </div>
         )}
       </div>
+      <div className="mt-2 flex justify-end"><ViewCount target={`post:${post.id}`} /></div>
     </div>
   );
 }

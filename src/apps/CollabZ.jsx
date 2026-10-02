@@ -13,6 +13,9 @@
 //
 // Every money figure is stated BEFORE the button that moves it, per the
 // cost/gain rule — a price you discover by paying it is a bill.
+import { useAuth } from "../auth/AuthContext.jsx";
+import PartnerzMark from "../components/PartnerzMark.jsx";
+import { celebratePartnerz } from "../milestones.js";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRight, Check, Clock, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
@@ -91,6 +94,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-semibold">{deal.title || "Untitled deal"}</p>
+          <PartnerzMark pairs={deal.partnered} />
           <p className="text-xs text-white/55">
             by @{deal.initiator} · {STATUS_LABEL[deal.status] || deal.status}
           </p>
@@ -244,10 +248,13 @@ export default function CollabZ() {
     api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
   }, [skills]);
 
+  const { user } = useAuth();
   const load = useCallback(async () => {
     try {
       const d = await api("/api/economy/collab/");
-      setDeals(asList(d?.deals ?? d));
+      const list = asList(d?.deals ?? d);
+      setDeals(list);
+      celebratePartnerz(list, user?.username, "collab");
     } catch (e) {
       setMsg(e.message || "Couldn't load CollabZ.");
       setDeals([]);

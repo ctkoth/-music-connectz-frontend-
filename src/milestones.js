@@ -40,3 +40,16 @@ export function checkBadges() {
     }
   }).catch(() => {});
 }
+
+/** CollabZ / BattleZ: celebrate becoming PartnerZ❤️, once, for the two of you. */
+export function celebratePartnerz(items, me, kind) {
+  const mine = (items || []).filter((x) => (x.partnered || []).some((p) => p.includes(me)));
+  const fresh = new Set(newSince(`mcz_seen_partnerz_${kind}`, mine.map((x) => x.id)));
+  for (const x of mine) {
+    if (!fresh.has(x.id)) continue;
+    for (const pair of x.partnered.filter((p) => p.includes(me))) {
+      const them = pair.find((u) => u !== me);
+      celebrate(null, 0, { label: `PartnerZ❤️ with @${them} — “${x.title}” made it official`, sound: "level_up", big: true });
+    }
+  }
+}

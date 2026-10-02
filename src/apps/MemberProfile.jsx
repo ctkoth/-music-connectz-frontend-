@@ -3,6 +3,8 @@
 // Opened by tapping someone in the online list on the CommunityBar. Reads the
 // same payload Social ConnectZ uses, so whatever a member fills in on ProfileZ
 // shows up here.
+import { useViewTracker } from "../viewz.js";
+import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X, Edit, Trash2 } from "lucide-react";
@@ -56,6 +58,7 @@ function FollowButton({ username, onCounts }) {
 export default function MemberProfile({ username, onClose, currentUsername, onEditProfile, isOwner, onEditMember, onDeleteMember }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  useViewTracker(username && username !== currentUsername ? `profile:${username}` : null);
 
   useEffect(() => {
     let on = true;
@@ -172,6 +175,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}
             <BadgeWearList badges={data.badges} />
+            <ViewCount target={`profile:${username}`} />
 
             <FollowButton username={username} onCounts={(c) => setData((d) => ({ ...d, ...c }))} />
 
