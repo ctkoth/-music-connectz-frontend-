@@ -19,6 +19,8 @@ const ICON_KEY = {
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
   merchz: "merchz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg",
+  mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
+  instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
@@ -27,6 +29,7 @@ const EMOJI = {
   profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", lilith: "💃", bodiez: "💪", journalz: "📔",
   metz: "🎚️", tunerz: "🎯", chordz: "🎼",
+  mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
 };
 
 // Flatten apps from grouped structure
@@ -146,9 +149,21 @@ const TOOLZ_MENU = {
   ],
   'IntelligenceZ': [
     {
+      // Not built yet: listed so the suite is visible, never as a door that
+      // opens onto nothing. `soon` replaces the Open buttons with a label.
+      group: 'AI Creation',
+      apps: [
+        { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'AI mixing & mastering for your songs', soon: true },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
+        { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos from your FaceZ — StatZ lipsyncs to your track', soon: true },
+        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI by genre, instruments, BPM & key — StatZ searches keys by mood', soon: true },
+        { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Lyrics, captions, posts, essays & agreements', soon: true },
+      ]
+    },
+    {
       group: 'AI Coaching',
       apps: [
-        { key: 'occ', label: 'OCC', color: 'magenta', desc: 'One-on-one coaching' },
+        { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — AI that builds with you' },
         { key: 'bosttake', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes' },
       ]
     },
@@ -261,6 +276,11 @@ export default function ToolZMenu() {
                 </div>
               </div>
 
+              {app.soon ? (
+                <div className="app-open-options">
+                  <span className="open-btn" aria-disabled="true">Coming soon</span>
+                </div>
+              ) : (
               <div className="app-open-options">
                 <button
                   className="open-btn open-default"
@@ -284,6 +304,7 @@ export default function ToolZMenu() {
                   ⊞ Split
                 </button>
               </div>
+              )}
             </div>
           ))}
         </div>

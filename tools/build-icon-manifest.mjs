@@ -103,6 +103,8 @@ const KEYS = {
   "intelligence.instconz.jpg": "instrumentalconnectz.png",
   "intelligence.ocular.png": "occ.png",
   "intelligence.sentenceconz.png": "sentencez.png",
+  "intelligence.videoconz.png": "videoconnectz.png",
+  "intelligence.mixconz.png": "mixconnectz.png",
   "intelligencez.png": "intelligencez.png",
   "labelz.png": "labelz.png",
   "languagez.jpg": "languagez.png",
@@ -188,7 +190,7 @@ const NOTE = {
 const LABEL = {
   socializez: "SocialiZeZ", intelligence: "Intelligence", occ: "OCC",
   imageconz: "Image ConnectZ", instconz: "Instrumental ConnectZ",
-  ocular: "Ocular Code ConnectZ", sentenceconz: "Sentence ConnectZ",
+  ocular: "Ocular Code ConnectZ", sentenceconz: "Sentence ConnectZ", videoconz: "Video ConnectZ", mixconz: "Mix ConnectZ",
   cleanconz: "Clean ConnectZ", fruity: "Fruity Möbius", trump: "Trump Toupee",
   witch: "Witchcraft", formulawon: "FormulaWon", mixengineer: "Mix Engineer",
   totalbody: "Total Body", fullbodyz: "Full BodyZ", "stepz-good-bodiez": "StepZ Good BodieZ",
