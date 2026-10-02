@@ -402,6 +402,7 @@ export default function BodieZ() {
         <>
           {tab === "today" && (
             <>
+            <LbFix onFixed={load} />
             {summary && <SessionSummary summary={summary} onClose={() => setSummary(null)} />}
             <TodayView
               session={session} routines={routines} exercises={exercises}
@@ -457,6 +458,55 @@ function useHistory(exerciseId) {
     return () => { alive = false; };
   }, [exerciseId]);
   return history;
+}
+
+// Before pounds shipped, a US member's "35" went in as 35 kg. Only the member
+// knows which unit they meant, so this asks rather than guessing, and the
+// server converts each weight once.
+function LbFix({ onFixed }) {
+  const unit = useUnit();
+  const [info, setInfo] = useState(null);
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem("bodiez.lbFixDismissed") === "1"; } catch { return false; }
+  });
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState("");
+  useEffect(() => {
+    if (unit !== "lb" || hidden) return;
+    api("/api/economy/bodiez/lb-fix/").then(setInfo).catch(() => setInfo(null));
+  }, [unit, hidden]);
+
+  if (done) return <p className="re-card text-xs text-emerald-300">{done}</p>;
+  if (unit !== "lb" || hidden || !info || (!info.sets && !info.routines)) return null;
+  const ex = info.example_kg;
+  const dismiss = () => { setHidden(true); try { localStorage.setItem("bodiez.lbFixDismissed", "1"); } catch { /* blocked */ } };
+  async function fix() {
+    setBusy(true);
+    try {
+      const r = await api("/api/economy/bodiez/lb-fix/", { method: "POST", body: {} });
+      setDone(`Converted ${r.sets} set${r.sets === 1 ? "" : "s"}${r.routines ? ` and ${r.routines} routine${r.routines === 1 ? "" : "s"}` : ""} to the pounds you typed.`);
+      onFixed?.();
+    } catch (e) { setDone(e.message || "Couldn't convert them."); } finally { setBusy(false); }
+  }
+  return (
+    <div className="re-card space-y-2 border-amber-400/40">
+      <p className="text-sm font-semibold text-white">Were these pounds?</p>
+      <p className="text-xs text-white/60">
+        Before {new Date(info.cutoff).toLocaleDateString()} the weight box was in kg, so{" "}
+        {info.sets ? `${info.sets} set${info.sets === 1 ? "" : "s"}` : ""}
+        {info.sets && info.routines ? " and " : ""}
+        {info.routines ? `${info.routines} routine target${info.routines === 1 ? "" : "s"}` : ""} you typed
+        were saved as kilograms.
+        {ex != null && ` "${ex}" shows as ${fmtWeight(ex, "lb")} now — converting makes it ${ex} lb.`}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs" disabled={busy} onClick={fix}>
+          {busy ? <Loader2 size={13} className="animate-spin" /> : null} Yes, convert them to pounds
+        </button>
+        <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" onClick={dismiss}>No, they really were kg</button>
+      </div>
+    </div>
+  );
 }
 
 function recordLine(r, unit) {
