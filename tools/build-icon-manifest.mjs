@@ -344,6 +344,21 @@ export function buildManifest() {
   for (const f of files) {
     if (f.key && f.present && f.status === "live") defaults[f.key] = `/icons/${f.file}`;
   }
+  // Art committed under the registry key's OWN name — drumz.png for the key
+  // drumz.png, intelligencez.jpg for intelligencez.png. The supplied list
+  // spells many of these differently (drumz.jpg, Intelligencez.png), so the
+  // exact-name match above calls them owed, and the app drew the generated
+  // glyph while the artwork sat committed in public/icons. Rasters only: an
+  // .svg of the same name may itself be a glyph, and a glyph is the backup.
+  const adopted = [];
+  for (const key of Object.keys(reg)) {
+    if (defaults[key]) continue;
+    const stem = key.replace(/\.[a-z]+$/, "");
+    const hit = ["png", "jpg", "jpeg", "webp"].map((e) => `${stem}.${e}`).find((f) => committedSet.has(f));
+    if (!hit || reg[key] === `/icons/${hit}`) continue;
+    defaults[key] = `/icons/${hit}`;
+    adopted.push({ key, file: hit, was: reg[key] });
+  }
   const muscleArt = {};
   for (const f of files) if (f.muscle && f.present) muscleArt[f.muscle] = `/icons/${f.file}`;
 
@@ -353,7 +368,7 @@ export function buildManifest() {
   const uncovered = asked.filter((k) => !covered.has(k)).sort();
   const registryUncovered = Object.keys(reg).filter((k) => !covered.has(k)).sort();
 
-  return { files, tree, defaults, muscleArt, uncovered, registryUncovered, registrySize: Object.keys(reg).length, reg };
+  return { files, tree, defaults, adopted, muscleArt, uncovered, registryUncovered, registrySize: Object.keys(reg).length, reg };
 }
 
 // ── output ───────────────────────────────────────────────────────────────────
@@ -402,6 +417,14 @@ show committed dotted files the tree picked up from public/icons.
 ## Live — custom art is the default now (${by("live").length})
 ${th}
 ${rows(by("live"))}
+
+## Adopted — committed under the registry key's own name (${m.adopted.length})
+The supplied list spells these differently, so they were never matched by
+name; the committed file is the artwork, and it is the default now.
+
+| Registry key | Committed art | Was drawing |
+|---|---|---|
+${m.adopted.map((a) => `| \`${a.key}\` | \`${a.file}\` | ${a.was || "—"} |`).join("\n")}
 
 ## Owed — has a place, file not committed (${by("owed").length})
 The tab keeps the artwork it had until the file is pushed. Rename with

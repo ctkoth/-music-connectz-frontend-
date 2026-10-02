@@ -1,44 +1,32 @@
 import React, { useState } from 'react';
 import { goToSpot } from '../goto.js';
+import { IconImg } from '../App.jsx';
 import './ToolZMenu.css';
 
-// Icon mapping for SVG and emoji fallbacks
-// Prefer neon SVG versions where available for consistent visual style
-const ICON_MAP = {
-  singz: { svg: '/icons/singz-neon.svg', emoji: '🎤' },
-  rapz: { svg: '/icons/rapz-neon.svg', emoji: '🎙️' },
-  guitarz: { svg: '/icons/guitarz.png', emoji: '🎸' },
-  bassz: { svg: '/icons/drumz-neon.svg', emoji: '🎸' },
-  keyz: { svg: '/icons/keyz.png', emoji: '🎹' },
-  drumz: { svg: '/icons/drumz-neon.svg', emoji: '🥁' },
-  violinz: { svg: '/icons/violinz.png', emoji: '🎻' },
-  battlez: { svg: '/icons/battlez-main.webp', emoji: '⚔️' },
-  collabz: { svg: '/icons/collabz.jpg', emoji: '🤝' },
-  infernoz: { svg: '/icons/offerz-neon.svg', emoji: '🔥' },
-  socialiZeZ: { svg: '/icons/social_connectz-neon.svg', emoji: '👥' },
-  vybez: { svg: '/icons/vybez-neon.svg', emoji: '💫' },
-  postz: { svg: '/icons/postz-neon.svg', emoji: '📝' },
-  messagez: { svg: '/icons/messagez-neon.svg', emoji: '💬' },
-  skillz: { svg: '/icons/personaz_coach-neon.svg', emoji: '⭐' },
-  occ: { svg: '/icons/occ-neon.svg', emoji: '👨‍🏫' },
-  bosttake: { svg: '/icons/coachz-neon.svg', emoji: '🎬' },
-  onboardz: { svg: '/icons/onboardz-neon.svg', emoji: '🚀' },
-  logz: { svg: '/icons/logz-neon.svg', emoji: '📊' },
-  profilez: { svg: '/icons/personaz-neon.svg', emoji: '👤' },
-  widgetz: { svg: '/icons/playlistz-neon.svg', emoji: '🔗' },
-  keyconnectz: { svg: '/icons/keyconnectz-neon.svg', emoji: '🔑' },
-  venuez: { svg: '/icons/opportunitiez-neon.svg', emoji: '🎪' },
-  directz: { svg: '/icons/directz-neon.svg', emoji: '🎥' },
-  statez: { svg: '/icons/statsz-neon.svg', emoji: '📈' },
-  funnelz: { svg: '/icons/funnelz-neon.svg', emoji: '📉' },
-  groupz: { svg: '/icons/groupz-neon.svg', emoji: '👫' },
-  merchz: { svg: '/icons/soundz-neon.svg', emoji: '🛍️' },
-  lilith: { svg: '/icons/lilith.taskz.webp', emoji: '💃' },
-  bodiez: { svg: '/icons/bodiez.svg', emoji: '💪' },
-  journalz: { svg: '/icons/journalz-neon.svg', emoji: '📔' },
-  metz: { svg: '/icons/metz-neon.svg', emoji: '🎚️' },
-  tunerz: { svg: '/icons/tunerz-neon.svg', emoji: '🎯' },
-  chordz: { svg: '/icons/chordz-neon.svg', emoji: '🎼' },
+// Each tile draws through the SAME registry key the tab strip uses (App.jsx
+// TABS), via IconImg — Corey's own artwork first, the generated glyph only as
+// the backup. This menu used to keep its own path list, which pointed VenueZ
+// at the OpportunitieZ glyph and MercheZ at SoundZ's, and never saw the custom
+// art at all. A third copy of "which picture is this app" is how that happens.
+const ICON_KEY = {
+  singz: "singz.png", rapz: "rapz.png", guitarz: "guitarz.png", bassz: "bassz.png",
+  keyz: "keyz.png", drumz: "drumz.png", violinz: "violinz.png",
+  battlez: "battlez.png", collabz: "collabz.png", infernoz: "offerz.png",
+  socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
+  messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
+  onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png",
+  widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
+  directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
+  merchz: "merchz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
+  journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg",
+};
+const EMOJI = {
+  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
+  battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
+  messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
+  profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
+  funnelz: "📉", groupz: "👫", merchz: "🛍️", lilith: "💃", bodiez: "💪", journalz: "📔",
+  metz: "🎚️", tunerz: "🎯", chordz: "🎼",
 };
 
 // Flatten apps from grouped structure
@@ -91,6 +79,36 @@ const TOOLZ_MENU = {
   ],
   'ToolZ': [
     {
+      group: 'Practice Tools',
+      apps: [
+        { key: 'metz', label: 'MetZ', color: 'gold', desc: 'Metronome — tempo, time signature, subdivisions' },
+        { key: 'tunerz', label: 'TunerZ', color: 'cyan', desc: 'Tune any instrument by ear' },
+        { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
+        { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
+      ]
+    },
+    {
+      group: 'DirectZ',
+      apps: [
+        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
+      ]
+    },
+    {
+      group: 'Progress & Analytics',
+      apps: [
+        { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
+      ]
+    },
+    {
+      group: 'Utilities',
+      apps: [
+        { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
+        { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
+      ]
+    },
+  ],
+  'SkillZ': [
+    {
       group: 'Vocal Instruments',
       apps: [
         { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Reach your voice' },
@@ -113,37 +131,9 @@ const TOOLZ_MENU = {
       ]
     },
     {
-      group: 'Practice Tools',
-      apps: [
-        { key: 'metz', label: 'MetZ', color: 'gold', desc: 'Metronome — tempo, time signature, subdivisions' },
-        { key: 'tunerz', label: 'TunerZ', color: 'cyan', desc: 'Tune any instrument by ear' },
-        { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
-        { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
-      ]
-    },
-    {
-      group: 'DirectZ',
-      apps: [
-        { key: 'directz', label: 'DirectZ', color: 'cyan', desc: 'Video recording & feedback' },
-      ]
-    },
-    {
-      group: 'SkillZ',
+      group: 'Progression',
       apps: [
         { key: 'skillz', label: 'SkillZ', color: 'gold', desc: 'Track progression & badges' },
-      ]
-    },
-    {
-      group: 'Progress & Analytics',
-      apps: [
-        { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
-      ]
-    },
-    {
-      group: 'Utilities',
-      apps: [
-        { key: 'widgetz', label: 'WidgetZ', color: 'magenta', desc: 'Embed & share links' },
-        { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
       ]
     },
   ],
@@ -184,19 +174,11 @@ const TOOLZ_MENU = {
   ],
 };
 
-// Category icon mapping for neon SVG icons
-const CATEGORY_ICON_MAP = {
-  'SocialiZeZ': '/icons/social_connectz-neon.svg',
-  'CollabZ': '/icons/collabz.jpg',
-  'BattleZ': '/icons/battlez-main.webp',
-  'GroupZ': '/icons/groupz-neon.svg',
-  'ToolZ': '/icons/toolz-main-neon.svg',
-  'IntelligenceZ': '/icons/intelligencez.jpg',
-  'ProfileZ': '/icons/personaz-neon.svg',
-  'VenueZ': '/icons/opportunitiez-neon.svg',
-  'MercheZ': '/icons/soundz-neon.svg',
-  'Lilith': '/icons/lilith.taskz.webp',
-  'BodieZ': '/icons/bodiez-neon.svg',
+const CATEGORY_ICON_KEY = {
+  SocialiZeZ: "social_connectz.png", CollabZ: "collabz.png", BattleZ: "battlez.png",
+  GroupZ: "groupz.png", SkillZ: "skillz.png", ToolZ: "toolz.png", IntelligenceZ: "intelligencez.png",
+  ProfileZ: "profilez.png", VenueZ: "venuez.png", MercheZ: "merchz.png",
+  Lilith: "lilithz.png", BodieZ: "bodiez.png",
 };
 
 // Category info for the main grid
@@ -205,6 +187,7 @@ const CATEGORIES = [
   { key: 'CollabZ', label: 'CollabZ', color: 'cyan' },
   { key: 'BattleZ', label: 'BattleZ', color: 'red' },
   { key: 'GroupZ', label: 'GroupZ', color: 'cyan' },
+  { key: 'SkillZ', label: 'SkillZ', color: 'magenta' },
   { key: 'ToolZ', label: 'ToolZ', color: 'yellow' },
   { key: 'IntelligenceZ', label: 'IntelligenceZ', color: 'magenta' },
   { key: 'ProfileZ', label: 'ProfileZ', color: 'cyan' },
@@ -248,11 +231,7 @@ export default function ToolZMenu() {
             ← Back
           </button>
           <div className="toolz-icon-main">
-            {CATEGORY_ICON_MAP[category.key] ? (
-              <img src={CATEGORY_ICON_MAP[category.key]} alt={category.label} className="category-icon-img" />
-            ) : (
-              <span className="category-emoji">?</span>
-            )}
+            <IconImg icon={CATEGORY_ICON_KEY[category.key]} alt={category.label} className="category-icon-img" />
           </div>
           <h1>{category.label}</h1>
         </div>
@@ -262,16 +241,11 @@ export default function ToolZMenu() {
             <div key={app.key} className={`app-detail-card ${app.color}`}>
               <div className="app-detail-header">
                 <div className="app-icon-small">
-                  {ICON_MAP[app.key] ? (
-                    ICON_MAP[app.key].svg.endsWith('.svg') ? (
-                      <svg className="icon-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                        <image href={ICON_MAP[app.key].svg} width="200" height="200" />
-                      </svg>
-                    ) : (
-                      <img src={ICON_MAP[app.key].svg} alt={app.label} />
-                    )
+                  {ICON_KEY[app.key] ? (
+                    <IconImg icon={ICON_KEY[app.key]} alt={app.label}
+                      fallback={<span>{EMOJI[app.key] || "🎵"}</span>} />
                   ) : (
-                    <span>{ICON_MAP[app.key]?.emoji || '🎵'}</span>
+                    <span>{EMOJI[app.key] || "🎵"}</span>
                   )}
                 </div>
                 <div className="app-detail-info">
@@ -342,11 +316,7 @@ export default function ToolZMenu() {
             className={`category-card ${category.color}`}
             onClick={() => setSelectedCategory(category.key)}
           >
-            {CATEGORY_ICON_MAP[category.key] ? (
-              <img src={CATEGORY_ICON_MAP[category.key]} alt={category.label} className="category-icon-img" />
-            ) : (
-              <div className="category-icon">?</div>
-            )}
+            <IconImg icon={CATEGORY_ICON_KEY[category.key]} alt={category.label} className="category-icon-img" />
             <div className="category-label">{category.label}</div>
           </button>
         ))}
@@ -356,11 +326,11 @@ export default function ToolZMenu() {
       <div className="toolz-stats">
         <div className="stat-item">
           <span className="stat-icon">🎵</span>
-          <span>11 Categories</span>
+          <span>{CATEGORIES.length} Categories</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">👥</span>
-          <span>30+ Apps</span>
+          <span>{Object.values(TOOLZ_MENU).reduce((n, c) => n + flattenApps(c).length, 0)} Apps</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">⭐</span>
