@@ -105,6 +105,7 @@ const KEYS = {
   "intelligence.sentenceconz.png": "sentencez.png",
   "intelligence.videoconz.png": "videoconnectz.png",
   "intelligence.mixconz.png": "mixconnectz.png",
+  "viewz.png": "viewz.png",
   "intelligencez.png": "intelligencez.png",
   "labelz.png": "labelz.png",
   "languagez.jpg": "languagez.png",

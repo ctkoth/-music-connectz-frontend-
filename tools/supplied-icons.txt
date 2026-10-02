@@ -118,3 +118,4 @@ analyticsz.png
 venuez.png
 intelligence.videoconz.png
 intelligence.mixconz.png
+viewz.png
