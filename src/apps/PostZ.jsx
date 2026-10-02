@@ -22,6 +22,7 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import { celebrate } from "../celebrate.js";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
@@ -680,7 +681,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       if (post.contributors?.length > 1) bonuses.push(`team +${10 * (post.contributors.length - 1)}%`);
       const bonus = bonuses.length ? ` (${bonuses.join(" + ")})` : "";
       onFlash(talk(P.postz_rated(score)) + bonus);
-      playSound("energy_gain");
+      celebrate("energy", 0, { label: "for rating" });
     } catch (e) {
       // The server owns the window — if it says no, believe it and re-read.
       onFlash(e.message || "Couldn't rate.");
@@ -693,6 +694,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     try {
       setSocial(await api("/api/economy/social/react/",
                           { method: "POST", body: { item, value } }));
+      playSound("like");
     } catch (e) { onFlash(e.message || "Couldn't react."); }
   }
 
@@ -760,6 +762,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     if (!body) return;
     try {
       setSocial(await api("/api/economy/social/comment/", { method: "POST", body: { item, body } }));
+      playSound("comment");
       setCommentDraft("");
       draft.current = "";
       onFlash(talk(P.postz_commented));

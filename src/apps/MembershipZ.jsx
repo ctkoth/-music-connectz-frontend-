@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { StatzSampleOffer } from "../components/StatzSample.jsx";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
@@ -138,6 +139,7 @@ export default function MembershipZ() {
           `offerz_engine.py`'s "Compare the tiers" prompt-wall offer has
           targeted "membershipz-plans" since it shipped, with nothing here
           to land on. */}
+      <StatzSampleOffer />
       <div className="re-card overflow-x-auto" data-tour="membershipz-plans">
         <table className="w-full min-w-[420px] text-sm">
           <thead>

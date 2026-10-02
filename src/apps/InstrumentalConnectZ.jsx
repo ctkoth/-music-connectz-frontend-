@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
 import { api, apiBlob } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
 import UseIn from "../components/UseIn.jsx";
+import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 
 // Instrumental ConnectZ — AI-composed MIDI loops. Keys, moods, instruments,
 // limits and price all come from /api/economy/instrumentalz/; the .mid is
@@ -100,6 +102,8 @@ export default function InstrumentalConnectZ() {
 
   const load = () => api("/api/economy/instrumentalz/").then(setS).catch((e) => setErr(e.message));
   useEffect(() => { load(); return () => stop(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { s: trial } = useStatzTrial();
+  useEffect(() => { if (trial) load(); }, [trial?.active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function stop() {
     player.current?.ctx?.close?.();
@@ -124,7 +128,8 @@ export default function InstrumentalConnectZ() {
       const w = await api("/api/economy/instrumentalz/", { method: "POST",
         body: { genre, brief, instruments: picked, bpm, key, bars } });
       setWork(w); load();
-    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+      playSound("build_done");
+    } catch (e) { playSound("build_fail"); setErr(e.message); } finally { setBusy(false); }
   }
 
   async function download() {
@@ -194,7 +199,8 @@ export default function InstrumentalConnectZ() {
         {keyMood && <p className="text-sm italic text-white/70">“{keyMood}”</p>}
 
         {s?.mood_search ? (
-          <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+          <div data-tour="instrumental-mood" className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+            <StatzSample what="Searching keys by mood" />
             <div className="flex gap-2">
               <input className="neon-input flex-1" placeholder="Find a key by mood — dark, hopeful, heartbroken…"
                 value={mood} onChange={(e) => setMood(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchMood()} />
@@ -208,10 +214,10 @@ export default function InstrumentalConnectZ() {
             )) : <p className="text-xs text-white/50">No key matches that mood — try another word.</p>)}
           </div>
         ) : s && (
-          <p className="text-xs text-white/50">
-            Searching keys by mood is a StatZ feature — every key's mood still shows when you pick it.{" "}
-            <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See StatZ</button>
-          </p>
+          <div data-tour="instrumental-mood" className="space-y-1">
+            <StatzSample what="Searching keys by mood" />
+            <p className="text-[11px] text-white/40">Every key's mood still shows when you pick it.</p>
+          </div>
         )}
 
         <textarea className="neon-input min-h-20 w-full" maxLength={500} placeholder="Anything else? (optional)"
@@ -229,7 +235,7 @@ export default function InstrumentalConnectZ() {
       </div>
 
       {work && (
-        <div className="neon-frame space-y-3 p-4">
+        <div key={work.id} className="mcz-reveal neon-frame space-y-3 p-4">
           <h3 className="font-semibold">{work.genre || "Instrumental"} · {work.key} · {work.bpm} BPM · {work.bars} bars</h3>
           <p className="text-xs text-white/50">{work.tracks.map((t) => `${t.instrument} (${t.notes.length} notes)`).join(" · ")}</p>
           <div className="flex flex-wrap gap-3">

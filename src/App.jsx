@@ -38,6 +38,9 @@ import TransactionModal from "./TransactionModal.jsx";
 // of it. A link opened on a member's card is still there when its owner has
 // been closed and a post is being read instead.
 import { WidgetProvider } from "./WidgetBoard.jsx";
+import { StatzTimerBanner } from "./components/StatzSample.jsx";
+import CelebrationLayer from "./components/CelebrationLayer.jsx";
+import Ticker from "./components/Ticker.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -623,7 +626,10 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
     const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
     load();
     const t = setInterval(load, 60000); // refresh every minute
-    return () => { on = false; clearInterval(t); };
+    // celebrate() asks for this the moment a reward lands, so the balance
+    // counts to its new value now rather than up to a minute later.
+    window.addEventListener("mcz-stats-refresh", load);
+    return () => { on = false; clearInterval(t); window.removeEventListener("mcz-stats-refresh", load); };
   }, []);
 
   async function loadAllMembers() {
@@ -654,23 +660,23 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
         <EnergyRegenerationDisplay />
         <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
                 className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
-          ⚡ {stats.my_energy} Energy
+          ⚡ <Ticker value={stats.my_energy} /> Energy
         </button>
         <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
                 className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
-          {SPINAZ} {stats.my_spinaz} SpinaZ
+          {SPINAZ} <Ticker value={stats.my_spinaz} /> SpinaZ
         </button>
         {stats.my_promptz_daily != null && (
           <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
                   className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
-                  title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+                  title={`Free AI prompts today — your tier's daily allowance, reset daily, doesn't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
           </button>
         )}
         {stats.my_money != null && (
           <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
                   className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
-            💵 ${(stats.my_money / 100).toFixed(2)}
+            💵 <Ticker value={stats.my_money} format={(c) => `$${(c / 100).toFixed(2)}`} />
           </button>
         )}
         {/* A fact with nowhere to take it — the cross-pollination rule's own
@@ -1004,7 +1010,11 @@ function Home() {
             other down with it. */}
         <div className={splitKey ? "grid gap-4 lg:grid-cols-2" : ""}>
           <ErrorBoundary key={tab} label={active?.label}>
-            <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+            <StatzTimerBanner />
+            <CelebrationLayer />
+            <div key={tab} className="mcz-tab-enter">
+              <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+            </div>
           </ErrorBoundary>
           {splitKey && (
             <div className="min-w-0">

@@ -4,6 +4,7 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
@@ -778,7 +779,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // is announced separately, and only when one was actually spent — a
       // take covered by the day's free allowance costs nothing, and saying
       // otherwise in audio would be the same lie as saying it on screen.
-      playSound("xp_gain");
+      playSound("score_in");
       if (!trial && out?.cost_cents) playSound("promptz_spend");
       onResult?.(out);
     } catch (e) {
@@ -1364,10 +1365,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         </div>
       ) : result && (
-        <div className="space-y-3 border-t border-white/10 pt-3">
+        <div className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
           <div className="flex items-baseline gap-3">
             <span className={`font-display text-4xl font-extrabold ${scoreColor(result.score)}`}>
-              {result.score}<span className="text-lg text-white/30">/10</span>
+              {typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-lg text-white/30">/10</span>
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
