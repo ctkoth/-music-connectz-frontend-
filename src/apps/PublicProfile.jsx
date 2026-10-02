@@ -9,6 +9,8 @@
 // login, because those exist for matching inside the app and are nobody's
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
+import { useViewTracker } from "../viewz.js";
+import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
 
 import { usePageTitle } from "../pageTitle.js";
@@ -23,6 +25,7 @@ const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
 export default function PublicProfile() {
   const { username } = useParams();
+  useViewTracker(`profile:${username}`);
   const [p, setP] = useState(null);
   // The member, not the site. A shared profile whose tab says the
   // platform name tells a reader nothing about who they opened.
@@ -124,6 +127,7 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+      <div className="mt-6 text-center"><ViewCount target={`profile:${username}`} /></div>
     </div>
   );
 }

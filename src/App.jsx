@@ -42,6 +42,7 @@ import { StatzTimerBanner } from "./components/StatzSample.jsx";
 import CelebrationLayer from "./components/CelebrationLayer.jsx";
 import Ticker from "./components/Ticker.jsx";
 import { checkBadges } from "./milestones.js";
+import { useViewTracker } from "./viewz.js";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -66,6 +67,7 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
@@ -485,6 +487,7 @@ const TABS = [
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
+  { key: "viewz", label: "ViewZ", icon: "statsz.png", el: <ViewZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
@@ -803,6 +806,7 @@ function Home() {
   // path has no params to read.
   const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
+  useViewTracker(tab ? `tab:${tab}` : null);
   const [infoKey, setInfoKey] = useState(null);
   // LogicZ: what each tab is and what lives inside it, from the server, so the
   // description a member reads can't drift from the thing they land on.
