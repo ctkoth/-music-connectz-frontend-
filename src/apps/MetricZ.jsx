@@ -5,6 +5,7 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { goToSpot } from "../goto.js";
 import { SignLink, openHoroscope } from "../components/Horoscope.jsx";
+import ShareSheet from "../components/ShareSheet.jsx";
 
 // PreferenceZ, SubstanceZ and ZodiacZ — one screen, three metrics. Every option,
 // how many members DECLARED it, and the members behind it one tap away. The
@@ -43,6 +44,7 @@ export default function MetricZ({ kind }) {
   const [err, setErr] = useState("");
   const [pick, setPick] = useState(() => (kind === "zodiacz" ? takeSign() : null));
   const [members, setMembers] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     api(`/api/economy/metricz/${kind}/`).then(setD).catch((e) => setErr(e.message));
@@ -81,6 +83,9 @@ export default function MetricZ({ kind }) {
             {d.mine?.length
               ? <span>Yours: {d.options.filter((o) => o.mine).map((o) => `${o.emoji} ${o.label}`).join(", ")}</span>
               : <span>You haven't said yet.</span>}
+            {d.mine?.length > 0 && (
+              <button className="re-link" onClick={() => setSharing((v) => !v)}>Share yours</button>
+            )}
             {d.set_in && (
               <button className="re-link" onClick={() => goToSpot(d.set_in.tab, d.set_in.target)}>
                 {d.mine?.length ? "Change it in ProfileZ" : "Set yours in ProfileZ"}
@@ -94,6 +99,22 @@ export default function MetricZ({ kind }) {
               </>
             )}
           </div>
+
+          {sharing && (() => {
+            const mineOpts = d.options.filter((o) => o.mine);
+            const label = mineOpts.map((o) => `${o.emoji} ${o.label}`).join(", ");
+            const text = kind === "zodiacz" && mineOpts[0]?.read ? `${label} — ${mineOpts[0].read}`
+              : kind === "substancez" ? `What I use: ${label}` : kind === "preferencez" ? `Into: ${label}` : label;
+            // Opens carry the metric somewhere it DOES something: the people
+            // who share it, the profile field that sets it, today's reading.
+            const opens = [
+              { label: `Members with ${mineOpts[0]?.label || "it"}`, tab: kind, target: "" },
+              { label: "VybeZ — filter by it", tab: "vybez", target: "" },
+              { label: "Change it in ProfileZ", tab: d.set_in.tab, target: d.set_in.target },
+            ];
+            return <ShareSheet onClose={() => setSharing(false)}
+              item={{ kind: "metric", title: `My ${d.label}`, text, opens }} />;
+          })()}
 
           <div className={`grid gap-2 ${kind === "preferencez" ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"}`}>
             {d.options.map((o) => (

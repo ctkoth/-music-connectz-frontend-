@@ -974,7 +974,8 @@ function Home() {
     if (t && t.key !== tab) setTab(t.key);
   }, [slug]);
 
-  // New users land on OnboardZ until they've completed it; returning users on PostZ.
+  // New users land on OnboardZ until they've completed it (it pays a bonus);
+  // everybody else lands on ToolZ — every app, one tap away (Corey's call).
   // A checkout return (?checkout=…) lands on MembershipZ so the result is shown.
   useEffect(() => {
     // An address wins over the default landing — someone opening /battle asked
@@ -985,8 +986,8 @@ function Home() {
       return;
     }
     api("/api/auth/me/")
-      .then((m) => setTab(m?.onboarded ? "postz" : "onboardz"))
-      .catch(() => setTab("postz"));
+      .then((m) => setTab(m?.onboarded ? "toolz" : "onboardz"))
+      .catch(() => setTab("toolz"));
   }, []);
 
   // Gate AFTER the hooks above, never before them. `tab` starts null, so an
@@ -1028,7 +1029,7 @@ function Home() {
 
           <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
              title="ToolZ — All Audio, Visual & App ToolZ">
-            <img src="/mcz-logo-mark.png" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-v5.jpg"; }} />
+            <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-mark.png"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
@@ -1338,7 +1339,7 @@ function PublicTool({ title, el }) {
     <div className="mx-auto min-h-screen max-w-3xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
         <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>

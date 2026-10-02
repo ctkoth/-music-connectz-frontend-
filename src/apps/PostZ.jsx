@@ -53,6 +53,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
+import ShareSheet from "../components/ShareSheet.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
@@ -599,11 +600,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const canComment = commentLeft === 0;
   const relTime = ageSec < 60 ? `${ageSec}s ago` : `${Math.floor(ageSec / 60)}m ago`;
 
-  function share() {
-    navigator.clipboard?.writeText(`${window.location.origin}/p/${post.id}`)
-      .then(() => { setShared(true); setTimeout(() => setShared(false), 1800); })
-      .catch(() => {});
-  }
+  // Share opens the sheet: who can open it (the author's visibility always
+  // wins), the +5 ⚡ stated up front, and every way out. It used to copy a link
+  // and record nothing, so the share reward could never pay.
+  const mountedAt = useRef(Date.now());
+  function share() { setShared((v) => !v); }
 
   // Editing is the author's inside the tier's window, and the owner's at any
   // age on any post. Media is the reason it matters: a post whose track never
@@ -879,9 +880,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               <Trash2 size={15} />
             </button>
           )}
-          <button onClick={share} title="Copy public link"
+          <button onClick={share} title="Share this post"
                   className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
-            {shared ? <CheckIcon size={15} /> : <Share2 size={15} />}
+            <Share2 size={15} className={shared ? "text-mcz-cyan" : ""} />
           </button>
           <div className="text-right">
             <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
@@ -1012,6 +1013,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           </button>
         )}
       </div>
+
+      {shared && (
+        <ShareSheet onClose={() => setShared(false)}
+          item={{ kind: "post", postId: post.id, title: post.title, text: post.description,
+                  mine: post.mine, visibility: post.visibility,
+                  seenSeconds: Math.round((Date.now() - mountedAt.current) / 1000) }} />
+      )}
 
       {showOpen && (
         <OpenIn post={post} busy={!!opening} onGo={openIn} />

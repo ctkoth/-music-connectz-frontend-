@@ -388,7 +388,7 @@ export default function ToolZMenu() {
   return (
     <div className="toolz-menu-container">
       <div className="toolz-header">
-        <img src="/mcz-logo-mark.png" alt="Music ConnectZ" className="toolz-mcz-logo" />
+        <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <div className="toolz-icon-main">
           <IconImg icon="toolz.png" alt="ToolZ" className="category-icon-img" />
         </div>
