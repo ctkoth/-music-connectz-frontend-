@@ -725,7 +725,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       // to land on, and switching tabs would take this message with it — the
       // result of pressing a button has to survive pressing it. When the
       // destination row names an anchor in DirectZ, that jump is the caller's.
-      if (target) goToSpot("directz", target);
+      // DistributeZ lists the release with what it still needs, by name.
+      goToSpot("distributez", target || "distributez-releases");
       onFlash(r.ready
         ? `Release ready — "${r.title}" by ${r.artist_name}, with the song, video, cover and lyrics filled in.`
         : `Release started. It still needs ${r.missing.join(", ")}.`);

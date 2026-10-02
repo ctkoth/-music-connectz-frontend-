@@ -24,7 +24,7 @@ export const TIER_BLURB = {
 export const TIER_MATRIX = [
   ["Edit window on anything you post", "4 min", "40 min", "4 hours"],
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
-  ["DistributeZ submissions", "1 / month", "Unlimited", "Unlimited + licensing"],
+  ["DistributeZ releases", "1 / month", "Unlimited", "Unlimited"],
   ["LabelZ — create and run a label", "—", "Yes", "Yes"],
   // Placing is StatZ. ANSWERING is every tier — see the CallZ row below.
   ["CallZ — place a call", "—", "—", "Yes"],
@@ -57,7 +57,7 @@ export const APP_BENEFITS = [
     app: "DistributeZ", icon: "distributez.png",
     free: "One submission a month.",
     premium: "Unlimited submissions.",
-    statz: "Unlimited, plus you can submit for licensing.",
+    statz: "Unlimited, same as Premium.",
   },
   {
     app: "LabelZ", icon: "labelz.png",
