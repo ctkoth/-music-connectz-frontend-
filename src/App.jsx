@@ -11,7 +11,7 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
-import Dock, { isPremiumTier, isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
+import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -440,12 +440,11 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // Until this existed the whole app lived at "/" and switched tabs through a
 // custom event: no tab could be linked, bookmarked, or reached with the back
 // button. A screen with no address is one you can only tell somebody how to find.
-// Mini panes (see `minis` in the shell). ANY app can open as one. The three
-// small tools are free as minis at every tier — a metronome beside the coach
-// is practice, not a perk. Every other app as a mini follows SplitZ's rule
-// (Premium and up), because three free minis would make SplitZ pointless.
+// Mini panes (see `minis` in the shell). ANY app can open as one, at EVERY
+// tier — Corey's call. SplitZ stays the Premium+ way to work side by side at
+// full size; a mini is the small version, free to everybody.
 export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
-export const canMini = (key, tier) => MINI_TOOLS.includes(key) || isPremiumTier(tier);
+export const canMini = () => true;
 const MAX_MINIS = 3;
 
 export const slugFor = (key) =>

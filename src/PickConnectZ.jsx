@@ -324,9 +324,9 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                       Never for the app already on screen; splitting a screen
                       with itself is a no-op dressed as a feature. */}
                   {/* Mini — the app small, docked beside whatever is open.
-                      Bottom-left, opposite SplitZ. MetZ/TunerZ/ChordZ at every
-                      tier; anything else on SplitZ's rule (see canMini). */}
-                  {onMini && current !== a.key && (["metz", "tunerz", "chordz"].includes(a.key) || isPremiumTier(tier)) && (
+                      Bottom-left, opposite SplitZ. Free at every
+                      tier, like every app (see canMini in App.jsx). */}
+                  {onMini && current !== a.key && (
                     <button
                       onClick={() => { onMini(a.key); setDrawer(false); }}
                       aria-label={`${minis.includes(a.key) ? "Close" : "Open"} ${a.label} as a mini`}
