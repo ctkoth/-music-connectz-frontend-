@@ -335,6 +335,8 @@ export const CUSTOM_ICONS = {
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
+  "videoconnectz.png": "/icons/intelligence.videoconz.png",
+  "mixconnectz.png": "/icons/intelligence.mixconz.png",
   "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
   "languagez.png": "/icons/languagez.png",
   "languagez_pt.png": "/icons/languagez_pt.png",

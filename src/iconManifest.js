@@ -28,6 +28,8 @@ export const ICON_DEFAULTS = {
   "gitz.png": "/icons/gitz.png",
   "groupz.png": "/icons/groupz.png",
   "tellz.png": "/icons/tellz.png",
+  "sentencez.png": "/icons/intelligence.sentenceconz.png",
+  "intelligencez.png": "/icons/intelligencez.png",
   "labelz.png": "/icons/labelz.png",
   "lilithz.png": "/icons/lilith.png",
   "logz.png": "/icons/logz.png",
@@ -43,6 +45,8 @@ export const ICON_DEFAULTS = {
   "substancez.png": "/icons/substancez.png",
   "toolz.png": "/icons/toolz.png",
   "venuez.png": "/icons/venuez.png",
+  "videoconnectz.png": "/icons/intelligence.videoconz.png",
+  "mixconnectz.png": "/icons/intelligence.mixconz.png",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
   "battlez.cypher.png": "/icons/battlez.cypher.jpg",
@@ -796,9 +800,9 @@ export const ICON_TREE = [
     "label": "Intelligence",
     "root": {
       "file": "intelligencez.png",
-      "art": null,
+      "art": "/icons/intelligencez.png",
       "key": "intelligencez.png",
-      "status": "owed",
+      "status": "live",
       "note": "on disk as \"Intelligencez.png\"; commit it as intelligencez.png"
     },
     "extra": [],
@@ -824,6 +828,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "mixconz",
+        "label": "Mix ConnectZ",
+        "file": "intelligence.mixconz.png",
+        "art": "/icons/intelligence.mixconz.png",
+        "key": "mixconnectz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "ocular",
         "label": "Ocular Code ConnectZ",
         "file": "intelligence.ocular.png",
@@ -837,9 +851,19 @@ export const ICON_TREE = [
         "child": "sentenceconz",
         "label": "Sentence ConnectZ",
         "file": "intelligence.sentenceconz.png",
-        "art": null,
+        "art": "/icons/intelligence.sentenceconz.png",
         "key": "sentencez.png",
-        "status": "owed",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "videoconz",
+        "label": "Video ConnectZ",
+        "file": "intelligence.videoconz.png",
+        "art": "/icons/intelligence.videoconz.png",
+        "key": "videoconnectz.png",
+        "status": "live",
         "note": "",
         "also": []
       }
