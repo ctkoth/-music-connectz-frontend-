@@ -73,6 +73,7 @@ const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
 const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
+const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
 const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
@@ -471,6 +472,7 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "personaz", label: "PersonaZ", icon: "personaz.png", el: <PersonaZ /> },
   { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
   { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
@@ -655,11 +657,12 @@ function HeaderCounts() {
     window.addEventListener("mcz-community-stats", h);
     return () => window.removeEventListener("mcz-community-stats", h);
   }, []);
-  if (!s) return null;
+  // Numbers or nothing: a counter that reads "NaN" is worse than no counter.
+  if (!s || !Number.isFinite(Number(s.total_members))) return null;
   return (
     <div className="flex shrink-0 flex-col items-start text-[10px] leading-tight tabular-nums" title={`${s.total_members} members · ${s.online_now} online now`}>
       <span className="text-white/70">👥 {Number(s.total_members).toLocaleString()}</span>
-      <span className="text-emerald-300"><span className="mr-0.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />{Number(s.online_now).toLocaleString()}</span>
+      <span className="text-emerald-300"><span className="mr-0.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />{Number(s.online_now || 0).toLocaleString()}</span>
     </div>
   );
 }
