@@ -4,6 +4,57 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Boot watchdog. Everything else in this app that can fail renders a
+         message, but only after React is running — so an entry bundle that
+         never loads (a cached index naming a file the last deploy deleted,
+         which the SPA rewrite answers with index.html and the browser refuses
+         as a module) left a silent, empty screen. In the APK that is a black
+         page with no address bar and no way out. Classic inline script, so it
+         runs during parse and is listening before the deferred module fails. -->
+    <script>
+      (function () {
+        var KEY = "mcz_chunk_reload_at", COOLDOWN = 30000, SLOW_MS = 15000, shown = false;
+        function recent() {
+          try { var at = +(sessionStorage.getItem(KEY) || 0); return at > 0 && Date.now() - at < COOLDOWN; }
+          catch (e) { return true; }
+        }
+        function booted() { var r = document.getElementById("root"); return !!(r && r.firstChild); }
+        function show(why) {
+          if (shown || booted() || !document.body) return;
+          shown = true;
+          var d = document.createElement("div");
+          d.id = "mcz-boot-fail";
+          d.style.cssText = "position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#07060d;color:#fff;font:16px/1.5 system-ui,sans-serif;text-align:center";
+          d.innerHTML = '<strong style="font-size:20px">Music ConnectZ didn\'t load</strong>' +
+            '<span style="color:rgba(255,255,255,.65);max-width:320px"></span>' +
+            '<button style="padding:12px 28px;border:0;border-radius:12px;background:#a855f7;color:#fff;font-weight:700;font-size:16px">Reload</button>';
+          d.querySelector("span").textContent = why;
+          d.querySelector("button").onclick = function () {
+            try { sessionStorage.removeItem(KEY); } catch (e) {}
+            location.reload();
+          };
+          document.body.appendChild(d);
+          var r = document.getElementById("root");
+          if (r && window.MutationObserver) new MutationObserver(function (_, o) {
+            if (booted()) { d.remove(); o.disconnect(); }
+          }).observe(r, { childList: true });
+        }
+        window.addEventListener("error", function (e) {
+          var t = e.target;
+          if (!t || (t.tagName !== "SCRIPT" && t.tagName !== "LINK")) return;
+          if (navigator.onLine === false) return show("You're offline. Reconnect, then reload.");
+          if (!recent()) {
+            try { sessionStorage.setItem(KEY, String(Date.now())); location.reload(); return; } catch (x) {}
+          }
+          show("A new version shipped while this one was open, or the connection dropped mid-load.");
+        }, true);
+        setTimeout(function () {
+          show(navigator.onLine === false ? "You're offline. Reconnect, then reload."
+            : "It's taking longer than it should. Reload to try again.");
+        }, SLOW_MS);
+      })();
+    </script>
+
     <!-- seo:start -->
     <!-- ─── What a crawler actually gets ───────────────────────────────────
          This file IS the site as far as anything that doesn't run JavaScript
