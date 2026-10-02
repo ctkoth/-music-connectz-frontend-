@@ -236,6 +236,7 @@ export const CUSTOM_ICONS = {
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ-neon.svg",
   "opportunitiez.png": "/icons/opportunitiez-neon.svg",
+  "infernoz.png": "/icons/infernoz.svg",
   "offerz.png": "/icons/offerz-neon.svg",
   "adz.png": "/icons/adz-neon.svg",
   "money.png": "/icons/money-neon.svg",

@@ -37,7 +37,9 @@ export const ICON_DEFAULTS = {
   "profilez.png": "/icons/profilez.png",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
+  "infernoz.png": "/icons/socializez.infernoz.jpg",
   "social_connectz.png": "/icons/socializez.jpg",
+  "vybez.png": "/icons/socializez.vybez.jpg",
   "substancez.png": "/icons/substancez.png",
   "toolz.png": "/icons/toolz.png",
   "venuez.png": "/icons/venuez.png",
@@ -1260,20 +1262,20 @@ export const ICON_TREE = [
         "child": "infernoz",
         "label": "InfernoZ",
         "file": "socializez.infernoz.jpg",
-        "art": null,
-        "key": null,
-        "status": "unplaced",
-        "note": "InfernoZ is drawn from ToolZMenu.jsx's own map (offerz-neon.svg), not the registry; on disk as \"socializez.infernoZ.jpg\"; commit it as socializez.infernoz.jpg",
+        "art": "/icons/socializez.infernoz.jpg",
+        "key": "infernoz.png",
+        "status": "live",
+        "note": "on disk as \"socializez.infernoZ.jpg\"; commit it as socializez.infernoz.jpg",
         "also": []
       },
       {
         "child": "vybez",
         "label": "VybeZ",
         "file": "socializez.vybez.jpg",
-        "art": null,
+        "art": "/icons/socializez.vybez.jpg",
         "key": "vybez.png",
-        "status": "owed",
-        "note": "",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/vybez-neon.svg",
         "also": []
       }
     ]
