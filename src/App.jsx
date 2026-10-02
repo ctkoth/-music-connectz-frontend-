@@ -60,6 +60,7 @@ const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
 const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
@@ -477,6 +478,7 @@ const TABS = [
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
