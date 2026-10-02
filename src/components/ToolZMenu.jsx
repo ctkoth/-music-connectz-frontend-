@@ -45,6 +45,33 @@ const flattenApps = (categoryData) => {
 };
 
 // App categories and configuration
+// The instrument coaches live under BOTH ToolZ and SkillZ — one list, so
+// the two menus can never disagree about what a coach is.
+const COACH_GROUPS = [
+    {
+      group: 'Vocal Instruments',
+      apps: [
+        { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Reach your voice' },
+        { key: 'rapz', label: 'RapZ', color: 'magenta', desc: 'Flow with purpose' },
+      ]
+    },
+    {
+      group: 'String & Keys',
+      apps: [
+        { key: 'guitarz', label: 'GuitarZ', color: 'yellow', desc: 'Guitar coaching' },
+        { key: 'bassz', label: 'BassZ', color: 'green', desc: 'Bass coaching' },
+        { key: 'keyz', label: 'KeyZ', color: 'cyan', desc: 'Keyboard coaching' },
+        { key: 'violinz', label: 'ViolinZ', color: 'yellow', desc: 'String instrument coaching' },
+      ]
+    },
+    {
+      group: 'Percussion',
+      apps: [
+        { key: 'drumz', label: 'DrumZ', color: 'magenta', desc: 'Drums coaching' },
+      ]
+    },
+];
+
 const TOOLZ_MENU = {
   'SocialiZeZ': [
     {
@@ -78,6 +105,7 @@ const TOOLZ_MENU = {
     { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Belong & grow together' },
   ],
   'ToolZ': [
+    ...COACH_GROUPS,
     {
       group: 'Practice Tools',
       apps: [
@@ -108,28 +136,7 @@ const TOOLZ_MENU = {
     },
   ],
   'SkillZ': [
-    {
-      group: 'Vocal Instruments',
-      apps: [
-        { key: 'singz', label: 'SingZ', color: 'cyan', desc: 'Reach your voice' },
-        { key: 'rapz', label: 'RapZ', color: 'magenta', desc: 'Flow with purpose' },
-      ]
-    },
-    {
-      group: 'String & Keys',
-      apps: [
-        { key: 'guitarz', label: 'GuitarZ', color: 'yellow', desc: 'Guitar coaching' },
-        { key: 'bassz', label: 'BassZ', color: 'green', desc: 'Bass coaching' },
-        { key: 'keyz', label: 'KeyZ', color: 'cyan', desc: 'Keyboard coaching' },
-        { key: 'violinz', label: 'ViolinZ', color: 'yellow', desc: 'String instrument coaching' },
-      ]
-    },
-    {
-      group: 'Percussion',
-      apps: [
-        { key: 'drumz', label: 'DrumZ', color: 'magenta', desc: 'Drums coaching' },
-      ]
-    },
+    ...COACH_GROUPS,
     {
       group: 'Progression',
       apps: [
@@ -330,7 +337,7 @@ export default function ToolZMenu() {
         </div>
         <div className="stat-item">
           <span className="stat-icon">👥</span>
-          <span>{Object.values(TOOLZ_MENU).reduce((n, c) => n + flattenApps(c).length, 0)} Apps</span>
+          <span>{new Set(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c).map((a) => a.key))).size} Apps</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">⭐</span>
