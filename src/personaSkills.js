@@ -392,6 +392,27 @@ export const PERSONA_SKILLS = {
       trend_reading: "Trend Reading 📈",
     },
   },
+
+  // Priced like any other persona, so a VenueZ training room charges a visitor
+  // at the lifter's own rates — Gym Space is the room itself, for a host who
+  // provides the place rather than the coaching.
+  weightlifter: {
+    "Coaching": {
+      any_coaching: "Any Lift Coaching 🏋️",
+      personal_training: "Personal Training 🏋️",
+      form_coaching: "Form Coaching 🎯",
+      program_design: "Program Design 📋",
+      spotting: "Spotting 🤝",
+      powerlifting: "Powerlifting 💪",
+      olympic_lifting: "Olympic Lifting 🥇",
+      mobility: "Mobility / Warm-ups 🧘",
+    },
+    "Space": {
+      gym_space: "Gym Space 🏟️",
+      home_gym: "Home Gym Access 🏠",
+      equipment_share: "Equipment Share 🔩",
+    },
+  },
 };
 
 /** Flat {key: label} for one persona, across all its categories. */
@@ -490,6 +511,7 @@ export const PERSONA_LABELS = {
   director: "🎬 Director",
   manager: "📋 Manager",
   arscout: "🔎 A&R Scout",
+  weightlifter: "🏋️ Weightlifter",
 };
 
 /** A skill KEY as the member reads it — "any_daw" → "Any DAW 🎛️".

@@ -97,6 +97,7 @@ const PERSONAS = [
   ["mixengineer", "Mix Engineer", "personaz_mixengineer.png"],
   ["producer", "Producer", "personaz_producer.png"],
   ["videographer", "Videographer", "personaz_videographer.png"],
+  ["weightlifter", "Weightlifter", "personaz_weightlifter.png"],
 ];
 
 // SubstanceZ — what a member uses, declared by them. A profile metric, so it is

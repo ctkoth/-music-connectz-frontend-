@@ -40,7 +40,8 @@ import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
-import { ENERGY, MONEY } from "../resources.js";
+import { ENERGY, MONEY, SPINAZ } from "../resources.js";
+import { onHandoff } from "../handoff.js";
 import Refused, { isInsufficient } from "../Refused.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import { labelForSkill } from "../personaSkills.js";
@@ -63,7 +64,14 @@ const KIND = {
     rule: "The host wanted the room full — so the host pays, at the visitor's rates.",
   },
   free: { label: "Free", icon: Users, rule: "Nobody pays." },
+  spinaz: {
+    label: `SpinaZ entry ${SPINAZ}`,
+    icon: Star,
+    rule: `Visitors pay a flat ${SPINAZ} entry. It's held when they ask, refunded if the host declines or anyone cancels before the start, and paid to the host once it starts.`,
+  },
 };
+
+const CATEGORY = { music: "Music", fitness: "🏋️ Fitness / lifting" };
 
 const when = (iso) => {
   const d = new Date(iso);
@@ -89,6 +97,19 @@ const BOOKING_LABEL = {
  */
 function Quote({ q, mine, host }) {
   if (!q) return null;
+  if (q.kind === "spinaz") {
+    return mine ? (
+      <p className="text-[13px]">
+        <span className="font-semibold text-emerald-300">+{q.spinaz} {SPINAZ}</span>
+        <span className="ml-1.5 text-white/45">from each visitor you accept, paid once it starts</span>
+      </p>
+    ) : (
+      <p className="text-[13px]">
+        <span className="font-semibold text-mcz-ember">−{q.spinaz} {SPINAZ}</span>
+        <span className="ml-1.5 text-white/45">entry to @{host} · held now, refunded if declined or cancelled before it starts</span>
+      </p>
+    );
+  }
   if (q.free) {
     return <span className="text-[12px] text-white/45">Free — nobody pays.</span>;
   }
@@ -380,6 +401,7 @@ function Venue({ v, onChanged, onFlash }) {
           <p className="truncate font-semibold">{v.title}</p>
           <p className="text-xs text-white/55">
             by @{v.host} · <KindIcon size={11} className="inline" /> {kind.label}
+            {v.category === "fitness" && <span className="ml-1 text-emerald-300">· {CATEGORY.fitness}</span>}
             {v.status === "cancelled" && (
               <span className="ml-1 text-mcz-ember">· called off</span>
             )}
@@ -550,6 +572,7 @@ function HostForm({ onCreated, onFlash }) {
   const [f, setF] = useState({
     title: "", area: "", address: "", kind: "performance", starts_at: "",
     hours: 2, basis: "hour", capacity: 1, min_age: 0, description: "",
+    category: "music", spinaz_price: "",
   });
   const [skills, setSkills] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -570,6 +593,7 @@ function HostForm({ onCreated, onFlash }) {
           hours: Number(f.hours) || 1,
           capacity: Number(f.capacity) || 1,
           min_age: Number(f.min_age) || 0,
+          spinaz_price: f.kind === "spinaz" ? Number(f.spinaz_price) || 0 : 0,
           skills,
         },
       });
@@ -593,12 +617,23 @@ function HostForm({ onCreated, onFlash }) {
       <input className="neon-input !py-2 text-xs" placeholder="What is it?"
              value={f.title} onChange={set("title")} />
 
+      <select className="neon-input !py-2 text-xs" value={f.category} onChange={set("category")}
+              aria-label="What kind of room">
+        <option value="music">Music room</option>
+        <option value="fitness">🏋️ Fitness / lifting — a gym space or training session</option>
+      </select>
+
       <div className="space-y-1">
         <select className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
-          <option value="performance">Performance — they come for you</option>
+          <option value="performance">{f.category === "fitness" ? "Training — they pay your Weightlifter rates" : "Performance — they come for you"}</option>
           <option value="session">Session 🤝 — you want the room full</option>
           <option value="free">Free — nobody pays</option>
+          <option value="spinaz">SpinaZ entry {SPINAZ} — a flat price in SpinaZ</option>
         </select>
+        {f.kind === "spinaz" && (
+          <input className="neon-input !py-2 text-xs" type="number" min="1" inputMode="numeric"
+                 placeholder={`Entry per visitor, in ${SPINAZ}`} value={f.spinaz_price} onChange={set("spinaz_price")} />
+        )}
         {/* Which way the money goes, said as you choose it rather than found
             out afterwards by whoever ends up owing. */}
         <p className="text-[10px] text-white/40">{(KIND[f.kind] || KIND.free).rule}</p>
@@ -653,7 +688,11 @@ function HostForm({ onCreated, onFlash }) {
             + "own rates price what you'll owe them."
           : f.kind === "performance"
             ? "On a performance these price off YOUR rates, and that is what a visitor pays."
-            : "Nobody pays for a free room, so these are description rather than price."}
+            : f.kind === "spinaz"
+              ? `The entry is the flat ${SPINAZ} price above, so these describe the room rather than price it.`
+              : "Nobody pays for a free room, so these are description rather than price."}
+        {f.category === "fitness" && f.kind === "performance" &&
+          " Add the Weightlifter persona in ProfileZ and price skills like Personal Training or Gym Space — those rates are what visitors pay."}
       </p>
 
       <button className="neon-btn-primary !w-auto px-5" onClick={create} disabled={busy}>
@@ -671,16 +710,24 @@ export default function VenueZ() {
   const [venues, setVenues] = useState(null);
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState("rooms");
+  const [cat, setCat] = useState("");
+
+  // BodieZ's session summary hands over {category: "fitness"} so a lifter
+  // lands on gym rooms rather than open mics.
+  useEffect(() => onHandoff("venuez", (p) => {
+    if (p.category) setCat(p.category);
+    setTab("rooms");
+  }), []);
 
   const load = useCallback(async () => {
     try {
-      const d = await api("/api/economy/venuez/");
+      const d = await api(`/api/economy/venuez/${cat ? `?category=${cat}` : ""}`);
       setVenues(asList(d?.venues ?? d));
     } catch (e) {
       setMsg(e.message || "Couldn't load VenueZ.");
       setVenues([]);
     }
-  }, []);
+  }, [cat]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -716,6 +763,17 @@ export default function VenueZ() {
           </button>
         ))}
       </div>
+
+      {tab !== "host" && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter rooms">
+          {[["", "All"], ["music", "Music"], ["fitness", CATEGORY.fitness]].map(([k, label]) => (
+            <button key={k || "all"} onClick={() => setCat(k)} aria-pressed={cat === k}
+                    className={`pill !py-1 text-xs ${cat === k ? "!border-emerald-400/60 !text-emerald-300" : ""}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {venues === null && (
         <p className="flex items-center gap-2 text-white/50">

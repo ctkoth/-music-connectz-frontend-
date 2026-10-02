@@ -48,7 +48,6 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
-import { goToSpot } from "../goto.js";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -559,7 +558,7 @@ function SessionSummary({ summary: sm, onClose }) {
           <Send size={13} /> Post to PostZ
         </button>
         <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
-                onClick={() => goToSpot("venuez", "venuez-rooms")}>
+                onClick={() => handOff("venuez", "venuez-rooms", { category: "fitness" })}>
           <MapPin size={13} /> Train in person · VenueZ
         </button>
       </div>
