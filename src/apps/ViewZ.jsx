@@ -15,6 +15,7 @@ const KIND = {
   profile: { color: "bg-mcz-pink/70 border-mcz-pink", label: "Profile" },
   tab: { color: "bg-mcz-gold/70 border-mcz-gold", label: "App page" },
 };
+const DEV_ICON = { phone: "📱", tablet: "📲", desktop: "💻" };
 const RANGES = [["1h", "1 hour"], ["24h", "24 hours"], ["7d", "7 days"]];
 const LANE_H = 38;
 
@@ -104,7 +105,10 @@ export default function ViewZ() {
             <div className="flex flex-wrap gap-2 text-sm">
               <span className="pill"><Eye size={13} className="mr-1 inline" />{d.total_views} views</span>
               <span className="pill">{dur(d.total_seconds)} watched</span>
-              <span className="pill">{d.lanes.length} {d.lanes.length === 1 ? "viewer" : "viewers"}</span>
+              <span className="pill">{d.members ?? 0} {d.members === 1 ? "member" : "members"}</span>
+              <span className="pill" title="People without an account, one track per browser — never named.">
+                {d.visitors ?? 0} {d.visitors === 1 ? "visitor" : "visitors"}
+              </span>
             </div>
           )}
 
@@ -120,11 +124,14 @@ export default function ViewZ() {
                   <div className="h-7 border-b border-white/10" />
                   {d.lanes.map((l) => (
                     <button key={l.viewer} disabled={!l.member}
+                      title={l.member ? `Open @${l.viewer}` : [l.dev, l.src && `via ${l.src}`].filter(Boolean).join(" · ") || "No account"}
                       onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: l.viewer }))}
                       className="flex w-full flex-col justify-center border-b border-white/5 px-2 text-left hover:bg-white/5 disabled:hover:bg-transparent"
                       style={{ height: LANE_H }}>
-                      <span className="truncate text-xs font-semibold">{l.member ? `@${l.viewer}` : "Visitors"}</span>
-                      <span className="text-[10px] text-white/45">{dur(l.seconds)}</span>
+                      <span className="truncate text-xs font-semibold">{l.member ? `@${l.viewer}` : l.viewer}</span>
+                      <span className="truncate text-[10px] text-white/45">
+                        {!l.member && (DEV_ICON[l.dev] || "👤")} {dur(l.seconds)}{!l.member && l.src ? ` · via ${l.src}` : ""}
+                      </span>
                     </button>
                   ))}
                 </div>

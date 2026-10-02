@@ -6,7 +6,8 @@
 // Every failure is swallowed: measurement must never take a screen down.
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
-import { anonId } from "./track.js";
+import { anonId, channel } from "./track.js";
+import { deviceShape } from "./useScreenShape.js";
 
 const active = new Map(); // target -> { id, refs }
 let timer = null;
@@ -24,7 +25,7 @@ async function open(target) {
   active.set(target, a);
   if (a.refs > 1) return;
   try {
-    const r = await api("/api/economy/views/start/", { method: "POST", body: { target, anon_id: anonId() } });
+    const r = await api("/api/economy/views/start/", { method: "POST", body: { target, anon_id: anonId(), src: channel(), dev: deviceShape() } });
     if (active.get(target) === a) a.id = r?.id || null;
     if (r?.beat) beatSec = r.beat;
   } catch { /* uncounted is better than broken */ }
@@ -46,7 +47,7 @@ if (typeof document !== "undefined") {
     if (document.visibilityState !== "visible") return;
     for (const target of [...active.keys()]) {
       const a = active.get(target);
-      api("/api/economy/views/start/", { method: "POST", body: { target, anon_id: anonId() } })
+      api("/api/economy/views/start/", { method: "POST", body: { target, anon_id: anonId(), src: channel(), dev: deviceShape() } })
         .then((r) => { if (active.get(target) === a) a.id = r?.id || a.id; }).catch(() => {});
     }
   });
