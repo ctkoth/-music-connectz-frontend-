@@ -28,6 +28,11 @@ import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { goToTab } from "../goto.js";
+import { IconImg } from "../App.jsx";
+import { takeDirectzPreset as takePreset } from "../directzPreset.js";
+
+// ReelZ, EpisodeZ and MovieZ — DirectZ's children by length (directzPreset.js).
+const FMT_ICON = { reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png" };
 
 const mmss = (s) =>
   s >= 3600 ? `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`
@@ -52,6 +57,13 @@ export default function DirectZ() {
 
   const load = () => api("/api/economy/directz/").then(setSpec).catch(() => {});
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const p = takePreset();
+    if (p) setForm((f) => ({ ...f, fmt: p }));
+    const h = (e) => { takePreset(); setForm((f) => ({ ...f, fmt: e.detail })); };
+    window.addEventListener("mcz-directz-fmt", h);
+    return () => window.removeEventListener("mcz-directz-fmt", h);
+  }, []);
 
   // Read the real duration off the file the member picked, so the band check
   // below is about their actual video rather than something they typed.
@@ -156,6 +168,22 @@ export default function DirectZ() {
           className="hidden h-16 w-16 rounded-full border border-mcz-cyan/40 object-cover shadow-neon sm:block"
         />
       </header>
+
+      {/* The three lengths, as the doors they are. Picking one sets the
+          format below; the band under each name is the server's. */}
+      {formats.length > 0 && (
+        <div className="grid grid-cols-3 gap-2" data-tour="directz-formats">
+          {formats.map((f) => (
+            <button key={f.key} type="button" onClick={() => setForm({ ...form, fmt: f.key })}
+              className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition ${
+                form.fmt === f.key ? "border-mcz-cyan bg-mcz-cyan/10 shadow-neon" : "border-white/10 bg-black/30 hover:border-white/30"}`}>
+              <IconImg icon={FMT_ICON[f.key] || "directz.png"} alt="" className="h-14 w-14 rounded-xl object-cover" />
+              <span className="text-sm font-bold">{f.name}</span>
+              <span className="text-[10px] text-white/50">{f.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={submit} className="neon-frame space-y-3 p-4" data-tour="directz-releases">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">

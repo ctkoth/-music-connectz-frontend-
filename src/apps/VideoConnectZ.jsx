@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Download, Loader2 } from "lucide-react";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
@@ -30,6 +32,7 @@ function Price({ s }) {
 }
 
 export default function VideoConnectZ() {
+  const cl = useCharLimit();
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
   const [kind, setKind] = useState("music");
@@ -112,9 +115,10 @@ export default function VideoConnectZ() {
             </button>
           ))}
         </div>
-        <textarea className="neon-input min-h-24 w-full" maxLength={1000}
+        <textarea className="neon-input min-h-24 w-full" maxLength={cl.limit}
           placeholder="Describe the video — the scene, the mood, what happens."
-          value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+          value={prompt} onChange={(e) => setPrompt(cl.clamp(e.target.value))} />
+        <CharLimit cl={cl} value={prompt} />
 
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-white/60">Shape</span>

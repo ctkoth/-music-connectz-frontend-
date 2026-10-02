@@ -211,6 +211,7 @@ export const PERSONA_SKILLS = {
     "Video Software": VIDEO_SOFTWARE,
     "Video Skills": {
       any_video_skill: "Any Video Skill 🎬",
+      filming: "Filming 🎥",
       cinematography: "Cinematography 🎥",
       camera_operation: "Camera Operation 📷",
       lighting: "Lighting Techniques 💡",

@@ -42,12 +42,20 @@ export const ICON_DEFAULTS = {
   "infernoz.png": "/icons/socializez.infernoz.jpg",
   "social_connectz.png": "/icons/socializez.jpg",
   "vybez.png": "/icons/socializez.vybez.jpg",
-  "substancez.png": "/icons/substancez.png",
   "toolz.png": "/icons/toolz.png",
   "venuez.png": "/icons/venuez.png",
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
   "viewz.png": "/icons/viewz.png",
+  "characterz.png": "/icons/designz.characterz.jpg",
+  "mangaz.png": "/icons/designz.mangaz.jpg",
+  "episodez.png": "/icons/directz.episodez.jpg",
+  "moviez.png": "/icons/directz.moviez.jpg",
+  "reelz.png": "/icons/directz.reelz.jpg",
+  "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
+  "personaz_designer.png": "/icons/personaz.designer.jpg",
+  "substancez.png": "/icons/profilez.substancez.jpg",
+  "zodiacz.png": "/icons/profilez.zodiacz.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
   "battlez.cypher.png": "/icons/battlez.cypher.jpg",
@@ -616,6 +624,34 @@ export const ICON_TREE = [
     ]
   },
   {
+    "parent": "designz",
+    "label": "DesignZ",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "characterz",
+        "label": "CharacterZ",
+        "file": "designz.characterz.jpg",
+        "art": "/icons/designz.characterz.jpg",
+        "key": "characterz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "mangaz",
+        "label": "MangaZ",
+        "file": "designz.mangaz.jpg",
+        "art": "/icons/designz.mangaz.jpg",
+        "key": "mangaz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      }
+    ]
+  },
+  {
     "parent": "distributez",
     "label": "DistributeZ",
     "root": {
@@ -1144,6 +1180,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "designer",
+        "label": "Designer",
+        "file": "personaz.designer.jpg",
+        "art": "/icons/personaz.designer.jpg",
+        "key": "personaz_designer.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "developer",
         "label": "Developer",
         "file": "personaz.developer.png",
@@ -1228,6 +1274,26 @@ export const ICON_TREE = [
         "key": null,
         "status": "unplaced",
         "note": "ProfileZ has a religion field but no icon slot for it",
+        "also": []
+      },
+      {
+        "child": "substancez",
+        "label": "SubstanceZ",
+        "file": "profilez.substancez.jpg",
+        "art": "/icons/profilez.substancez.jpg",
+        "key": "substancez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "zodiacz",
+        "label": "ZodiacZ",
+        "file": "profilez.zodiacz.jpg",
+        "art": "/icons/profilez.zodiacz.jpg",
+        "key": "zodiacz.png",
+        "status": "live",
+        "note": "",
         "also": []
       }
     ]
@@ -1337,9 +1403,9 @@ export const ICON_TREE = [
     "root": {
       "file": "substancez.png",
       "art": "/icons/substancez.png",
-      "key": "substancez.png",
-      "status": "live",
-      "note": "on disk as \"SubstanceZ.png\"; commit it as substancez.png"
+      "key": null,
+      "status": "fallback",
+      "note": "current art for registry key substancez.png, kept as the fallback; on disk as \"SubstanceZ.png\"; commit it as substancez.png"
     },
     "extra": [],
     "children": []
@@ -1506,7 +1572,48 @@ export const ICON_TREE = [
       "note": "replaces the generated glyph /icons/directz-neon.svg"
     },
     "extra": [],
-    "children": []
+    "children": [
+      {
+        "child": "episodez",
+        "label": "EpisodeZ",
+        "file": "directz.episodez.jpg",
+        "art": "/icons/directz.episodez.jpg",
+        "key": "episodez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "moviez",
+        "label": "MovieZ",
+        "file": "directz.moviez.jpg",
+        "art": "/icons/directz.moviez.jpg",
+        "key": "moviez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "reelz",
+        "label": "ReelZ",
+        "file": "directz.reelz.jpg",
+        "art": "/icons/directz.reelz.jpg",
+        "key": "reelz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "voicezstylez",
+        "label": "VoicezstyleZ",
+        "file": "directz.voicezstylez.jpg",
+        "art": "/icons/directz.voicezstylez.jpg",
+        "key": "voicezstylez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      }
+    ]
   }
 ];
 

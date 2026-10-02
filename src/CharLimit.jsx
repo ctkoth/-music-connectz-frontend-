@@ -4,7 +4,16 @@
 // kind: normal, "near" once you are inside the last 10%, and "full" where
 // further typing is refused and the tier that removes the cap is named.
 import { Lock, Sparkles } from "lucide-react";
-import { TIER_CHAR_LIMITS, TIER_LABEL, nextTier } from "./limits.js";
+import { TIER_CHAR_LIMITS, TIER_LABEL, nextTier, useTierLadder } from "./limits.js";
+
+/** A tier's character allowance — the server's ladder, the fallback table until it lands. */
+function useCharsFor() {
+  const { tiers } = useTierLadder();
+  return (tier) => {
+    const n = tiers?.[tier]?.char_limit ?? TIER_CHAR_LIMITS[tier];
+    return typeof n === "number" && n >= 1e8 ? "unlimited" : Number(n).toLocaleString();
+  };
+}
 
 const COLOR = {
   ok: "text-white/35",
@@ -17,6 +26,7 @@ const COLOR = {
  * `cl` is the object from useCharLimit(); `value` is the current text.
  */
 export default function CharLimit({ cl, value, className = "" }) {
+  const charsFor = useCharsFor();   // a hook — before the early return
   if (!cl.ready) return null;
 
   const used = (value || "").length;
@@ -44,9 +54,7 @@ export default function CharLimit({ cl, value, className = "" }) {
         <span className="flex items-center gap-1 text-mcz-cyan">
           <Sparkles size={10} />
           {TIER_LABEL[up]} gets{" "}
-          {typeof TIER_CHAR_LIMITS[up] === "number"
-            ? TIER_CHAR_LIMITS[up].toLocaleString()
-            : String(TIER_CHAR_LIMITS[up]).toLowerCase()}
+          {charsFor(up)}
           <button
             className="font-semibold underline hover:brightness-125"
             onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-tab", { detail: "membershipz" }))}
@@ -61,12 +69,13 @@ export default function CharLimit({ cl, value, className = "" }) {
 
 /** Every tier's character allowance, for the tier-listing copy. */
 export function TierCharTable({ current }) {
+  const charsFor = useCharsFor();
   return (
     <div className="flex flex-wrap gap-1.5 text-[11px]">
-      {Object.entries(TIER_CHAR_LIMITS).map(([tier, chars]) => (
+      {Object.keys(TIER_CHAR_LIMITS).map((tier) => (
         <span key={tier}
           className={`pill ${tier === current ? "!border-mcz-ember/60 !text-mcz-ember" : "!text-white/45"}`}>
-          {TIER_LABEL[tier]} {typeof chars === "number" ? chars.toLocaleString() : chars}
+          {TIER_LABEL[tier]} {charsFor(tier)}
         </span>
       ))}
     </div>

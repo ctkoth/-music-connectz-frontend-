@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
 import { api, apiBlob } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
@@ -85,6 +87,7 @@ function playLoop(work, repeats = 2) {
 }
 
 export default function InstrumentalConnectZ() {
+  const cl = useCharLimit();
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
   const [genre, setGenre] = useState("");
@@ -220,8 +223,9 @@ export default function InstrumentalConnectZ() {
           </div>
         )}
 
-        <textarea className="neon-input min-h-20 w-full" maxLength={500} placeholder="Anything else? (optional)"
-          value={brief} onChange={(e) => setBrief(e.target.value)} />
+        <textarea className="neon-input min-h-20 w-full" maxLength={cl.limit} placeholder="Anything else? (optional)"
+          value={brief} onChange={(e) => setBrief(cl.clamp(e.target.value))} />
+        <CharLimit cl={cl} value={brief} />
 
         <div className="flex flex-wrap items-center gap-3">
           <button className="neon-btn-primary !w-auto px-5" disabled={busy || !picked.length || (s && !s.can_run)} onClick={compose}>

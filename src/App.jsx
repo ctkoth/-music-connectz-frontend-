@@ -43,6 +43,8 @@ import CelebrationLayer from "./components/CelebrationLayer.jsx";
 import Ticker from "./components/Ticker.jsx";
 import { checkBadges } from "./milestones.js";
 import { useViewTracker } from "./viewz.js";
+import { HoroscopeLayer } from "./components/Horoscope.jsx";
+import TierPanel from "./components/TierPanel.jsx";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -69,6 +71,7 @@ const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.js
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
+const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
@@ -363,6 +366,12 @@ export const CUSTOM_ICONS = {
   "tier_statz.png": "/icons/tier_statz.png",
   "videoz.png": "/icons/videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
+  "reelz.png": "/icons/directz.reelz.jpg",
+  "episodez.png": "/icons/directz.episodez.jpg",
+  "moviez.png": "/icons/directz.moviez.jpg",
+  "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
+  "mangaz.png": "/icons/designz.mangaz.jpg",
+  "characterz.png": "/icons/designz.characterz.jpg",
   // BadgeZ artwork — each badge that has real art names it; the rest carry
   // their emoji. Registered so the fallback is the emoji, not a logo.
   "badge_owner.png": "/icons/badge_owner.png",
@@ -453,6 +462,9 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
+  { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
+  { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
@@ -621,6 +633,26 @@ function SoundToggle() {
   );
 }
 
+// The community, in the header: how many members, how many here right now.
+// Two lines stacked so it costs ~40px — the header has none to spare on a
+// phone (see the min-w-0 note on the tab button). The numbers come from
+// CommunityBar's own once-a-minute poll; this never asks the server itself.
+function HeaderCounts() {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    const h = (e) => setS(e.detail);
+    window.addEventListener("mcz-community-stats", h);
+    return () => window.removeEventListener("mcz-community-stats", h);
+  }, []);
+  if (!s) return null;
+  return (
+    <div className="flex shrink-0 flex-col items-start text-[10px] leading-tight tabular-nums" title={`${s.total_members} members · ${s.online_now} online now`}>
+      <span className="text-white/70">👥 {Number(s.total_members).toLocaleString()}</span>
+      <span className="text-emerald-300"><span className="mr-0.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />{Number(s.online_now).toLocaleString()}</span>
+    </div>
+  );
+}
+
 function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
@@ -630,7 +662,12 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
 
   useEffect(() => {
     let on = true;
-    const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
+    const load = () => api("/api/auth/stats/").then((s) => {
+      if (!on) return;
+      setStats(s);
+      // The header's counter chip reads the same answer — one poll, two places.
+      window.dispatchEvent(new CustomEvent("mcz-community-stats", { detail: s }));
+    }).catch(() => {});
     load();
     const t = setInterval(load, 60000); // refresh every minute
     // celebrate() asks for this the moment a reward lands, so the balance
@@ -882,6 +919,14 @@ function Home() {
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
 
+  // ToolZ's ⊞ Split opens the app beside the current one — the same pane the
+  // Dock's split opens, with the same StatZ / sample note on it.
+  useEffect(() => {
+    const h = (e) => { if (TABS.some((t) => t.key === e.detail)) setSplitKey(e.detail); };
+    window.addEventListener("mcz-split", h);
+    return () => window.removeEventListener("mcz-split", h);
+  }, []);
+
   // Cross-pollination: mentions open profiles
   useEffect(() => {
     const h = (e) => {
@@ -939,10 +984,13 @@ function Home() {
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <div
-          className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3"
+          className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
         >
-          <div className="flex items-center gap-1">
+          {/* Previous/next tab is a desktop nicety. On a phone the dock is the
+              nav, and these two cost the tab title its last 60px — it measured
+              12px wide at 390, then 0 once the member counters went in. */}
+          <div className="hidden items-center gap-1 sm:flex">
             <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
@@ -960,6 +1008,7 @@ function Home() {
               Music ConnectZ
             </span>
           </a>
+          <HeaderCounts />
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
@@ -1028,6 +1077,7 @@ function Home() {
           <ErrorBoundary key={tab} label={active?.label}>
             <StatzTimerBanner />
             <CelebrationLayer />
+            <HoroscopeLayer />
             <div key={tab} className="mcz-tab-enter">
               <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
             </div>
@@ -1074,7 +1124,7 @@ function Home() {
           onClick={() => setInfoKey(null)}
         >
           <div
-            className="neon-frame w-full max-w-md p-5"
+            className="neon-frame max-h-[90vh] w-full max-w-md overflow-y-auto p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center gap-3">
@@ -1130,6 +1180,8 @@ function Home() {
                 ))}
               </ul>
             )}
+
+            <TierPanel tab={infoTab.key} label={infoTab.label} onGo={() => setInfoKey(null)} />
 
             <button className="re-btn mt-5" onClick={() => setInfoKey(null)}>Got it</button>
           </div>

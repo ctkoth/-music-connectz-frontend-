@@ -14,16 +14,14 @@ export const TIER_ORDER = ["free", "premium", "statz"];
 export const TIER_BLURB = {
   free: "Everything you need to be here properly — post, rate, train, get found. The ceilings are real but nothing is locked away for show.",
   premium: "The ceilings move. More room to write, more to upload, faster Energy, and the apps that need a tier to open at all.",
-  statz: "No character limit, the AI layer across every app, and the analytics that tell you what's actually working. This is the one built for people doing it for a living.",
+  statz: "The most room to write, the AI layer across every app, and the analytics that tell you what's actually working. This is the one built for people doing it for a living.",
 };
 
 // [label, free, premium, statz] — a dash means the tier does not have it.
+// GATES only. Every NUMBER on the ladder (characters, prompts, Energy,
+// uploads, storage) comes from /api/economy/tiers/ — this table used to type
+// them and had drifted on four of five ("1 free prompt", "40 MB", "Unlimited").
 export const TIER_MATRIX = [
-  ["Character limit — posts, DMs, comments, prompts", "400", "1,500", "Unlimited"],
-  ["Energy per hour", "reach ÷ 10", "reach ÷ 5", "reach ÷ 1"],
-  ["Free AI prompts a day", "1", "5", "10"],
-  ["Per-upload size", "40 MB", "400 MB", "4 GB"],
-  ["Storage", "400 MB", "5 GB", "100 GB"],
   ["Edit window on anything you post", "4 min", "40 min", "4 hours"],
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
   ["DistributeZ submissions", "1 / month", "Unlimited", "Unlimited + licensing"],
@@ -39,15 +37,15 @@ export const TIER_MATRIX = [
 export const APP_BENEFITS = [
   {
     app: "PostZ", icon: "postz.png",
-    free: "Post, get rated, earn +1 Energy for every rating you give. 400 characters.",
-    premium: "1,500 characters, and 40 minutes to fix a typo instead of 4.",
-    statz: "Write as long as the work needs — no cap at all — with four hours to edit.",
+    free: "Post, get rated, earn +1 Energy for every rating you give.",
+    premium: "More room to write, and 40 minutes to fix a typo instead of 4.",
+    statz: "The most room to write of any tier, with four hours to edit.",
   },
   {
     app: "MessageZ", icon: "messagez.png",
-    free: "DM anyone on the platform, free. 400 characters a message.",
-    premium: "1,500 characters, so a pitch fits in one message instead of five.",
-    statz: "No limit. Send the whole treatment.",
+    free: "DM anyone on the platform, free.",
+    premium: "More room a message, so a pitch fits in one instead of five.",
+    statz: "The most room a message of any tier. Send the whole treatment.",
   },
   {
     app: "SingZ · RapZ", icon: "singz.png",
@@ -130,7 +128,7 @@ export const APP_BENEFITS = [
     // the figures here is exactly how "20 free prompts" reached nine places.
     free: "The diary itself, forever — write every day, search every word, keep it private, and tag people without telling them anything. Your words are yours at every tier, and the account export always includes them.",
     premium: "On This Day — the same date in every year you've kept — and the whole journal out as one file. Plus the room a real habit needs: more entries a day, more tags, more people and more attachments on one.",
-    statz: "No character limit on an entry, the most room of any tier, and the export whenever you want it.",
+    statz: "The most room on an entry of any tier, and the export whenever you want it.",
   },
   {
     app: "ProfileZ", icon: "personaz.png",

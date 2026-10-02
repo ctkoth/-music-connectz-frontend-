@@ -14,6 +14,7 @@ import CopyLink from "../CopyLink.jsx";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
+import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
 
 function Pill({ children, className = "" }) {
@@ -157,7 +158,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2 text-xs">
               {data.tier && <Pill className="uppercase !text-mcz-cyan">{data.tier}</Pill>}
-              {data.sign && <Pill>{data.sign}</Pill>}
+              {data.sign && <SignLink sign={data.sign} />}
               {data.age != null && <Pill>{data.age}</Pill>}
               {data.gender && <Pill>{data.gender}</Pill>}
               {data.founding && <Pill className="!text-mcz-gold">Founding</Pill>}
