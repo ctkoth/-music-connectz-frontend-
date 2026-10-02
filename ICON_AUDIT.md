@@ -203,7 +203,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (23)
+## Tabs and apps that ask for an icon no supplied file covers (24)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `callz.png` → /icons/callz-neon.svg
@@ -222,6 +222,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `onboardz.png` → /icons/onboardz-neon.svg
 - `playlistz.png` → /icons/playlistz-neon.svg
 - `postz.png` → /icons/postz-neon.svg
+- `ratez.png` → /icons/ratez.png
 - `royaltiez.png` → /icons/royaltiez-neon.svg
 - `soundcloudengagementz.png` → /icons/soundcloudengagementz-neon.svg
 - `soundz.png` → /icons/soundz-neon.svg

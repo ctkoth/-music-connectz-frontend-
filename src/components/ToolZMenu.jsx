@@ -24,7 +24,7 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
-  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", royaltiez: "royaltiez.png",
+  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
@@ -97,6 +97,7 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'socialiZeZ', tab: 'social', label: 'SocialiZeZ', color: 'magenta', desc: 'Connect & find your level' },
         { key: 'vybez', label: 'VybeZ', color: 'cyan', desc: 'Find your frequency' },
+        { key: 'ratez', label: 'Rate ConnectZ', color: 'gold', desc: 'Rate work and earn ⚡ — and see every rating you have, by kind' },
       ]
     },
     {
