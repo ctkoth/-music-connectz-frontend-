@@ -333,3 +333,15 @@ export async function api(path, {
   }
   return data;
 }
+
+/** GET a file (not JSON) with the member's token — a .mid, for one. */
+export async function apiBlob(path) {
+  const get = (token) => doFetch(path, { method: "GET", extraHeaders: {}, token });
+  let res = await get(tokenStore.get());
+  if (res.status === 401 && tokenStore.getRefresh()) {
+    const fresh = await refreshAccess();
+    if (fresh) res = await get(fresh);
+  }
+  if (!res.ok) throw new Error(`The download failed (${res.status}).`);
+  return res.blob();
+}
