@@ -41,6 +41,7 @@ import { WidgetProvider } from "./WidgetBoard.jsx";
 import { StatzTimerBanner } from "./components/StatzSample.jsx";
 import CelebrationLayer from "./components/CelebrationLayer.jsx";
 import Ticker from "./components/Ticker.jsx";
+import { checkBadges } from "./milestones.js";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -629,7 +630,15 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
     // celebrate() asks for this the moment a reward lands, so the balance
     // counts to its new value now rather than up to a minute later.
     window.addEventListener("mcz-stats-refresh", load);
-    return () => { on = false; clearInterval(t); window.removeEventListener("mcz-stats-refresh", load); };
+    // A badge lands server-side, often while the member is elsewhere; this
+    // is where they find out, once, with the fanfare it earned.
+    checkBadges();
+    window.addEventListener("mcz-stats-refresh", checkBadges);
+    return () => {
+      on = false; clearInterval(t);
+      window.removeEventListener("mcz-stats-refresh", load);
+      window.removeEventListener("mcz-stats-refresh", checkBadges);
+    };
   }, []);
 
   async function loadAllMembers() {

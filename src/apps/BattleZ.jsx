@@ -9,6 +9,8 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
+import { celebrateBattles } from "../milestones.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, Check, Coins, Crown, Loader2, Lock, Plus, Star, Swords, Timer,
@@ -456,8 +458,9 @@ export default function BattleZ() {
   // A post carried in from PostZ, waiting for a battle to be entered into.
   const [seed, setSeed] = useState(null);
 
+  const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => setList(asList(d?.battles)))
+    .then((d) => { const l = asList(d?.battles); setList(l); celebrateBattles(l, user?.username); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
