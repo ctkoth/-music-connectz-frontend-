@@ -11,7 +11,7 @@ import './ToolZMenu.css';
 const ICON_KEY = {
   singz: "singz.png", rapz: "rapz.png", guitarz: "guitarz.png", bassz: "bassz.png",
   keyz: "keyz.png", drumz: "drumz.png", violinz: "violinz.png",
-  battlez: "battlez.png", collabz: "collabz.png", infernoz: "offerz.png",
+  battlez: "battlez.png", collabz: "collabz.png", infernoz: "infernoz.png",
   socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
   messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
   onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png",
