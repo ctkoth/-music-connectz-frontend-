@@ -18,6 +18,7 @@ export const ICON_DEFAULTS = {
   "bodiez.png": "/icons/bodiez.png",
   "bugz.png": "/icons/bugz.png",
   "builder.png": "/icons/builder.png",
+  "chordz.jpg": "/icons/chordz.jpg",
   "coachz.jpg": "/icons/coachz.jpg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
   "collabz.originalz.png": "/icons/collabz.originalz.png",
@@ -461,10 +462,10 @@ export const ICON_TREE = [
     "label": "ChordZ",
     "root": {
       "file": "chordz.jpg",
-      "art": null,
+      "art": "/icons/chordz.jpg",
       "key": "chordz.jpg",
-      "status": "owed",
-      "note": ""
+      "status": "live",
+      "note": "replaces the generated glyph /icons/chordz-neon.svg"
     },
     "extra": [],
     "children": []

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
-import { slugFor } from '../App.jsx';
+import { MINI_TOOLS, slugFor } from '../App.jsx';
 import { IconImg } from '../App.jsx';
 import './ToolZMenu.css';
 
@@ -351,6 +351,15 @@ export default function ToolZMenu() {
                 >
                   ⊞ Split
                 </button>
+                {MINI_TOOLS.includes(app.key) && (
+                  <button
+                    className="open-btn open-split"
+                    onClick={() => window.dispatchEvent(new CustomEvent('mcz-mini', { detail: app.key }))}
+                    title="Dock it small beside any app — up to three"
+                  >
+                    ◱ Mini
+                  </button>
+                )}
               </div>
               )}
             </div>

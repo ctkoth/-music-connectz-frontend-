@@ -440,6 +440,10 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // Until this existed the whole app lived at "/" and switched tabs through a
 // custom event: no tab could be linked, bookmarked, or reached with the back
 // button. A screen with no address is one you can only tell somebody how to find.
+// The small tools that dock as mini panes (see `minis` in the shell).
+export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
+const MAX_MINIS = 3;
+
 export const slugFor = (key) =>
   key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
 export const tabForSlug = (slug) =>
@@ -863,6 +867,20 @@ function Home() {
   // together" moment, not a standing layout that should survive navigating
   // away and quietly still be there ten screens later.
   const [splitKey, setSplitKey] = useState(null);
+  // Mini tools — MetZ, TunerZ, ChordZ docked beside whatever app is open, at
+  // a fraction of the size, so a metronome, a tuner and a chord chart can sit
+  // next to the coach (and a SplitZ pane) at once: four panes on one screen.
+  // Kept per browser, because which tools you practise with is a habit.
+  const [minis, setMinis] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => MINI_TOOLS.includes(k)); } catch { return []; }
+  });
+  useEffect(() => { try { localStorage.setItem("mcz_minis", JSON.stringify(minis)); } catch { /* per-session then */ } }, [minis]);
+  useEffect(() => {
+    const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
+      : MINI_TOOLS.includes(e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
+    window.addEventListener("mcz-mini", h);
+    return () => window.removeEventListener("mcz-mini", h);
+  }, []);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
   }, []);
@@ -1073,7 +1091,37 @@ function Home() {
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
             other down with it. */}
-        <div className={splitKey ? "grid gap-4 lg:grid-cols-2" : ""}>
+        <div className={minis.some((k) => k !== tab) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
+        {minis.some((k) => k !== tab) && (
+          <aside className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 lg:order-last lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+                 aria-label="Mini tools">
+            {minis.filter((k) => k !== tab).map((k) => {
+              const t = TABS.find((x) => x.key === k);
+              return (
+                <section key={k} className="neon-frame w-[82vw] max-w-[320px] shrink-0 overflow-hidden p-0 lg:w-auto lg:max-w-none">
+                  <div className="flex items-center justify-between border-b border-white/10 bg-black/30 px-2 py-1">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80">
+                      <IconImg icon={t?.icon} alt="" className="h-5 w-5 rounded object-cover" /> {t?.label}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <button onClick={() => openTab(k)} className="rounded px-1.5 text-[10px] text-white/50 hover:bg-white/10 hover:text-white" title="Open full size">⤢</button>
+                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
+                    </span>
+                  </div>
+                  {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
+                      quarter-size tool takes quarter-size room and its
+                      controls still hit where they are drawn. */}
+                  <div className="max-h-[38vh] overflow-y-auto p-2 lg:max-h-[30vh]" style={{ zoom: 0.72 }}>
+                    <ErrorBoundary key={k} label={t?.label}>
+                      <Suspense fallback={<RouteFallback />}>{t?.el}</Suspense>
+                    </ErrorBoundary>
+                  </div>
+                </section>
+              );
+            })}
+          </aside>
+        )}
+        <div className={splitKey ? "grid min-w-0 gap-4 lg:grid-cols-2" : "min-w-0"}>
           <ErrorBoundary key={tab} label={active?.label}>
             <StatzTimerBanner />
             <CelebrationLayer />
@@ -1114,6 +1162,7 @@ function Home() {
               </ErrorBoundary>
             </div>
           )}
+        </div>
         </div>
       </main>
 
