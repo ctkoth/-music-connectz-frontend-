@@ -145,6 +145,11 @@ function Quote({ q, mine, host }) {
           {iPay ? `you pay ${other}` : `${other} pays you`}
         </span>
       </p>
+      <p className="text-[10px] text-white/35">
+        {iPay
+          ? "Held in CollabZ escrow, not paid outright — refunded if declined or cancelled before it starts, released after the room has run."
+          : "Held in CollabZ escrow and paid to you after the room has run, unless it's disputed."}
+      </p>
 
       {/* Per hour multiplies; an agreed total is the total however long it
           runs. Both are said, because "$50" means two different things. */}
@@ -302,6 +307,30 @@ function AskPanel({ venue, onDone, onFlash }) {
   );
 }
 
+const ESCROW_SAID = {
+  funded: "held in CollabZ escrow",
+  delivered: "held in CollabZ escrow",
+  released: "paid out",
+  refunded: "refunded",
+  disputed: "disputed in CollabZ",
+};
+
+/** Where a booking's money is right now, and the door to the deal holding it. */
+function EscrowLine({ b }) {
+  const e = b.escrow;
+  if (!e) return null;
+  const waiting = ["funded", "delivered"].includes(e.status);
+  return (
+    <p className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/45">
+      {MONEY} {money(b.quoted_cents)} {ESCROW_SAID[e.status] || e.status}
+      {waiting && e.auto_release_at && ` — pays out ${new Date(e.auto_release_at).toLocaleDateString()} unless disputed`}
+      <button className="text-mcz-cyan underline" onClick={() => goToSpot("collabz", "collabz-deals")}>
+        Open in CollabZ
+      </button>
+    </p>
+  );
+}
+
 /** One asked-for seat, as the HOST sees it: who, what they bring, what it owes. */
 function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
   const happened = new Date(venue.starts_at) <= new Date();
@@ -324,12 +353,19 @@ function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
           Bringing: {b.skills.map(labelForSkill).join(", ")}
         </p>
       )}
+      <EscrowLine b={b} />
+      {b.status === "requested" && b.payer_is_host && b.quoted_cents > 0 && (
+        <p className="text-[10px] text-white/40">Letting them in holds this from your balance until the room has run.</p>
+      )}
 
       {b.status === "requested" && (
         <div className="flex flex-wrap gap-2">
           <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs"
                   disabled={busy} onClick={() => onRespond(b.id, true)}>
             <Check size={12} /> Let them in
+            {b.payer_is_host && b.quoted_cents > 0 && (
+              <span className="ml-1 text-mcz-ember">−{money(b.quoted_cents)} {MONEY}</span>
+            )}
           </button>
           <button className="re-btn !w-auto px-3 py-1.5 text-xs"
                   disabled={busy} onClick={() => onRespond(b.id, false)}>
@@ -479,6 +515,7 @@ function Venue({ v, onChanged, onFlash }) {
               Withdraw
             </button>
           )}
+          <div className="w-full"><EscrowLine b={v.my_booking} /></div>
         </div>
       )}
 
