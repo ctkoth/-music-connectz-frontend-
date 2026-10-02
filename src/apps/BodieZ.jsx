@@ -372,7 +372,7 @@ export default function BodieZ() {
         </div>
       </header>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
                   className={`pill ${tab === t.key ? "!bg-white/15 !text-white" : ""}`}>
