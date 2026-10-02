@@ -718,7 +718,7 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
       <div className="re-card space-y-2">
         <p className="re-label">Add an unplanned exercise</p>
         <div className="flex flex-wrap items-end gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+          <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
             {exercises.map((ex) => (
@@ -851,7 +851,7 @@ function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="re-label">Add from the library</p>
         {demoCredit && <p className="text-[11px] text-white/35">{demoCredit}</p>}
-        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+        <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                 value={muscle} onChange={(e) => setMuscle(e.target.value)}>
           <option value="">All muscle groups</option>
           {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
@@ -1089,15 +1089,15 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
           const isOpen = open === m.muscle_group;
           const pool = (exercises || []).filter((ex) => ex.muscle_group === m.muscle_group);
           return (
-            <div key={m.muscle_group} className={`re-card space-y-2 ${isOpen ? "sm:col-span-2" : ""}`}>
-              <button className="flex w-full items-center justify-between text-left"
+            <div key={m.muscle_group} className={`re-card min-w-0 space-y-2 ${isOpen ? "sm:col-span-2" : ""}`}>
+              <button className="flex w-full items-center justify-between gap-2 text-left"
                       onClick={() => setOpen(isOpen ? null : m.muscle_group)}>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   {muscleIcon(m.muscle_group) && (
                     <img src={muscleIcon(m.muscle_group)} alt={m.label} className="h-8 w-8 flex-shrink-0" />
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-white inline-flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white flex flex-wrap items-center gap-1.5">
                       {m.label}
                       <span className="rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
                         {m.volume_score}/10
@@ -1217,7 +1217,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
           {goals && (
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
               <option value="">General (3 sets x 10)</option>
               {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -1310,7 +1310,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
             each covering every muscle group across the week.
           </p>
           <div className="flex flex-wrap gap-2">
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={days} onChange={(e) => setDays(e.target.value ? Number(e.target.value) : "")}>
               <option value="">Days per week…</option>
               {splits && Object.keys(splits).map((k) => (
@@ -1318,7 +1318,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
               ))}
             </select>
             {goals && (
-              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+              <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
                 <option value="">General (3 sets x 10)</option>
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -1465,13 +1465,13 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                             className="neon-input !py-1.5 !w-auto text-xs" />
             )}
             {goals && (
-              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+              <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
                 <option value="">General (3 sets x 10)</option>
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
               </select>
             )}
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={perMuscle} onChange={(e) => setPerMuscle(Number(e.target.value))}>
               <option value={1}>1 exercise per muscle</option>
               <option value={2}>2 exercises per muscle</option>
@@ -1611,7 +1611,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
     <div className="re-card space-y-2">
       <p className="re-label">New goal</p>
       <div className="flex flex-wrap gap-2">
-        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+        <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={kind} onChange={(e) => setKind(e.target.value)}>
           {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
         </select>
@@ -1620,7 +1620,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
       </div>
       <div className="flex flex-wrap gap-2">
         {kind === "strength" && (
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+          <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
             {exercises.map((ex) => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
@@ -1742,7 +1742,7 @@ function RecoveryView({ recovery, onLog }) {
   };
 
   const Scale = ({ label, value, onChange }) => (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="text-xs text-white/60">{label}</span>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
@@ -1975,10 +1975,10 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
             value={stepInput}
             onChange={(e) => setStepInput(e.target.value)}
             disabled={isLogging}
-            className="flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none disabled:opacity-50"
           />
           <button
-            className="neon-btn-primary px-4 py-2 disabled:opacity-50"
+            className="neon-btn-primary !w-auto shrink-0 px-4 py-2 disabled:opacity-50"
             onClick={handleLogSteps}
             disabled={isLogging}
           >
