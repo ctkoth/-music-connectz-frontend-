@@ -12,6 +12,7 @@
 // screen shows both halves in cents on every plan, before one is picked —
 // what it takes, and what lands. Picking the expensive plan should be a
 // decision, never a discovery.
+import { celebrate } from "../celebrate.js";
 import { useEffect, useState } from "react";
 import { Loader2, Coins, ArrowRight, AlertTriangle } from "lucide-react";
 
@@ -19,7 +20,6 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { goToSpot } from "../goto.js";
-import { playSound } from "../sound.js";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -60,7 +60,7 @@ export default function RoyaltieZ() {
         method: "POST", body: { plan },
       });
       const b = r.breakdown || {};
-      playSound("money_earn");
+      celebrate("money", Number(b.net_cents) || 0);
       // Both halves again, after the fact, so the receipt matches the quote.
       setMsg(`${usd(b.net_cents)} ${MONEY} into your balance — ${usd(b.gross_cents)} less ${usd(b.tax_cents)} fee.`);
       load();

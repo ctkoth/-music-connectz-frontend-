@@ -38,6 +38,10 @@ import TransactionModal from "./TransactionModal.jsx";
 // of it. A link opened on a member's card is still there when its owner has
 // been closed and a post is being read instead.
 import { WidgetProvider } from "./WidgetBoard.jsx";
+import { StatzTimerBanner } from "./components/StatzSample.jsx";
+import CelebrationLayer from "./components/CelebrationLayer.jsx";
+import Ticker from "./components/Ticker.jsx";
+import { checkBadges } from "./milestones.js";
 
 const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
 const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
@@ -61,6 +65,7 @@ const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
+const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
@@ -479,6 +484,7 @@ const TABS = [
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
+  { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
@@ -621,7 +627,18 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
     const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
     load();
     const t = setInterval(load, 60000); // refresh every minute
-    return () => { on = false; clearInterval(t); };
+    // celebrate() asks for this the moment a reward lands, so the balance
+    // counts to its new value now rather than up to a minute later.
+    window.addEventListener("mcz-stats-refresh", load);
+    // A badge lands server-side, often while the member is elsewhere; this
+    // is where they find out, once, with the fanfare it earned.
+    checkBadges();
+    window.addEventListener("mcz-stats-refresh", checkBadges);
+    return () => {
+      on = false; clearInterval(t);
+      window.removeEventListener("mcz-stats-refresh", load);
+      window.removeEventListener("mcz-stats-refresh", checkBadges);
+    };
   }, []);
 
   async function loadAllMembers() {
@@ -652,23 +669,23 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
         <EnergyRegenerationDisplay />
         <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
                 className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
-          ⚡ {stats.my_energy} Energy
+          ⚡ <Ticker value={stats.my_energy} /> Energy
         </button>
         <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
                 className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
-          {SPINAZ} {stats.my_spinaz} SpinaZ
+          {SPINAZ} <Ticker value={stats.my_spinaz} /> SpinaZ
         </button>
         {stats.my_promptz_daily != null && (
           <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
                   className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
-                  title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+                  title={`Free AI prompts today — your tier's daily allowance, reset daily, doesn't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
           </button>
         )}
         {stats.my_money != null && (
           <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
                   className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
-            💵 ${(stats.my_money / 100).toFixed(2)}
+            💵 <Ticker value={stats.my_money} format={(c) => `$${(c / 100).toFixed(2)}`} />
           </button>
         )}
         {/* A fact with nowhere to take it — the cross-pollination rule's own
@@ -931,7 +948,7 @@ function Home() {
 
           <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
              title="ToolZ — All Audio, Visual & App ToolZ">
-            <img src="/icons/toolz-main.svg" alt="ToolZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => e.currentTarget.src = "/icons/toolz.png"} />
+            <img src="/mcz-logo-mark.png" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-v5.jpg"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
@@ -1002,7 +1019,11 @@ function Home() {
             other down with it. */}
         <div className={splitKey ? "grid gap-4 lg:grid-cols-2" : ""}>
           <ErrorBoundary key={tab} label={active?.label}>
-            <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+            <StatzTimerBanner />
+            <CelebrationLayer />
+            <div key={tab} className="mcz-tab-enter">
+              <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+            </div>
           </ErrorBoundary>
           {splitKey && (
             <div className="min-w-0">

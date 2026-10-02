@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { StatzSampleOffer } from "../components/StatzSample.jsx";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
@@ -9,15 +10,14 @@ import { APP_BENEFITS, TIER_BLURB, TIER_MATRIX, TIER_ORDER } from "../tierBenefi
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, "")}`;
 
-// Real tier perks, mirrored from the backend economy constants:
-//   DEV_TAX 10/5/3% · ENERGY_TOPUP_MULT 1×/2×/4× · SUBMISSION_DAILY_CAP 5/15/50
-//   PROMPT_ALLOWANCE 1/5/10 · SpecZ marketplace is StatZ-only.
-const PERKS = [
-  { label: "Platform fee on your sales", free: "10%", premium: "5%", statz: "3%" },
-  { label: "Energy per $1 topped up", free: "1×", premium: "2×", statz: "4×" },
-  { label: "Daily free AI prompts", free: "1", premium: "5", statz: "10" },
-  { label: "Scored submissions / day", free: "5", premium: "15", statz: "50" },
-  { label: "SpecZ marketplace", free: false, premium: false, statz: true },
+// The comparison rows, built from /api/economy/tiers/. This table used to be
+// a typed copy of the ladder, and it had drifted: "Free: 1 daily prompt" (it
+// is 3) and "SpecZ marketplace: StatZ only" (every tier can buy one).
+const PERK_ROWS = [
+  { label: "Platform fee on your sales", key: "platform_fee_pct", fmt: (v) => `${v}%` },
+  { label: "Energy per $1 topped up", key: "energy_per_dollar", fmt: (v) => `${v}×` },
+  { label: "Daily free AI prompts", key: "daily_prompts", fmt: (v) => String(v) },
+  { label: "Scored submissions / day", key: "scored_per_day", fmt: (v) => String(v) },
 ];
 
 function tierKey(t) {
@@ -40,6 +40,12 @@ export default function MembershipZ() {
   const [cfg, setCfg] = useState(null);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
+  const [ladder, setLadder] = useState(null);
+  useEffect(() => {
+    api("/api/economy/tiers/", { auth: false })
+      .then((d) => setLadder(Object.fromEntries((d.tiers || []).map((t) => [t.key, t]))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api("/api/auth/me/").then(setMe).catch(() => setMe({ tier: "free" }));
@@ -90,7 +96,7 @@ export default function MembershipZ() {
         <IconImg icon="money.png" alt="MembershipZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">MembershipZ</h2>
-          <p className="text-xs text-white/45">Upgrade your tier for lower fees, more energy, more AI prompts &amp; the SpecZ marketplace.</p>
+          <p className="text-xs text-white/45">Upgrade your tier for lower fees, more energy and more AI prompts.</p>
         </div>
       </header>
 
@@ -138,6 +144,7 @@ export default function MembershipZ() {
           `offerz_engine.py`'s "Compare the tiers" prompt-wall offer has
           targeted "membershipz-plans" since it shipped, with nothing here
           to land on. */}
+      <StatzSampleOffer />
       <div className="re-card overflow-x-auto" data-tour="membershipz-plans">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
@@ -149,12 +156,14 @@ export default function MembershipZ() {
             </tr>
           </thead>
           <tbody>
-            {PERKS.map((p) => (
+            {ladder && PERK_ROWS.map((p) => (
               <tr key={p.label} className="border-t border-white/[0.06]">
                 <td className="py-2 text-white/70">{p.label}</td>
-                <td className="py-2 text-center"><Cell v={p.free} /></td>
-                <td className="py-2 text-center"><Cell v={p.premium} /></td>
-                <td className="py-2 text-center"><Cell v={p.statz} /></td>
+                {["free", "premium", "statz"].map((t) => (
+                  <td key={t} className="py-2 text-center">
+                    <Cell v={ladder[t]?.[p.key] == null ? "—" : p.fmt(ladder[t][p.key])} />
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

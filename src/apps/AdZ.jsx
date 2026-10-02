@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { celebrate } from "../celebrate.js";
 import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
-import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import EarnInstead from "../EarnInstead.jsx";
@@ -24,7 +24,7 @@ export default function AdZ() {
       // The whole product is "watch it, get paid" and the getting-paid moment
       // landed in silence. The event is fired by the native shell only after
       // the server verified the reward, so this is coin actually arriving.
-      playSound("spinaz_gain");
+      celebrate("spinaz", 0, { label: "ad reward landed" });
       setTimeout(loadStats, 1500);
     };
     window.addEventListener("mcz-ad-rewarded", onReward);

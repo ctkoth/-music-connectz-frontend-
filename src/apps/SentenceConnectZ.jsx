@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { playSound } from "../sound.js";
 import { Copy, Loader2, PenLine } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
+import UseIn from "../components/UseIn.jsx";
 
 // Sentence ConnectZ — the IntelligenceZ writer. Everything it shows about
 // price, kinds, persona gates and the royalty rule comes from
@@ -24,6 +26,7 @@ function Price({ s }) {
     </span>
   );
 }
+
 
 export default function SentenceConnectZ() {
   const [s, setS] = useState(null);
@@ -61,9 +64,11 @@ export default function SentenceConnectZ() {
       const body = { kind, topic, genre };
       if (kind === "lyrics") Object.assign(body, { majority, minority });
       const w = await api("/api/economy/sentencez/", { method: "POST", body });
+      playSound("build_done");
       open(w);
       load();
     } catch (e) {
+      playSound("build_fail");
       setErr(e.message);
     } finally {
       setBusy(false);
@@ -150,7 +155,7 @@ export default function SentenceConnectZ() {
       </div>
 
       {work && (
-        <div className="neon-frame space-y-3 p-4">
+        <div key={work.id} className="mcz-reveal neon-frame space-y-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">{work.label}</h3>
             {royalty && (
@@ -168,6 +173,7 @@ export default function SentenceConnectZ() {
             }}><Copy size={14} /> {copied ? "Copied" : "Copy"}</button>
             <button className="re-link" onClick={() => goToSpot("postz", "composer")}>Post it in PostZ</button>
           </div>
+          <UseIn source="sentence" sourceId={work.id} pct={royalty?.royalty_pct ?? 10} text={draft} />
         </div>
       )}
 

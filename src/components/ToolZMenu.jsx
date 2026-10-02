@@ -156,7 +156,7 @@ const TOOLZ_MENU = {
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'AI mixing & mastering for your songs', soon: true },
         { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos from your FaceZ — StatZ lipsyncs to your track', soon: true },
-        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI by genre, instruments, BPM & key — StatZ searches keys by mood', soon: true },
+        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI by genre, instruments, BPM & key — StatZ searches keys by mood' },
         { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Lyrics, captions, posts, essays & agreements' },
       ]
     },

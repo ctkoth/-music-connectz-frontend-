@@ -201,3 +201,55 @@ body {
     transition: none !important;
   }
 }
+
+/* ---- Game feel: reward chips, balance flashes, tab entrances, presses ----
+   All decorative, and all switched off for prefers-reduced-motion below. */
+.mcz-chip {
+  position: relative;
+  border-width: 1px;
+  border-radius: 9999px;
+  background: rgba(7, 6, 13, 0.85);
+  padding: 0.35rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.35);
+  animation: mcz-chip-up 1.5s ease-out forwards;
+}
+.mcz-chip-big { font-size: 1.15rem; padding: 0.5rem 1.2rem; animation-duration: 2.2s; }
+@keyframes mcz-chip-up {
+  0% { opacity: 0; transform: translateY(14px) scale(0.85); }
+  15% { opacity: 1; transform: translateY(0) scale(1.06); }
+  25% { transform: translateY(0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-28px); }
+}
+.mcz-burst { position: absolute; left: 50%; top: 50%; }
+.mcz-burst i {
+  position: absolute; width: 6px; height: 6px; border-radius: 9999px;
+  background: currentColor;
+  animation: mcz-burst 0.9s ease-out forwards;
+  transform: rotate(var(--a)) translateX(0);
+}
+@keyframes mcz-burst {
+  to { transform: rotate(var(--a)) translateX(70px); opacity: 0; }
+}
+.mcz-flash-up { color: #6ee7b7; text-shadow: 0 0 10px rgba(110, 231, 183, 0.8); transition: color 0.9s, text-shadow 0.9s; }
+.mcz-flash-down { color: #ff7a45; text-shadow: 0 0 10px rgba(255, 122, 69, 0.8); transition: color 0.9s, text-shadow 0.9s; }
+.mcz-tab-enter { animation: mcz-tab-in 0.22s ease-out; }
+@keyframes mcz-tab-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.mcz-reveal { animation: mcz-reveal 0.35s ease-out; }
+@keyframes mcz-reveal {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.neon-btn-primary, .re-btn { transition: transform 0.08s ease, filter 0.15s ease; }
+.neon-btn-primary:active:not(:disabled), .re-btn:active:not(:disabled) { transform: scale(0.96); filter: brightness(1.2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mcz-chip, .mcz-burst i, .mcz-tab-enter, .mcz-reveal { animation: none !important; }
+  .mcz-burst { display: none; }
+  .neon-btn-primary:active, .re-btn:active { transform: none; }
+}

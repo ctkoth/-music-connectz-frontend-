@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { celebrate } from "../celebrate.js";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import EarnInstead from "../EarnInstead.jsx";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
-import { playSound } from "../sound.js";
 
 // OfferZ — offerwall. Complete an offer (sign-ups, surveys, installs) on the
 // provider's wall; their server calls the backend callback and SpinAZ lands in
@@ -34,7 +34,7 @@ export default function OfferZ() {
           // `last === null` is the first read — a baseline, never a payout.
           if (last !== null && now > last) {
             setLanded(now - last);
-            playSound("spinaz_gain");
+            celebrate("spinaz", now - last);
           }
           last = now;
         })

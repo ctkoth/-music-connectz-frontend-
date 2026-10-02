@@ -10,12 +10,12 @@
 // Every row states what it pays BEFORE it is started, and every row links to
 // the control that finishes it rather than to the top of a tab. Both of those
 // are the house rules, not decoration.
+import { celebrate } from "../celebrate.js";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Flame, Lock, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
-import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY } from "../resources.js";
@@ -110,7 +110,7 @@ export default function MimeZ() {
       const r = await api(`/api/economy/questz/${q.id}/claim/`, { method: "POST", body: {} });
       setBoard(r);
       setMsg(talk(P.mimez_claimed(r.energy, q.title)));
-      playSound("energy_gain");
+      celebrate("energy", Number(r.energy) || 0, { label: "quest done", sound: "quest_done" });
     } catch (e) {
       // The server's real reason, never a cheerful lie. A claim that quietly
       // fails while the screen says "done" is the worst bug class in this app.

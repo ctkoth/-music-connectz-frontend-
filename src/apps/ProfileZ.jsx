@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { playSound } from "../sound.js";
 import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
 import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
@@ -708,6 +709,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       });
       setMe(d);
       setSaved(true);
+      playSound("saved");
       setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ and LanguageZ are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { celebrate } from "../celebrate.js";
 import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown, Compass } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
@@ -7,7 +8,6 @@ import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
 import { SPINAZ, ENERGY } from "../resources.js";
-import { playSound } from "../sound.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -191,7 +191,7 @@ export default function OnboardZ() {
           setClaim(c);
           // Both sides of the reward land at once, so play the coin — the
           // bigger of the two — rather than stacking two sounds on one event.
-          if (c?.granted) playSound("spinaz_gain");
+          if (c?.granted) celebrate("spinaz", Number(c.reward_spinaz) || 0, { label: "onboarding complete!", big: true });
         })
         .catch(() => {});
     }

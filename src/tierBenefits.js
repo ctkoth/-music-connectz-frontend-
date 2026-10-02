@@ -31,7 +31,6 @@ export const TIER_MATRIX = [
   // Placing is StatZ. ANSWERING is every tier — see the CallZ row below.
   ["CallZ — place a call", "—", "—", "Yes"],
   ["CallZ — answer and get paid", "Yes", "Yes", "Yes"],
-  ["SpecZ marketplace", "—", "—", "Yes"],
   ["PersonaZ alternate artwork", "—", "Yes", "Yes"],
 ];
 

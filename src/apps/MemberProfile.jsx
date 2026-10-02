@@ -3,6 +3,7 @@
 // Opened by tapping someone in the online list on the CommunityBar. Reads the
 // same payload Social ConnectZ uses, so whatever a member fills in on ProfileZ
 // shows up here.
+import { playSound } from "../sound.js";
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Star, Users, X, Edit, Trash2 } from "lucide-react";
 import { api } from "../api.js";
@@ -15,6 +16,41 @@ import { LinkList } from "../WidgetBoard.jsx";
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
+}
+
+
+// Follow / unfollow. The relationship and the counts are the server's — a
+// follow the server refused (a block, say) never shows as done.
+function FollowButton({ username, onCounts }) {
+  const [rel, setRel] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    api(`/api/economy/follow/?username=${encodeURIComponent(username)}`)
+      .then((d) => setRel(d.relationship)).catch(() => {});
+  }, [username]);
+  if (!rel || rel.label === "self") return null;
+  async function toggle() {
+    setBusy(true); setErr("");
+    try {
+      const d = await api("/api/economy/follow/", { method: "POST",
+        body: { username, action: rel.is_following ? "unfollow" : "follow" } });
+      setRel(d.relationship);
+      onCounts?.({ followers: d.followers, following: d.following });
+      if (d.relationship.is_following) playSound("follow");
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  }
+  const label = rel.label === "friends" ? "🤝 Friends" : rel.is_following ? "Following"
+    : rel.follows_me ? "Follow back" : "Follow";
+  return (
+    <div className="flex items-center gap-2">
+      <button className={rel.is_following ? "re-btn !w-auto px-4 py-1.5 text-sm" : "neon-btn-primary !w-auto px-4 py-1.5 text-sm"}
+        disabled={busy} onClick={toggle} title={rel.is_following ? "Tap to unfollow" : ""}>
+        {label}
+      </button>
+      {err && <span className="text-xs text-mcz-ember">{err}</span>}
+    </div>
+  );
 }
 
 export default function MemberProfile({ username, onClose, currentUsername, onEditProfile, isOwner, onEditMember, onDeleteMember }) {
@@ -136,6 +172,8 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}
             <BadgeWearList badges={data.badges} />
+
+            <FollowButton username={username} onCounts={(c) => setData((d) => ({ ...d, ...c }))} />
 
             <div className="flex flex-wrap gap-2 text-xs">
               <Pill><Users size={11} className="inline" /> {data.followers ?? 0} followers</Pill>
