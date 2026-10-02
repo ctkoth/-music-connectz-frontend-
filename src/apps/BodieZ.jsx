@@ -39,7 +39,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, PlayCircle, Plus, Play,
-  Sparkles, Square, Target, Trash2, Wand2, X,
+  MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Wand2, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -47,6 +47,8 @@ import { IconImg } from "../App.jsx";
 import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import { handOff } from "../handoff.js";
+import { goToSpot } from "../goto.js";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -135,6 +137,15 @@ export default function BodieZ() {
   const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("coach"); };
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
+  // Kept for the tab's lifetime so a member can post it AND message their
+  // coach — each of those leaves BodieZ, and the card must still be here after.
+  const [summary, setSummaryState] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("bodiez.summary") || "null"); } catch { return null; }
+  });
+  const setSummary = (sm) => {
+    setSummaryState(sm);
+    try { sm ? sessionStorage.setItem("bodiez.summary", JSON.stringify(sm)) : sessionStorage.removeItem("bodiez.summary"); } catch { /* blocked */ }
+  };
   const [progress, setProgress] = useState(null);
   const [bodymap, setBodymap] = useState(null);
   const [coach, setCoach] = useState(null);
@@ -201,10 +212,11 @@ export default function BodieZ() {
     if (!session) return;
     if (!window.confirm(`End this session? You've been going ${clock(secondsSince(session.started_at))}.`)) return;
     try {
-      await api(`/api/economy/bodiez/sessions/${session.id}/`, {
+      const done = await api(`/api/economy/bodiez/sessions/${session.id}/`, {
         method: "PATCH", body: { finish: true },
       });
       setSession(null);
+      setSummary(done?.summary || null);
       load();
     } catch (e) { setErr(e.message); }
   }
@@ -390,11 +402,14 @@ export default function BodieZ() {
       ) : (
         <>
           {tab === "today" && (
+            <>
+            {summary && <SessionSummary summary={summary} onClose={() => setSummary(null)} />}
             <TodayView
               session={session} routines={routines} exercises={exercises}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
               goals={coach?.goals}
             />
+            </>
           )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
@@ -443,6 +458,118 @@ function useHistory(exerciseId) {
     return () => { alive = false; };
   }, [exerciseId]);
   return history;
+}
+
+function recordLine(r, unit) {
+  if (r.kind === "heaviest") return `Heaviest ${r.exercise}: ${fmtWeight(r.value_kg, unit)} (was ${fmtWeight(r.previous_kg, unit)})`;
+  if (r.kind === "reps") {
+    const at = r.weight_kg == null ? "bodyweight" : fmtWeight(r.weight_kg, unit);
+    return `Most reps, ${r.exercise} at ${at}: ${r.reps} (was ${r.previous_reps})`;
+  }
+  if (r.kind === "session_volume") return `Biggest session: ${fmtWeight(r.value_kg, unit)} lifted (was ${fmtWeight(r.previous_kg, unit)})`;
+  return "";
+}
+
+// The same words go everywhere it can be sent, so a post, a coach's DM and a
+// share sheet all say exactly what the screen said.
+// `brief` drops the per-exercise list: a post answers to the tier's character
+// limit (400 on Free), and the totals and records are the part worth posting.
+function summaryText(sm, unit, brief = false) {
+  const lines = [
+    `💪 ${sm.routine_title || "Workout"} — ${clock(sm.duration_seconds)}`,
+    `${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted · ${sm.sets} sets · ${sm.reps} reps`,
+    ...sm.records.map((r) => `🏆 ${recordLine(r, unit)}`),
+    ...(brief ? [] : sm.exercises.map((e) => `• ${e.name}: ${e.sets}×, ${e.reps} reps${e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}`)),
+  ];
+  return lines.join("\n");
+}
+
+function SessionSummary({ summary: sm, onClose }) {
+  const unit = useUnit();
+  const [note, setNote] = useState("");
+  const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
+  const text = summaryText(sm, unit);
+  const coaches = asList(sm.coaches);
+
+  async function share() {
+    try {
+      if (navigator.share) { await navigator.share({ title, text }); return; }
+      await navigator.clipboard.writeText(text);
+      setNote("Copied — paste it anywhere.");
+    } catch (e) {
+      if (e?.name !== "AbortError") setNote("Couldn't open sharing on this device.");
+    }
+  }
+  const toCoach = (who) => handOff("messagez", "messagez-compose", { people: who ? [who] : [], title, description: text });
+
+  return (
+    <div className="re-card space-y-3 border-emerald-400/40">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="re-label">Session done</p>
+          <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"} · {clock(sm.duration_seconds)}</p>
+        </div>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
+          <X size={16} />
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div><p className="text-2xl font-extrabold text-white">{Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()}</p><p className="re-label">{unit} lifted</p></div>
+        <div><p className="text-2xl font-extrabold text-white">{sm.sets}</p><p className="re-label">sets</p></div>
+        <div><p className="text-2xl font-extrabold text-white">{sm.reps}</p><p className="re-label">reps</p></div>
+      </div>
+      {sm.records.length > 0 ? (
+        <div className="space-y-1">
+          {sm.records.map((r, i) => (
+            <p key={i} className="flex items-start gap-1.5 text-xs text-amber-200">
+              <Trophy size={13} className="mt-0.5 shrink-0" /> {recordLine(r, unit)}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-white/45">
+          No new records this time{sm.firsts.length ? ` — first time logging ${sm.firsts.join(", ")}, so that's your starting mark` : ""}.
+        </p>
+      )}
+      {sm.records.length > 0 && sm.firsts.length > 0 && (
+        <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
+      )}
+      <div className="space-y-1">
+        {sm.exercises.map((e) => (
+          <p key={e.exercise_id} className="text-[11px] text-white/55">
+            {e.name}: {e.sets} {e.sets === 1 ? "set" : "sets"}, {e.reps} reps{e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}
+          </p>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={share}>
+          <Share2 size={13} /> Share
+        </button>
+        {coaches.length > 0 ? coaches.map((c) => (
+          <button key={c} className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(c)}>
+            <MessageSquare size={13} /> Send to coach @{c}
+          </button>
+        )) : (
+          <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(null)}>
+            <MessageSquare size={13} /> Send to a coach
+          </button>
+        )}
+        <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                onClick={() => handOff("postz", "post-compose", { title, description: summaryText(sm, unit, true).slice(0, 400) })}>
+          <Send size={13} /> Post to PostZ
+        </button>
+        <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                onClick={() => goToSpot("venuez", "venuez-rooms")}>
+          <MapPin size={13} /> Train in person · VenueZ
+        </button>
+      </div>
+      <p className="text-[11px] text-white/35">
+        PostZ shows what posting costs before you post; sending a DM is free.
+        {coaches.length === 0 && " You have no coach linked in CoachZ yet, so pick who to send it to."}
+      </p>
+      {note && <p className="text-[11px] text-mcz-cyan">{note}</p>}
+    </div>
+  );
 }
 
 function LastTime({ exerciseId }) {

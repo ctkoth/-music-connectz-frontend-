@@ -52,7 +52,7 @@ import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
-import { handOff } from "../handoff.js";
+import { handOff, onHandoff } from "../handoff.js";
 import PostEmbeds from "../PostEmbeds.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
@@ -196,6 +196,15 @@ export default function PostZ() {
   const charLimit = cl.unlimited ? null : cl.limit;
   const charState = cl.ready ? cl.state(description) : null;
 
+  // Another app can hand over a draft (BodieZ's session summary, LogZ). It
+  // fills the composer and stops there: the member still sees the price on
+  // the Post button and decides.
+  useEffect(() => onHandoff("postz", (p) => {
+    if (p.title) setTitle(String(p.title).slice(0, 160));
+    const body = p.description ?? p.text;
+    if (body) setDescription(String(body).slice(0, 4000));
+  }), []);
+
   useEffect(() => {
     api("/api/auth/stats/").then((st) => setIsOwner(!!st?.is_owner)).catch(() => {});
   }, []);
@@ -320,7 +329,7 @@ export default function PostZ() {
         </button>
       </header>
 
-      <div className="re-card space-y-3">
+      <div className="re-card space-y-3" data-tour="post-compose">
         <div className="re-label">Create a PostZ</div>
         <input
           data-tour="composer"
