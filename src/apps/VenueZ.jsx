@@ -47,6 +47,7 @@ import SkillsUsed from "../SkillsUsed.jsx";
 import { labelForSkill } from "../personaSkills.js";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import RangeGates from "../RangeGates.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -612,6 +613,7 @@ function HostForm({ onCreated, onFlash }) {
     category: "music", spinaz_price: "",
   });
   const [skills, setSkills] = useState([]);
+  const [gates, setGates] = useState({});
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -631,7 +633,7 @@ function HostForm({ onCreated, onFlash }) {
           capacity: Number(f.capacity) || 1,
           min_age: Number(f.min_age) || 0,
           spinaz_price: f.kind === "spinaz" ? Number(f.spinaz_price) || 0 : 0,
-          skills,
+          skills, gates,
         },
       });
       setF({ ...f, title: "", address: "", description: "", starts_at: "" });
@@ -717,6 +719,8 @@ function HostForm({ onCreated, onFlash }) {
 
       <textarea className="neon-input !py-2 text-xs" rows={3} placeholder="Anything else?"
                 value={f.description} onChange={set("description")} />
+
+      <RangeGates value={gates} onChange={setGates} title="Who can ask for a seat" />
 
       <SkillsUsed value={skills} onChange={setSkills} label="What's on offer here" />
       <p className="text-[10px] leading-relaxed text-white/35">
