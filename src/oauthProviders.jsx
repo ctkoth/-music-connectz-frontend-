@@ -55,8 +55,10 @@ export const SoundCloud = (p) => (
  * its own Google handling beside this list. */
 const RD = encodeURIComponent(REDIRECT);
 
+// `external`: in the APK, run this login in a Chrome tab (externalAuth.js).
+// Facebook refuses WebView logins, and Spotify offers Facebook as a login.
 export const PROVIDERS = [
-  { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954",
+  { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954", external: true,
     auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=user-read-email&state=${s}` },
   { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
     auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&state=${s}` },
@@ -66,7 +68,7 @@ export const PROVIDERS = [
     auth: (id, s) => `https://github.com/login/oauth/authorize?client_id=${id}&redirect_uri=${RD}&scope=read:user%20user:email&state=${s}` },
   { key: "twitter",    label: "Twitter / X", Icon: XTwitter,  color: "#ffffff", pkce: true,
     auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
-  { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2",
+  { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2", external: true,
     auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=email,public_profile&state=${s}` },
 ];
 

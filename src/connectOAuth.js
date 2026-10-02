@@ -13,6 +13,7 @@
 // difference is a marker in sessionStorage that tells the callback to spend
 // the code on a LINK instead of a sign-in.
 import { api } from "./api.js";
+import { goesExternal, openProvider, APP_STATE_PREFIX } from "./externalAuth.js";
 import { rand, pkceChallenge, clearFlowMarkers, REDIRECT } from "./oauthProviders.jsx";
 
 const MARK = "mcz_oauth_connect";
@@ -24,7 +25,7 @@ const MARK = "mcz_oauth_connect";
  *  link instead of a sign-in. */
 export async function startConnect(provider, clientId) {
   clearFlowMarkers();
-  const state = rand();
+  const state = (goesExternal(provider) ? APP_STATE_PREFIX : "") + rand();
   sessionStorage.setItem("mcz_oauth_provider", provider.key);
   sessionStorage.setItem("mcz_oauth_state", state);
   sessionStorage.setItem(MARK, "1");
@@ -36,7 +37,7 @@ export async function startConnect(provider, clientId) {
   } else {
     sessionStorage.removeItem("mcz_oauth_verifier");
   }
-  window.location.href = provider.auth(encodeURIComponent(clientId), state, challenge);
+  await openProvider(provider, provider.auth(encodeURIComponent(clientId), state, challenge));
 }
 
 /** Called by OAuthCallback when it finds the marker. Clears it either way,
