@@ -9,7 +9,8 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
-import { celebrateBattles } from "../milestones.js";
+import { celebrateBattles, celebratePartnerz } from "../milestones.js";
+import PartnerzMark from "../components/PartnerzMark.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { useEffect, useState } from "react";
 import {
@@ -250,6 +251,7 @@ function Detail({ id, onBack, onFlash, seed }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="font-display text-lg font-extrabold">{b.title}</h3>
+            <PartnerzMark pairs={b.partnered} />
             <p className="text-[11px] text-white/45">
               hosted by @{b.host}
               {b.genre && <> · {b.genre}</>}
@@ -460,7 +462,7 @@ export default function BattleZ() {
 
   const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => { const l = asList(d?.battles); setList(l); celebrateBattles(l, user?.username); })
+    .then((d) => { const l = asList(d?.battles); setList(l); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
