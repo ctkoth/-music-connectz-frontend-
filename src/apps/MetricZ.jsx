@@ -119,6 +119,7 @@ export default function MetricZ({ kind }) {
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">{chosen.emoji} {chosen.label} · members</h3>
+                {chosen.read && <p className="w-full text-xs italic text-white/65">{chosen.element} · {chosen.read}</p>}
                 {kind === "zodiacz" && (
                   <span className="flex flex-wrap gap-2">
                     <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={() => openHoroscope(chosen.key)}>

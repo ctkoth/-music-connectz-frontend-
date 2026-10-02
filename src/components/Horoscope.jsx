@@ -38,6 +38,7 @@ export function HoroscopeLayer() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [locked, setLocked] = useState(false);
+  const [withSign, setWithSign] = useState("");
 
   useEffect(() => {
     const h = (e) => {
@@ -51,13 +52,16 @@ export function HoroscopeLayer() {
   useEffect(() => {
     if (!sign) return;
     setD(null); setErr(""); setLocked(false);
-    api(`/api/economy/horoscope/${encodeURIComponent(sign)}/${level === "advanced" ? "?level=advanced" : ""}`)
+    const q = new URLSearchParams();
+    if (level === "advanced") q.set("level", "advanced");
+    if (withSign) q.set("with", withSign);
+    api(`/api/economy/horoscope/${encodeURIComponent(sign)}/${q.toString() ? `?${q}` : ""}`)
       .then(setD)
       .catch((e) => {
         if (e.status === 403) setLocked(e.message || true);
         else setErr(e.message || "Today's reading isn't ready — try again in a minute.");
       });
-  }, [sign, level]);
+  }, [sign, level, withSign]);
 
   if (!sign) return null;
   const r = d?.reading;
@@ -69,7 +73,7 @@ export function HoroscopeLayer() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-display text-2xl font-extrabold text-mcz-gold">{d?.emoji} {sign}</h3>
-            <p className="text-xs text-white/50">{d?.dates}{d?.day ? ` · ${new Date(d.day + "T12:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}` : ""}</p>
+            <p className="text-xs text-white/50">{d?.dates}{d?.element ? ` · ${d.element}` : ""}{d?.day ? ` · ${new Date(d.day + "T12:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}` : ""}</p>
           </div>
           <button className="rounded-lg p-1 text-white/50 hover:text-white" onClick={() => setSign(null)} aria-label="Close"><X size={18} /></button>
         </div>
@@ -89,6 +93,24 @@ export function HoroscopeLayer() {
             <StatzSample what="The advanced horoscope" />
           </div>
         )}
+        {d?.about && <p className="mt-3 text-sm italic leading-relaxed text-white/75">{d.about}</p>}
+
+        {/* Compatibility — v2.2's element read on two SIGNS. It is never shown
+            on a person or used to rank anybody; it is a horoscope answer. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-white/50">How {sign} gets on with</span>
+          <select className="neon-input !w-auto !py-1 text-xs" value={withSign} onChange={(e) => setWithSign(e.target.value)}>
+            <option value="">— pick a sign —</option>
+            {["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"].map((x) => <option key={x}>{x}</option>)}
+          </select>
+        </div>
+        {d?.compatibility && (
+          <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 text-xs">
+            <p className="font-semibold text-mcz-gold">{d.compatibility.a} ({d.compatibility.element_a}) + {d.compatibility.b} ({d.compatibility.element_b}) · {d.compatibility.score}/{d.compatibility.out_of}</p>
+            <p className="mt-0.5 text-white/70">{d.compatibility.note}</p>
+          </div>
+        )}
+
         {!d && !err && !locked && <p className="mt-4 flex items-center gap-2 text-sm text-white/60"><Loader2 className="animate-spin" size={14} /> Reading the stars…</p>}
         {err && <p className="mt-4 text-sm text-mcz-ember">{err}</p>}
 
@@ -153,7 +175,8 @@ export function HoroscopeLayer() {
         )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-[11px] text-white/45">
-          <span>{level === "basic" ? <span className="text-emerald-300">Free</span> : <span className="text-mcz-gold">StatZ</span>} · {d?.note || "A reading for today, not a forecast."}</span>
+          <span>{level === "basic" ? <span className="text-emerald-300">Free</span> : <span className="text-mcz-gold">StatZ</span>}
+            {d?.reading?.source === "house" ? " · Corey's house reading for today" : ""} · {d?.note || "A reading for today, not a forecast."}</span>
           <button className="re-link" onClick={() => { setSign(null); try { sessionStorage.setItem("mcz_zodiacz_sign", sign); } catch { /* still opens ZodiacZ */ } goToTab("zodiacz"); }}>
             {sign} members →
           </button>
