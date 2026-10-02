@@ -327,10 +327,9 @@ export default function ToolZMenu() {
   return (
     <div className="toolz-menu-container">
       <div className="toolz-header">
+        <img src="/mcz-logo-mark.png" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <div className="toolz-icon-main">
-          <svg className="icon-svg-main" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-            <image href="/icons/toolz-main-neon.svg" width="512" height="512" />
-          </svg>
+          <IconImg icon="toolz.png" alt="ToolZ" className="category-icon-img" />
         </div>
         <h1>ToolZ</h1>
         <p className="toolz-subtitle">Audio, Visual & App ToolZ</p>
