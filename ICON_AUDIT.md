@@ -41,6 +41,40 @@ show committed dotted files the tree picked up from public/icons.
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
+## Adopted — committed under the registry key's own name (27)
+The supplied list spells these differently, so they were never matched by
+name; the committed file is the artwork, and it is the default now.
+
+| Registry key | Committed art | Was drawing |
+|---|---|---|
+| `battlez.cypher.png` | `battlez.cypher.jpg` | /icons/battlez.cypher-neon.svg |
+| `callz.png` | `callz.png` | /icons/callz-neon.svg |
+| `callz_ai.webp` | `callz_ai.png` | /icons/callz_ai.webp |
+| `callz_user.webp` | `callz_user.png` | /icons/callz_user.webp |
+| `drumz.png` | `drumz.png` | /icons/drumz-neon.svg |
+| `violinz.png` | `violinz.png` | /icons/violinz-neon.svg |
+| `guitarz.png` | `guitarz.png` | /icons/guitarz-neon.svg |
+| `keyz.png` | `keyz.png` | /icons/keyz-neon.svg |
+| `partnerz.jpg` | `partnerz.jpg` | /icons/partnerz-neon.svg |
+| `keyconnectz.png` | `keyconnectz.png` | /icons/keyconnectz-neon.svg |
+| `lessonz.png` | `lessonz.png` | /icons/lessonz-neon.svg |
+| `mimez.png` | `mimez.png` | /icons/mimez-neon.svg |
+| `occ.png` | `occ.png` | /icons/occ-neon.svg |
+| `offerz.png` | `offerz.png` | /icons/offerz-neon.svg |
+| `adz.png` | `adz.png` | /icons/adz-neon.svg |
+| `money.png` | `money.png` | /icons/money-neon.svg |
+| `specz.png` | `specz.png` | /icons/specz-neon.svg |
+| `onboardz.png` | `onboardz.png` | /icons/onboardz-neon.svg |
+| `postz.png` | `postz.png` | /icons/postz-neon.svg |
+| `personaz_director.webp` | `personaz_director.png` | /icons/personaz_director.webp |
+| `royaltiez.png` | `royaltiez.png` | /icons/royaltiez-neon.svg |
+| `social_connectz.png` | `social_connectz.png` | /icons/social_connectz-neon.svg |
+| `playlistz.png` | `playlistz.png` | /icons/playlistz-neon.svg |
+| `habitz.png` | `habitz.png` | /icons/habitz-neon.svg |
+| `metz.jpg` | `metz.jpg` | /icons/metz-neon.svg |
+| `tunerz.jpg` | `tunerz.jpg` | /icons/tunerz-neon.svg |
+| `onboardz.jpg` | `onboardz.png` | /icons/onboardz-neon.svg |
+
 ## Owed — has a place, file not committed (62)
 The tab keeps the artwork it had until the file is pushed. Rename with
 `node tools/normalize-icons.mjs --apply`, commit, then rebuild the manifest.
