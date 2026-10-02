@@ -49,6 +49,28 @@ jobs:
       - name: Add Android platform
         run: npx --yes cap add android
 
+      # Facebook refuses WebView logins, so Facebook and Spotify sign-in run in
+      # a Chrome tab and come back on net.musicconnectz.app://oauth/... — see
+      # src/externalAuth.js. Capacitor's template declares the scheme string
+      # (custom_url_scheme = appId) but no intent-filter for it, so without
+      # this the link has nowhere to land and the member is stranded in Chrome.
+      - name: Register the OAuth deep link
+        run: |
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          f = '''            <intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="@string/custom_url_scheme" android:host="oauth" />
+                      </intent-filter>
+                  </activity>'''
+          assert s.count("</activity>") == 1, "expected one activity in the template"
+          open(p, "w").write(s.replace("</activity>", f, 1))
+          PY
+          grep -n "custom_url_scheme" android/app/src/main/AndroidManifest.xml android/app/src/main/res/values/strings.xml
+
       - name: Generate app icon + splash from the logo
         run: npx --yes @capacitor/assets generate --android --iconBackgroundColor "#07060d" --splashBackgroundColor "#07060d" || echo "asset gen skipped"
 

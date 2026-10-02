@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
+import { goesExternal, openProvider, APP_STATE_PREFIX } from "../externalAuth.js";
 import { GoogleG, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
@@ -141,7 +142,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
     // over from either of those, abandoned mid-flow in this tab, would
     // otherwise hijack the callback that is about to happen.
     clearFlowMarkers();
-    const state = rand();
+    const state = (goesExternal(p) ? APP_STATE_PREFIX : "") + rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
     sessionStorage.setItem("mcz_oauth_state", state);
     let challenge = "";
@@ -152,7 +153,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
     } else {
       sessionStorage.removeItem("mcz_oauth_verifier");
     }
-    window.location.href = p.auth(encodeURIComponent(id), state, challenge);
+    await openProvider(p, p.auth(encodeURIComponent(id), state, challenge));
   }
 
   // Google renders as its own GIS button when configured; otherwise it shows in

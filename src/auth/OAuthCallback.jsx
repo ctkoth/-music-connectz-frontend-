@@ -7,6 +7,7 @@ import { AuthShell } from "./Register.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
 import { finishConnect, connectPending } from "../connectOAuth.js";
 import { REDIRECT } from "../oauthProviders.jsx";
+import { isAppHandoff, appReturnUrl } from "../externalAuth.js";
 
 export default function OAuthCallback() {
   const { oauth, login } = useAuth();
@@ -16,9 +17,20 @@ export default function OAuthCallback() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
+  // This page, in a Chrome tab, on its way back to the app. The app holds the
+  // state and verifier, so it is the one that spends the code — never this tab.
+  const [handoff] = useState(() =>
+    isAppHandoff(params.get("state")) ? appReturnUrl(window.location.search) : "");
 
   useEffect(() => {
     async function handleCallback() {
+      if (handoff) {
+        setBusy(false);
+        // Chrome may refuse an app launch nobody tapped for; the button below
+        // is the tap.
+        window.location.href = handoff;
+        return;
+      }
       try {
         // Get provider and code from URL params — set by OAuthButtons before redirect
         const provider = sessionStorage.getItem("mcz_oauth_provider");
@@ -115,6 +127,20 @@ export default function OAuthCallback() {
       setError(e.message);
       setSigningIn(false);
     }
+  }
+
+  if (handoff) {
+    return (
+      <AuthShell title="Back to the app">
+        <div className="space-y-4 text-center">
+          <p className="text-sm text-white/70">
+            You're signed in with the provider. Finish in the Music ConnectZ app.
+          </p>
+          <a href={handoff} className="neon-btn-primary block w-full">Open Music ConnectZ</a>
+          <p className="text-xs text-white/40">You can close this tab afterwards.</p>
+        </div>
+      </AuthShell>
+    );
   }
 
   // Loading
