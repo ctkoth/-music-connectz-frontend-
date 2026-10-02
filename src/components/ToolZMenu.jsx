@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
-import { MINI_TOOLS, slugFor } from '../App.jsx';
+import { canMini, slugFor } from '../App.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg } from '../App.jsx';
 import './ToolZMenu.css';
 
@@ -260,6 +261,7 @@ const CATEGORIES = [
 ];
 
 export default function ToolZMenu() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [hoveredApp, setHoveredApp] = useState(null);
 
@@ -351,11 +353,11 @@ export default function ToolZMenu() {
                 >
                   ⊞ Split
                 </button>
-                {MINI_TOOLS.includes(app.key) && (
+                {canMini(tabOf(app), user?.tier) && (
                   <button
                     className="open-btn open-split"
-                    onClick={() => window.dispatchEvent(new CustomEvent('mcz-mini', { detail: app.key }))}
-                    title="Dock it small beside any app — up to three"
+                    onClick={() => window.dispatchEvent(new CustomEvent('mcz-mini', { detail: tabOf(app) }))}
+                    title="Dock it small beside any app — up to three at once"
                   >
                     ◱ Mini
                   </button>

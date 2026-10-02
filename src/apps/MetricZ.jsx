@@ -87,7 +87,11 @@ export default function MetricZ({ kind }) {
               </button>
             )}
             {kind === "zodiacz" && d.mine?.[0] && (
-              <button className="re-link" onClick={() => openHoroscope(d.mine[0])}>Your horoscope today</button>
+              <>
+                <button className="re-link" onClick={() => openHoroscope(d.mine[0])}>Your horoscope today</button>
+                <button data-tour="zodiacz-advanced" className="re-link !text-mcz-gold"
+                  onClick={() => openHoroscope(d.mine[0], "advanced")}>Advanced reading · StatZ</button>
+              </>
             )}
           </div>
 
@@ -116,9 +120,15 @@ export default function MetricZ({ kind }) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-semibold">{chosen.emoji} {chosen.label} · members</h3>
                 {kind === "zodiacz" && (
-                  <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={() => openHoroscope(chosen.key)}>
-                    Today's {chosen.label} horoscope · <span className="text-emerald-300">free</span>
-                  </button>
+                  <span className="flex flex-wrap gap-2">
+                    <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={() => openHoroscope(chosen.key)}>
+                      Today's {chosen.label} horoscope · <span className="text-emerald-300">free</span>
+                    </button>
+                    <button className="re-btn !w-auto px-3 py-1 text-xs"
+                      onClick={() => openHoroscope(chosen.key, "advanced")}>
+                      Advanced · <span className="text-mcz-gold">StatZ</span>
+                    </button>
+                  </span>
                 )}
               </div>
               {members === undefined && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={14} /> Finding members…</p>}

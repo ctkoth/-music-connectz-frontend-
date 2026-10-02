@@ -17,7 +17,7 @@
 // (not pins, so they never eat into the Free tier's 2-pin limit) until the
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
-import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X } from "lucide-react";
+import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
 import { IconImg, slugFor } from "./App.jsx";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
@@ -122,7 +122,7 @@ function DockButton({ app, active, badge, onClick }) {
   );
 }
 
-export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit }) {
+export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit, onMini, minis = [] }) {
   const [drawer, setDrawer] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   // SplitZ: StatZ keeps it, Premium samples it (every open carries an
@@ -323,6 +323,19 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                       two mounted React trees, never an iframe of ourselves.
                       Never for the app already on screen; splitting a screen
                       with itself is a no-op dressed as a feature. */}
+                  {/* Mini — the app small, docked beside whatever is open.
+                      Bottom-left, opposite SplitZ. MetZ/TunerZ/ChordZ at every
+                      tier; anything else on SplitZ's rule (see canMini). */}
+                  {onMini && current !== a.key && (["metz", "tunerz", "chordz"].includes(a.key) || isPremiumTier(tier)) && (
+                    <button
+                      onClick={() => { onMini(a.key); setDrawer(false); }}
+                      aria-label={`${minis.includes(a.key) ? "Close" : "Open"} ${a.label} as a mini`}
+                      title={`${minis.includes(a.key) ? "Close" : "Open"} ${a.label} small, beside the current app`}
+                      className={`absolute -bottom-1 -left-1 rounded-full p-1 text-black transition ${minis.includes(a.key) ? "bg-mcz-gold" : "bg-white/70 hover:bg-white"}`}
+                    >
+                      <PictureInPicture2 size={9} />
+                    </button>
+                  )}
                   {canSplit && current !== a.key && (
                     <button
                       onClick={() => { onSplit(a.key); setDrawer(false); }}

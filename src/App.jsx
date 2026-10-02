@@ -11,7 +11,7 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
-import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
+import Dock, { isPremiumTier, isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -440,8 +440,12 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // Until this existed the whole app lived at "/" and switched tabs through a
 // custom event: no tab could be linked, bookmarked, or reached with the back
 // button. A screen with no address is one you can only tell somebody how to find.
-// The small tools that dock as mini panes (see `minis` in the shell).
+// Mini panes (see `minis` in the shell). ANY app can open as one. The three
+// small tools are free as minis at every tier — a metronome beside the coach
+// is practice, not a perk. Every other app as a mini follows SplitZ's rule
+// (Premium and up), because three free minis would make SplitZ pointless.
 export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
+export const canMini = (key, tier) => MINI_TOOLS.includes(key) || isPremiumTier(tier);
 const MAX_MINIS = 3;
 
 export const slugFor = (key) =>
@@ -872,12 +876,12 @@ function Home() {
   // next to the coach (and a SplitZ pane) at once: four panes on one screen.
   // Kept per browser, because which tools you practise with is a habit.
   const [minis, setMinis] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => MINI_TOOLS.includes(k)); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => TABS.some((t) => t.key === k)); } catch { return []; }
   });
   useEffect(() => { try { localStorage.setItem("mcz_minis", JSON.stringify(minis)); } catch { /* per-session then */ } }, [minis]);
   useEffect(() => {
     const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
-      : MINI_TOOLS.includes(e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
+      : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
     window.addEventListener("mcz-mini", h);
     return () => window.removeEventListener("mcz-mini", h);
   }, []);
@@ -1091,11 +1095,11 @@ function Home() {
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
             other down with it. */}
-        <div className={minis.some((k) => k !== tab) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
-        {minis.some((k) => k !== tab) && (
+        <div className={minis.some((k) => k !== tab && canMini(k, user?.tier)) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
+        {minis.some((k) => k !== tab && canMini(k, user?.tier)) && (
           <aside className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 lg:order-last lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
                  aria-label="Mini tools">
-            {minis.filter((k) => k !== tab).map((k) => {
+            {minis.filter((k) => k !== tab && canMini(k, user?.tier)).map((k) => {
               const t = TABS.find((x) => x.key === k);
               return (
                 <section key={k} className="neon-frame w-[82vw] max-w-[320px] shrink-0 overflow-hidden p-0 lg:w-auto lg:max-w-none">
@@ -1306,6 +1310,8 @@ function Home() {
           onTogglePin={togglePin}
           onToggleHide={toggleHide}
           onSplit={setSplitKey}
+          onMini={(k) => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}
+          minis={minis}
         />
       </div>
       </WidgetProvider>

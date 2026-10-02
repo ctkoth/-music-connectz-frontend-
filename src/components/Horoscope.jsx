@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { api } from "../api.js";
 import { goToTab } from "../goto.js";
+import { StatzSample } from "./StatzSample.jsx";
 
 // Today's detailed horoscope for a sign. Written once a day per sign by the
 // server (apps/economy/metricz.py) and free — the "free" is stated, because a
@@ -10,8 +11,8 @@ import { goToTab } from "../goto.js";
 // Anything that shows a sign can open it: `openHoroscope("Leo")` from
 // anywhere, or wrap the sign in <SignLink>. The panel is mounted once in App.
 
-export function openHoroscope(sign) {
-  if (sign) window.dispatchEvent(new CustomEvent("mcz-horoscope", { detail: sign }));
+export function openHoroscope(sign, level = "basic") {
+  if (sign) window.dispatchEvent(new CustomEvent("mcz-horoscope", { detail: { sign, level } }));
 }
 
 /** A member's sign as a button that opens today's reading for it. */
@@ -33,21 +34,30 @@ const SECTIONS = [
 
 export function HoroscopeLayer() {
   const [sign, setSign] = useState(null);
+  const [level, setLevel] = useState("basic");
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    const h = (e) => setSign(e.detail);
+    const h = (e) => {
+      const v = typeof e.detail === "string" ? { sign: e.detail } : e.detail;
+      setSign(v.sign); setLevel(v.level || "basic");
+    };
     window.addEventListener("mcz-horoscope", h);
     return () => window.removeEventListener("mcz-horoscope", h);
   }, []);
 
   useEffect(() => {
     if (!sign) return;
-    setD(null); setErr("");
-    api(`/api/economy/horoscope/${encodeURIComponent(sign)}/`)
-      .then(setD).catch((e) => setErr(e.message || "Today's reading isn't ready — try again in a minute."));
-  }, [sign]);
+    setD(null); setErr(""); setLocked(false);
+    api(`/api/economy/horoscope/${encodeURIComponent(sign)}/${level === "advanced" ? "?level=advanced" : ""}`)
+      .then(setD)
+      .catch((e) => {
+        if (e.status === 403) setLocked(e.message || true);
+        else setErr(e.message || "Today's reading isn't ready — try again in a minute.");
+      });
+  }, [sign, level]);
 
   if (!sign) return null;
   const r = d?.reading;
@@ -64,10 +74,66 @@ export function HoroscopeLayer() {
           <button className="rounded-lg p-1 text-white/50 hover:text-white" onClick={() => setSign(null)} aria-label="Close"><X size={18} /></button>
         </div>
 
-        {!d && !err && <p className="mt-4 flex items-center gap-2 text-sm text-white/60"><Loader2 className="animate-spin" size={14} /> Reading the stars…</p>}
+        <div className="mt-3 flex gap-2" role="radiogroup" aria-label="Reading">
+          {[["basic", "Daily"], ["advanced", "Advanced · StatZ"]].map(([k, l]) => (
+            <button key={k} role="radio" aria-checked={level === k} onClick={() => setLevel(k)}
+              className={`rounded-full border px-3 py-1 text-xs ${level === k ? "border-mcz-gold bg-mcz-gold/15 text-mcz-gold" : "border-white/15 text-white/60"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {locked && (
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-white/70">{typeof locked === "string" ? locked : "The advanced reading is a StatZ feature."}</p>
+            <StatzSample what="The advanced horoscope" />
+          </div>
+        )}
+        {!d && !err && !locked && <p className="mt-4 flex items-center gap-2 text-sm text-white/60"><Loader2 className="animate-spin" size={14} /> Reading the stars…</p>}
         {err && <p className="mt-4 text-sm text-mcz-ember">{err}</p>}
 
-        {r && (
+        {r && level === "advanced" && r.week && (
+          <div className="mt-4 space-y-3">
+            {[["love_single", "Love · single", "💘"], ["love_partnered", "Love · taken", "💞"],
+              ["money_earning", "Money · earning", "💵"], ["money_spending", "Money · spending", "🧾"],
+              ["career", "Your music career", "🎵"]].map(([k, label, icon]) => (
+              <div key={k}>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">{icon} {label}</p>
+                <p className="text-sm leading-relaxed text-white/85">{r[k]}</p>
+              </div>
+            ))}
+            {r.collab_signs?.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">🤝 Create with today</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {r.collab_signs.map((x) => (
+                    <button key={x} className="pill hover:text-mcz-gold" onClick={() => { setSign(null); try { sessionStorage.setItem("mcz_zodiacz_sign", x); } catch { /* opens ZodiacZ anyway */ } goToTab("zodiacz"); }}>
+                      {x} members →
+                    </button>
+                  ))}
+                </div>
+                {r.collab_why && <p className="mt-1 text-xs text-white/60">{r.collab_why}</p>}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 text-xs">
+              {r.power_hours && <span className="pill">⏰ Create {r.power_hours}</span>}
+              {r.friction_sign && <span className="pill">🌀 Go gently with {r.friction_sign}</span>}
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">📅 The week ahead</p>
+              <ol className="mt-1 space-y-1 text-sm text-white/80">
+                {r.week.map((line, i) => {
+                  const day = new Date((d.day || "") + "T12:00"); day.setDate(day.getDate() + i);
+                  return <li key={i}><span className="mr-2 text-white/45">{day.toLocaleDateString([], { weekday: "short" })}</span>{line}</li>;
+                })}
+              </ol>
+            </div>
+            <p className="text-sm text-white/85"><span className="text-white/45">🎯 Challenge · </span>{r.challenge}</p>
+            <p className="text-sm italic text-mcz-gold">“{r.affirmation}”</p>
+          </div>
+        )}
+
+        {r && level === "basic" && (
           <div className="mt-4 space-y-3">
             {SECTIONS.map(([k, label, icon]) => r[k] && (
               <div key={k}>
@@ -87,7 +153,7 @@ export function HoroscopeLayer() {
         )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-[11px] text-white/45">
-          <span><span className="text-emerald-300">Free</span> · {d?.note || "A reading for today, not a forecast."}</span>
+          <span>{level === "basic" ? <span className="text-emerald-300">Free</span> : <span className="text-mcz-gold">StatZ</span>} · {d?.note || "A reading for today, not a forecast."}</span>
           <button className="re-link" onClick={() => { setSign(null); try { sessionStorage.setItem("mcz_zodiacz_sign", sign); } catch { /* still opens ZodiacZ */ } goToTab("zodiacz"); }}>
             {sign} members →
           </button>
