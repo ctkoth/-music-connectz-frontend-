@@ -8,7 +8,7 @@ name: Build Android APK
 on:
   push:
     branches: [main]
-    paths: ["src/**", "public/**", "index.html", "capacitor.config.json", "package.json", "resources/**", ".github/workflows/android-apk.yml"]
+    paths: ["src/**", "public/**", "index.html", "capacitor.config.json", "package.json", "resources/**", ".github/workflows/android-apk.yml", "android-overrides/**"]
   workflow_dispatch: {}
 
 permissions:
@@ -70,6 +70,10 @@ jobs:
           open(p, "w").write(s.replace("</activity>", f, 1))
           PY
           grep -n "custom_url_scheme" android/app/src/main/AndroidManifest.xml android/app/src/main/res/values/strings.xml
+
+      # A native watchdog for a page that never draws — see the file's header.
+      - name: Install the MainActivity override
+        run: cp android-overrides/MainActivity.java android/app/src/main/java/net/musicconnectz/app/MainActivity.java
 
       - name: Generate app icon + splash from the logo
         run: npx --yes @capacitor/assets generate --android --iconBackgroundColor "#07060d" --splashBackgroundColor "#07060d" || echo "asset gen skipped"
