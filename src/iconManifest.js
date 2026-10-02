@@ -37,6 +37,7 @@ export const ICON_DEFAULTS = {
   "profilez.png": "/icons/profilez.png",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
+  "social_connectz.png": "/icons/socializez.jpg",
   "substancez.png": "/icons/substancez.png",
   "toolz.png": "/icons/toolz.png",
   "venuez.png": "/icons/venuez.png",
@@ -63,7 +64,6 @@ export const ICON_DEFAULTS = {
   "postz.png": "/icons/postz.png",
   "personaz_director.webp": "/icons/personaz_director.png",
   "royaltiez.png": "/icons/royaltiez.png",
-  "social_connectz.png": "/icons/social_connectz.png",
   "playlistz.png": "/icons/playlistz.png",
   "habitz.png": "/icons/habitz.png",
   "metz.jpg": "/icons/metz.jpg",
@@ -1249,10 +1249,10 @@ export const ICON_TREE = [
     "label": "SocialiZeZ",
     "root": {
       "file": "socializez.jpg",
-      "art": null,
+      "art": "/icons/socializez.jpg",
       "key": "social_connectz.png",
-      "status": "owed",
-      "note": ""
+      "status": "live",
+      "note": "replaces the generated glyph /icons/social_connectz-neon.svg"
     },
     "extra": [],
     "children": [
