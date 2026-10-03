@@ -81,6 +81,7 @@ const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
+const BeatZ = lazy(lazyRoute(() => import("./apps/BeatZ.jsx")));
 // Logged-out doors. PersonalityTest is a trial like /try; MetZ and ChordZ are
 // the same components the app mounts as tabs — they make no API calls and
 // read no session, so serving them to a stranger costs nothing and needs no
@@ -306,6 +307,7 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
+  "beatz.png": "/icons/beatz-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz-neon.svg",
@@ -486,6 +488,8 @@ const TABS = [
   { key: "ratez", label: "Rate ConnectZ", icon: "ratez.png", el: <RateConnectZ /> },
   { key: "sonday", label: "Sonday", icon: "sonday.png", el: <Sonday /> },
   { key: "merchz", label: "MercheZ", icon: "merchz.png", el: <MerchZ /> },
+  // BeatZ — license beats, sell your own; real money, preview before paying.
+  { key: "beatz", label: "BeatZ", icon: "beatz.png", el: <BeatZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },

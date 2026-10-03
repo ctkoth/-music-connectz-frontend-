@@ -1622,6 +1622,7 @@ export const ICON_TREE = [
 export const TAB_ICONS_WITHOUT_ART = [
   "adz.png",
   "bassz.png",
+  "beatz.png",
   "callz.png",
   "facez.png",
   "funnelz.png",

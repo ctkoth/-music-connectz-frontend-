@@ -65,6 +65,13 @@ const G = {
           fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
     <path d="M312 298l74 74" stroke="${a}" stroke-width="20" stroke-linecap="round"/>`,
 
+  // BeatZ: a record with a waveform cut across it — a beat you can license.
+  beatz: (a, b) => `
+    <circle cx="256" cy="256" r="150" fill="none" stroke="${a}" stroke-width="16"/>
+    <circle cx="256" cy="256" r="26" fill="none" stroke="${a}" stroke-width="12"/>
+    <path d="M150 256v0M178 226v60M206 196v120M234 236v40M278 236v40M306 186v140M334 216v80M362 246v20"
+          stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
   profilez: (a, b) => `
     <path d="M300 118h84v70a42 42 0 0 1-84 0z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.85"/>
     <path d="M148 112h150v86a75 75 0 0 1-150 0z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
@@ -426,6 +433,7 @@ const APPS = [
   // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
+  ["beatz", "BeatZ", C.purple, C.gold],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
   ["money", "MembershipZ", C.gold, C.emerald],

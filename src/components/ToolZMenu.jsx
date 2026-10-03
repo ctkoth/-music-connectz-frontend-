@@ -20,7 +20,7 @@ const ICON_KEY = {
   onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
-  merchz: "merchz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
+  merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
@@ -33,7 +33,7 @@ const EMOJI = {
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
-  funnelz: "📉", groupz: "👫", merchz: "🛍️", lilith: "💃", bodiez: "💪", journalz: "📔",
+  funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
   metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
   mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
@@ -149,6 +149,7 @@ const TOOLZ_MENU = {
     {
       group: 'Release & Earn',
       apps: [
+        { key: 'beatz', label: 'BeatZ', color: 'purple', desc: 'License beats from producers, or sell your own' },
         { key: 'distributez', label: 'DistributeZ', color: 'cyan', desc: 'Your posts and collabs become releases — Free sends 1 a month' },
         { key: 'royaltiez', label: 'RoyaltieZ', color: 'gold', desc: 'What your releases earn, and cashing it out' },
       ]
