@@ -1638,6 +1638,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "onboardz.png",
   "playlistz.png",
   "postz.png",
+  "ratez.png",
   "royaltiez.png",
   "soundcloudengagementz.png",
   "soundz.png",
