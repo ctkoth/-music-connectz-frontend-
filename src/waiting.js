@@ -25,6 +25,13 @@ export function refreshWaiting() {
       counts = { ...counts, ratez: n }; emit();
     })
     .catch(() => {})
+    .then(() => api("/api/economy/battlez/weekly/"))
+    .then((d) => {
+      // Weekly Open takes by others that you haven't rated yet.
+      const n = (d?.week?.board || []).filter((r) => !r.mine && !r.rated_by_me).length;
+      counts = { ...counts, battlez: n }; emit();
+    })
+    .catch(() => {})
     .finally(() => { loading = null; });
   return loading;
 }

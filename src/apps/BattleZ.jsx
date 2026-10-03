@@ -12,7 +12,8 @@
 import { celebrateBattles, celebratePartnerz } from "../milestones.js";
 import PartnerzMark from "../components/PartnerzMark.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trackListening } from "../listen.js";
 import {
   ArrowLeft, Check, Coins, Crown, Loader2, Lock, Plus, Star, Swords, Timer,
   Trophy, Users, X,
@@ -37,15 +38,26 @@ import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
 
+// An entry's take counts its own listening (listen.js), because rating a
+// battle take requires hearing it first — the same rule posts follow, and the
+// server enforces it. The battle's own beat (no item_key) is just a player.
+function Heard({ item }) {
+  const ref = useRef(null);
+  useEffect(() => trackListening(ref.current, item.item_key), [item.item_key]);
+  return item.media_type === "video"
+    ? <video ref={ref} src={item.media_url} controls className="w-full rounded-lg" />
+    : <audio ref={ref} src={item.media_url} controls className="w-full" />;
+}
+
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
   return (
     <div className="space-y-2">
-      {item.media_url && (
+      {item.media_url && (item.item_key ? <Heard item={item} /> : (
         item.media_type === "video"
           ? <video src={item.media_url} controls className="w-full rounded-lg" />
           : <audio src={item.media_url} controls className="w-full" />
-      )}
+      ))}
       {item.image_url && <img src={item.image_url} alt="" className="w-full rounded-lg" />}
       {item.lyrics && (
         <details>
@@ -399,7 +411,7 @@ function Detail({ id, onBack, onFlash, seed }) {
         )}
       </div>
 
-      {b.status === "open" && (is1v1 ? showEntry : (!b.mine && !b.entered)) && (
+      {b.status === "open" && (is1v1 ? showEntry : ((!b.mine || b.kind === "weekly") && !b.entered)) && (
         <div className="neon-frame space-y-3 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Enter</p>
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
@@ -442,6 +454,68 @@ function Detail({ id, onBack, onFlash, seed }) {
         </div>
       )}
       {b.entered && <p className="text-[12px] text-emerald-300">You're in this one.</p>}
+    </div>
+  );
+}
+
+/** The Weekly Open — one battle a week anyone can enter, ranked by what
+ *  other members rate each take. Everything here is the server's: the week,
+ *  the deadline, who placed and how many ratings each take still needs. */
+function WeeklyOpen({ onOpen }) {
+  const [d, setD] = useState(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { api("/api/economy/battlez/weekly/").then(setD).catch(() => setD(null)); }, []);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
+  const w = d?.week;
+  if (!w) return null;
+  const left = Math.max(0, new Date(w.ends_at).getTime() - now);
+  const days = Math.floor(left / 864e5), hrs = Math.floor((left % 864e5) / 36e5);
+  const top = w.board.slice(0, 5);
+  return (
+    <div className="neon-frame mb-4 space-y-3 border-mcz-gold/40 p-4" data-tour="weekly-open">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="flex items-center gap-1.5 font-display text-lg font-extrabold text-mcz-gold">
+          <Trophy size={16} /> {w.title}
+        </p>
+        <span className="text-[11px] text-white/50">ends in {days}d {hrs}h</span>
+      </div>
+      <p className="text-[12px] text-white/60">
+        {w.description} A take places once {d.min_ratings} members have rated it.
+        {d.prize_spinaz > 0 && <> Winner: <span className="text-emerald-300">+{d.prize_spinaz} {SPINAZ}</span>.</>}
+      </p>
+      {d.last_week?.winner && (
+        <p className="text-[12px] text-white/70">👑 Last week: <b>@{d.last_week.winner}</b></p>
+      )}
+      {top.length === 0 ? (
+        <p className="text-[12px] text-white/45">No takes in yet — be first in.</p>
+      ) : (
+        <ol className="space-y-1">
+          {top.map((r) => (
+            <li key={r.entry_id} className="flex items-center justify-between gap-2 text-[12px]">
+              <span className="min-w-0 truncate">
+                <span className="tabular-nums text-white/35">{r.rank ? `#${r.rank}` : "—"}</span>{" "}
+                <span className={r.mine ? "text-mcz-cyan" : "text-white/85"}>@{r.username}</span>
+                {r.title ? <span className="text-white/40"> · {r.title}</span> : null}
+              </span>
+              <span className="shrink-0 tabular-nums">
+                {r.rank
+                  ? <><b className="text-mcz-ember">{r.median}</b><span className="text-white/30">/10 · {r.count}</span></>
+                  : <span className="text-white/40">needs {r.needs} more rating{r.needs === 1 ? "" : "s"}</span>}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button className="re-btn !w-auto px-4" onClick={() => onOpen(w.id)}>
+          {w.entered ? "See the entries & rate" : "Enter this week"}
+        </button>
+        {w.board.some((r) => !r.mine && !r.rated_by_me) && (
+          <span className="self-center text-[11px] text-white/45">
+            {w.board.filter((r) => !r.mine && !r.rated_by_me).length} take(s) waiting for your rating
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -548,6 +622,7 @@ export default function BattleZ() {
                 onFlash={flash} seed={seed} />
       ) : (
         <>
+          <WeeklyOpen onOpen={setOpen} />
           {list === null ? (
             <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
           ) : list.length === 0 ? (
