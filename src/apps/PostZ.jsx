@@ -28,9 +28,10 @@ import { celebrate } from "../celebrate.js";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
-  Pencil, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
+  Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import { usePinned, setPinned } from "../pinned.js";
 import OfferPanel from "../OfferPanel.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
 import { asList } from "../shape.js";
@@ -890,6 +891,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               {editing ? <XIcon size={15} /> : <Pencil size={15} />}
             </button>
           )}
+          {post.mine && post.visibility === "public" && <PinButton id={post.id} />}
           {canEdit && (
             <button onClick={remove} disabled={busy}
                     title={post.mine ? "Delete this post" : "Delete as platform owner"}
@@ -1210,5 +1212,28 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       </div>
       <div className="mt-2 flex justify-end"><ViewCount target={`post:${post.id}`} /></div>
     </div>
+  );
+}
+
+
+// Pin to profile — X/Instagram's "pinned post": your best work first on your
+// card. Only on your own public posts, because that is all a profile shows.
+function PinButton({ id }) {
+  const pinned = usePinned() === id;
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const toggle = async () => {
+    setBusy(true); setErr("");
+    try { await setPinned(pinned ? null : id); }
+    catch (e) { setErr(e.message || "Couldn't pin it."); }
+    finally { setBusy(false); }
+  };
+  return (
+    <button onClick={toggle} disabled={busy}
+            title={err || (pinned ? "Pinned to your profile — click to unpin" : "Pin to your profile")}
+            aria-pressed={pinned}
+            className={`rounded-lg p-1.5 hover:bg-white/[0.06] ${err ? "text-mcz-ember" : pinned ? "text-mcz-cyan" : "text-white/40 hover:text-mcz-cyan"}`}>
+      <Pin size={15} fill={pinned ? "currentColor" : "none"} />
+    </button>
   );
 }
