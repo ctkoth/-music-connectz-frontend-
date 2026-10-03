@@ -13,6 +13,7 @@ import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
 import NowPlayingBar from "./components/NowPlayingBar.jsx";
+import { usePageTitle } from "./pageTitle.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -1353,8 +1354,12 @@ function Home() {
  * what an account would add, because a free tool with no next step is a
  * bounce with a metronome in it.
  */
-function PublicTool({ title, el }) {
+function PublicTool({ title, heading, blurb, el }) {
   useEffect(() => { track("landing_view"); }, []);
+  // Named for what people SEARCH ("free online metronome"), not only what we
+  // call it — nobody types "MetZ" into Google. Real title + description,
+  // which search engines read after rendering the page.
+  usePageTitle(heading || title, blurb);
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
@@ -1364,8 +1369,8 @@ function PublicTool({ title, el }) {
         </Link>
         <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
       </header>
-      <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{title}</h1>
-      <p className="mb-4 text-sm text-white/55">Free, no account, nothing to install.</p>
+      <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{heading || title}</h1>
+      <p className="mb-4 text-sm text-white/55">{blurb ? `${blurb} ` : ""}Free, no account, nothing to install.</p>
       <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
       <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
         <p className="mb-3 text-sm text-white/80">
@@ -1406,8 +1411,10 @@ export default function App() {
       <Route path="/test" element={<PersonalityTest />} />
       <Route path="/test/:depth" element={<PersonalityTest />} />
       {/* The two tools that are pure client audio. No account, no server. */}
-      <Route path="/tool/metz" element={<PublicTool title="MetZ" el={<MetZ />} />} />
-      <Route path="/tool/chordz" element={<PublicTool title="ChordZ" el={<ChordZ />} />} />
+      <Route path="/tool/metz" element={<PublicTool title="MetZ" heading="Free online metronome — MetZ"
+             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />} />} />
+      <Route path="/tool/chordz" element={<PublicTool title="ChordZ" heading="Free chord finder & progression player — ChordZ"
+             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />} />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a

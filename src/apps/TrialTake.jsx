@@ -9,6 +9,7 @@
 // inside SingZ once they join.
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { usePageTitle } from "../pageTitle.js";
 import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { api } from "../api.js";
@@ -60,6 +61,12 @@ export default function TrialTake() {
     const ref = new URLSearchParams(window.location.search).get("ref");
     if (ref) { try { localStorage.setItem("mcz_ref", ref.slice(0, 40)); } catch { /* blocked */ } }
   }, []);
+  // Each door titled for what someone searches: "free AI drum feedback",
+  // not "DrumZ". Search engines read it after rendering.
+  const SEARCH_NOUN = { singz: "singing", rapz: "rap", guitarz: "guitar", bassz: "bass",
+                        keyz: "piano", drumz: "drum", violinz: "violin" };
+  usePageTitle(`Free AI ${SEARCH_NOUN[appKey] || "music"} feedback — get your take scored`,
+               `Upload or record a ${SEARCH_NOUN[appKey] || "music"} take and an AI coach scores it out of 10, says what cost you points, and gives you a drill. Free, no account.`);
   // The card for THIS take, minted by the server from the coach's own answer.
   const [cardUrl, setCardUrl] = useState("");
   const [doors, setDoors] = useState(FALLBACK);
