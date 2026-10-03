@@ -31,6 +31,7 @@ import {
   Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import { playTrack, useNowPlaying } from "../nowPlaying.js";
 import { usePinned, setPinned } from "../pinned.js";
 import OfferPanel from "../OfferPanel.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
@@ -156,6 +157,25 @@ function ListenedMedia({ kind, src, item, className, onProgress }) {
   useEffect(() => trackListening(ref.current, item, onProgress), [item]);
   const Tag = kind === "video" ? "video" : "audio";
   return <Tag ref={ref} src={src} controls className={className} />;
+}
+
+/** Audio plays in the app-wide bar (NowPlayingBar), so a track keeps going
+ *  while the member scrolls or switches tabs. The bar banks the listening
+ *  exactly as ListenedMedia did and its heartbeats come back here, so the
+ *  rating unlock on this card still runs off the server's credited seconds. */
+function BarPlay({ src, item, title, author, url, onProgress }) {
+  const np = useNowPlaying();
+  const isOn = np.track?.item === item;
+  const heard = np.heard[item];
+  useEffect(() => { if (heard) onProgress?.(heard); }, [heard]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <button type="button" onClick={() => playTrack({ item, src, title, author, url })}
+            className={`mt-3 flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+              isOn ? "border-mcz-ember/60 bg-mcz-ember/10 text-white" : "border-white/10 bg-white/[0.03] text-white/80 hover:border-mcz-ember/40"}`}>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mcz-ember text-black">▶</span>
+      <span className="truncate">{isOn ? "In the player below — keeps going while you browse" : "Play"}</span>
+    </button>
+  );
 }
 
 // One 1s clock for the whole feed, so every countdown ticks together.
@@ -984,8 +1004,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         return (
           <>
             {m.audio && (
-              <ListenedMedia kind="audio" src={m.audio} item={item}
-                             className="mt-3 w-full" onProgress={onHeard} />
+              <BarPlay src={m.audio} item={item} title={post.title} author={post.author}
+                       url={`/p/${post.id}`} onProgress={onHeard} />
             )}
             {m.video && (
               <ListenedMedia kind="video" src={m.video} item={item}
