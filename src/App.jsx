@@ -77,6 +77,7 @@ const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
 const DistributeZ = lazy(lazyRoute(() => import("./apps/DistributeZ.jsx")));
 const RateConnectZ = lazy(lazyRoute(() => import("./apps/RateConnectZ.jsx")));
 const Sonday = lazy(lazyRoute(() => import("./apps/Sonday.jsx")));
+const ParcelPrimate = lazy(lazyRoute(() => import("./apps/ParcelPrimate.jsx")));
 const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
@@ -483,6 +484,7 @@ const TABS = [
   { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
   { key: "ratez", label: "Rate ConnectZ", icon: "ratez.png", el: <RateConnectZ /> },
   { key: "sonday", label: "Sonday", icon: "sonday.png", el: <Sonday /> },
+  { key: "parcel", label: "Parcel Primate", icon: "parcel.png", el: <ParcelPrimate /> },
   { key: "merchz", label: "MercheZ", icon: "merchz.png", el: <MerchZ /> },
   { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
   { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
