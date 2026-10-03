@@ -60,8 +60,10 @@ const RD = encodeURIComponent(REDIRECT);
 export const PROVIDERS = [
   { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954", external: true,
     auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=user-read-email&state=${s}` },
-  { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
-    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&state=${s}` },
+  // PKCE: SoundCloud's OAuth 2.1 flow expects it, and it costs nothing where
+  // it isn't enforced — the backend already forwards `code_verifier`.
+  { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500", pkce: true,
+    auth: (id, s, ch) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
   { key: "microsoft",  label: "Microsoft",  Icon: Microsoft,  color: "#00A4EF",
     auth: (id, s) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=User.Read&state=${s}` },
   { key: "github",     label: "GitHub",     Icon: Github,     color: "#ffffff",

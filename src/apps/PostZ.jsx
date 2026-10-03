@@ -250,10 +250,16 @@ export default function PostZ() {
     const n = new URLSearchParams(window.location.search).get("imported");
     if (n == null) return;
     const count = parseInt(n, 10) || 0;
-    setToast(count > 0
+    // The server's own sentence when we have it: it is the one that knows
+    // about private tracks left behind and a run cut short. The count-only
+    // copy is the fallback for when storage was unavailable.
+    let detail = "";
+    try { detail = JSON.parse(sessionStorage.getItem("mcz_sc_import_result") || "{}").detail || ""; } catch { /* fallback below */ }
+    try { sessionStorage.removeItem("mcz_sc_import_result"); } catch { /* nothing to clear */ }
+    setToast(detail ? `🎧 ${detail}` : count > 0
       ? `🎧 ${count} track${count === 1 ? "" : "s"} imported as private drafts — Publish each one when you're ready.`
       : "No new tracks to import — everything from SoundCloud is already here.");
-    setTimeout(() => setToast(""), 5000);
+    setTimeout(() => setToast(""), detail ? 9000 : 5000);
     // Strip the param so a refresh doesn't re-show a stale confirmation.
     window.history.replaceState(null, "", window.location.pathname);
   }, []);

@@ -67,7 +67,7 @@ export default function OAuthCallback() {
         // single-use: spending it on a sign-in would leave the import with
         // nothing to present.
         if (importPending()) {
-          const out = await finishImport(code);
+          const out = await finishImport(code, verifier);
           navigate(`/post?imported=${out?.imported ?? 0}`);
           return;
         }
