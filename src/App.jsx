@@ -247,6 +247,8 @@ export const CUSTOM_ICONS = {
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
   "lilithz.png": "/icons/lilith.taskz.webp",
   "logo.png": "/mcz-logo-v5.jpg",
+  // The handshake mark the header wears — the all-apps menu wears it too.
+  "musicconnectz.png": "/logo.png",
   "managez.png": "/icons/managez.png",
   "messagez.png": "/icons/messagez-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
@@ -459,7 +461,7 @@ export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
 const TABS = [
-  { key: "toolz", label: "ToolZ", icon: "toolz.png", el: <ToolZMenu /> },
+  { key: "toolz", label: "Music ConnectZ", icon: "musicconnectz.png", el: <ToolZMenu /> },
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
@@ -1037,7 +1039,7 @@ function Home() {
           </div>
 
           <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
-             title="ToolZ — All Audio, Visual & App ToolZ">
+             title="Music ConnectZ — every app">
             <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-mark.png"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ

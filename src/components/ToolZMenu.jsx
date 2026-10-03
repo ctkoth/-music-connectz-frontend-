@@ -399,11 +399,8 @@ export default function ToolZMenu() {
     <div className="toolz-menu-container">
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
-        <div className="toolz-icon-main">
-          <IconImg icon="toolz.png" alt="ToolZ" className="category-icon-img" />
-        </div>
-        <h1>ToolZ</h1>
-        <p className="toolz-subtitle">Audio, Visual & App ToolZ</p>
+        <h1>Music ConnectZ</h1>
+        <p className="toolz-subtitle">Every app, one place</p>
       </div>
 
       {/* Category Grid */}

@@ -74,7 +74,9 @@ function CardActions({ username, data }) {
 
       {data?.reach_block && <p className="text-[11px] text-amber-200">{data.reach_block}</p>}
       <div className="space-y-1">
-        <p className="flex items-center gap-1 text-[11px] text-white/45"><Heart size={11} /> Rate attractiveness</p>
+        <p className="flex items-center gap-1 text-[11px] text-white/45"><Heart size={11} /> Rate attractiveness
+          {data?.rating_reward?.amount > 0 && <span className="text-emerald-300">+{data.rating_reward.amount} {ENERGY} for a first rating</span>}
+        </p>
         <div className="flex flex-wrap gap-1">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button key={n} onClick={() => rateAttract(n)} aria-label={`Rate ${n} out of 10`}

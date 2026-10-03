@@ -92,7 +92,9 @@ export default function FaceZ() {
 
       {d && (
         <section className="space-y-3">
-          <h3 className="font-semibold">Rate faces <span className="text-xs font-normal text-emerald-300">+1 ⚡ for your first rating of each</span></h3>
+          <h3 className="font-semibold">Rate faces <span className="text-xs font-normal text-emerald-300">{d?.rating_reward?.amount
+            ? `+${d.rating_reward.amount} ⚡ for your first rating of each (${d.rating_reward.left_today} left today)`
+            : d?.rating_reward ? "Today's paid ratings are used — ratings still count" : ""}</span></h3>
           {d.feed_locked ? (
             <p className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70"><Lock size={14} /> {d.feed_locked}</p>
           ) : d.feed.length === 0 ? (

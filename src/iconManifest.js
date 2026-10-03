@@ -1634,6 +1634,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "merchz.png",
   "mimez.png",
   "money.png",
+  "musicconnectz.png",
   "offerz.png",
   "onboardz.png",
   "playlistz.png",

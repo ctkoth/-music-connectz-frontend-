@@ -6,6 +6,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
+import PromptzDoor from "../PromptzDoor.jsx";
 import { APP_BENEFITS, TIER_BLURB, TIER_MATRIX, TIER_ORDER } from "../tierBenefits.js";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, "")}`;
@@ -126,6 +127,8 @@ export default function MembershipZ() {
           <p className="text-xs text-white/45">Upgrade your tier for lower fees, more energy and more AI prompts.</p>
         </div>
       </header>
+
+      <div data-tour="promptz-door"><PromptzDoor /></div>
 
       {msg && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-white/85">{msg}</p>}
 

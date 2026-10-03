@@ -167,6 +167,15 @@ function useNow() {
   return now;
 }
 
+// The rating reward as the server last stated it (amount, and whether today's
+// cap is spent). Module-level because every card reads it and the feed load
+// that sets it re-renders them all.
+let RATING_REWARD = null;
+const rewardLine = () => (RATING_REWARD
+  ? (RATING_REWARD.amount ? `+${RATING_REWARD.amount} ${ENERGY} per rating (${RATING_REWARD.left_today} left today)`
+                          : `Today's ${RATING_REWARD.cap} paid ratings are used — ratings still count, they just don't pay ${ENERGY}.`)
+  : "");
+
 // Server age → a local reference point, so countdowns run off the API's clock.
 const mapPost = (s) => ({ ...s, localCreated: Date.now() - (s.age_sec || 0) * 1000 });
 
@@ -238,6 +247,7 @@ export default function PostZ() {
     if (!quiet) setRefreshing(true);
     try {
       const data = await api(`/api/economy/postz/?sort=${sort}`);
+      if (data?.rating_reward) RATING_REWARD = data.rating_reward;
       setPosts(asList(data?.posts).map(mapPost));
       setLoadErr("");
     } catch (e) {
@@ -382,7 +392,7 @@ export default function PostZ() {
           </button>
           <div className="flex gap-1">
             {[
-              { value: "public", label: "Public", bonus: "+25%", tip: "Earn bonus 🍥 + show on leaderboards" },
+              { value: "public", label: "Public", bonus: "+25%", tip: "People who rate it earn +25% ⚡, so it draws more ratings — and it shows on leaderboards" },
               { value: "restricted", label: "Members", bonus: "1x", tip: "Visible to members only" },
               { value: "private", label: "Private", bonus: "1x", tip: "Just you" },
             ].map(({ value, label, bonus, tip }) => (
@@ -474,8 +484,8 @@ export default function PostZ() {
 
         <p className="text-[11px] leading-relaxed text-white/40">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
-          comments unlock <span className="text-white/70">60s</span> after. Every rating you give earns
-          you <span className="text-mcz-ember">+1 {ENERGY}</span>.
+          comments unlock <span className="text-white/70">60s</span> after.
+          {rewardLine() && <> Raters earn <span className="text-emerald-300">{rewardLine()}</span>.</>}
         </p>
         {visibility === "public" && (
           <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-[11px] leading-relaxed text-emerald-300/90">
@@ -1065,7 +1075,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           <div className="space-y-2">
             <div className="re-label">Rate this track</div>
             <p className="text-[11px] text-white/40">
-              Anonymous, and it curates the ChartZ. +1 {ENERGY} per rating.
+              Anonymous, and it curates the ChartZ.{" "}
+              {rewardLine() && <span className="text-emerald-300">{rewardLine()}</span>}
             </p>
             <div className="flex gap-1">
               {[
