@@ -7,7 +7,7 @@
 import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
+import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
@@ -1390,6 +1390,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
 
+          {/* The member's score card: the coach's own score and words, minted
+              by the server, with their handle as the referral code. (The
+              trial page has its own share row under the result.) */}
+          {!trial && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
+
           {!trial && <CoachVoicePlayer result={result} />}
 
           {/* The SONG, kept out of the performance number entirely — its own
@@ -1560,6 +1565,36 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <p className="text-[10px] text-white/30">{price?.caveat}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+
+/** Share the score card. Counts nothing on a cancel — a share sheet somebody
+ *  backed out of is not a share. */
+function ShareScore({ url, score }) {
+  const [msg, setMsg] = useState("");
+  const [per, setPer] = useState(null);     // referral reward, the server's number
+  useEffect(() => {
+    api("/api/economy/tiers/", { auth: false }).then((t) => setPer(t?.join?.referrer_spinaz || null)).catch(() => {});
+  }, []);
+  const full = `${window.location.origin}${url}`;
+  const text = `The AI coach gave my take ${score}/10 🎤 — get yours scored free:`;
+  const go = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ title: "Music ConnectZ", text, url: full }); setMsg("Shared."); }
+      else { await navigator.clipboard.writeText(`${text} ${full}`); setMsg("Copied — paste it anywhere."); }
+    } catch { /* cancelled */ }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" onClick={go}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
+        <Share2 size={13} /> Share your {score}/10
+      </button>
+      <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-white/45 underline">See the card</a>
+      {per > 0 && <span className="text-[11px] text-white/45">Anyone who joins from it: <span className="text-emerald-300">+{per} 🍥</span> for you.</span>}
+      {msg && <span className="text-[11px] text-emerald-300">{msg}</span>}
     </div>
   );
 }

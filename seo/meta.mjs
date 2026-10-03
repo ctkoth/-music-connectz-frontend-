@@ -53,6 +53,13 @@ export const ROUTES = [
     api: (k) => `/api/economy/public/members/${encodeURIComponent(k)}/`,
   },
   {
+    // A shared score card. The page AND the image come from the server's own
+    // record of what the coach said — scoreshare.py.
+    kind: "score",
+    test: /^\/s\/([A-Za-z0-9_-]{6,32})\/?$/,
+    api: (k) => `/api/economy/scores/${encodeURIComponent(k)}/`,
+  },
+  {
     kind: "playlist",
     test: /^\/pl\/(\d+)\/?$/,
     api: (k) => `/api/playlistz/${encodeURIComponent(k)}/`,
@@ -161,6 +168,28 @@ export function metaFor(kind, data, { origin = DEFAULT_ORIGIN, path = "/" } = {}
           ...(data.bio ? { description: clamp(data.bio, 300) } : {}),
           ...(skills.length ? { knowsAbout: skills.slice(0, 12).map(String) } : {}),
         },
+      },
+    };
+  }
+
+  if (kind === "score") {
+    if (data.score == null) return null;
+    const who = data.username ? ` — @${data.username}` : "";
+    return {
+      title: clamp(`${data.score}/10 on ${data.label || "the coach"}${who} | Music ConnectZ`, 70),
+      description: clamp(
+        `${data.verdict ? `“${data.verdict}” ` : ""}Scored by a real AI coach. Get your take scored free — no account needed.`, 200),
+      // /api is proxied on the site, so the card renders from our origin.
+      image: absolute(data.image, origin) || card,
+      type: "article",
+      url,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "Review",
+        name: `${data.label || "Coach"} score`,
+        url,
+        reviewRating: { "@type": "Rating", ratingValue: data.score, bestRating: 10, worstRating: 1 },
+        author: { "@type": "Organization", name: "Music ConnectZ AI coach" },
       },
     };
   }

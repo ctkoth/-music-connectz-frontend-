@@ -152,3 +152,15 @@ test("a real post is injected end to end", async () => {
   assert.ok(out.includes('href="https://musicconnectz.net/p/412"'));
   assert.ok(out.includes('<div id="root">'), "the app shell must still be there");
 });
+
+test("a score card previews the coach's score and its own image", () => {
+  assert.equal(routeFor("/s/YVjgr2YDWUOppoP1").kind, "score");
+  assert.equal(routeFor("/s/../x"), null);
+  const m = metaFor("score", { score: 8, label: "RapZ", username: "corey", verdict: "Flow is locked.",
+                               image: "/api/economy/scores/abc/card.png" },
+                    { origin: "https://musicconnectz.net", path: "/s/abc" });
+  assert.match(m.title, /^8\/10 on RapZ — @corey/);
+  assert.equal(m.image, "https://musicconnectz.net/api/economy/scores/abc/card.png");
+  assert.match(m.description, /Flow is locked/);
+  assert.equal(metaFor("score", { score: null }), null);
+});

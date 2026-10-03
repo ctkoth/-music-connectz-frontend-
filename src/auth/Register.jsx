@@ -16,7 +16,9 @@ export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const ref = (params.get("ref") || "").trim();
+  // ?ref= on this URL, or the one remembered when they arrived through a
+  // member's score card and tried the coach first.
+  const ref = (params.get("ref") || (() => { try { return localStorage.getItem("mcz_ref") || ""; } catch { return ""; } })()).trim();
   // A take they had scored at the door, before they had an account to put it
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.

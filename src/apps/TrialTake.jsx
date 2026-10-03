@@ -54,6 +54,14 @@ const mb = (n) => (n == null ? "—" : n >= 1024 ? `${Math.round(n / 1024)}GB` :
 
 export default function TrialTake() {
   const { appKey = "singz" } = useParams();
+  // Arrived through somebody's score card (?ref=<handle>): remember who, so
+  // the signup later — after the take, on whichever button — credits them.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) { try { localStorage.setItem("mcz_ref", ref.slice(0, 40)); } catch { /* blocked */ } }
+  }, []);
+  // The card for THIS take, minted by the server from the coach's own answer.
+  const [cardUrl, setCardUrl] = useState("");
   const [doors, setDoors] = useState(FALLBACK);
   // Whether the answer above is the server's or the fallback's. `try_view`
   // waits for it: firing on the fallback and again on the real list would
@@ -122,6 +130,7 @@ export default function TrialTake() {
       }
     }
     if (result.score != null) setScore(result.score);
+    if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
     setScored(true);
   }
 
@@ -129,7 +138,9 @@ export default function TrialTake() {
   // of and currently has nowhere to put it. The share carries a link back to
   // this exact door — the free one, no account — because sending a stranger
   // to a signup form is how you waste a recommendation.
-  const shareUrl = `${window.location.origin}/try/${app}`;
+  // The score card when there is one (it previews the score everywhere it is
+  // pasted); the plain door otherwise.
+  const shareUrl = cardUrl || `${window.location.origin}/try/${app}`;
   const shareText = score != null
     ? `I scored ${score}/10 on my ${label} take 🎤 — real AI coach, free, no account. Get yours scored:`
     : `Got my ${label} take scored free by an AI coach 🎤 — no account needed. Try it:`;
