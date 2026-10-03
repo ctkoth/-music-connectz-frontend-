@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trackListening } from "../listen.js";
 import { ExternalLink, Headphones, Loader2, Lock, Search } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
@@ -97,9 +98,25 @@ function Dashboard({ d }) {
   );
 }
 
-function QueueRow({ p, reward, onRated }) {
+// The track plays IN the card. It used to say "Listen first" and send you to
+// the post — away from the queue, one round trip per rating. Learnt from
+// exchange apps where the play button sits on the request itself. The seconds
+// are still the server's (listen.js reports what it CREDITED), and rating
+// unlocks only when it says you've heard enough — same rule, no detour.
+function QueuePlayer({ p, onHeard }) {
+  const ref = useRef(null);
+  useEffect(() => trackListening(ref.current, p.item_key, (r) => onHeard(r)), [p.item_key]);
+  const Tag = p.play_kind === "video" ? "video" : "audio";
+  return <Tag ref={ref} src={p.play_url} controls preload="none"
+              className={p.play_kind === "video" ? "max-h-48 w-full rounded-lg" : "w-full"} />;
+}
+
+function QueueRow({ p, reward, onRated, onSkip }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const need = p.listen_required_sec || 0;
+  const [heard, setHeard] = useState(p.listened_sec || 0);
+  const [unlocked, setUnlocked] = useState(!p.needs_listen);
 
   async function rate(score) {
     setBusy(true); setErr("");
@@ -108,6 +125,11 @@ function QueueRow({ p, reward, onRated }) {
       onRated(p.id);
     } catch (e) { setErr(e.message); setBusy(false); }
   }
+  const onHeard = (r) => {
+    const secs = r?.listened_sec ?? 0;
+    setHeard(Math.min(secs, need));
+    if (r?.finished || secs >= (r?.listen_required_sec ?? need)) setUnlocked(true);
+  };
 
   return (
     <div className="neon-frame space-y-2 p-3">
@@ -116,18 +138,33 @@ function QueueRow({ p, reward, onRated }) {
           <a className="re-link block truncate font-semibold" href={p.url}>{p.title || "Untitled"}</a>
           <p className="text-[11px] text-white/50">
             by <MemberName username={p.author} bare />
-            {p.media_type ? ` · ${p.media_type}` : ""}
+            {p.genre ? ` · ${p.genre}` : p.media_type ? ` · ${p.media_type}` : ""}
             {p.count ? ` · ${fmt(p.rating)} from ${p.count}` : " · not rated yet"}
           </p>
         </div>
+        {/* The gain, on the card, before anything is pressed. */}
         <span className={`shrink-0 text-xs ${reward.amount ? "text-emerald-300" : "text-white/40"}`}>
           +{reward.amount} {ENERGY}
         </span>
       </div>
-      {p.needs_listen ? (
-        <a className="re-btn !w-auto inline-flex items-center gap-1 px-3 py-1 text-xs" href={p.url}>
-          <Headphones size={12} /> Listen first, then rate
-        </a>
+
+      {p.play_url && <QueuePlayer p={p} onHeard={onHeard} />}
+
+      {!unlocked ? (
+        p.play_url ? (
+          <div className="space-y-1">
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full bg-mcz-cyan transition-all" style={{ width: `${need ? (heard / need) * 100 : 0}%` }} />
+            </div>
+            <p className="flex items-center gap-1 text-[11px] text-white/50">
+              <Headphones size={11} /> Play {need}s of it to rate — {Math.max(0, need - heard)}s to go.
+            </p>
+          </div>
+        ) : (
+          <a className="re-btn !w-auto inline-flex items-center gap-1 px-3 py-1 text-xs" href={p.url}>
+            <Headphones size={12} /> Listen first, then rate
+          </a>
+        )
       ) : (
         <div className="flex flex-wrap gap-1">
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -138,10 +175,20 @@ function QueueRow({ p, reward, onRated }) {
           ))}
         </div>
       )}
+      <div className="flex justify-end">
+        <button type="button" onClick={() => onSkip(p.id)} className="text-[11px] text-white/40 hover:text-white/70">
+          Skip for now
+        </button>
+      </div>
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );
 }
+
+// Skipped rows stay hidden for this session only: a skip is "not now", not a
+// verdict, and nothing about it is sent anywhere.
+const SKIP_KEY = "mcz_ratez_skipped";
+const loadSkipped = () => { try { return new Set(JSON.parse(sessionStorage.getItem(SKIP_KEY) || "[]")); } catch { return new Set(); } };
 
 function Queue() {
   const [q, setQ] = useState(null);
@@ -149,6 +196,12 @@ function Queue() {
   const load = () => api(QUEUE).then(setQ).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
+  const [skipped, setSkipped] = useState(loadSkipped);
+  const skip = (id) => setSkipped((cur) => {
+    const next = new Set(cur).add(id);
+    try { sessionStorage.setItem(SKIP_KEY, JSON.stringify([...next])); } catch { /* storage blocked */ }
+    return next;
+  });
   const rated = (id) => {
     // Reload rather than decrement locally: the reward line is the server's
     // count of what it actually paid, and guessing it here is how the two drift.
@@ -174,7 +227,7 @@ function Queue() {
         </p>
       )}
       <div className="grid gap-2 md:grid-cols-2">
-        {q.posts.map((p) => <QueueRow key={p.id} p={p} reward={r} onRated={rated} />)}
+        {q.posts.filter((p) => !skipped.has(p.id)).map((p) => <QueueRow key={p.id} p={p} reward={r} onRated={rated} onSkip={skip} />)}
       </div>
     </div>
   );
