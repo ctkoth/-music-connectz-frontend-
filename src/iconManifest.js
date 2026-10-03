@@ -1640,6 +1640,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "postz.png",
   "ratez.png",
   "royaltiez.png",
+  "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",

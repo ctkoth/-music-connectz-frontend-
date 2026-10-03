@@ -24,7 +24,7 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
-  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", royaltiez: "royaltiez.png",
+  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
@@ -156,6 +156,7 @@ const TOOLZ_MENU = {
     {
       group: 'Progress & Analytics',
       apps: [
+        { key: 'sonday', label: 'Sonday', color: 'gold', desc: 'Boards for your projects — drafts to released, shared with your team' },
         { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
         { key: 'viewz', label: 'ViewZ', color: 'cyan', desc: 'Who viewed your posts & profile — a DAW timeline (StatZ)' },
       ]
