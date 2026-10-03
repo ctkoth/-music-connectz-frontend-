@@ -23,10 +23,10 @@ import java.util.List;
 // so this one is native: it records what the WebView did, asks the page what
 // it rendered, and offers a reload or a reset of the app's stored web data.
 //
-// DIAGNOSTIC BUILD: the report is shown on every launch while the blank-APK
-// cause is unknown. Set ALWAYS_REPORT to false once it is found.
+// The report shows only when the page fails to draw (nothing rendered by the
+// check). It was shown on every launch while the blank-APK cause was hunted.
 public class MainActivity extends BridgeActivity {
-    private static final boolean ALWAYS_REPORT = true;
+    private static final boolean ALWAYS_REPORT = false;
     private static final long FIRST_CHECK_MS = 12_000;
     private static final long ANSWER_MS = 4_000;
 
