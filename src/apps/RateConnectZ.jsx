@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { trackListening } from "../listen.js";
-import { ExternalLink, Headphones, Loader2, Lock, Search } from "lucide-react";
+import { playTrack, useNowPlaying } from "../nowPlaying.js";
+import { waitingChanged } from "../waiting.js";
+import { ExternalLink, Headphones, Loader2, Lock, Pause, Play, Search } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
@@ -117,12 +119,19 @@ function QueueRow({ p, reward, onRated, onSkip }) {
   const need = p.listen_required_sec || 0;
   const [heard, setHeard] = useState(p.listened_sec || 0);
   const [unlocked, setUnlocked] = useState(!p.needs_listen);
+  // Audio plays in the app-wide bar (keeps going if you switch tabs); its
+  // heartbeats land in nowPlaying, and this card reads its own.
+  const np = useNowPlaying();
+  const fromBar = np.heard[p.item_key];
+  const isOn = np.track?.item === p.item_key;
+  useEffect(() => { if (fromBar) onHeard(fromBar); }, [fromBar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function rate(score) {
     setBusy(true); setErr("");
     try {
       await api("/api/economy/social/rate/", { method: "POST", body: { item: p.item_key, action: "rate", score } });
       onRated(p.id);
+      waitingChanged();
     } catch (e) { setErr(e.message); setBusy(false); }
   }
   const onHeard = (r) => {
@@ -148,7 +157,14 @@ function QueueRow({ p, reward, onRated, onSkip }) {
         </span>
       </div>
 
-      {p.play_url && <QueuePlayer p={p} onHeard={onHeard} />}
+      {p.play_url && p.play_kind === "video" && <QueuePlayer p={p} onHeard={onHeard} />}
+      {p.play_url && p.play_kind !== "video" && (
+        <button type="button"
+                onClick={() => playTrack({ item: p.item_key, src: p.play_url, title: p.title, author: p.author, url: p.url })}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:border-mcz-ember">
+          {isOn ? <Pause size={13} /> : <Play size={13} />} {isOn ? "In the player below — keeps going if you switch tabs" : "Play"}
+        </button>
+      )}
 
       {!unlocked ? (
         p.play_url ? (
@@ -198,6 +214,7 @@ function Queue() {
 
   const [skipped, setSkipped] = useState(loadSkipped);
   const skip = (id) => setSkipped((cur) => {
+    setTimeout(waitingChanged, 0);
     const next = new Set(cur).add(id);
     try { sessionStorage.setItem(SKIP_KEY, JSON.stringify([...next])); } catch { /* storage blocked */ }
     return next;

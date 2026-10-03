@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
 import { IconImg, slugFor } from "./App.jsx";
+import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 
@@ -105,6 +106,19 @@ export function usePickConnectZ(currentKey) {
   return { usage, pins, hidden, togglePin, toggleHide };
 }
 
+// The real number of things waiting in an app, top-left so it never covers
+// the pin/usage marker in the other corner.
+function WaitingCount({ appKey }) {
+  const n = useWaiting()[appKey] || 0;
+  if (!n) return null;
+  return (
+    <span className="absolute -left-1 -top-1 min-w-[18px] rounded-full bg-mcz-ember px-1 text-center text-[10px] font-bold leading-[18px] text-black"
+          title={`${n} waiting`}>
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
+
 function DockButton({ app, active, badge, onClick }) {
   return (
     <a
@@ -118,6 +132,7 @@ function DockButton({ app, active, badge, onClick }) {
     >
       <IconImg icon={app.icon} alt={app.label} className="h-9 w-9 rounded-lg object-cover" />
       {badge}
+      <WaitingCount appKey={app.key} />
     </a>
   );
 }
@@ -267,7 +282,10 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                         : "border-white/10 hover:bg-white/5"
                     }`}
                   >
-                    <IconImg icon={a.icon} alt={a.label} className="h-8 w-8 rounded-lg object-cover" />
+                    <span className="relative">
+                      <IconImg icon={a.icon} alt={a.label} className="h-8 w-8 rounded-lg object-cover" />
+                      <WaitingCount appKey={a.key} />
+                    </span>
                     <span className="w-full truncate text-[9px] text-white/60">{a.label}</span>
                     {/* What it DOES, under what it is called. The names here
                         are invented — SpinaZ, MimeZ, OmviardZ — so the label

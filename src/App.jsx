@@ -12,6 +12,7 @@ import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
+import NowPlayingBar from "./components/NowPlayingBar.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
@@ -1317,6 +1318,9 @@ function Home() {
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
+
+      {/* One player for the whole app; keeps playing across tabs. */}
+      <NowPlayingBar />
 
         <Dock
           apps={dockApps}
