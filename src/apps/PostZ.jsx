@@ -55,6 +55,7 @@ import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import ShareSheet from "../components/ShareSheet.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
+import RangeGates from "../RangeGates.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 import LeaderboardZ from "./LeaderboardZ.jsx";
@@ -184,6 +185,7 @@ export default function PostZ() {
   const [freestyle, setFreestyle] = useState(false);
   const [skillsUsed, setSkillsUsed] = useState([]);
   const [visibility, setVisibility] = useState("public");
+  const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
   const [posting, setPosting] = useState(false);
   const [work, setWork] = useState({});      // MediaFields' shape
@@ -278,6 +280,7 @@ export default function PostZ() {
         method: "POST",
         body: {
           title: t, description: description.trim(), genre, freestyle, visibility,
+          gates: visibility === "restricted" ? gates : {},
           skills_used: skillsUsed,
           // One of each: audio, video, image and script all ride together.
           // The primary slot is what the feed plays inline; `items` carries
@@ -398,6 +401,9 @@ export default function PostZ() {
               </button>
             ))}
           </div>
+          {visibility === "restricted" && (
+            <RangeGates value={gates} onChange={setGates} title="Which members can join it" />
+          )}
           <button data-tour="post-submit" className="re-btn !w-auto px-6" onClick={createPost} disabled={posting || !title.trim()}>
             {posting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {posting && hasBlobs(work) ? " Uploading…" : " Post"}

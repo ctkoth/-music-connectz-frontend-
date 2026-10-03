@@ -5,6 +5,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
 import OfferMap from "./OfferMap.jsx";
+import RangeGates from "../RangeGates.jsx";
 import { asList } from "../shape.js";
 import MentionText from "../MentionParser.jsx";
 
@@ -285,6 +286,7 @@ function Teach() {
     price: "25.00", city: "", remote_ok: true, in_person_ok: true, callz_ok: false,
   });
   const [elig, setElig] = useState(null);
+  const [gates, setGates] = useState({});
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState({});
@@ -320,7 +322,7 @@ function Teach() {
     setMsg("");
     setErrors({});
     try {
-      const body = { ...form };
+      const body = { ...form, gates };
       if (navigator.geolocation) {
         await new Promise((res) =>
           navigator.geolocation.getCurrentPosition(
@@ -378,6 +380,7 @@ function Teach() {
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.in_person_ok} onChange={set("in_person_ok")} /> In person OK</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={form.callz_ok} onChange={set("callz_ok")} /> CallZ (StatZ only)</label>
       </div>
+      <RangeGates value={gates} onChange={setGates} title="Who can book this lesson" />
       {msg && <p className="text-sm text-mcz-gold">{msg}</p>}
       <button className="neon-btn-primary" disabled={busy || (elig && !elig.can_teach)} onClick={publish}>
         {busy ? <Loader2 className="animate-spin" size={16} /> : null} Publish offer

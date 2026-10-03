@@ -234,7 +234,7 @@ export default function CollabZ() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
-                                     description: "", split_mode: "worth" });
+                                     description: "", split_mode: "rating" });
   // A member card's "Collab" lands here with the partner already filled in.
   useEffect(() => onHandoff("collabz", (p) => {
     if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
