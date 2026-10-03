@@ -47,7 +47,7 @@ import MemberName from "../MemberName.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
-import { ENERGY, PROMPTZ } from "../resources.js";
+import { ENERGY, MONEY, PROMPTZ } from "../resources.js";
 import { labelForSkill } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
@@ -1005,6 +1005,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       })()}
 
       <PostEmbeds post={post} canEdit={canEdit} />
+      <BuyBar post={post} onChanged={onChanged} onFlash={onFlash} />
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}
@@ -1235,5 +1236,108 @@ function PinButton({ id }) {
             className={`rounded-lg p-1.5 hover:bg-white/[0.06] ${err ? "text-mcz-ember" : pinned ? "text-mcz-cyan" : "text-white/40 hover:text-mcz-cyan"}`}>
       <Pin size={15} fill={pinned ? "currentColor" : "none"} />
     </button>
+  );
+}
+
+
+// Buy a post — real money (💵), paid to everyone credited on it. The price
+// is on the button before it is pressed; the confirm step shows the balance,
+// the platform fee and who gets paid, all the server's quote. The publisher
+// sets the price here too. A free post from somebody else renders nothing.
+const usd = (c) => `$${((c || 0) / 100).toFixed(2)}`;
+
+function BuyBar({ post, onChanged, onFlash }) {
+  const price = post.price_cents || 0;
+  const [quote, setQuote] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [draft, setDraft] = useState(null);   // dollars string while editing
+
+  const loadQuote = () => api(`/api/economy/postz/${post.id}/sale/`).then(setQuote)
+    .catch((e) => setErr(e.message || "Couldn't load the price."));
+
+  if (post.mine) {
+    const savePrice = async () => {
+      const cents = Math.round(parseFloat(draft || "0") * 100) || 0;
+      setBusy(true); setErr("");
+      try {
+        const next = await api("/api/economy/postz/", { method: "POST",
+          body: { edit_id: post.id, price_cents: cents } });
+        onChanged(post.id, next); setDraft(null);
+        onFlash(cents ? `Priced at ${usd(cents)} ${MONEY}.` : "It's free again.");
+      } catch (e) { setErr(e.message || "Couldn't set that price."); }
+      finally { setBusy(false); }
+    };
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/55" data-tour="post-price">
+        <span>{price ? <>For sale at <b className="text-white/80">{usd(price)} {MONEY}</b></> : "Free to everyone"}</span>
+        {draft === null ? (
+          <button onClick={() => setDraft(price ? (price / 100).toFixed(2) : "")}
+                  className="rounded-lg border border-white/15 px-2 py-1 text-white/70 hover:text-mcz-cyan">
+            {price ? "Change price" : "Sell it"}
+          </button>
+        ) : (
+          <>
+            <span>$</span>
+            <input value={draft} onChange={(e) => setDraft(e.target.value.replace(/[^0-9.]/g, ""))}
+                   inputMode="decimal" placeholder="0 = free" autoFocus
+                   className="w-20 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white" />
+            <button onClick={savePrice} disabled={busy}
+                    className="rounded-lg bg-mcz-cyan/20 px-2 py-1 text-mcz-cyan">{busy ? "Saving…" : "Save"}</button>
+            <button onClick={() => setDraft(null)} className="text-white/40">Cancel</button>
+            <span className="text-white/35">$1–$500, or 0 for free. Buyers pay everyone credited on it.</span>
+          </>
+        )}
+        {err && <span className="text-mcz-ember">{err}</span>}
+      </div>
+    );
+  }
+
+  if (!price) return null;
+  if (post.bought) {
+    return <p className="mt-2 text-xs text-emerald-300">✓ You bought this — the creators were paid.</p>;
+  }
+
+  const buy = async () => {
+    setBusy(true); setErr("");
+    try {
+      const r = await api(`/api/economy/postz/${post.id}/sale/`, { method: "POST" });
+      onChanged(post.id, { ...post, bought: true });
+      onFlash(r.message || "Bought.");
+      setQuote(null);
+    } catch (e) { setErr(e.message || "The purchase didn't go through. Nothing was charged."); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 text-xs" data-tour="post-buy">
+      {!quote ? (
+        <button onClick={loadQuote}
+                className="rounded-lg border border-white/15 px-3 py-1.5 text-white/80 hover:border-mcz-cyan">
+          Buy <span className="text-mcz-ember">−{usd(price)} {MONEY}</span>
+        </button>
+      ) : (
+        <div className="space-y-1.5">
+          <p className="text-white/70">
+            <span className="text-mcz-ember">−{usd(quote.price_cents)} {MONEY}</span> from your balance of {usd(quote.balance_cents)}.
+          </p>
+          <p className="text-white/50">
+            Goes to {quote.paid_to?.length
+              ? quote.paid_to.map((x) => `@${x.username} ${usd(x.cents)}`).join(", ")
+              : "the creator"} · platform fee {usd(quote.fee_cents)}. A failed purchase charges nothing.
+          </p>
+          {quote.balance_cents < quote.price_cents ? (
+            <p className="text-mcz-ember">You're {usd(quote.price_cents - quote.balance_cents)} short — top up in your wallet first.</p>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={buy} disabled={busy}
+                      className="rounded-lg bg-mcz-cyan/20 px-3 py-1.5 text-mcz-cyan">{busy ? "Buying…" : `Confirm — pay ${usd(quote.price_cents)}`}</button>
+              <button onClick={() => setQuote(null)} className="text-white/40">Cancel</button>
+            </div>
+          )}
+        </div>
+      )}
+      {err && <p className="mt-1 text-mcz-ember">{err}</p>}
+    </div>
   );
 }
