@@ -5,6 +5,7 @@ import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
 import ReligionZ from "../ReligionZ.jsx";
 import LanguageZ from "../LanguageZ.jsx";
+import { ProfileFieldsEditor, deviceTimezone } from "../components/ProfileFieldz.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
@@ -476,6 +477,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // LanguageZ — {lang_key: "beginner"|"intermediate"|"fluent"}. Same shape
   // SubstanceZ already holds for "what, and how often".
   const [languages, setLanguages] = useState({});
+  // Popular-site fields (pronouns, headline, genres…), one object, one save.
+  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "label", "timezone", "pinned_post_id", "cover_url"];
+  const [pf, setPf] = useState(null);
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -571,6 +575,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setReligion(d?.religion || "");
       setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
+      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear"].includes(k) ? [] : "")]));
+      got.pinned_post_id = d?.pinned_post?.id ?? d?.pinned_post_id ?? null;
+      if (!got.timezone) got.timezone = deviceTimezone();
+      setPf(got);
     }).catch(() => {});
   }, []);
 
@@ -627,12 +635,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       await api("/api/economy/profile/", {
         method: "POST",
         body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
-                nationalities: nats, personality, religion, languages },
+                nationalities: nats, personality, religion, languages, ...(pf || {}) },
       });
       setMe(d);
       setSaved(true);
       playSound("saved");
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ and LanguageZ are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ, LanguageZ and music details are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -937,6 +945,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
           column. A personality field that only worked in the dating app
           would be the fourth copy of a profile filter within a year. */}
+      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} />}
+
       <PersonalitieZ value={personality} onChange={setPersonality} />
 
       {/* ReligionZ — one declared branch out of fifty, grouped into

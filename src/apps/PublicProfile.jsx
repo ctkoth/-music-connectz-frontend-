@@ -14,6 +14,7 @@ import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
 
 import { usePageTitle } from "../pageTitle.js";
+import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -64,6 +65,7 @@ export default function PublicProfile() {
 
       {p && (
         <div className="neon-frame space-y-4 p-5">
+          <CoverBanner url={p.cover_url} />
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{p.display_name}</h1>
             <p className="flex flex-wrap items-center gap-1.5 text-sm text-white/45">
@@ -79,6 +81,8 @@ export default function PublicProfile() {
             <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
                        className="pt-1.5" />
           </div>
+
+          <ProfileFields p={p} />
 
           {p.bio && (
             <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">

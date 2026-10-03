@@ -18,6 +18,7 @@ import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
+import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 
 // What a member can DO with somebody from their card. Every card in the app
 // opens this modal, so these are the actions for "whenever users are shown as
@@ -177,6 +178,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
         className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
         onClick={(e) => e.stopPropagation()}
       >
+        <CoverBanner url={data?.cover_url} />
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             {data?.avatar ? (
@@ -252,6 +254,8 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                 <MapPin size={14} className="text-mcz-cyan" /> {data.location}
               </p>
             )}
+
+            <ProfileFields p={data} />
 
             {data.bio && <p className="text-sm leading-relaxed text-white/75"><MentionText text={data.bio} /></p>}
 
