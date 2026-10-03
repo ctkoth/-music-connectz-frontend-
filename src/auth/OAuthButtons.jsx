@@ -119,6 +119,37 @@ export default function OAuthButtons({ onSuccess, onError }) {
     return () => { clearTimeout(giveUp); poll && clearInterval(poll); };
   }, [cfg, oauth, onSuccess, onError]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sign in with Apple — Apple's own JS in popup mode hands back an identity
+  // token, which the server verifies against its Services ID. Shown only when
+  // the server has that ID, so the button never leads somewhere that fails.
+  async function startApple() {
+    const id = clientId("apple");
+    if (!id) return onError?.("Apple sign-in isn't available right now.");
+    setBusy("apple");
+    try {
+      if (!window.AppleID?.auth) {
+        await new Promise((ok, fail) => {
+          const sc = document.createElement("script");
+          sc.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+          sc.onload = ok;
+          sc.onerror = () => fail(new Error("Apple sign-in didn't load. Use email or another option."));
+          document.head.appendChild(sc);
+        });
+      }
+      window.AppleID.auth.init({
+        clientId: id, scope: "name email", usePopup: true,
+        redirectURI: `${window.location.origin}/login`,
+      });
+      const resp = await window.AppleID.auth.signIn();
+      const token = resp?.authorization?.id_token;
+      if (!token) throw new Error("Apple didn't send a sign-in token back.");
+      onSuccess?.(await oauth("apple", { id_token: token }));
+    } catch (e) {
+      // Closing the popup is a choice, not an error worth a red line.
+      if (e?.error !== "popup_closed_by_user") onError?.(e?.message || e?.error || "Apple sign-in didn't finish.");
+    } finally { setBusy(""); }
+  }
+
   async function start(p) {
     const id = clientId(p.key);
     if (p.key === "google") {
@@ -165,8 +196,14 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // screen. Hiding it on `hasGoogle` alone meant configuring Google could
   // REMOVE the member's only way to use it.
   const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
-  const featured = grid.filter((p) => p.key === "spotify" || p.key === "soundcloud");
-  const rest = grid.filter((p) => p.key !== "spotify" && p.key !== "soundcloud");
+  // The one-tap sign-ins people actually have go up front; the long tail folds.
+  const FEATURED = ["google", "spotify", "soundcloud"];
+  // Google is only featured as a tile when it is configured (GIS failed to
+  // render it) — an unconfigured tile up front would be a dead button.
+  const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
+  const featured = grid.filter(isFeatured);
+  const rest = grid.filter((p) => !isFeatured(p));
+  const hasApple = !!clientId("apple");
 
   return (
     <div className="space-y-3">
@@ -175,6 +212,19 @@ export default function OAuthButtons({ onSuccess, onError }) {
       </div>
 
       {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
+
+      {hasApple && (
+        <div className="flex justify-center">
+          <button type="button" onClick={startApple} disabled={busy === "apple"}
+                  aria-label="Continue with Apple"
+                  className="flex h-10 w-[280px] items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition hover:bg-white/90 active:scale-95">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor">
+              <path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.75.73 1.05 1.6 2.24 2.73 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.3-3.51zM14.2 6.12c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.07 1.96-.49 2.56-1.21z"/>
+            </svg>
+            {busy === "apple" ? "Opening Apple…" : "Continue with Apple"}
+          </button>
+        </div>
+      )}
 
       {/* Say what went wrong, and print the origin Google has to be told about
           — that is the fix in almost every case, and it is not guessable. */}
@@ -201,7 +251,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
       )}
 
       {featured.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${featured.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
           {featured.map((p) => (
             <button
               key={p.key}

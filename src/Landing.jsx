@@ -48,6 +48,8 @@ const FEATURES = [
 // page showing a fabricated "1,200 members" would be exactly the kind of
 // number that could look good without being good, and it's the first thing
 // this codebase's own rules say not to ship.
+const MIN_MEMBERS_TO_SHOW = 50;
+
 function useCommunityStats() {
   const [stats, setStats] = useState(null);
   useEffect(() => {
@@ -204,7 +206,10 @@ export default function Landing() {
       </header>
 
       <div className="neon-frame p-6 text-center sm:p-10">
-        {stats?.total_members > 0 && (
+        {/* Below a few dozen, "6 members" tells a stranger the room is empty,
+            which argues against walking in. Same rule as the trial stats'
+            MIN_TO_SHOW: a small true number is worse than none. */}
+        {stats?.total_members >= MIN_MEMBERS_TO_SHOW && (
           <p className="mb-4 flex items-center justify-center gap-2 text-xs">
             <span className="pill">👥 {stats.total_members.toLocaleString()} members</span>
             {stats.online_now > 0 && (
@@ -216,10 +221,10 @@ export default function Landing() {
           </p>
         )}
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-          Train your voice, body, or barZ.<br className="hidden sm:block" /> Get scored by a coach that actually listens.
+          Get your take scored out of 10.<br className="hidden sm:block" /> Free, in about a minute.
         </h1>
         <p className="mx-auto mt-2 text-lg font-semibold text-mcz-cyan">
-          Meet you where you are, then take you farther.
+          Vocals, rap, guitar, bass, keys, drums, violin — or your lifts.
         </p>
         <p className="mx-auto mt-3 max-w-xl text-sm text-white/60 sm:text-base">
           Same AI coach real members use, same rubric, same score out of 10 — on pitch, timing and
@@ -230,10 +235,10 @@ export default function Landing() {
           to="/try"
           className="neon-btn-primary mx-auto mt-6 !w-auto px-8 py-4 text-base"
         >
-          🎤 Get one take scored — free, no account
+          🎤 Score my take — free, no account
         </Link>
         <p className="mt-2 text-[11px] text-white/40">
-          One take a day. Score it, keep it, and sign up after — it saves straight to your account.
+          Upload a clip you already have, or record one. Sign up after and it saves to your account.
         </p>
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm">
@@ -270,6 +275,7 @@ export default function Landing() {
           always whatever the web app is, never a version behind it. Picks
           Android on an Android visitor rather than defaulting to Windows for
           everyone; SpecZ (inside the app) still lists every option. */}
+      {build && (
       <a
         href={build.href}
         target="_blank"
@@ -289,6 +295,7 @@ export default function Landing() {
           </p>
         </div>
       </a>
+      )}
       {alternateBuild() && (
         <a href={alternateBuild().href} target="_blank" rel="noreferrer"
            className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">

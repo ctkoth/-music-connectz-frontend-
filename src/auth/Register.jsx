@@ -25,6 +25,7 @@ export default function Register() {
   // computed client-side. It only survives as real routines if this
   // registration completes; see BodieZTrial.jsx's own comment on why.
   const trialSplit = storedTrialSplit();
+  const [showOptional, setShowOptional] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -134,11 +135,6 @@ export default function Register() {
           <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
         </div>
       )}
-      {/* The one-account rule, on the one screen where somebody is about to
-          make a second one. Read from the server (`rulez.js`) rather than
-          typed here, so the rule a member is shown and the rule the code
-          enforces are the same sentence. */}
-      <RuleNote rule="one_account" />
 
       {/* The gain, before the button. SIGNUP_WELCOME_SPINAZ has been paid on
           every registration since it was written and no screen ever said so —
@@ -167,13 +163,24 @@ export default function Register() {
           {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
         </div>
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
+        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+
+        {/* Optional, so folded: five fields looked like twice the work. */}
+        {showOptional ? (
+          <div className="space-y-3">
         <Field icon={Phone} type="tel" placeholder="Phone number (optional)" value={form.phone} onChange={set("phone")} autoComplete="tel" required={false} />
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
           <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
         </div>
-        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+          </div>
+        ) : (
+          <button type="button" onClick={() => setShowOptional(true)}
+                  className="text-xs text-white/45 hover:text-white/75">
+            + Add phone or birthday (optional — birthday unlocks your ZodiacZ sign)
+          </button>
+        )}
 
         {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
@@ -184,6 +191,12 @@ export default function Register() {
       </form>
 
       <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+
+      {/* The one-account rule, read from the server (`rulez.js`). It used to
+          OPEN the form, above the username — a warning as the first thing a
+          stranger reads reads as an accusation at the door. Still on this
+          screen, still before anyone is signed up; just after the fields. */}
+      <RuleNote rule="one_account" />
 
       <p className="pt-2 text-center text-sm text-white/55">
         Already have an account?{" "}
@@ -266,6 +279,7 @@ export function AuthShell({ title, subtitle, children }) {
           always whatever the web app is, never a version behind it. Picks
           Android on an Android visitor rather than defaulting to Windows for
           everyone; SpecZ (inside the app) still lists every option. */}
+      {build && (
       <a
         href={build.href}
         target="_blank"
@@ -285,6 +299,7 @@ export function AuthShell({ title, subtitle, children }) {
           </p>
         </div>
       </a>
+      )}
       {alternateBuild() && (
         <a href={alternateBuild().href} target="_blank" rel="noreferrer"
            className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">

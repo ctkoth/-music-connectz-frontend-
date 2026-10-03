@@ -857,39 +857,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     });
   }, [blocked, price]);
 
-  return (
-    <div className="neon-frame space-y-4 p-4">
-      <div>
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
-          👑 Boss Take — {price?.label || "AI"} Coach
-        </p>
-        <p className="mt-1 text-[11px] text-white/45">
-          Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
-          actually worked, what to fix, and a drill to run before the next one. On camera the coach can
-          mark delivery and breath too.
-        </p>
-        {/* The ceiling, before the button that hits it. A limit you discover by
-            reaching it costs you the take you already performed. */}
-        <p className="mt-1 text-[11px] text-white/35">
-          Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
-          coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
-          the recorder stops itself before the take gets too big to send.
-        </p>
-        {/* When the member's own tier is what's holding the ceiling down, say
-            what a tier up would actually buy here — the same "frequency, not
-            access" upsell the allowance ladder makes, about size instead. */}
-        {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
-          <p className="mt-1 text-[11px] text-white/35">
-            {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
-            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> —{" "}
-            <button type="button" onClick={() => goToSpot("membershipz")}
-                    className="text-mcz-cyan hover:underline">
-              a tier up gets you there
-            </button>.
-          </p>
-        )}
-      </div>
-
+  const settings = (
+    <>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
           Genre
@@ -976,6 +945,54 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </span>
         </label>
       )}
+
+    </>
+  );
+
+  return (
+    <div className="neon-frame space-y-4 p-4">
+      <div>
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          👑 Boss Take — {price?.label || "AI"} Coach
+        </p>
+        <p className="mt-1 text-[11px] text-white/45">
+          Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
+          actually worked, what to fix, and a drill to run before the next one. On camera the coach can
+          mark delivery and breath too.
+        </p>
+        {/* The ceiling, before the button that hits it. A limit you discover by
+            reaching it costs you the take you already performed. */}
+        <p className={`mt-1 text-[11px] text-white/35 ${trial ? "hidden" : ""}`}>
+          Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
+          coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
+          the recorder stops itself before the take gets too big to send.
+        </p>
+        {/* When the member's own tier is what's holding the ceiling down, say
+            what a tier up would actually buy here — the same "frequency, not
+            access" upsell the allowance ladder makes, about size instead. */}
+        {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
+          <p className="mt-1 text-[11px] text-white/35">
+            {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
+            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> —{" "}
+            <button type="button" onClick={() => goToSpot("membershipz")}
+                    className="text-mcz-cyan hover:underline">
+              a tier up gets you there
+            </button>.
+          </p>
+        )}
+      </div>
+
+      {/* On the trial the options fold away: a stranger came for a score,
+          and three dropdowns plus two checkboxes ahead of the record button
+          read as homework. The defaults score a take fine. */}
+      {trial ? (
+        <details className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+          <summary className="cursor-pointer text-[12px] text-white/55">
+            Options — genre, range, difficulty, lyrics, mix <span className="text-white/35">(the defaults are fine)</span>
+          </summary>
+          <div className="mt-3 space-y-4">{settings}</div>
+        </details>
+      ) : settings}
 
       {/* A post arrived from PostZ. It IS the take — there is nothing to record
           and nothing to upload, so the recorder steps aside and the only thing

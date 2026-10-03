@@ -37,6 +37,9 @@ export function detectPlatform() {
   // touchscreen Linux laptop still has a mouse as its primary pointer.
   const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
   if (/linux/i.test(ua) && !/CrOS/.test(ua) && navigator.maxTouchPoints > 0 && coarse) return "android";
+  // iPhone/iPad (an iPad says "Macintosh" but has touch). Neither build runs
+  // there, so offering one is a dead end on the signup page.
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
   if (/windows/i.test(ua) || /windows/i.test(hint)) return "win";
   return "other";
 }
@@ -45,6 +48,7 @@ export function detectPlatform() {
 // the Windows installer for everyone else (iOS/Mac/Linux have no build yet,
 // so Windows stays the fallback rather than showing nothing).
 export function recommendedBuild() {
+  if (detectPlatform() === "ios") return null;
   return BUILDS.find((b) => b.key === detectPlatform()) || WINDOWS_EXE;
 }
 

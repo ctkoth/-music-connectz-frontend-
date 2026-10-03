@@ -48,6 +48,10 @@ export function clearTrialToken() {
   }
 }
 
+// Tier numbers come from /api/economy/tiers/, never typed here.
+const perDay = (n) => (n == null || n >= 999 ? "Unlimited" : `${n}/day`);
+const mb = (n) => (n == null ? "—" : n >= 1024 ? `${Math.round(n / 1024)}GB` : `${n}MB`);
+
 export default function TrialTake() {
   const { appKey = "singz" } = useParams();
   const [doors, setDoors] = useState(FALLBACK);
@@ -190,17 +194,83 @@ export default function TrialTake() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
-        {/* An illustration of the SHAPE of the answer, not somebody's real
-            take. It used to be headed "Real feedback example", which claims a
-            member said it — a small lie on the one screen whose entire job is
-            proving the scoring is not decoration. */}
-        <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">What comes back</p>
-        <p className="mt-2 text-sm text-white/85">
-          <span className="font-bold text-emerald-300">Score: 7/10</span> — Pitch accuracy is solid, but breath control cost you 2 points. Work on sustain, and you'll hit 9+.
-        </p>
+      {/* The recorder comes FIRST. It sat under the full pricing table —
+          ~1,200px down on a phone — on the page a visitor opened to get a
+          free score. Pricing follows the score, where it is an answer. */}
+      {!bossTakeReady && (
+        <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
+          <Loader2 className="mr-2 animate-spin text-cyan-300" size={18} />
+          {/* Not "Checking mic access" — nothing here touches the mic. This
+              waits on the coach's own price and rubric, and saying otherwise
+              puts a permission prompt in somebody's head before there is one. */}
+          <span className="text-sm text-white/60">Loading the coach…</span>
+        </div>
+      )}
+
+      <div className={bossTakeReady ? "" : "hidden"}>
+        <BossTake appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
       </div>
 
+      {!scored && (
+        <p className="mt-4 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 text-[13px] text-white/75">
+          {/* The SHAPE of an answer, not somebody's real take. */}
+          <span className="font-semibold text-cyan-300">What comes back: </span>
+          a score out of 10, what cost you the rest, and one drill to run next — e.g.
+          “7/10 — pitch is solid, breath control cost you 2.”
+        </p>
+      )}
+
+      {scored && (
+        <>
+          <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
+            <p className="mb-3 text-white/85">
+              Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link to="/register" className="re-btn !w-auto px-5">
+                Keep this take — join free
+              </Link>
+              {/* The label names the number that's going out, so nobody
+                  discovers what they shared by sharing it. */}
+              <button type="button" onClick={share} className="re-btn re-btn-cyan !w-auto px-5">
+                <Share2 size={15} />
+                {score != null ? `Share your ${score}/10` : "Share this"}
+              </button>
+            </div>
+            {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
+          </div>
+
+          <div className="mt-6">
+            <TrialToUpgradePrompt score={score ?? 7} />
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+              What you unlock by joining
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
+                <p className="mb-2 font-semibold text-emerald-300">Free</p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Keep all your takes</li>
+                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "free")?.daily_prompts)} scored takes</li>}
+                  <li>✓ Personalized drill</li>
+                  <li>✓ Track your progress</li>
+                  <li>✓ Post & compete</li>
+                </ul>
+              </div>
+              <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
+                <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
+                <ul className="space-y-1 text-[11px] text-white/75">
+                  <li>✓ Everything in Free</li>
+                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "premium")?.daily_prompts)} scored takes</li>}
+                  {tiers?.[0] && <li>✓ {mb(tiers.find((t) => t.key === "premium")?.upload_mb)} per upload</li>}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       {/* Counts, never rates.
         *
         * This panel used to render the JOIN FUNNEL'S three conversion rates —
@@ -239,7 +309,7 @@ export default function TrialTake() {
       )}
 
       {tiers && (
-        <div className="mb-6">
+        <div className="mt-8">
           <style>{`
             @keyframes statz-pulse {
               0%, 100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.3), inset 0 0 20px rgba(255, 165, 0, 0.1); }
@@ -283,10 +353,9 @@ export default function TrialTake() {
                   {tier.label}
                 </p>
                 <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Scored takes: {tier.key === "free" ? "3/day" : tier.key === "premium" ? "5/day" : "Unlimited"}</li>
-                  <li>✓ Upload: {tier.key === "free" ? "100MB" : tier.key === "premium" ? "1GB" : "10GB"}</li>
-                  <li>✓ Storage: {tier.key === "free" ? "500MB" : tier.key === "premium" ? "5GB" : "100GB"}</li>
-                  {tier.key === "statz" && <li className="mt-1 text-mcz-gold font-semibold">✓ No limits</li>}
+                  <li>✓ Scored takes: {perDay(tier.daily_prompts)}</li>
+                  <li>✓ Upload: {mb(tier.upload_mb)}</li>
+                  <li>✓ Storage: {mb(tier.storage_mb)}</li>
 
                   {/* Founding pricing for StatZ */}
                   {tier.key === "statz" && tier.founding && (
@@ -332,73 +401,6 @@ export default function TrialTake() {
         </div>
       )}
 
-      {!bossTakeReady && (
-        <div className="mb-4 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 py-8">
-          <Loader2 className="mr-2 animate-spin text-cyan-300" size={18} />
-          {/* Not "Checking mic access" — nothing here touches the mic. This
-              waits on the coach's own price and rubric, and saying otherwise
-              puts a permission prompt in somebody's head before there is one. */}
-          <span className="text-sm text-white/60">Loading the coach…</span>
-        </div>
-      )}
-
-      <div className={bossTakeReady ? "" : "hidden"}>
-        <BossTake appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
-      </div>
-
-      {scored && (
-        <>
-          <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
-            <p className="mb-3 text-white/85">
-              Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Link to="/register" className="re-btn !w-auto px-5">
-                Keep this take — join free
-              </Link>
-              {/* The label names the number that's going out, so nobody
-                  discovers what they shared by sharing it. */}
-              <button type="button" onClick={share} className="re-btn re-btn-cyan !w-auto px-5">
-                <Share2 size={15} />
-                {score != null ? `Share your ${score}/10` : "Share this"}
-              </button>
-            </div>
-            {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
-          </div>
-
-          <div className="mt-6">
-            <TrialToUpgradePrompt score={score ?? 7} />
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
-              What you unlock by joining
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
-                <p className="mb-2 font-semibold text-emerald-300">Free</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Keep all your takes</li>
-                  <li>✓ 3 scored takes/day</li>
-                  <li>✓ Personalized drill</li>
-                  <li>✓ Track your progress</li>
-                  <li>✓ Post & compete</li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
-                <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Everything in Free</li>
-                  <li>✓ 5 scored takes/day</li>
-                  <li>✓ Advanced analytics</li>
-                  <li>✓ Priority support</li>
-                  <li>✓ Coming soon: 1:1 coaching</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
