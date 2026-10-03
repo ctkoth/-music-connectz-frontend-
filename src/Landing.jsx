@@ -44,21 +44,6 @@ const FEATURES = [
     body: "Sell beats, book lessons, run label deals. The platform fee drops as your tier goes up, and it's shown before you ever spend." },
 ];
 
-// Real counts or none — see CLAUDE.md on substance over decoration. A landing
-// page showing a fabricated "1,200 members" would be exactly the kind of
-// number that could look good without being good, and it's the first thing
-// this codebase's own rules say not to ship.
-const MIN_MEMBERS_TO_SHOW = 50;
-
-function useCommunityStats() {
-  const [stats, setStats] = useState(null);
-  useEffect(() => {
-    let on = true;
-    api("/api/auth/public-stats/", { auth: false }).then((s) => on && setStats(s)).catch(() => {});
-    return () => { on = false; };
-  }, []);
-  return stats;
-}
 
 /** Every door a stranger can walk through, in order of how much it asks.
  *
@@ -183,7 +168,6 @@ function UpgradeCTAs({ tiers }) {
 }
 
 export default function Landing() {
-  const stats = useCommunityStats();
   const tiers = useTiers();
   // The coaches come from the server, so a new instrument reaches the front
   // door without anybody editing this page — the same list /try renders.
@@ -206,20 +190,10 @@ export default function Landing() {
       </header>
 
       <div className="neon-frame p-6 text-center sm:p-10">
-        {/* Below a few dozen, "6 members" tells a stranger the room is empty,
-            which argues against walking in. Same rule as the trial stats'
-            MIN_TO_SHOW: a small true number is worse than none. */}
-        {stats?.total_members >= MIN_MEMBERS_TO_SHOW && (
-          <p className="mb-4 flex items-center justify-center gap-2 text-xs">
-            <span className="pill">👥 {stats.total_members.toLocaleString()} members</span>
-            {stats.online_now > 0 && (
-              <span className="pill !border-emerald-400/40 !text-emerald-300">
-                <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                {stats.online_now} online now
-              </span>
-            )}
-          </p>
-        )}
+        {/* No member count here. Corey's call: visitors are never shown it —
+            a small true number reads as an empty room to somebody deciding
+            whether to join. Members see it in the app header. The endpoint is
+            members-only too (PublicStatsView). */}
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
           Get your take scored out of 10.<br className="hidden sm:block" /> Free, in about a minute.
         </h1>
