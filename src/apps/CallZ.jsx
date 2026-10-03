@@ -17,6 +17,7 @@
 // no WebSockets to signal over. Polling costs a few seconds at connect and
 // nothing afterwards — the audio never touches the server.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { onHandoff } from "../handoff.js";
 import { Loader2, Phone, PhoneOff, PhoneIncoming, Mic, MicOff, AlertTriangle } from "lucide-react";
 
 import { api } from "../api.js";
@@ -31,6 +32,7 @@ export default function CallZ() {
   const [state, setState] = useState(null);      // GET /callz/
   const [err, setErr] = useState("");
   const [who, setWho] = useState("");
+  useEffect(() => onHandoff("callz", (p) => { if (p.username) setWho(String(p.username)); }), []);
   const [quote, setQuote] = useState(null);      // GET /callz/rate/<who>/
   const [busy, setBusy] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -299,7 +301,7 @@ export default function CallZ() {
           <div className="flex flex-wrap gap-2">
             <input
               className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
-              placeholder="username" value={who}
+              placeholder="username" value={who} data-tour="callz-who"
               onChange={(e) => setWho(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && getQuote(who)} />
             <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => getQuote(who)}>

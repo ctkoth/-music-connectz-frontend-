@@ -27,6 +27,7 @@ import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
@@ -234,6 +235,10 @@ export default function CollabZ() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
                                      description: "", split_mode: "worth" });
+  // A member card's "Collab" lands here with the partner already filled in.
+  useEffect(() => onHandoff("collabz", (p) => {
+    if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
+  }), []);
   const [work, setWork] = useState({});
   const [storage, setStorage] = useState(null);
   const [gates, setGates] = useState({});
@@ -394,7 +399,7 @@ export default function CollabZ() {
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
-          <input className="neon-input" placeholder="Their username"
+          <input className="neon-input" placeholder="Their username" data-tour="collabz-partner"
                  value={form.partner} onChange={(e) => setForm({ ...form, partner: e.target.value })} />
           <input className="neon-input" inputMode="decimal" placeholder="Your contribution is worth"
                  value={form.mine} onChange={(e) => setForm({ ...form, mine: e.target.value })} />

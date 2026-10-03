@@ -468,6 +468,7 @@ export default function BattleZ() {
 
   useEffect(() => onHandoff("battlez", (h) => {
     if (h?.kind === "post" && h.post_id) setSeed(h);
+    if (h?.opponent) setDuel((d) => ({ ...d, opponent: String(h.opponent) }));
   }), []);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3200); };
@@ -587,7 +588,7 @@ export default function BattleZ() {
               Throw down a challenge
             </p>
             <div className="grid gap-2 sm:grid-cols-3">
-              <input className="neon-input !py-2 text-xs" placeholder="Opponent username"
+              <input className="neon-input !py-2 text-xs" placeholder="Opponent username" data-tour="battlez-opponent"
                      value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
               <select className="neon-input !py-2 text-xs" value={duel.kind}
                       onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>

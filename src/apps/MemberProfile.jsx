@@ -7,15 +7,92 @@ import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
 import { useEffect, useState } from "react";
-import { Loader2, MapPin, Star, Users, X, Edit, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Star, Users, X, Edit, Trash2, MessageSquare, Phone, Share2, Handshake, Swords, Heart } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
-import CopyLink from "../CopyLink.jsx";
+import CopyLink, { profileUrl } from "../CopyLink.jsx";
+import { handOff } from "../handoff.js";
+import { ENERGY, MONEY } from "../resources.js";
 import { personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
+
+// What a member can DO with somebody from their card. Every card in the app
+// opens this modal, so these are the actions for "whenever users are shown as
+// a card". Each lands on the exact control in the app that does it, already
+// filled in, and states its price first where it has one.
+function CardActions({ username, data }) {
+  const [rate, setRate] = useState(null);
+  const [mine, setMine] = useState(null);
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    api(`/api/economy/callz/rate/${encodeURIComponent(username)}/`).then(setRate).catch(() => setRate(null));
+  }, [username]);
+  const perMin = rate?.rate_cents_per_min;
+  const btn = "neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1";
+
+  async function share() {
+    const url = profileUrl(username);
+    try {
+      if (navigator.share) { await navigator.share({ title: `@${username} on Music ConnectZ`, url }); return; }
+      await navigator.clipboard.writeText(url); setNote("Profile link copied.");
+    } catch (e) { if (e?.name !== "AbortError") setNote(url); }
+  }
+  async function rateAttract(score) {
+    try {
+      const r = await api("/api/economy/attractiveness/rate/", { method: "POST", body: { target_username: username, score } });
+      setMine(score);
+      setNote(r?.earned_energy ? `Rated ${score}/10 · +${r.earned_energy} ${ENERGY}` : `Rated ${score}/10 — your rating updated.`);
+    } catch (e) { setNote(e.message || "Couldn't save that rating."); }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="flex flex-wrap gap-2">
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                onClick={() => handOff("messagez", "messagez-compose", { people: [username] })}>
+          <MessageSquare size={13} /> Message
+        </button>
+        <button className={btn} onClick={() => handOff("callz", "callz-who", { username })}>
+          <Phone size={13} /> Call
+          {perMin != null && (perMin > 0
+            ? <span className="text-mcz-ember">−{MONEY}{(perMin / 100).toFixed(2)}/min</span>
+            : <span className="text-emerald-300">free</span>)}
+        </button>
+        <button className={btn} onClick={share}><Share2 size={13} /> Share</button>
+        <button className={btn} onClick={() => handOff("collabz", "collabz-partner", { partner: username })}>
+          <Handshake size={13} /> Collab
+        </button>
+        <button className={btn} onClick={() => handOff("battlez", "battlez-opponent", { opponent: username })}>
+          <Swords size={13} /> Challenge
+        </button>
+      </div>
+
+      <div className="space-y-1">
+        <p className="flex items-center gap-1 text-[11px] text-white/45"><Heart size={11} /> Rate attractiveness</p>
+        <div className="flex flex-wrap gap-1">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <button key={n} onClick={() => rateAttract(n)} aria-label={`Rate ${n} out of 10`}
+                    className={`h-7 w-7 rounded-full text-[11px] font-semibold ${mine === n ? "bg-mcz-pink text-black" : "bg-white/10 text-white/60 hover:bg-white/20"}`}>
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <a href={`/u/${encodeURIComponent(username)}`} className="inline-flex items-center gap-1 text-xs text-mcz-cyan hover:underline">
+        <Star size={12} /> Rate their skills — on their work{data?.pieces ? ` (${data.pieces} pieces)` : ""}
+      </a>
+      <p className="text-[10px] text-white/35">
+        Skill ratings come from rating someone's actual work, never a number given to the person, so they stay a measure of the work.
+        {perMin > 0 && ` Calls are charged per minute at @${username}'s rate; the price is held before it rings.`}
+      </p>
+      {note && <p className="text-[11px] text-mcz-cyan">{note}</p>}
+    </div>
+  );
+}
 
 function Pill({ children, className = "" }) {
   return <span className={`pill ${className}`}>{children}</span>;
@@ -179,6 +256,8 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             <ViewCount target={`profile:${username}`} />
 
             <FollowButton username={username} onCounts={(c) => setData((d) => ({ ...d, ...c }))} />
+
+            {!data.mine && <CardActions username={username} data={data} />}
 
             <div className="flex flex-wrap gap-2 text-xs">
               <Pill><Users size={11} className="inline" /> {data.followers ?? 0} followers</Pill>
