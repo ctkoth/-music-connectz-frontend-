@@ -89,10 +89,9 @@ export default function SoundCloudImport({ clientId }) {
         <span className="text-emerald-300">Free</span> — importing costs nothing.
       </p>
       <p className="pt-1 text-[11px] leading-relaxed text-white/40">
-        Public tracks come in as drafts with their genre and description. Private
-        tracks stay on SoundCloud — their player needs a secret link we won't put
-        in a post you might publish. Run it again any time: tracks already here
-        are skipped.
+        Tracks come in as drafts with their genre and description. Private ones
+        are marked 🔒 and play through their secret link, so publishing one asks
+        you first. Run it again any time: tracks already here are skipped.
       </p>
 
       <p className="pt-1.5 text-[11px] leading-relaxed text-white/40">

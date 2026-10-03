@@ -669,13 +669,20 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       .catch(() => setPublishCost(null));
   }, [post.visibility, post.skills_used, post.skill_cost_cents, canEdit]);
 
+  // A track that is private on SoundCloud plays here through its secret link,
+  // so publishing the post shares that link. Asked up front, before the
+  // request — the server refuses without the confirmation anyway (409).
+  const scPrivate = (post.embeds || []).some((e) => e?.private_on_sc);
+
   async function publish() {
     if (busy) return;
+    if (scPrivate && !window.confirm(
+      "This track is private on SoundCloud. Publishing shares its secret link with everyone who can see the post. Publish anyway?")) return;
     setBusy(true);
     try {
       const next = await api("/api/economy/postz/", {
         method: "POST",
-        body: { edit_id: post.id, visibility: "public" },
+        body: { edit_id: post.id, visibility: "public", ...(scPrivate ? { share_private_track: true } : {}) },
       });
       onChanged(post.id, next);
       onFlash("Published — it's live in the feed now.");
@@ -855,6 +862,10 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.freestyle && <span className="text-mcz-gold">· 🆓 Freestyle</span>}
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
+            )}
+            {scPrivate && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-mcz-gold/40 !text-mcz-gold"
+                    title="Private on SoundCloud — publishing shares its secret link">🔒 private on SoundCloud</span>
             )}
             {/* Every imported SoundCloud track lands here — private, shown to
                 nobody, until this is pressed. The cost sits ON the control,
