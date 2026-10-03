@@ -25,6 +25,7 @@ import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
 import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
+import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
@@ -861,6 +862,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         <div className="border-t border-white/10 pt-3" data-tour="visibility">
           <VisibilitieZ visibility={me?.visibility} audiences={audiences} onChange={setMe} />
         </div>
+        <div data-tour="reach-gates"><ReachGates /></div>
 
         {/* Sits with the sign-ins above it: importing a catalogue is the same
             SoundCloud authorisation, spent on a track list instead of a

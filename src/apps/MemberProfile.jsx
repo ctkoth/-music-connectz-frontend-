@@ -51,11 +51,13 @@ function CardActions({ username, data }) {
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <div className="flex flex-wrap gap-2">
-        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1 disabled:opacity-40"
+                disabled={!!data?.reach_block}
                 onClick={() => handOff("messagez", "messagez-compose", { people: [username] })}>
           <MessageSquare size={13} /> Message
         </button>
-        <button className={btn} onClick={() => handOff("callz", "callz-who", { username })}>
+        <button className={`${btn} disabled:opacity-40`} disabled={!!data?.reach_block}
+                onClick={() => handOff("callz", "callz-who", { username })}>
           <Phone size={13} /> Call
           {perMin != null && (perMin > 0
             ? <span className="text-mcz-ember">−{MONEY}{(perMin / 100).toFixed(2)}/min</span>
@@ -70,6 +72,7 @@ function CardActions({ username, data }) {
         </button>
       </div>
 
+      {data?.reach_block && <p className="text-[11px] text-amber-200">{data.reach_block}</p>}
       <div className="space-y-1">
         <p className="flex items-center gap-1 text-[11px] text-white/45"><Heart size={11} /> Rate attractiveness</p>
         <div className="flex flex-wrap gap-1">
