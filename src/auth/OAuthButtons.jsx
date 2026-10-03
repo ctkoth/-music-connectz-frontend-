@@ -5,8 +5,8 @@ import { useAuth } from "./AuthContext.jsx";
 import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { goesExternal, openProvider, APP_STATE_PREFIX } from "../externalAuth.js";
-import { GoogleG, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
+import { goesExternal, openProvider, statePrefixFor, appShell } from "../externalAuth.js";
+import { GoogleG, ID_TOKEN_AUTH, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
 const VITE_ID = (key) => import.meta.env[`VITE_${key.toUpperCase()}_CLIENT_ID`] || "";
@@ -26,6 +26,14 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // sign-in sent them to the home page still signed out — every first-time
   // Google signup ended there.
   const [choice, setChoice] = useState(null);
+  // Which build we're in decides how Google and Apple can work at all.
+  const shell = appShell();
+  // In the Android and Windows apps their popups have nothing to return to,
+  // so they go through the device's real browser instead (ID_TOKEN_AUTH).
+  const viaBrowser = shell === "android" || shell === "desktop";
+  // An app built before that hand-back existed can't do either — say so
+  // rather than render a button that dead-ends.
+  const oldApp = shell === "android-old" || shell === "desktop-old";
   const finish = (res) => (res?.needs_choice ? setChoice(res) : onSuccess?.(res));
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
@@ -82,7 +90,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
   /* Google Identity Services button, rendered once its client_id is known. */
   useEffect(() => {
     const gid = clientId("google");
-    if (!gid || !googleBtn.current) return;
+    if (!gid || !googleBtn.current || viaBrowser || oldApp || shell === "inapp") return;
     const render = () => {
       if (!window.google?.accounts?.id || !googleBtn.current) return;
       window.google.accounts.id.initialize({
@@ -132,7 +140,22 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // Sign in with Apple — Apple's own JS in popup mode hands back an identity
   // token, which the server verifies against its Services ID. Shown only when
   // the server has that ID, so the button never leads somewhere that fails.
+  // Google/Apple in the Android or Windows app: out to the real browser,
+  // back through the app's deep link, finished on /oauth/callback.
+  async function startViaBrowser(key) {
+    const id = clientId(key);
+    if (!id) return onError?.(`${key === "google" ? "Google" : "Apple"} sign-in isn't available right now.`);
+    clearFlowMarkers();
+    const p = { key };
+    const state = statePrefixFor(p) + rand();
+    sessionStorage.setItem("mcz_oauth_provider", key);
+    sessionStorage.setItem("mcz_oauth_state", state);
+    sessionStorage.removeItem("mcz_oauth_verifier");
+    await openProvider(p, ID_TOKEN_AUTH[key](id, state, rand()));
+  }
+
   async function startApple() {
+    if (viaBrowser) return startViaBrowser("apple");
     const id = clientId("apple");
     if (!id) return onError?.("Apple sign-in isn't available right now.");
     setBusy("apple");
@@ -183,7 +206,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
     // over from either of those, abandoned mid-flow in this tab, would
     // otherwise hijack the callback that is about to happen.
     clearFlowMarkers();
-    const state = (goesExternal(p) ? APP_STATE_PREFIX : "") + rand();
+    const state = statePrefixFor(p) + rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
     sessionStorage.setItem("mcz_oauth_state", state);
     let challenge = "";
@@ -200,12 +223,16 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // Google renders as its own GIS button when configured; otherwise it shows in
   // the grid like the rest. All provider logos are always visible so the
   // login/register screen presents the full set of social options.
-  const hasGoogle = !!clientId("google");
+  const hasGoogle = !!clientId("google") && !viaBrowser && !oldApp && shell !== "inapp";
+  const googleViaBrowser = !!clientId("google") && viaBrowser;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   // Only hide the generic Google button once GSI has actually put one on the
   // screen. Hiding it on `hasGoogle` alone meant configuring Google could
   // REMOVE the member's only way to use it.
-  const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
+  // In the apps and in-app browsers Google is the button above (or the note
+  // explaining why it can't be), never a dead tile in the grid.
+  const grid = PROVIDERS.filter((p) => !(p.key === "google"
+    && ((hasGoogle && gsi !== "failed") || viaBrowser || oldApp || shell === "inapp")));
   // The one-tap sign-ins people actually have go up front; the long tail folds.
   const FEATURED = ["google", "spotify", "soundcloud"];
   // Google is only featured as a tile when it is configured (GIS failed to
@@ -213,7 +240,8 @@ export default function OAuthButtons({ onSuccess, onError }) {
   const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
   const featured = grid.filter(isFeatured);
   const rest = grid.filter((p) => !isFeatured(p));
-  const hasApple = !!clientId("apple");
+  const hasApple = !!clientId("apple") && !oldApp && shell !== "inapp";
+  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || clientId("apple"));
 
   if (choice) {
     const go = choiceRoutes(choice, navigate, oauth);
@@ -231,6 +259,34 @@ export default function OAuthButtons({ onSuccess, onError }) {
       </div>
 
       {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
+
+      {googleViaBrowser && (
+        <div className="flex justify-center">
+          <button type="button" onClick={() => startViaBrowser("google")} aria-label="Continue with Google"
+                  className="flex h-10 w-[280px] items-center justify-center gap-2 rounded-full border border-white/20 bg-[#131314] text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95">
+            <GoogleG size={16} color="#ffffff" /> Continue with Google
+          </button>
+        </div>
+      )}
+
+      {/* Instagram's, TikTok's and Facebook's own browsers: Google refuses to
+          sign anyone in there ("disallowed_useragent") and Apple's popup has
+          nowhere to land. Most visitors from a social link are in one. */}
+      {blockedHere && (
+        <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] leading-relaxed text-white/80">
+          {oldApp ? (
+            <p>Google and Apple sign-in need the latest version of the app. Update it, or use email or another option below.</p>
+          ) : (
+            <>
+              <p>Google and Apple don't allow sign-in inside this app's browser. Open this page in Chrome or Safari to use them — or sign up with email right here.</p>
+              <button type="button" className="mt-1 text-mcz-cyan underline"
+                      onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => onError?.("Link copied — paste it into Chrome or Safari."))}>
+                Copy this page's link
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {hasApple && (
         <div className="flex justify-center">

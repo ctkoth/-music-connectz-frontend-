@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
@@ -7,12 +7,14 @@ import { AuthShell } from "./Register.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
 import { finishConnect, connectPending } from "../connectOAuth.js";
 import { REDIRECT } from "../oauthProviders.jsx";
-import { isAppHandoff, appReturnUrl } from "../externalAuth.js";
+import { isAppHandoff, appReturnUrl, callbackParams } from "../externalAuth.js";
 
 export default function OAuthCallback() {
   const { oauth, login } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  // Query AND fragment: Google's and Apple's redirect flows put the identity
+  // token in the fragment.
+  const [params] = useState(() => callbackParams());
   const [choice, setChoice] = useState(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export default function OAuthCallback() {
   // This page, in a Chrome tab, on its way back to the app. The app holds the
   // state and verifier, so it is the one that spends the code — never this tab.
   const [handoff] = useState(() =>
-    isAppHandoff(params.get("state")) ? appReturnUrl(window.location.search) : "");
+    isAppHandoff(params.get("state")) ? appReturnUrl(`?${params.toString()}`, params.get("state")) : "");
 
   useEffect(() => {
     async function handleCallback() {
@@ -37,6 +39,7 @@ export default function OAuthCallback() {
         const state = sessionStorage.getItem("mcz_oauth_state");
         const verifier = sessionStorage.getItem("mcz_oauth_verifier");
         const code = params.get("code");
+        const idToken = params.get("id_token");
         const returnedState = params.get("state");
 
         // The member pressed Cancel / Deny on the provider's page. Not a
@@ -49,7 +52,7 @@ export default function OAuthCallback() {
             ? "Sign-in was cancelled. Nothing was created — try again or use email."
             : `The provider refused the sign-in: ${params.get("error_description") || denied}`);
         }
-        if (!provider || !code) {
+        if (!provider || !(code || idToken)) {
           throw new Error("OAuth callback missing required parameters");
         }
         if (!state || state !== returnedState) {
@@ -91,7 +94,10 @@ export default function OAuthCallback() {
         // Exchange code for user (backend will either auto-signin or ask "do you have one?")
         // Must be byte-identical to the redirect_uri the authorize URL carried
         // (REDIRECT) — Twitter, Facebook and GitHub reject the exchange otherwise.
-        const payload = { code, redirect_uri: REDIRECT };
+        // Google/Apple through the device browser: the token IS the sign-in.
+        const payload = idToken && (provider === "google" || provider === "apple")
+          ? { id_token: idToken }
+          : { code, redirect_uri: REDIRECT };
         if (verifier) payload.code_verifier = verifier;
         const result = await oauth(provider, payload);
 

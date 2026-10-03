@@ -72,6 +72,23 @@ export const PROVIDERS = [
     auth: (id, s) => `https://www.facebook.com/v23.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=email,public_profile&state=${s}` },
 ];
 
+// Google and Apple, when they can't run as a popup — inside the Android or
+// Windows app, both of which send them to the device's real browser. Each
+// returns a signed identity token in the URL fragment, which the server
+// verifies exactly as it verifies the popup's token (audience = our client /
+// Services ID), so no client secret is involved. The fragment, not the query:
+// it never reaches a server log on the way back.
+export const ID_TOKEN_AUTH = {
+  google: (id, state, nonce) =>
+    `https://accounts.google.com/o/oauth2/v2/auth?response_type=id_token&client_id=${encodeURIComponent(id)}`
+    + `&redirect_uri=${RD}&scope=openid%20email%20profile&state=${state}&nonce=${nonce}&prompt=select_account`,
+  // No scope requested: Apple only allows the fragment response without one.
+  // The account is keyed on Apple's stable `sub`, so nothing is lost.
+  apple: (id, state, nonce) =>
+    `https://appleid.apple.com/auth/authorize?response_type=code%20id_token&response_mode=fragment`
+    + `&client_id=${encodeURIComponent(id)}&redirect_uri=${RD}&state=${state}&nonce=${nonce}`,
+};
+
 // Facebook refuses "Continue with Facebook" (its own login screen, or one
 // reached indirectly — Spotify offers Facebook as a login option, so
 // accounts.spotify.com/authorize can hand off to facebook.com mid-flow)
@@ -84,7 +101,7 @@ export const PROVIDERS = [
 // thing we control is warning the member before they hit it.
 export function isInAppBrowser() {
   if (typeof navigator === "undefined") return false;
-  return /FBAN|FBAV|Instagram|Line\/|MicroMessenger/i.test(navigator.userAgent || "");
+  return /FBAN|FBAV|Instagram|musical_ly|Bytedance|TikTok|Snapchat|LinkedInApp|Line\/|MicroMessenger/i.test(navigator.userAgent || "");
 }
 // Instagram and TikTok are deliberately absent. The backend can only complete a
 // sign-in for google/github/apple plus its OAUTH2_PROVIDERS registry (spotify,

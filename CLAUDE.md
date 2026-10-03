@@ -959,3 +959,27 @@ When building a new coach or scorer:
 5. **Test that every key in the dictionary is scored and every key scored is declared** — `test_instrument_routes` does this on the backend.
 
 A score with no description is a broken feature. A description with no number is a broken feature. Both together are the feature.
+
+## Sign-in works differently on every build, and `appShell()` is where that starts
+
+`src/externalAuth.js` names the build: `web`, `inapp` (Instagram / TikTok /
+Facebook / Snapchat / LinkedIn browsers), `android` / `android-old` (APK with
+or without the Browser+App plugins) and `desktop` / `desktop-old` (the .exe,
+told apart by the `MCZDesktop/2` UA marker `desktop/main.cjs` adds).
+
+- **Google and Apple never run as popups inside an app.** Google refuses
+  embedded browsers (`disallowed_useragent`, Electron included) and Apple's
+  popup has nothing to return to. In `android`/`desktop` they go to the
+  device's real browser with `ID_TOKEN_AUTH` (identity token in the URL
+  fragment — no client secret), and come back through the app's deep link:
+  `intent://…` for Android, `net.musicconnectz.app://` for Windows, chosen by
+  the `app.` / `desk.` state prefix. `callbackParams()` reads the fragment so
+  the token survives the handoff.
+- **On the Windows app every provider goes out to the system browser** — one
+  path is easier to keep right than a list.
+- **`inapp` and the `-old` builds get a sentence, not a dead button**: open in
+  Chrome/Safari (with a copy-link), or update the app.
+- Setup this needs: Google's OAuth client must list
+  `https://musicconnectz.net/oauth/callback` under **Authorized redirect URIs**
+  (the popup only needed the JavaScript origin), and Apple's Services ID needs
+  the same URL as a return URL.
