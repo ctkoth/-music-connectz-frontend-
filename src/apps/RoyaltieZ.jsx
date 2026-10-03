@@ -20,6 +20,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { goToSpot } from "../goto.js";
+import Withdraw from "../components/Withdraw.jsx";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -162,6 +163,10 @@ export default function RoyaltieZ() {
       </div>
 
       {msg && <p className="re-card text-[13px] text-white/80">{msg}</p>}
+
+      {/* Cashing out above moves royalties into your spendable balance;
+          this moves that balance to a bank. */}
+      <Withdraw />
 
       <div className="space-y-2">
         <p className="re-label">Ledger</p>
