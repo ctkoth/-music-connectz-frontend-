@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
+import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goesExternal, openProvider, APP_STATE_PREFIX } from "../externalAuth.js";
@@ -17,6 +19,14 @@ const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#fff
 
 export default function OAuthButtons({ onSuccess, onError }) {
   const { oauth } = useAuth();
+  const navigate = useNavigate();
+  // Google and Apple sign in by popup, so their answer lands HERE rather than
+  // on /oauth/callback. A brand-new member's answer is a question ("do you
+  // already have an account?"), and passing it to onSuccess as if it were a
+  // sign-in sent them to the home page still signed out — every first-time
+  // Google signup ended there.
+  const [choice, setChoice] = useState(null);
+  const finish = (res) => (res?.needs_choice ? setChoice(res) : onSuccess?.(res));
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
   // Provider client IDs served by the backend (GET /api/auth/oauth/config/).
@@ -80,7 +90,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
         callback: async (resp) => {
           try {
             setBusy("google");
-            onSuccess?.(await oauth("google", { credential: resp.credential }));
+            finish(await oauth("google", { credential: resp.credential }));
           } catch (e) { onError?.(e.message); } finally { setBusy(""); }
         },
       });
@@ -143,7 +153,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
       const resp = await window.AppleID.auth.signIn();
       const token = resp?.authorization?.id_token;
       if (!token) throw new Error("Apple didn't send a sign-in token back.");
-      onSuccess?.(await oauth("apple", { id_token: token }));
+      finish(await oauth("apple", { id_token: token }));
     } catch (e) {
       // Closing the popup is a choice, not an error worth a red line.
       if (e?.error !== "popup_closed_by_user") onError?.(e?.message || e?.error || "Apple sign-in didn't finish.");
@@ -204,6 +214,15 @@ export default function OAuthButtons({ onSuccess, onError }) {
   const featured = grid.filter(isFeatured);
   const rest = grid.filter((p) => !isFeatured(p));
   const hasApple = !!clientId("apple");
+
+  if (choice) {
+    const go = choiceRoutes(choice, navigate, oauth);
+    const create = async () => {
+      setBusy("choice");
+      try { await go.create(); } catch (e) { onError?.(e.message); setBusy(""); }
+    };
+    return <AccountChoice choice={choice} onCreate={create} onSignIn={go.signIn} busy={busy === "choice"} />;
+  }
 
   return (
     <div className="space-y-3">

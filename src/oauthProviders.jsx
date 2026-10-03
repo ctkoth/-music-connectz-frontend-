@@ -69,7 +69,7 @@ export const PROVIDERS = [
   { key: "twitter",    label: "Twitter / X", Icon: XTwitter,  color: "#ffffff", pkce: true,
     auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
   { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2", external: true,
-    auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=email,public_profile&state=${s}` },
+    auth: (id, s) => `https://www.facebook.com/v23.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${RD}&scope=email,public_profile&state=${s}` },
 ];
 
 // Facebook refuses "Continue with Facebook" (its own login screen, or one

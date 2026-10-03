@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
-import AccountChoice from "./AccountChoice.jsx";
+import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { AuthShell } from "./Register.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
 import { finishConnect, connectPending } from "../connectOAuth.js";
@@ -39,12 +39,24 @@ export default function OAuthCallback() {
         const code = params.get("code");
         const returnedState = params.get("state");
 
+        // The member pressed Cancel / Deny on the provider's page. Not a
+        // fault — say it plainly instead of "missing required parameters".
+        const denied = params.get("error");
+        if (denied) {
+          sessionStorage.removeItem("mcz_oauth_state");
+          sessionStorage.removeItem("mcz_oauth_verifier");
+          throw new Error(denied === "access_denied" || denied === "user_cancelled_login"
+            ? "Sign-in was cancelled. Nothing was created — try again or use email."
+            : `The provider refused the sign-in: ${params.get("error_description") || denied}`);
+        }
         if (!provider || !code) {
           throw new Error("OAuth callback missing required parameters");
         }
         if (!state || state !== returnedState) {
-          throw new Error("OAuth state mismatch — request may have been intercepted");
+          throw new Error("This sign-in link expired or was opened in a different tab. Start again from the login page.");
         }
+        // One use: a code and its state are spent the moment they are read.
+        sessionStorage.removeItem("mcz_oauth_state");
 
         // A SoundCloud IMPORT reuses this whole dance — same authorize URL,
         // same redirect, same state check — and differs only in what the code
@@ -102,31 +114,14 @@ export default function OAuthCallback() {
   }, []);
 
   async function handleCreateNew() {
-    // User said "I'm new" — create account with the pending token
     setSigningIn(true);
-    try {
-      if (!choice?.pending) throw new Error("Missing pending token");
-      // Navigate to register with the pending token — Register.jsx handles it
-      navigate(`/register?pending=${encodeURIComponent(choice.pending)}&provider=${choice.provider}&email=${encodeURIComponent(choice.email || "")}&suggested=${encodeURIComponent(choice.suggested_username || "")}`);
-    } catch (e) {
-      setError(e.message);
-      setSigningIn(false);
-    }
+    try { await choiceRoutes(choice, navigate, oauth).create(); }
+    catch (e) { setError(e.message); setSigningIn(false); }
   }
 
-  async function handleSignInExisting() {
-    // User said "I already have one" — go to login, then link OAuth after
-    setSigningIn(true);
-    try {
-      if (!choice?.pending) throw new Error("Missing pending token");
-      // Store the pending token in sessionStorage so Login can use it after signup
-      sessionStorage.setItem("mcz_oauth_pending", choice.pending);
-      sessionStorage.setItem("mcz_oauth_provider", choice.provider);
-      navigate("/login");
-    } catch (e) {
-      setError(e.message);
-      setSigningIn(false);
-    }
+  function handleSignInExisting() {
+    try { choiceRoutes(choice, navigate, oauth).signIn(); }
+    catch (e) { setError(e.message); }
   }
 
   if (handoff) {

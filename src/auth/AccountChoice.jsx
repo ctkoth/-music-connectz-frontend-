@@ -91,3 +91,28 @@ export default function AccountChoice({ choice, onCreate, onSignIn, busy }) {
     </div>
   );
 }
+
+
+/** Where each answer goes — shared by the redirect callback and the
+ *  popup providers (Google, Apple), so both ask the same question the same way.
+ *  "New" creates the account from the signed pending token; "existing" logs in
+ *  first and links the provider after. */
+export function choiceRoutes(choice, navigate, oauth) {
+  return {
+    // The server creates the account from the signed pending token — no
+    // form, no password. It used to send them to /register with the token in
+    // the URL, which the form never read: they typed a password anyway and
+    // the provider they had just approved was never linked.
+    async create() {
+      if (!choice?.pending) throw new Error("Missing pending token");
+      await oauth(choice.provider, { pending: choice.pending });
+      navigate("/");
+    },
+    signIn() {
+      if (!choice?.pending) throw new Error("Missing pending token");
+      sessionStorage.setItem("mcz_oauth_pending", choice.pending);
+      sessionStorage.setItem("mcz_oauth_provider", choice.provider);
+      navigate("/login");
+    },
+  };
+}
