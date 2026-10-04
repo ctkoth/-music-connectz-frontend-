@@ -31,6 +31,7 @@ import {
   Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
+import { PushAsk } from "../components/PushSettings.jsx";
 import { playTrack, useNowPlaying } from "../nowPlaying.js";
 import { usePinned, setPinned } from "../pinned.js";
 import OfferPanel from "../OfferPanel.jsx";
@@ -217,6 +218,9 @@ export default function PostZ() {
   const [visibility, setVisibility] = useState("public");
   const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
+  // Asked right after a post lands — the one moment a push is obviously worth
+  // having — never on page load.
+  const [justPosted, setJustPosted] = useState(false);
   const [posting, setPosting] = useState(false);
   const [work, setWork] = useState({});      // MediaFields' shape
   const [storage, setStorage] = useState(null);
@@ -332,6 +336,7 @@ export default function PostZ() {
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
       setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
       flash("Posted. Rating opens in 30s, comments in 60s.");
+      setJustPosted(true);
     } catch (e) {
       flash(e.message || "Couldn't post.");
     } finally {
@@ -532,6 +537,7 @@ export default function PostZ() {
         ))}
       </div>
 
+      {justPosted && <PushAsk />}
       {toast && (
         <div className="rounded-lg border border-mcz-ember/40 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">{toast}</div>
       )}
