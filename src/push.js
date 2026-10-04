@@ -78,3 +78,16 @@ export async function disablePush() {
 
 export const savePushPrefs = (body) => api(`${BASE}prefs/`, { method: "POST", body });
 export const testPush = () => api(`${BASE}test/`, { method: "POST", body: {} });
+
+/** Tell the server this browser's timezone, once a session, for EVERY member
+ *  — habit reminders and quiet hours fall back to US Eastern until it knows.
+ *  Fire-and-forget: a failure here must never touch the screen. */
+export function reportTimezone() {
+  try {
+    if (sessionStorage.getItem("mcz_tz_sent")) return;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz) return;
+    sessionStorage.setItem("mcz_tz_sent", "1");
+    api(`${BASE}prefs/`, { method: "POST", body: { tz } }).catch(() => {});
+  } catch { /* storage blocked — the Eastern default stands */ }
+}

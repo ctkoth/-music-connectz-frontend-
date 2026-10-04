@@ -17,6 +17,7 @@ import { usePageTitle } from "./pageTitle.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
 import NotificationsPanel from "./components/NotificationsPanel.jsx";
+import { reportTimezone } from "./push.js";
 import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
 import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
@@ -871,6 +872,9 @@ const TAB_ABOUT = {
 
 function Home() {
   const { user, logout } = useAuth();
+  // Reminders and quiet hours run on the member's own clock; until the
+  // browser has said which, the server assumes US Eastern.
+  useEffect(() => { if (user) reportTimezone(); }, [user]);
   const navigate = useNavigate();
   // Read the slug off the path rather than from useParams: the tab routes are
   // listed explicitly (so an unknown address still redirects) and an explicit

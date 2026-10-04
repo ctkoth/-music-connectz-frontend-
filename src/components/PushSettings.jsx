@@ -76,7 +76,7 @@ export default function PushSettings({ compact = false }) {
             <select className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.end} onChange={(e) => quiet("quiet_end", e.target.value)}>
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hour(h)}</option>)}
             </select>
-            {s.quiet.tz && <span className="text-white/35">({s.quiet.tz})</span>}
+            {s.quiet.tz && <span className="text-white/35">({s.quiet.tz.replace(/_/g, " ")}{s.quiet.tz_guessed ? " — assumed until your browser says" : ""})</span>}
             <button className="re-link ml-auto" onClick={test} disabled={busy}>Send me a test</button>
           </div>
         </>
