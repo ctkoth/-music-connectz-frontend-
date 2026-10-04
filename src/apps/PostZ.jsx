@@ -250,10 +250,16 @@ export default function PostZ() {
     const n = new URLSearchParams(window.location.search).get("imported");
     if (n == null) return;
     const count = parseInt(n, 10) || 0;
-    setToast(count > 0
+    // The server's own sentence when we have it: it is the one that knows
+    // about private tracks left behind and a run cut short. The count-only
+    // copy is the fallback for when storage was unavailable.
+    let detail = "";
+    try { detail = JSON.parse(sessionStorage.getItem("mcz_sc_import_result") || "{}").detail || ""; } catch { /* fallback below */ }
+    try { sessionStorage.removeItem("mcz_sc_import_result"); } catch { /* nothing to clear */ }
+    setToast(detail ? `🎧 ${detail}` : count > 0
       ? `🎧 ${count} track${count === 1 ? "" : "s"} imported as private drafts — Publish each one when you're ready.`
       : "No new tracks to import — everything from SoundCloud is already here.");
-    setTimeout(() => setToast(""), 5000);
+    setTimeout(() => setToast(""), detail ? 9000 : 5000);
     // Strip the param so a refresh doesn't re-show a stale confirmation.
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
@@ -663,13 +669,20 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       .catch(() => setPublishCost(null));
   }, [post.visibility, post.skills_used, post.skill_cost_cents, canEdit]);
 
+  // A track that is private on SoundCloud plays here through its secret link,
+  // so publishing the post shares that link. Asked up front, before the
+  // request — the server refuses without the confirmation anyway (409).
+  const scPrivate = (post.embeds || []).some((e) => e?.private_on_sc);
+
   async function publish() {
     if (busy) return;
+    if (scPrivate && !window.confirm(
+      "This track is private on SoundCloud. Publishing shares its secret link with everyone who can see the post. Publish anyway?")) return;
     setBusy(true);
     try {
       const next = await api("/api/economy/postz/", {
         method: "POST",
-        body: { edit_id: post.id, visibility: "public" },
+        body: { edit_id: post.id, visibility: "public", ...(scPrivate ? { share_private_track: true } : {}) },
       });
       onChanged(post.id, next);
       onFlash("Published — it's live in the feed now.");
@@ -849,6 +862,10 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
             {post.freestyle && <span className="text-mcz-gold">· 🆓 Freestyle</span>}
             {post.visibility !== "public" && (
               <span className="pill !px-1.5 !py-0 !text-[9px]">{post.visibility}</span>
+            )}
+            {scPrivate && (
+              <span className="pill !px-1.5 !py-0 !text-[9px] !border-mcz-gold/40 !text-mcz-gold"
+                    title="Private on SoundCloud — publishing shares its secret link">🔒 private on SoundCloud</span>
             )}
             {/* Every imported SoundCloud track lands here — private, shown to
                 nobody, until this is pressed. The cost sits ON the control,

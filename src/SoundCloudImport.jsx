@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { api } from "./api.js";
-import { clearFlowMarkers } from "./oauthProviders.jsx";
+import { PROVIDERS, REDIRECT, clearFlowMarkers, pkceChallenge, rand } from "./oauthProviders.jsx";
 
 // Bring a SoundCloud catalogue in as DRAFT posts.
 //
@@ -15,22 +15,26 @@ import { clearFlowMarkers } from "./oauthProviders.jsx";
 // code on an import instead of a sign-in.
 
 const MARK = "mcz_sc_import";
-
-const rand = () => {
-  const a = new Uint8Array(32);
-  crypto.getRandomValues(a);
-  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
-};
+// The full answer, handed to PostZ: a bare count in the URL could not say
+// that private tracks were left behind or that a slow SoundCloud cut the run
+// short — the two things a member most needs to know after a big import.
+export const RESULT = "mcz_sc_import_result";
+const SC = PROVIDERS.find((p) => p.key === "soundcloud");
 
 /** Called by OAuthCallback when it finds the marker. Returns the result so the
  *  callback can render it, and clears the marker either way — a marker that
  *  outlives its import turns the member's NEXT sign-in into an import. */
-export async function finishImport(code) {
+export async function finishImport(code, verifier) {
   sessionStorage.removeItem(MARK);
-  return api("/api/economy/soundcloud/import/", {
-    method: "POST",
-    body: { code, redirect_uri: `${window.location.origin}/oauth/callback` },
-  });
+  sessionStorage.removeItem("mcz_oauth_verifier");
+  // The SAME redirect the authorize URL carried — it was built from the page
+  // origin here while sign-in used REDIRECT, so on any build where
+  // VITE_OAUTH_REDIRECT differs from the origin SoundCloud refused the code.
+  const body = { code, redirect_uri: REDIRECT };
+  if (verifier) body.code_verifier = verifier;
+  const out = await api("/api/economy/soundcloud/import/", { method: "POST", body });
+  try { sessionStorage.setItem(RESULT, JSON.stringify(out)); } catch { /* the count still travels in the URL */ }
+  return out;
 }
 
 export const importPending = () => sessionStorage.getItem(MARK) === "1";
@@ -49,7 +53,7 @@ export default function SoundCloudImport({ clientId }) {
   // interruption.
   if (!info) return null;
 
-  function start() {
+  async function start() {
     if (!clientId) {
       setError("SoundCloud isn't connected on this server yet.");
       return;
@@ -61,12 +65,12 @@ export default function SoundCloudImport({ clientId }) {
     const state = rand();
     sessionStorage.setItem("mcz_oauth_provider", "soundcloud");
     sessionStorage.setItem("mcz_oauth_state", state);
-    sessionStorage.removeItem("mcz_oauth_verifier");
+    const verifier = rand();
+    sessionStorage.setItem("mcz_oauth_verifier", verifier);
     sessionStorage.setItem(MARK, "1");
-    const redirect = encodeURIComponent(`${window.location.origin}/oauth/callback`);
-    window.location.href =
-      `https://secure.soundcloud.com/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${redirect}&state=${state}`;
+    // One authorize URL for SoundCloud, shared with sign-in — this file used
+    // to carry its own hand-typed copy, which is how the two drifted apart.
+    window.location.href = SC.auth(encodeURIComponent(clientId), state, await pkceChallenge(verifier));
   }
 
   return (
@@ -79,9 +83,15 @@ export default function SoundCloudImport({ clientId }) {
           here the cost is genuinely nothing, which is worth saying rather than
           leaving somebody to wonder what a bulk import charges. */}
       <p className="pt-2 text-sm text-white/75">
-        Up to <strong>{info.max_tracks}</strong> track
-        {info.max_tracks === 1 ? "" : "s"} at once on {info.tier}.{" "}
+        {info.whole_catalogue || info.max_tracks == null
+          ? <>Your <strong>whole catalogue</strong> at once on {info.tier === "statz" ? "StatZ" : info.tier}.{" "}</>
+          : <>Up to <strong>{info.max_tracks}</strong> track{info.max_tracks === 1 ? "" : "s"} at once on {info.tier}.{" "}</>}
         <span className="text-emerald-300">Free</span> — importing costs nothing.
+      </p>
+      <p className="pt-1 text-[11px] leading-relaxed text-white/40">
+        Tracks come in as drafts with their genre and description. Private ones
+        are marked 🔒 and play through their secret link, so publishing one asks
+        you first. Run it again any time: tracks already here are skipped.
       </p>
 
       <p className="pt-1.5 text-[11px] leading-relaxed text-white/40">
