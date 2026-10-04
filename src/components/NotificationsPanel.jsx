@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Bell, X, Check, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import PushSettings from "./PushSettings.jsx";
 
 /**
  * Displays user's in-app notifications (habit reminders, etc).
@@ -80,7 +81,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
             </p>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-xl font-bold text-white">
-                Habit Reminders
+                What's new
               </h2>
               {unread > 0 && (
                 <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-emerald-500 rounded-full">
@@ -96,6 +97,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
             <X size={20} />
           </button>
         </div>
+
+        {/* Reaching you when the app is closed — renders nothing until push
+            is switched on for the platform. */}
+        <PushSettings />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto space-y-2">
