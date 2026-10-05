@@ -15,6 +15,7 @@ import BossTake from "./BossTake.jsx";
 import { api } from "../api.js";
 import { track } from "../track.js";
 import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
+import RetakeRemind from "../components/RetakeRemind.jsx";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
 
@@ -81,6 +82,8 @@ export default function TrialTake() {
   const [scored, setScored] = useState(false);
   const [score, setScore] = useState(null);
   const [shared, setShared] = useState("");
+  // The take's claim token and the server's email offer, for RetakeRemind.
+  const [remind, setRemind] = useState(null);
   const [bossTakeReady, setBossTakeReady] = useState(false);
   const [stats, setStats] = useState(null);
   const [tiers, setTiers] = useState(null);
@@ -103,7 +106,9 @@ export default function TrialTake() {
     // every visit since it shipped, and the 404 was swallowed below, so the
     // panel simply never appeared and nothing said why.
     api("/api/economy/trial/public/stats/?days=30", { auth: false })
-      .then((d) => { if (on && d?.headline) setStats(d); })
+      // `enough` is what the server sends; this waited on `headline`, which it
+      // never has, so the panel could not render even past the threshold.
+      .then((d) => { if (on && d && "enough" in d) setStats(d); })
       .catch(() => {})
       // Failed fetch does not render error: a stats panel that silently fails
       // is better than one that blocks or screams about an API problem.
@@ -138,6 +143,7 @@ export default function TrialTake() {
     }
     if (result.score != null) setScore(result.score);
     if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
+    if (result.remind && result.claim_token) setRemind({ ...result.remind, token: result.claim_token });
     setScored(true);
   }
 
@@ -257,6 +263,8 @@ export default function TrialTake() {
             </div>
             {shared && <p className="mt-2 text-[11px] text-emerald-300">{shared}</p>}
           </div>
+
+          <RetakeRemind claimToken={remind?.token} remind={remind} appKey={app} />
 
           <div className="mt-6">
             <TrialToUpgradePrompt score={score ?? 7} />

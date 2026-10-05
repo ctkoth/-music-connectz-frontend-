@@ -59,6 +59,7 @@ const SERVER_KINDS = new Set([
   "try_scored",
   "try_send",
   "try_shared",
+  "try_email",
   "try_view",
 ]);
 
