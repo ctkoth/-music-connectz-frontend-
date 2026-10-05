@@ -84,6 +84,23 @@
   transform: translateX(-3px);
 }
 
+.toolz-more-button {
+  display: block;
+  margin: 0.5rem auto 2rem;
+  background: rgba(0, 255, 255, 0.12);
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+.toolz-more-button:hover {
+  background: rgba(0, 255, 255, 0.25);
+}
+
 /* Category Grid (Main View) */
 .category-grid {
   display: grid;

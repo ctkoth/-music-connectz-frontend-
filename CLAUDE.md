@@ -996,3 +996,16 @@ as `?src=retake_d3` / `retake_d7`. Backend CLAUDE.md has the rules.
 The "Already happening here" stats panel on the trial waited for a `headline`
 key the server never sends, so it could not render even past the threshold.
 It reads `enough` now.
+
+## Focus mode: the coach is the product, for now
+
+`src/focus.js` is one list — the seven coaches plus what surrounds them
+(PostZ, ProfileZ, MessageZ, BattleZ, the practice tools, MembershipZ,
+OnboardZ, LogZ, and BodieZ because Corey uses it). The ToolZ home leads with
+those and puts the thirteen categories behind "More apps"; the ⊞ drawer does
+the same. **Hidden, never removed:** every tab still routes, search in the
+drawer looks through all of them, and a member's own pins and most-used apps
+still land in their dock. Most of what is hidden is a two-sided room that is
+empty until there are people in it, and an empty room tells a newcomer
+nobody's here. `FOCUS_MODE = false` restores the old menus exactly.
+`focus.test.mjs` fails if a focus key is not a real tab.
