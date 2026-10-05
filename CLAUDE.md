@@ -983,3 +983,16 @@ told apart by the `MCZDesktop/2` UA marker `desktop/main.cjs` adds).
   `https://musicconnectz.net/oauth/callback` under **Authorized redirect URIs**
   (the popup only needed the JavaScript origin), and Apple's Services ID needs
   the same URL as a return URL.
+
+## RetakeRemind: the trial's way back
+
+`components/RetakeRemind.jsx` sits under the trial score: "email me this",
+with the server's schedule sentence (score now, day 3, day 7, then nothing)
+on the control before it is pressed. It renders nothing unless the trial
+response carried `remind.ready` — no mail configured server-side means no
+field, never a fake "sent". Fires `try_email`; returns from the emails arrive
+as `?src=retake_d3` / `retake_d7`. Backend CLAUDE.md has the rules.
+
+The "Already happening here" stats panel on the trial waited for a `headline`
+key the server never sends, so it could not render even past the threshold.
+It reads `enough` now.
