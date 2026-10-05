@@ -22,6 +22,7 @@ import { IconImg, slugFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
+import { FOCUS_MODE, inFocus } from "./focus.js";
 
 const USAGE_KEY = "mcz_app_usage";
 const PINS_KEY = "mcz_pinned_apps";
@@ -32,7 +33,9 @@ const FREE_PIN_LIMIT = 2;
 // something, have it coached, be heard from, be findable. Four apps, not
 // forty-five — everything past this is one search away, never deleted, never
 // hidden past a single tap on ⊞.
-const STARTER_APPS = ["postz", "singz", "messagez", "profilez"];
+// Coach first: it is the one app that works for somebody with nobody else
+// here yet (see focus.js).
+const STARTER_APPS = ["singz", "rapz", "postz", "profilez"];
 
 export const readStore = (k) => {
   try {
@@ -140,6 +143,9 @@ function DockButton({ app, active, badge, onClick }) {
 export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit, onMini, minis = [] }) {
   const [drawer, setDrawer] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+  // Focus mode offers the coach and what surrounds it; the rest of the apps
+  // are one tap behind this, and a search always looks through all of them.
+  const [showMore, setShowMore] = useState(false);
   // SplitZ: StatZ keeps it, Premium samples it (every open carries an
   // upgrade nudge — App.jsx renders that banner since it owns the pane).
   // Free doesn't see the button at all, same as WidgetZ's page-framing:
@@ -166,7 +172,10 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   // of clearing one — but "hidden" must never mean "gone": a member who
   // cleared the wrong tile flips this switch, sees it dimmed with the rest,
   // and taps it once to bring it back.
-  const shown = showHidden ? matched : matched.filter((a) => !hidden.includes(a.key));
+  const unhidden = showHidden ? matched : matched.filter((a) => !hidden.includes(a.key));
+  const focusing = FOCUS_MODE && !q && !showMore;
+  const shown = focusing ? unhidden.filter((a) => inFocus(a.key)) : unhidden;
+  const moreCount = unhidden.length - unhidden.filter((a) => inFocus(a.key)).length;
   const hiddenCount = hidden.filter((k) => byKey[k]).length;
   // Only relevant on the very first visit — the moment pins or real usage
   // exist, the dock is telling that member's OWN story instead of a generic
@@ -368,6 +377,14 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               );
             })}
           </div>
+          {FOCUS_MODE && !q && moreCount > 0 && (
+            <button
+              onClick={() => setShowMore((v) => !v)}
+              className="mt-3 w-full rounded-lg border border-white/10 py-2 text-[12px] text-white/55 hover:bg-white/5 hover:text-white"
+            >
+              {showMore ? "Show just the coach and essentials" : `More apps (${moreCount})`}
+            </button>
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2, Wallet } from "lucide-react";
+import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2 } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
 import { recommendedBuild, alternateBuild } from "./downloadBuilds.js";
@@ -33,15 +33,18 @@ function useTiers() {
 // worked — it just wasn't linked from the one URL that gets shared, indexed,
 // and clicked. This page's only job is to make that promise true on arrival
 // and hand the visitor the one link that keeps it.
+// Focus mode (src/focus.js): the coach is the product, so these sell the
+// coach. Collabs, payouts and the marketplaces are still in the app, but a
+// stranger arriving to an empty two-sided room learns nobody's here.
 const FEATURES = [
   { Icon: Mic2, title: "An AI coach that actually listens",
-    body: "Not a form-completeness score. It hears the take and scores pitch, timing and delivery — same rubric whether you're training in SingZ or RapZ." },
-  { Icon: Star, title: "Ratings from real people, not bots",
-    body: "Post a track or bars; the community scores it 1–10 once it's had 30 seconds of air. You can't rate your own — that's what makes the number worth anything." },
-  { Icon: Users2, title: "Collab, battle, build a crew",
-    body: "Find people by the instrument, persona and heritage they actually claim — then co-write, remix, or put your post up against theirs." },
-  { Icon: Wallet, title: "Get paid for it",
-    body: "Sell beats, book lessons, run label deals. The platform fee drops as your tier goes up, and it's shown before you ever spend." },
+    body: "Not a form-completeness score. It hears the take and scores pitch, timing and delivery — the same rubric every time, so the number means something." },
+  { Icon: Star, title: "Watch the number move",
+    body: "Every take is kept. Send the same one again next week and see which part got better — that's the whole point of a coach." },
+  { Icon: Music4, title: "Seven instruments, one coach",
+    body: "Vocals, rap, guitar, bass, keys, drums and violin, each scored on what that instrument actually asks of you — a drummer isn't marked on breath." },
+  { Icon: Users2, title: "Challenge a friend",
+    body: "Share your score card and dare them to beat it. Same take, same rubric, no arguing about who's better." },
 ];
 
 
@@ -198,11 +201,11 @@ export default function Landing() {
           Get your take scored out of 10.<br className="hidden sm:block" /> Free, in about a minute.
         </h1>
         <p className="mx-auto mt-2 text-lg font-semibold text-mcz-cyan">
-          Vocals, rap, guitar, bass, keys, drums, violin — or your lifts.
+          Vocals, rap, guitar, bass, keys, drums, violin.
         </p>
         <p className="mx-auto mt-3 max-w-xl text-sm text-white/60 sm:text-base">
           Same AI coach real members use, same rubric, same score out of 10 — on pitch, timing and
-          delivery. Then post your work, collaborate, and get paid.
+          delivery. Then send it again and watch the number move.
         </p>
 
         <Link

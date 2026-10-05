@@ -4,6 +4,7 @@ import { presetDirectzFormat } from '../directzPreset.js';
 import { canMini, slugFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg } from '../App.jsx';
+import { FOCUS_MODE, FOCUS_COACHES, FOCUS_SUPPORT } from '../focus.js';
 import './ToolZMenu.css';
 
 // Each tile draws through the SAME registry key the tab strip uses (App.jsx
@@ -24,7 +25,7 @@ const ICON_KEY = {
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
   mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
-  preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
+  membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
@@ -34,7 +35,7 @@ const EMOJI = {
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
-  metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
+  membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
   mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
   mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
@@ -274,9 +275,36 @@ const CATEGORIES = [
   { key: 'BodieZ', label: 'BodieZ', color: 'orange' },
 ];
 
+// Labels for the focus tiles that no ToolZ category names (see focus.js).
+const FOCUS_LABEL = {
+  singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', bassz: 'BassZ', keyz: 'KeyZ',
+  drumz: 'DrumZ', violinz: 'ViolinZ', postz: 'PostZ', profilez: 'ProfileZ',
+  messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
+  chordz: 'ChordZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
+  bodiez: 'BodieZ',
+};
+
+function FocusTile({ appKey, onOpen, big }) {
+  return (
+    <button className={`category-card ${big ? 'cyan' : 'magenta'}`} onClick={() => onOpen(appKey)}>
+      {ICON_KEY[appKey] ? (
+        <IconImg icon={ICON_KEY[appKey]} alt={FOCUS_LABEL[appKey]} className="category-icon-img"
+                 fallback={<span>{EMOJI[appKey] || '🎵'}</span>} />
+      ) : (
+        <span style={{ fontSize: 28 }}>{EMOJI[appKey] || '🎵'}</span>
+      )}
+      <div className="category-label">{FOCUS_LABEL[appKey] || appKey}</div>
+    </button>
+  );
+}
+
 export default function ToolZMenu() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // Focus mode: the coach leads and the thirteen categories wait behind one
+  // tap. They are all still here — see focus.js for why they are not offered.
+  const [showMore, setShowMore] = useState(!FOCUS_MODE);
+  const openFocus = (key) => goToSpot(key, `${key}:main`);
   const [hoveredApp, setHoveredApp] = useState(null);
 
   // Where a tile goes. Most tiles ARE a tab; some are a door into one (a
@@ -402,10 +430,32 @@ export default function ToolZMenu() {
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <h1>Music ConnectZ</h1>
-        <p className="toolz-subtitle">Every app, one place</p>
+        <p className="toolz-subtitle">
+          {FOCUS_MODE ? 'Score a take. Send it again. Watch the number move.' : 'Every app, one place'}
+        </p>
       </div>
 
+      {FOCUS_MODE && (
+        <>
+          <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
+          <div className="category-grid">
+            {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
+          </div>
+          <p className="toolz-subtitle" style={{ margin: '20px 0 8px' }}>Around the coach</p>
+          <div className="category-grid">
+            {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+          </div>
+          <button
+            className="toolz-more-button"
+            onClick={() => setShowMore((v) => !v)}
+          >
+            {showMore ? 'Hide the other apps' : `More apps (${CATEGORIES.length} categories)`}
+          </button>
+        </>
+      )}
+
       {/* Category Grid */}
+      {showMore && (
       <div className="category-grid">
         {CATEGORIES.map((category) => (
           <button
@@ -418,8 +468,10 @@ export default function ToolZMenu() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Quick Stats */}
+      {showMore && (
       <div className="toolz-stats">
         <div className="stat-item">
           <span className="stat-icon">🎵</span>
@@ -434,6 +486,7 @@ export default function ToolZMenu() {
           <span>Explore & Create</span>
         </div>
       </div>
+      )}
     </div>
   );
 }
