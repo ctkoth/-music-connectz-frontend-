@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Compass, Download, Dumbbell, Mic2, Music4, Sparkles, Star, Timer, Users2 } from "lucide-react";
+import { Compass, Download, Mic2, Music4, Sparkles, Star, Timer, Users2 } from "lucide-react";
 import { api } from "./api.js";
 import { track } from "./track.js";
 import { recommendedBuild, alternateBuild } from "./downloadBuilds.js";
@@ -96,10 +96,6 @@ function TrialDoors({ coaches }) {
                 ? `A real AI coach marks it out of 10 and tells you what cost you the rest. Record it or upload a clip. ${coaches.map((c) => c.label).join(", ")}.`
                 : "A real AI coach marks it out of 10 and tells you what cost you the rest. Record it or upload a clip."}
               floor="Free · no account · needs a mic, or upload a clip" />
-        <Card to="/try/bodiez" Icon={Dumbbell} ring="hover:border-emerald-400/50" tint="text-emerald-300"
-              title="Log a set — BodieZ"
-              blurb="Pick a real exercise, log a set, get a real estimated 1RM and a preview of what Coach tells members. Sign up and it becomes a real routine — nothing you build here is lost."
-              floor="Free · no account · keeps what you build if you sign up" />
         <Card to="/tool/metz" Icon={Timer} ring="hover:border-mcz-gold/50" tint="text-mcz-gold"
               title="MetZ — metronome"
               blurb="Tempo, time signature, subdivisions. Runs in the browser and never phones home."
@@ -115,10 +111,9 @@ function TrialDoors({ coaches }) {
 
 // StatZ is the focal upgrade — flashing ring, biggest type on the page after
 // the headline — because it's the one that answers the question every trial
-// door above just raised: "does any of this survive?" BodieZ already keeps a
-// picked exercise as a real routine on signup; SingZ/RapZ's claim token
-// already carries a scored take into the account the same way. StatZ is what
-// turns "one free take" into "every take, every routine, forever" — which is
+// door above just raised: "does any of this survive?" The coaches' claim
+// token already carries a scored take into the account. StatZ is what turns
+// "one free take" into "every take, forever" — which is
 // the actual gain, stated up front, per the cost/gain rule.
 //
 // Free/Premium sits BELOW it, deliberately smaller and unstyled — plain
@@ -145,11 +140,10 @@ function UpgradeCTAs({ tiers }) {
           <Sparkles size={12} className="animate-pulse" /> StatZ
         </span>
         <p className="relative font-display text-lg font-extrabold text-white sm:text-xl">
-          Keep everything you just tried — every routine, every take, permanently
+          Keep everything you just tried — every take, permanently
         </p>
         <p className="relative mx-auto mt-1.5 max-w-md text-[12px] text-white/60">
-          The exercise you logged in BodieZ becomes a real routine. Every scored take
-          claims into your coach history. StatZ is the tier built for someone who's
+          Every scored take claims into your coach history, so you can see it move. StatZ is the tier built for someone who's
           already building something here.
         </p>
         <p className="relative mt-3 text-2xl font-extrabold text-mcz-cyan">
