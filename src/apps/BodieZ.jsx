@@ -37,6 +37,7 @@
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { demoSrc } from "../media.js";
 import {
   Activity, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, Moon, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Wand2, X,
@@ -1359,7 +1360,7 @@ function buildBalancedRoutine(bodymap, exercises, equipment) {
 function DemoLink({ url }) {
   if (!url) return null;
   return (
-    <a href={url} target="_blank" rel="noreferrer"
+    <a href={demoSrc(url)} target="_blank" rel="noreferrer"
        className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-mcz-cyan hover:underline">
       <PlayCircle size={12} /> Demo
     </a>

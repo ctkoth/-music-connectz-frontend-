@@ -1009,3 +1009,14 @@ still land in their dock. Most of what is hidden is a two-sided room that is
 empty until there are people in it, and an empty room tells a newcomer
 nobody's here. `FOCUS_MODE = false` restores the old menus exactly.
 `focus.test.mjs` fails if a focus key is not a real tab.
+
+## Big media lives in `ctkoth/mcz-media`, not here
+
+The 30 BodieZ demo clips made this repo a 130MB checkout that a slow
+connection could not finish cloning. They are served from
+https://ctkoth.github.io/mcz-media/ now (re-encoded to ~20MB total), and
+`src/media.js` is the one place that maps the backend's stored
+`/exercise-demos/<file>.mp4` onto that host. `vercel.json` and
+`public/_redirects` send the old path there too, for tabs on an older bundle.
+**A new video goes in mcz-media, never in `public/`** — `media.test.mjs`
+fails if `public/exercise-demos/` comes back.

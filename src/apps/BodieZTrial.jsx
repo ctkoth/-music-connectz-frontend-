@@ -9,6 +9,7 @@
 // browser id the funnel already keys on — a second id minted here would be
 // a second visitor.
 import { useEffect, useMemo, useState } from "react";
+import { demoSrc } from "../media.js";
 import { Link } from "react-router-dom";
 import { CalendarDays, ChevronDown, ChevronUp, Dumbbell, Loader2, PlayCircle, Sparkles } from "lucide-react";
 import { api } from "../api.js";
@@ -185,7 +186,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
                       <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
                         <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
                         {ex.demo_url && (
-                          <a href={ex.demo_url} target="_blank" rel="noreferrer"
+                          <a href={demoSrc(ex.demo_url)} target="_blank" rel="noreferrer"
                              className="inline-flex shrink-0 items-center gap-0.5 text-mcz-cyan hover:underline">
                             <PlayCircle size={12} /> Demo
                           </a>
@@ -288,7 +289,7 @@ export default function BodieZTrial() {
           <p className="text-sm font-semibold text-white">
             {result.exercise.name}
             {result.exercise.demo_url && (
-              <a href={result.exercise.demo_url} target="_blank" rel="noreferrer"
+              <a href={demoSrc(result.exercise.demo_url)} target="_blank" rel="noreferrer"
                  className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[11px] font-normal text-mcz-cyan hover:underline">
                 <PlayCircle size={12} /> Demo
               </a>
