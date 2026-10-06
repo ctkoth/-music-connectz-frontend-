@@ -2,7 +2,7 @@
 //
 // `index.html` carries one fixed <title> and one og:image, so every address in
 // this app — a member's profile, a scored take, a playlist — said
-// "Music ConnectZ — AI Vocal & Rap Coach, Collabs, Paid Gigs" in the tab and
+// "Music ConnectZ — AI Coach for Singers, Rappers & Musicians" in the tab and
 // in the preview. The thing being shared was the one thing not mentioned.
 //
 // This fixes the TAB, and Google, which renders JavaScript before it indexes.
@@ -18,7 +18,7 @@
 import { useEffect } from "react";
 
 const SITE = "Music ConnectZ";
-const DEFAULT_TITLE = "Music ConnectZ — AI Vocal & Rap Coach, Collabs, Paid Gigs";
+const DEFAULT_TITLE = "Music ConnectZ — AI Coach for Singers, Rappers & Musicians";
 
 function setMeta(attr, key, value) {
   if (!value) return null;
