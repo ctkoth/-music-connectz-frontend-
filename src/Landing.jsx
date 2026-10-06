@@ -237,11 +237,6 @@ export default function Landing() {
         ))}
       </div>
 
-      {/* Ad placement for traffic exchange partnership */}
-      <div className="mt-8 flex justify-center">
-        <iframe src="https://ad-swap.web.app/frame.html?site=75veYPcDYKfignDb09N6" style={{border:0,width:"300px",height:"130px",maxWidth:"100%"}} loading="lazy" sandbox="allow-scripts allow-popups" title="Ad" />
-      </div>
-
       {/* Free, no account needed — both builds load the live site, so they're
           always whatever the web app is, never a version behind it. Picks
           Android on an Android visitor rather than defaulting to Windows for
