@@ -130,6 +130,7 @@ export default function BodieZ() {
   const setUnit = (u) => { setUnitState(u); saveUnit(u); };
   const [exercises, setExercises] = useState([]);
   const [demoCredit, setDemoCredit] = useState("");
+  const [access, setAccess] = useState({ seated_or_lying_only: false, arms_ok: true, legs_ok: true });
   // Set by BodyMap's "Build a day for just this muscle" CTA, read once by
   // MuscleDayBuilder on the Coach tab then cleared — a jump that lands ON
   // the control rather than dumping the member at the top of a new tab.
@@ -174,6 +175,7 @@ export default function BodieZ() {
     ]).then(([ex, b, sess, prog, bm, co, g, wl, rec, st, sc]) => {
       setExercises(asList(ex.exercises));
       setDemoCredit(ex.demo_credit || "");
+      if (ex.access) setAccess(ex.access);
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
       setSession(open || null);
@@ -190,6 +192,26 @@ export default function BodieZ() {
       .finally(() => setBusy(false));
   };
   useEffect(load, []);
+
+  // One answer, from the server: every exercise comes back flagged
+  // `accessible` for THIS member. The full list is kept for names (an old
+  // session still names a lift the member can no longer pick); only the
+  // pickers get the filtered one.
+  const usable = exercises.filter((e) => e.accessible !== false);
+  const saveAccess = async (patch) => {
+    const next = { ...access, ...patch };
+    setAccess(next);  // optimistic — a toggle that lags reads as not working
+    try {
+      await api("/api/economy/bodiez/access/", { method: "PUT", body: next });
+      const ex = await api("/api/economy/bodiez/exercises/");
+      setExercises(asList(ex.exercises));
+      if (ex.access) setAccess(ex.access);
+      setErr("");
+    } catch (e) {
+      setAccess(access);
+      setErr(e.message || "Couldn't save that. Your choice was not changed.");
+    }
+  };
 
   const buckets = asDict(board?.buckets);
   const bucketLabels = asList(board?.bucket_labels);
@@ -393,6 +415,8 @@ export default function BodieZ() {
         ))}
       </div>
 
+      <AccessPanel access={access} onChange={saveAccess} shown={usable.length} total={exercises.length} />
+
       {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
 
       {busy && !exercises.length ? (
@@ -406,7 +430,7 @@ export default function BodieZ() {
             <LbFix onFixed={load} />
             {summary && <SessionSummary summary={summary} onClose={() => setSummary(null)} />}
             <TodayView
-              session={session} routines={routines} exercises={exercises}
+              session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
               goals={coach?.goals}
             />
@@ -414,17 +438,17 @@ export default function BodieZ() {
           )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
-                          exercises={exercises} demoCredit={demoCredit}
+                          exercises={exercises} pickable={usable} demoCredit={demoCredit}
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
                           onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta}
                           goals={coach?.goals} onSetGoal={setRoutineGoal} />
           )}
           {tab === "bodymap" && (
-            <BodyMapView bodymap={bodymap} exercises={exercises} onBuildForMuscle={jumpToMuscleBuild} />
+            <BodyMapView bodymap={bodymap} exercises={usable} onBuildForMuscle={jumpToMuscleBuild} />
           )}
           {tab === "coach" && (
-            <CoachView coach={coach} bodymap={bodymap} exercises={exercises} dayTagLabels={dayTagLabels}
+            <CoachView coach={coach} bodymap={bodymap} exercises={usable} dayTagLabels={dayTagLabels}
                       prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                       onBuildRoutine={createRoutineFromExercises}
                       onBuildSplit={createSplitRoutines} />
@@ -781,10 +805,10 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
       </div>
       <LastTime exerciseId={planned.exercise_id} />
       <div className="flex flex-wrap items-end gap-2">
-        <Field label="Reps" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
-               value={reps} onChange={(e) => setReps(e.target.value)} />
-        <Field label={`Weight (${unit})`} className="w-24" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
+               value={reps} onChange={(e) => setReps(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 disabled={!reps}
                 onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight))}>
@@ -805,7 +829,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
   );
 }
 
-function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, goals }) {
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals }) {
   const unit = useUnit();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
@@ -898,14 +922,14 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
           <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
-            {exercises.map((ex) => (
+            {(pickable || exercises).map((ex) => (
               <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})</option>
             ))}
           </select>
-          <Field label="Reps" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
-                 value={reps} onChange={(e) => setReps(e.target.value)} />
-          <Field label={`Weight (${unit})`} className="w-24" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+          <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                  value={weight} onChange={(e) => setWeight(e.target.value)} />
+          <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
+                 value={reps} onChange={(e) => setReps(e.target.value)} />
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
                   onClick={() => {
@@ -920,12 +944,63 @@ function TodayView({ session, routines, exercises, onStart, onFinish, onLogSet, 
   );
 }
 
+// What the member's body can do — three independent answers, because someone
+// who cannot walk can usually use both arms and someone with one arm out of
+// action can usually still leg-press. The server decides which exercises that
+// leaves (`accessible` on every row); this only asks, and says how many it
+// leaves so a restrictive choice is never a silent empty list.
+function AccessPanel({ access, onChange, shown, total }) {
+  const restricted = access.seated_or_lying_only || !access.arms_ok || !access.legs_ok;
+  const [open, setOpen] = useState(restricted);
+  const rows = [
+    { key: "seated_or_lying_only", on: access.seated_or_lying_only,
+      label: "I can't stand or walk", hint: "Only seated or lying exercises",
+      set: (v) => ({ seated_or_lying_only: v }) },
+    { key: "arms_ok", on: !access.arms_ok,
+      label: "I can't use my arms", hint: "Hide anything that needs them",
+      set: (v) => ({ arms_ok: !v }) },
+    { key: "legs_ok", on: !access.legs_ok,
+      label: "I can't use my legs", hint: "Hide anything that needs them, and anything standing",
+      set: (v) => ({ legs_ok: !v }) },
+  ];
+  return (
+    <div className="re-card space-y-2">
+      <button className="flex w-full items-center justify-between gap-2 text-left" onClick={() => setOpen(!open)}
+              aria-expanded={open}>
+        <span className="text-sm font-semibold text-white">
+          What I can do
+          {restricted && <span className="ml-2 text-[11px] font-normal text-mcz-cyan">showing {shown} of {total} exercises</span>}
+        </span>
+        <span className="text-[11px] text-white/40">{open ? "Hide" : restricted ? "Change" : "Set up"}</span>
+      </button>
+      {open && (
+        <div className="space-y-1.5">
+          {rows.map((r) => (
+            <label key={r.key} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+              <input type="checkbox" className="h-4 w-4 accent-cyan-400" checked={r.on}
+                     onChange={(e) => onChange(r.set(e.target.checked))} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-white">{r.label}</span>
+                <span className="block text-[11px] text-white/40">{r.hint}</span>
+              </span>
+            </label>
+          ))}
+          <p className="text-[11px] text-white/35">
+            This only changes which exercises you are offered. It never changes a rating, a score or a goal.
+            Past sessions keep their exercises either way.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // The Jefit signature move: pick exercises off the library, filtered by
 // muscle group AND equipment (both already served on every exercise row —
 // no backend change needed), give each a target sets/reps/weight, reorder
 // and remove. Saved shape is `{exercise_id, order, sets, reps, weight_kg}`,
 // which the logger reads back to show a target beside each input.
-function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
+function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onClose }) {
   const unit = useUnit();
   const [rows, setRows] = useState(
     () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -934,10 +1009,10 @@ function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
   const [equipment, setEquipment] = useState([]);
   const [dirty, setDirty] = useState(false);
 
-  const filtered = useMemo(() => exercises.filter((ex) =>
+  const filtered = useMemo(() => (pickable || exercises).filter((ex) =>
     (!muscle || ex.muscle_group === muscle)
     && (equipment.length === 0 || equipment.includes(ex.equipment))
-  ), [exercises, muscle, equipment]);
+  ), [exercises, pickable, muscle, equipment]);
 
   const addExercise = (exerciseId) => {
     if (rows.some((r) => r.exercise_id === exerciseId)) return;
@@ -1005,15 +1080,17 @@ function RoutineDesigner({ routine, exercises, demoCredit, onSave, onClose }) {
                 {ex?.demo_url && <> · <DemoLink url={ex.demo_url} /></>}
               </p>
             </div>
-            <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="sets"
-                   value={r.sets ?? ""} onChange={(e) => patchRow(i, { sets: e.target.value })} />
-            <span className="text-white/30 text-xs">×</span>
-            <input className="neon-input !py-1.5 w-14 text-xs" type="number" min="1" placeholder="reps"
-                   value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
-            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="0" step="0.5" placeholder={unit}
+            <input className="neon-input !py-1.5 w-20 text-xs" type="number" min="0" step="0.5" placeholder={unit}
                    aria-label={`Target weight (${unit})`} inputMode="decimal"
                    value={r.weight_input ?? (fromKg(r.weight_kg, unit) ?? "")}
                    onChange={(e) => patchRow(i, { weight_input: e.target.value, weight_kg: toKg(e.target.value, unit) })} />
+            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="1" placeholder="sets"
+                   aria-label="Sets" inputMode="numeric"
+                   value={r.sets ?? ""} onChange={(e) => patchRow(i, { sets: e.target.value })} />
+            <span className="text-white/30 text-xs">×</span>
+            <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="1" placeholder="reps"
+                   aria-label="Reps" inputMode="numeric"
+                   value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
           </div>
@@ -1078,7 +1155,7 @@ function DayTagPicker({ value, labels, onChange, className }) {
   );
 }
 
-function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCredit, onCreate, onDelete, onMove, onSchedule,
+function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickable, demoCredit, onCreate, onDelete, onMove, onSchedule,
                           onStart, sessionOpen, onSaveExercises, onEditMeta, goals, onSetGoal }) {
   const [title, setTitle] = useState("");
   const [newDayTag, setNewDayTag] = useState("");
@@ -1140,7 +1217,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCre
       )}
 
       {designingRoutine && (
-        <RoutineDesigner routine={designingRoutine} exercises={exercises} demoCredit={demoCredit}
+        <RoutineDesigner routine={designingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
                           onSave={(list) => { onSaveExercises(designingRoutine.id, list); }}
                           onClose={() => setDesigning(null)} />
       )}
@@ -1250,6 +1327,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, demoCre
 // "here's nowhere to take it" is the exact dead end the cross-pollination
 // rule exists to close.
 function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
+  const unit = useUnit();
   const [open, setOpen] = useState(null);
   if (!bodymap) return null;
   const muscles = asList(bodymap.muscles);
@@ -1279,6 +1357,17 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                       <span className="rounded-full bg-fuchsia-500/15 px-1.5 py-0.5 text-[10px] font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">
                         {m.volume_score}/10
                       </span>
+                      {m.coach_rating != null ? (
+                        <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/30"
+                              title={m.coach_why}>
+                          Coach {m.coach_rating}/10
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/35 ring-1 ring-white/10"
+                              title={m.coach_why}>
+                          Coach: not rated yet
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-white/45">
                       {m.last_trained
@@ -1294,6 +1383,23 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
               </button>
               {isOpen && (
                 <div className="space-y-2 border-t border-white/10 pt-2">
+                  <div className="space-y-1 rounded-lg bg-white/[0.03] p-2">
+                    <p className="text-xs font-semibold text-white/70">
+                      Coach rating{m.coach_rating != null ? `: ${m.coach_rating}/10` : ": not rated yet"}
+                    </p>
+                    <p className="text-[11px] text-white/50">{m.coach_why}</p>
+                    {asList(m.coach_exercises).map((e) => (
+                      <p key={e.exercise_id} className="text-[11px] text-white/60">
+                        <span className={e.trend === "up" ? "text-emerald-300" : e.trend === "down" ? "text-mcz-ember" : "text-white/50"}>
+                          {e.trend === "up" ? "▲ up" : e.trend === "down" ? "▼ down" : "● held"}
+                        </span>{" "}
+                        {e.exercise_name}: {e.metric === "reps"
+                          ? `${e.earlier_best} → ${e.latest} reps (best set)`
+                          : `${fmtWeight(e.earlier_best, unit)} → ${fmtWeight(e.latest, unit)} (est. max)`}
+                      </p>
+                    ))}
+                    <p className="text-[10px] text-white/30">{bodymap.rating_caveat}</p>
+                  </div>
                   <p className="text-[11px] text-white/35">
                     Score = {m.sets_last_7d} set{m.sets_last_7d === 1 ? "" : "s"} logged this week ÷{" "}
                     {bodymap.target_weekly_sets}-set weekly target, capped at 10. {bodymap.volume_citation}

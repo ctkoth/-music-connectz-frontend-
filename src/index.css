@@ -31,6 +31,20 @@ body {
            text-white placeholder-white/35 outline-none transition
            focus:border-mcz-cyan/70 focus:ring-2 focus:ring-mcz-cyan/30;
   }
+  /* The browser's number spinner sits INSIDE the field and eats the digits
+     ("17" read as "1" on a narrow box, with the arrows on top of the 7). A
+     number box here is typed into — on a phone the numeric keypad does the
+     job — so the spinner goes and the digits get the whole box. */
+  .neon-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    font-variant-numeric: tabular-nums;
+  }
+  .neon-input[type="number"]::-webkit-outer-spin-button,
+  .neon-input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   .neon-btn {
     @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3
            text-sm font-semibold transition active:scale-[0.98];

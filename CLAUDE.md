@@ -1020,3 +1020,16 @@ https://ctkoth.github.io/mcz-media/ now (re-encoded to ~20MB total), and
 `public/_redirects` send the old path there too, for tabs on an older bundle.
 **A new video goes in mcz-media, never in `public/`** — `media.test.mjs`
 fails if `public/exercise-demos/` comes back.
+
+## BodieZ: weight before reps, no spinner on the digits, and the server says what is possible
+
+- Weight comes first, then reps (and sets), on the logger and the routine
+  designer. A number box here is typed into: `.neon-input[type=number]` hides
+  the browser spinner, which was drawn on top of the digits ("17" read as "1").
+- `AccessPanel` asks three things (can't stand/walk, can't use arms, can't use
+  legs). It **decides nothing**: every exercise arrives flagged `accessible`,
+  pickers get the filtered list, and names for old sessions use the full one.
+  Never re-derive the rule client-side.
+- BodyMap shows the backend's `coach_rating` (progress against the member's own
+  earlier best) with its `coach_why`, the per-lift numbers and `rating_caveat`
+  on the same card. `null` renders "not rated yet", never a 0.
