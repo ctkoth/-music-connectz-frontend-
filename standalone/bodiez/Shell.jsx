@@ -27,7 +27,8 @@ function Home() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-24 pt-4">
+    <main className="mx-auto max-w-3xl px-4 pb-24 pt-4">
+      <h1 className="sr-only">BodieZ</h1>
       <div className="mb-3 flex items-center justify-between text-xs text-white/50">
         <span>Signed in as {user.username}</span>
         <button className="inline-flex items-center gap-1 hover:text-white" onClick={logout}>
@@ -40,13 +41,13 @@ function Home() {
       <p className="mt-8 text-center text-[11px] text-white/35">
         Same account and data as <a className="underline" href={MAIN} target="_blank" rel="noreferrer">Music ConnectZ</a>.
       </p>
-    </div>
+    </main>
   );
 }
 
 export default function Shell() {
   const { user, loading } = useAuth();
-  if (loading) return <Loader2 className="mx-auto mt-24 animate-spin" size={22} />;
+  if (loading) return <Loader2 className="mx-auto mt-24 animate-spin" size={22} role="status" aria-label="Loading" />;
   if (!user) {
     return (
       <Routes>

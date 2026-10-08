@@ -279,7 +279,7 @@ function Field({ icon: Icon, required = true, ...props }) {
 export function AuthShell({ title, subtitle, children }) {
   const build = import.meta.env.VITE_STANDALONE ? null : recommendedBuild();
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
@@ -320,6 +320,6 @@ export function AuthShell({ title, subtitle, children }) {
           {alternateBuild().emoji} On Android? Get the {alternateBuild().label} instead
         </a>
       )}
-    </div>
+    </main>
   );
 }

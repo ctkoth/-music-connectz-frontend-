@@ -108,14 +108,14 @@ export default function Login() {
           <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
           <input
             className="neon-input pl-10"
-            placeholder="Username, email, or phone"
+            placeholder="Username, email, or phone" aria-label="Username, email, or phone"
             value={form.identifier}
             onChange={set("identifier")}
             autoComplete="username"
             required
           />
         </div>
-        <PasswordField placeholder="Password" value={form.password} onChange={set("password")} autoComplete="current-password" />
+        <PasswordField placeholder="Password" aria-label="Password" value={form.password} onChange={set("password")} autoComplete="current-password" />
 
         <div className="text-right">
           <Link to="/forgot" className="text-xs text-mcz-cyan hover:underline">Forgot password?</Link>

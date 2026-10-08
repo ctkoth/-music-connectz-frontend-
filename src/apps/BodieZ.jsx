@@ -224,8 +224,11 @@ export default function BodieZ() {
   const dayTagLabels = [...asList(board?.day_tag_labels),
                         ...customDays.map((d) => ({ key: `c:${d.id}`, label: d.name, custom: true }))];
   // Every routine, flattened across every bucket — TodayView's "start from a
-  // routine" picker doesn't care which bucket a routine is sitting in.
-  const routines = bucketLabels.flatMap((b) => asList(buckets[b.key]));
+  // routine" picker and the past-workout picker don't care which bucket a
+  // routine is sitting in — except Trash: a routine the member threw away must
+  // not come back as something to train from. Everything the Coach saves lands
+  // in Inbox, so it is offered in both pickers from the moment it is saved.
+  const routines = bucketLabels.filter((b) => b.key !== "trash").flatMap((b) => asList(buckets[b.key]));
 
   async function startSession(routineId) {
     setErr("");
@@ -1001,7 +1004,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
         </div>
         {exerciseId && <SidePick value={unplannedSide} onChange={setUnplannedSide} />}
         <div className="flex flex-wrap items-end gap-2">
-          <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+          <select aria-label="Exercise" className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
             {pickList.map((ex) => (
@@ -1119,7 +1122,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
         {routines.length > 0 && (
           <label className="block min-w-0 flex-1">
             <span className="re-label">Routine</span>
-            <select className="mt-1 w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+            <select aria-label="Routine" className="mt-1 w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                     value={routineId} onChange={(e) => pickRoutine(e.target.value)}>
               <option value="">Start from a routine…</option>
               {routines.map((r) => <option key={r.id} value={r.id}>{r.title} ({asList(r.exercises).length})</option>)}
@@ -1152,7 +1155,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
 
       {exerciseId && <SidePick value={side} onChange={setSide} />}
       <div className="flex flex-wrap items-end gap-2">
-        <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+        <select aria-label="Exercise" className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
           <option value="">Exercise…</option>
           {ordered.map((ex) => (
@@ -1169,7 +1172,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
         </button>
       </div>
 
-      <input className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
+      <input aria-label="Note (optional)" className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
              value={notes} onChange={(e) => setNotes(e.target.value)} />
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
       <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
@@ -1353,7 +1356,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="re-label">Add from the library</p>
         {demoCredit && <p className="text-[11px] text-white/35">{demoCredit}</p>}
-        <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+        <select aria-label="Muscle group" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                 value={muscle} onChange={(e) => setMuscle(e.target.value)}>
           <option value="">All muscle groups</option>
           {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
@@ -1402,7 +1405,7 @@ const routineDay = (r) => (r.custom_day_id ? `c:${r.custom_day_id}` : r.day_tag 
 
 function DayTagPicker({ value, labels, onChange, className }) {
   return (
-    <select value={value || ""} onChange={(e) => onChange(e.target.value)}
+    <select aria-label="Day" value={value || ""} onChange={(e) => onChange(e.target.value)}
             className={className || "rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"}>
       <option value="">No day</option>
       {labels.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
@@ -1434,7 +1437,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
   return (
     <div className="space-y-3">
       <div className="re-card flex flex-wrap gap-2">
-        <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New routine name"
+        <input aria-label="New routine name" className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New routine name"
                value={title} onChange={(e) => setTitle(e.target.value)} />
         <DayTagPicker value={newDayTag} labels={dayTagLabels} onChange={setNewDayTag}
                       className="neon-input !py-2 !w-auto text-sm" />
@@ -1461,7 +1464,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
           </div>
         )}
         <div className="flex gap-2">
-          <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New day, e.g. Leg day" maxLength={30}
+          <input aria-label="New day, e.g. Leg day" className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New day, e.g. Leg day" maxLength={30}
                  value={dayName} onChange={(e) => setDayName(e.target.value)}
                  onKeyDown={(e) => { if (e.key === "Enter" && dayName.trim()) onAddDay(dayName.trim()).then((ok) => ok && setDayName("")); }} />
           <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" disabled={!dayName.trim()}
@@ -1557,7 +1560,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {bucket === "upcoming" ? (
-              <input type="date" defaultValue={r.scheduled_for || ""}
+              <input aria-label="Schedule date" type="date" defaultValue={r.scheduled_for || ""}
                      className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                      onChange={(e) => onSchedule(r.id, e.target.value)} />
             ) : (
@@ -1572,7 +1575,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
             <DayTagPicker value={routineDay(r)} labels={dayTagLabels}
                           onChange={(v) => onEditMeta(r.id, v, r.description || "")} />
             {goals && (
-              <select value={r.goal || ""} onChange={(e) => onSetGoal(r.id, e.target.value)}
+              <select aria-label="Goal" value={r.goal || ""} onChange={(e) => onSetGoal(r.id, e.target.value)}
                       className="rounded border border-white/[0.08] bg-black/40 px-1.5 py-0.5 text-[11px] text-white/70 outline-none">
                 <option value="">No goal</option>
                 {Object.entries(goals).map(([k, g]) => (
@@ -1823,7 +1826,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
           {goals && (
-            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select aria-label="Training goal" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
               <option value="">General (3 sets x 10)</option>
               {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -1922,7 +1925,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
             each covering every muscle group across the week.
           </p>
           <div className="flex flex-wrap gap-2">
-            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select aria-label="Days per week" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={days} onChange={(e) => setDays(e.target.value ? Number(e.target.value) : "")}>
               <option value="">Days per week…</option>
               {splits && Object.keys(splits).map((k) => (
@@ -1930,7 +1933,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
               ))}
             </select>
             {goals && (
-              <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+              <select aria-label="Training goal" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
                 <option value="">General (3 sets x 10)</option>
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -2082,13 +2085,13 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                             className="neon-input !py-1.5 !w-auto text-xs" />
             )}
             {goals && (
-              <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+              <select aria-label="Training goal" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
                 <option value="">General (3 sets x 10)</option>
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
               </select>
             )}
-            <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select aria-label="Exercises per muscle" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={perMuscle} onChange={(e) => setPerMuscle(Number(e.target.value))}>
               {PER_MUSCLE.map((n) => <option key={n} value={n}>{n} exercise{n === 1 ? "" : "s"} per muscle</option>)}
             </select>
@@ -2230,29 +2233,29 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
     <div className="re-card space-y-2">
       <p className="re-label">New goal</p>
       <div className="flex flex-wrap gap-2">
-        <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+        <select aria-label="Goal type" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={kind} onChange={(e) => setKind(e.target.value)}>
           {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
         </select>
-        <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Name this goal"
+        <input aria-label="Name this goal" className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Name this goal"
                value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div className="flex flex-wrap gap-2">
         {kind === "strength" && (
-          <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+          <select aria-label="Exercise" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
             {exercises.map((ex) => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
           </select>
         )}
-        <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.5"
+        <input aria-label={kind === "strength" ? `Target weight (${unit})` : "Target"} className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.5"
                placeholder={kind === "strength" ? unit : kind === "frequency" ? "x/week" : kind === "bodyweight" ? `target ${unit}` : "target"}
                value={targetValue} onChange={(e) => setTargetValue(e.target.value)} />
         {kind === "strength" && (
-          <input className="neon-input !py-2 w-24 text-sm" type="number" min="1" placeholder="reps (opt.)"
+          <input aria-label="reps (opt.)" className="neon-input !py-2 w-24 text-sm" type="number" min="1" placeholder="reps (opt.)"
                  value={targetReps} onChange={(e) => setTargetReps(e.target.value)} />
         )}
-        <input className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
+        <input aria-label="Target date" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-4 py-2 text-xs inline-flex items-center gap-1" onClick={submit}>
           <Plus size={13} /> Set goal
@@ -2278,7 +2281,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
         <div className="re-card space-y-2">
           <p className="re-label">Log your weight</p>
           <div className="flex flex-wrap items-center gap-2">
-            <input className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.1"
+            <input aria-label={`Body weight (${unit})`} className="neon-input !py-2 w-28 text-sm" type="number" min="0" step="0.1"
                    placeholder={unit} value={weightInput} onChange={(e) => setWeightInput(e.target.value)} />
             <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs"
                     onClick={() => { if (weightInput) { onLogWeight(Number(weightInput)); setWeightInput(""); } }}>
@@ -2395,7 +2398,7 @@ function RecoveryView({ recovery, onLog }) {
         <Scale label="Soreness" value={soreness} onChange={setSoreness} />
         <Scale label="Sleep quality" value={sleepQuality} onChange={setSleepQuality} />
         <Scale label="Fatigue" value={fatigue} onChange={setFatigue} />
-        <input className="neon-input !py-2 w-full text-sm" placeholder="Notes (optional)"
+        <input aria-label="Notes (optional)" className="neon-input !py-2 w-full text-sm" placeholder="Notes (optional)"
                value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={280} />
         <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={submit}>
           Log today
@@ -2587,7 +2590,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
       <div className="re-card space-y-3">
         <p className="text-sm font-semibold">Log steps</p>
         <div className="flex gap-2">
-          <input
+          <input aria-label="Enter steps"
             type="number"
             min="0"
             placeholder="Enter steps"

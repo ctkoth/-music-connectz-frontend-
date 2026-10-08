@@ -10,6 +10,7 @@ export default function PasswordField({ value, onChange, placeholder, autoComple
         className="neon-input pl-10 pr-11"
         type={show ? "text" : "password"}
         placeholder={placeholder}
+        aria-label={placeholder}
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}

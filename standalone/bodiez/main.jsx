@@ -12,7 +12,10 @@ import { HashRouter } from "react-router-dom";
 import ErrorBoundary from "../../src/ErrorBoundary.jsx";
 import { AuthProvider } from "../../src/auth/AuthContext.jsx";
 import "../../src/index.css";
+import "./a11y.css";
 import Shell from "./Shell.jsx";
+
+document.documentElement.classList.add("sa");
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

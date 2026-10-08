@@ -1,0 +1,34 @@
+/* Accessibility floor for the standalone BodieZ app only — scoped to .sa so the
+   main site is untouched. Found by tools/a11y-bodiez.mjs. */
+
+/* Touch targets: 44px minimum wherever the pointer is a finger. The main app's
+   chips and tabs are 24-26px tall, which is a precision aim for a thumb and a
+   hard one for anybody with a tremor or limited fine motor control — the
+   people this listing is for. */
+@media (pointer: coarse) {
+  .sa button,
+  .sa select,
+  .sa [role="button"],
+  .sa [role="tab"],
+  .sa input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .sa a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .sa a { display: inline-flex; align-items: center; }
+  .sa label:has(> input[type="checkbox"]),
+  .sa label:has(> input[type="radio"]) { min-height: 44px; }
+  .sa input[type="checkbox"], .sa input[type="radio"] { min-width: 24px; min-height: 24px; }
+}
+
+/* Contrast: the app's secondary text is white at 20-45% opacity, which on the
+   dark background is 1.6:1-4.4:1. 4.5:1 is the AA floor for text this size, so
+   it is lifted to 58% (~5.7:1). It flattens the visual hierarchy a little and
+   that is the right trade for a screen somebody has to read. Matched by class
+   TOKEN (~=) so hover:text-white/70 and the 60%+ steps are left alone. */
+.sa :is([class~="text-white/20"], [class~="text-white/25"], [class~="text-white/30"], [class~="text-white/35"],
+        [class~="text-white/40"], [class~="text-white/45"], [class~="text-white/50"], [class~="text-white/55"]),
+.sa .re-label {
+  color: rgba(255, 255, 255, 0.58) !important;
+}
+.sa ::placeholder { color: rgba(255, 255, 255, 0.58) !important; opacity: 1; }
