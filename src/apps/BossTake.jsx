@@ -267,6 +267,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // auto-stop is not an error — the take is good, it just ended on its own, and
   // dressing it in the red warning box would read as a failure.
   const [stopNote, setStopNote] = useState("");
+  // Why the last mic attempt failed, kept so the trial can stop offering a
+  // button that cannot work here. Funnel: one browser pressed Record 21 times
+  // into a refusal while upload sat unused.
+  const [micWhy, setMicWhy] = useState("");
   // Show upgrade prompt when upload limit is hit
   const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   // What this take costs, read BEFORE anything is sent. A price you only see
@@ -515,10 +519,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // record" sends somebody to install a different browser to fix a URL.
       if (typeof window !== "undefined" && window.isSecureContext === false) {
         step("try_mic_denied", { video, why: "insecure" });
+        setMicWhy("insecure");
         return setMsg("Recording needs a secure (https) connection — this page isn't on one. "
           + "Upload a clip instead and the coach scores it the same.");
       }
       step("try_mic_denied", { video, why: "other" });
+      setMicWhy("other");
       return setMsg("This browser can't record. Upload a clip instead — it scores the same.");
     }
     if (!relaxed) step("try_record", { video });
@@ -684,6 +690,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // until stop(), and the first time we'd learn a take was 1.4GB is after
       // it was performed.
       mr.start(1000);
+      setMicWhy("");
       setSecs(0);
       setRecording(true);
       playSound("record_start");
@@ -697,6 +704,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         return startRec(video, true);
       }
       step("try_mic_denied", { video, why });
+      setMicWhy(why);
       setMsg(line);
     }
   }
@@ -1098,16 +1106,24 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         )}
         {!recording ? (
           <>
+            {/* On the trial, a device with no usable mic (or an insecure page)
+                is told once, in the message above, and is not offered the
+                same button again - upload is the way through. A blocked
+                permission or a busy mic can be fixed, so it stays. */}
+            {!(trial && ["notfound", "insecure", "other"].includes(micWhy)) && (
             <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
                     data-tour="bosstake-mic">
-              <Mic size={15} /> {blob ? "Record again" : trial ? "Or record one now" : "Record a take"}
+              <Mic size={15} /> {blob ? "Record again" : micWhy ? "Try the mic again" : trial ? "Or record one now" : "Record a take"}
             </button>
+            )}
             {/* The coach watches as well as listens. On camera it can mark
                 delivery, breath and posture, which sound alone can't show. */}
+            {!(trial && micWhy) && (
             <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
+            )}
           </>
         ) : (
           <button className="neon-btn-primary !w-auto px-4" onClick={() => stopRec()}>

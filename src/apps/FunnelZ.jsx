@@ -10,6 +10,7 @@ import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
 import OfferCatalog from "./OfferCatalog.jsx";
+import { anonId } from "../track.js";
 
 const DAY_OPTIONS = [7, 14, 30, 90];
 
@@ -228,6 +229,95 @@ function ByDoor({ doors, note }) {
   );
 }
 
+// WHY a step failed, from the slugs the client already sends. A count says
+// 8 takes came back with no score; the cause is what decides the fix, and
+// "your link" and "our server" are opposite jobs. Labels only - the server
+// owns the list, and an unlabelled slug is shown as itself, never hidden.
+const REASON_TITLES = {
+  try_blocked: "Why the door was shut",
+  try_mic_denied: "Why the mic didn't start",
+  try_failed: "Why a take came back with no score",
+  register_fail: "Which field refused the signup",
+};
+const REASON_LABELS = {
+  already_used: "free take already used", cap_reached: "day's budget spent",
+  not_configured: "coach not configured", address_busy: "shared connection busy",
+  denied: "permission blocked", notfound: "no mic or camera", inuse: "another app holds it",
+  constrained: "our settings impossible", insecure: "page not on https", other: "other",
+  too_big: "file too big", refused: "coach refused", network: "connection dropped",
+  empty: "nothing audible in the file", server: "our server errored", timeout: "no answer in time",
+  username: "username", email: "email", password: "password", birthday: "birthday",
+  unknown: "reason not recorded",
+};
+
+function Reasons({ reasons }) {
+  const shown = Object.entries(reasons || {}).filter(([, rows]) => rows?.length);
+  if (!shown.length) return null;
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-bold">Why, where it was recorded</h3>
+      <p className="text-[11px] text-white/40">
+        Unique browsers per cause. One browser retrying counts once.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {shown.map(([kind, rows]) => (
+          <div key={kind} className="re-card space-y-1">
+            <p className="text-[10px] uppercase tracking-widest text-white/40">{REASON_TITLES[kind] || kind}</p>
+            {rows.map((r) => (
+              <p key={r.why} className="flex justify-between text-sm">
+                <span className="text-white/70">{REASON_LABELS[r.why] || r.why}</span>
+                <span className="font-semibold">{r.unique}</span>
+              </p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// The owner tests the door as a stranger, and with a funnel this small their
+// own retries are a visible share of it. Says what pressing it does BEFORE
+// it is pressed: it hides this browser's past and future steps from every
+// number here, and nothing is deleted.
+function ExcludeThisBrowser({ data, onChanged }) {
+  const [state, setState] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const id = anonId();
+  useEffect(() => {
+    if (!id) return;
+    api(`/api/auth/funnel/exclude/?anon_id=${encodeURIComponent(id)}`).then(setState).catch(() => {});
+  }, [id]);
+  if (!id) return <p className="text-[11px] text-white/35">This browser blocks storage, so it has no funnel id to exclude.</p>;
+  const excluded = !!state?.excluded;
+  async function toggle() {
+    setBusy(true); setErr("");
+    try {
+      setState(await api("/api/auth/funnel/exclude/", { method: "POST", body: { anon_id: id, excluded: !excluded } }));
+      onChanged();
+    } catch (e) {
+      setErr(e.message || "Couldn't change that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/45">
+      <button className="pill hover:text-white" onClick={toggle} disabled={busy || !state}>
+        {excluded ? "Count this browser again" : "Don't count this browser"}
+      </button>
+      <span>
+        {excluded
+          ? "This browser is left out of every number here, past and future."
+          : "Hides this browser's past and future steps from every number here. Nothing is deleted."}
+        {data?.browsers_excluded ? ` ${data.browsers_excluded} browser${data.browsers_excluded === 1 ? "" : "s"} excluded in all.` : ""}
+      </span>
+      {err && <span className="text-mcz-pink">{err}</span>}
+    </div>
+  );
+}
+
 export default function FunnelZ() {
   const { user } = useAuth();
   const isOwner = !!user?.is_owner;
@@ -235,6 +325,7 @@ export default function FunnelZ() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(isOwner);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -249,7 +340,7 @@ export default function FunnelZ() {
       .catch((e) => on && setError(e.message || "Couldn't load the funnel."))
       .finally(() => on && setLoading(false));
     return () => { on = false; };
-  }, [isOwner, days]);
+  }, [isOwner, days, reload]);
 
   if (!isOwner) {
     return (
@@ -290,6 +381,8 @@ export default function FunnelZ() {
           </button>
         ))}
       </div>
+
+      <ExcludeThisBrowser data={data} onChanged={() => setReload((n) => n + 1)} />
 
       {loading && (
         <p className="flex items-center gap-2 text-white/50">
@@ -363,6 +456,7 @@ export default function FunnelZ() {
 
       {steps && !loading && (
         <div className="space-y-5 border-t border-white/10 pt-5">
+          <Reasons reasons={data.reasons} />
           <Breakdown
             title="Where they came from"
             blurb="Add ?src=<channel> to any link you post. A channel with arrivals and no scores is sending the wrong people; one with scores and no joins is a door problem — and those need opposite fixes."

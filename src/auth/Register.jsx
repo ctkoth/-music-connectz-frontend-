@@ -12,6 +12,14 @@ import { api } from "../api.js";
 import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
 import RuleNote from "../RuleNote.jsx";
 
+/** Which field a registration was refused on, as a funnel slug. */
+function regFailWhy(err) {
+  if (!err?.status) return "network";
+  if (err.status >= 500) return "server";
+  const keys = Object.keys(err.data && typeof err.data === "object" ? err.data : {});
+  return ["username", "email", "password", "birthday"].find((k) => keys.includes(k)) || "other";
+}
+
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -110,6 +118,10 @@ export default function Register() {
       setShowHabitOnboarding(true);
     } catch (err) {
       setError(err.message);
+      // After the message is set, so a measurement can never be the reason the
+      // member is not told why. The FIELD the server refused, never its
+      // sentence - that can quote what they typed.
+      track("register_fail", { why: regFailWhy(err) });
     } finally {
       setBusy(false);
     }

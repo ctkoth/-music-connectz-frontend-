@@ -49,6 +49,7 @@ const SERVER_KINDS = new Set([
   "onboard_skip",
   "quiz_done",
   "quiz_view",
+  "register_fail",
   "register_success",
   "register_view",
   "try_attach",
@@ -121,6 +122,9 @@ const SERVER_WHY = {
   // views.py FunnelEventView._MIC
   try_mic_denied: new Set(["denied", "notfound", "inuse", "constrained",
                            "insecure", "other"]),
+  // views.py FunnelEventView._REG
+  register_fail: new Set(["username", "email", "password", "birthday",
+                          "network", "server", "other"]),
   // views.py FunnelEventView._BLOCKED
   try_blocked: new Set(["already_used", "cap_reached", "not_configured",
                         "address_busy"]),
