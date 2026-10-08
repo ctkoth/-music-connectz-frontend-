@@ -215,7 +215,13 @@ export default function BodieZ() {
 
   const buckets = asDict(board?.buckets);
   const bucketLabels = asList(board?.bucket_labels);
-  const dayTagLabels = asList(board?.day_tag_labels);
+  // Weekdays are the server's list; the member's own named days ride beside
+  // them under a "c:<id>" key, so every picker/filter/chip below handles both
+  // without knowing there are two kinds. dayBody() is the one place that key
+  // is split back into what the API takes.
+  const customDays = asList(board?.custom_days);
+  const dayTagLabels = [...asList(board?.day_tag_labels),
+                        ...customDays.map((d) => ({ key: `c:${d.id}`, label: d.name, custom: true }))];
   // Every routine, flattened across every bucket — TodayView's "start from a
   // routine" picker doesn't care which bucket a routine is sitting in.
   const routines = bucketLabels.flatMap((b) => asList(buckets[b.key]));
@@ -254,10 +260,25 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  async function addCustomDay(name) {
+    try {
+      await api("/api/economy/bodiez/custom-days/", { method: "POST", body: { name } });
+      setErr(""); load();
+      return true;
+    } catch (e) { setErr(e.message); return false; }
+  }
+
+  async function removeCustomDay(id) {
+    try {
+      await api(`/api/economy/bodiez/custom-days/${id}/`, { method: "DELETE" });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
   async function createRoutine(title, bucket, dayTag) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: [], bucket, day_tag: dayTag || "" },
+        method: "POST", body: { title, exercises: [], bucket, ...dayBody(dayTag) },
       });
       load();
     } catch (e) { setErr(e.message); }
@@ -276,7 +297,7 @@ export default function BodieZ() {
   async function editRoutineMeta(id, dayTag, description) {
     try {
       await api(`/api/economy/bodiez/routines/${id}/`, {
-        method: "PATCH", body: { day_tag: dayTag, description },
+        method: "PATCH", body: { ...dayBody(dayTag), description },
       });
       load();
     } catch (e) { setErr(e.message); }
@@ -303,7 +324,7 @@ export default function BodieZ() {
   async function createRoutineFromExercises(title, exerciseList, dayTag, goal) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", day_tag: dayTag || "", goal: goal || "" },
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "" },
       });
       setTab("scheduler");
       load();
@@ -442,6 +463,7 @@ export default function BodieZ() {
                           onCreate={createRoutine} onDelete={deleteRoutine} onMove={moveRoutine}
                           onSchedule={scheduleRoutine} onStart={startSession} sessionOpen={!!session}
                           onSaveExercises={saveRoutineExercises} onEditMeta={editRoutineMeta}
+                          customDays={customDays} onAddDay={addCustomDay} onRemoveDay={removeCustomDay}
                           goals={coach?.goals} onSetGoal={setRoutineGoal} />
           )}
           {tab === "bodymap" && (
@@ -834,6 +856,16 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
+  // "Done before" is the member's own history (times_done/last_done come off
+  // the server, finished sessions only) so a lift they run every week is two
+  // taps rather than a hunt through the library. Falls back to the full list
+  // whenever there is no history yet, never an empty picker.
+  const [pickMode, setPickMode] = useState("done");
+  const doneBefore = (pickable || exercises)
+    .filter((e) => (e.times_done || 0) > 0)
+    .sort((a, b) => String(b.last_done).localeCompare(String(a.last_done)));
+  const shownMode = doneBefore.length > 0 ? pickMode : "all";
+  const pickList = shownMode === "done" ? doneBefore : (pickable || exercises);
 
   if (!session) {
     return (
@@ -917,13 +949,29 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       })}
 
       <div className="re-card space-y-2">
-        <p className="re-label">Add an unplanned exercise</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="re-label">Add an unplanned exercise</p>
+          {doneBefore.length > 0 && (
+            <div className="flex gap-1">
+              {[["done", `Done before (${doneBefore.length})`], ["all", "All exercises"]].map(([k, label]) => (
+                <button key={k} onClick={() => { setPickMode(k); setExerciseId(""); }}
+                        className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                          shownMode === k ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex flex-wrap items-end gap-2">
           <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
             <option value="">Exercise…</option>
-            {(pickable || exercises).map((ex) => (
-              <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})</option>
+            {pickList.map((ex) => (
+              <option key={ex.id} value={ex.id}>
+                {ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})
+                {shownMode === "done" ? ` · ${ex.times_done}× · last ${new Date(ex.last_done).toLocaleDateString()}` : ""}
+              </option>
             ))}
           </select>
           <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
@@ -1145,6 +1193,13 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
 // (scheduled_for) — it's a recurring label a routine can carry independent of
 // either, and several routines can carry the SAME one. `dayFilter` is what
 // makes that visible: "3 Monday routines" at a glance instead of scrolling.
+// "c:12" is one of the member's own days, anything else a weekday key. A
+// routine carries one or the other; the server clears whichever isn't sent.
+const dayBody = (v) => (typeof v === "string" && v.startsWith("c:")
+  ? { day_tag: "", custom_day_id: Number(v.slice(2)) }
+  : { day_tag: v || "", custom_day_id: null });
+const routineDay = (r) => (r.custom_day_id ? `c:${r.custom_day_id}` : r.day_tag || "");
+
 function DayTagPicker({ value, labels, onChange, className }) {
   return (
     <select value={value || ""} onChange={(e) => onChange(e.target.value)}
@@ -1156,21 +1211,23 @@ function DayTagPicker({ value, labels, onChange, className }) {
 }
 
 function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickable, demoCredit, onCreate, onDelete, onMove, onSchedule,
-                          onStart, sessionOpen, onSaveExercises, onEditMeta, goals, onSetGoal }) {
+                          onStart, sessionOpen, onSaveExercises, onEditMeta, goals, onSetGoal,
+                          customDays = [], onAddDay, onRemoveDay }) {
   const [title, setTitle] = useState("");
+  const [dayName, setDayName] = useState("");
   const [newDayTag, setNewDayTag] = useState("");
   const [bucket, setBucket] = useState("inbox");
   const [dayFilter, setDayFilter] = useState("");
   const [designing, setDesigning] = useState(null);
   const allRows = asList(buckets[bucket]);
-  const rows = dayFilter ? allRows.filter((r) => r.day_tag === dayFilter) : allRows;
+  const rows = dayFilter ? allRows.filter((r) => routineDay(r) === dayFilter) : allRows;
   const otherBuckets = bucketLabels.filter((b) => b.key !== bucket);
   const designingRoutine = designing != null ? allRows.find((r) => r.id === designing) : null;
   const dayLabel = (k) => dayTagLabels.find((d) => d.key === k)?.label || k;
   // Counts across the WHOLE bucket, not the filtered view, so the chip row
   // itself is the "you have 3 Monday routines" readout.
   const dayCounts = dayTagLabels.reduce((acc, d) => {
-    acc[d.key] = allRows.filter((r) => r.day_tag === d.key).length;
+    acc[d.key] = allRows.filter((r) => routineDay(r) === d.key).length;
     return acc;
   }, {});
 
@@ -1185,6 +1242,33 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                 onClick={() => { if (title.trim()) { onCreate(title.trim(), bucket, newDayTag); setTitle(""); setNewDayTag(""); } }}>
           Create
         </button>
+      </div>
+
+      <div className="re-card space-y-2">
+        <p className="re-label">My days</p>
+        <p className="text-[11px] text-white/45">
+          Name your own days (Leg day, Gym with Sam) and tag routines with them next to Mon–Sun.
+        </p>
+        {customDays.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {customDays.map((d) => (
+              <span key={d.id} className="inline-flex items-center gap-1 rounded-full bg-mcz-cyan/15 px-2.5 py-1 text-[11px] text-mcz-cyan ring-1 ring-mcz-cyan/30">
+                {d.name}
+                <button className="text-mcz-cyan/60 hover:text-mcz-ember" title="Delete this day (routines keep everything, they just lose the tag)"
+                        onClick={() => { if (window.confirm(`Delete the day "${d.name}"? Its routines are kept, untagged.`)) onRemoveDay(d.id); }}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="New day, e.g. Leg day" maxLength={30}
+                 value={dayName} onChange={(e) => setDayName(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === "Enter" && dayName.trim()) onAddDay(dayName.trim()).then((ok) => ok && setDayName("")); }} />
+          <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs" disabled={!dayName.trim()}
+                  onClick={() => onAddDay(dayName.trim()).then((ok) => ok && setDayName(""))}>
+            Add day
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -1233,9 +1317,9 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="text-sm font-semibold text-white">{r.title}</p>
-                {r.day_tag && (
+                {routineDay(r) && (
                   <span className="shrink-0 rounded-full bg-mcz-cyan/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-cyan ring-1 ring-mcz-cyan/30">
-                    {dayLabel(r.day_tag)}
+                    {dayLabel(routineDay(r))}
                   </span>
                 )}
               </div>
@@ -1284,7 +1368,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                 <CalendarDays size={12} /> Schedule
               </button>
             )}
-            <DayTagPicker value={r.day_tag} labels={dayTagLabels}
+            <DayTagPicker value={routineDay(r)} labels={dayTagLabels}
                           onChange={(v) => onEditMeta(r.id, v, r.description || "")} />
             {goals && (
               <select value={r.goal || ""} onChange={(e) => onSetGoal(r.id, e.target.value)}
@@ -1297,7 +1381,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
             )}
             <button onClick={() => {
                       const d = window.prompt("Routine description:", r.description || "");
-                      if (d != null) onEditMeta(r.id, r.day_tag || "", d);
+                      if (d != null) onEditMeta(r.id, routineDay(r), d);
                     }}
                     className="text-[11px] text-white/40 hover:text-white/70">
               {r.description ? "Edit note" : "Add note"}
