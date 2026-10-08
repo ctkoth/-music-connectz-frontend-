@@ -17,7 +17,14 @@ const VITE_ID = (key) => import.meta.env[`VITE_${key.toUpperCase()}_CLIENT_ID`] 
 const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#ffffff" },
                     ...REDIRECT_PROVIDERS];
 
-export default function OAuthButtons({ onSuccess, onError }) {
+// The standalone BodieZ build is on another origin, and the providers' redirect
+// URIs are registered for musicconnectz.net only — a button there would open a
+// provider that then refuses to come back. Absent is honest; broken is not.
+export default function OAuthButtons(props) {
+  return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
+}
+
+function OAuthButtonsInner({ onSuccess, onError }) {
   const { oauth } = useAuth();
   const navigate = useNavigate();
   // Google and Apple sign in by popup, so their answer lands HERE rather than

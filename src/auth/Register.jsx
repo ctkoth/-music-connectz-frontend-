@@ -277,7 +277,7 @@ function Field({ icon: Icon, required = true, ...props }) {
 }
 
 export function AuthShell({ title, subtitle, children }) {
-  const build = recommendedBuild();
+  const build = import.meta.env.VITE_STANDALONE ? null : recommendedBuild();
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
@@ -314,7 +314,7 @@ export function AuthShell({ title, subtitle, children }) {
         </div>
       </a>
       )}
-      {alternateBuild() && (
+      {!import.meta.env.VITE_STANDALONE && alternateBuild() && (
         <a href={alternateBuild().href} target="_blank" rel="noreferrer"
            className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">
           {alternateBuild().emoji} On Android? Get the {alternateBuild().label} instead

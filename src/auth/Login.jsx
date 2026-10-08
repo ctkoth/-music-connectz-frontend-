@@ -135,10 +135,13 @@ export default function Login() {
         <Link to="/register" className="text-mcz-cyan hover:underline">
           Create an account
         </Link>
-        {" "}or{" "}
-        <Link to="/try" className="text-mcz-cyan hover:underline">
-          score & connect with our coach first
-        </Link>
+        {/* The trial is the main site's front door; this build has no /try. */}
+        {!import.meta.env.VITE_STANDALONE && (<>
+          {" "}or{" "}
+          <Link to="/try" className="text-mcz-cyan hover:underline">
+            score & connect with our coach first
+          </Link>
+        </>)}
       </p>
     </AuthShell>
   );

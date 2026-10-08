@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:bodiez": "vite --config vite.bodiez.config.js",
+    "build:bodiez": "vite build --config vite.bodiez.config.js && node tools/finish-bodiez.mjs",
     "preview": "vite preview",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",
