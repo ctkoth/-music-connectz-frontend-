@@ -455,6 +455,8 @@ export default function BodieZ() {
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
               goals={coach?.goals}
             />
+            <PastWorkout exercises={exercises} pickable={usable}
+                         onSaved={(sm) => { setSummary(sm); load(); }} />
             </>
           )}
           {tab === "scheduler" && (
@@ -572,7 +574,7 @@ function recordLine(r, unit) {
 // limit (400 on Free), and the totals and records are the part worth posting.
 function summaryText(sm, unit, brief = false) {
   const lines = [
-    `💪 ${sm.routine_title || "Workout"} — ${clock(sm.duration_seconds)}`,
+    `💪 ${sm.routine_title || "Workout"}${sm.duration_seconds != null ? ` — ${clock(sm.duration_seconds)}` : ""}`,
     `${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted · ${sm.sets} sets · ${sm.reps} reps`,
     ...sm.records.map((r) => `🏆 ${recordLine(r, unit)}`),
     ...(brief ? [] : sm.exercises.map((e) => `• ${e.name}: ${e.sets}×, ${e.reps} reps${e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}`)),
@@ -603,7 +605,7 @@ function SessionSummary({ summary: sm, onClose }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="re-label">Session done</p>
-          <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"} · {clock(sm.duration_seconds)}</p>
+          <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"}{sm.duration_seconds != null ? ` · ${clock(sm.duration_seconds)}` : " · logged afterwards"}</p>
         </div>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
           <X size={16} />
@@ -988,6 +990,112 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Log a workout that already happened. Sent as one request (the server
+// validates every set or saves none), lands as a finished session on that
+// date, and answers with the same summary a live one does — so the records it
+// beat are shown, judged against earlier sessions only. It is flagged
+// `backfilled` server-side: no rest times or duration exist for it, and none
+// are invented. No cost, no gain: nothing here moves a resource.
+function PastWorkout({ exercises, pickable, onSaved }) {
+  const unit = useUnit();
+  const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(todayStr);
+  const [notes, setNotes] = useState("");
+  const [sets, setSets] = useState([]);
+  const [exerciseId, setExerciseId] = useState("");
+  const [weight, setWeight] = useState("");
+  const [reps, setReps] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const list = pickable || exercises;
+  const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
+  // Their own lifts first, most recent first, then the rest — same history
+  // the live logger offers, so it is two taps for a lift they do every week.
+  const ordered = [...list].sort((a, b) => String(b.last_done || "").localeCompare(String(a.last_done || "")) || a.name.localeCompare(b.name));
+
+  const addSet = () => {
+    if (!exerciseId || !reps) return;
+    setSets([...sets, { exercise_id: Number(exerciseId), reps: Number(reps), weight_kg: weight === "" ? null : toKg(Number(weight), unit) }]);
+    setReps("");  // exercise and weight stay: the next set is usually the same lift
+  };
+
+  async function save() {
+    setBusy(true); setErr("");
+    try {
+      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets } });
+      setSets([]); setNotes(""); setOpen(false);
+      onSaved(done.summary);
+    } catch (e) { setErr(e.message || "Couldn't save that workout. Nothing was saved."); }
+    finally { setBusy(false); }
+  }
+
+  if (!open) {
+    return (
+      <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => setOpen(true)}>
+        <CalendarDays size={13} /> Log a past workout
+      </button>
+    );
+  }
+
+  const grouped = [];
+  sets.forEach((st, i) => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.exercise_id === st.exercise_id) last.rows.push({ ...st, i });
+    else grouped.push({ exercise_id: st.exercise_id, rows: [{ ...st, i }] });
+  });
+
+  return (
+    <div className="re-card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="re-label">Log a past workout</p>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
+      </div>
+      <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)} />
+
+      {grouped.map((g, gi) => (
+        <div key={gi} className="rounded-lg bg-white/5 px-3 py-2">
+          <p className="text-xs font-semibold text-white">{nameOf(g.exercise_id)}</p>
+          {g.rows.map((r) => (
+            <div key={r.i} className="flex items-center justify-between text-xs text-white/70">
+              <span>{r.weight_kg != null ? `${fmtWeight(r.weight_kg, unit)} × ` : "Bodyweight × "}{r.reps}</span>
+              <button className="text-white/30 hover:text-mcz-ember" onClick={() => setSets(sets.filter((_, k) => k !== r.i))} aria-label="Remove set"><X size={12} /></button>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-end gap-2">
+        <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
+          <option value="">Exercise…</option>
+          {ordered.map((ex) => (
+            <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group}){ex.times_done > 0 ? ` · done ${ex.times_done}×` : ""}</option>
+          ))}
+        </select>
+        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
+               value={reps} onChange={(e) => setReps(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && addSet()} />
+        <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" disabled={!exerciseId || !reps} onClick={addSet}>
+          <Plus size={13} /> Add set
+        </button>
+      </div>
+
+      <input className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
+             value={notes} onChange={(e) => setNotes(e.target.value)} />
+      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0} onClick={save}>
+        {busy ? <Loader2 className="animate-spin" size={14} /> : `Save workout (${sets.length} set${sets.length === 1 ? "" : "s"})`}
+      </button>
+      <p className="text-[11px] text-white/40">
+        Counts toward your records, body map and goals like any workout. Rest times and duration aren't recorded for one you log afterwards.
+      </p>
     </div>
   );
 }
