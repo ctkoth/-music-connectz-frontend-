@@ -1018,17 +1018,17 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm text-white"><span className="mr-1.5">{sub.emoji}</span>{sub.label}</span>
                       {stance && (
-                        <button type="button" className="text-[11px] text-white/45 hover:text-white"
+                        <button type="button" className="text-[11px] text-white/45 hover:text-white" disabled={sober}
                                 onClick={() => setSubs((v) => { const n = { ...v }; delete n[sub.key]; return n; })}>
                           Clear
                         </button>
                       )}
                     </div>
-                    <div role="radiogroup" aria-label={`How often: ${sub.label}`} className="mt-1.5 flex flex-wrap gap-1.5">
+                    <div role="group" aria-label={`How often: ${sub.label}`} className="mt-1.5 flex flex-wrap gap-1.5">
                       {subScale.frequencies.map((f) => {
                         const on = stance === f.key;
                         return (
-                          <button key={f.key} type="button" role="radio" aria-checked={on} title={f.hint}
+                          <button key={f.key} type="button" aria-pressed={on} disabled={sober} title={f.hint}
                                   onClick={() => setSubs((v) => ({ ...v, [sub.key]: f.key }))}
                                   className={`rounded-full border px-3 py-1 text-xs transition ${
                                     on

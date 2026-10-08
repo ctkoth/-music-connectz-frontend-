@@ -56,19 +56,41 @@ export default function MetricZ({ kind }) {
     api(`/api/economy/metricz/${kind}/`).then(setD).catch((e) => setErr(e.message));
   }, [kind]);
 
+  // ONE key for the frequency filter, so the effect below depends on a value
+  // that only changes when the selection does (an array literal is a new
+  // identity every time, and every render would refetch).
+  const freqKey = freqs.join(",");
+
   useEffect(() => {
-    if (!pick || !d?.param) { setMembers(null); return; }
+    if (!pick || !d?.param) { setMembers(null); return undefined; }
     setMembers(undefined);
-    const fq = kind === "substancez" && freqs.length ? `&use_freq=${freqs.join(",")}` : "";
+    // A response that arrives after the member has moved on must not land: with
+    // the member search being the heaviest read on the platform, replies do
+    // come back out of order, and a filtered list under a cleared filter reads
+    // as "nobody is here".
+    let live = true;
+    const fq = kind === "substancez" && freqKey ? `&use_freq=${freqKey}` : "";
     api(`/api/economy/members/?${d.param}=${encodeURIComponent(pick)}${fq}`)
-      .then((r) => setMembers(r.members || [])).catch(() => setMembers([]));
-  }, [pick, d?.param, kind, freqs]);
+      .then((r) => { if (live) setMembers(r.members || []); })
+      .catch(() => { if (live) setMembers([]); });
+    return () => { live = false; };
+  }, [pick, d?.param, kind, freqKey]);
 
-  // A different substance starts unfiltered — a frequency chosen for THC
-  // silently hiding people under Alcohol would look like nobody is there.
-  useEffect(() => { setFreqs([]); }, [pick]);
+  // Choosing a different substance starts unfiltered — done in the SAME
+  // handler as the pick (one batched render, one request), never in an effect
+  // that follows it: that fired the search twice, the first time with the
+  // previous substance's frequency chips still on it.
+  const choose = (key) => { setFreqs([]); setPick((cur) => (cur === key ? null : key)); };
 
-  const freqLabel = (key) => d?.frequencies?.find((f) => f.key === key)?.label || key;
+  // A real frequency from the served scale, or "" — never the raw stored word.
+  // A legacy "yes" (picked before frequency existed) is not a frequency, and
+  // printing it would read as one.
+  const freqLabel = (key) => d?.frequencies?.find((f) => f.key === key)?.label || "";
+  const cardFreq = (m) => {
+    const v = m.use_frequency?.[pick];
+    if (!v) return "";
+    return freqLabel(v) || "frequency not said";
+  };
 
   const chosen = d?.options?.find((o) => o.key === pick);
   return (
@@ -135,7 +157,7 @@ export default function MetricZ({ kind }) {
 
           <div className={`grid gap-2 ${kind === "preferencez" ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"}`}>
             {d.options.map((o) => (
-              <button key={o.key} onClick={() => setPick(pick === o.key ? null : o.key)}
+              <button key={o.key} onClick={() => choose(o.key)}
                 className={`rounded-xl border p-3 text-left transition ${pick === o.key
                   ? "border-mcz-cyan bg-mcz-cyan/10 shadow-neon"
                   : o.mine ? "border-mcz-gold/50 bg-mcz-gold/5" : "border-white/10 bg-black/30 hover:border-white/30"}`}>
@@ -201,7 +223,7 @@ export default function MetricZ({ kind }) {
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {members.map((m) => (
                     <Card key={m.username} m={m}
-                          freq={kind === "substancez" && m.use_frequency?.[pick] ? freqLabel(m.use_frequency[pick]) : ""} />
+                          freq={kind === "substancez" ? cardFreq(m) : ""} />
                   ))}
                 </div>
               )}

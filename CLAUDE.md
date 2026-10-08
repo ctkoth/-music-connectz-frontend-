@@ -1033,3 +1033,27 @@ fails if `public/exercise-demos/` comes back.
 - BodyMap shows the backend's `coach_rating` (progress against the member's own
   earlier best) with its `coach_why`, the per-lift numbers and `rating_caveat`
   on the same card. `null` renders "not rated yet", never a 0.
+
+## SubstanceZ: pick how often for every substance, and read the list rather than retype it
+
+ProfileZ used to carry its own substance list and a hidden tap-cycle (once =
+sometimes, twice = often, again to clear — nothing said so, and "daily" could not
+be said at all). Each substance is now a row with an explicit Rarely / Sometimes /
+Often / Daily choice and the scale's meaning printed once above it. The
+substances and the scale come from `/api/economy/substancez/` via
+`src/substancez.js`; a failed fetch says so and leaves what the member already
+declared untouched (it is held in state, not derived from the list).
+
+- A `yes` (picked before frequency existed) shows an amber "choose how often"
+  and is never rounded to a frequency. On a member card it reads "frequency not
+  said", not the raw word.
+- The SubstanceZ app shows the split per substance ("1 rarely · 2 daily · …"),
+  a frequency filter on the member list, and each card's frequency for the
+  searched substance only.
+- VybeZ's "steer clear of people who use…" sends `substances=` and
+  `substance_max=`; the server decides who that hides. Members who haven't said
+  how often can't be counted under a limit, and the screen says so.
+- **Reset dependent state in the handler that changes the thing it depends on,
+  never in an effect that follows it.** `MetricZ` reset its frequency filter in an
+  effect, which fired every member search twice (the first with the previous
+  substance's filter) and let a stale reply overwrite the right list.
