@@ -38,3 +38,16 @@ test("a muscle with no exercise in the selected equipment is skipped, not crashe
   const picks = pickForDay(["chest", "back"], null, EXERCISES, ["cable"]);
   assert.deepEqual(picks.map((p) => p.id), [3]); // chest has no cable exercise
 });
+
+test("N per muscle takes them in library order, one is still the default", () => {
+  assert.deepEqual(pickForDay(["chest"], null, EXERCISES, "", 2).map((p) => p.id), [1, 2]);
+  assert.deepEqual(pickForDay(["chest"], null, EXERCISES, "").map((p) => p.id), [1]);
+});
+
+test("a muscle with fewer than N gives what it has, never an invented row", () => {
+  assert.deepEqual(pickForDay(["chest", "back"], null, EXERCISES, "cable", 6).map((p) => p.id), [3]);
+});
+
+test("equipment narrows the pool before the count is applied", () => {
+  assert.deepEqual(pickForDay(["back"], null, EXERCISES, ["dumbbell"], 3).map((p) => p.id), [4]);
+});

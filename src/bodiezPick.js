@@ -27,7 +27,7 @@ function matchesEquipment(ex, equipment) {
   return ex.equipment === equipment;
 }
 
-export function pickForDay(dayMuscles, bodymap, exercises, equipment) {
+export function pickForDay(dayMuscles, bodymap, exercises, equipment, perMuscle = 1) {
   const statusByMuscle = {};
   for (const m of (bodymap?.muscles || [])) statusByMuscle[m.muscle_group] = m.status;
   const ordered = dayMuscles.slice().sort(
@@ -35,7 +35,8 @@ export function pickForDay(dayMuscles, bodymap, exercises, equipment) {
   const picked = [];
   for (const muscle of ordered) {
     const pool = exercises.filter((ex) => ex.muscle_group === muscle && matchesEquipment(ex, equipment));
-    if (pool.length > 0) picked.push(pool[0]);
+    // perMuscle defaults to 1, which is what every caller got before it existed.
+    picked.push(...pool.slice(0, perMuscle));
   }
   return picked;
 }

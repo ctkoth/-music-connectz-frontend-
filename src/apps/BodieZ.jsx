@@ -47,6 +47,7 @@ import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
+import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
 
@@ -1156,7 +1157,7 @@ function AccessPanel({ access, onChange, shown, total }) {
 // no backend change needed), give each a target sets/reps/weight, reorder
 // and remove. Saved shape is `{exercise_id, order, sets, reps, weight_kg}`,
 // which the logger reads back to show a target beside each input.
-function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onClose }) {
+function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onClose, restSeconds }) {
   const unit = useUnit();
   const [rows, setRows] = useState(
     () => asList(routine.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -1212,6 +1213,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
           <X size={16} />
         </button>
       </div>
+      <RoutineTime items={rows} restSeconds={restSeconds} />
 
       {rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-white/40">
@@ -1411,7 +1413,8 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
       {designingRoutine && (
         <RoutineDesigner routine={designingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
                           onSave={(list) => { onSaveExercises(designingRoutine.id, list); }}
-                          onClose={() => setDesigning(null)} />
+                          onClose={() => setDesigning(null)}
+                          restSeconds={goals?.[designingRoutine.goal]?.rest_seconds} />
       )}
 
       {rows.length === 0 && (
@@ -1631,7 +1634,44 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
 // number Coach shows; it never touches a rating or a skill level.
 const NEED_ORDER = { untrained: 0, undertrained: 1, balanced: 2, recent: 3, overworked: 4 };
 
-function buildBalancedRoutine(bodymap, exercises, equipment) {
+// How many exercises a Coach builder picks for each muscle. One to six: one is
+// a lean day, six is a volume day, and the member knows which they want — a
+// fixed number would be the Coach deciding how long their workout is.
+const PER_MUSCLE = [1, 2, 3, 4, 5, 6];
+
+// "≈ 45 min" with its assumptions printed under it. Shown while a routine is
+// being built, so the length is known before it is saved — not found out an
+// hour into the session. Renders nothing when there is nothing to estimate.
+function RoutineTime({ items, restSeconds, className = "" }) {
+  const label = fmtEstimate(estimateRoutineSeconds(items, restSeconds));
+  if (!label) return null;
+  return (
+    <p className={`text-[11px] text-white/55 ${className}`}>
+      <span className="font-semibold text-mcz-cyan">{label}</span>{" "}
+      <span className="text-white/35">{routineTimeNote(restSeconds)}</span>
+    </p>
+  );
+}
+const goalItems = (picks, goal) => picks.map(() => ({ sets: goal ? goal.sets : 3, reps: goal ? goal.reps_low : 10 }));
+function PerMuscleSelect({ value, onChange }) {
+  return (
+    <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label="Exercises per muscle">
+      {PER_MUSCLE.map((n) => <option key={n} value={n}>{n} exercise{n === 1 ? "" : "s"} per muscle</option>)}
+    </select>
+  );
+}
+// Said out loud when the library has fewer than asked for, so a short list is
+// the library's limit and never a silent surprise (an equipment filter or an
+// access setting can leave a muscle with only one or two).
+function shortNote(picks, muscles, n) {
+  if (n <= 1) return "";
+  const short = muscles.filter((m) => picks.filter((ex) => ex.muscle_group === m).length < n)
+    .map((m) => `${MUSCLE_LABEL[m] || m} (${picks.filter((ex) => ex.muscle_group === m).length})`);
+  return short.length ? `Fewer than ${n} available for: ${short.join(", ")}.` : "";
+}
+
+function buildBalancedRoutine(bodymap, exercises, equipment, perMuscle = 1) {
   const matches = (ex) => {
     if (!equipment) return true;
     if (Array.isArray(equipment)) return equipment.length === 0 || equipment.includes(ex.equipment);
@@ -1645,8 +1685,8 @@ function buildBalancedRoutine(bodymap, exercises, equipment) {
     if (m.muscle_group === "cardio") continue;
     const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group && matches(ex));
     if (pool.length === 0) continue;
-    picked.push(pool[0]);
-    if (picked.length >= 6) break;
+    picked.push(...pool.slice(0, perMuscle));
+    if (new Set(picked.map((e) => e.muscle_group)).size >= 6) break;
   }
   return picked;
 }
@@ -1673,8 +1713,9 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
   const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
-  const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment),
-    [bodymap, exercises, equipment]);
+  const [perMuscle, setPerMuscle] = useState(1);
+  const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
+    [bodymap, exercises, equipment, perMuscle]);
   const goal = goalKey ? goals?.[goalKey] : null;
 
   return (
@@ -1688,7 +1729,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
       {open && (
         <div className="space-y-2 pt-1">
           <p className="text-xs text-white/45">
-            Picks one exercise per muscle group, starting with whatever BodyMap
+            Picks up to six muscle groups and the number of exercises you choose for each, starting with whatever BodyMap
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
           {goals && (
@@ -1698,6 +1739,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
               {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
             </select>
           )}
+          <PerMuscleSelect value={perMuscle} onChange={setPerMuscle} />
           <EquipmentPicker selected={equipment}
                            onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
           {goal && (
@@ -1709,6 +1751,10 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
               <p className="mt-1 text-white/35">{goal.citation}</p>
             </div>
           )}
+          {shortNote(picks, [...new Set(picks.map((e) => e.muscle_group))], perMuscle) && (
+            <p className="text-[11px] text-white/45">{shortNote(picks, [...new Set(picks.map((e) => e.muscle_group))], perMuscle)}</p>
+          )}
+          <RoutineTime items={goalItems(picks, goal)} restSeconds={goal?.rest_seconds} />
           {picks.length === 0 ? (
             <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
           ) : (
@@ -1757,15 +1803,16 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
   const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useState("");
   const [open, setOpen] = useState(false);
+  const [perMuscle, setPerMuscle] = useState(1);
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
 
   const preview = useMemo(() => {
     if (!split) return [];
     return split.days.map((day) => ({
-      ...day, picks: pickForDay(day.muscles, bodymap, exercises, equipment),
+      ...day, picks: pickForDay(day.muscles, bodymap, exercises, equipment, perMuscle),
     }));
-  }, [split, bodymap, exercises, equipment]);
+  }, [split, bodymap, exercises, equipment, perMuscle]);
 
   const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
 
@@ -1799,6 +1846,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
               </select>
             )}
+            <PerMuscleSelect value={perMuscle} onChange={setPerMuscle} />
           </div>
           <EquipmentPicker selected={equipment}
                            onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
@@ -1825,6 +1873,10 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                         <DemoLink url={ex.demo_url} />
                       </div>
                     ))
+                  )}
+                  <RoutineTime items={goalItems(day.picks, goal)} restSeconds={goal?.rest_seconds} className="mt-0.5" />
+                  {shortNote(day.picks, day.muscles, perMuscle) && (
+                    <p className="text-[11px] text-white/40">{shortNote(day.picks, day.muscles, perMuscle)}</p>
                   )}
                 </div>
               ))}
@@ -1948,9 +2000,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
             )}
             <select className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={perMuscle} onChange={(e) => setPerMuscle(Number(e.target.value))}>
-              <option value={1}>1 exercise per muscle</option>
-              <option value={2}>2 exercises per muscle</option>
-              <option value={3}>3 exercises per muscle</option>
+              {PER_MUSCLE.map((n) => <option key={n} value={n}>{n} exercise{n === 1 ? "" : "s"} per muscle</option>)}
             </select>
           </div>
           <EquipmentPicker selected={equipment}
@@ -1964,6 +2014,10 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
               <p className="mt-1 text-white/35">{goal.citation}</p>
             </div>
           )}
+          {shortNote(picks, muscles, perMuscle) && (
+            <p className="text-[11px] text-white/45">{shortNote(picks, muscles, perMuscle)}</p>
+          )}
+          <RoutineTime items={goalItems(picks, goal)} restSeconds={goal?.rest_seconds} />
           {muscles.length === 0 ? (
             <p className="text-xs text-white/40">Pick at least one muscle group above.</p>
           ) : picks.length === 0 ? (
