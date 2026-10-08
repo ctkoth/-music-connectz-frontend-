@@ -22,6 +22,7 @@ import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { goToSpot } from "../goto.js";
+import { useSubstanceScale } from "../substancez.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -106,6 +107,12 @@ export default function VybeZ() {
   const [ageMax, setAgeMax] = useState("");
   const [maxKm, setMaxKm] = useState("");
   const [more, setMore] = useState(false);
+  // SubstanceZ, from the searcher's side: substances to steer clear of, and
+  // how much of them is still fine ("" = none at all, the filter's original
+  // meaning). Both lists come from the server, never typed here.
+  const subScale = useSubstanceScale();
+  const [avoid, setAvoid] = useState([]);
+  const [avoidUpTo, setAvoidUpTo] = useState("");
 
   const [rows, setRows] = useState([]);
   const [note, setNote] = useState("");
@@ -142,6 +149,10 @@ export default function VybeZ() {
     if (ageMin) parts.push(`age_min=${ageMin}`);
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
+    if (avoid.length) {
+      parts.push(`substances=${avoid.join(",")}`);
+      if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);
+    }
     setLoading(true);
     setError("");
     return api(`/api/economy/members/${parts.length ? `?${parts.join("&")}` : ""}`)
@@ -157,7 +168,7 @@ export default function VybeZ() {
       // worst bug class in this app, and it has shipped twice.
       .catch((e) => setError(e.message || "Couldn't run that search."))
       .finally(() => setLoading(false));
-  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm]);
+  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, avoid, avoidUpTo]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -209,6 +220,35 @@ export default function VybeZ() {
           <div className="space-y-4">
             <ReligionFilter value={religions} onChange={setReligions} />
             <LanguageFilter value={langFilter} onChange={setLangFilter} />
+            {subScale && (
+              <div className="space-y-2">
+                <p className="text-[11px] text-white/50">Steer clear of people who use…</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {subScale.substances.map((sub) => (
+                    <Chip key={sub.key} on={avoid.includes(sub.key)}
+                          onClick={() => setAvoid((v) => v.includes(sub.key) ? v.filter((x) => x !== sub.key) : [...v, sub.key])}>
+                      {sub.emoji} {sub.label}
+                    </Chip>
+                  ))}
+                </div>
+                {avoid.length > 0 && (
+                  <label className="block text-[11px] text-white/50">
+                    …but I'm fine with
+                    <select value={avoidUpTo} onChange={(e) => setAvoidUpTo(e.target.value)}
+                            className="ml-2 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none">
+                      <option value="">no use at all</option>
+                      {subScale.frequencies.map((f) => (
+                        <option key={f.key} value={f.key}>up to {f.label.toLowerCase()} ({f.hint})</option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-[10px] text-white/35">
+                      People who haven't said how often can't be counted under a limit, so they're hidden unless you pick
+                      the top of the scale. Someone who hasn't declared anything isn't hidden.
+                    </span>
+                  </label>
+                )}
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="text-[11px] text-white/50">
                 Age from

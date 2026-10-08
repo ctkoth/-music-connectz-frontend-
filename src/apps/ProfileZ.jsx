@@ -24,6 +24,7 @@ import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
 import SignBonus from "../SignBonus.jsx";
+import { useSubstanceScale, frequencyHint } from "../substancez.js";
 import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
@@ -87,22 +88,10 @@ function Verify18Card() {
 
 // The persona list lives in personaVoice.js — one list for ProfileZ and PersonaZ.
 
-// SubstanceZ — what a member uses, declared by them. A profile metric, so it is
-// filterable on Social ConnectZ like every other one. Order runs legal → heavy;
-// the copy stays non-judgemental because honest data beats flattering data.
-const SUBSTANCES = [
-  ["cigarettes", "Cigarettes", "🚬"],
-  ["caffeine", "Caffeine", "☕"],
-  ["alcohol", "Alcohol", "🍺"],
-  ["thc", "THC", "🍃"],
-  ["dxm", "DXM", "🧴"],
-  ["adderall", "Adderall", "💊"],
-  ["benzos", "Benzos", "💊"],
-  ["opioids", "Opioids", "💊"],
-  ["heroin", "Heroin", "💉"],
-  ["crack", "Crack", "💎"],
-  ["meth", "Meth", "💎"],
-];
+// SubstanceZ — what a member uses, declared by them. The substances and the
+// frequency scale come from the server (../substancez.js): this file used to
+// carry its own copy of the list, in a different order from the one the
+// SubstanceZ app and the search read.
 
 // PreferenceZ — the genders a member is attracted to. Any one, any mix, or all.
 const PARTNER_GENDERS = [
@@ -464,7 +453,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
-  const [subs, setSubs] = useState({});        // SubstanceZ: {key: "sometimes"|"often"}
+  const [subs, setSubs] = useState({});        // SubstanceZ: {key: "rarely"|"sometimes"|"often"|"daily"|"yes"}
+  const subScale = useSubstanceScale();
   const [sober, setSober] = useState(false);   // sober BY CHOICE — a claim, not a blank
   // PersonalitieZ, as the server stores it: a 4-slot code with "-" for an
   // axis not answered. Kept as the code rather than four pieces of state so
@@ -989,9 +979,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})
         </p>
         <p className="mb-2 text-[11px] text-white/40">
-          What you actually use, and how often — sometimes and often are different lives. Honest beats
-          flattering; it's a filter, so it puts you with people who live the same way. Tap once for
-          sometimes, twice for often, again to clear.
+          What you actually use, and how often — a daily habit and a few times a year are different
+          lives. Honest beats flattering; it's a filter, so it puts you with people who live the same
+          way. Pick how often for each one you use; leave the rest blank.
         </p>
 
         {/* Sober BY CHOICE is a claim. An empty list only means you didn't say. */}
@@ -1003,34 +993,68 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           <span className="mr-1">🚫</span>Sober by choice
         </button>
 
-        <div className={`flex flex-wrap gap-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
-          {SUBSTANCES.map(([key, label, glyph]) => {
-            const stance = subs[key];
-            return (
-              <button key={key}
-                onClick={() => setSubs((v) => {
-                  const next = { ...v };
-                  if (!next[key]) next[key] = "sometimes";
-                  else if (next[key] === "sometimes") next[key] = "often";
-                  else delete next[key];
-                  return next;
-                })}
-                className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                  stance === "often"
-                    ? "border-mcz-ember/80 bg-mcz-ember/15 text-white shadow-neon"
-                    : stance
-                      ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
-                      : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
-                <span className="mr-1">{glyph}</span>{label}
-                {stance && (
-                  <span className={`ml-1.5 text-[10px] ${stance === "often" ? "text-mcz-ember" : "text-mcz-cyan"}`}>
-                    · {stance === "yes" ? "declared" : stance}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {subScale === null && (
+          <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+        )}
+        {subScale === false && (
+          <p className="text-[11px] text-mcz-ember">
+            Couldn't load the SubstanceZ list. What you've already declared is unchanged — reload to edit it.
+          </p>
+        )}
+        {subScale && (
+          <>
+            {/* The scale, said once up front: "often" has to mean the same thing to everyone. */}
+            <p className="mb-2 text-[10px] text-white/35">
+              {subScale.frequencies.map((f) => `${f.label} = ${f.hint}`).join(" · ")}
+            </p>
+            <div className={`space-y-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
+              {subScale.substances.map((sub) => {
+                const stance = subs[sub.key];
+                const unsaid = stance === subScale.legacy;
+                return (
+                  <div key={sub.key}
+                       className={`rounded-xl border p-2.5 transition ${
+                         stance ? "border-mcz-cyan/50 bg-mcz-cyan/5" : "border-white/10 bg-black/30"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-white"><span className="mr-1.5">{sub.emoji}</span>{sub.label}</span>
+                      {stance && (
+                        <button type="button" className="text-[11px] text-white/45 hover:text-white"
+                                onClick={() => setSubs((v) => { const n = { ...v }; delete n[sub.key]; return n; })}>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div role="radiogroup" aria-label={`How often: ${sub.label}`} className="mt-1.5 flex flex-wrap gap-1.5">
+                      {subScale.frequencies.map((f) => {
+                        const on = stance === f.key;
+                        return (
+                          <button key={f.key} type="button" role="radio" aria-checked={on} title={f.hint}
+                                  onClick={() => setSubs((v) => ({ ...v, [sub.key]: f.key }))}
+                                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                                    on
+                                      ? (f.key === "often" || f.key === "daily"
+                                          ? "border-mcz-ember/80 bg-mcz-ember/15 text-white shadow-neon"
+                                          : "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon")
+                                      : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {stance && !unsaid && (
+                      <p className="mt-1 text-[10px] text-white/40">{frequencyHint(subScale, stance)}</p>
+                    )}
+                    {unsaid && (
+                      <p className="mt-1 text-[10px] text-amber-300/90">
+                        You picked this before frequency existed — choose how often so it reads right.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {sober ? (
           <p className="mt-2 text-[11px] text-emerald-300/80">

@@ -19,7 +19,7 @@ function takeSign() {
   try { const v = sessionStorage.getItem("mcz_zodiacz_sign"); sessionStorage.removeItem("mcz_zodiacz_sign"); return v; } catch { return null; }
 }
 
-function Card({ m }) {
+function Card({ m, freq }) {
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center gap-3">
@@ -31,6 +31,9 @@ function Card({ m }) {
           <div className="mt-0.5 flex flex-wrap gap-1 text-[11px]">
             <SignLink sign={m.sign} />
             {m.sober && <span className="pill !border-emerald-300/40 !text-emerald-300">sober</span>}
+            {/* How often, for the substance this list is about — the server
+                sends it for the searched substance only, never the rest. */}
+            {freq && <span className="pill !border-mcz-ember/40 !text-mcz-ember">{freq}</span>}
           </div>
         </div>
       </div>
@@ -45,6 +48,9 @@ export default function MetricZ({ kind }) {
   const [pick, setPick] = useState(() => (kind === "zodiacz" ? takeSign() : null));
   const [members, setMembers] = useState(null);
   const [sharing, setSharing] = useState(false);
+  // SubstanceZ only: narrow the member list to those who said they use it at
+  // these frequencies. Empty = everyone who declared it at all.
+  const [freqs, setFreqs] = useState([]);
 
   useEffect(() => {
     api(`/api/economy/metricz/${kind}/`).then(setD).catch((e) => setErr(e.message));
@@ -53,9 +59,16 @@ export default function MetricZ({ kind }) {
   useEffect(() => {
     if (!pick || !d?.param) { setMembers(null); return; }
     setMembers(undefined);
-    api(`/api/economy/members/?${d.param}=${encodeURIComponent(pick)}`)
+    const fq = kind === "substancez" && freqs.length ? `&use_freq=${freqs.join(",")}` : "";
+    api(`/api/economy/members/?${d.param}=${encodeURIComponent(pick)}${fq}`)
       .then((r) => setMembers(r.members || [])).catch(() => setMembers([]));
-  }, [pick, d?.param]);
+  }, [pick, d?.param, kind, freqs]);
+
+  // A different substance starts unfiltered — a frequency chosen for THC
+  // silently hiding people under Alcohol would look like nobody is there.
+  useEffect(() => { setFreqs([]); }, [pick]);
+
+  const freqLabel = (key) => d?.frequencies?.find((f) => f.key === key)?.label || key;
 
   const chosen = d?.options?.find((o) => o.key === pick);
   return (
@@ -81,7 +94,11 @@ export default function MetricZ({ kind }) {
         <>
           <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
             {d.mine?.length
-              ? <span>Yours: {d.options.filter((o) => o.mine).map((o) => `${o.emoji} ${o.label}`).join(", ")}</span>
+              ? <span>Yours: {d.options.filter((o) => o.mine).map((o) => {
+                  const how = kind === "substancez"
+                    ? ` (${o.my_frequency ? freqLabel(o.my_frequency).toLowerCase() : "how often not set"})` : "";
+                  return `${o.emoji} ${o.label}${how}`;
+                }).join(", ")}</span>
               : <span>You haven't said yet.</span>}
             {d.mine?.length > 0 && (
               <button className="re-link" onClick={() => setSharing((v) => !v)}>Share yours</button>
@@ -153,11 +170,39 @@ export default function MetricZ({ kind }) {
                   </span>
                 )}
               </div>
+              {kind === "substancez" && chosen.by_frequency && (
+                <div className="space-y-2">
+                  {/* A bare count hides whether it is twelve daily users or twelve
+                      people who had it once. */}
+                  <p className="text-xs text-white/55">
+                    {d.frequencies.map((f) => `${chosen.by_frequency[f.key] || 0} ${f.label.toLowerCase()}`).join(" · ")}
+                    {chosen.by_frequency.unsaid > 0 && ` · ${chosen.by_frequency.unsaid} haven't said how often`}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by how often">
+                    <span className="text-[11px] text-white/40">Show:</span>
+                    {d.frequencies.map((f) => (
+                      <button key={f.key} type="button" aria-pressed={freqs.includes(f.key)} title={f.hint}
+                              onClick={() => setFreqs((v) => v.includes(f.key) ? v.filter((x) => x !== f.key) : [...v, f.key])}
+                              className={`pill ${freqs.includes(f.key) ? "pill-on" : "hover:text-white"}`}>
+                        {f.label}
+                      </button>
+                    ))}
+                    {freqs.length > 0 && <button type="button" className="re-link text-[11px]" onClick={() => setFreqs([])}>All</button>}
+                  </div>
+                </div>
+              )}
               {members === undefined && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={14} /> Finding members…</p>}
-              {members?.length === 0 && <p className="text-sm text-white/55">Nobody else here has said {chosen.label} yet.</p>}
+              {members?.length === 0 && (
+                <p className="text-sm text-white/55">
+                  {freqs.length ? `Nobody else here has said ${chosen.label} at that frequency.` : `Nobody else here has said ${chosen.label} yet.`}
+                </p>
+              )}
               {members?.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {members.map((m) => <Card key={m.username} m={m} />)}
+                  {members.map((m) => (
+                    <Card key={m.username} m={m}
+                          freq={kind === "substancez" && m.use_frequency?.[pick] ? freqLabel(m.use_frequency[pick]) : ""} />
+                  ))}
                 </div>
               )}
             </div>
