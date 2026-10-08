@@ -38,7 +38,7 @@ const HELPERS = [
   // pair from TrialTake.jsx, and the trial-split pair from BodieZTrial.jsx —
   // the same "build a week for free, keep it on register" helpers this
   // file's own docstring is warning about.
-  "src/apps/TrialTake.jsx", "src/apps/BodieZTrial.jsx", "src/bodiezPick.js",
+  "src/apps/TrialTake.jsx", "src/apps/BodieZTrial.jsx", "src/bodiezPick.js", "src/exerciseSearch.js",
   // BodieZ.jsx and BodieZTrial.jsx both reach into EquipmentPicker.jsx by
   // bare name now (EQUIPMENT_LABEL, toggleEquipment, the default export) —
   // the multi-select equipment fix that replaced four separate single-selects

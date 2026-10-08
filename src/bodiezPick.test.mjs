@@ -51,3 +51,11 @@ test("a muscle with fewer than N gives what it has, never an invented row", () =
 test("equipment narrows the pool before the count is applied", () => {
   assert.deepEqual(pickForDay(["back"], null, EXERCISES, ["dumbbell"], 3).map((p) => p.id), [4]);
 });
+
+test("the pool is taken in library (id) order, not the order the list happens to be sorted in", () => {
+  // The server serves the list sorted by name; a newer row that sorts earlier
+  // must not displace the original first choice.
+  const list = [{ id: 9, muscle_group: "abs", equipment: "bodyweight", name: "Abdominal Brace Hold" },
+                { id: 1, muscle_group: "abs", equipment: "machine", name: "Cable Crunch" }];
+  assert.deepEqual(pickForDay(["abs"], null, list, "").map((p) => p.id), [1]);
+});

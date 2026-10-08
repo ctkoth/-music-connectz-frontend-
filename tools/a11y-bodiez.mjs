@@ -89,6 +89,19 @@ for (const tab of ["Today", "Scheduler", "BodyMap", "Coach", "Goals", "Recovery"
     await page.waitForTimeout(400);
   }
   results.push(await audit(tab));
+  if (tab === "Today") {
+    // The exercise picker is a combobox; audit it open, and its create form.
+    const box = page.getByRole("combobox", { name: "Exercise" });
+    if (await box.count()) {
+      await box.fill("zzz custom");
+      await page.waitForTimeout(300);
+      results.push(await audit("Today — picker open"));
+      await page.getByRole("listbox").getByRole("option", { name: /Create/ }).click().catch(() => {});
+      await page.waitForTimeout(300);
+      results.push(await audit("Today — new custom exercise"));
+      await box.fill("").catch(() => {});
+    }
+  }
 }
 
 let bad = 0;

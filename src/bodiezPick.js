@@ -34,7 +34,10 @@ export function pickForDay(dayMuscles, bodymap, exercises, equipment, perMuscle 
     (a, b) => (NEED_ORDER[statusByMuscle[a]] ?? 9) - (NEED_ORDER[statusByMuscle[b]] ?? 9));
   const picked = [];
   for (const muscle of ordered) {
-    const pool = exercises.filter((ex) => ex.muscle_group === muscle && matchesEquipment(ex, equipment));
+    // Library order (id), not list order: the list is served sorted by name, which would let a
+    // newer row such as "Abdominal Brace Hold" displace the curated first choice for everyone.
+    const pool = exercises.filter((ex) => ex.muscle_group === muscle && matchesEquipment(ex, equipment))
+      .sort((a, b) => a.id - b.id);
     // perMuscle defaults to 1, which is what every caller got before it existed.
     picked.push(...pool.slice(0, perMuscle));
   }

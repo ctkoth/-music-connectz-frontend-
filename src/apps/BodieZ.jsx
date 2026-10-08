@@ -65,17 +65,15 @@ function Field({ label, className = "w-20", ...props }) {
   );
 }
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
+import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
+import { suggest } from "../exerciseSearch.js";
 
 // Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
 // migration 0145's docstring on the backend for why it stays: Burpee, Clean
 // and Press and the kettlebell lifts genuinely aren't one-muscle movements).
 // "Arms" and "Legs" are gone from here, not aliased — a client that still
 // rendered them would be showing a label the server can no longer produce.
-const MUSCLE_LABEL = {
-  abs: "Abs", back: "Back", biceps: "Biceps", cardio: "Cardio", chest: "Chest",
-  forearms: "Forearms", glutes: "Glutes", shoulders: "Shoulders", triceps: "Triceps",
-  upper_legs: "Upper Legs", lower_legs: "Lower Legs", full_body: "Full Body",
-};
+// MUSCLE_LABEL lives in ExercisePicker.jsx (one list; the picker needs it too).
 
 // Icon mapping for neon muscle group SVGs
 const MUSCLE_ICON_MAP = {
@@ -253,6 +251,15 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // The one writer for custom exercises, shared by every picker through
+  // ExerciseCtx. The new row is appended locally (it is already in the shape
+  // the list endpoint serves), so the member can log it the moment it exists.
+  const createExercise = async (body) => {
+    const ex = await api("/api/economy/bodiez/exercises/custom/", { method: "POST", body });
+    setExercises((cur) => [...cur, ex]);
+    return ex;
+  };
+
   async function logSet(exerciseId, reps, weightKg, side = "") {
     if (!session) return;
     try {
@@ -260,7 +267,9 @@ export default function BodieZ() {
         method: "POST",
         body: { exercise_id: exerciseId, reps, weight_kg: toKg(weightKg, unit), one_sided: side },
       });
-      setSession({ ...session, sets: [...session.sets, s] });
+      // Functional, because "copy last time" logs several sets back to back and
+      // each would otherwise overwrite the last with a stale copy of the session.
+      setSession((cur) => (cur ? { ...cur, sets: [...cur.sets, s] } : cur));
     } catch (e) { setErr(e.message); }
   }
 
@@ -414,6 +423,7 @@ export default function BodieZ() {
 
   return (
     <UnitCtx.Provider value={unit}>
+    <ExerciseCtx.Provider value={{ create: createExercise }}>
     <div className="space-y-5">
       <header className="flex items-center gap-3">
         <IconImg icon="bodiez.png" alt="BodieZ" className="h-11 w-11 rounded-xl" />
@@ -491,6 +501,7 @@ export default function BodieZ() {
         </>
       )}
     </div>
+    </ExerciseCtx.Provider>
     </UnitCtx.Provider>
   );
 }
@@ -704,8 +715,10 @@ function SessionSummary({ summary: sm, onClose }) {
 }
 
 function LastTime({ exerciseId, side = "" }) {
+  return <LastTimeView last={useHistory(exerciseId, side)} side={side} />;
+}
+function LastTimeView({ last, side = "" }) {
   const unit = useUnit();
-  const last = useHistory(exerciseId, side);
   if (last === undefined) return <p className="text-[11px] text-white/30">Loading last time…</p>;
   if (!last) return <p className="text-[11px] text-white/30">No history yet {side ? `for this exercise done with ${SIDE_LABEL[side].toLowerCase()}` : "for this exercise"}.</p>;
   return (
@@ -841,6 +854,15 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
   const [side, setSide] = useSide(planned.exercise_id);
+  const last = useHistory(planned.exercise_id, side);
+  const lastDone = doneSets[doneSets.length - 1];
+  // Repeat / copy re-log EXISTING numbers as new sets, in the unit the member
+  // sees; the server stamps the real time, so rest between them is true.
+  const shown = (kg) => (kg != null ? fromKg(kg, unit) : "");
+  const repeatLast = () => onLogSet(planned.exercise_id, lastDone.reps, shown(lastDone.weight_kg), lastDone.one_sided || "");
+  const copyLastTime = async () => {
+    for (const st of last.sets) await onLogSet(planned.exercise_id, st.reps, shown(st.weight_kg), st.one_sided || "");
+  };
 
   return (
     <div className="re-card space-y-2">
@@ -861,8 +883,20 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
           {done}/{targetSets} sets
         </span>
       </div>
-      <LastTime exerciseId={planned.exercise_id} side={side} />
+      <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
+      <div className="flex flex-wrap gap-2">
+        {lastDone && (
+          <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={repeatLast}>
+            Repeat last set ({lastDone.reps}{lastDone.weight_kg != null ? `@${fmtWeight(lastDone.weight_kg, unit)}` : ""})
+          </button>
+        )}
+        {last && last.sets.length > 0 && (
+          <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={copyLastTime}>
+            Copy last time ({last.sets.length} set{last.sets.length === 1 ? "" : "s"})
+          </button>
+        )}
+      </div>
       <div className="flex flex-wrap items-end gap-2">
         <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
@@ -898,14 +932,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // the server, finished sessions only) so a lift they run every week is two
   // taps rather than a hunt through the library. Falls back to the full list
   // whenever there is no history yet, never an empty picker.
-  const [pickMode, setPickMode] = useState("done");
   const [unplannedSide, setUnplannedSide] = useSide(exerciseId);
-  const doneBefore = (pickable || exercises)
-    .filter((e) => (e.times_done || 0) > 0)
-    .sort((a, b) => String(b.last_done).localeCompare(String(a.last_done)));
-  const shownMode = doneBefore.length > 0 ? pickMode : "all";
-  const pickList = shownMode === "done" ? doneBefore : (pickable || exercises);
-
+  const unplannedLast = useHistory(exerciseId || null, unplannedSide);
   if (!session) {
     return (
       <div className="re-card space-y-3">
@@ -988,32 +1016,20 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       })}
 
       <div className="re-card space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p className="re-label">Add an unplanned exercise</p>
-          {doneBefore.length > 0 && (
-            <div className="flex gap-1">
-              {[["done", `Done before (${doneBefore.length})`], ["all", "All exercises"]].map(([k, label]) => (
-                <button key={k} onClick={() => { setPickMode(k); setExerciseId(""); }}
-                        className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
-                          shownMode === k ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <p className="re-label">Add an unplanned exercise</p>
+        <ExercisePicker exercises={pickable || exercises} all={exercises} value={exerciseId} onChange={setExerciseId} />
         {exerciseId && <SidePick value={unplannedSide} onChange={setUnplannedSide} />}
+        {exerciseId && unplannedLast && unplannedLast.sets.length > 0 && (
+          <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs"
+                  onClick={async () => {
+                    for (const st of unplannedLast.sets) {
+                      await onLogSet(Number(exerciseId), st.reps, st.weight_kg != null ? fromKg(st.weight_kg, unit) : "", st.one_sided || "");
+                    }
+                  }}>
+            Copy last time ({unplannedLast.sets.length} set{unplannedLast.sets.length === 1 ? "" : "s"})
+          </button>
+        )}
         <div className="flex flex-wrap items-end gap-2">
-          <select aria-label="Exercise" className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
-                  value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
-            <option value="">Exercise…</option>
-            {pickList.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group})
-                {shownMode === "done" ? ` · ${ex.times_done}× · last ${new Date(ex.last_done).toLocaleDateString()}` : ""}
-              </option>
-            ))}
-          </select>
           <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                  value={weight} onChange={(e) => setWeight(e.target.value)} />
           <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
@@ -1054,9 +1070,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
   const [err, setErr] = useState("");
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
-  // Their own lifts first, most recent first, then the rest — same history
-  // the live logger offers, so it is two taps for a lift they do every week.
-  const ordered = [...list].sort((a, b) => String(b.last_done || "").localeCompare(String(a.last_done || "")) || a.name.localeCompare(b.name));
+  const last = useHistory(exerciseId || null, side);
 
   // A routine fills in the whole workout — every exercise, its planned sets,
   // reps and weight, and the way the member usually does each one (one arm,
@@ -1079,6 +1093,13 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
     setSets(rows);
   };
   const patchSet = (i, patch) => setSets(sets.map((st, k) => (k === i ? { ...st, ...patch } : st)));
+
+  // Copy: bring a lift in the way it was last done (every set, same weights and
+  // the same one-arm/one-leg marker), or repeat a set you have just entered —
+  // correcting numbers is faster than typing them again.
+  const copyLastTime = () => setSets([...sets, ...last.sets.map((st) => ({
+    exercise_id: Number(exerciseId), reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" }))]);
+  const repeatSet = (i) => setSets([...sets.slice(0, i + 1), { ...sets[i] }, ...sets.slice(i + 1)]);
 
   const addSet = () => {
     if (!exerciseId || !reps) return;
@@ -1147,7 +1168,10 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
                        value={r.reps} onChange={(e) => patchSet(r.i, { reps: Number(e.target.value) || "" })} />
                 {r.one_sided && <span className="text-mcz-cyan/70">{SIDE_LABEL[r.one_sided].toLowerCase()}</span>}
               </span>
-              <button className="text-white/30 hover:text-mcz-ember" onClick={() => setSets(sets.filter((_, k) => k !== r.i))} aria-label="Remove set"><X size={12} /></button>
+              <span className="flex shrink-0 items-center gap-1">
+                <button className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10" onClick={() => repeatSet(r.i)} aria-label="Repeat this set">Repeat</button>
+                <button className="text-white/30 hover:text-mcz-ember" onClick={() => setSets(sets.filter((_, k) => k !== r.i))} aria-label="Remove set"><X size={12} /></button>
+              </span>
             </div>
           ))}
         </div>
@@ -1155,13 +1179,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
 
       {exerciseId && <SidePick value={side} onChange={setSide} />}
       <div className="flex flex-wrap items-end gap-2">
-        <select aria-label="Exercise" className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
-                value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
-          <option value="">Exercise…</option>
-          {ordered.map((ex) => (
-            <option key={ex.id} value={ex.id}>{ex.name} ({MUSCLE_LABEL[ex.muscle_group] || ex.muscle_group}){ex.times_done > 0 ? ` · done ${ex.times_done}×` : ""}</option>
-          ))}
-        </select>
+        <ExercisePicker exercises={list} all={exercises} value={exerciseId} onChange={setExerciseId} />
         <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
         <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
@@ -1170,6 +1188,11 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
         <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" disabled={!exerciseId || !reps} onClick={addSet}>
           <Plus size={13} /> Add set
         </button>
+        {exerciseId && last && last.sets.length > 0 && (
+          <button type="button" className="neon-btn-ghost !w-auto px-3 py-2 text-xs" onClick={copyLastTime}>
+            Copy last time ({last.sets.length} set{last.sets.length === 1 ? "" : "s"})
+          </button>
+        )}
       </div>
 
       <input aria-label="Note (optional)" className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
@@ -1257,12 +1280,14 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
       .map((e) => ({ ...e })));
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState([]);
+  const [q, setQ] = useState("");
+  const [creating, setCreating] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const filtered = useMemo(() => (pickable || exercises).filter((ex) =>
-    (!muscle || ex.muscle_group === muscle)
-    && (equipment.length === 0 || equipment.includes(ex.equipment))
-  ), [exercises, pickable, muscle, equipment]);
+  // Type to narrow, pick a muscle to narrow again; the member's own lifts come first.
+  const filtered = useMemo(() => suggest(
+    (pickable || exercises).filter((ex) => equipment.length === 0 || equipment.includes(ex.equipment)), q, muscle,
+  ), [exercises, pickable, muscle, equipment, q]);
 
   const addExercise = (exerciseId) => {
     if (rows.some((r) => r.exercise_id === exerciseId)) return;
@@ -1361,8 +1386,20 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
           <option value="">All muscle groups</option>
           {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
+        <input aria-label="Search exercises" className="neon-input !py-2 w-full text-sm" placeholder="Type to search…"
+               value={q} onChange={(e) => setQ(e.target.value)} />
         <EquipmentPicker selected={equipment}
                          onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
+        {creating ? (
+          <CustomExerciseForm initialName={q.trim()} initialMuscle={muscle}
+                              onCreated={(ex) => { addExercise(ex.id); setCreating(false); setQ(""); }}
+                              onUseExisting={(id) => { addExercise(id); setCreating(false); }}
+                              onCancel={() => setCreating(false)} />
+        ) : (
+          <button type="button" className="inline-flex items-center gap-1 text-xs text-mcz-cyan hover:underline" onClick={() => setCreating(true)}>
+            <Plus size={13} /> {q.trim().length >= 2 && filtered.length === 0 ? `Create “${q.trim()}” as a custom exercise` : "Create a custom exercise"}
+          </button>
+        )}
         <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
           {filtered.map((ex) => {
             const already = rows.some((r) => r.exercise_id === ex.id);
@@ -1776,7 +1813,7 @@ function buildBalancedRoutine(bodymap, exercises, equipment, perMuscle = 1) {
   const picked = [];
   for (const m of muscles) {
     if (m.muscle_group === "cardio") continue;
-    const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group && matches(ex));
+    const pool = exercises.filter((ex) => ex.muscle_group === m.muscle_group && matches(ex)).sort((a, b) => a.id - b.id);
     if (pool.length === 0) continue;
     picked.push(...pool.slice(0, perMuscle));
     if (new Set(picked.map((e) => e.muscle_group)).size >= 6) break;
@@ -2043,7 +2080,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
   const picks = useMemo(() => {
     const out = [];
     for (const m of muscles) {
-      const pool = exercises.filter((ex) => ex.muscle_group === m && matches(ex));
+      const pool = exercises.filter((ex) => ex.muscle_group === m && matches(ex)).sort((a, b) => a.id - b.id);
       out.push(...pool.slice(0, perMuscle));
     }
     return out;
