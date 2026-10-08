@@ -2353,8 +2353,15 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
           </button>
         </div>
         <p className="text-xs text-white/40">
-          Log steps from your smartwatch or manually enter them. AI coach rates your step quality and efficiency.
+          Log steps from your smartwatch or type them in. Each entry adds to today's total.
         </p>
+        {stepCoach?.total_steps > 0 && (
+          <p className="text-xs text-white/50">
+            Last 7 days: <span className="font-semibold text-emerald-300">{stepCoach.total_steps.toLocaleString()}</span> steps
+            {stepCoach.avg_per_logged_day != null && <> · {stepCoach.avg_per_logged_day.toLocaleString()} on the days you logged</>}
+            {stepCoach.caveat && <span className="block pt-1 text-white/40">{stepCoach.caveat}</span>}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
