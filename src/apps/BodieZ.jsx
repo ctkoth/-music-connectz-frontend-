@@ -131,7 +131,7 @@ export default function BodieZ() {
   const setUnit = (u) => { setUnitState(u); saveUnit(u); };
   const [exercises, setExercises] = useState([]);
   const [demoCredit, setDemoCredit] = useState("");
-  const [access, setAccess] = useState({ seated_or_lying_only: false, arms_ok: true, legs_ok: true });
+  const [access, setAccess] = useState({ seated_or_lying_only: false, arms_ok: true, legs_ok: true, one_arm_only: false, one_leg_only: false });
   // Set by BodyMap's "Build a day for just this muscle" CTA, read once by
   // MuscleDayBuilder on the Coach tab then cleared — a jump that lands ON
   // the control rather than dumping the member at the top of a new tab.
@@ -250,12 +250,12 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
-  async function logSet(exerciseId, reps, weightKg) {
+  async function logSet(exerciseId, reps, weightKg, side = "") {
     if (!session) return;
     try {
       const s = await api(`/api/economy/bodiez/sessions/${session.id}/sets/`, {
         method: "POST",
-        body: { exercise_id: exerciseId, reps, weight_kg: toKg(weightKg, unit) },
+        body: { exercise_id: exerciseId, reps, weight_kg: toKg(weightKg, unit), one_sided: side },
       });
       setSession({ ...session, sets: [...session.sets, s] });
     } catch (e) { setErr(e.message); }
@@ -456,7 +456,7 @@ export default function BodieZ() {
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
               goals={coach?.goals}
             />
-            <PastWorkout exercises={exercises} pickable={usable}
+            <PastWorkout exercises={exercises} pickable={usable} routines={routines}
                          onSaved={(sm) => { setSummary(sm); load(); }} />
             </>
           )}
@@ -496,18 +496,47 @@ export default function BodieZ() {
 // exercise) — "last time" is a real logged row, from `/exercises/<id>/history/`,
 // never a suggested target. Cached in state so switching between exercises in
 // the same session doesn't re-request numbers that can't have changed mid-set.
-function useHistory(exerciseId) {
+function useHistory(exerciseId, side = "") {
   const [history, setHistory] = useState(undefined); // undefined = loading, null = no history
   useEffect(() => {
     if (!exerciseId) { setHistory(undefined); return; }
     setHistory(undefined);
     let alive = true;
-    api(`/api/economy/bodiez/exercises/${exerciseId}/history/`)
+    // Last time done THE SAME WAY — a one-arm row is not last week's two-arm row.
+    api(`/api/economy/bodiez/exercises/${exerciseId}/history/${side ? `?one_sided=${side}` : ""}`)
       .then((h) => { if (alive) setHistory(h.last_session || null); })
       .catch(() => { if (alive) setHistory(null); });
     return () => { alive = false; };
-  }, [exerciseId]);
+  }, [exerciseId, side]);
   return history;
+}
+
+// A set done with ONE arm or ONE leg is not the same set done with both, so it
+// is marked as such and compared only with its own kind (records, ratings and
+// "last time" all do). The choice is remembered per exercise, because somebody
+// who does a lift one-sided does it that way every time.
+const SIDE_LABEL = { "": "Both", arm: "One arm", leg: "One leg" };
+const sideKey = (id) => `bodiez.side.${id}`;
+function useSide(exerciseId) {
+  const read = () => { try { return localStorage.getItem(sideKey(exerciseId)) || ""; } catch { return ""; } };
+  const [side, setSide] = useState(read);
+  useEffect(() => { setSide(read()); }, [exerciseId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const set = (v) => { setSide(v); try { v ? localStorage.setItem(sideKey(exerciseId), v) : localStorage.removeItem(sideKey(exerciseId)); } catch { /* blocked */ } };
+  return [side, set];
+}
+function SidePick({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-1" role="group" aria-label="Done with">
+      <span className="text-[11px] text-white/40">Done with</span>
+      {Object.entries(SIDE_LABEL).map(([k, label]) => (
+        <button key={k || "both"} onClick={() => onChange(k)} aria-pressed={value === k}
+                className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                  value === k ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // Before pounds shipped, a US member's "35" went in as 35 kg. Only the member
@@ -671,14 +700,14 @@ function SessionSummary({ summary: sm, onClose }) {
   );
 }
 
-function LastTime({ exerciseId }) {
+function LastTime({ exerciseId, side = "" }) {
   const unit = useUnit();
-  const last = useHistory(exerciseId);
+  const last = useHistory(exerciseId, side);
   if (last === undefined) return <p className="text-[11px] text-white/30">Loading last time…</p>;
-  if (!last) return <p className="text-[11px] text-white/30">No history yet for this exercise.</p>;
+  if (!last) return <p className="text-[11px] text-white/30">No history yet {side ? `for this exercise done with ${SIDE_LABEL[side].toLowerCase()}` : "for this exercise"}.</p>;
   return (
     <p className="text-[11px] text-mcz-cyan/80">
-      Last time ({new Date(last.started_at).toLocaleDateString()}): {" "}
+      Last time{side ? ` (${SIDE_LABEL[side].toLowerCase()})` : ""} ({new Date(last.started_at).toLocaleDateString()}): {" "}
       {last.sets.map((s, i) => (
         <span key={s.id}>
           {i > 0 && " · "}
@@ -808,6 +837,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
   }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
+  const [side, setSide] = useSide(planned.exercise_id);
 
   return (
     <div className="re-card space-y-2">
@@ -828,7 +858,8 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
           {done}/{targetSets} sets
         </span>
       </div>
-      <LastTime exerciseId={planned.exercise_id} />
+      <LastTime exerciseId={planned.exercise_id} side={side} />
+      <SidePick value={side} onChange={setSide} />
       <div className="flex flex-wrap items-end gap-2">
         <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
                value={weight} onChange={(e) => setWeight(e.target.value)} />
@@ -836,7 +867,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
                value={reps} onChange={(e) => setReps(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 disabled={!reps}
-                onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight))}>
+                onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight), side)}>
           <Plus size={13} /> Log set
         </button>
       </div>
@@ -845,6 +876,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
           {doneSets.map((s) => (
             <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
+              {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
             </span>
           ))}
@@ -864,6 +896,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // taps rather than a hunt through the library. Falls back to the full list
   // whenever there is no history yet, never an empty picker.
   const [pickMode, setPickMode] = useState("done");
+  const [unplannedSide, setUnplannedSide] = useSide(exerciseId);
   const doneBefore = (pickable || exercises)
     .filter((e) => (e.times_done || 0) > 0)
     .sort((a, b) => String(b.last_done).localeCompare(String(a.last_done)));
@@ -966,6 +999,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
             </div>
           )}
         </div>
+        {exerciseId && <SidePick value={unplannedSide} onChange={setUnplannedSide} />}
         <div className="flex flex-wrap items-end gap-2">
           <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                   value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
@@ -984,7 +1018,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
                   onClick={() => {
-                    onLogSet(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight));
+                    onLogSet(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight), unplannedSide);
                     setReps(""); setWeight("");
                   }}>
             <Plus size={13} /> Log
@@ -1001,16 +1035,18 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 // beat are shown, judged against earlier sessions only. It is flagged
 // `backfilled` server-side: no rest times or duration exist for it, and none
 // are invented. No cost, no gain: nothing here moves a resource.
-function PastWorkout({ exercises, pickable, onSaved }) {
+function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
   const unit = useUnit();
   const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(todayStr);
   const [notes, setNotes] = useState("");
   const [sets, setSets] = useState([]);
+  const [routineId, setRoutineId] = useState("");
   const [exerciseId, setExerciseId] = useState("");
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [side, setSide] = useSide(exerciseId);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const list = pickable || exercises;
@@ -1019,17 +1055,39 @@ function PastWorkout({ exercises, pickable, onSaved }) {
   // the live logger offers, so it is two taps for a lift they do every week.
   const ordered = [...list].sort((a, b) => String(b.last_done || "").localeCompare(String(a.last_done || "")) || a.name.localeCompare(b.name));
 
+  // A routine fills in the whole workout — every exercise, its planned sets,
+  // reps and weight, and the way the member usually does each one (one arm,
+  // one leg) — so logging the session you did is correcting numbers rather
+  // than adding sixteen sets by hand. Nothing is saved until Save.
+  const pickRoutine = (id) => {
+    const r = routines.find((x) => String(x.id) === String(id));
+    if (!r) { setRoutineId(""); return; }
+    if (sets.length > 0 && !window.confirm("Replace the sets you've added with this routine's?")) return;
+    const rows = [];
+    for (const e of asList(r.exercises).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))) {
+      let remembered = "";
+      try { remembered = localStorage.getItem(sideKey(e.exercise_id)) || ""; } catch { /* blocked */ }
+      for (let i = 0; i < (Number(e.sets) || 3); i++) {
+        rows.push({ exercise_id: e.exercise_id, reps: Number(e.reps) || 10,
+                    weight_kg: e.weight_kg != null && e.weight_kg !== "" ? Number(e.weight_kg) : null, one_sided: remembered });
+      }
+    }
+    setRoutineId(r.id);
+    setSets(rows);
+  };
+  const patchSet = (i, patch) => setSets(sets.map((st, k) => (k === i ? { ...st, ...patch } : st)));
+
   const addSet = () => {
     if (!exerciseId || !reps) return;
-    setSets([...sets, { exercise_id: Number(exerciseId), reps: Number(reps), weight_kg: weight === "" ? null : toKg(Number(weight), unit) }]);
+    setSets([...sets, { exercise_id: Number(exerciseId), reps: Number(reps), weight_kg: weight === "" ? null : toKg(Number(weight), unit), one_sided: side }]);
     setReps("");  // exercise and weight stay: the next set is usually the same lift
   };
 
   async function save() {
     setBusy(true); setErr("");
     try {
-      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets } });
-      setSets([]); setNotes(""); setOpen(false);
+      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets, routine_id: routineId || undefined } });
+      setSets([]); setNotes(""); setRoutineId(""); setOpen(false);
       onSaved(done.summary);
     } catch (e) { setErr(e.message || "Couldn't save that workout. Nothing was saved."); }
     finally { setBusy(false); }
@@ -1056,20 +1114,43 @@ function PastWorkout({ exercises, pickable, onSaved }) {
         <p className="re-label">Log a past workout</p>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
       </div>
-      <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)} />
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)} />
+        {routines.length > 0 && (
+          <label className="block min-w-0 flex-1">
+            <span className="re-label">Routine</span>
+            <select className="mt-1 w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                    value={routineId} onChange={(e) => pickRoutine(e.target.value)}>
+              <option value="">Start from a routine…</option>
+              {routines.map((r) => <option key={r.id} value={r.id}>{r.title} ({asList(r.exercises).length})</option>)}
+            </select>
+          </label>
+        )}
+      </div>
 
       {grouped.map((g, gi) => (
         <div key={gi} className="rounded-lg bg-white/5 px-3 py-2">
           <p className="text-xs font-semibold text-white">{nameOf(g.exercise_id)}</p>
           {g.rows.map((r) => (
-            <div key={r.i} className="flex items-center justify-between text-xs text-white/70">
-              <span>{r.weight_kg != null ? `${fmtWeight(r.weight_kg, unit)} × ` : "Bodyweight × "}{r.reps}</span>
+            <div key={r.i} className="flex items-center justify-between gap-2 py-0.5 text-xs text-white/70">
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                <input aria-label="Weight" type="number" min="0" step="0.5" inputMode="decimal" placeholder="bw"
+                       className="w-20 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
+                       value={r.weight_kg != null ? String(fromKg(r.weight_kg, unit)) : ""}
+                       onChange={(e) => patchSet(r.i, { weight_kg: e.target.value === "" ? null : toKg(Number(e.target.value), unit) })} />
+                <span className="text-white/35">{unit} ×</span>
+                <input aria-label="Reps" type="number" min="1" max="1000" inputMode="numeric"
+                       className="w-16 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
+                       value={r.reps} onChange={(e) => patchSet(r.i, { reps: Number(e.target.value) || "" })} />
+                {r.one_sided && <span className="text-mcz-cyan/70">{SIDE_LABEL[r.one_sided].toLowerCase()}</span>}
+              </span>
               <button className="text-white/30 hover:text-mcz-ember" onClick={() => setSets(sets.filter((_, k) => k !== r.i))} aria-label="Remove set"><X size={12} /></button>
             </div>
           ))}
         </div>
       ))}
 
+      {exerciseId && <SidePick value={side} onChange={setSide} />}
       <div className="flex flex-wrap items-end gap-2">
         <select className="w-full max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
@@ -1091,7 +1172,7 @@ function PastWorkout({ exercises, pickable, onSaved }) {
       <input className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
              value={notes} onChange={(e) => setNotes(e.target.value)} />
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
-      <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0} onClick={save}>
+      <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
         {busy ? <Loader2 className="animate-spin" size={14} /> : `Save workout (${sets.length} set${sets.length === 1 ? "" : "s"})`}
       </button>
       <p className="text-[11px] text-white/40">
@@ -1107,7 +1188,8 @@ function PastWorkout({ exercises, pickable, onSaved }) {
 // leaves (`accessible` on every row); this only asks, and says how many it
 // leaves so a restrictive choice is never a silent empty list.
 function AccessPanel({ access, onChange, shown, total }) {
-  const restricted = access.seated_or_lying_only || !access.arms_ok || !access.legs_ok;
+  const restricted = access.seated_or_lying_only || !access.arms_ok || !access.legs_ok
+    || access.one_arm_only || access.one_leg_only;
   const [open, setOpen] = useState(restricted);
   const rows = [
     { key: "seated_or_lying_only", on: access.seated_or_lying_only,
@@ -1115,10 +1197,18 @@ function AccessPanel({ access, onChange, shown, total }) {
       set: (v) => ({ seated_or_lying_only: v }) },
     { key: "arms_ok", on: !access.arms_ok,
       label: "I can't use my arms", hint: "Hide anything that needs them",
-      set: (v) => ({ arms_ok: !v }) },
+      set: (v) => ({ arms_ok: !v, ...(v ? { one_arm_only: false } : {}) }) },
+    // One-arm / one-leg sit between "fine" and "can't": they keep what can be
+    // done a side at a time. Mutually exclusive with the stricter answer.
+    { key: "one_arm_only", on: !!access.one_arm_only && access.arms_ok, disabled: !access.arms_ok,
+      label: "I can only use one arm", hint: "Only exercises done one arm at a time",
+      set: (v) => ({ one_arm_only: v, ...(v ? { arms_ok: true } : {}) }) },
     { key: "legs_ok", on: !access.legs_ok,
       label: "I can't use my legs", hint: "Hide anything that needs them, and anything standing",
-      set: (v) => ({ legs_ok: !v }) },
+      set: (v) => ({ legs_ok: !v, ...(v ? { one_leg_only: false } : {}) }) },
+    { key: "one_leg_only", on: !!access.one_leg_only && access.legs_ok, disabled: !access.legs_ok,
+      label: "I can only use one leg", hint: "Only exercises that work one leg at a time",
+      set: (v) => ({ one_leg_only: v, ...(v ? { legs_ok: true } : {}) }) },
   ];
   return (
     <div className="re-card space-y-2">
@@ -1134,7 +1224,7 @@ function AccessPanel({ access, onChange, shown, total }) {
         <div className="space-y-1.5">
           {rows.map((r) => (
             <label key={r.key} className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
-              <input type="checkbox" className="h-4 w-4 accent-cyan-400" checked={r.on}
+              <input type="checkbox" className="h-4 w-4 accent-cyan-400" checked={r.on} disabled={r.disabled}
                      onChange={(e) => onChange(r.set(e.target.checked))} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm text-white">{r.label}</span>
