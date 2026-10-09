@@ -141,11 +141,16 @@ rather than about-the-impairment, and "disabled exercises" also reads as
 
 ## Still yours to decide (found while checking the privacy policy; none is fixed by this kit)
 
-- **Cancel-on-delete.** Deleting an account does not cancel Stripe subscriptions or
-  an auto top-up; they keep billing a card nobody can log in to. The delete screen
-  and the web page now say so, which is a warning, not a fix. The fix is to cancel
-  before deleting, and what happens when Stripe is down (refuse the delete? proceed?)
-  is a product call.
+- **Stripe still holds the customer and the saved card.** Deleting an account now
+  cancels its subscriptions first (and refuses the delete if Stripe can't cancel them),
+  but it does not delete the Stripe *customer*, so the card on file stays under
+  Stripe's own retention. Deleting the customer would be the complete version of
+  "delete my data"; it is a separate call with its own side effects on refunds and
+  disputes for past charges, so it was not made for you.
+- **`AutoTopUpCancelView` still lies when Stripe fails.** It flips the row to inactive
+  even if its Stripe call errored ("already gone / network — flip local state
+  regardless"), so a member can believe an auto top-up is off while it still bills.
+  Account deletion no longer trusts that flag; the cancel button itself still does.
 - **Transaction records.** The old policy promised "limited records (for example,
   transaction records)" are kept after deletion. The code keeps none: every money
   table cascades with the member. The policy now says what the code does. If the LLC
