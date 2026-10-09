@@ -18,6 +18,20 @@ const BodieZ = lazy(() => import("../../src/apps/BodieZ.jsx"));
 // not cross origins), and the member signs in there once.
 const MAIN = (import.meta.env.VITE_MCZ_URL || "https://musicconnectz.net").replace(/\/$/, "");
 
+// Play wants the privacy policy reachable INSIDE an app that handles health
+// information, not only in the Console form — and the sign-up screen is where
+// somebody is about to hand it over. One footer, under both the signed-out and
+// the signed-in screens, so neither state is the one without it.
+function PolicyLinks() {
+  return (
+    <p className="mt-6 pb-6 text-center text-[11px] text-white/45">
+      <a className="underline" href={`${MAIN}/privacy.html`} target="_blank" rel="noreferrer">Privacy policy</a>
+      {" · "}
+      <a className="underline" href={`${MAIN}/terms.html`} target="_blank" rel="noreferrer">Terms</a>
+    </p>
+  );
+}
+
 function Home() {
   const { user, logout } = useAuth();
 
@@ -43,6 +57,7 @@ function Home() {
         Same account and data as <a className="underline" href={MAIN} target="_blank" rel="noreferrer">Music ConnectZ</a>.
       </p>
       <DeleteAccount />
+      <PolicyLinks />
     </main>
   );
 }
@@ -52,11 +67,14 @@ export default function Shell() {
   if (loading) return <Loader2 className="mx-auto mt-24 animate-spin" size={22} role="status" aria-label="Loading" />;
   if (!user) {
     return (
-      <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot" element={<ForgotPassword />} />
-        <Route path="*" element={<Login />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot" element={<ForgotPassword />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
+        <PolicyLinks />
+      </>
     );
   }
   return (

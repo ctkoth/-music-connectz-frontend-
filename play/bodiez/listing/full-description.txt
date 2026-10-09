@@ -1,6 +1,6 @@
 🏋️ BodieZ is a workout log that starts from what your body can do.
 
-Before it shows you a single exercise, it asks three things: can you stand or walk, can you use your arms, can you use your legs. The list shrinks to what is actually possible, and it says how far:
+Before it shows you a single exercise, it asks what your body can do: can you stand or walk, can you use your arms (or only one), can you use your legs (or only one). The list shrinks to what is actually possible, and it says how far:
 
 • Seated or lying only: 60 of 90 exercises
 • No legs: 42 of 90

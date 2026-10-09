@@ -19,7 +19,6 @@ play/bodiez/
 ├── screenshots/           ← eight 1080×1920 phone screenshots, in story order
 ├── review-notes.md        ← paste into Play Console → App access
 ├── data-safety.md         ← the Data safety answers
-├── privacy-addendum.md    ← the paragraph the privacy policy is missing (see below)
 └── twa-manifest.json      ← only for the Bubblewrap route; the CI route below needs none of it
 ```
 
@@ -33,10 +32,16 @@ and builds in GitHub Actions — nothing to install.
   not a redrawn mark), splash, and `net.musicconnectz.bodiez` as a Gradle flavor.
 - Listing text, graphics and screenshots. The screenshots are the real app on a
   seeded account, taken in the BodieZ-only shell — what a reviewer will see.
-- **In-app account deletion** (Today → bottom → *Delete my account*) and the
+- **In-app account deletion** (bottom of any screen → *Delete my account*) and the
   **web page** Play also wants: `public/delete-account.html`, served at
   `/delete-account.html` on both hosts. The BodieZ-only shell has no ProfileZ, so
   without the in-app control the listing would have offered sign-up and no way out.
+  Deleting an account removes the stored files as well as the rows (it did not
+  before 9 October 2026: the bytes stayed on disk, which made "your uploads are
+  deleted" untrue).
+- **The privacy policy names BodieZ and its health information** (`public/privacy.html`,
+  updated 9 October 2026). Each statement in it about BodieZ was checked against
+  the code first; the corrections that check forced are in the commit message.
 - The signup screen no longer sells the music platform inside a fitness app: no
   "get paid for it", no 🍥 welcome line, no Free/Premium ladder, no singing-habit
   onboarding after you register (build-time flag `VITE_STANDALONE`; the main
@@ -75,8 +80,7 @@ and builds in GitHub Actions — nothing to install.
 7. **Forms** — Data safety (`data-safety.md`), content rating (IARC: no
    user-to-user content is reachable in this app; no purchases; no ads),
    target audience 13+ (not Families), **Health apps declaration**, privacy
-   policy URL `https://musicconnectz.net/privacy.html` **after** applying
-   `privacy-addendum.md`, account-deletion URL
+   policy URL `https://musicconnectz.net/privacy.html`, account-deletion URL
    `https://musicconnectz.net/delete-account.html`, and the credentials in
    `review-notes.md` (a real account with a few sessions logged).
 8. **One person, one account:** the review account is a real account on
@@ -101,7 +105,7 @@ A good start for **wheelchair users and people who train seated**; thin for
 disability-first headline raises the bar: reviews from the people it is for will
 be about exactly these numbers. The honest order is to widen the library for the
 arms-limited and one-sided cases, and film demos for the 53 exercises with none
-(37 have one), *before* the listing leans harder on it. The filter has three
+(37 have one), *before* the listing leans harder on it. The filter has five
 questions, not a person's actual range of movement, so the copy never says
 "tailored to your disability". **These numbers are in `full-description.txt`;
 re-count them before every release**: in the backend repo,
@@ -134,3 +138,27 @@ rather than about-the-impairment, and "disabled exercises" also reads as
   icon and what is inside them, but a reviewer who opens both will see the same
   BodieZ. The listing says plainly that it is one account for both. If a reviewer
   pushes back, the answer is the shell: BodieZ only, no music platform.
+
+## Still yours to decide (found while checking the privacy policy; none is fixed by this kit)
+
+- **Cancel-on-delete.** Deleting an account does not cancel Stripe subscriptions or
+  an auto top-up; they keep billing a card nobody can log in to. The delete screen
+  and the web page now say so, which is a warning, not a fix. The fix is to cancel
+  before deleting, and what happens when Stripe is down (refuse the delete? proceed?)
+  is a product call.
+- **Transaction records.** The old policy promised "limited records (for example,
+  transaction records)" are kept after deletion. The code keeps none: every money
+  table cascades with the member. The policy now says what the code does. If the LLC
+  needs to retain financial records for tax, that is a code change (anonymise rather
+  than cascade), and the policy changes with it.
+- **Name the BodieZ host in `privacy.html`'s Hosting line** once it exists. It says
+  "BodieZ's website is served from its own web host" because the host is not chosen.
+- **`public/terms.html` is stale in the same ways the policy was** (scope sentence
+  names only the website and the Android app, "delete it in ProfileZ", AdMob, a
+  16 August date) and is served on the BodieZ host too.
+- **13+ is a rule, not a check.** Birthday is optional and no minimum age is enforced.
+- **Account export omits BodieZ data**, so "you can export your data" is not true for it.
+- **`support@musicconnectz.net` has to be read by somebody.** The delete page and the
+  policy both promise a person behind it.
+- **The main app's logged-out `/login` offers a sideload APK** — a separate risk for the
+  *Music ConnectZ* listing, not this one.

@@ -801,10 +801,21 @@ answer**, or it ships inside a fitness app.
   with what goes stated before the button. It says the awkward part first: ONE account,
   so it deletes the Music ConnectZ account behind it. `public/delete-account.html` is the
   web page Play also asks for.
-- **The privacy policy still does not mention workouts, body weight or the movement
-  answers** (health information). The paragraph is drafted in
-  `play/bodiez/privacy-addendum.md` and deliberately NOT applied: it is a legal statement
-  by the LLC. Play compares the policy to the Data safety form.
+- **The privacy policy now names BodieZ and its health information**, and every sentence
+  in it about BodieZ was checked against the code by independent agents trying to refute
+  it before it was published. The first draft did not survive: it said "three" movement
+  answers (the screen asks five), omitted soreness and free-text notes, said "we do not
+  show it to other members" with no exception for the workout summary a member posts or
+  sends themselves (and a PostZ post is public by default), and — worst — promised
+  "limited records (for example, transaction records)" were kept after deletion, when
+  every money table cascades with the member. **A privacy sentence is a claim about the
+  code; check it like one.** The checks that earned their keep: grep every reader of the
+  data, grep every `on_delete`, and ask what the delete path leaves behind.
+- **Deleting an account has to take the files, and has to say what it does NOT do.**
+  The rows cascaded and the bytes did not (`apps/accounts/erasure.py` now removes them
+  after the delete commits). It also still does not cancel Stripe subscriptions or an
+  auto top-up — the delete screen and `delete-account.html` warn about it; the fix is a
+  product decision (see `play/bodiez/README.md`, "Still yours to decide").
 - **Listing numbers are quoted, not read.** `play/bodiez/listing/full-description.txt`
   carries "60 of 90" and "37 of 90 have a demo clip". They are right today. The backend's
   `tools/count_adaptive_exercises.py` recounts them.

@@ -15,10 +15,10 @@ on different days before you submit — the Coach compares a lift with your own
 earlier sessions, so it needs two to say anything.)
 
 Where to look:
-- Today → "What I can do": the three questions that filter the exercise list.
+- Today → "What I can do": the five questions that filter the exercise list.
 - Today → start a session from a routine → log a set (weight first, then reps).
 - Coach, Body map, Goals, Scheduler, Recovery, Progress: the tabs along the top.
-- Today → bottom of the page → "Delete my account": in-app account deletion.
+- Bottom of any screen → "Delete my account": in-app account deletion.
   Web page for the same thing: https://musicconnectz.net/delete-account.html
 
 What the app does not do:
@@ -27,7 +27,7 @@ What the app does not do:
   typed in by hand.
 - No AI scoring. The Coach is arithmetic over the member's own logged sets.
 
-Health information: the three "What I can do" answers are health information,
-stored against the account, used only to filter the exercise list, and deleted
-with the account. BodieZ is a training log, not medical advice or therapy, and
+Health information: body weight, recovery check-ins and the five "What I can do" answers are health information,
+stored against the account, used only to run BodieZ (it filters the exercise list and
+feeds the member's own progress, coach and goal screens), and deleted with the account. BodieZ is a training log, not medical advice or therapy, and
 says so on the listing.
