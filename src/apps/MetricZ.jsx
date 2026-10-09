@@ -117,7 +117,8 @@ export default function MetricZ({ kind }) {
           <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
             {d.mine?.length
               ? <span>Yours: {d.options.filter((o) => o.mine).map((o) => {
-                  const how = kind === "substancez"
+                  // Only a substance has a frequency; "sober by choice" is a claim.
+                  const how = kind === "substancez" && "my_frequency" in o
                     ? ` (${o.my_frequency ? freqLabel(o.my_frequency).toLowerCase() : "how often not set"})` : "";
                   return `${o.emoji} ${o.label}${how}`;
                 }).join(", ")}</span>
@@ -143,7 +144,7 @@ export default function MetricZ({ kind }) {
             const mineOpts = d.options.filter((o) => o.mine);
             const label = mineOpts.map((o) => `${o.emoji} ${o.label}`).join(", ");
             const text = kind === "zodiacz" && mineOpts[0]?.read ? `${label} — ${mineOpts[0].read}`
-              : kind === "substancez" ? `What I use: ${label}` : kind === "preferencez" ? `Into: ${label}` : label;
+              : kind === "substancez" ? (mineOpts.some((o) => o.key === "sober") ? "Sober by choice" : `What I use: ${label}`) : kind === "preferencez" ? `Into: ${label}` : label;
             // Opens carry the metric somewhere it DOES something: the people
             // who share it, the profile field that sets it, today's reading.
             const opens = [

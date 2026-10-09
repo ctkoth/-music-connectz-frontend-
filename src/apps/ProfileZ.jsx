@@ -978,6 +978,28 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
           SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})
         </p>
+        {/* Who can see this, said BEFORE anything is declared. SubstanceZ is open
+            to members by default, and a default that is not stated is a
+            disclosure by accident. The level is the server's own answer for this
+            member (VisibilitieZ's), never assumed here. */}
+        {Array.isArray(me?.visibility) && (() => {
+          const who = (field) => {
+            const row = me.visibility.find((v) => v.field === field);
+            if (!row) return "";
+            return (Array.isArray(row.level) ? row.level : [row.level])
+              .map((t) => (audiences || []).find((a) => a.token === t)?.label || t).join(" + ");
+          };
+          const subsWho = who("substances");
+          if (!subsWho) return null;
+          return (
+            <p className="mb-2 text-[11px] text-white/55">
+              Who can see this: <span className="font-semibold text-white/80">{subsWho}</span>
+              {sober && who("sober") && <> · sober by choice: <span className="font-semibold text-white/80">{who("sober")}</span></>}
+              . Adults only, always.{" "}
+              <button type="button" className="re-link" onClick={() => goToSpot("profilez", "visibility")}>Change who</button>
+            </p>
+          );
+        })()}
         <p className="mb-2 text-[11px] text-white/40">
           What you actually use, and how often — a daily habit and a few times a year are different
           lives. Honest beats flattering; it's a filter, so it puts you with people who live the same

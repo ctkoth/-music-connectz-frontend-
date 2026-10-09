@@ -1057,3 +1057,14 @@ declared untouched (it is held in state, not derived from the list).
   never in an effect that follows it.** `MetricZ` reset its frequency filter in an
   effect, which fired every member search twice (the first with the previous
   substance's filter) and let a stale reply overwrite the right list.
+
+- **Open to members by default, and said before anything is declared.** The
+  SubstanceZ block in ProfileZ states who can see it (the server's own level for
+  that member, from `me.visibility`, with a link to change it) above the picker.
+  A default that is not stated is a disclosure by accident. Never assume the
+  level here; read it.
+- **Sober by choice is a tile in the SubstanceZ app** (`key: "sober"`, served in
+  `options`), with a count and a member list like any substance. It has no
+  frequency, so the per-substance split, the frequency chips and "how often not
+  set" must be skipped for it — keyed off `"my_frequency" in o` and
+  `by_frequency`, never off the key name alone.
