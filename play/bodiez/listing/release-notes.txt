@@ -1,0 +1,1 @@
+First release. Log sets weight-first, plan routines, filter exercises to what your body can do, and track goals, a body map and recovery check-ins.

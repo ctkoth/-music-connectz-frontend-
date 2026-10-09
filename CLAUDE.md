@@ -783,6 +783,37 @@ contradiction of a 503 "free takes are all spoken for today", while a 429 got
 The server already knows which it is; the card's job is the next move, not a
 second opinion about the cause.
 
+## BodieZ on Play: the BodieZ-only shell is the product, so keep the music platform out of it
+
+`standalone/bodiez/` is BodieZ with sign-in and nothing else, on its own host, wrapped
+by the `bodiez` Android flavor in the backend. The listing says "a workout log", and
+the shell has to be one — that is the whole reason it is not `/bodie` on the main site.
+Everything in `src/auth/` is SHARED with the main site, which is how this went wrong:
+the BodieZ build's signup screen still said "post your work... and get paid for it",
+promised +15 🍥, showed a Free/Premium ladder for an app with nothing to buy, and then
+asked a new member how often they practise singing. `VITE_STANDALONE` turns each of
+those off (`Register.jsx`). **Anything added to a shared auth screen needs a `STANDALONE`
+answer**, or it ships inside a fitness app.
+
+- **Deleting an account has to be possible from inside the app.** Play requires it for
+  anything that lets you sign up. The main site does it in ProfileZ; this shell has no
+  ProfileZ, so `DeleteAccount.jsx` is its own control (same `DELETE /api/auth/me/`),
+  with what goes stated before the button. It says the awkward part first: ONE account,
+  so it deletes the Music ConnectZ account behind it. `public/delete-account.html` is the
+  web page Play also asks for.
+- **The privacy policy still does not mention workouts, body weight or the movement
+  answers** (health information). The paragraph is drafted in
+  `play/bodiez/privacy-addendum.md` and deliberately NOT applied: it is a legal statement
+  by the LLC. Play compares the policy to the Data safety form.
+- **Listing numbers are quoted, not read.** `play/bodiez/listing/full-description.txt`
+  carries "60 of 90" and "37 of 90 have a demo clip". They are right today. The backend's
+  `tools/count_adaptive_exercises.py` recounts them.
+- **The same `/login` serves both** the main site and, through `VITE_STANDALONE`, the
+  BodieZ build. On the MAIN site, a logged-out `/login` still shows "Download for Android
+  (.apk) — sideload build" inside the Play-installed Music ConnectZ app. That is a
+  separate Play-review risk for the main listing (an app promoting an off-Play install of
+  itself) and is not fixed here.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via
