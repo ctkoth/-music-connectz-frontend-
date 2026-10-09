@@ -48,13 +48,17 @@ export default function DeleteAccount() {
         <p className="font-semibold text-mcz-ember">What goes:</p>
         <ul className="list-disc space-y-1 pl-5 text-white/70">
           <li>Every workout, set, routine, goal and check-in you logged in BodieZ</li>
-          <li>Your posts, uploads and messages on Music ConnectZ</li>
+          <li>Your posts, uploaded files and comments on Music ConnectZ, and the messages you sent and received</li>
           <li>
             Whatever the wallet holds — {ENERGY} Energy, {SPINAZ} SpinaZ and any{" "}
             <span className="font-semibold text-mcz-ember">{MONEY} money</span>. Money is
             not paid out first, so withdraw it before you delete.
           </li>
         </ul>
+        <p className="text-mcz-ember">
+          It does not cancel anything you pay for. Premium and auto top-up keep billing
+          through Stripe after the account is gone, so cancel them first in Music ConnectZ.
+        </p>
         <label className="block text-white/60" htmlFor="del-confirm">
           Type DELETE to confirm
         </label>

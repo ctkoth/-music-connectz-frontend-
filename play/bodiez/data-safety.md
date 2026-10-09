@@ -1,27 +1,39 @@
-# Data safety — BodieZ listing (draft, check against the live app before submitting)
+# Data safety — BodieZ listing (checked against the code on 9 October 2026)
 
-BodieZ signs in with a Music ConnectZ account, so the account fields below are
-the same ones the main app collects. This listing does **not** expose the
-profile, orientation, substance or attractiveness-rating screens — the
-standalone shell contains BodieZ only — which is what keeps it out of the two
-policy risks `../data-safety.md` flags for the main app. Re-check that if the
-shell ever grows more screens.
+BodieZ signs in with a Music ConnectZ account, so registering here creates a full
+Music ConnectZ account (profile, wallet, and a username every signed-in Music
+ConnectZ member can find). The BodieZ-only shell contains BodieZ, sign-in and
+sign-up and nothing else — no profile, orientation, substance or
+attractiveness-rating screens — which is what keeps the *screens* out of the two
+policy risks `../data-safety.md` flags for the main app. The *account* is still
+the main app's, so say so honestly on the form. Re-check if the shell ever grows
+more screens.
 
 | Data | Collected | Purpose | Shared | Optional |
 |---|---|---|---|---|
-| Username, email, (phone), password | yes | account | no | email or phone, one required |
-| Birthday | yes (age gate) | account / safety | no | no |
-| Workouts, sets, routines, goals, body weight, steps, recovery notes | yes | app function | no | yes |
-| Movement access answers (can stand / use arms / use legs) | yes | app function | no | yes — **health information** |
-| Crash / diagnostics | check what the main app sends | analytics | no | — |
+| Username, email address, password | yes | account | no | no — all three are required |
+| Phone number | yes | account / sign-in | no | yes |
+| Birthday | yes | account (works out a star sign and an age band; it gates nothing at sign-up) | no | yes |
+| Workouts (date, start and end time, notes), sets (reps, weight, rest between sets, one-arm/one-leg marker), routines, goals, steps typed in, exercises and days you name | yes | app function | no | yes |
+| **Health information:** body weight, recovery check-ins (soreness, sleep quality, fatigue, a note), and the five "What I can do" answers (can't stand or walk / can't use arms / only one arm / can't use legs / only one leg) | yes | app function | no | yes |
+| Random browser identifier + sign-up/sign-in step events (no name or email) | yes | analytics: where sign-up breaks | no | no |
+| IP address — account-creation address kept for the life of the account; up to 12 recent sign-in addresses, older ones dropped after 180 days at the next sign-in | yes | fraud / duplicate-account detection | no | no |
+| Crash reports / diagnostics | **no** — no crash or analytics SDK is in the build | — | — | — |
 
 - Encrypted in transit: yes (HTTPS).
-- Users can request deletion: yes — in the app (Today → bottom → *Delete my account*)
-  and on the web at `https://musicconnectz.net/delete-account.html`. Play asks for both.
-- Not sold. No ads in this listing: the BodieZ-only build loads no ad script and the
-  main app's rewarded-ads plugin is not in a TWA. Answer **No** to "contains ads".
-- Health information needs its own line on the form: the three movement answers
-  (can stand or walk / use arms / use legs), plus body weight and the recovery
-  check-in (sleep quality, fatigue). Purpose: app functionality. Not shared. Optional.
-- IP address: the API logs it for rate limits and fraud checks (the privacy policy
-  says so). Declare it under whatever category the form puts it in.
+- Users can request deletion: yes — in the app (scroll to the bottom of any screen →
+  *Delete my account*) and on the web at `https://musicconnectz.net/delete-account.html`.
+  Play asks for both. Deleting removes the rows and, since 9 October 2026, the
+  uploaded files too.
+- Not sold. No ads: the BodieZ-only build loads no ad script and the main app's
+  rewarded-ads plugin is not in a TWA. Answer **No** to "contains ads".
+- Nothing is shared with a third party by the app. The one place data leaves our
+  hands is a workout summary the member chooses to send or post; and the exercise
+  demo clips are on GitHub Pages, which sees an IP address when someone taps Demo.
+- Not collected by this build: location, contacts, photos, audio, video, camera,
+  microphone.
+- **The age question is open.** Registration is optional on birthday and enforces
+  no minimum age, while the policy says 13+. Health information from a 13–17-year-old
+  is a Play question; decide what the target-audience answer is before submitting.
+- **Account export does not include BodieZ data** (`AccountExportView` omits it).
+  If the form says members can export their data, that is not yet true for these rows.
