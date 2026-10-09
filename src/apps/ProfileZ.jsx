@@ -520,7 +520,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   })();
 
   async function deleteAccount() {
-    if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
+    if (!window.confirm(
+      "Permanently delete your account and ALL your data? This cannot be undone.\n\n" +
+      "Any Premium, StatZ or auto top-up billing is cancelled at Stripe first, with no refund of the " +
+      "paid period. If that can't be done, nothing is deleted.")) return;
     setDeleting(true);
     try {
       await api("/api/auth/me/", { method: "DELETE" });
@@ -1181,6 +1184,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-300/80">Danger zone</p>
         <p className="mb-3 text-xs text-white/50">
           Permanently delete your account and all your data (posts, referrals, messages, SpinaZ). This can't be undone.
+        </p>
+        <p className="mb-3 text-xs text-mcz-ember">
+          Premium, StatZ and auto top-up billing is cancelled at Stripe first, with no refund of the
+          paid period. If it can't be cancelled, your account is not deleted and you're told.
         </p>
         <button
           className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"

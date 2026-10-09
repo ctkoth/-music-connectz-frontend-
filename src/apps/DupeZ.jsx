@@ -22,6 +22,14 @@ import { useAuth } from "../auth/AuthContext.jsx";
 
 const money = (cents) => `${((cents || 0) / 100).toFixed(2)} ${MONEY}`;
 
+// The part of a delete that is not on the card: the server cancels the
+// account's Stripe billing before it deletes anything (apps/economy/stripe_cancel.py)
+// and refuses the delete if it can't. Stated once, beside every control that
+// deletes, because a price found out by paying it is a bill.
+const BILLING_NOTE =
+  "Any Premium, StatZ or auto top-up billing on it is cancelled at Stripe first, with no refund " +
+  "of the paid period. If that can't be done, nothing is deleted.";
+
 /** What a delete would destroy, stated before the control that destroys it. */
 function AccountCard({ a, right = null, dim = false }) {
   const cash = (a.money_cents || 0) + (a.royalties_cents || 0);
@@ -166,6 +174,7 @@ export default function DupeZ() {
                 <AccountCard a={c.claimant_account} />
                 <AccountCard a={c.target_account} dim />
               </div>
+              <p className="mt-2 text-[11px] text-mcz-ember">Approving deletes @{c.target}. {BILLING_NOTE}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   className="re-btn !w-auto !py-1.5 !px-3 !text-[12px]"
@@ -283,7 +292,8 @@ function Group({ g, owner, busy, act }) {
                     if (!window.confirm(
                       `Delete @${a.username}?\n\n` +
                       `${a.posts} posts, ${a.uploads} uploads and ` +
-                      `${a.journal_entries} journal entries go with it, permanently.` +
+                      `${a.journal_entries} journal entries go with it, permanently.\n\n` +
+                      BILLING_NOTE +
                       warn)) return;
                     act("/api/economy/dupez/delete/",
                         { username: a.username, keep, confirm: "DELETE" },
@@ -322,7 +332,8 @@ function Group({ g, owner, busy, act }) {
                   if (!window.confirm(
                     `Close @${a.username}?\n\n` +
                     `${a.posts} posts, ${a.uploads} uploads and ` +
-                    `${a.journal_entries} journal entries go with it, permanently.`)) return;
+                    `${a.journal_entries} journal entries go with it, permanently.\n\n` +
+                    BILLING_NOTE)) return;
                   act("/api/economy/dupez/claim/",
                       { username: a.username, confirm: "DELETE" },
                       (r) => r.deleted

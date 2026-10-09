@@ -147,6 +147,18 @@ rather than about-the-impairment, and "disabled exercises" also reads as
   Stripe's own retention. Deleting the customer would be the complete version of
   "delete my data"; it is a separate call with its own side effects on refunds and
   disputes for past charges, so it was not made for you.
+- **Run the backfill once, with the live Stripe key, after the backend deploys.**
+  `python manage.py backfill_stripe_subscriptions` (dry by default) reads Stripe's own
+  Checkout Sessions, writes the ledger rows for subscriptions the membership row forgot
+  (Premium bought before a StatZ upgrade is the case), and lists live subscriptions
+  whose account was already deleted. `--write --cancel-orphans` ends those. It was
+  built and tested against a fake and has never run against Stripe, so read the dry
+  output before the second command; cancelling is immediate and refunds nothing.
+- **DupeZ's self-serve close can be pointed at somebody else's account.** It trusts the
+  same address on two linked sign-ins as proof, and the link flow does not record
+  whether the provider verified that address. Reproduced with rows made the way the
+  link view makes them; whether any provider lets somebody set an unverified address
+  was not checked. Found by review, pre-existing, and not changed here.
 - **`AutoTopUpCancelView` still lies when Stripe fails.** It flips the row to inactive
   even if its Stripe call errored ("already gone / network — flip local state
   regardless"), so a member can believe an auto top-up is off while it still bills.
