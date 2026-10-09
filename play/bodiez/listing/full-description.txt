@@ -1,18 +1,38 @@
-BodieZ is a strength-training log and planner that starts from what your body can do.
+🏋️ BodieZ is a workout log that starts from what your body can do.
 
-Tell it three things — whether you can stand or walk, use your arms, use your legs — and the exercise list shows what you can actually do. Train seated or lying down, without leg work, or without arm work. Nothing is hidden for good: change an answer any time.
+Before it shows you a single exercise, it asks three things: can you stand or walk, can you use your arms, can you use your legs. The list shrinks to what is actually possible, and it says how far:
 
-What you can do
-• Log every set with weight and reps, and see what you did last time
-• Build routines and tag them with Mon–Sun or days you name yourself
-• Log a workout after the fact, with the date it happened
-• Body map: which muscles you have trained lately and which are overdue
-• Goals, body-weight log, recovery log and step counts
-• Progress measured against your own earlier sessions — no made-up scores
+• Seated or lying only: 60 of 90 exercises
+• No legs: 42 of 90
+• No arms: 29 of 90
+• No arms and no legs: 4 of 90. The library is thin there, and we would rather tell you than hide it.
 
-How it is different
-Your progress is compared with you, not with anyone else. Ratings come from your logged numbers, and the app says what each number is built from.
+Nothing is hidden for good. Change an answer any time, and every past session keeps its exercises either way.
+
+✍️ LOG A SET
+Weight first, then reps, the order you say it in. BodieZ shows what you did last time on the same lift and repeats it in one tap. A rest timer counts from your last set and saves the rest you really took. It never makes one up. Forgot to log it? Log a past workout with the date it happened. It is marked as logged afterwards, and no duration or rest is invented for it.
+
+📅 PLAN
+Build routines and tag them Mon–Sun or with days you name yourself ("Leg day", "Gym with Sam"). Park them in Inbox, Today, Upcoming, Anytime or Someday. Give a routine a training goal (muscle gain, toning, slimming or strength) and it suggests sets, reps and rest for it.
+
+🎯 GOALS
+Four kinds, all worked out from what you logged: a lift at a target weight, sessions per week, total workouts, and body weight.
+
+🧭 COACH
+The coach is arithmetic, not an AI. It compares each lift with your own earlier best and says add weight, hold steady, or that a lift has been untouched for 21 days. A muscle shows "not rated yet" until a lift has two sessions to compare, because one session is not a trend.
+
+🗺️ BODY MAP
+Which muscles you trained this week and which you have not. "Overworked" counts separate training days, not sets, so five sets in one session is not five sessions.
+
+🌙 RECOVERY AND STEPS
+A daily check-in for sleep quality and fatigue, and a step count you add by hand.
+
+📏 lb or kg, your pick.
+
+Honest about what is missing: short demo clips exist for 37 of the 90 exercises. The other 53 have none yet.
+
+Your progress is compared with you, not with anyone else. Nothing in BodieZ is scored by an AI, and there are no ads and nothing to buy.
 
 BodieZ is a training log, not medical advice or therapy. Talk to your doctor or physio before starting a new exercise programme.
 
-Sign in with your Music ConnectZ account, or create one — the same account works in both.
+🔑 One account for BodieZ and Music ConnectZ. Sign in with your Music ConnectZ account or make one here. You can delete it from inside the app.

@@ -7,6 +7,11 @@ import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
 import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
+
+// The BodieZ-only build (standalone/bodiez, `npm run build:bodiez`) sets this at
+// build time. It shares this screen with the main site and is not the music
+// platform, so the parts of signup that sell the music platform stay off it.
+const STANDALONE = !!import.meta.env.VITE_STANDALONE;
 import { track } from "../track.js";
 import { api } from "../api.js";
 import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
@@ -51,6 +56,8 @@ export default function Register() {
   const [tiers, setTiers] = useState(null);
   const [join, setJoin] = useState(null);
   useEffect(() => {
+    // Nothing below renders in the BodieZ-only build, so nothing to ask for.
+    if (STANDALONE) return undefined;
     let on = true;
     api("/api/economy/tiers/", { auth: false })
       .then((d) => { if (!on) return; if (d?.tiers) setTiers(d.tiers); if (d?.join) setJoin(d.join); })
@@ -114,8 +121,12 @@ export default function Register() {
       clearTrialToken();
       clearTrialSplit();
       track("register_success");
-      // Show habit onboarding before going home — new users hook into daily returns
-      setShowHabitOnboarding(true);
+      // Show habit onboarding before going home — new users hook into daily returns.
+      // Not in the BodieZ-only build: that onboarding is a music habit (appKey
+      // "singz"), and somebody who just signed up to log a workout would be asked
+      // how often they practise singing before they have seen the app they came for.
+      if (STANDALONE) navigate("/");
+      else setShowHabitOnboarding(true);
     } catch (err) {
       setError(err.message);
       // After the message is set, so a measurement can never be the reason the
@@ -134,7 +145,10 @@ export default function Register() {
 
   return (
     <>
-    <AuthShell title="Create your account" subtitle="Connect & elevate — post your work, find your people, get real feedback, and get paid for it.">
+    <AuthShell title="Create your account"
+               subtitle={STANDALONE
+                 ? "One account for BodieZ and Music ConnectZ — the same sign-in works in both."
+                 : "Connect & elevate — post your work, find your people, get real feedback, and get paid for it."}>
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>
@@ -155,7 +169,7 @@ export default function Register() {
           the cost/gain rule's other half, and the half that gets forgotten. A
           reward found out by accident is a coincidence, and a coincidence
           changes nobody's behaviour. */}
-      {join?.welcome_spinaz > 0 && !ref && (
+      {join?.welcome_spinaz > 0 && !ref && !STANDALONE && (
         <p className="text-sm text-emerald-300">
           <span className="font-semibold">+{join.welcome_spinaz} 🍥</span> in your balance the moment you join.
         </p>
@@ -186,13 +200,13 @@ export default function Register() {
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
-          <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
+          <p className="mt-1 text-[11px] text-white/35">{STANDALONE ? "Birthday (optional)" : "Birthday (optional) — unlocks your ZodiacZ sign"}</p>
         </div>
           </div>
         ) : (
           <button type="button" onClick={() => setShowOptional(true)}
                   className="text-xs text-white/45 hover:text-white/75">
-            + Add phone or birthday (optional — birthday unlocks your ZodiacZ sign)
+            {STANDALONE ? "+ Add phone or birthday (optional)" : "+ Add phone or birthday (optional — birthday unlocks your ZodiacZ sign)"}
           </button>
         )}
 
@@ -220,7 +234,11 @@ export default function Register() {
       </p>
 
       {/* What you unlock — same pattern as TrialTake, so all new users see
-          tier differentiation upfront, whether they came via trial or direct signup */}
+          tier differentiation upfront, whether they came via trial or direct signup.
+          Not in the BodieZ-only build: a workout log has no AI-run allowance, no ⚡
+          and no 🍥 to show, and a "START FREE, UPGRADE ANYTIME" ladder inside an app
+          that has nothing to buy is a price for something the screen cannot sell. */}
+      {!STANDALONE && (
       <div className="space-y-3 pt-4 border-t border-white/10">
         <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
           Start free, upgrade anytime
@@ -255,6 +273,7 @@ export default function Register() {
           ))}
         </div>
       </div>
+      )}
     </AuthShell>
 
     {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}

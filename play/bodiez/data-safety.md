@@ -16,6 +16,12 @@ shell ever grows more screens.
 | Crash / diagnostics | check what the main app sends | analytics | no | — |
 
 - Encrypted in transit: yes (HTTPS).
-- Users can request deletion: yes — **provide the web URL** Play asks for.
-- Not sold. Not used for ads in this listing (the main app's rewarded-ads
-  plugin is not in a TWA, but confirm no ad SDK is loaded by the web build).
+- Users can request deletion: yes — in the app (Today → bottom → *Delete my account*)
+  and on the web at `https://musicconnectz.net/delete-account.html`. Play asks for both.
+- Not sold. No ads in this listing: the BodieZ-only build loads no ad script and the
+  main app's rewarded-ads plugin is not in a TWA. Answer **No** to "contains ads".
+- Health information needs its own line on the form: the three movement answers
+  (can stand or walk / use arms / use legs), plus body weight and the recovery
+  check-in (sleep quality, fatigue). Purpose: app functionality. Not shared. Optional.
+- IP address: the API logs it for rate limits and fraud checks (the privacy policy
+  says so). Declare it under whatever category the form puts it in.

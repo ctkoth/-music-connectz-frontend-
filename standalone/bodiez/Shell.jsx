@@ -6,6 +6,7 @@ import { slugFor } from "../../src/App.jsx";
 import Login from "../../src/auth/Login.jsx";
 import Register from "../../src/auth/Register.jsx";
 import ForgotPassword from "../../src/auth/ForgotPassword.jsx";
+import DeleteAccount from "./DeleteAccount.jsx";
 
 const BodieZ = lazy(() => import("../../src/apps/BodieZ.jsx"));
 
@@ -41,6 +42,7 @@ function Home() {
       <p className="mt-8 text-center text-[11px] text-white/35">
         Same account and data as <a className="underline" href={MAIN} target="_blank" rel="noreferrer">Music ConnectZ</a>.
       </p>
+      <DeleteAccount />
     </main>
   );
 }
