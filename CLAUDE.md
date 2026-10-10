@@ -813,9 +813,16 @@ answer**, or it ships inside a fitness app.
   data, grep every `on_delete`, and ask what the delete path leaves behind.
 - **Deleting an account has to take the files, and has to say what it does NOT do.**
   The rows cascaded and the bytes did not (`apps/accounts/erasure.py` now removes them
-  after the delete commits). It also still does not cancel Stripe subscriptions or an
-  auto top-up — the delete screen and `delete-account.html` warn about it; the fix is a
-  product decision (see `play/bodiez/README.md`, "Still yours to decide").
+  after the delete commits), and `apps/economy/stripe_cancel.py` cancels Premium, StatZ and
+  auto top-up billing at Stripe FIRST, refusing the delete if it can't (the account is
+  not deleted, the member is told, and the BodieZ screen shows the server's sentence).
+  The screen, `delete-account.html` and the policy all state that, and that the rest of a
+  paid period is not refunded — change one and change all three. The main site says it too:
+  ProfileZ's danger zone and confirm, and every DupeZ control that deletes an account
+  (`BILLING_NOTE`, beside the owner's Approve and in both confirms). It is stated
+  unconditionally rather than read from the account, because the cancel is a no-op when
+  there is nothing to cancel and a per-card field would be one more query on a screen
+  that lists every duplicate.
 - **Listing numbers are quoted, not read.** `play/bodiez/listing/full-description.txt`
   carries "60 of 90" and "37 of 90 have a demo clip". They are right today. The backend's
   `tools/count_adaptive_exercises.py` recounts them.

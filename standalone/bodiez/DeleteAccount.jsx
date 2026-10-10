@@ -31,8 +31,10 @@ export default function DeleteAccount() {
       await api("/api/auth/me/", { method: "DELETE" });
       logout(); // the account is gone; this clears the tokens and lands on sign-in
     } catch (err) {
-      // The real reason, and the account is untouched: nothing was deleted.
-      setError(`${err.message || "The account was not deleted."} Nothing was deleted.`);
+      // The server's own sentence, unreworded. When Stripe could not cancel the
+      // billing it says so and says the account was NOT deleted; a second
+      // "nothing was deleted" tacked on here would be the same fact twice.
+      setError(err.message || "The account was not deleted.");
       setBusy(false);
     }
   }
@@ -56,8 +58,9 @@ export default function DeleteAccount() {
           </li>
         </ul>
         <p className="text-mcz-ember">
-          It does not cancel anything you pay for. Premium and auto top-up keep billing
-          through Stripe after the account is gone, so cancel them first in Music ConnectZ.
+          Premium, StatZ and auto top-up billing is cancelled at Stripe first, straight
+          away, and the rest of a paid period is not refunded. If it can't be cancelled,
+          the account is not deleted and you are told.
         </p>
         <label className="block text-white/60" htmlFor="del-confirm">
           Type DELETE to confirm
