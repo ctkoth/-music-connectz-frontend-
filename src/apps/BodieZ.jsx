@@ -39,8 +39,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
-  Activity, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
-  MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Wand2, X,
+  Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
+  MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -50,6 +50,9 @@ import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
+import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
+import PairWithCoach from "../components/PairWithCoach.jsx";
+import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -808,6 +811,95 @@ function Elapsed({ since }) {
   return clock(secondsSince(since));
 }
 
+// ---- Rest alerts: StatZ's, or the free hour's -------------------------------
+//
+// The in-page beep and vibration above are everybody's. What StatZ adds is the
+// part that reaches a member who has put the phone down: a notification when rest
+// is up, and the screen kept awake so the clock keeps running at all. Both are
+// honest about their limit — a browser tab on a locked phone is paused by the OS,
+// which no page can prevent, so "keep the screen on" is the thing that actually
+// keeps it running and the notification covers switching to another app. It is a
+// client-only feature, so it is gated here by the sample/tier state the server
+// serves; nothing it does costs us or the member a resource.
+const ALERT_KEY = "bodiez.restAlerts";
+const AWAKE_KEY = "bodiez.keepAwake";
+
+function readPref(k) { try { return localStorage.getItem(k) === "1"; } catch { return false; } }
+function writePref(k, v) { try { localStorage.setItem(k, v ? "1" : "0"); } catch { /* blocked */ } }
+
+function useRestAlertPrefs() {
+  const { s } = useStatzTrial();
+  const allowed = !!(s?.is_statz || s?.active);
+  const [notify, setNotifyRaw] = useState(() => readPref(ALERT_KEY));
+  const [awake, setAwakeRaw] = useState(() => readPref(AWAKE_KEY));
+  const [perm, setPerm] = useState(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
+  const setAwake = (v) => { setAwakeRaw(v); writePref(AWAKE_KEY, v); };
+  const setNotify = async (v) => {
+    if (v && typeof Notification !== "undefined" && Notification.permission === "default") {
+      try { setPerm(await Notification.requestPermission()); } catch { /* unsupported */ }
+    }
+    setNotifyRaw(v);
+    writePref(ALERT_KEY, v);
+  };
+  // The sample ending locks both again without touching what the member chose:
+  // `allowed` gates the effect, the saved preference is theirs.
+  useEffect(() => {
+    if (!allowed || !awake || typeof navigator === "undefined" || !("wakeLock" in navigator)) return undefined;
+    let lock = null;
+    const grab = async () => { try { lock = await navigator.wakeLock.request("screen"); } catch { /* hidden or refused */ } };
+    const again = () => { if (document.visibilityState === "visible") grab(); };
+    grab();
+    document.addEventListener("visibilitychange", again);
+    return () => {
+      document.removeEventListener("visibilitychange", again);
+      try { lock?.release?.(); } catch { /* already released */ }
+    };
+  }, [allowed, awake]);
+  return { s, allowed, notify: allowed && notify, awake: allowed && awake, perm,
+           rawNotify: notify, rawAwake: awake, setNotify, setAwake };
+}
+
+function fireRestNotification(next) {
+  try {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (document.visibilityState !== "hidden") return;      // on screen, the beep is enough
+    new Notification("Rest's up", { body: next ? `Next: ${next}` : "Go.", tag: "bodiez-rest" });
+  } catch { /* a notification is a nicety */ }
+}
+
+function RestAlertsControl({ prefs }) {
+  const wakeOk = typeof navigator !== "undefined" && "wakeLock" in navigator;
+  return (
+    <div className="re-card space-y-1.5" data-tour="bodiez-rest-alerts">
+      <p className="re-label flex items-center gap-1.5"><BellRing size={13} /> Rest alerts</p>
+      {prefs.allowed ? (
+        <>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+            <input type="checkbox" checked={prefs.rawNotify} onChange={(e) => prefs.setNotify(e.target.checked)} />
+            Notify me when rest is up (if you have switched apps)
+          </label>
+          {prefs.rawNotify && prefs.perm === "denied" && (
+            <p className="text-[11px] text-mcz-ember">Notifications are blocked for this site. Allow them in your browser's site settings.</p>
+          )}
+          {prefs.perm === "unsupported" && <p className="text-[11px] text-white/45">This browser can't show notifications.</p>}
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+            <input type="checkbox" checked={prefs.rawAwake} disabled={!wakeOk}
+                   onChange={(e) => prefs.setAwake(e.target.checked)} />
+            Keep my screen on during the workout
+          </label>
+          {!wakeOk && <p className="text-[11px] text-white/45">This browser can't keep the screen on.</p>}
+          <p className="text-[11px] text-white/35">
+            A locked phone pauses a web page, which nothing here can prevent. Keeping the screen on keeps the
+            rest clock running; the notification covers switching to another app.
+          </p>
+        </>
+      ) : (
+        <StatzSample what="Rest alerts" />
+      )}
+    </div>
+  );
+}
+
 const REST_PRESETS = [30, 60, 90, 120, 180];
 const REST_KEY = "bodiez.restTarget";
 const REST_GOAL_KEY = "bodiez.restGoal";
@@ -817,7 +909,7 @@ const REST_GOAL_KEY = "bodiez.restGoal";
 // server stores as rest_seconds on the next set. The target is only a nudge.
 // The recommended rest per training goal is the server's (GOALS in
 // bodiez.py, each with its citation) — never retyped here.
-function RestTimer({ sets, goals, routineGoal }) {
+function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts = null }) {
   useTick();
   const goalList = Object.entries(asDict(goals)).filter(([, g]) => g?.rest_seconds);
   // A routine built for a goal starts on that goal's rest; the member's last
@@ -837,7 +929,8 @@ function RestTimer({ sets, goals, routineGoal }) {
   const done = last && elapsed >= target;
 
   useEffect(() => {
-    if (!done || alerted === last.id) return;
+    // Halfway through a superset nobody is resting, so nothing should say they are.
+    if (hold || !done || alerted === last.id) return;
     setAlerted(last.id);
     try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
     try {
@@ -845,9 +938,19 @@ function RestTimer({ sets, goals, routineGoal }) {
       const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
       o.start(); o.stop(ctx.currentTime + 0.25);
     } catch { /* no audio */ }
-  }, [done, alerted, last]);
+    if (alerts?.notify) fireRestNotification(nextName);
+  }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!last) return null;
+  if (hold) {
+    return (
+      <div className="re-card border-fuchsia-400/30">
+        <p className="text-sm text-fuchsia-200">
+          Superset — go straight to <span className="font-semibold">{hold}</span>. Rest starts after it.
+        </p>
+      </div>
+    );
+  }
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
   const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
@@ -896,7 +999,7 @@ function RestTimer({ sets, goals, routineGoal }) {
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet }) {
+function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
   const unit = useUnit();
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
@@ -921,7 +1024,11 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-white">{planned.name}</p>
+          <p className="text-sm font-semibold text-white">
+            {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
+            {planned.name}
+            {isNext && <span className="ml-1.5 text-[11px] font-normal text-emerald-300">next</span>}
+          </p>
           <p className="text-xs text-white/45">
             {MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
             {planned.equipment && ` · ${EQUIPMENT_LABEL[planned.equipment] || planned.equipment}`}
@@ -978,6 +1085,7 @@ function LoggerRow({ planned, doneSets, onLogSet }) {
 
 function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals }) {
   const unit = useUnit();
+  const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
@@ -1025,6 +1133,22 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
     (setsByExercise[s.exercise_id] ||= []).push(s);
   }
   const loggedExerciseIds = new Set(asList(session.sets).map((s) => s.exercise_id));
+  // The most recent set, and the lift a rest alert should point at when it fires.
+  const lastLogged = asList(session.sets).reduce(
+    (a, x) => (x.created_at && (!a || x.created_at > a.created_at) ? x : a), null);
+  const upNext = (() => {
+    for (const b of blocks(planned)) {
+      if (b.single) {
+        const p = b.single;
+        if ((setsByExercise[p.exercise_id] || []).length < (p.sets || 3)) return p.name;
+      } else {
+        const n = nextInPair(b.pair, (setsByExercise[b.pair[0].exercise_id] || []).length,
+                             (setsByExercise[b.pair[1].exercise_id] || []).length);
+        if (n !== null) return b.pair[n].name;
+      }
+    }
+    return "";
+  })();
   const extraExerciseIds = [...loggedExerciseIds].filter(
     (id) => !planned.some((p) => p.exercise_id === id));
 
@@ -1046,15 +1170,41 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
         </button>
       </div>
 
-      <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal} />
+      <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal}
+                 hold={holdFor(planned, setsByExercise, lastLogged?.exercise_id)?.name || ""}
+                 nextName={upNext} alerts={restPrefs} />
+      <RestAlertsControl prefs={restPrefs} />
 
       {planned.length > 0 && (
         <div className="space-y-2">
           <p className="re-label">Your plan</p>
-          {planned.map((p) => (
-            <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
-                       onLogSet={onLogSet} />
-          ))}
+          {blocks(planned).map((b) => {
+            if (b.single) {
+              const p = b.single;
+              return <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
+                                onLogSet={onLogSet} />;
+            }
+            const [x, y] = b.pair;
+            const dx = (setsByExercise[x.exercise_id] || []).length;
+            const dy = (setsByExercise[y.exercise_id] || []).length;
+            const nxt = nextInPair(b.pair, dx, dy);
+            // "next" only inside a pair that is under way. Three untouched pairs would
+            // each say it, and a marker that is on three rows at once marks nothing.
+            const started = dx + dy > 0;
+            return (
+              <div key={`${x.exercise_id}-${y.exercise_id}`}
+                   className="space-y-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/[0.03] p-2">
+                <p className="px-1 text-[11px] text-fuchsia-200/80">
+                  <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
+                  Rest after both.{nxt === null ? " Both done." : ""}
+                </p>
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet}
+                           tag={`${b.group}1`} isNext={started && nxt === 0} />
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet}
+                           tag={`${b.group}2`} isNext={started && nxt === 1} />
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1374,8 +1524,12 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setRows([...rows, { exercise_id: exerciseId, sets: 3, reps: 10, weight_kg: null }]);
     setDirty(true);
   };
+  // A superset is two rows side by side, so every edit that can pull them apart
+  // goes through `normalize`: a lone label left behind would claim a pair that
+  // is not there. Linking by hand is the free half of supersets; the Coach
+  // choosing the partner is `PairWithCoach`.
   const removeExercise = (exerciseId) => {
-    setRows(rows.filter((r) => r.exercise_id !== exerciseId));
+    setRows(normalize(rows.filter((r) => r.exercise_id !== exerciseId)));
     setDirty(true);
   };
   const moveRow = (i, dir) => {
@@ -1383,9 +1537,14 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     if (j < 0 || j >= rows.length) return;
     const next = rows.slice();
     [next[i], next[j]] = [next[j], next[i]];
-    setRows(next);
+    setRows(normalize(next));
     setDirty(true);
   };
+  const link = (i) => {
+    const next = linkWithNext(rows, i);
+    if (next) { setRows(next); setDirty(true); }
+  };
+  const apart = (i) => { setRows(unlink(rows, i)); setDirty(true); };
   const patchRow = (i, patch) => {
     const next = rows.slice();
     next[i] = { ...next[i], ...patch };
@@ -1400,6 +1559,8 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
       sets: r.sets ? Number(r.sets) : undefined,
       reps: r.reps ? Number(r.reps) : undefined,
       weight_kg: r.weight_kg === "" || r.weight_kg == null ? null : Number(r.weight_kg),
+      ...(r.group ? { group: r.group } : {}),
+      ...(r.added ? { added: true } : {}),
     })), { title: title.trim() || routine.title, description: description.trim() });
     setSaving(false);
     // Stays dirty when the save failed, so the button still offers it.
@@ -1430,8 +1591,11 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
       )}
       {rows.map((r, i) => {
         const ex = exercises.find((x) => x.id === r.exercise_id);
+        const tag = badge(rows, i);
         return (
-          <div key={r.exercise_id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+          <div key={r.exercise_id}
+               className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
+                 tag ? "border-l-2 border-fuchsia-400/60" : ""}`}>
             <div className="flex flex-col">
               <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
                       disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>
@@ -1439,7 +1603,12 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                       disabled={i === rows.length - 1} onClick={() => moveRow(i, 1)}><ChevronDown size={13} /></button>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">{ex?.name || `#${r.exercise_id}`}</p>
+              <p className="text-sm font-medium text-white truncate">
+                {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300"
+                              title="Superset: done back to back, rest after the pair">{tag}</span>}
+                {ex?.name || `#${r.exercise_id}`}
+                {r.added && <span className="ml-1.5 text-[10px] font-normal text-mcz-cyan/80">added by the Coach</span>}
+              </p>
               <p className="text-[11px] text-white/40">
                 {MUSCLE_LABEL[ex?.muscle_group] || ex?.muscle_group}
                 {ex?.equipment && ` · ${EQUIPMENT_LABEL[ex.equipment] || ex.equipment}`}
@@ -1457,11 +1626,29 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
             <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="1" placeholder="reps"
                    aria-label="Reps" inputMode="numeric"
                    value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
+            {r.group ? (
+              <button className="rounded p-1.5 text-fuchsia-300/70 hover:bg-white/10 hover:text-fuchsia-300"
+                      title="Take this superset apart" aria-label="Unlink superset" onClick={() => apart(i)}>
+                <Unlink size={13} />
+              </button>
+            ) : (
+              <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-fuchsia-300 disabled:opacity-20"
+                      title="Superset with the lift below" aria-label="Link with the next lift"
+                      disabled={i === rows.length - 1 || !!rows[i + 1]?.group} onClick={() => link(i)}>
+                <Link2 size={13} />
+              </button>
+            )}
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
           </div>
         );
       })}
+
+      {rows.length > 0 && (
+        <PairWithCoach rows={rows} equipment={equipment}
+                       nameOf={(id) => exercises.find((x) => x.id === id)?.name || `#${id}`}
+                       onApply={(next) => { setRows(next); setDirty(true); }} />
+      )}
 
       <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40" disabled={!dirty || saving || !title.trim()}
               onClick={save}>

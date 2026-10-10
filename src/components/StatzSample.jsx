@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Crown, Timer } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
@@ -18,24 +18,64 @@ export function refreshStatzTrial() {
 }
 
 export function useStatzTrial() {
-  const [s, setS] = useState(cached);
+  const [raw, setS] = useState(cached);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     listeners.add(setS);
     if (cached === null) refreshStatzTrial();
     return () => listeners.delete(setS);
   }, []);
-  const ends = s?.ends_at ? Date.parse(s.ends_at) : 0;
-  const left = s?.active ? Math.max(0, Math.floor((ends - now) / 1000)) : 0;
+  const ends = raw?.ends_at ? Date.parse(raw.ends_at) : 0;
+  // `left` is floored, so it reads 0:00 for the last second while the server still
+  // has that second to go. The sample is OVER when the clock passes the server's end
+  // time, not when the display reaches zero, and the screen locks on that moment
+  // rather than waiting for a fetch to agree — a fetch sent in the last second would
+  // be told it is still active and, with nothing to ask again, leave every feature
+  // unlocked until somebody navigated away.
+  const over = !!raw?.active && !raw?.is_statz && ends > 0 && now >= ends;
+  const s = useMemo(() => (over ? { ...raw, active: false, used: true, available: false } : raw), [raw, over]);
+  const left = raw?.active && !over ? Math.max(0, Math.floor((ends - now) / 1000)) : 0;
   useEffect(() => {
-    if (!s?.active) return undefined;
+    if (!raw?.active) return undefined;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [s?.active]);
+  }, [raw?.active]);
   useEffect(() => {
-    if (s?.active && left === 0) refreshStatzTrial();
-  }, [s?.active, left]);
+    if (!over) return undefined;
+    notifyEnded(raw);
+    // Ask the server to confirm, and again if its clock has not caught up yet.
+    let tries = 0;
+    let timer;
+    const confirm = () => {
+      refreshStatzTrial().then(() => {
+        if (cached?.active && ++tries < 6) timer = setTimeout(confirm, 2000);
+      });
+    };
+    timer = setTimeout(confirm, 400);
+    return () => clearTimeout(timer);
+  }, [over, raw?.ends_at]);  // eslint-disable-line react-hooks/exhaustive-deps
   return { s, left };
+}
+
+// The sample is the one thing here with a deadline, so the end of it gets said
+// somewhere a member who has switched apps will see — but only if they have
+// already let this site notify them (nothing here asks for permission; the rest
+// alerts control does, because that is the moment somebody has a reason to say
+// yes). Once per sample, keyed on the server's end time, so a reload cannot repeat
+// it. What locks is the Coach CHOOSING; whatever it already built stays built.
+const told = new Set();
+function notifyEnded(s) {
+  if (!s?.ends_at || told.has(s.ends_at)) return;
+  told.add(s.ends_at);
+  try {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      const names = (s.features || []).map((f) => f.label.toLowerCase()).join(", ");
+      new Notification("Your StatZ sample has ended", {
+        body: `${names ? `${names} are locked now. ` : ""}Anything you already built is still yours. Upgrade to keep using them.`,
+        tag: "statz-sample-ended",
+      });
+    }
+  } catch { /* a notification is a nicety */ }
 }
 
 const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
