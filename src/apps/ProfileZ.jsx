@@ -29,6 +29,7 @@ import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
+import PortfolioLinks from "../PortfolioLinks.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
@@ -864,6 +865,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           <VisibilitieZ visibility={me?.visibility} audiences={audiences} onChange={setMe} />
         </div>
         <div data-tour="reach-gates"><ReachGates /></div>
+
+        {/* The portfolio: the links that say who you are. They have been shown on
+            the profile and the widget board all along, and nothing mounted could
+            make one. */}
+        <div className="border-t border-white/10 pt-3">
+          <PortfolioLinks />
+        </div>
 
         {/* Sits with the sign-ins above it: importing a catalogue is the same
             SoundCloud authorisation, spent on a track list instead of a
