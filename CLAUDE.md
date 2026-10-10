@@ -1188,3 +1188,60 @@ renames and re-notes too, so a Coach-built routine becomes fully the member's.
 repeated set drops its `id`, or an edit reads it as the same row twice. The
 muscle builder's "Fit in N min" trims round-robin across muscles and says how
 many it left out — never a silently shorter routine.
+
+## Sentence ConnectZ on its own: the writer is the whole app, so nothing in it may point elsewhere
+
+`standalone/sentencez/` is `SentenceConnectZ.jsx` with sign-in and nothing else
+(`VITE_STANDALONE="sentencez"`, README beside it). It is the same screen the main site
+mounts, not a copy, so the file answers to both: every control that would go to a
+ProfileZ, PostZ, DistributeZ or MembershipZ the standalone does not have is simply not
+rendered there, because a door to a screen that is not there is the dead button this
+repo already knows. The persona-gated agreements are dropped for the same reason (the
+persona is set in ProfileZ), and **nothing offers a purchase** — out of free writes it
+says they renew tomorrow, because Play would not allow selling from inside the app and
+a price with no way to pay it is not a price.
+
+- **Whose voice is said BEFORE the button.** `voice` is served per kind (`koth`,
+  `academic`, `plain`) and `VoiceNote` states it. The same button writes a lyric in
+  K-Oth's register and a resume in nobody's, and a screen that did not say would let
+  somebody believe their resume had a house style.
+- **The brief's limit is its own** (`brief_limit`, served), stated while they type.
+  400 characters is a post; a resume cannot be written from one. The next tier's number
+  is `brief_ladder`, never typed here, and the standalone shows no upgrade at all.
+- **A kind the screen does not know is shown by what the server sent** — `hint` and
+  `style_label` are served per kind, so a kind added server-side is a usable chip and a
+  right-labelled field without a client release.
+- **Report this output** is the in-app flag Play asks for on AI-generated content. It
+  posts to `/api/economy/report/` as `sentence:<id>`; the owner's queue is where it lands.
+- `src/sentencez.js` holds the pure decisions (which kinds to list, which to land on,
+  what the next tier takes) and is tested under plain node, which is why it does not
+  import `limits.js` — that pulls in `api.js`, which reads `import.meta.env`.
+
+## The portfolio had a reader on three screens and no editor on any
+
+A member's `links` are shown on the member card's full profile, the public profile and
+the widget board — and **nothing mounted could make one.** The writer was
+`POST /api/economy/profile/`, and the only editor lived in `src/mcz2/`, which is not
+mounted. So the portfolio side of the platform, widgets included, had nothing to show
+unless somebody typed an API call. Same shape as the member search with no caller and the
+five coaches nothing linked to: built, and invisible.
+
+`PortfolioLinks.jsx` is the editor, in ProfileZ. It decides nothing:
+
+- **The ceiling is stated BEFORE anything is added**, in a unit a member can check
+  ("12 / 25 links"), with what the next tier holds beside it near the top
+  (`tiers[next].profile_links`, never typed here) — the cost/gain rule for a limit.
+- **Past a ceiling the server REFUSES with its own sentence** and the screen shows it
+  unreworded. The old flat 50 cut the list silently and answered 200; the client did not
+  know either.
+- **What the server dropped is said** ("Saved 24. 1 weren't kept — only web and email
+  links are"): the save returns the cleaned list, and a shorter one than was sent is
+  reported rather than shown as a clean save.
+- **Pasting a dozen is the case that matters** (`portfolio.js`): lines become rows, `Label |
+  url` keeps the label, and the summary names everything that did not go in — duplicates,
+  not-links, and the ones the ceiling left out (the first pasted are the ones kept).
+- **Somebody over a ceiling is told they keep everything** and can still reorder and
+  remove; it is never worded as a loss.
+- `portfolio.js` imports nothing that reads `import.meta.env` so it runs under plain node;
+  the helper is named `moveRow` because `imports.test.mjs` matches by NAME and a plain
+  `move` collided with a local one in `WidgetBoard.jsx`.
