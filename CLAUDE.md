@@ -1110,3 +1110,14 @@ declared untouched (it is held in state, not derived from the list).
   frequency, so the per-substance split, the frequency chips and "how often not
   set" must be skipped for it — keyed off `"my_frequency" in o` and
   `by_frequency`, never off the key name alone.
+
+## RoutineZ: every routine is editable, and so is every logged workout
+
+The RoutineZ tab in `BodieZ.jsx` holds the Coach builders (moved out of the
+Coach tab so a built routine lands, open to edit, right under them), every
+routine with its server `source` label, and the logged workouts. The designer
+renames and re-notes too, so a Coach-built routine becomes fully the member's.
+`PastWorkout` doubles as the editor of a logged workout (`editing` prop); a
+repeated set drops its `id`, or an edit reads it as the same row twice. The
+muscle builder's "Fit in N min" trims round-robin across muscles and says how
+many it left out — never a silently shorter routine.
