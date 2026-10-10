@@ -1158,3 +1158,14 @@ that moment without waiting for a fetch to agree, then asks the server to confir
 and asks again (a few times, two seconds apart) if its clock has not caught up. A
 lock that depends on a response arriving at the right millisecond is a lock that
 sometimes does not lock.
+
+## RoutineZ: every routine is editable, and so is every logged workout
+
+The RoutineZ tab in `BodieZ.jsx` holds the Coach builders (moved out of the
+Coach tab so a built routine lands, open to edit, right under them), every
+routine with its server `source` label, and the logged workouts. The designer
+renames and re-notes too, so a Coach-built routine becomes fully the member's.
+`PastWorkout` doubles as the editor of a logged workout (`editing` prop); a
+repeated set drops its `id`, or an edit reads it as the same row twice. The
+muscle builder's "Fit in N min" trims round-robin across muscles and says how
+many it left out — never a silently shorter routine.

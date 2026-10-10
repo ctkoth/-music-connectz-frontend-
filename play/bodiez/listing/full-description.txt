@@ -2,10 +2,10 @@
 
 Before it shows you a single exercise, it asks what your body can do: can you stand or walk, can you use your arms (or only one), can you use your legs (or only one). The list shrinks to what is actually possible, and it says how far:
 
-• Seated or lying only: 60 of 90 exercises
-• No legs: 42 of 90
-• No arms: 29 of 90
-• No arms and no legs: 4 of 90. The library is thin there, and we would rather tell you than hide it.
+• Seated or lying only: 102 of 186 exercises
+• No legs: 74 of 186
+• No arms: 45 of 186
+• No arms and no legs: 5 of 186. The library is thin there, and we would rather tell you than hide it.
 
 Nothing is hidden for good. Change an answer any time, and every past session keeps its exercises either way.
 
@@ -13,7 +13,7 @@ Nothing is hidden for good. Change an answer any time, and every past session ke
 Weight first, then reps, the order you say it in. BodieZ shows what you did last time on the same lift and repeats it in one tap. A rest timer counts from your last set and saves the rest you really took. It never makes one up. Forgot to log it? Log a past workout with the date it happened. It is marked as logged afterwards, and no duration or rest is invented for it.
 
 📅 PLAN
-Build routines and tag them Mon–Sun or with days you name yourself ("Leg day", "Gym with Sam"). Park them in Inbox, Today, Upcoming, Anytime or Someday. Give a routine a training goal (muscle gain, toning, slimming or strength) and it suggests sets, reps and rest for it.
+Build routines yourself, or have the Coach build one from the muscles (or whole body), equipment, goal and time you pick. Every routine is editable, whoever built it, and any workout you logged can be corrected or saved as a new routine. Tag them Mon–Sun or with days you name yourself ("Leg day", "Gym with Sam"). Park them in Inbox, Today, Upcoming, Anytime or Someday. Give a routine a training goal (muscle gain, toning, slimming or strength) and it suggests sets, reps and rest for it.
 
 🎯 GOALS
 Four kinds, all worked out from what you logged: a lift at a target weight, sessions per week, total workouts, and body weight.
@@ -29,7 +29,7 @@ A daily check-in for sleep quality and fatigue, and a step count you add by hand
 
 📏 lb or kg, your pick.
 
-Honest about what is missing: short demo clips exist for 37 of the 90 exercises. The other 53 have none yet.
+Honest about what is missing: short demo clips exist for 37 of the 186 exercises. The other 149 have none yet.
 
 Your progress is compared with you, not with anyone else. Nothing in BodieZ is scored by an AI, and there are no ads and nothing to buy.
 

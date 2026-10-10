@@ -39,7 +39,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
-  Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Dumbbell, Link2, Loader2, Moon, PlayCircle, Plus, Play,
+  Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
 } from "lucide-react";
 import { api } from "../api.js";
@@ -117,6 +117,7 @@ const BODYMAP_STATUS = {
 
 const TABS = [
   { key: "today", label: "Today" },
+  { key: "routinez", label: "RoutineZ" },
   { key: "scheduler", label: "Scheduler" },
   { key: "bodymap", label: "BodyMap" },
   { key: "coach", label: "Coach" },
@@ -137,9 +138,12 @@ export default function BodieZ() {
   // MuscleDayBuilder on the Coach tab then cleared — a jump that lands ON
   // the control rather than dumping the member at the top of a new tab.
   const [prefillMuscle, setPrefillMuscle] = useState(null);
-  const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("coach"); };
+  const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("routinez"); };
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
+  // Finished workouts, newest first — RoutineZ lists them so a logged one can
+  // be edited or turned into a routine rather than only read back as records.
+  const [history, setHistory] = useState([]);
   // Kept for the tab's lifetime so a member can post it AND message their
   // coach — each of those leaves BodieZ, and the card must still be here after.
   const [summary, setSummaryState] = useState(() => {
@@ -181,6 +185,7 @@ export default function BodieZ() {
       setBoard(b);
       const open = asList(sess.sessions).find((s) => !s.ended_at);
       setSession(open || null);
+      setHistory(asList(sess.sessions).filter((s) => s.ended_at));
       setProgress(prog);
       setBodymap(bm);
       setCoach(co);
@@ -324,25 +329,65 @@ export default function BodieZ() {
   // for routines/<id>/ already accepts any shape here (confirmed —
   // BodieZRoutineDetailView.patch stores `exercises` as-is beyond checking
   // each exercise_id exists), so this needed no backend change.
-  async function saveRoutineExercises(id, exerciseList) {
+  // `meta` ({title, description}) rides along when the designer renamed the
+  // routine — one PATCH, so a rename and its exercises can't half-save.
+  async function saveRoutineExercises(id, exerciseList, meta = {}) {
     try {
       await api(`/api/economy/bodiez/routines/${id}/`, {
-        method: "PATCH", body: { exercises: exerciseList },
+        method: "PATCH", body: { exercises: exerciseList, ...meta },
       });
+      setErr("");
+      load();
+      return true;
+    } catch (e) { setErr(e.message); return false; }
+  }
+
+  // A copy to change without losing the one already run — coach-built or not.
+  async function copyRoutine(id) {
+    try {
+      await api(`/api/economy/bodiez/routines/${id}/copy/`, { method: "POST", body: {} });
       load();
     } catch (e) { setErr(e.message); }
   }
 
+  // A logged workout -> a new routine (the server picks each lift's top set
+  // as the target; the workout itself is untouched).
+  async function routineFromSession(id, title) {
+    try {
+      await api(`/api/economy/bodiez/sessions/${id}/routine/`, { method: "POST", body: title ? { title } : {} });
+      setErr("");
+      load();
+      return true;
+    } catch (e) { setErr(e.message); return false; }
+  }
+
+  async function deleteSession(id) {
+    if (!window.confirm("Delete this workout and every set in it? Records, BodyMap and goals will no longer count it. This can't be undone.")) return;
+    try {
+      await api(`/api/economy/bodiez/sessions/${id}/`, { method: "DELETE" });
+      load();
+    } catch (e) { setErr(e.message); }
+  }
+
+  // Sets first, then the note/date: a refused set changes nothing, and the
+  // error says which set — the server checks the whole list before writing.
+  async function saveSessionEdit(id, { sets, notes, date }) {
+    const done = await api(`/api/economy/bodiez/sessions/${id}/sets/`, { method: "PUT", body: { sets } });
+    await api(`/api/economy/bodiez/sessions/${id}/`, { method: "PATCH", body: date ? { notes, date } : { notes } });
+    load();
+    return done?.summary || null;
+  }
+
   // Coach's "Build a routine" — a routine assembled from BodyMap's own real
   // status (undertrained/untrained muscles first), never a model's guess.
-  // It lands in the Scheduler's Inbox exactly like a hand-built routine, so
+  // It lands in RoutineZ (and the Scheduler's Inbox) like a hand-built routine, so
   // it goes through the same designer to be tweaked or started.
   async function createRoutineFromExercises(title, exerciseList, dayTag, goal) {
     try {
       await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "" },
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "", source: "coach" },
       });
-      setTab("scheduler");
+      setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
   }
@@ -356,10 +401,10 @@ export default function BodieZ() {
     try {
       for (const day of days) {
         await api("/api/economy/bodiez/routines/", {
-          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "" },
+          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "", source: "coach" },
         });
       }
-      setTab("scheduler");
+      setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
   }
@@ -476,6 +521,17 @@ export default function BodieZ() {
                          onSaved={(sm) => { setSummary(sm); load(); }} />
             </>
           )}
+          {tab === "routinez" && (
+            <RoutineZView routines={routines} history={history} exercises={exercises} pickable={usable}
+                          demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
+                          prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
+                          onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
+                          onCreate={(title) => createRoutine(title, "inbox", "")}
+                          onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
+                          onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session}
+                          onRoutineFromSession={routineFromSession} onDeleteSession={deleteSession}
+                          onSaveSession={saveSessionEdit} onSummary={setSummary} />
+          )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
                           exercises={exercises} pickable={usable} demoCredit={demoCredit}
@@ -489,10 +545,7 @@ export default function BodieZ() {
             <BodyMapView bodymap={bodymap} exercises={usable} onBuildForMuscle={jumpToMuscleBuild} />
           )}
           {tab === "coach" && (
-            <CoachView coach={coach} bodymap={bodymap} exercises={usable} dayTagLabels={dayTagLabels}
-                      prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
-                      onBuildRoutine={createRoutineFromExercises}
-                      onBuildSplit={createSplitRoutines} />
+            <CoachView coach={coach} onOpenRoutineZ={() => setTab("routinez")} />
           )}
           {tab === "goals" && (
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
@@ -1204,13 +1257,21 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 // beat are shown, judged against earlier sessions only. It is flagged
 // `backfilled` server-side: no rest times or duration exist for it, and none
 // are invented. No cost, no gain: nothing here moves a resource.
-function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
+// `editing` (a finished session) turns this into the editor for a workout
+// already logged: same rows, same validation, saved through `onSaveEdit`.
+// Its sets keep their ids, so a set that was logged live keeps the rest time
+// the server measured; the date is only editable on one typed in afterwards,
+// because a live one's time was measured, not chosen.
+function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel }) {
   const unit = useUnit();
   const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  const [open, setOpen] = useState(false);
-  const [date, setDate] = useState(todayStr);
-  const [notes, setNotes] = useState("");
-  const [sets, setSets] = useState([]);
+  const editDate = editing ? new Date(new Date(editing.started_at).getTime() - new Date(editing.started_at).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : null;
+  const [open, setOpenState] = useState(!!editing);
+  const setOpen = (v) => { setOpenState(v); if (!v && editing) onCancel?.(); };
+  const [date, setDate] = useState(editDate || todayStr);
+  const [notes, setNotes] = useState(editing?.notes || "");
+  const [sets, setSets] = useState(() => (editing ? asList(editing.sets).slice().sort((a, b) => a.id - b.id).map((st) => ({
+    id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
   const [exerciseId, setExerciseId] = useState("");
   const [weight, setWeight] = useState("");
@@ -1249,7 +1310,9 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
   // correcting numbers is faster than typing them again.
   const copyLastTime = () => setSets([...sets, ...last.sets.map((st) => ({
     exercise_id: Number(exerciseId), reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" }))]);
-  const repeatSet = (i) => setSets([...sets.slice(0, i + 1), { ...sets[i] }, ...sets.slice(i + 1)]);
+  // The copy is a NEW set: it must not carry the original's id, or an edit
+  // would read it as the same row twice.
+  const repeatSet = (i) => setSets([...sets.slice(0, i + 1), { ...sets[i], id: undefined }, ...sets.slice(i + 1)]);
 
   const addSet = () => {
     if (!exerciseId || !reps) return;
@@ -1259,6 +1322,14 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
 
   async function save() {
     setBusy(true); setErr("");
+    if (editing) {
+      try {
+        const sm = await onSaveEdit(editing.id, { sets, notes, date: editing.backfilled && date !== editDate ? date : undefined });
+        onSaved(sm);
+      } catch (e) { setErr(e.message || "Couldn't save that. Nothing was changed."); }
+      finally { setBusy(false); }
+      return;
+    }
     try {
       const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets, routine_id: routineId || undefined } });
       setSets([]); setNotes(""); setRoutineId(""); setOpen(false);
@@ -1285,12 +1356,14 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
   return (
     <div className="re-card space-y-3">
       <div className="flex items-center justify-between">
-        <p className="re-label">Log a past workout</p>
+        <p className="re-label">{editing ? `Edit workout — ${editing.routine_title || "Workout"}` : "Log a past workout"}</p>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)} />
-        {routines.length > 0 && (
+        <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)}
+               disabled={!!editing && !editing.backfilled}
+               title={editing && !editing.backfilled ? "Logged live — it keeps the time it happened" : undefined} />
+        {!editing && routines.length > 0 && (
           <label className="block min-w-0 flex-1">
             <span className="re-label">Routine</span>
             <select aria-label="Routine" className="mt-1 w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
@@ -1349,10 +1422,12 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved }) {
              value={notes} onChange={(e) => setNotes(e.target.value)} />
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
       <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
-        {busy ? <Loader2 className="animate-spin" size={14} /> : `Save workout (${sets.length} set${sets.length === 1 ? "" : "s"})`}
+        {busy ? <Loader2 className="animate-spin" size={14} /> : `${editing ? "Save changes" : "Save workout"} (${sets.length} set${sets.length === 1 ? "" : "s"})`}
       </button>
       <p className="text-[11px] text-white/40">
-        Counts toward your records, body map and goals like any workout. Rest times and duration aren't recorded for one you log afterwards.
+        {editing
+          ? "Your records, body map and goals are recounted from the edited sets. Sets you keep keep their measured rest; new ones have none."
+          : "Counts toward your records, body map and goals like any workout. Rest times and duration aren't recorded for one you log afterwards."}
       </p>
     </div>
   );
@@ -1433,6 +1508,11 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [dirty, setDirty] = useState(false);
+  // Name and note are edited here too, so ANY routine — the Coach's, the
+  // trial's, one built from a workout — can be made fully the member's own.
+  const [title, setTitle] = useState(routine.title || "");
+  const [description, setDescription] = useState(routine.description || "");
+  const [saving, setSaving] = useState(false);
 
   // Type to narrow, pick a muscle to narrow again; the member's own lifts come first.
   const filtered = useMemo(() => suggest(
@@ -1472,25 +1552,35 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setDirty(true);
   };
 
-  const save = () => {
-    onSave(rows.map((r, i) => ({
+  const save = async () => {
+    setSaving(true);
+    const ok = await onSave(rows.map((r, i) => ({
       exercise_id: r.exercise_id, order: i,
       sets: r.sets ? Number(r.sets) : undefined,
       reps: r.reps ? Number(r.reps) : undefined,
       weight_kg: r.weight_kg === "" || r.weight_kg == null ? null : Number(r.weight_kg),
       ...(r.group ? { group: r.group } : {}),
       ...(r.added ? { added: true } : {}),
-    })));
-    setDirty(false);
+    })), { title: title.trim() || routine.title, description: description.trim() });
+    setSaving(false);
+    // Stays dirty when the save failed, so the button still offers it.
+    if (ok !== false) setDirty(false);
   };
 
   return (
     <div className="re-card space-y-3 border-fuchsia-400/30">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Designing "{routine.title}"</p>
-        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose}>
+        <p className="text-sm font-semibold text-white">Editing "{routine.title}"</p>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close">
           <X size={16} />
         </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <input aria-label="Routine name" className="neon-input !py-2 min-w-0 flex-1 text-sm" maxLength={80}
+               value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} />
+        <input aria-label="Routine note" className="neon-input !py-2 min-w-0 flex-1 text-sm" maxLength={200}
+               placeholder="Note (optional)"
+               value={description} onChange={(e) => { setDescription(e.target.value); setDirty(true); }} />
       </div>
       <RoutineTime items={rows} restSeconds={restSeconds} />
 
@@ -1560,9 +1650,9 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                        onApply={(next) => { setRows(next); setDirty(true); }} />
       )}
 
-      <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40" disabled={!dirty}
+      <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40" disabled={!dirty || saving || !title.trim()}
               onClick={save}>
-        Save routine
+        {saving ? <Loader2 className="animate-spin" size={13} /> : "Save routine"}
       </button>
 
       <div className="border-t border-white/10 pt-3 space-y-2">
@@ -1606,6 +1696,212 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
           {filtered.length === 0 && <p className="text-[11px] text-white/30 px-1">No exercises match.</p>}
         </div>
       </div>
+    </div>
+  );
+}
+
+// RoutineZ: every routine in one list — the Coach's, the member's own, the
+// trial's and ones made from a logged workout — each opening the same
+// designer, so where a routine came from never decides whether it can be
+// changed. The Coach builders sit at the top because a built routine lands
+// right below them, already open to edit. Logged workouts sit at the bottom:
+// each can be corrected, or turned into a new routine — a workout you did is
+// the most honest routine there is.
+//
+// The source label is the server's (`source`), and the Scheduler keeps the
+// buckets; this tab is about WHAT a routine is, that one about WHEN.
+const SOURCE_LABEL = { member: "Yours", coach: "Coach-built", session: "From a workout", trial: "From the trial" };
+const SOURCE_TONE = {
+  member: "bg-white/10 text-white/70 ring-white/15",
+  coach: "bg-fuchsia-500/15 text-fuchsia-200 ring-fuchsia-400/30",
+  session: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30",
+  trial: "bg-mcz-cyan/15 text-mcz-cyan ring-mcz-cyan/30",
+};
+const HISTORY_PAGE = 10;
+
+function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
+                        prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit, onCreate,
+                        onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
+                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary }) {
+  const [filter, setFilter] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [editingSession, setEditingSession] = useState(null);
+  const [title, setTitle] = useState("");
+  const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
+  const [made, setMade] = useState("");
+  const goals = coach?.goals;
+  const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
+  const sourceOf = (r) => r.source || "member";
+  const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
+  const shown = filter ? routines.filter((r) => sourceOf(r) === filter) : routines;
+  const editingRoutine = editing != null ? routines.find((r) => r.id === editing) : null;
+  const sessionBeingEdited = editingSession != null ? history.find((h) => h.id === editingSession) : null;
+
+  const makeRoutine = async (h) => {
+    const day = new Date(h.started_at).toLocaleDateString();
+    const name = window.prompt("Name the new routine:", `${h.routine_title || "Workout"} — ${day}`);
+    if (name == null) return;
+    if (await onRoutineFromSession(h.id, name.trim())) setMade(`Saved “${name.trim() || h.routine_title || "Workout"}” to your routines.`);
+  };
+
+  return (
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <p className="re-label">Have the Coach build one</p>
+        <p className="text-[11px] text-white/45">
+          Pick the criteria — muscles (or the whole body), equipment, goal, how many exercises per muscle, how long you
+          have — and it builds from the library and your own BodyMap. Free: no 🏷️, no AI, just your data. What it
+          saves is yours to edit like any other routine.
+        </p>
+        {coach && bodymap && pickable.length > 0 ? (
+          <>
+            <MuscleDayBuilder exercises={pickable} goals={goals} dayTagLabels={dayTagLabels || []}
+                              initialMuscle={prefillMuscle} onInitialMuscleConsumed={onPrefillConsumed}
+                              onBuildRoutine={onBuildRoutine} />
+            <BuildRoutine bodymap={bodymap} exercises={pickable} goals={goals} onBuildRoutine={onBuildRoutine} />
+            <SplitBuilder bodymap={bodymap} exercises={pickable} goals={goals} splits={coach.splits}
+                          onBuildSplit={onBuildSplit} />
+          </>
+        ) : (
+          <p className="text-xs text-white/40">The Coach needs the exercise library to load first.</p>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <p className="re-label">All routines</p>
+        <div className="re-card flex flex-wrap gap-2">
+          <input aria-label="New routine name" className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Make your own — name it"
+                 maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" disabled={!title.trim()}
+                  onClick={() => { onCreate(title.trim()); setTitle(""); }}>
+            <Plus size={13} /> Create
+          </button>
+        </div>
+        {routines.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {[["", "All", routines.length], ...Object.keys(SOURCE_LABEL).filter((k) => counts[k]).map((k) => [k, SOURCE_LABEL[k], counts[k]])]
+              .map(([k, label, n]) => (
+                <button key={k || "all"} onClick={() => setFilter(k)}
+                        className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
+                          filter === k ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
+                  {label} <span className="text-white/35">{n}</span>
+                </button>
+              ))}
+          </div>
+        )}
+        {editingRoutine && (
+          <RoutineDesigner key={editingRoutine.id} routine={editingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
+                           onSave={(list, meta) => onSaveExercises(editingRoutine.id, list, meta)}
+                           onClose={() => setEditing(null)}
+                           restSeconds={goals?.[editingRoutine.goal]?.rest_seconds} />
+        )}
+        {shown.length === 0 && (
+          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+            No routines yet — have the Coach build one above, make your own, or turn a logged workout below into one.
+          </p>
+        )}
+        {shown.map((r) => {
+          const items = asList(r.exercises);
+          return (
+            <div key={r.id} className="re-card space-y-1.5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-sm font-semibold text-white">{r.title}</p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${SOURCE_TONE[sourceOf(r)]}`}>
+                      {SOURCE_LABEL[sourceOf(r)]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/45">
+                    {items.length} exercise{items.length === 1 ? "" : "s"}
+                    {items.length > 0 && <>: {items.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4).map((e) => nameOf(e.exercise_id)).join(", ")}{items.length > 4 ? "…" : ""}</>}
+                  </p>
+                  {r.description && <p className="text-[11px] text-white/40">{r.description}</p>}
+                  <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          onClick={() => setEditing(editing === r.id ? null : r.id)}>
+                    <Pencil size={12} /> {editing === r.id ? "Close" : "Edit"}
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          title="A new routine to change, keeping this one as it is" onClick={() => onCopy(r.id)}>
+                    <Copy size={12} /> Copy
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          disabled={sessionOpen} title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
+                          onClick={() => onStart(r.id)}>
+                    <Play size={12} /> Start
+                  </button>
+                  <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                          onClick={() => onDelete(r.id)} title="Delete permanently" aria-label="Delete routine">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="space-y-2">
+        <p className="re-label">Logged workouts</p>
+        <p className="text-[11px] text-white/45">
+          Fix a set you got wrong, or make any workout you did into a routine to run again (each lift's top set
+          becomes the target). The workout itself stays as logged.
+        </p>
+        {made && <p className="text-xs text-emerald-300">{made}</p>}
+        {sessionBeingEdited && (
+          <PastWorkout key={sessionBeingEdited.id} editing={sessionBeingEdited} exercises={exercises} pickable={pickable}
+                       onSaveEdit={onSaveSession} onCancel={() => setEditingSession(null)}
+                       onSaved={(sm) => { setEditingSession(null); if (sm) onSummary(sm); }} />
+        )}
+        {history.length === 0 && (
+          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+            Nothing logged yet. Finish a session on Today, or log a past one there.
+          </p>
+        )}
+        {history.slice(0, historyCount).map((h) => {
+          const sets = asList(h.sets);
+          const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
+          return (
+            <div key={h.id} className="re-card space-y-1">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">
+                    {h.routine_title || "Workout"}{" "}
+                    <span className="text-xs font-normal text-white/45">{new Date(h.started_at).toLocaleDateString()}</span>
+                    {h.backfilled && <span className="ml-1.5 text-[10px] text-white/35">logged afterwards</span>}
+                  </p>
+                  <p className="text-xs text-white/45">
+                    {sets.length} set{sets.length === 1 ? "" : "s"}
+                    {names.length > 0 && <>: {names.slice(0, 4).join(", ")}{names.length > 4 ? "…" : ""}</>}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          onClick={() => setEditingSession(editingSession === h.id ? null : h.id)}>
+                    <Pencil size={12} /> {editingSession === h.id ? "Close" : "Edit"}
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
+                    <Plus size={12} /> Make a routine
+                  </button>
+                  <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                          onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {history.length > historyCount && (
+          <button className="text-xs text-mcz-cyan hover:underline" onClick={() => setHistoryCount(historyCount + HISTORY_PAGE)}>
+            Show {Math.min(HISTORY_PAGE, history.length - historyCount)} more
+          </button>
+        )}
+      </section>
     </div>
   );
 }
@@ -1729,7 +2025,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
 
       {designingRoutine && (
         <RoutineDesigner routine={designingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
-                          onSave={(list) => { onSaveExercises(designingRoutine.id, list); }}
+                          onSave={(list, meta) => onSaveExercises(designingRoutine.id, list, meta)}
                           onClose={() => setDesigning(null)}
                           restSeconds={goals?.[designingRoutine.goal]?.rest_seconds} />
       )}
@@ -2096,7 +2392,7 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
                     })),
                     "", goalKey
                   )}>
-            <Plus size={13} /> Save to Scheduler
+            <Plus size={13} /> Save to RoutineZ
           </button>
         </div>
       )}
@@ -2218,7 +2514,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                     })),
                     goal: goalKey,
                   })))}>
-            <Plus size={13} /> Save {days || ""} routine{days === 1 ? "" : "s"} to Scheduler
+            <Plus size={13} /> Save {days || ""} routine{days === 1 ? "" : "s"} to RoutineZ
           </button>
         </div>
       )}
@@ -2246,8 +2542,13 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
   const [goalKey, setGoalKey] = useState("");
   const [dayTag, setDayTag] = useState("");
   const [perMuscle, setPerMuscle] = useState(2);
+  // Minutes the member has, or 0 for "no limit". Applied AFTER the muscles
+  // are picked: lifts are dropped from the end until the estimate fits, and
+  // the screen says how many went — never a silently shorter routine.
+  const [minutes, setMinutes] = useState(0);
   const [open, setOpen] = useState(false);
   const goal = goalKey ? goals?.[goalKey] : null;
+  const allPicked = MUSCLES.every((m) => muscles.includes(m));
 
   // BodyMap's "Build a day for just this muscle" lands HERE, on the control,
   // pre-selected and open — the same rule `goToSpot` follows everywhere else
@@ -2264,14 +2565,23 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
     setMuscles((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
 
   const matches = (ex) => equipment.length === 0 || equipment.includes(ex.equipment);
-  const picks = useMemo(() => {
+  // Round-robin across the chosen muscles (each one's 1st lift, then each
+  // one's 2nd…) so a time limit trims evenly instead of cutting the last
+  // muscle picked out entirely.
+  const allPicks = useMemo(() => {
+    const pools = muscles.map((m) => exercises.filter((ex) => ex.muscle_group === m && matches(ex))
+      .sort((a, b) => a.id - b.id).slice(0, perMuscle));
     const out = [];
-    for (const m of muscles) {
-      const pool = exercises.filter((ex) => ex.muscle_group === m && matches(ex)).sort((a, b) => a.id - b.id);
-      out.push(...pool.slice(0, perMuscle));
-    }
+    for (let i = 0; i < perMuscle; i++) for (const pool of pools) if (pool[i]) out.push(pool[i]);
     return out;
   }, [muscles, exercises, equipment, perMuscle]);
+  const picks = useMemo(() => {
+    if (!minutes) return allPicks;
+    let n = allPicks.length;
+    while (n > 1 && estimateRoutineSeconds(goalItems(allPicks.slice(0, n), goal), goal?.rest_seconds) > minutes * 60) n--;
+    return allPicks.slice(0, n);
+  }, [allPicks, minutes, goal]);
+  const trimmed = allPicks.length - picks.length;
 
   const dayLabel = dayTagLabels.find((d) => d.key === dayTag)?.label;
 
@@ -2291,6 +2601,12 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
             shoulders one day, chest + back + abs the next, however many days a week suits you.
           </p>
           <div className="flex flex-wrap gap-1.5">
+            <button onClick={() => setMuscles(allPicked ? [] : MUSCLES)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                      allPicked ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40"
+                                : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
+              Whole body
+            </button>
             {MUSCLES.map((m) => (
               <button key={m} onClick={() => toggleMuscle(m)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-all ${
@@ -2319,6 +2635,11 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                     value={perMuscle} onChange={(e) => setPerMuscle(Number(e.target.value))}>
               {PER_MUSCLE.map((n) => <option key={n} value={n}>{n} exercise{n === 1 ? "" : "s"} per muscle</option>)}
             </select>
+            <select aria-label="Time I have" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+                    value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
+              <option value={0}>Any length</option>
+              {[20, 30, 45, 60, 75, 90].map((m) => <option key={m} value={m}>Fit in {m} min</option>)}
+            </select>
           </div>
           <EquipmentPicker selected={equipment}
                            onToggle={(k) => setEquipment((cur) => toggleEquipment(cur, k))} />
@@ -2331,8 +2652,13 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
               <p className="mt-1 text-white/35">{goal.citation}</p>
             </div>
           )}
-          {shortNote(picks, muscles, perMuscle) && (
-            <p className="text-[11px] text-white/45">{shortNote(picks, muscles, perMuscle)}</p>
+          {shortNote(allPicks, muscles, perMuscle) && (
+            <p className="text-[11px] text-white/45">{shortNote(allPicks, muscles, perMuscle)}</p>
+          )}
+          {trimmed > 0 && (
+            <p className="text-[11px] text-white/45">
+              {trimmed} exercise{trimmed === 1 ? "" : "s"} left out to fit {minutes} min — pick a longer time to keep {trimmed === 1 ? "it" : "them"}.
+            </p>
           )}
           <RoutineTime items={goalItems(picks, goal)} restSeconds={goal?.rest_seconds} />
           {muscles.length === 0 ? (
@@ -2352,7 +2678,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
           <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
                   disabled={picks.length === 0}
                   onClick={() => onBuildRoutine(
-                    `${dayLabel ? `${dayLabel} — ` : ""}${muscles.map((m) => MUSCLE_LABEL[m]).join("/")}${goal ? ` — ${goal.label}` : ""}`,
+                    `${dayLabel ? `${dayLabel} — ` : ""}${allPicked ? "Whole body" : muscles.map((m) => MUSCLE_LABEL[m]).join("/")}${goal ? ` — ${goal.label}` : ""}`.slice(0, 80),
                     picks.map((ex, i) => ({
                       exercise_id: ex.id, order: i,
                       sets: goal ? goal.sets : 3,
@@ -2361,7 +2687,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                     })),
                     dayTag, goalKey
                   )}>
-            <Plus size={13} /> Save to Scheduler
+            <Plus size={13} /> Save to RoutineZ
           </button>
         </div>
       )}
@@ -2374,7 +2700,7 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
 // the numbers behind it rather than asking to be trusted. "Build a routine"
 // above it is the same rule applied to a whole routine instead of one
 // exercise: it reads BodyMap's real status, never invents one.
-function CoachView({ coach, bodymap, exercises, dayTagLabels, prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit }) {
+function CoachView({ coach, onOpenRoutineZ }) {
   if (!coach) return null;
   const rows = asList(coach.exercises);
   const labels = asDict(coach.labels);
@@ -2385,16 +2711,11 @@ function CoachView({ coach, bodymap, exercises, dayTagLabels, prefillMuscle, onP
         An exercise untouched {coach.stale_after_days}+ days gets flagged to reintroduce or swap.
       </p>
 
-      {bodymap && exercises?.length > 0 && (
-        <>
-          <BuildRoutine bodymap={bodymap} exercises={exercises} goals={coach.goals} onBuildRoutine={onBuildRoutine} />
-          <SplitBuilder bodymap={bodymap} exercises={exercises} goals={coach.goals} splits={coach.splits}
-                        onBuildSplit={onBuildSplit} />
-          <MuscleDayBuilder exercises={exercises} goals={coach.goals} dayTagLabels={dayTagLabels || []}
-                            initialMuscle={prefillMuscle} onInitialMuscleConsumed={onPrefillConsumed}
-                            onBuildRoutine={onBuildRoutine} />
-        </>
-      )}
+      {/* The routine builders live in RoutineZ, beside the routines they make,
+          so a built routine is edited on the screen it lands on. */}
+      <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={onOpenRoutineZ}>
+        <Wand2 size={13} /> Have the Coach build a routine — in RoutineZ
+      </button>
 
       {rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
