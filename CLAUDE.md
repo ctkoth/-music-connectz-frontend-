@@ -1169,3 +1169,32 @@ renames and re-notes too, so a Coach-built routine becomes fully the member's.
 repeated set drops its `id`, or an edit reads it as the same row twice. The
 muscle builder's "Fit in N min" trims round-robin across muscles and says how
 many it left out — never a silently shorter routine.
+
+## The portfolio had a reader on three screens and no editor on any
+
+A member's `links` are shown on the member card's full profile, the public profile and
+the widget board — and **nothing mounted could make one.** The writer was
+`POST /api/economy/profile/`, and the only editor lived in `src/mcz2/`, which is not
+mounted. So the portfolio side of the platform, widgets included, had nothing to show
+unless somebody typed an API call. Same shape as the member search with no caller and the
+five coaches nothing linked to: built, and invisible.
+
+`PortfolioLinks.jsx` is the editor, in ProfileZ. It decides nothing:
+
+- **The ceiling is stated BEFORE anything is added**, in a unit a member can check
+  ("12 / 25 links"), with what the next tier holds beside it near the top
+  (`tiers[next].profile_links`, never typed here) — the cost/gain rule for a limit.
+- **Past a ceiling the server REFUSES with its own sentence** and the screen shows it
+  unreworded. The old flat 50 cut the list silently and answered 200; the client did not
+  know either.
+- **What the server dropped is said** ("Saved 24. 1 weren't kept — only web and email
+  links are"): the save returns the cleaned list, and a shorter one than was sent is
+  reported rather than shown as a clean save.
+- **Pasting a dozen is the case that matters** (`portfolio.js`): lines become rows, `Label |
+  url` keeps the label, and the summary names everything that did not go in — duplicates,
+  not-links, and the ones the ceiling left out (the first pasted are the ones kept).
+- **Somebody over a ceiling is told they keep everything** and can still reorder and
+  remove; it is never worded as a loss.
+- `portfolio.js` imports nothing that reads `import.meta.env` so it runs under plain node;
+  the helper is named `moveRow` because `imports.test.mjs` matches by NAME and a plain
+  `move` collided with a local one in `WidgetBoard.jsx`.
