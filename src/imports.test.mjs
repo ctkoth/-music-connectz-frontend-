@@ -33,7 +33,7 @@ const HELPERS = [
   "src/limits.js", "src/rulez.js", "src/handoff.js", "src/openable.js",
   "src/voice.js", "src/listen.js", "src/uploadWork.js", "src/widgetz.js",
   "src/useScreenShape.js", "src/resources.js", "src/pageTitle.js",
-  "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js",
+  "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js", "src/auth/returnTo.js",
   // Register.jsx reaches into both of these by bare name: the trial-claim
   // pair from TrialTake.jsx, and the trial-split pair from BodieZTrial.jsx —
   // the same "build a week for free, keep it on register" helpers this
