@@ -1117,3 +1117,44 @@ declared untouched (it is held in state, not derived from the list).
   frequency, so the per-substance split, the frequency chips and "how often not
   set" must be skipped for it — keyed off `"my_frequency" in o` and
   `by_frequency`, never off the key name alone.
+
+## BodieZ supersets: link by hand for free, the Coach's choosing is StatZ's
+
+`src/supersets.js` is the whole client-side model: a superset is a `group` label
+on two ADJACENT routine rows, and `linkWithNext`, `unlink`, `normalize` and
+`blocks` are the only code that makes or reads one. `valid_groups` on the server
+is the rule; this mirrors it, so a pair the screen draws is a pair the server
+keeps. Any edit that could pull two rows apart (reorder, delete, add in between)
+goes through `normalize`, which drops a label that no longer has its partner —
+never guess at a pairing.
+
+- **Linking by hand is in the designer's own rows and gated by nothing.**
+  `PairWithCoach.jsx` is what is gated, and it says so on the control before
+  anything is pressed, with the free way beside it. The modes, what each means
+  and the example all come from `/api/economy/bodiez/pair/`; the screen decides
+  nothing about who is paired with whom. Nothing is saved until Save routine, and
+  Undo restores the rows from before.
+- **In a session, a pair is one block.** The rest clock holds while the first half
+  of a pair has been done and the second has not ("go straight to the Fly") so it
+  never says rest in the middle of a superset. The "next" marker only appears in a
+  pair that is under way: three untouched pairs would each say it, and a marker on
+  three rows at once marks nothing.
+- **Rest alerts (`useRestAlertPrefs`) are the sample's or StatZ's.** The
+  preference is the member's and survives the sample ending; `allowed` gates the
+  effect, so a lapse locks the control without erasing what they chose. The
+  notification only fires while the page is hidden — on screen, the beep is
+  enough. **A locked phone pauses a page, and the copy says that**; "keep my screen
+  on" is the one thing here that keeps the clock running.
+
+### A countdown reaching 0:00 is not the sample being over
+
+`useStatzTrial` floors the seconds left, so the display reads 0:00 for the last
+second while the server still has it. The first version refetched the moment the
+display reached zero, was told the sample was still active, and — with nothing to
+ask again — left the banner up and every feature unlocked until somebody navigated
+away. Found by expiring a real sample in a browser, not by reading the code. The
+sample is OVER when the clock passes the server's end time; the screen locks on
+that moment without waiting for a fetch to agree, then asks the server to confirm
+and asks again (a few times, two seconds apart) if its clock has not caught up. A
+lock that depends on a response arriving at the right millisecond is a lock that
+sometimes does not lock.
