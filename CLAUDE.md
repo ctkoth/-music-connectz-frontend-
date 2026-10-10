@@ -242,6 +242,25 @@ The signals are rendered as words — "Same email on a linked sign-in", strong o
 weak — never folded into a percentage. A number nobody can check, behind an
 action nobody can undo, is the substance rule's failure case at its worst.
 
+### Closing a duplicate you have not signed in to: proof, or sign in and come back
+
+Corey asked for "more than 90% probability" before a duplicate could be deleted
+without signing in to it. There is no probability to show — nothing is calibrated, and
+a made-up 92% behind a deletion is the failure case above — so the screen states the
+bar the server enforces instead: **the provider confirmed the same address on both
+accounts**. `proof_rule` comes from `/api/economy/dupez/` and is rendered unreworded.
+
+- **Short of proof, the claim is finished by signing in to the other account.** The 202
+  carries `confirm_by_sign_in`; the button stashes the main account's tokens and signs in
+  as the other (`auth/returnTo.js`), where `DupeZVerifyView` is the confirm.
+- **`ReturnBar` is the way back, and it is on every screen while the stash exists.** One
+  slot only (`stashReturn` refuses a second, so a chain of switches cannot bury the first
+  account), 12 hours, tokens only. It is a convenience on the device that made it and
+  holds no more than the signed-in session already did; `clearReturn` runs on any real
+  sign-out so a shared machine does not keep it.
+- **Accounts not proven tied to the member arrive redacted** (handle and reasons, no
+  email, balance or posts). Render whatever fields came; never go looking for more.
+
 ## FunnelZ offers: the panel decides nothing
 
 `OfferPanel.jsx` sits above the feed in PostZ — where every member lands after
