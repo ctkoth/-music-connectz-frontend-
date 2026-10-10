@@ -23,6 +23,9 @@ export default function Login() {
       return as && back ? { as, back } : null;
     } catch { return null; }
   });
+  // Having come from DupeZ's "sign in to confirm", the claim waiting on this
+  // account is in DupeZ — landing on the default tab would leave them to hunt.
+  const home = confirming ? "/dupe" : "/";
   const [form, setForm] = useState({ identifier: confirming?.as || "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -76,7 +79,7 @@ export default function Login() {
         }
       }
 
-      navigate("/");
+      navigate(home);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -101,13 +104,13 @@ export default function Login() {
               the {name} link didn't go through.
             </p>
           </div>
-          <button className="neon-btn-primary" onClick={() => navigate("/")}>
+          <button className="neon-btn-primary" onClick={() => navigate(home)}>
             Continue to Music ConnectZ
           </button>
           <p className="text-center text-sm text-white/55">
             Or try {name} again — you'll come straight back here.
           </p>
-          <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+          <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
           {error && <p className="text-sm text-mcz-pink">{error}</p>}
         </div>
       </AuthShell>
@@ -148,7 +151,7 @@ export default function Login() {
         </button>
       </form>
 
-      <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+      <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
 
       <p className="pt-2 text-center text-sm text-white/55">
         New here?{" "}
