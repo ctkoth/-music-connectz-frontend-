@@ -89,16 +89,16 @@ and builds in GitHub Actions — nothing to install.
 ## Before you market it as an adaptive / disability product
 
 The listing text says only what the app does today, with the real numbers.
-Measured against the library as it is now (90 exercises):
+Measured against the library as it is now (186 exercises):
 
 | Member says | Exercises left |
 |---|---|
-| seated or lying only | 60 |
-| cannot use legs | 42 |
-| cannot use arms | 29 |
-| one arm only | 61 |
-| one leg only | 57 |
-| cannot use arms or legs | 4 |
+| seated or lying only | 102 |
+| cannot use legs | 74 |
+| cannot use arms | 45 |
+| one arm only | 107 |
+| one leg only | 107 |
+| cannot use arms or legs | 5 |
 
 A good start for **wheelchair users and people who train seated**; thin for
 **limited use of arms**, and close to nothing with neither arms nor legs. A
