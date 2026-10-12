@@ -35,6 +35,7 @@ import { PushAsk } from "../components/PushSettings.jsx";
 import { playTrack, useNowPlaying } from "../nowPlaying.js";
 import { usePinned, setPinned } from "../pinned.js";
 import OfferPanel from "../OfferPanel.jsx";
+import SoundCloudLibrary from "../components/SoundCloudLibrary.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
 import { asList } from "../shape.js";
 import { useCharLimit } from "../limits.js";
@@ -357,6 +358,7 @@ export default function PostZ() {
           nobody got. It renders NOTHING when the server has nothing true to
           say, so on most visits this line costs a member zero pixels. */}
       <OfferPanel />
+      <SoundCloudLibrary />
       {/* What rating, voting and commenting pay, and how much of today's
           allowance is left — above the feed, because this is the screen where
           all three happen and a reward found out afterwards is a coincidence.

@@ -10,6 +10,7 @@ import {
 } from "./occPrice.js";
 import { parseReply } from "./occText.js";
 import RunClock from "../RunClock.jsx";
+import SpeakingIn from "../SpeakingIn.jsx";
 
 // OCC's chat — the AI half of "AI that builds with you".
 //
@@ -401,6 +402,7 @@ export default function OccChat({ onKept }) {
 
       {state && (
         <div className="space-y-1.5">
+          {!IN_SHELL && <SpeakingIn surface="occ" />}
           <textarea ref={box} className="neon-input !py-2 text-xs" rows={3}
                     aria-label="Message to OCC"
                     placeholder="Ask OCC anything — code, a lyric, a plan. Ctrl+Enter to send."

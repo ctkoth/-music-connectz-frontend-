@@ -16,6 +16,11 @@ import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
+import HeardList from "../components/HeardList.jsx";
+import CoachUpgrades from "../components/CoachUpgrades.jsx";
+import SpeakingIn from "../components/SpeakingIn.jsx";
+import { IN_SHELL as IN_SHELL_COACH } from "../standalone.js";
+import { listenersLine } from "../coachUpgrades.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { mediaError, bestMime, sizeLabel } from "../recorder.js";
 
@@ -1239,6 +1244,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {busy ? "Coaching your take…" : "Send it to the coach"}
             </button>
             <Cost price={price} trial={trial} />
+            {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
           {price && (
             <p className="text-[11px] text-white/35">
@@ -1406,6 +1412,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+          {/* What the number is, in the server's words, beside the number; and
+              real listener ratings (server-read only) next to the coach's. */}
+          {result.score_rule && <p className="text-[11px] text-white/45">{result.score_rule}</p>}
+          {listenersLine(result.listeners, result.score) && (
+            <p className="text-[12px] font-semibold text-emerald-300">{listenersLine(result.listeners, result.score)}</p>
+          )}
+          <HeardList result={result} labels={price?.scores} />
 
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
@@ -1555,6 +1568,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
               <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
             </p>
+          )}
+
+          {!trial && (
+            <CoachUpgrades appKey={appKey} price={price} takeScoreId={result.take_score_id} />
           )}
 
           {!trial && (
