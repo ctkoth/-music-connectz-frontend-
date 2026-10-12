@@ -56,7 +56,7 @@ export default function ReportTake({ takeId, appKey }) {
         <option value="harassment">Harassment</option>
         <option value="hate">Hate or abuse</option>
         <option value="nsfw">Adult content</option>
-        <option value="other">Something else — it's wrong, or unsafe advice</option>
+        <option value="other">Something else</option>
       </select>
       <input className="neon-input w-full" maxLength={280} placeholder="Anything we should know (optional)"
              aria-label="Anything we should know" value={note} onChange={(e) => setNote(e.target.value)} />
