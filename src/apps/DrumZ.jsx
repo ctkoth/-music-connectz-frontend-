@@ -60,6 +60,20 @@ function DrumZ() {
     };
   }, []);
 
+  // In the SkillZ app every coach stays mounted when the member moves to another one
+  // (standalone/skillz/Shell.jsx), so the pad would keep looping its beat under a
+  // screen nobody can hear it belongs to. The shell says which screen it left.
+  useEffect(() => {
+    const leave = (e) => {
+      if (e.detail !== "drumz") return;
+      if (timerIDRef.current) { clearInterval(timerIDRef.current); timerIDRef.current = null; }
+      setIsPlaying(false);
+      setCurrentStep(-1);
+    };
+    window.addEventListener("mcz-shell-leave", leave);
+    return () => window.removeEventListener("mcz-shell-leave", leave);
+  }, []);
+
   const initAudioContext = () => {
     if (audioContextRef.current) return;
     audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();

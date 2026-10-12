@@ -80,6 +80,13 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
     );
   }
 
+  // A tree with nothing in it to train is a level, an XP bar and a leaderboard for
+  // something nobody can do. In a shell — where this panel is among the first things a
+  // store reviewer scrolls to — it is not drawn until the server has drills for it.
+  // (`seed_skillz` seeds mimez, directz and lessonz only: no instrument coach has a
+  // drill yet, and nothing deploys the seed. See play/skillz/README.md.)
+  if (IN_SHELL && drills.length === 0) return null;
+
   const pct = profile
     ? Math.round((profile.xp_into_level / (profile.xp_into_level + profile.xp_to_next_level)) * 100)
     : 0;

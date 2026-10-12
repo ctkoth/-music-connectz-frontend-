@@ -429,6 +429,20 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, secs]);
 
+  // In the SkillZ app every coach stays mounted, only hidden, when the member moves to
+  // another one (standalone/skillz/Shell.jsx) — so a recorder left running would keep
+  // the microphone, and the camera, open under a screen nobody can see. The shell says
+  // which screen it left; this one stops its own recorder.
+  useEffect(() => {
+    if (!IN_SKILLZ) return undefined;
+    const leave = (e) => {
+      if (e.detail === appKey) stopRec("Recording stopped when you left this screen. What it caught is still here — send it, or record another.");
+    };
+    window.addEventListener("mcz-shell-leave", leave);
+    return () => window.removeEventListener("mcz-shell-leave", leave);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appKey]);
+
   // Track elapsed time while scoring is in progress
   useEffect(() => {
     if (!busy) return;

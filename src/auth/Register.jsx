@@ -14,7 +14,7 @@ import HabitOnboarding from "../components/HabitOnboarding.jsx";
 const STANDALONE = !!import.meta.env.VITE_STANDALONE;
 // What each shell calls itself in the one line that says the account is shared.
 // It said "BodieZ" in every shell, which was wrong the day a second one shipped.
-const STANDALONE_NAME = { bodiez: "BodieZ", sentencez: "Sentence ConnectZ", intelligencez: "IntelligenceZ" };
+const STANDALONE_NAME = { bodiez: "BodieZ", sentencez: "Sentence ConnectZ", intelligencez: "IntelligenceZ", skillz: "SkillZ" };
 import { track } from "../track.js";
 import { api } from "../api.js";
 import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
@@ -303,7 +303,7 @@ export function AuthShell({ title, subtitle, children }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
-        <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
+        <img src="/logo.png?v=2" alt={import.meta.env.VITE_STANDALONE ? (STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "") : "Music ConnectZ"} className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}

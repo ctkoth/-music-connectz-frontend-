@@ -100,7 +100,7 @@ function CoachCard({ app, daily, priced }) {
       {Number.isFinite(count) && app.count != null && app.built && (
         <p className="text-xs text-white/50">
           {count.toLocaleString()} {count === 1 ? "take" : "takes"} scored
-          {Number.isFinite(Number(app.level)) && app.xp != null && (
+          {Number(app.xp) > 0 && Number.isFinite(Number(app.level)) && (
             <> · level {Number(app.level)} <span className="text-white/35">({Number(app.xp).toLocaleString()} {XP})</span></>
           )}
         </p>

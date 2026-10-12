@@ -21,7 +21,7 @@ import { AlertTriangle, ArrowRight, Loader2, TrendingDown, TrendingUp } from "lu
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
-import { shellHas } from "../standalone.js";
+import { IN_SHELL, shellHas } from "../standalone.js";
 
 /** A finding that may legitimately have no number.
  *  `—` and the server's sentence, never a 0 standing in for "not measured". */
@@ -196,10 +196,10 @@ export default function ProgressPanel({ appKey }) {
               <b>{weakest.label}</b>
               <span className="text-white/45"> · {weakest.average} / 10 across {weakest.takes} takes</span>
             </p>
-            <button onClick={() => goToSpot(appKey, `${appKey}-drills`)}
+            {!IN_SHELL && <button onClick={() => goToSpot(appKey, `${appKey}-drills`)}
                     className="flex items-center gap-1 rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
               Drill it <ArrowRight size={12} />
-            </button>
+            </button>}
           </div>
         ) : <p className="text-[12px] text-white/45">{weakest.why}</p>}
       </div>
