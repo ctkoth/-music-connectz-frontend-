@@ -178,8 +178,12 @@ export function plan(analysis, rawSettings, reference = null) {
         const d = eqTargetInfo.deviation.find((x) => x.f === w.f);
         return a + (d ? -d.v : 0);
       }, 0) / region.length;
-      const against = eqTargetInfo.basis === "reference" ? "the reference" : `${style.label.toLowerCase()} balance`;
-      move.why = `Your ${slot.label} (${fmtHz(slot.lo)}–${fmtHz(slot.hi)}) measured ${fmtDb(measuredOff)} against the ${against} → ${fmtDb(move.gain)} ${slot.type === "peak" ? "bell" : "shelf"} at ${fmtHz(slot.f)}.`;
+      // "against the the reference" and "against the balanced balance" are what this
+      // said before: the template below adds no article, so each phrase carries its own.
+      const against = eqTargetInfo.basis === "reference"
+        ? "the reference"
+        : style.slope === 0 ? "your mix's own trend" : `your mix's own trend, tilted ${style.label.toLowerCase()}`;
+      move.why = `Your ${slot.label} (${fmtHz(slot.lo)}–${fmtHz(slot.hi)}) measured ${fmtDb(measuredOff)} against ${against} → ${fmtDb(move.gain)} ${slot.type === "peak" ? "bell" : "shelf"} at ${fmtHz(slot.f)}.`;
       placed.push(move);
     }
     if (!placed.length) {

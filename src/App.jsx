@@ -61,6 +61,7 @@ const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
 const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const VoiceZ = lazy(lazyRoute(() => import("./apps/VoiceZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
@@ -489,6 +490,7 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "voicez", label: "VoiceZ", icon: "voicez.png", el: <VoiceZ /> },
   { key: "personaz", label: "PersonaZ", icon: "personaz.png", el: <PersonaZ /> },
   { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },

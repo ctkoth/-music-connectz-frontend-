@@ -309,7 +309,10 @@ export default function OccChat({ onKept }) {
               nobody can see is not an upsell, it is a secret. Inside a shell they
               stop at the fact: there is nothing to buy there. */}
           <div role="radiogroup" aria-label="Engine" className="grid gap-1.5 sm:grid-cols-2">
-            {state.models.map((r) => (
+            {/* Inside a shell a locked engine is hidden, not shown with a tier:
+                there is nothing to buy there, so the picker keeps only what the
+                member can use. */}
+            {state.models.filter((r) => r.allowed || !IN_SHELL).map((r) => (
               <button key={r.key} type="button" role="radio" aria-checked={r.current}
                       disabled={!r.allowed}
                       onClick={() => pick(r)}
@@ -428,11 +431,26 @@ export default function OccChat({ onKept }) {
             {NOT_CHARGED_IF_FAILS}
             {price.note && price.kind !== "locked" ? ` ${price.note}` : ""}
           </p>
-          {price.kind === "short" && free && (
-            <p className="text-[11px] text-white/55">
-              <button type="button" className="re-link" onClick={() => pick(free)}>
-                Switch to {free.name}
-              </button>{" "}— it's free today.
+          {price.kind === "short" && (
+            <p className="flex flex-wrap items-center gap-x-3 text-[11px] text-white/55">
+              {free && (
+                <span>
+                  <button type="button" className="re-link" onClick={() => pick(free)}>
+                    Switch to {free.name}
+                  </button>{" "}— it's free today.
+                </span>
+              )}
+              {/* Topping up is a purchase, so the door exists only outside a
+                  shell. Inside one the honest sentence is when the free ones
+                  come back — there is nothing to buy there, and no price is
+                  named that it cannot charge. */}
+              {IN_SHELL ? (
+                <span>Free prompts renew tomorrow.</span>
+              ) : (
+                <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "promptz-door")}>
+                  Top up PromptZ
+                </button>
+              )}
             </p>
           )}
           {over && (

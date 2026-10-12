@@ -51,6 +51,12 @@ Console form; the other direction, after a reviewer finds it, is a rejection.
 
 ## Open items
 
+- **The shell's WorkZ composer has a recorder and file attachments** (see `README.md`,
+  "BLOCKING"). Every answer above — no microphone, no photos or video, audio only on a
+  Mix ConnectZ Save — is for the shell with that control hidden. If it ships, add
+  Microphone, Photos and Videos and Audio files (WorkZ attachments, optional, app
+  function, not shared) to the table and say so in `review-notes.md` and the policy.
+
 - **A saved master's link opens without signing in.** Audio players cannot send an
   Authorization header, so `/api/economy/media/<id>/<name>` is unauthenticated by design
   (`apps/economy/media.py`). The id and the filename must agree, so ids cannot be walked

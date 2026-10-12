@@ -697,7 +697,10 @@ export default function OCC() {
                     placeholder="What came back"
                     value={draft.description}
                     onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-          <MediaFields value={work} onChange={setWork} label="Attachment" />
+          {/* Text-only inside a shell: the Record / audio / video / image
+              attachment uses the mic, camera and photos, which the shell's store
+              listing and privacy policy say it never touches. */}
+          {!IN_SHELL && <MediaFields value={work} onChange={setWork} label="Attachment" />}
           <button className="neon-btn-primary !w-auto px-4" onClick={keepWork}
                   disabled={!canKeep || busy}>
             <Plus size={14} /> Keep it <span className="text-emerald-300">Free</span>

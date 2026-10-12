@@ -26,6 +26,7 @@ export const APP_PURPOSE = {
   playlistz:   { does: "Collect tracks into a playlist", words: "playlist collection album mixtape queue" },
   social:      { does: "Find and follow members",        words: "social follow friends people discover network community" },
   profilez:    { does: "Your identity and skills",       words: "profile persona skills bio avatar about me rates" },
+  voicez:      { does: "Choose how the AI sounds",      words: "voice tone style character persona coach writer occ speak wording" },
   specz:       { does: "Attach custom metadata",         words: "metadata tags notes preferences bpm specs" },
   membershipz: { does: "Plans and what each buys",       words: "membership upgrade subscription plan price tier pay premium statz" },
   adz:         { does: "Watch ads to earn",              words: "ads earn free coin spinaz reward watch" },

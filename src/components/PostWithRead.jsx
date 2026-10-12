@@ -293,7 +293,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
           for when it was given, and a failed post charges nothing. */}
       <div className="space-y-1 text-[12px]" data-testid="post-cost">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="text-mcz-ember">−{store.mb.toFixed(1)} MB
+          <span className="text-mcz-ember">−{sizeLabel(blob?.size || 0)}
             <span className="text-white/45"> of your storage{store.left != null ? ` (${store.left.toFixed(1)} MB left)` : ""}</span>
           </span>
           {cost > 0

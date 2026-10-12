@@ -7,6 +7,7 @@ import { handOff } from "../handoff.js";
 import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
+import SpeakingIn from "../components/SpeakingIn.jsx";
 import UseIn from "../components/UseIn.jsx";
 import RunPrice from "../components/RunPrice.jsx";
 import RunClock from "../components/RunClock.jsx";
@@ -263,6 +264,7 @@ export default function SentenceConnectZ() {
         ) : (
           <>
             <VoiceNote kind={current} />
+            {!IN_SHELL && current?.takes_voice && <SpeakingIn surface="writer" />}
             <textarea
               className="neon-input min-h-28 w-full"
               aria-label="What to write about"

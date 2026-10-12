@@ -19,7 +19,7 @@ const ICON_KEY = {
   battlez: "battlez.png", collabz: "collabz.png", infernoz: "infernoz.png",
   socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
   messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
-  onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png",
+  onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png", voicez: "voicez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
   merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
@@ -34,7 +34,7 @@ const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
-  profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
+  profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
@@ -231,6 +231,7 @@ const TOOLZ_MENU = {
       group: 'Your Profile',
       apps: [
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
+        { key: 'voicez', label: 'VoiceZ', color: 'magenta', desc: 'Your voices — and which one the coach, the writer and OCC speak in' },
       ]
     },
     {

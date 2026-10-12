@@ -48,10 +48,10 @@ w.prompts_used_today = 1
 w.promptz = 0
 w.save()
 
-# OCC's neutral voice, so the seeded reply below is written the way that voice
-# would write it (the default is the founder's, with an emoji on every paragraph).
+# The member keeps OCC's default voice (the founder's, with an emoji leading each
+# paragraph), so the kept reply below is written the way that voice writes.
 vp = voice_prefs_for(u)
-vp.style, vp.emoji = "standard", "off"
+vp.style, vp.emoji = "corey", "heavy"
 vp.save()
 
 # ---- Sentence ConnectZ ------------------------------------------------------
@@ -159,19 +159,17 @@ InstrumentalWork.objects.filter(pk=row.pk).update(created_at=now - timedelta(hou
 
 ASK = ("I'm releasing a five-track EP in November. How should I split the six weeks I have left "
        "between recording, mixing and promo?")
-REPLY = """Short answer: spend the first three weeks finishing what is not recorded, the next two mixing, and start promo in week three — not after the mix.
+REPLY = """🎯 Short answer: spend the first three weeks finishing what isn't recorded, the next two mixing, and start promo in week three — not after the mix.
 
-Here's the reasoning.
+🧠 Here's the reasoning. Weeks 1–3, finish tracking. Lock the arrangement of every song before you touch a fader. Mixing a song you're still changing is paying twice for the same work. If one of the five isn't working by the end of week two, cut it and release four — a tight four-song EP beats a loose five. 🔥
 
-Weeks 1–3: finish tracking. Lock the arrangement of every song before you touch a fader. Mixing a song you are still changing is paying twice for the same work. If one of the five is not working by the end of week two, cut it and release four. A tight four-song EP beats a loose five.
+🎚️ Weeks 3–5, mix one song at a time and bounce a reference of each. Listen on a phone speaker and in a car before you call anything done. If you master it yourself, do it last, from the final mixes, and check it against a song you love at the same loudness.
 
-Weeks 3–5: mix. Mix one song at a time and bounce a reference of each. Listen on a phone speaker and in a car before you call anything done. If you master it yourself, do it last, from the final mixes, and check it against a song you love at the same loudness.
+📣 Promo runs alongside from week three. Cover art, a 20-second clip per song and your release-day plan all need a finished song to point at, but none of them needs a finished mix. Waiting for the master to start promo is how EPs end up released to nobody.
 
-Promo runs alongside, from week three. Cover art, a 20-second clip for each song, and your release-day plan all need a finished song to point at, but none of them needs a finished mix. Waiting for the master to start promo is how EPs end up released to nobody.
+🛑 Week 6: nothing new. Upload, check the metadata, schedule, rest.
 
-Week 6: nothing new. Upload, check the metadata, schedule, and rest.
-
-What I'd want to know before you commit to this: how many of the five are already recorded, and who is mixing them. That changes the split more than anything else."""
+❓ What I'd want to know before you commit: how many of the five are already recorded, and who's mixing them. That changes the split more than anything else."""
 oc = OccOutput.objects.create(user=u, tab="occ", input_text=ASK, title=ASK[:160], description=REPLY, media_type="document")
 OccOutput.objects.filter(pk=oc.pk).update(created_at=now - timedelta(minutes=30))
 
