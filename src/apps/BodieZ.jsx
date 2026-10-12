@@ -41,6 +41,7 @@ import { demoSrc } from "../media.js";
 import {
   Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
+  GripVertical,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -51,6 +52,8 @@ import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routine
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
 import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
+import { applyBlockOrder, blockIds, reorderBlocks, reorderList } from "../reorder.js";
+import { useDragReorder } from "../useDragReorder.js";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 
@@ -1083,8 +1086,31 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
   );
 }
 
+// The plan as draggable blocks (a superset pair is one block). Its own component
+// because the drag hook has to run on every render, and TodayView returns early.
+function PlanBlocks({ planned, onMove, render }) {
+  const dnd = useDragReorder(onMove);
+  return blocks(planned).map((b, i) => (
+    <div key={(b.pair ? b.pair[0] : b.single).exercise_id} {...dnd.drag(i)}
+         className={`flex items-start gap-1 rounded-xl ${dnd.over === i && dnd.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
+      <GripVertical size={14} className="mt-3 shrink-0 cursor-grab text-white/25" aria-hidden="true" title="Drag to reorder" />
+      <div className="min-w-0 flex-1 space-y-2">{render(b)}</div>
+    </div>
+  ));
+}
+
 function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals }) {
   const unit = useUnit();
+  // Today's order is the member's to change without touching the routine: a
+  // taken bench or a different mood is a today problem. Kept per session on this
+  // device only (it is a convenience, not a record), and dropped with the session.
+  const orderKey = session ? `bodiez.order.${session.id}` : null;
+  const [order, setOrder] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(orderKey) || "[]"); } catch { return []; }
+  });
+  useEffect(() => {
+    try { setOrder(JSON.parse(localStorage.getItem(orderKey) || "[]")); } catch { setOrder([]); }
+  }, [orderKey]);
   const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
@@ -1120,7 +1146,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   }
 
   const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
-  const planned = routine ? asList(routine.exercises)
+  const plannedInRoutineOrder = routine ? asList(routine.exercises)
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((e) => {
@@ -1128,6 +1154,12 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       return { ...e, name: ex?.name || `Exercise #${e.exercise_id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment };
     }) : [];
+  const planned = applyBlockOrder(plannedInRoutineOrder, order);
+  const moveBlock = (from, to) => {
+    const next = blockIds(reorderBlocks(planned, from, to));
+    setOrder(next);
+    try { localStorage.setItem(orderKey, JSON.stringify(next)); } catch { /* blocked */ }
+  };
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
     (setsByExercise[s.exercise_id] ||= []).push(s);
@@ -1177,8 +1209,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
       {planned.length > 0 && (
         <div className="space-y-2">
-          <p className="re-label">Your plan</p>
-          {blocks(planned).map((b) => {
+          <p className="re-label">Your plan <span className="normal-case text-white/30">· drag to change today's order</span></p>
+          <PlanBlocks planned={planned} onMove={moveBlock} render={(b) => {
             if (b.single) {
               const p = b.single;
               return <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
@@ -1204,7 +1236,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                            tag={`${b.group}2`} isNext={started && nxt === 1} />
               </div>
             );
-          })}
+          }} />
         </div>
       )}
 
@@ -1346,6 +1378,16 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     );
   }
 
+  // Dragging moves a whole lift (all its sets) to where another sits.
+  const moveLift = (from, to) => {
+    const lifts = [];
+    sets.forEach((st) => {
+      const l = lifts[lifts.length - 1];
+      if (l && l[0].exercise_id === st.exercise_id) l.push(st); else lifts.push([st]);
+    });
+    setSets(reorderList(lifts, from, to).flat());
+  };
+  const liftDnd = useDragReorder(moveLift);
   const grouped = [];
   sets.forEach((st, i) => {
     const last = grouped[grouped.length - 1];
@@ -1376,8 +1418,12 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       </div>
 
       {grouped.map((g, gi) => (
-        <div key={gi} className="rounded-lg bg-white/5 px-3 py-2">
-          <p className="text-xs font-semibold text-white">{nameOf(g.exercise_id)}</p>
+        <div key={gi} {...liftDnd.drag(gi)}
+             className={`rounded-lg bg-white/5 px-3 py-2 ${liftDnd.over === gi && liftDnd.from !== gi ? "ring-1 ring-mcz-cyan/70" : ""}`}>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-white">
+            <GripVertical size={13} className="cursor-grab text-white/25" aria-hidden="true" title="Drag to reorder" />
+            {nameOf(g.exercise_id)}
+          </p>
           {g.rows.map((r) => (
             <div key={r.i} className="flex items-center justify-between gap-2 py-0.5 text-xs text-white/70">
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -1540,6 +1586,9 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setRows(normalize(next));
     setDirty(true);
   };
+  // Drag a row to where it should be; the arrows stay for touch screens, where
+  // drag events do not fire. `normalize` still decides what survives as a pair.
+  const dnd = useDragReorder((from, to) => { setRows(normalize(reorderList(rows, from, to))); setDirty(true); });
   const link = (i) => {
     const next = linkWithNext(rows, i);
     if (next) { setRows(next); setDirty(true); }
@@ -1593,9 +1642,12 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
         const ex = exercises.find((x) => x.id === r.exercise_id);
         const tag = badge(rows, i);
         return (
-          <div key={r.exercise_id}
+          <div key={r.exercise_id} {...dnd.drag(i)}
                className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
-                 tag ? "border-l-2 border-fuchsia-400/60" : ""}`}>
+                 tag ? "border-l-2 border-fuchsia-400/60" : ""} ${
+                 dnd.over === i && dnd.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
+            <GripVertical size={14} className="shrink-0 cursor-grab text-white/25" aria-hidden="true"
+                          title="Drag to reorder" />
             <div className="flex flex-col">
               <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
                       disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>
