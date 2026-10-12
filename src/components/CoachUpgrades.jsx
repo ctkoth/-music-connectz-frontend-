@@ -55,7 +55,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
           {Object.entries(markets.options || {}).map(([store, doms]) => (
             <label key={store} className="flex items-center gap-2 text-[11px] text-white/60">
               <span className="w-14 capitalize">{store}</span>
-              <select className="neon-input !py-0.5 text-[11px]"
+              <select aria-label={`${store} site for gear links`} className="neon-input !py-0.5 text-[11px]"
                 value={(markets.markets.find((m) => m.store === store) || {}).domain || ""}
                 onChange={(e) => toggle({ store, domain: e.target.value }, !!e.target.value)}>
                 <option value="">Off</option>
@@ -63,6 +63,9 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
               </select>
             </label>
           ))}
+          <p className="text-[11px] text-white/40">
+            Pick a country site and the gear links search that store there; Off leaves that store out. Saved as soon as you choose.
+          </p>
           {saveMsg && <p className="text-[11px] text-mcz-ember">{saveMsg}</p>}
         </div>
       ) : (

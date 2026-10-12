@@ -17,7 +17,7 @@ import CharLimit from "../CharLimit.jsx";
 import CopyLink from "../CopyLink.jsx";
 import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
@@ -523,6 +523,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   async function deleteAccount() {
     if (!window.confirm(
       "Permanently delete your account and ALL your data? This cannot be undone.\n\n" +
+      `Your posts, uploads and journal entries are deleted, and so is everything in your wallet: ` +
+      `${SPINAZ} SpinaZ, ${ENERGY} Energy, ${PROMPTZ} PromptZ, ${XP} XP and any ${MONEY} cash balance. ` +
+      `Money is not paid out or refunded when the account is deleted, so withdraw it first.\n\n` +
       "Any Premium, StatZ or auto top-up billing is cancelled at Stripe first, with no refund of the " +
       "paid period. If that can't be done, nothing is deleted.")) return;
     setDeleting(true);

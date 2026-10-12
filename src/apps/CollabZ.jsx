@@ -394,11 +394,17 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <input className="neon-input sm:col-span-2" placeholder="What are we making?"
                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <select className="neon-input" value={form.currency}
+          <select aria-label="Escrow currency" className="neon-input" value={form.currency}
                   onChange={(e) => setForm({ ...form, currency: e.target.value })}>
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
+          <p className="text-[11px] text-white/45 sm:col-span-2">
+            {form.currency === "spinaz"
+              ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash.`
+              : `Each payer's share is held in escrow in real cash ${MONEY} from their balance.`}
+            {" "}A payer can cancel for a refund of what they funded before the work is delivered, or while a dispute is open.
+          </p>
           <input className="neon-input" placeholder="Their username" data-tour="collabz-partner"
                  value={form.partner} onChange={(e) => setForm({ ...form, partner: e.target.value })} />
           <input className="neon-input" inputMode="decimal" placeholder="Your contribution is worth"

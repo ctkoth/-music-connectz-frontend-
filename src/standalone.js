@@ -14,3 +14,19 @@ export const IN_SHELL = STANDALONE !== "";
 // The IntelligenceZ app (standalone/intelligencez/) — one shell holding several
 // IntelligenceZ screens, which may link to EACH OTHER but to nothing else.
 export const IN_INTELLIGENCEZ = STANDALONE === "intelligencez";
+
+// The SkillZ app (standalone/skillz/) — the hub and the seven instrument coaches.
+// The coaches are the same screens the main site mounts (InstrumentZ → BossTake,
+// ProgressPanel, SkillZPanel), so each door in them to a screen this shell lacks has
+// to ask `shellHas`: a button onto nothing is the dead button this app keeps
+// relearning.
+export const IN_SKILLZ = STANDALONE === "skillz";
+
+// Every tab the SkillZ shell answers `mcz-goto-tab` for (standalone/skillz/Shell.jsx
+// keeps its own TABS in step with this — `skillz.test.mjs` fails if they drift).
+export const SKILLZ_TABS = ["skillz", "singz", "rapz", "guitarz", "bassz", "keyz", "violinz", "drumz"];
+
+/** Can a door to this tab be offered here? On the main site, yes (App.jsx answers
+ *  every tab); in the SkillZ shell only for a tab the shell has; in any other shell
+ *  never, because none of them mounts a coach. */
+export const shellHas = (tab) => !IN_SHELL || (IN_SKILLZ && SKILLZ_TABS.includes(tab));

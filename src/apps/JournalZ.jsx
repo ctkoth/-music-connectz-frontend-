@@ -461,12 +461,19 @@ export default function JournalZ() {
         {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+          <select aria-label="Who can read this entry" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={visibility} onChange={(e) => setVisibility(e.target.value)}>
             <option value="private">🔒 Just me</option>
             <option value="restricted">👥 Members only</option>
             <option value="public">🌍 Public</option>
           </select>
+          <span className="basis-full text-[10px] leading-relaxed text-white/35 sm:basis-auto">
+            {visibility === "private"
+              ? "Just me: only you can read this entry."
+              : visibility === "restricted"
+                ? "Members only: the members you tagged are told and can open it. It is not posted to the feed unless you Share it."
+                : "Public: the members you tagged are told and can open it. It is not posted to the feed unless you Share it."}
+          </span>
           <button className="re-btn !w-auto px-6" onClick={save} disabled={saving}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
             {saving ? " Saving…" : " Keep it"}

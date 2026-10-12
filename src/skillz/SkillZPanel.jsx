@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { XP } from "../resources.js";
 import MemberName from "../MemberName.jsx";
+import { IN_SHELL } from "../standalone.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -174,7 +175,8 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             <div key={row.username + i} className="flex items-center justify-between px-4 py-2 text-sm">
               <span className="flex items-center gap-3">
                 <span className="w-5 text-white/40">{i + 1}</span>
-                <MemberName username={row.username} bare />
+                {/* A name opens a profile and a message form, and the SkillZ app has neither. */}
+                {IN_SHELL ? <span className="font-semibold text-white/80">@{row.username}</span> : <MemberName username={row.username} bare />}
               </span>
               <span className="flex items-center gap-3 text-white/55">
                 <span>Lv {row.level}</span>

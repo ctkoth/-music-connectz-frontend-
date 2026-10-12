@@ -606,12 +606,21 @@ function PostForm() {
           <input className={`neon-input ${errors.price ? "border-mcz-pink" : ""}`} placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
           {errors.price && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.price}</p>}
         </div>
-        <select className="neon-input" value={form.visibility} onChange={set("visibility")}>
+        <select aria-label="Who can see this lesson" className="neon-input" value={form.visibility} onChange={set("visibility")}>
           <option value="public">Public — anyone</option>
           <option value="premium">Premium tier</option>
           <option value="statz">StatZ tier</option>
           <option value="private">Only me</option>
         </select>
+        <p className="text-xs text-white/40 sm:col-span-2">
+          {{
+            public: "Anyone who can open LessonZ can see this lesson.",
+            premium: "Members on Premium or StatZ can see this lesson.",
+            statz: "Only members on StatZ can see this lesson.",
+            private: "Only you can see this lesson.",
+          }[form.visibility] || ""}
+          {" "}Whoever can see it pays your price to unlock.
+        </p>
         <div>
           <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} title="The media file ID from your upload (audio/video)" />
           {errors.media_ref && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.media_ref}</p>}

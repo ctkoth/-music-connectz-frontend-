@@ -206,8 +206,9 @@ function MetZ() {
 
         {/* Time Signature */}
         <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
-          <label className="block text-sm font-semibold text-slate-300">Time Signature</label>
+          <label htmlFor="metz-timesig" className="block text-sm font-semibold text-slate-300">Time Signature</label>
           <select
+            id="metz-timesig"
             value={timeSignature}
             onChange={(e) => setTimeSignature(parseInt(e.target.value))}
             disabled={isPlaying}
@@ -218,6 +219,7 @@ function MetZ() {
             <option value={4}>4/4</option>
             <option value={6}>6/8</option>
           </select>
+          {isPlaying && <p className="mt-1 text-xs text-slate-400">Stop to change.</p>}
         </div>
 
         {/* Controls */}

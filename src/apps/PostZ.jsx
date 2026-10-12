@@ -1109,13 +1109,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
           <div className="space-y-2">
             <div className="re-label">Rate this track</div>
             <p className="text-[11px] text-white/40">
-              Anonymous, and it curates the ChartZ.{" "}
+              It curates the ChartZ. The author is told who rated their post. Private (the default) pays the standard ⚡; Public pays +25% and counts toward the public leaderboards.{" "}
               {rewardLine() && <span className="text-emerald-300">{rewardLine()}</span>}
             </p>
             <div className="flex gap-1">
               {[
-                { value: "public", label: "Public", bonus: "+1.25x", tip: "Earn bonus & appear on leaderboards" },
-                { value: "restricted", label: "Private", bonus: "1x", tip: "Only recorded for you" },
+                { value: "public", label: "Public", bonus: "+25%", tip: "Your rating earns +25% ⚡ and counts toward the public leaderboards" },
+                { value: "restricted", label: "Private", bonus: "1x", tip: "Standard ⚡ and not on the leaderboards. This is the default." },
               ].map(({ value, label, bonus, tip }) => (
                 <button
                   key={value}

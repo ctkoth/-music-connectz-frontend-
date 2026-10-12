@@ -11,6 +11,7 @@ import { VERSION, versionLabel } from "../version.js";
 // the app's half — never a made-up server version.
 export default function VersionBadge({ className = "" }) {
   const [server, setServer] = useState("");
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     let dead = false;
     api("/api/economy/version/", { auth: false })
@@ -23,8 +24,16 @@ export default function VersionBadge({ className = "" }) {
     : `App version ${VERSION.version}${VERSION.build ? `, build ${VERSION.build}` : ""}, built from commit ${VERSION.commit}${VERSION.built ? ` on ${VERSION.built}` : ""}.`;
   const title = server ? `${app} Server build: commit ${server}.` : app;
   return (
-    <span className={`font-mono text-[11px] text-white/40 ${className}`} title={title}>
-      {versionLabel()}{server && server !== "dev" ? ` · server ${server}` : ""}
+    <span className={`font-mono text-[11px] text-white/40 ${className}`}>
+      <button type="button" title={title} aria-expanded={open} onClick={() => setOpen((v) => !v)}
+              className="cursor-pointer text-left underline decoration-dotted underline-offset-2">
+        {versionLabel()}{server && server !== "dev" ? ` · server ${server}` : ""}
+      </button>
+      {open && (
+        <span className="mt-1 block max-w-xs whitespace-normal font-sans leading-snug">
+          {title} Newest? Reload the page.
+        </span>
+      )}
     </span>
   );
 }

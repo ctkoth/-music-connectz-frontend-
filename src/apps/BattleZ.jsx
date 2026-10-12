@@ -665,7 +665,7 @@ export default function BattleZ() {
             <div className="grid gap-2 sm:grid-cols-3">
               <input className="neon-input !py-2 text-xs" placeholder="Opponent username" data-tour="battlez-opponent"
                      value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
-              <select className="neon-input !py-2 text-xs" value={duel.kind}
+              <select aria-label="Battle type" className="neon-input !py-2 text-xs" value={duel.kind}
                       onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>
                 <option value="1v1">1v1 ⚔️</option>
                 <option value="freestyle">Freestyle 🎤</option>
@@ -679,6 +679,10 @@ export default function BattleZ() {
                     disabled={busy || !duel.opponent.trim()}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
             </button>
+            <p className="text-[10px] text-white/35">
+              1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
+              and wagering whichever you pick, and the label is what the opponent sees.
+            </p>
             <p className="text-[10px] text-white/35">
               Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.

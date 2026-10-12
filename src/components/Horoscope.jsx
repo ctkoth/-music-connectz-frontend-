@@ -95,13 +95,16 @@ export function HoroscopeLayer() {
             <StatzSample what="The advanced horoscope" />
           </div>
         )}
+        <p className="mt-3 text-[11px] text-white/40">
+          For fun. A reading never changes any rating, median or skill level. Your sign does decide which action a ZodiacZ bonus nudges you toward.
+        </p>
         {d?.about && <p className="mt-3 text-sm italic leading-relaxed text-white/75">{d.about}</p>}
 
         {/* Compatibility — v2.2's element read on two SIGNS. It is never shown
             on a person or used to rank anybody; it is a horoscope answer. */}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <span className="text-white/50">How {sign} gets on with</span>
-          <select className="neon-input !w-auto !py-1 text-xs" value={withSign} onChange={(e) => setWithSign(e.target.value)}>
+          <select aria-label="Compare with another sign" className="neon-input !w-auto !py-1 text-xs" value={withSign} onChange={(e) => setWithSign(e.target.value)}>
             <option value="">— pick a sign —</option>
             {["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"].map((x) => <option key={x}>{x}</option>)}
           </select>

@@ -19,7 +19,8 @@ import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
 import SpeakingIn from "../components/SpeakingIn.jsx";
-import { IN_SHELL as IN_SHELL_COACH } from "../standalone.js";
+import { IN_SHELL as IN_SHELL_COACH, IN_SKILLZ } from "../standalone.js";
+import ReportTake from "../components/ReportTake.jsx";
 import { listenersLine } from "../coachUpgrades.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { mediaError, bestMime, sizeLabel } from "../recorder.js";
@@ -95,6 +96,18 @@ function Cost({ price, trial }) {
     );
   }
   const fromPromptz = price.promptz >= price.cost_cents;
+  // In a shell nothing is for sale, so "balance" would be a door to nowhere: say
+  // what is true — the free prompts renew tomorrow — and the price of a take from
+  // PromptZ the member already holds, and nothing else.
+  if (IN_SHELL_COACH) {
+    return (
+      <span className="text-[11px] text-mcz-ember">
+        {price.promptz >= price.cost_cents
+          ? <>−{price.cost_cents} 🏷️ <span className="text-white/35">from the {price.promptz} PromptZ you hold — today's free prompts are used and renew tomorrow</span></>
+          : <><span className="text-white/55">Today's free prompts are used. They renew tomorrow.</span></>}
+      </span>
+    );
+  }
   return (
     <span className="text-[11px] text-mcz-ember">
       −{price.cost_cents} 🏷️{" "}
@@ -911,6 +924,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </select>
         </label>
       </div>
+      <p className="text-[11px] leading-relaxed text-white/45">
+        These tell the coach what to hold your take against. Genre{price?.style_label ? ` and ${price.style_label.toLowerCase()}` : ""} set
+        what Style Match is measured against;{price?.range_label ? ` ${price.range_label.toLowerCase()} is the range it checks you aimed at;` : ""} Difficulty sets
+        how the 1-10 scale and your next goal are pitched. They change how the take is judged, not whether it is scored.
+      </p>
 
       {/* The server says whether this coach has words to read. Rendering it
           off a hardcoded ["singz","rapz"] would be the two-door TrialTake
@@ -984,7 +1002,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         {/* When the member's own tier is what's holding the ceiling down, say
             what a tier up would actually buy here — the same "frequency, not
             access" upsell the allowance ladder makes, about size instead. */}
-        {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
+        {!IN_SHELL_COACH && price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
           <p className="mt-1 text-[11px] text-white/35">
             {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
             <span className="text-mcz-gold">{price.coach_max_mb}MB</span> —{" "}
@@ -1251,7 +1269,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               A take the coach can't read isn't charged.
             </p>
           )}
-          {!trial && <AllowanceLadder price={price} />}
+          {!trial && !IN_SHELL_COACH && <AllowanceLadder price={price} />}
         </div>
       )}
 
@@ -1321,7 +1339,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         );
       })()}
 
-      {showUploadLimitPrompt && !trial && price?.max_mb_is_tier_limit && (
+      {showUploadLimitPrompt && !trial && !IN_SHELL_COACH && price?.max_mb_is_tier_limit && (
         <TierUpgradePrompt
           limit="upload_mb"
           current={0}
@@ -1423,10 +1441,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
-          {!trial && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
-          <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />
+          {!trial && !IN_SHELL_COACH && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
+          {!IN_SHELL_COACH && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
-          {!trial && <CoachVoicePlayer result={result} />}
+          {!trial && !IN_SHELL_COACH && <CoachVoicePlayer result={result} />}
 
           {/* The SONG, kept out of the performance number entirely — its own
               card, its own label, its own score, right beside the one it is
@@ -1570,9 +1588,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </p>
           )}
 
-          {!trial && (
+          {!trial && !IN_SHELL_COACH && (
             <CoachUpgrades appKey={appKey} price={price} takeScoreId={result.take_score_id} />
           )}
+          {/* Play requires an in-app way to flag AI output. The SkillZ app has it on
+              every score; the main site's coach does not offer it here. */}
+          {IN_SKILLZ && <ReportTake takeId={result.take_score_id} appKey={appKey} />}
 
           {!trial && (
             <p className="text-[11px]">

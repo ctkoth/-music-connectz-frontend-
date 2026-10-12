@@ -298,10 +298,17 @@ function Detail({ id, onBack, onChanged }) {
 
       {pl.mine && (
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
+          <select aria-label="Who can open this playlist" className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
                   onChange={(e) => setVisibility(e.target.value)}>
             {VISIBILITIES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
+          <span className="text-[11px] text-white/40">
+            {{
+              public: "Anyone with the link can open it.",
+              restricted: "Any signed-in member can open it.",
+              private: "Only you and the collaborators you invited can open it.",
+            }[pl.visibility] || ""}
+          </span>
           {pl.visibility === "public" && (
             <button className="re-btn !w-auto px-3 text-xs" onClick={share}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Link copied" : "Copy share link"}

@@ -219,10 +219,15 @@ function SellForm({ onListed }) {
         <input className={input} placeholder="Price in $ (1–500)" inputMode="decimal" required value={f.price}
                onChange={(e) => setF({ ...f, price: e.target.value.replace(/[^0-9.]/g, "") })} />
       </div>
-      <select className={input} value={f.license_type} onChange={set("license_type")}>
+      <select aria-label="License type" className={input} value={f.license_type} onChange={set("license_type")}>
         <option value="nonexclusive">{LICENSE.nonexclusive}</option>
         <option value="exclusive">{LICENSE.exclusive}</option>
       </select>
+      <p className="text-xs text-white/45">
+        {f.license_type === "exclusive"
+          ? "After one artist buys it, nobody else can: further purchases are refused. The beat stays on your page, marked as sold."
+          : "Any number of artists can each buy a license, once each."}
+      </p>
       <textarea className={input} rows={2} placeholder="What's it for? (optional)" value={f.description} onChange={set("description")} />
       <label className="block text-xs text-white/55">The beat itself — buyers hear this before they pay
         <input type="file" accept="audio/*" className="mt-1 block text-white/70" onChange={(e) => setFile(e.target.files?.[0] || null)} />

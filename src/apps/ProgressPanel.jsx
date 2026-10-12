@@ -21,6 +21,7 @@ import { AlertTriangle, ArrowRight, Loader2, TrendingDown, TrendingUp } from "lu
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { shellHas } from "../standalone.js";
 
 /** A finding that may legitimately have no number.
  *  `—` and the server's sentence, never a 0 standing in for "not measured". */
@@ -105,7 +106,7 @@ export default function ProgressPanel({ appKey }) {
       {/* The only one of the three with a door: no goal set is fixable from
           here, and a score that says "—" without saying how to fill it is the
           read-only surface the cross-pollination rule calls unfinished. */}
-      {hist.goal_match?.open_in?.tab && (
+      {hist.goal_match?.open_in?.tab && shellHas(hist.goal_match.open_in.tab) && (
         <button onClick={() => goToSpot(hist.goal_match.open_in.tab, hist.goal_match.open_in.target)}
                 className="text-[12px] text-mcz-cyan hover:underline">
           Set a goal range →
@@ -236,7 +237,9 @@ export default function ProgressPanel({ appKey }) {
                 {t.range_class && <span className="text-white/35">{t.range_class}</span>}
                 {/* A score is never a dead end either — it opens the thing it
                     scored. */}
-                {t.open_in?.tab && (
+                {/* Only a door this build has: a take scored from a post or a diary
+                    page names PostZ or JournalZ, which the SkillZ app does not mount. */}
+                {t.open_in?.tab && shellHas(t.open_in.tab) && (
                   <button onClick={() => goToSpot(t.open_in.tab, t.open_in.target)}
                           className="ml-auto text-mcz-cyan hover:underline">open</button>
                 )}
