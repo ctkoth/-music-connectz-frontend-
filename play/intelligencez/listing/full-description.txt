@@ -1,0 +1,19 @@
+IntelligenceZ puts four tools in one app and tells you what each one costs before you press anything.
+
+Write. Resumes, cover letters, lyrics, poems, bios, Instagram captions, posts and essays. A resume is written from only what you give it. Anything you leave out becomes a [BRACKETED] blank — it never invents a job. Each kind says whose voice it's written in before you press Write.
+
+Chat. Talk to Claude about what you're building. You pick the engine, and its price sits beside Send. A reply you don't keep isn't saved by us.
+
+Compose. MIDI loops by genre, instruments, tempo and key. Four or eight bars, up to six instruments. Preview the notes in the app, then download the .mid and load it into your DAW. The preview uses simple built-in sounds, so the real instruments are yours to choose.
+
+Master. Pick a finished song and master it on your phone. It measures loudness, true peak and tone, then lists every move it makes beside the measurement that caused it. You hear the master against your original at matched loudness, so louder doesn't win by default. Export a 24-bit or 16-bit WAV. Mastering is free, and the song never leaves your device unless you press Save. It isn't an AI. It's measured signal processing, and the screen says so.
+
+What it costs. Write, Chat and Compose run on 3 free prompts a day, shared across all three. A run that fails or comes back empty isn't charged. Some Chat engines cost more than a free prompt covers — that price is on the button before you send. Nothing in this app sells anything. When your free prompts are spent they come back tomorrow, unless you already hold PromptZ from Music ConnectZ, which this app will spend and price first. The brief for Write can run to 3,000 characters. Saved masters count against 500 MB of storage.
+
+Where your words go. What you type in Write and Compose is sent to Google's Gemini. Chat goes to Anthropic's Claude. We don't add your name, username or email to what's sent, but anything you type goes with it. Mastering stays on your device. All of it is spelled out in the app under "What leaves your device," and in the privacy policy.
+
+What it can't do. The AI can be wrong, and it can be wrong with confidence. Read what it writes before you use it, and use Report this output if something is harmful. It doesn't make images or video. Mastering takes up to 15 minutes of audio, and it's a pass over a finished mix, not a fix for a bad one.
+
+One account. I built Music ConnectZ for people who make things and want straight numbers about them. This is the same account and the same data with the AI tools pulled out on their own. Delete the account from inside the app and your pieces, kept replies and saved masters go with it, audio files included.
+
+Whatever I add here gets its price on the button first. That's the rule I build by.

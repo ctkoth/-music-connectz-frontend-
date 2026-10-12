@@ -73,6 +73,8 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
@@ -532,8 +534,13 @@ const TABS = [
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  // The hub: every IntelligenceZ app, what each costs before it is opened, and
+  // the newest thing the member made in any of them. It is also the Home of the
+  // standalone IntelligenceZ app (standalone/intelligencez/).
+  { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
+  { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -869,6 +876,11 @@ const TAB_ABOUT = {
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
+  sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
+  instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
+  occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 

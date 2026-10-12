@@ -37,7 +37,14 @@ export const APP_PURPOSE = {
   rapz:        { does: "Record rap and get scored",      words: "rap bars flow record freestyle score take practice" },
   messagez:    { does: "Direct messages",                words: "message dm chat inbox talk write contact" },
   keyconnectz: { does: "Translate and read aloud",       words: "translate language keyboard speak voice transcribe foreign" },
-  occ:         { does: "Build things with AI",           words: "ai assistant chat build code project agent help" },
+  occ:         { does: "Chat with Claude, keep the answers", words: "ai claude chat assistant ask code build project agent help workz engine" },
+  // The IntelligenceZ apps. Missing from this map, "write a resume", "master my
+  // song" and "make a beat" found nothing — every one of them only worked if you
+  // already knew the invented name.
+  intelligencez:        { does: "Every AI app and what each costs", words: "ai intelligence hub apps write chat compose master prompts cost price free allowance recent" },
+  sentenceconnectz:     { does: "Write a resume, lyrics or a poem", words: "write writer resume cv cover letter lyrics poem bio caption essay post contract draft text words" },
+  instrumentalconnectz: { does: "Compose a MIDI loop",              words: "midi loop beat instrumental compose bpm key chords bass drums melody generate" },
+  mixconnectz:          { does: "Master a finished song",           words: "master mastering mix loudness lufs limiter eq compress true peak song track wav streaming normalize louder" },
   logz:        { does: "Where your balances moved",      words: "history ledger log transactions where did my money went activity" },
   journalz:    { does: "Private diary",                  words: "journal diary write notes private entries" },
   habitz:      { does: "Track habits and patterns",      words: "habit track streak routine daily notice pattern" },

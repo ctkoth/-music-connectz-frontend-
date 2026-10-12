@@ -15,6 +15,7 @@ import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import PostWithRead from "../components/PostWithRead.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { mediaError, bestMime, sizeLabel } from "../recorder.js";
 
@@ -1410,6 +1411,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
           {!trial && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
+          <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />
 
           {!trial && <CoachVoicePlayer result={result} />}
 

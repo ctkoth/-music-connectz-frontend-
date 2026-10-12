@@ -23,7 +23,7 @@ const ICON_KEY = {
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
   merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
-  mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
+  intelligencez: "intelligencez.png", mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
@@ -36,7 +36,7 @@ const EMOJI = {
   profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
-  mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
+  intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
   mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
 };
@@ -61,6 +61,17 @@ const flattenApps = (categoryData) => {
     }
   });
   return result;
+};
+
+// "N ready · M coming soon" — what a group actually holds. An app listed twice
+// (one app, several doors) counts once, and only a built one counts as ready.
+const countLine = (apps, unit = false) => {
+  const seen = new Map();
+  apps.forEach((a) => { if (!seen.has(a.key) || !a.soon) seen.set(a.key, !!a.soon); });
+  const soon = [...seen.values()].filter(Boolean).length;
+  const ready = seen.size - soon;
+  const noun = unit ? (ready === 1 ? 'app' : 'apps') : '';
+  return `${ready}${noun ? ` ${noun}` : ''} ready${soon ? ` · ${soon} coming soon` : ''}`;
 };
 
 // App categories and configuration
@@ -183,22 +194,27 @@ const TOOLZ_MENU = {
   ],
   'IntelligenceZ': [
     {
-      // Not built yet: listed so the suite is visible, never as a door that
-      // opens onto nothing. `soon` replaces the Open buttons with a label.
+      // `soon` replaces the Open buttons with a label: an app is listed when it
+      // is not built so the suite is visible, never as a door that opens onto
+      // nothing. Mix ConnectZ was here as `soon` until its screen existed; it
+      // does now, so it is a door like the rest.
       group: 'AI Creation',
       apps: [
-        { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'AI mixing & mastering for your songs', soon: true },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
+        // The hub reads what each app costs, and whether it is switched on,
+        // from the server — so it comes first, where the question starts.
+        { key: 'intelligencez', label: 'IntelligenceZ', color: 'magenta', desc: 'Every IntelligenceZ app in one place — what each costs before you open it, and your newest pieces from all of them' },
+        { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Resumes, cover letters, lyrics, poems, bios, posts & essays' },
+        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI loops by genre, instruments, BPM & key — StatZ searches keys by mood' },
+        { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
-        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI by genre, instruments, BPM & key — StatZ searches keys by mood' },
-        { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Lyrics, captions, posts, essays & agreements' },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
       ]
     },
     {
       group: 'AI Coaching',
       apps: [
-        { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — AI that builds with you' },
+        { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — chat with Claude about what you are building; you pick the engine and see its price first' },
         { key: 'bosttake', tab: 'singz', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes to a coach' },
       ]
     },
@@ -351,8 +367,10 @@ export default function ToolZMenu() {
         </div>
 
         <div className="apps-detail-grid">
-          {apps.map((app) => (
-            <div key={app.key} className={`app-detail-card ${app.color}`}>
+          {/* Built apps first: a "coming soon" card above a working one is a
+              door that opens onto nothing getting the best seat in the house. */}
+          {[...apps.filter((a) => !a.soon), ...apps.filter((a) => a.soon)].map((app) => (
+            <div key={app.key} className={`app-detail-card ${app.color}${app.soon ? ' soon' : ''}`}>
               <div className="app-detail-header">
                 <div className="app-icon-small">
                   {ICON_KEY[app.key] ? (
@@ -410,15 +428,14 @@ export default function ToolZMenu() {
           ))}
         </div>
 
-        {/* Quick Stats */}
+        {/* Counts only what is built. "7 Tools" over a group with two doors
+            that open onto nothing is a number that flatters the group, and the
+            ⚡ that decorated "Ready to use" is the Energy resource — it is
+            not a lightning bolt. */}
         <div className="toolz-stats">
           <div className="stat-item">
             <span className="stat-icon">📱</span>
-            <span>{apps.length} Tools</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">⚡</span>
-            <span>Ready to use</span>
+            <span>{countLine(apps)}</span>
           </div>
         </div>
       </div>
@@ -479,7 +496,7 @@ export default function ToolZMenu() {
         </div>
         <div className="stat-item">
           <span className="stat-icon">👥</span>
-          <span>{new Set(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c).map((a) => a.key))).size} Apps</span>
+          <span>{countLine(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c)), true)}</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">⭐</span>

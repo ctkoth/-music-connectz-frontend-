@@ -349,6 +349,14 @@ export default function MixConnectZ() {
   }
 
   const ab = useAB(song?.channels, result?.channels, song?.sampleRate, result?.before?.lufs, result?.after?.lufs);
+  // In the IntelligenceZ app the screens stay mounted when a member moves to
+  // another one, so the A/B preview would keep playing underneath Chat. The shell
+  // says when this screen is left; nothing else sends it.
+  useEffect(() => {
+    const leave = (e) => { if (e.detail === "mixconnectz") ab.stop(); };
+    window.addEventListener("mcz-shell-leave", leave);
+    return () => window.removeEventListener("mcz-shell-leave", leave);
+  });
   const styleOpts = Object.entries(STYLES).map(([key, v]) => ({ key, label: v.label, desc: v.desc }));
   const targetOpts = [
     ...Object.entries(TARGETS).map(([key, v]) => ({ key, label: `${v.label} · ${v.lufs} LUFS`, desc: v.desc })),

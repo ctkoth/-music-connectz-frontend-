@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import CoachReadCard from "../components/CoachReadCard.jsx";
 import MentionText from "../MentionParser.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
 
@@ -29,14 +31,23 @@ export default function PublicPost() {
   usePageTitle(post?.title && `${post.title} — ${post.author}`,
                post?.description || (post?.author ? `A track by ${post.author}.` : ""));
   const [err, setErr] = useState("");
+  const { user, loading } = useAuth();
+  // `?stranger=1` is "open as a stranger sees it": the page is fetched with no
+  // credentials, so the server answers exactly what it answers a visitor from
+  // Reddit — the preview an author needs before pasting the link.
+  const asStranger = new URLSearchParams(window.location.search).has("stranger");
+  const signedIn = !!user && !asStranger;
 
   useEffect(() => {
-    // auth:false → works logged-out. A restricted or private post answers 404
-    // here on purpose, so this page can't confirm one exists.
-    api(`/api/postz/${id}/`, { auth: false })
+    if (loading) return;
+    // A signed-in member sends their token, so the coach's read the author kept
+    // for members is shown to them and locked for everyone else. The server
+    // decides which; this only says who is asking. A restricted or private post
+    // answers 404 here on purpose, so this page can't confirm one exists.
+    api(`/api/postz/${id}/`, { auth: signedIn })
       .then(setPost)
       .catch((e) => setErr(e.message || "That post isn't available."));
-  }, [id]);
+  }, [id, loading, signedIn]);
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
@@ -107,6 +118,16 @@ export default function PublicPost() {
           )}
 
           <PostEmbeds post={post} canEdit={false} />
+
+          {/* The coach's read, on the same page as the song — in full when a
+              stranger may see it, a locked card with the way in when it is kept
+              for members, and nothing at all when it is the author's alone. */}
+          {asStranger && (
+            <p className="mt-3 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px] text-white/55">
+              You're seeing this page the way a stranger does — no account.
+            </p>
+          )}
+          <CoachReadCard coach={post.coach} signedIn={signedIn} author={post.author} />
 
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>

@@ -57,6 +57,7 @@ import { P } from "../phrases.js";
 import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import ShareSheet from "../components/ShareSheet.jsx";
+import CoachReadCard, { CoachReadSetting } from "../components/CoachReadCard.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { trackListening } from "../listen.js";
@@ -1088,33 +1089,18 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <OpenIn post={post} busy={!!opening} onGo={openIn} />
       )}
 
-      {/* What the coach said, kept on the post that was coached. A score that
-          lived for one screenful and then vanished sent people back through
-          the same prompt to read it again. */}
-      {post.score?.verdict && (
-        <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
-          <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
-            👑 Coached in {(post.score.app_key || "singz").toUpperCase()} ·{" "}
-            <span className="text-white">{post.score.score}/10</span>
-          </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-white/70">{post.score.verdict}</p>
-          {post.score.next_drill && (
-            <p className="mt-1 text-[11px] text-white/45">
-              Next drill · {post.score.next_drill}
-            </p>
-          )}
-          {/* This score lives in that instrument's own progress history too —
-              same rule ProgressPanel's "Recent takes" already follows for a
-              take opened the other direction, applied here for a post opened
-              first. */}
-          <button
-            onClick={() => goToSpot(post.score.app_key || "singz", `${post.score.app_key || "singz"}-progress`)}
-            className="mt-2 text-[11px] font-semibold text-mcz-cyan hover:underline"
-          >
-            Open in {(post.score.app_key || "singz").toUpperCase()} →
-          </button>
-        </div>
-      )}
+      {/* What the coach said, kept on the post that was coached — as much of it
+          as THIS viewer may see. `post.coach` is the server's answer for the
+          person looking (none / locked / shown); the card renders it and decides
+          nothing. Folded to a headline on the feed so a column of coached posts
+          is not a wall of text; the score's scope stays visible when folded.
+          It lives in that instrument's own progress history too, so a member
+          can open the coach that gave it. */}
+      <CoachReadCard coach={post.coach} compact signedIn author={post.author}
+                     onOpen={(app, target) => goToSpot(app, target)} />
+      {/* The author's half: who sees the read, with the result of each choice
+          written under it before it is pressed. */}
+      <CoachReadSetting post={post} onChanged={onChanged} onFlash={onFlash} />
 
       <div className="mt-3 border-t border-white/[0.06] pt-3">
         {canRate && !skipped ? (

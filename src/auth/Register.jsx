@@ -12,6 +12,9 @@ import HabitOnboarding from "../components/HabitOnboarding.jsx";
 // build time. It shares this screen with the main site and is not the music
 // platform, so the parts of signup that sell the music platform stay off it.
 const STANDALONE = !!import.meta.env.VITE_STANDALONE;
+// What each shell calls itself in the one line that says the account is shared.
+// It said "BodieZ" in every shell, which was wrong the day a second one shipped.
+const STANDALONE_NAME = { bodiez: "BodieZ", sentencez: "Sentence ConnectZ", intelligencez: "IntelligenceZ" };
 import { track } from "../track.js";
 import { api } from "../api.js";
 import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
@@ -147,7 +150,7 @@ export default function Register() {
     <>
     <AuthShell title="Create your account"
                subtitle={STANDALONE
-                 ? "One account for BodieZ and Music ConnectZ — the same sign-in works in both."
+                 ? `One account for ${STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "this app"} and Music ConnectZ — the same sign-in works in both.`
                  : "Connect & elevate — post your work, find your people, get real feedback, and get paid for it."}>
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">

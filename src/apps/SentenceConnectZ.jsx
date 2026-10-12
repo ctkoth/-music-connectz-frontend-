@@ -3,10 +3,15 @@ import { playSound } from "../sound.js";
 import { Copy, Download, Flag, Loader2, PenLine } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
+import { handOff } from "../handoff.js";
+import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
-import { PROMPTZ } from "../resources.js";
+import { IN_SHELL } from "../standalone.js";
 import UseIn from "../components/UseIn.jsx";
-import { nextTierBrief, pickKind, visibleKinds } from "../sentencez.js";
+import RunPrice from "../components/RunPrice.jsx";
+import RunClock from "../components/RunClock.jsx";
+import { budgetOf, runTimeoutMs, shellRoyaltyLine, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
+import { briefCut, cutNote, nextTierBrief, pickKind, visibleKinds } from "../sentencez.js";
 
 // Sentence ConnectZ — the IntelligenceZ writer. Everything it shows about
 // price, kinds, whose voice a kind is written in, how much a brief may hold, and
@@ -14,71 +19,61 @@ import { nextTierBrief, pickKind, visibleKinds } from "../sentencez.js";
 // decides none of it.
 //
 // It is also the whole of the standalone Sentence ConnectZ app
-// (standalone/sentencez/, VITE_STANDALONE="sentencez"). There it has no ProfileZ,
-// PostZ, DistributeZ or MembershipZ to hand a member to, so every control that
-// would go to one is simply not rendered — a door to a screen that is not there
-// is the dead button this app already knows too well — and nothing offers a
-// purchase, which Play's billing rules would not allow from inside the app.
-
-const STANDALONE = import.meta.env.VITE_STANDALONE === "sentencez";
-
-function Price({ s }) {
-  if (!s) return null;
-  if (s.free_today) {
-    return (
-      <span className="text-[11px] text-emerald-300">
-        Free today <span className="text-white/45">— uses 1 of the {s.daily_remaining} {PROMPTZ} you have left</span>
-      </span>
-    );
-  }
-  if (STANDALONE && !s.can_run) {
-    // Nothing to buy here, so no price to state — only the honest fact. The free
-    // runs renew every day, which is the whole of what a member can do about it.
-    return <span className="text-[11px] text-white/55">No free writes left today. They renew tomorrow.</span>;
-  }
-  return (
-    <span className="text-[11px] text-mcz-ember">
-      −{s.cost_cents} {PROMPTZ} <span className="text-white/35">— no free prompts left today</span>
-    </span>
-  );
-}
+// (standalone/sentencez/, VITE_STANDALONE="sentencez") and a screen of the
+// IntelligenceZ app. In any shell (IN_SHELL) it has no ProfileZ, PostZ,
+// DistributeZ or MembershipZ to hand a member to, so every control that would go
+// to one is simply not rendered — a door to a screen that is not there is the
+// dead button this app already knows too well — and nothing offers a purchase,
+// which Play's billing rules would not allow from inside the app.
 
 // The brief is what the writer works FROM, so its limit is its own ladder and
 // not the 400 a post gets (see catalog.WRITER_BRIEF_CHARS). The count is stated
 // while somebody types; what the next tier takes is the server's number, and is
 // only offered where there is a tier to move to.
-function BriefCount({ s, value }) {
+function BriefCount({ s, value, cut = 0 }) {
   if (!s || s.brief_limit == null) return null;
   const used = (value || "").length;
   if (s.brief_unlimited) {
     return <p className="text-[11px] text-white/35">{used.toLocaleString()} characters · no limit on your plan</p>;
   }
   const near = used >= s.brief_limit * 0.9;
-  const next = STANDALONE ? null : nextTierBrief(s);
+  const next = IN_SHELL ? null : nextTierBrief(s);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-      <span className={used >= s.brief_limit ? "text-mcz-ember" : near ? "text-mcz-gold" : "text-white/35"}>
-        {used.toLocaleString()} / {s.brief_limit.toLocaleString()}
-        {used >= s.brief_limit && " · limit reached"}
-      </span>
-      {next && near && (
-        <span className="text-mcz-cyan">
-          {next.label} takes {next.chars == null ? "no limit" : next.chars.toLocaleString()}{" "}
-          <button className="font-semibold underline" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Upgrade</button>
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        <span className={used >= s.brief_limit ? "text-mcz-ember" : near ? "text-mcz-gold" : "text-white/35"}>
+          {used.toLocaleString()} / {s.brief_limit.toLocaleString()}
+          {used >= s.brief_limit && " · limit reached"}
         </span>
-      )}
+        {next && near && (
+          <span className="text-mcz-cyan">
+            {next.label} takes {next.chars == null ? "no limit" : next.chars.toLocaleString()}{" "}
+            <button className="font-semibold underline" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Upgrade</button>
+          </span>
+        )}
+      </div>
+      {/* A brief cut to the limit says how much, rather than quietly being shorter. */}
+      {cut > 0 && <p role="status" className="text-[11px] text-mcz-ember">{cutNote(cut, s.brief_limit)}</p>}
     </div>
   );
 }
 
 // Says whose voice a kind is written in BEFORE it is written, because the same
 // button produces a resume in nobody's style and a lyric in K-Oth's.
+//
+// The server's own `voice_note` is the sentence when it sends one — it is the
+// side that knows what the prompt asks for. The fallback below is what the prompt
+// does today (every heading and paragraph opens with an emoji, Music ConnectZ is
+// the recurring example, APA 7 from only the sources listed with the rest marked
+// [CITATION NEEDED]), for an API that does not serve it yet.
 function VoiceNote({ kind }) {
   if (!kind) return null;
-  const text = kind.voice === "koth"
+  const text = typeof kind.voice_note === "string" && kind.voice_note.trim()
+    ? kind.voice_note
+    : kind.voice === "koth"
     ? "Written in K-Oth's voice."
     : kind.voice === "academic"
-      ? "Written in K-Oth's academic register — APA 7, and it cites only the sources you list."
+      ? "Written in K-Oth's academic register: every heading and paragraph opens with an emoji, Music ConnectZ is the recurring example, and it cites in APA 7 only the sources you list — anything else is marked [CITATION NEEDED]."
       : kind.invents_nothing
         ? "Written plainly from only what you give it. Anything you leave out becomes a [BRACKETED] blank — it adds nothing you did not say."
         : "Written plainly, to what you ask for.";
@@ -105,7 +100,7 @@ function ReportOutput({ work }) {
     setErr("");
     try {
       await api("/api/economy/report/", { method: "POST", body: { item: `sentence:${work.id}`, reason, note } });
-      setDone("Reported. The owner will see it.");
+      setDone("Reported. It's in the owner's queue.");
     } catch (e) { setErr(e.message || "That didn't send."); }
   };
   return (
@@ -140,9 +135,11 @@ function download(name, text) {
 }
 
 export default function SentenceConnectZ() {
+  const cl = useCharLimit();
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
-  const [kind, setKind] = useState(STANDALONE ? "resume" : "lyrics");
+  const [cutBy, setCutBy] = useState(0);
+  const [kind, setKind] = useState(IN_SHELL ? "resume" : "lyrics");
   const [topic, setTopic] = useState("");
   const [genre, setGenre] = useState("");
   const [majority, setMajority] = useState(2);
@@ -157,7 +154,7 @@ export default function SentenceConnectZ() {
   const load = () => api("/api/economy/sentencez/").then(setS).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
-  const kinds = visibleKinds(s?.kinds || [], STANDALONE);
+  const kinds = visibleKinds(s?.kinds || [], IN_SHELL);
   // Land on something the member can use. The standalone drops the persona-gated
   // agreements entirely (there is no ProfileZ to add the persona in), and an older
   // API may not know a kind this build asks for first.
@@ -165,12 +162,18 @@ export default function SentenceConnectZ() {
     if (kinds.length && !kinds.some((k) => k.key === kind)) setKind(pickKind(kinds, kind));
   }, [s]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const open = (w) => { setWork(w); setDraft(w.text); setRoyalty({ royalty_pct: s?.royalty_pct ?? 10, kept_share: 1 }); };
+  // The royalty is the server's number — on the piece when it sends one, else the
+  // screen's GET. Never a figure typed here: with neither, no share is stated.
+  const open = (w) => {
+    setWork(w); setDraft(w.text);
+    const pct = w.royalty_pct ?? s?.royalty_pct;
+    setRoyalty(pct == null ? null : { royalty_pct: pct, kept_share: 1 });
+  };
 
   useEffect(() => {
     // The royalty is for taking a piece into DistributeZ, CollabZ or BattleZ; the
     // standalone has none of them, so it neither asks nor states one.
-    if (!work || STANDALONE) return undefined;
+    if (!work || IN_SHELL) return undefined;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       api(`/api/economy/sentencez/${work.id}/royalty/`, { method: "POST", body: { text: draft } })
@@ -181,30 +184,46 @@ export default function SentenceConnectZ() {
 
   async function write() {
     setErr(""); setBusy(true);
+    const body = { kind, topic, genre };
+    if (kind === "lyrics") Object.assign(body, { majority, minority });
+    let w;
     try {
-      const body = { kind, topic, genre };
-      if (kind === "lyrics") Object.assign(body, { majority, minority });
-      const w = await api("/api/economy/sentencez/", { method: "POST", body });
-      playSound("build_done");
-      open(w);
-      load();
+      // The wait has to outlast the server's: api.js stops at 30s, a write takes
+      // up to a minute or more, and the server goes on to charge and save a piece
+      // the browser has already given up on.
+      w = await api("/api/economy/sentencez/", { method: "POST", body, timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("build_fail");
-      setErr(e.message);
-    } finally {
+      // Silence is not "nothing was charged": the write may have finished.
+      if (unknownOutcome(e)) { load(); setErr(unknownOutcomeNote(e, "Your recent pieces")); }
+      else { if (e.status === 402) load(); setErr(e.message); }
       setBusy(false);
+      return;
     }
+    playSound("build_done");
+    open(w);
+    load();
+    setBusy(false);
   }
 
   const current = kinds.find((k) => k.key === kind);
   const locked = current && current.allowed === false;
   const max = s?.rhyme_max ?? 4;
   const limited = s && s.brief_limit != null && !s.brief_unlimited;
-  const clamp = (v) => (limited ? v.slice(0, s.brief_limit) : v);
-  // The royalty line is about taking a piece to the music platform, so the
-  // standalone says it only where a member could plausibly do that.
-  const royaltyLine = s?.royalty_rule && (!STANDALONE || kind === "lyrics")
-    ? (STANDALONE ? `If you later take this lyric to Music ConnectZ: ${s.royalty_rule}` : s.royalty_rule) : "";
+  // A brief held to the limit says how much was left off. The textarea takes the
+  // whole paste (no maxLength, which cut it before any handler could see it) and
+  // this is where it is trimmed.
+  const takeBrief = (v) => {
+    const { kept, cut } = limited ? briefCut(v, s.brief_limit) : { kept: v, cut: 0 };
+    setTopic(kept);
+    setCutBy(cut);
+  };
+  // The royalty line is about taking a piece to the music platform, so a shell
+  // says it only where a member could plausibly do that.
+  const royaltyLine = s?.royalty_rule && (!IN_SHELL || kind === "lyrics")
+    ? (IN_SHELL ? shellRoyaltyLine("lyric", s.royalty_rule) : s.royalty_rule) : "";
+  // What a PostZ post holds, said next to the button that sends a draft there.
+  const postTooLong = !!work && cl.ready && !cl.unlimited && draft.length > cl.limit;
 
   return (
     <div className="space-y-5">
@@ -247,12 +266,11 @@ export default function SentenceConnectZ() {
             <textarea
               className="neon-input min-h-28 w-full"
               aria-label="What to write about"
-              maxLength={limited ? s.brief_limit : undefined}
               placeholder={current?.hint || "What should it say?"}
               value={topic}
-              onChange={(e) => setTopic(clamp(e.target.value))}
+              onChange={(e) => takeBrief(e.target.value)}
             />
-            <BriefCount s={s} value={topic} />
+            <BriefCount s={s} value={topic} cut={cutBy} />
             <input className="neon-input w-full" maxLength={60} aria-label={current?.style_label || "Genre / style (optional)"}
               placeholder={current?.style_label || "Genre / style (optional)"}
               value={genre} onChange={(e) => setGenre(e.target.value)} />
@@ -273,11 +291,15 @@ export default function SentenceConnectZ() {
             )}
 
             <div className="flex flex-wrap items-center gap-3">
-              <button className="neon-btn-primary !w-auto px-5" disabled={busy || !topic.trim() || (s && !s.can_run)} onClick={write}>
+              {/* Live only once the price is known and the run can be paid for: with
+                  no answer from the server there is no price to have stated. */}
+              <button className="neon-btn-primary !w-auto px-5"
+                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run} onClick={write}>
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <PenLine size={16} />} Write it
               </button>
-              <Price s={s} />
+              <RunPrice s={s} noun="writes" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
               <span className="text-[11px] text-white/40">A run that comes back empty isn't charged.</span>
+              <RunClock running={busy} budgetSeconds={budgetOf(s)} what="Writing" />
             </div>
             {royaltyLine && <p className="text-xs text-white/50">{royaltyLine}</p>}
           </>
@@ -289,7 +311,7 @@ export default function SentenceConnectZ() {
         <div key={work.id} className="mcz-reveal neon-frame space-y-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">{work.label}</h3>
-            {!STANDALONE && royalty && (
+            {!IN_SHELL && royalty && (
               <span className="text-xs text-white/60">
                 If used in DistributeZ, CollabZ or BattleZ: <span className="text-mcz-ember">−{royalty.royalty_pct}%</span> to K-Oth
                 <span className="text-white/40"> ({Math.round(royalty.kept_share * 100)}% of the original kept)</span>
@@ -308,9 +330,19 @@ export default function SentenceConnectZ() {
             <button className="re-btn !w-auto px-4" onClick={() => download(`${work.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.txt`, draft)}>
               <Download size={14} /> Save as text
             </button>
-            {!STANDALONE && <button className="re-link" onClick={() => goToSpot("postz", "composer")}>Post it in PostZ</button>}
+            {!IN_SHELL && (
+              // The draft goes WITH the jump: a bare jump opened an empty composer.
+              <button className="re-link" onClick={() => handOff("postz", "composer", { title: work.label, description: draft })}>
+                Post it in PostZ
+              </button>
+            )}
+            {!IN_SHELL && postTooLong && (
+              <span className="text-[11px] text-mcz-gold">
+                Your posts hold {cl.limit.toLocaleString()} characters; this draft is {draft.length.toLocaleString()} — you'll trim it in the composer.
+              </span>
+            )}
           </div>
-          {!STANDALONE && <UseIn source="sentence" sourceId={work.id} pct={royalty?.royalty_pct ?? 10} text={draft} />}
+          {!IN_SHELL && royalty && <UseIn source="sentence" sourceId={work.id} pct={royalty.royalty_pct} text={draft} />}
           <ReportOutput work={work} />
         </div>
       )}
