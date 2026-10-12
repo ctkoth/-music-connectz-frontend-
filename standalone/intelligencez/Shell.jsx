@@ -7,6 +7,7 @@ import Login from "../../src/auth/Login.jsx";
 import Register from "../../src/auth/Register.jsx";
 import ForgotPassword from "../../src/auth/ForgotPassword.jsx";
 import DeleteAccount from "./DeleteAccount.jsx";
+import VersionBadge from "../../src/components/VersionBadge.jsx";
 
 // The IntelligenceZ app: sign-in, and the four IntelligenceZ screens that stand
 // on their own, with the hub as Home. Everything else on Music ConnectZ is not
@@ -49,6 +50,7 @@ function PolicyLinks() {
       <a className={link} href={`${MAIN}/terms.html`} target="_blank" rel="noreferrer">Terms</a>
       <a className={link} href={`${MAIN}/delete-account.html`} target="_blank" rel="noreferrer">Delete your account</a>
       <a className={link} href={MAIN} target="_blank" rel="noreferrer">Music ConnectZ</a>
+      <VersionBadge className="px-1" />
     </nav>
   );
 }
@@ -57,7 +59,8 @@ function PolicyLinks() {
 // output and one is not. "Written by AI" under a mastering screen where no model
 // is involved would be a claim about the code that the code does not back.
 const DISCLOSURE = {
-  intelligencez: "What the AI makes can be wrong. Read it before you use it.",
+  // Home says the AI part in its own panel; this line says the account part.
+  intelligencez: "One account, shared with Music ConnectZ.",
   sentenceconnectz: "Written by AI. Check it before you use it.",
   occ: "Chat replies are written by AI and can be wrong. Check them before you use them.",
   instrumentalconnectz: "Composed by AI. Listen to it before you use it.",

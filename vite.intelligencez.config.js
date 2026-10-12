@@ -3,6 +3,9 @@
 // See standalone/intelligencez/README.md for hosting.
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { versionInfo, versionPlugin } from "./vite.version.mjs";
+
+const VERSION = versionInfo();
 import fs from "node:fs";
 import path from "node:path";
 
@@ -37,12 +40,12 @@ export default defineConfig({
   root,
   publicDir: path.resolve("public"),
   envDir: path.resolve("."),
-  plugins: [react(), overlayInDev()],
+  plugins: [react(), overlayInDev(), versionPlugin(VERSION)],
   // Tells the shared screens they are not on the main site: no OAuth buttons
   // (its redirect URIs are registered for musicconnectz.net only), no "download
   // the Music ConnectZ app" box, no door to a screen this shell does not have,
   // and nothing that offers a purchase (src/standalone.js).
-  define: { "import.meta.env.VITE_STANDALONE": JSON.stringify("intelligencez") },
+  define: { "import.meta.env.VITE_STANDALONE": JSON.stringify("intelligencez"), __MCZ_VERSION__: JSON.stringify(VERSION) },
   // MCZ_API=http://localhost:8000 serves /api same-origin in dev (pair it with
   // VITE_API_BASE=http://localhost:5177) — a cross-origin dev API drops
   // connections that surface as CORS errors.

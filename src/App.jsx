@@ -21,6 +21,7 @@ import { reportTimezone } from "./push.js";
 import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
 import ReturnBar from "./components/ReturnBar.jsx";
+import UpdateNotice from "./components/UpdateNotice.jsx";
 import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
 import { ICON_DEFAULTS } from "./iconManifest.js";
@@ -1048,6 +1049,7 @@ function Home() {
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <ReturnBar />
+        <UpdateNotice />
         <div
           className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}

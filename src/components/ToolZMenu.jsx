@@ -1,3 +1,4 @@
+import VersionBadge from "./VersionBadge.jsx";
 import React, { useState } from 'react';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
@@ -504,6 +505,7 @@ export default function ToolZMenu() {
         </div>
       </div>
       )}
+      <p className="mt-6 pb-2 text-center"><VersionBadge /></p>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { AuthProvider } from "../../src/auth/AuthContext.jsx";
 import "../../src/index.css";
 import "../bodiez/a11y.css";   // scoped to .sa; the rules are not BodieZ-specific
 import Shell from "./Shell.jsx";
+import UpdateNotice from "../../src/components/UpdateNotice.jsx";
 
 document.documentElement.classList.add("sa");
 
@@ -21,6 +22,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <ErrorBoundary label="Sentence ConnectZ">
       <HashRouter>
         <AuthProvider>
+          <UpdateNotice />
           <Shell />
         </AuthProvider>
       </HashRouter>
