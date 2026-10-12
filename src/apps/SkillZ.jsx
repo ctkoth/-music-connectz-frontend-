@@ -150,9 +150,10 @@ function WhatLeaves() {
         </li>
         <li>
           <span className="font-semibold text-white">What we keep.</span> Your recording is read once and
-          not stored. We keep the score, the coach's notes on it, the genre and the date, on your
-          account, so your progress is there next time. A shareable score page is made for each scored
-          take and is not shown in this app; it opens for anyone who has its link.
+          not stored. We keep the scores, what the coach heard, its verdict and advice, the genre,
+          difficulty and date, on your account, so your progress is there next time. Each scored
+          take also gets a score page with the score, verdict, genre and your username on it. This
+          app doesn't show or share it, but it opens for anyone who has its link.
         </li>
       </ul>
       <p className="text-xs text-white/55">
