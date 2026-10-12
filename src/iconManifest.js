@@ -56,6 +56,7 @@ export const ICON_DEFAULTS = {
   "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
   "personaz_designer.png": "/icons/personaz.designer.jpg",
   "substancez.png": "/icons/profilez.substancez.jpg",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "zodiacz.png": "/icons/profilez.zodiacz.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
@@ -1283,6 +1284,16 @@ export const ICON_TREE = [
         "file": "profilez.substancez.jpg",
         "art": "/icons/profilez.substancez.jpg",
         "key": "substancez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "voicez",
+        "label": "VoiceZ",
+        "file": "profilez.voicez.jpg",
+        "art": "/icons/profilez.voicez.jpg",
+        "key": "voicez.png",
         "status": "live",
         "note": "",
         "also": []

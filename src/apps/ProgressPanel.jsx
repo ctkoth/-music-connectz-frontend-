@@ -151,22 +151,39 @@ export default function ProgressPanel({ appKey }) {
         </div>
       )}
 
-      {/* Fatigue sensitivity moves the strain threshold and NOTHING else. Said
-          out loud, because a control next to a score usually moves the score,
-          and how quickly somebody tires is not how good they are. */}
-      {strain.level !== "unmeasured" && (
-        <label className="block text-[11px] text-white/45">
-          How quickly you feel it — this only changes when the app eases you off the hard
-          settings. It never moves a score.
-          <select value={declared.fatigue_sensitivity || ""} disabled={saving}
-                  onChange={(e) => declare({ fatigue_sensitivity: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white sm:w-72">
-            {asList(data.sensitivities).map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
-            ))}
-          </select>
-        </label>
-      )}
+      {/* Fatigue sensitivity moves the strain threshold and NOTHING else — and
+          says so as a RESULT. It used to say "this only changes when the app
+          eases you off the hard settings", which names the mechanism and leaves
+          the member to guess what picking each option costs them. The sentences
+          come from the server (takescorez.strain_rule), built from the rule's own
+          numbers, so what is promised here is what the rule does. */}
+      {strain.level !== "unmeasured" && (() => {
+        const rule = data.strain_rule || {};
+        const options = asList(data.sensitivities);
+        const current = options.find((o) => o.key === (declared.fatigue_sensitivity || "normal"));
+        return (
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-white/80" htmlFor="fatigue-sens">
+              How quickly you feel it
+            </label>
+            <p className="text-[11px] leading-relaxed text-white/55">
+              {rule.summary || "This only changes when the app eases you off the hard settings. It never moves a score."}
+            </p>
+            <select id="fatigue-sens" value={declared.fatigue_sensitivity || ""} disabled={saving}
+                    onChange={(e) => declare({ fatigue_sensitivity: e.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white sm:w-80">
+              {options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.lows_needed ? `${o.label} — holds back after ${o.lows_needed}` : o.label}
+                </option>
+              ))}
+            </select>
+            {current?.result && <p className="text-[12px] leading-relaxed text-white/75">{current.result}</p>}
+            {strain.why && <p className="text-[11px] leading-relaxed text-white/60"><b className="text-white/75">Right now:</b> {strain.why}</p>}
+            {rule.never && <p className="text-[11px] leading-relaxed text-white/40">{rule.never}</p>}
+          </div>
+        );
+      })()}
 
       {/* The weak spot, and the way to work on it. Two weeks of takes, not one
           — one take's worst score is a bad day. */}
