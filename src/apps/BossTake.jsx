@@ -295,6 +295,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // What this take costs, read BEFORE anything is sent. A price you only see
   // in the response is a bill, not a price.
   const [price, setPrice] = useState(null);
+  // "take" = the member's own performance. "reference" = somebody else's track,
+  // listened to and forgotten: the server enforces it (`reference` on the POST)
+  // and writes nothing that measures the member. Members only - the trial's one
+  // free take is for a stranger's own performance.
+  const [mode, setMode] = useState("take");
+  const refMode = !trial && mode === "reference" && !!price?.reference?.available;
   const [scoringElapsed, setScoringElapsed] = useState(0);
   // Bytes on the wire: { loaded, total, pct, bytesPerSecond, etaSeconds, done }
   // while the take uploads, null once the server has it. Only the multipart
@@ -398,6 +404,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // rides as an id exactly like a post does.
       if (!((h?.kind === "post" && h.post_id)
             || (h?.kind === "journal" && h.journal_id))) return;
+      setMode("take");     // a handed-over post is the member's own take
       setFromPost(h);
       setTakeGone(false);
       setResult(null);
@@ -758,8 +765,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     setBytes(0); setStopNote(""); setShowUploadLimitPrompt(false); setFailed(null);
   }
 
+  function switchMode(next) {
+    if (next === mode || busy || recording) return;
+    discard();
+    setFromPost(null); setTakeGone(false);
+    setMode(next);
+  }
+
   async function submit() {
-    if (!blob && !fromPost) return;
+    if (!blob && !(fromPost && !refMode)) return;
     // An empty file is a round trip that can only fail, and on the trial door
     // it costs the visitor the one free take they came for. The recorder
     // refuses to attach a 0-byte take now; this catches the same shape
@@ -777,7 +791,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // the same file a second time to have it coached is the dead end this
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
-      const body = fromPost
+      const body = fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
               : { post_id: fromPost.post_id }),
@@ -792,9 +806,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             const f = new FormData();
             f.append("take", blob, takeName);
             f.append("genre", genre);
+            if (style) f.append("style", style);
+            if (refMode) {
+              f.append("reference", "true");
+              return f;
+            }
             f.append("range", range);
             f.append("difficulty", difficulty);
-            if (style) f.append("style", style);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
@@ -822,7 +840,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // otherwise in audio would be the same lie as saying it on screen.
       playSound("score_in");
       if (!trial && out?.cost_cents) playSound("promptz_spend");
-      onResult?.(out);
+      // A reference listen is not a result of the member's: nothing upstream
+      // (post attach, history, SkillZ) gets it.
+      if (!refMode) onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
       setFailed({ why: failReason(e), status: e?.status, data: e?.data || {} });
@@ -913,7 +933,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             ))}
           </select>
         </label>
-        {price?.range_label && (
+        {price?.range_label && !refMode && (
           <label className="text-[11px] text-white/50">
             {price.range_label}
             <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
@@ -930,25 +950,32 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </select>
           </label>
         )}
-        <label className="text-[11px] text-white/50">
+        {!refMode && <label className="text-[11px] text-white/50">
           Difficulty
           <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
             {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
               .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>
-        </label>
+        </label>}
       </div>
+      {refMode ? (
+        <p className="text-[11px] leading-relaxed text-white/45">
+          Genre{price?.style_label ? ` and ${price.style_label.toLowerCase()}` : ""} tell the coach what to
+          listen for. Nothing here is held against you - it's their track, not your take.
+        </p>
+      ) : (
       <p className="text-[11px] leading-relaxed text-white/45">
         These tell the coach what to hold your take against. Genre{price?.style_label ? ` and ${price.style_label.toLowerCase()}` : ""} set
         what Style Match is measured against;{price?.range_label ? ` ${price.range_label.toLowerCase()} is the range it checks you aimed at;` : ""} Difficulty sets
         how the 1-10 scale and your next goal are pitched. They change how the take is judged, not whether it is scored.
       </p>
+      )}
 
       {/* The server says whether this coach has words to read. Rendering it
           off a hardcoded ["singz","rapz"] would be the two-door TrialTake
           mistake again — a list in the client that the backend has already
           moved past. */}
-      {price?.rates_lyrics && (
+      {price?.rates_lyrics && !refMode && (
         <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
           <input type="checkbox" checked={rateLyrics}
                  onChange={(e) => setRateLyrics(e.target.checked)}
@@ -972,7 +999,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           told to ignore production unless this is on, so this is the only way
           to hear about it — and it stays off by default because a phone
           recording of a great take is still a great take. */}
-      {price?.rates_mix && (
+      {price?.rates_mix && !refMode && (
         <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
           <input type="checkbox" checked={rateMix}
                  onChange={(e) => setRateMix(e.target.checked)}
@@ -999,16 +1026,38 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     <div className="neon-frame space-y-4 p-4">
       <div>
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
-          👑 Boss Take — {price?.label || "AI"} Coach
+          {refMode ? "🎧 Reference listen" : "👑 Boss Take"} — {price?.label || "AI"} Coach
         </p>
-        <p className="mt-1 text-[11px] text-white/45">
+        {!trial && price?.reference?.available && (
+          <div role="tablist" aria-label="Whose track" className="mt-2 flex flex-wrap gap-2">
+            {[["take", "My take"], ["reference", "Listen to someone else's track"]].map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={mode === k}
+                      onClick={() => switchMode(k)} disabled={busy || recording}
+                      className={`rounded-full border px-3 py-1 text-[11px] ${mode === k
+                        ? "border-mcz-cyan bg-mcz-cyan/15 text-white"
+                        : "border-white/15 text-white/55 hover:text-white"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+        {refMode && (
+          <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
+            <p>
+              Upload a track by another artist and hear what the coach hears in it - to get a feel for what
+              you know and like. {price.reference.notice}
+            </p>
+            <p className="font-semibold text-white/80">Not saved to your progress.</p>
+          </div>
+        )}
+        <p className={`mt-1 text-[11px] text-white/45 ${refMode ? "hidden" : ""}`}>
           Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
           actually worked, what to fix, and a drill to run before the next one. On camera the coach can
           mark delivery and breath too.
         </p>
         {/* The ceiling, before the button that hits it. A limit you discover by
             reaching it costs you the take you already performed. */}
-        <p className={`mt-1 text-[11px] text-white/35 ${trial ? "hidden" : ""}`}>
+        <p className={`mt-1 text-[11px] text-white/35 ${trial || refMode ? "hidden" : ""}`}>
           Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
           coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
           the recorder stops itself before the take gets too big to send.
@@ -1043,7 +1092,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {/* A post arrived from PostZ. It IS the take — there is nothing to record
           and nothing to upload, so the recorder steps aside and the only thing
           left is the price and the button that spends it. */}
-      {fromPost && !recording && (
+      {fromPost && !recording && !refMode && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
             {fromPost.kind === "journal" ? "📔 From your journal" : "🎧 From PostZ"}
@@ -1142,7 +1191,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <Upload size={15} /> Upload a clip
           </button>
         )}
-        {!recording ? (
+        {!recording && !refMode ? (
           <>
             {/* On the trial, a device with no usable mic (or an insecure page)
                 is told once, in the message above, and is not offered the
@@ -1163,14 +1212,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </button>
             )}
           </>
-        ) : (
+        ) : refMode ? null : (
           <button className="neon-btn-primary !w-auto px-4" onClick={() => stopRec()}>
             <Square size={14} /> Stop · {mmss}
           </button>
         )}
         {!trial && (
           <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
-            <Upload size={15} /> Attach audio or video
+            <Upload size={15} /> {refMode ? "Upload their track" : "Attach audio or video"}
           </button>
         )}
         {blob && !recording && (
@@ -1273,14 +1322,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <div className="flex flex-wrap items-center gap-3">
             <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-              {busy ? "Coaching your take…" : "Send it to the coach"}
+              {busy ? (refMode ? "Listening…" : "Coaching your take…")
+                : refMode ? "Listen to this track" : "Send it to the coach"}
             </button>
             <Cost price={price} trial={trial} />
             {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
           {price && (
             <p className="text-[11px] text-white/35">
-              A take the coach can't read isn't charged.
+              {refMode ? "A track the coach can't read isn't charged. Costs the same as a take." : "A take the coach can't read isn't charged."}
             </p>
           )}
           {!trial && !IN_SHELL_COACH && <AllowanceLadder price={price} />}
@@ -1381,7 +1431,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="animate-spin text-mcz-cyan" size={18} />
             <span className="text-sm text-white/75">
-              {upload && !upload.done ? "Sending your take…" : "Scoring your take…"}
+              {upload && !upload.done ? (refMode ? "Sending the track…" : "Sending your take…") : (refMode ? "Listening to the track…" : "Scoring your take…")}
             </span>
           </div>
 
@@ -1423,7 +1473,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <div className="space-y-3 border-t border-white/10 pt-3">
           <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-3">
             <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/70">
-              🎧 Nothing to score yet
+              🎧 {result.reference ? "Nothing to read in that file" : "Nothing to score yet"}
             </p>
             <p className="pt-1.5 text-[12px] leading-relaxed text-white/80">
               {result.unscorable}
@@ -1433,11 +1483,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               and clears the player, so the old take doesn't sit there under
               the invitation to record a new one. */}
           <button className="neon-btn" onClick={discard}>
-            Try another take
+            {result.reference ? "Try another track" : "Try another take"}
           </button>
         </div>
       ) : result && (
         <div className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
+          {result.reference && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">
+              🎧 Reference listen — what this track shows
+            </p>
+          )}
           <div className="flex items-baseline gap-3">
             <span className={`font-display text-4xl font-extrabold ${scoreColor(result.score)}`}>
               {typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-lg text-white/30">/10</span>
@@ -1455,10 +1510,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
-          {!trial && !IN_SHELL_COACH && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
-          {!IN_SHELL_COACH && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
+          {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
-          {!trial && !IN_SHELL_COACH && <CoachVoicePlayer result={result} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && <CoachVoicePlayer result={result} />}
 
           {/* The SONG, kept out of the performance number entirely — its own
               card, its own label, its own score, right beside the one it is
@@ -1474,7 +1529,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </span>
               <div className="flex-1">
                 <p className="text-[10px] uppercase tracking-widest text-amber-300/80">
-                  Song — separate from the performance score above
+                  {result.reference ? "Song — separate from the reading above" : "Song — separate from the performance score above"}
                 </p>
                 {result.song_why && (
                   <p className="text-[12px] leading-relaxed text-white/80">{result.song_why}</p>
@@ -1493,7 +1548,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {result.now && (
                 <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
-                    Where you're at
+                    {result.reference ? "What this track is" : "Where you're at"}
                   </p>
                   <p className="text-[12px] leading-relaxed text-white/75">{result.now}</p>
                 </div>
@@ -1501,7 +1556,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {result.goal && (
                 <div className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-mcz-cyan/80">
-                    What you're aiming at
+                    {result.reference ? "What it's going for" : "What you're aiming at"}
                   </p>
                   <p className="text-[12px] leading-relaxed text-white/80">{result.goal}</p>
                 </div>
@@ -1512,7 +1567,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {result.range_profile && (
             <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
-                📏 Your range
+                📏 {result.reference ? "Its range" : "Your range"}
               </p>
               <p className="text-[12px] leading-relaxed text-white/75">{result.range_profile}</p>
             </div>
@@ -1576,7 +1631,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
           {result.strengths?.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">What worked</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">{result.reference ? "What this track does well" : "What worked"}</p>
               <ul className="mt-1 space-y-1">
                 {result.strengths.map((s, i) => (
                   <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
@@ -1585,7 +1640,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
-          {result.fixes?.length > 0 && (
+          {!result.reference && result.fixes?.length > 0 && (
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember/80">Fix this</p>
               <ul className="mt-1 space-y-1">
@@ -1596,18 +1651,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
-          {result.next_drill && (
+          {result.reference && result.borrow && (
+            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
+              <span className="font-semibold text-mcz-cyan">Worth borrowing · </span>{result.borrow}
+            </p>
+          )}
+          {!result.reference && result.next_drill && (
             <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
               <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
             </p>
           )}
 
-          {!trial && !IN_SHELL_COACH && (
+          {!trial && !IN_SHELL_COACH && !result.reference && (
             <CoachUpgrades appKey={appKey} price={price} takeScoreId={result.take_score_id} />
           )}
           {/* Play requires an in-app way to flag AI output. The SkillZ app has it on
               every score; the main site's coach does not offer it here. */}
-          {IN_SKILLZ && <ReportTake takeId={result.take_score_id} appKey={appKey} />}
+          {IN_SKILLZ && !result.reference && <ReportTake takeId={result.take_score_id} appKey={appKey} />}
 
           {!trial && (
             <p className="text-[11px]">
@@ -1620,6 +1680,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The score is not a dead end either: it says which post it scored
               and takes you back to it. When the post is yours the coaching is
               kept ON it, so it is there next time without paying twice. */}
+          {result.reference && (
+            <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
+              <p className="text-[11px] text-white/60">
+                Not saved to your progress. This read of someone else's track isn't posted,
+                isn't on your profile and doesn't count toward your skills.
+              </p>
+              <button type="button" className="neon-btn !w-auto px-4"
+                      onClick={() => switchMode("take")}>
+                Now try your own take{style || genre ? ` in ${style || genre}` : ""}
+              </button>
+            </div>
+          )}
           {result.source === "post" && (
             <p className="text-[11px] text-white/45">
               {result.saved_to_post
