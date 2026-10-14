@@ -451,11 +451,19 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   }, [appKey]);
 
   // Track elapsed time while scoring is in progress
+  // Counted from when SCORING starts, not from the click. The ceiling shown
+  // beside it (`coach_budget_seconds`) is the server's, and the server's clock
+  // only starts once the whole file has arrived — so a 129MB take that spent
+  // five minutes uploading read "05:02 of up to 02:00" on a run that was fine.
+  // While bytes are still going up the clock holds at zero; it is the upload
+  // bar's turn to speak.
+  const uploading = !!(upload && !upload.done);
   useEffect(() => {
     if (!busy) return;
+    if (uploading) { setScoringElapsed(0); return; }
     const t = setInterval(() => setScoringElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
-  }, [busy]);
+  }, [busy, uploading]);
 
   function attach(b, name, video = false, recorded = false) {
     // Checked here rather than on submit, because the server sends the take to
@@ -1455,8 +1463,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <div className="flex justify-between text-[11px] text-white/50">
               <span>The AI coach is listening</span>
               <span>
-                {mmssOf(scoringElapsed)}
-                {coachCeiling ? ` of up to ${mmssOf(coachCeiling)}` : ""}
+                {coachCeiling && scoringElapsed > coachCeiling
+                  ? `${mmssOf(scoringElapsed)} — longer than the ${mmssOf(coachCeiling)} limit; still waiting on the answer`
+                  : <>{mmssOf(scoringElapsed)}{coachCeiling ? ` of up to ${mmssOf(coachCeiling)}` : ""}</>}
               </span>
             </div>
           )}
