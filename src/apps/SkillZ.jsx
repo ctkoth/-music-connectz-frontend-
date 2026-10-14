@@ -145,8 +145,11 @@ function WhatLeaves() {
         </li>
         <li>
           <span className="font-semibold text-white">The advice.</span> What Gemini reported about the
-          take — as text, not the recording — goes to Anthropic's Claude, which checks the advice
-          against it. Claude never hears the take. Each is processed under its own terms.
+          take — its scores and notes, as text, not the recording — goes to Anthropic's Claude,
+          which checks the advice against it. With it go the genre, difficulty and style you picked
+          and a short summary of your earlier scores: which one has been weakest lately, how one has
+          moved, and whether recent takes read as strain. Claude never hears the take. Each is
+          processed under its own terms.
         </li>
         <li>
           <span className="font-semibold text-white">What we keep.</span> Your recording is read once and

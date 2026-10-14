@@ -1245,3 +1245,16 @@ five coaches nothing linked to: built, and invisible.
 - `portfolio.js` imports nothing that reads `import.meta.env` so it runs under plain node;
   the helper is named `moveRow` because `imports.test.mjs` matches by NAME and a plain
   `move` collided with a local one in `WidgetBoard.jsx`.
+
+## SoundCloud on a post card: a link back, and a play count that is a fact
+
+`PostEmbeds.jsx` shows, under an imported SoundCloud player, "Listen / follow on
+SoundCloud" (only from a public `permalink`; `soundcloudPlay.js scFollowLink`
+refuses private tracks, anything carrying a secret/token and non-soundcloud.com
+hosts; older imports with no permalink get nothing) with where it opens stated
+beside it, hidden in every standalone shell. "N plays on Music ConnectZ" shows
+only above 0. The client only reports wall-clock seconds while the widget plays
+and the tab is visible; the server decides. SoundCloud's player frame alone gets
+`allow-same-origin` (its Widget API's postMessage is ignored from an opaque
+"null" origin); api.js is loaded lazily from w.soundcloud.com. Unverified in a
+browser.

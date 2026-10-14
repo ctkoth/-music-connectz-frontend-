@@ -58,7 +58,6 @@ export default function DeleteAccount() {
             and the score page made for each one
           </li>
           <li>Your skill-tree progress in every coach: experience, streaks, badges, and the goals and ranges you set</li>
-          <li>Your place on each coach's leaderboard</li>
           <li>
             Your recordings. There is nothing to remove: a take is read once, scored and not stored,
             so a recording was never kept.
