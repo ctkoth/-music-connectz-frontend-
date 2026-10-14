@@ -24,6 +24,7 @@ import ReportTake from "../components/ReportTake.jsx";
 import { listenersLine } from "../coachUpgrades.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { mediaError, bestMime, sizeLabel } from "../recorder.js";
+import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -307,6 +308,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // path can produce this — a take handed over from PostZ is already stored,
   // so there is nothing to send and nothing to measure.
   const [upload, setUpload] = useState(null);
+  // The smaller copy the coach gets instead of a big audio take: `copyPlan` is
+  // the estimate shown BESIDE Send (from the file's own header), `packing` is
+  // { pct } while the copy is being made, before the upload bar. The original
+  // `blob` is never replaced - posting and storage still use it.
+  const [copyPlan, setCopyPlan] = useState(null);
+  const [packing, setPacking] = useState(null);
   // Why the last send came back with nothing, or "". Separate from `msg`
   // because a visitor at the trial door needs the way FORWARD, and a red line
   // is not one — see the card below.
@@ -457,13 +464,22 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // five minutes uploading read "05:02 of up to 02:00" on a run that was fine.
   // While bytes are still going up the clock holds at zero; it is the upload
   // bar's turn to speak.
-  const uploading = !!(upload && !upload.done);
+  const uploading = !!(upload && !upload.done) || !!packing;
   useEffect(() => {
     if (!busy) return;
     if (uploading) { setScoringElapsed(0); return; }
     const t = setInterval(() => setScoringElapsed((e) => e + 1), 1000);
     return () => clearInterval(t);
   }, [busy, uploading]);
+
+  // Estimate the coach copy for the Send button, from the file itself.
+  useEffect(() => {
+    setCopyPlan(null);
+    if (!blob || isVideo) return undefined;
+    let live = true;
+    previewCopy(blob).then((p) => { if (live) setCopyPlan(p); });
+    return () => { live = false; };
+  }, [blob, isVideo]);
 
   function attach(b, name, video = false, recorded = false) {
     // Checked here rather than on submit, because the server sends the take to
@@ -795,6 +811,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     setBusy(true); setScoringElapsed(0); setUpload(null); setMsg(""); setResult(null); setFailed(null);
     step("try_send");
     try {
+      // A big audio take goes to the coach as a smaller copy; the original
+      // stays in `blob` for posting. Any failure inside returns the original,
+      // so this can only make the send faster, never stop it.
+      let sendBlob = blob;
+      let sendName = takeName;
+      if (blob && !fromPost) {
+        setPacking({ pct: 0 });
+        const made = await compressForCoach(blob, { isVideo, onProgress: (f) => setPacking({ pct: Math.round(f * 100) }) });
+        setPacking(null);
+        if (made.compressed) { sendBlob = made.file; sendName = made.file.name; }
+      }
       // A handed-over post is already stored, so it rides as its id. Uploading
       // the same file a second time to have it coached is the dead end this
       // handoff exists to remove — and it would spend the member's storage
@@ -812,7 +839,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
         : (() => {
             const f = new FormData();
-            f.append("take", blob, takeName);
+            f.append("take", sendBlob, sendName);
             f.append("genre", genre);
             if (style) f.append("style", style);
             if (refMode) {
@@ -856,7 +883,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       setFailed({ why: failReason(e), status: e?.status, data: e?.data || {} });
       playSound("error");
       step("try_failed", { why: failReason(e) });
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setPacking(null); }
   }
 
   // Measured in PostZ and carried over. Zero means nobody measured it, which
@@ -1336,6 +1363,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <Cost price={price} trial={trial} />
             {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
+          {/* Before the press, from the file's own header: what the coach will
+              be sent. A copy for scoring, never a replacement for the original. */}
+          {blob && copyPlan && !busy && (
+            <p className="text-[11px] text-white/45">
+              {copyLine(copyPlan.originalBytes, copyPlan.estimateBytes)}
+              <span className="text-white/30"> — a smaller copy sends faster; it is for scoring only.</span>
+            </p>
+          )}
           {price && (
             <p className="text-[11px] text-white/35">
               {refMode ? "A track the coach can't read isn't charged. Costs the same as a take." : "A take the coach can't read isn't charged."}
@@ -1439,11 +1474,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="animate-spin text-mcz-cyan" size={18} />
             <span className="text-sm text-white/75">
-              {upload && !upload.done ? (refMode ? "Sending the track…" : "Sending your take…") : (refMode ? "Listening to the track…" : "Scoring your take…")}
+              {packing ? "Making a smaller copy for the coach…" : upload && !upload.done ? (refMode ? "Sending the track…" : "Sending your take…") : (refMode ? "Listening to the track…" : "Scoring your take…")}
             </span>
           </div>
 
-          {upload && !upload.done ? (
+          {packing ? (
+            <div className="space-y-1">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-mcz-cyan transition-[width] duration-200" style={{ width: `${packing.pct}%` }} />
+              </div>
+              <div className="text-[11px] text-white/50">{packing.pct}% · your original is kept; only the copy is sent</div>
+            </div>
+          ) : upload && !upload.done ? (
             <>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-mcz-cyan transition-[width] duration-200"
