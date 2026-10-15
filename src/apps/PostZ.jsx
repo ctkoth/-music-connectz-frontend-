@@ -38,7 +38,8 @@ import OfferPanel from "../OfferPanel.jsx";
 import SoundCloudLibrary from "../components/SoundCloudLibrary.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
 import { asList } from "../shape.js";
-import { useCharLimit } from "../limits.js";
+import { loadLimits, useCharLimit } from "../limits.js";
+import { canEditComment, editWindowLeft } from "../editing.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -601,6 +602,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
   const [commentDraft, setCommentDraft] = useState("");
+  // A comment of mine being edited in place: { id, draft }. `editWindow` is the
+  // server's edit_unlock_sec for this viewer's tier. Null until /limits/
+  // answers, and nothing is offered on a window nobody served.
+  const [editingComment, setEditingComment] = useState(null);
+  const [editWindow, setEditWindow] = useState(null);
+  useEffect(() => {
+    loadLimits().then((d) => setEditWindow(d?.edit_unlock_sec ?? null)).catch(() => {});
+  }, []);
   const [ratingVisibility, setRatingVisibility] = useState("restricted");
   const draft = useRef("");
   const item = `post:${post.id}`;
@@ -828,6 +837,28 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     } catch (e) {
       onFlash(e.message || `Couldn't open that in ${d.app}.`);
     } finally { setOpening(""); }
+  }
+
+  // Save an edit to my own comment. The server re-checks the owner and the
+  // window; its refusal reaches the screen as the server sent it.
+  async function saveCommentEdit() {
+    const ed = editingComment;
+    if (!ed) return;
+    const body = ed.draft.trim();
+    if (!body) return onFlash("A comment can't be empty. Nothing was saved.");
+    try {
+      setSocial(await api("/api/economy/social/comment/", {
+        method: "POST", body: { item, body, comment_id: ed.id },
+      }));
+      setEditingComment(null);
+      onFlash("Comment saved.");
+    } catch (e) {
+      const msg = e.message || "Couldn't save that comment.";
+      onFlash(msg);
+      // Window closed while it was open: the draft cannot be saved any more,
+      // so close the editor and show the comment as it now stands.
+      if (/edit_window_passed/.test(msg)) { setEditingComment(null); loadSocial(); }
+    }
   }
 
   async function comment() {
@@ -1167,10 +1198,25 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <div className="re-label">Comments · {comments.length}</div>
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
-            <div>
-              <MemberName username={c.user} bare />{" "}
-              <span className="text-white/80">{c.body}</span>
-            </div>
+            {editingComment?.id === c.id ? (
+              <div className="space-y-2">
+                <textarea rows={2} aria-label="Edit your comment"
+                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                  maxLength={charLimit ?? undefined} value={editingComment.draft}
+                  onChange={(e) => setEditingComment({ ...editingComment, draft: e.target.value })} />
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button className="re-btn !w-auto px-3 text-[12px]" onClick={saveCommentEdit}>Save changes</button>
+                  <button className="pill text-[11px]" onClick={() => setEditingComment(null)}>Cancel</button>
+                  <span className="text-emerald-300/70">Free</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <MemberName username={c.user} bare />{" "}
+                <span className="text-white/80">{c.body}</span>
+                {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
+              </div>
+            )}
             {/* Up and down on a comment. Both pay the voter the SAME +1 ⚡ —
                 stated on the control, before it is pressed — because paying
                 more for an upvote would be the app buying its own praise, and
@@ -1205,6 +1251,16 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                   they read differently. */}
               {c.karma_energy > 0 && (
                 <span className="text-emerald-300">earned +{c.karma_energy} {ENERGY}</span>
+              )}
+              {/* Only on my own comment, and only while the server's window is
+                  open by this device's clock. Free: no cost to state. */}
+              {canEditComment(c, user?.username) && editingComment?.id !== c.id
+                && editWindowLeft(c.at, editWindow, now) > 0 && (
+                <button className="ml-auto text-white/40 hover:text-mcz-cyan"
+                        title={`Editable for ${editWindowLeft(c.at, editWindow, now)}s more`}
+                        onClick={() => setEditingComment({ id: c.id, draft: c.body })}>
+                  Edit · {editWindowLeft(c.at, editWindow, now)}s left
+                </button>
               )}
             </div>
           </div>
