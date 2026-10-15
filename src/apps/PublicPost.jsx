@@ -44,9 +44,17 @@ export default function PublicPost() {
     // for members is shown to them and locked for everyone else. The server
     // decides which; this only says who is asking. A restricted or private post
     // answers 404 here on purpose, so this page can't confirm one exists.
-    api(`/api/postz/${id}/`, { auth: signedIn })
+    // A shared link is often the first request a cold server gets in a while,
+    // and that one can take longer than the default 30s to answer. So this
+    // waits longer and tries once more before telling the visitor it failed.
+    // Nothing is charged for a read, so a retry costs nothing but time.
+    const load = (tries) => api(`/api/postz/${id}/`, { auth: signedIn, timeoutMs: 90_000 })
       .then(setPost)
-      .catch((e) => setErr(e.message || "That post isn't available."));
+      .catch((e) => {
+        if (e?.timedOut && tries > 0) return load(tries - 1);
+        setErr(e.message || "That post isn't available.");
+      });
+    load(1);
   }, [id, loading, signedIn]);
 
   return (
