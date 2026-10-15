@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { GENRE_GROUPS } from "../genres.js";
+import { BUILTIN_CHOICE, DEFAULT_DIFFICULTIES, SOURCE_NOTE, browserStorage, readPrefs, resolveChoice, writePref } from "../coachPrefs.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
@@ -240,9 +241,17 @@ function CoachVoicePlayer({ result }) {
 export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
   const { user } = useAuth();
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
-  const [genre, setGenre] = useState("R&B");
-  const [range, setRange] = useState("tenor");
-  const [difficulty, setDifficulty] = useState("builder");
+  // Genre, range and difficulty start on the built-in choice and are replaced
+  // once the coach GET answers (see the effect after the price fetch): the
+  // member's own choice on this device first, then their history, then this.
+  const [genre, setGenre] = useState(BUILTIN_CHOICE.genre);
+  const [range, setRange] = useState(BUILTIN_CHOICE.range);
+  const [difficulty, setDifficulty] = useState(BUILTIN_CHOICE.difficulty);
+  // Where each value shown above came from, for the note beside its control.
+  const [sources, setSources] = useState({ genre: "builtin", range: "builtin", difficulty: "builtin" });
+  // A field the member has set (or a post has seeded) is never overwritten by a
+  // late-arriving default.
+  const touched = useRef({});
   // Have the coach judge the WRITING as well as the performance. Off by
   // default and deliberately so: somebody working on breath control has not
   // asked for their lyrics to be marked, and scoring a member on something
@@ -413,6 +422,46 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       });
   }, [path, trial, onReady]);
 
+  // Pre-fill from the device, then the member's own history, then the built-in
+  // choice. The trial has no history and no device memory, so it keeps the
+  // built-in choice exactly as before.
+  useEffect(() => {
+    if (!price || trial) return;
+    const store = browserStorage();
+    const device = readPrefs(appKey, store);
+    const server = price.defaults || {};
+    const genreOptions = GENRE_GROUPS.flatMap((g) => g.genres.map(([name]) => name));
+    const fields = [
+      ["genre", genreOptions, setGenre],
+      ["range", (price.ranges || []).map((r) => r.key), setRange],
+      ["difficulty", price.difficulties || DEFAULT_DIFFICULTIES, setDifficulty],
+    ];
+    for (const [field, options, set] of fields) {
+      if (touched.current[field]) continue;
+      // Genre never comes from a file or file name: the server's genre is the
+      // member's own past choice, and the device one is theirs too.
+      const { value, source } = resolveChoice(field, { device, server, options });
+      set(value);
+      setSources((s) => ({ ...s, [field]: source }));
+    }
+  }, [price, trial, appKey]);
+
+  // A member's change is theirs: it is remembered on this device (never on the
+  // trial, which has no memory) and the note beside it stops naming a default.
+  const choose = (field, value, set) => {
+    touched.current[field] = true;
+    set(value);
+    setSources((s) => ({ ...s, [field]: trial ? "none" : "device" }));
+    if (!trial) writePref(appKey, field, value, browserStorage());
+  };
+
+  // The small line beside a control saying where its value came from. Empty for
+  // the built-in choice, so the screen says nothing it did not always say.
+  const sourceNote = (field) => {
+    const text = SOURCE_NOTE[sources[field]];
+    return text ? <span className="ml-1 text-[10px] text-white/35">{text}</span> : null;
+  };
+
   // A post arriving from PostZ. The trial door is for people with no account
   // and therefore no posts, so it never listens.
   useEffect(() => {
@@ -432,7 +481,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // The post already says what it is. Its genre seeds the picker so the
       // coach isn't asked to score a Drill verse as "unspecified" — the member
       // can still change it before sending.
-      if (h.genre) setGenre(h.genre);
+      if (h.genre) {
+        touched.current.genre = true;
+        setGenre(h.genre);
+        setSources((s) => ({ ...s, genre: "post" }));
+      }
     });
   }, [appKey, trial]);
 
@@ -969,8 +1022,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     <>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
-          Genre
-          <select value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
+          Genre{sourceNote("genre")}
+          <select value={genre} onChange={(e) => choose("genre", e.target.value, setGenre)} className="neon-input !py-2 text-xs">
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -982,8 +1035,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </label>
         {price?.range_label && !refMode && (
           <label className="text-[11px] text-white/50">
-            {price.range_label}
-            <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
+            {price.range_label}{sourceNote("range")}
+            <select value={range} onChange={(e) => choose("range", e.target.value, setRange)} className="neon-input !py-2 text-xs">
               {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
           </label>
@@ -998,8 +1051,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </label>
         )}
         {!refMode && <label className="text-[11px] text-white/50">
-          Difficulty
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
+          Difficulty{sourceNote("difficulty")}
+          <select value={difficulty} onChange={(e) => choose("difficulty", e.target.value, setDifficulty)} className="neon-input !py-2 text-xs">
             {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
               .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>
