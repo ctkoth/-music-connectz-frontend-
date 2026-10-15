@@ -1734,7 +1734,6 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
   const sourceOf = (r) => r.source || "member";
   const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
   const shown = filter ? routines.filter((r) => sourceOf(r) === filter) : routines;
-  const editingRoutine = editing != null ? routines.find((r) => r.id === editing) : null;
   const sessionBeingEdited = editingSession != null ? history.find((h) => h.id === editingSession) : null;
 
   const makeRoutine = async (h) => {
@@ -1789,12 +1788,6 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
               ))}
           </div>
         )}
-        {editingRoutine && (
-          <RoutineDesigner key={editingRoutine.id} routine={editingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
-                           onSave={(list, meta) => onSaveExercises(editingRoutine.id, list, meta)}
-                           onClose={() => setEditing(null)}
-                           restSeconds={goals?.[editingRoutine.goal]?.rest_seconds} />
-        )}
         {shown.length === 0 && (
           <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
             No routines yet — have the Coach build one above, make your own, or turn a logged workout below into one.
@@ -1839,6 +1832,15 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                   </button>
                 </div>
               </div>
+              {/* The designer opens UNDER the routine it edits. It used to open
+                  once, above the whole list, so Edit on a routine further down
+                  flipped to Close with nothing visible beside it. */}
+              {editing === r.id && (
+                <RoutineDesigner key={r.id} routine={r} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
+                                 onSave={(list, meta) => onSaveExercises(r.id, list, meta)}
+                                 onClose={() => setEditing(null)}
+                                 restSeconds={goals?.[r.goal]?.rest_seconds} />
+              )}
             </div>
           );
         })}
