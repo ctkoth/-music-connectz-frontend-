@@ -314,6 +314,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // `blob` is never replaced - posting and storage still use it.
   const [copyPlan, setCopyPlan] = useState(null);
   const [packing, setPacking] = useState(null);
+  // Optional, because a smaller copy is a different file to the one that was
+  // recorded and nobody has measured the coach's scores on both. Default ON
+  // (it makes big uploads several times faster); a member who wants the
+  // original scored as-is turns it off, and the choice is remembered on this
+  // device. Storage can throw (private window), so every touch is guarded.
+  const [smallerCopy, setSmallerCopy] = useState(() => {
+    try { return localStorage.getItem("mcz_coach_smaller_copy") !== "0"; } catch { return true; }
+  });
+  function chooseSmallerCopy(on) {
+    setSmallerCopy(on);
+    try { localStorage.setItem("mcz_coach_smaller_copy", on ? "1" : "0"); } catch { /* per-device convenience only */ }
+  }
   // Why the last send came back with nothing, or "". Separate from `msg`
   // because a visitor at the trial door needs the way FORWARD, and a red line
   // is not one — see the card below.
@@ -816,7 +828,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // so this can only make the send faster, never stop it.
       let sendBlob = blob;
       let sendName = takeName;
-      if (blob && !fromPost) {
+      if (blob && !fromPost && smallerCopy) {
         setPacking({ pct: 0 });
         const made = await compressForCoach(blob, { isVideo, onProgress: (f) => setPacking({ pct: Math.round(f * 100) }) });
         setPacking(null);
@@ -1366,10 +1378,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* Before the press, from the file's own header: what the coach will
               be sent. A copy for scoring, never a replacement for the original. */}
           {blob && copyPlan && !busy && (
-            <p className="text-[11px] text-white/45">
-              {copyLine(copyPlan.originalBytes, copyPlan.estimateBytes)}
-              <span className="text-white/30"> — a smaller copy sends faster; it is for scoring only.</span>
-            </p>
+            <label className="flex items-start gap-2 text-[11px] text-white/45">
+              <input type="checkbox" className="mt-0.5" checked={smallerCopy}
+                     onChange={(e) => chooseSmallerCopy(e.target.checked)}
+                     aria-label="Send the coach a smaller copy of this take" />
+              <span>
+                {smallerCopy
+                  ? <>{copyLine(copyPlan.originalBytes, copyPlan.estimateBytes)}
+                      <span className="text-white/30"> — sends faster; it is for scoring only. Untick to send the original as it is.</span></>
+                  : <>Sending the original file as it is — {sizeLabel(copyPlan.originalBytes)}, so the upload takes longer.
+                      <span className="text-white/30"> Tick to send a smaller copy for scoring instead.</span></>}
+              </span>
+            </label>
           )}
           {price && (
             <p className="text-[11px] text-white/35">
