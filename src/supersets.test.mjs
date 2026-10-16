@@ -80,3 +80,25 @@ test("after the first half of a pair the rest clock is held and the second lift 
   assert.equal(holdFor(planned, { 1: [{}], 2: [{}] }, 1), null);
   assert.equal(holdFor(planned, { 3: [{}] }, 3), null);                // a single lift rests as always
 });
+
+// Mirrors apps/economy/test_superset.py (valid_groups with two pairs): the server
+// and this file must agree on which two-pair routines are kept and which are not.
+test("two pairs side by side are both kept, labelled A then B", () => {
+  const rows = [r(1, "A"), r(2, "A"), r(5, "B"), r(4, "B")];
+  assert.deepEqual(groups(validGroups(rows)), ["A", "A", "B", "B"]);
+  assert.deepEqual(groups(normalize(rows)), ["A", "A", "B", "B"]);
+});
+
+test("a pair split by a lift is dropped while the other pair beside it survives", () => {
+  assert.deepEqual(groups(validGroups([r(1, "A"), r(3), r(2, "A"), r(5, "B"), r(4, "B")])),
+    [null, null, null, "B", "B"]);
+});
+
+test("deleting one half of the first of two pairs frees that lift and keeps the second pair, relabelled A", () => {
+  const rows = [r(1, "A"), r(2, "A"), r(5, "B"), r(4, "B")];
+  assert.deepEqual(groups(normalize(rows.filter((x) => x.exercise_id !== 2))), [null, "A", "A"]);
+});
+
+test("two pairs stay two pairs after a relabel, whatever they were called", () => {
+  assert.deepEqual(groups(normalize([r(1, "Q"), r(2, "Q"), r(5, "Z"), r(4, "Z")])), ["A", "A", "B", "B"]);
+});
