@@ -157,7 +157,7 @@ export default function Register() {
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>
           {join ? (
             <> — <span className="font-semibold">+{join.joinee_spinaz} 🍥</span> for you,
-              +{join.referrer_spinaz} 🍥 for them. Both sides, because both sides show up.</>
+              +{join.referrer_spinaz} 🍥 for them{join.referrer_monthly_cap ? ` (for their first ${join.referrer_monthly_cap} invites in any 30 days)` : ""}. Both sides, because both sides show up.</>
           ) : null}
         </div>
       )}
