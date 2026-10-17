@@ -28,3 +28,11 @@ export function useRemembered(field, fallback, allowed) {
   const setQuiet = useCallback((v) => { touched.current = true; setValue(v); }, []);
   return [value, set, setQuiet];
 }
+
+// Same, for a numeric field (remembered as text, handed back as a Number).
+// Blank stays blank — "no choice" is not the number 0.
+export function useRememberedNumber(field, fallback) {
+  const [v, set, quiet] = useRemembered(field, fallback);
+  const n = v === "" || v == null ? NaN : Number(v);
+  return [Number.isFinite(n) ? n : fallback, (x) => set(x === "" || x == null ? "" : Number(x)), quiet];
+}

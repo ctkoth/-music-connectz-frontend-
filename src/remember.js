@@ -49,3 +49,10 @@ export function remember(field, value) {
   try { localStorage.setItem(PREFIX + field, JSON.stringify(bump(load(field), String(value)))); }
   catch { /* per-device convenience only */ }
 }
+
+// For form objects: overlay remembered values for `keys` onto the defaults.
+export function seed(prefix, defaults, keys) {
+  const out = { ...defaults };
+  for (const k of keys) { const v = recall(`${prefix}.${k}`); if (v != null) out[k] = v; }
+  return out;
+}

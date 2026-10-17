@@ -39,6 +39,7 @@ import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import { seed, remember } from "../remember.js";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -233,8 +234,8 @@ export default function CollabZ() {
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
-                                     description: "", split_mode: "rating" });
+  const [form, setForm] = useState(() => seed("collabz", { title: "", currency: "money", partner: "", mine: "", theirs: "",
+                                     description: "", split_mode: "rating" }, ["currency"]));
   // A member card's "Collab" lands here with the partner already filled in.
   useEffect(() => onHandoff("collabz", (p) => {
     if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
@@ -395,7 +396,7 @@ export default function CollabZ() {
           <input className="neon-input sm:col-span-2" placeholder="What are we making?"
                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <select aria-label="Escrow currency" className="neon-input" value={form.currency}
-                  onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+                  onChange={(e) => { remember("collabz.currency", e.target.value); setForm({ ...form, currency: e.target.value }); }}>
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>

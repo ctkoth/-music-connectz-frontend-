@@ -8,6 +8,7 @@ import OfferMap from "./OfferMap.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { asList } from "../shape.js";
 import MentionText from "../MentionParser.jsx";
+import { seed, remember } from "../remember.js";
 
 const SKILLS = ["mimez", "directz", "singz", "rapz", "dawz", "designz", "shotz", "writez",
   "guitar", "piano", "vocals", "drums", "bass", "violin", "saxophone", "dj"];
@@ -281,10 +282,10 @@ function Browse() {
 /* ----------------------------------------------------------------- Teach */
 function Teach() {
   const talk = useSay();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => seed("lessonz", {
     skill: "guitar", title: "", description: "", pricing_mode: "per_hour",
     price: "25.00", city: "", remote_ok: true, in_person_ok: true, callz_ok: false,
-  });
+  }, ["skill", "pricing_mode", "price", "city"]));
   const [elig, setElig] = useState(null);
   const [gates, setGates] = useState({});
   const [msg, setMsg] = useState("");
@@ -292,6 +293,7 @@ function Teach() {
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => {
     const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (["skill", "pricing_mode", "price", "city"].includes(k)) remember(`lessonz.${k}`, val);
     setForm({ ...form, [k]: val });
     setErrors({ ...errors, [k]: null });
   };
@@ -560,11 +562,12 @@ function Posts() {
 /* -------------------------------------------------------------- PostForm */
 function PostForm() {
   const talk = useSay();
-  const [form, setForm] = useState({ skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" });
+  const [form, setForm] = useState(() => seed("lessonz.post", { skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" }, ["skill", "price"]));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => {
+    if (k === "skill" || k === "price") remember(`lessonz.post.${k}`, e.target.value);
     setForm({ ...form, [k]: e.target.value });
     setErrors({ ...errors, [k]: null });
   };

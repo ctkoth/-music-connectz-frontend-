@@ -48,6 +48,7 @@ import { labelForSkill } from "../personaSkills.js";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
+import { seed, remember } from "../remember.js";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -607,15 +608,18 @@ function Venue({ v, onChanged, onFlash }) {
 
 function HostForm({ onCreated, onFlash }) {
   const talk = useSay();
-  const [f, setF] = useState({
+  const [f, setF] = useState(() => seed("venuez", {
     title: "", area: "", address: "", kind: "performance", starts_at: "",
     hours: 2, basis: "hour", capacity: 1, min_age: 0, description: "",
     category: "music", spinaz_price: "",
-  });
+  }, ["kind", "basis", "category", "area", "hours"]));
   const [skills, setSkills] = useState([]);
   const [gates, setGates] = useState({});
   const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => {
+    if (["kind", "basis", "category", "area", "hours"].includes(k)) remember(`venuez.${k}`, e.target.value);
+    setF({ ...f, [k]: e.target.value });
+  };
 
   async function create() {
     if (!f.title.trim() || !f.area.trim() || !f.starts_at) {

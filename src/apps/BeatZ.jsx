@@ -10,6 +10,7 @@ import { Loader2, Music, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { MONEY } from "../resources.js";
 import MemberName from "../MemberName.jsx";
+import { seed, remember } from "../remember.js";
 
 const usd = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const LICENSE = {
@@ -189,11 +190,14 @@ function Earnings() {
 }
 
 function SellForm({ onListed }) {
-  const [f, setF] = useState({ title: "", genre: "", tempo_bpm: "", price: "", license_type: "nonexclusive", description: "" });
+  const [f, setF] = useState(() => seed("beatz", { title: "", genre: "", tempo_bpm: "", price: "", license_type: "nonexclusive", description: "" }, ["genre", "license_type", "price"]));
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => {
+    if (["genre", "license_type", "price"].includes(k)) remember(`beatz.${k}`, e.target.value);
+    setF({ ...f, [k]: e.target.value });
+  };
 
   const submit = async (ev) => {
     ev.preventDefault();

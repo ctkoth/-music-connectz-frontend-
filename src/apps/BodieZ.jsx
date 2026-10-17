@@ -70,6 +70,7 @@ function Field({ label, className = "w-20", ...props }) {
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { suggest } from "../exerciseSearch.js";
+import { useRemembered, useRememberedNumber } from "../useRemembered.js";
 
 // Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
 // migration 0145's docstring on the backend for why it stays: Burpee, Clean
@@ -2326,9 +2327,9 @@ function DemoLink({ url }) {
 // lives, and the two drift the way a tier number always does.
 function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [open, setOpen] = useState(false);
-  const [perMuscle, setPerMuscle] = useState(1);
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 1);
   const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
     [bodymap, exercises, equipment, perMuscle]);
   const goal = goalKey ? goals?.[goalKey] : null;
@@ -2414,11 +2415,11 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
 // every day's label and muscles before anything saves, then writes one
 // real BodieZRoutine per day in one batch.
 function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
-  const [days, setDays] = useState("");
+  const [days, setDays] = useRememberedNumber("bodiez.days", "");
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [open, setOpen] = useState(false);
-  const [perMuscle, setPerMuscle] = useState(1);
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 1);
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
 
@@ -2541,13 +2542,13 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
                     "shoulders", "triceps", "upper_legs", "lower_legs"];
   const [muscles, setMuscles] = useState([]);
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [dayTag, setDayTag] = useState("");
-  const [perMuscle, setPerMuscle] = useState(2);
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 2);
   // Minutes the member has, or 0 for "no limit". Applied AFTER the muscles
   // are picked: lifts are dropped from the end until the estimate fits, and
   // the screen says how many went — never a silently shorter routine.
-  const [minutes, setMinutes] = useState(0);
+  const [minutes, setMinutes] = useRememberedNumber("bodiez.minutes", 0);
   const [open, setOpen] = useState(false);
   const goal = goalKey ? goals?.[goalKey] : null;
   const allPicked = MUSCLES.every((m) => muscles.includes(m));
