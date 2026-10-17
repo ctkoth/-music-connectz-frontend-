@@ -615,6 +615,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     loadLimits().then((d) => setEditWindow(d?.edit_unlock_sec ?? null)).catch(() => {});
   }, []);
   const [ratingVisibility, setRatingVisibility] = useState("restricted");
+  // Why, in the listener's own words — optional. The performer reads it next to the AI's reasons.
+  const [ratingReason, setRatingReason] = useState("");
   const draft = useRef("");
   const item = `post:${post.id}`;
 
@@ -760,7 +762,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   async function rate(score) {
     try {
       setSocial(await api("/api/economy/social/rate/",
-                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility } }));
+                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility, reason: ratingReason.trim() || undefined } }));
+      setRatingReason("");
       const bonuses = [];
       if (ratingVisibility === "public") bonuses.push("public +25%");
       if (post.contributors?.length > 1) bonuses.push(`team +${10 * (post.contributors.length - 1)}%`);
@@ -1173,6 +1176,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                 Give it a listen first — {listenShort}s to go.
               </p>
             )}
+            <input className="neon-input w-full text-xs" maxLength={200} value={ratingReason}
+                   onChange={(e) => setRatingReason(e.target.value)} aria-label="Why? (optional)"
+                   placeholder="Why? One line, optional — only the performer sees it." />
             <div className="flex flex-wrap items-center gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} onClick={() => rate(n)} disabled={listenShort > 0}

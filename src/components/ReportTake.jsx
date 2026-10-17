@@ -49,7 +49,7 @@ export default function ReportTake({ takeId, appKey }) {
     <div className="space-y-2 rounded-lg border border-white/10 p-3 text-xs">
       <p className="text-white/60">
         Reporting tells the owner which score this is. They can read the score and what the
-        coach wrote about it. Your recording isn't kept, so they can't hear it.
+        coach wrote about it. They are not sent the recording — a report shows the score and what the coach wrote, nothing you played.
       </p>
       <label className="block text-white/60" htmlFor={`rep-take-${takeId}`}>What is wrong with it?</label>
       <select data-nomemo="true" id={`rep-take-${takeId}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>

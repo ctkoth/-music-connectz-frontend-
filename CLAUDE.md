@@ -1345,3 +1345,24 @@ The shape every shared thing here should have: self-explanatory without an accou
 flattering to the person who made it, about a result not a secret, comparable, and one
 tap from "get yours" for the person who opens it — with the sharer's handle as the
 referral code. A share that does not do all five is a poster.
+
+## Keep this take: opt-in, per take, and the shells never offer it
+
+A take recorded in the coach is scored and **not stored** unless the member ticks
+**Keep this take** (`BossTake`, member recorder only). Default off, remembered once
+chosen: what is kept is somebody's voice. Keeping sends the ORIGINAL (the smaller copy
+is for scoring only), counts against their storage, costs no credits, and the file then
+opens from the history and LogZ. A take that does not fit is still scored, and the
+screen says why it was not kept.
+
+**Every standalone shell hides it** (`IN_SHELL_COACH`), because the Play listing and
+`play/skillz/data-safety.md` say a take is never stored there and that is still true. The
+main-site privacy policy says "by default we do not store the recording" and names the
+option; **a privacy sentence is a claim about the code**, so if keep ever becomes a
+default, `privacy.html`, both Play documents, `ReportTake.jsx` and `LogZ` change together.
+
+Also here: the weekly challenge (`WeeklyChallenge.jsx`, the server derives it from the ISO
+week), "beat my score" at the free door (`challenge.js`), the monthly recap, and listener
+reasons (one line with a rating, shown only to the performer — never on a public card).
+Adults and under-18s do not find or contact each other: member search, DMs and calls are
+age-grouped on the server (`may_contact`), unknown ages count as adults.

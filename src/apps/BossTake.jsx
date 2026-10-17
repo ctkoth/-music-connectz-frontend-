@@ -14,7 +14,7 @@ import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
-import { heardFor, ratingTone as scoreColor } from "../rating.js";
+import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
@@ -343,6 +343,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [smallerCopy, setSmallerCopy] = useState(() => {
     try { return localStorage.getItem("mcz_coach_smaller_copy") !== "0"; } catch { return true; }
   });
+  // Keep this take: opt-in, per take, and remembered once chosen. Default OFF — what is
+  // kept is somebody's voice, and the privacy policy says a take is scored, not stored,
+  // unless they ask. Keeping sends the ORIGINAL (the smaller copy is for scoring only),
+  // and the file then counts against their storage like any upload.
+  const [keep, setKeep] = useState(() => {
+    try { return localStorage.getItem("mcz_keep_take") === "1"; } catch { return false; }
+  });
+  function chooseKeep(on) {
+    setKeep(on);
+    try { localStorage.setItem("mcz_keep_take", on ? "1" : "0"); } catch { /* per-device convenience only */ }
+  }
   function chooseSmallerCopy(on) {
     setSmallerCopy(on);
     try { localStorage.setItem("mcz_coach_smaller_copy", on ? "1" : "0"); } catch { /* per-device convenience only */ }
@@ -849,7 +860,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // so this can only make the send faster, never stop it.
       let sendBlob = blob;
       let sendName = takeName;
-      if (blob && !fromPost && smallerCopy) {
+      if (blob && !fromPost && smallerCopy && !(keep && !trial && !refMode && !IN_SHELL_COACH)) {
         setPacking({ pct: 0 });
         const made = await compressForCoach(blob, { isVideo, onProgress: (f) => setPacking({ pct: Math.round(f * 100) }) });
         setPacking(null);
@@ -883,6 +894,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
             // private window, which the server reads as "unknown" rather than
             // as a visitor who has already been here.
@@ -1406,6 +1418,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <Cost price={price} trial={trial} />
             {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
+          {/* The cost of keeping, said before the press: storage, not credits. */}
+          {blob && !trial && !refMode && !fromPost && !busy && !IN_SHELL_COACH && (
+            <label className="flex items-start gap-2 text-[11px] text-white/55" data-tour="keep-take">
+              <input type="checkbox" className="mt-0.5" checked={keep} onChange={(e) => chooseKeep(e.target.checked)}
+                     aria-label="Keep this take" />
+              <span>
+                Keep this take — saves the recording ({sizeLabel(blob.size)}) to your uploads so you can play it back from
+                your history and LogZ. <span className="text-white/40">It counts toward your storage, costs no credits, and you can delete it any time. Off by default.</span>
+              </span>
+            </label>
+          )}
           {/* Before the press, from the file's own header: what the coach will
               be sent. A copy for scoring, never a replacement for the original. */}
           {blob && copyPlan && !busy && (
@@ -1605,8 +1628,20 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* What the number is, in the server's words, beside the number; and
               real listener ratings (server-read only) next to the coach's. */}
           {result.score_rule && <p className="text-[11px] text-white/45">{result.score_rule}</p>}
+          {result.kept && <p className="text-[11px] text-emerald-300">Kept — the recording is in your uploads and opens from your history.</p>}
+          {!result.kept && result.kept_note && <p className="text-[11px] text-mcz-gold">{result.kept_note}</p>}
           {listenersLine(result.listeners, result.score) && (
             <p className="text-[12px] font-semibold text-emerald-300">{listenersLine(result.listeners, result.score)}</p>
+          )}
+          {/* The human reasons beside the AI's. Only the performer is shown these: they are
+              a stranger's words about somebody's work, so they never reach a public card. */}
+          {result.listener_reasons?.length > 0 && (
+            <div className="space-y-0.5 text-[12px]">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What real listeners said</p>
+              {result.listener_reasons.map((r, i) => (
+                <p key={i} className="text-white/70"><b className={ratingTone(r.score)}>{r.score}</b> — “{r.text}”</p>
+              ))}
+            </div>
           )}
           {/* Each number is LARGE and sits with the reason for it: the strongest moment
               the coach filed under that dimension (`heard`, by `dim`), or its own

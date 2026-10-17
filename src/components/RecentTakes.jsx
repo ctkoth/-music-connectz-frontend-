@@ -68,7 +68,13 @@ function Row({ t, labels, appKey }) {
       </button>
       {open && (
         <div className="space-y-2 border-t border-white/[0.06] px-3 py-2">
-          {read.verdict && <p className="text-white/75">{read.verdict}</p>}
+          {t.file?.kept && t.file.url && (
+            /^video\//.test(t.file.content_type || "")
+              ? <video src={t.file.url} controls preload="none" className="w-full max-w-sm rounded-lg" />
+              : <audio src={t.file.url} controls preload="none" className="w-full max-w-sm" />
+          )}
+          {t.file && !t.file.kept && <p className="text-[11px] text-white/40">{t.file.why}</p>}
+                    {read.verdict && <p className="text-white/75">{read.verdict}</p>}
           <RatingGrid rows={Object.entries(t.scores || {}).filter(([k]) => labels[k]).map(([k, v]) => ({
             key: k, label: labels[k], value: v }))} />
           {read.strengths?.length > 0 && (
