@@ -404,19 +404,6 @@ export const ICON_TREE = [
     ]
   },
   {
-    "parent": "breathz",
-    "label": "BreathZ",
-    "root": {
-      "file": "breathz.png",
-      "art": "/icons/breathz.png",
-      "key": null,
-      "status": "unplaced",
-      "note": ""
-    },
-    "extra": [],
-    "children": []
-  },
-  {
     "parent": "bugz",
     "label": "BugZ",
     "root": {
@@ -485,19 +472,6 @@ export const ICON_TREE = [
       "key": "chordz.jpg",
       "status": "live",
       "note": "replaces the generated glyph /icons/chordz-neon.svg"
-    },
-    "extra": [],
-    "children": []
-  },
-  {
-    "parent": "clarinetz",
-    "label": "ClarinetZ",
-    "root": {
-      "file": "clarinetz.png",
-      "art": "/icons/clarinetz.png",
-      "key": null,
-      "status": "unplaced",
-      "note": ""
     },
     "extra": [],
     "children": []
@@ -731,19 +705,6 @@ export const ICON_TREE = [
       "art": null,
       "key": "filez.png",
       "status": "owed",
-      "note": ""
-    },
-    "extra": [],
-    "children": []
-  },
-  {
-    "parent": "flutez",
-    "label": "FluteZ",
-    "root": {
-      "file": "flutez.png",
-      "art": "/icons/flutez.png",
-      "key": null,
-      "status": "unplaced",
       "note": ""
     },
     "extra": [],
@@ -1381,19 +1342,6 @@ export const ICON_TREE = [
     "children": []
   },
   {
-    "parent": "saxz",
-    "label": "SaxZ",
-    "root": {
-      "file": "saxz.png",
-      "art": "/icons/saxz.png",
-      "key": null,
-      "status": "unplaced",
-      "note": ""
-    },
-    "extra": [],
-    "children": []
-  },
-  {
     "parent": "singz",
     "label": "SingZ",
     "root": {
@@ -1553,19 +1501,6 @@ export const ICON_TREE = [
     ]
   },
   {
-    "parent": "trumpetz",
-    "label": "TrumpetZ",
-    "root": {
-      "file": "trumpetz.png",
-      "art": "/icons/trumpetz.png",
-      "key": null,
-      "status": "unplaced",
-      "note": ""
-    },
-    "extra": [],
-    "children": []
-  },
-  {
     "parent": "tunerz",
     "label": "TunerZ",
     "root": {
@@ -1641,7 +1576,58 @@ export const ICON_TREE = [
       "note": ""
     },
     "extra": [],
-    "children": []
+    "children": [
+      {
+        "child": "breathz",
+        "label": "BreathZ",
+        "file": "skillz.breathz.jpg",
+        "art": "/icons/skillz.breathz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "clarinetz",
+        "label": "ClarinetZ",
+        "file": "skillz.clarinetz.jpg",
+        "art": "/icons/skillz.clarinetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "flutez",
+        "label": "FluteZ",
+        "file": "skillz.flutez.jpg",
+        "art": "/icons/skillz.flutez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "saxz",
+        "label": "SaxZ",
+        "file": "skillz.saxz.jpg",
+        "art": "/icons/skillz.saxz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "trumpetz",
+        "label": "TrumpetZ",
+        "file": "skillz.trumpetz.jpg",
+        "art": "/icons/skillz.trumpetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
   },
   {
     "parent": "directz",

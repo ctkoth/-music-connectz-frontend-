@@ -201,11 +201,11 @@ Still what something draws today; custom art takes over where a default exists.
 | `tunerz.jpg` | — | the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as "tunerz - Copy.jpg" — a copy |
 | `whatineedz.png` | — | no tab or key — closest is PickConnectZ (pickconz.png), which already has art |
 | `xp.jpg` | — | XP is an emoji resource (⭐ in src/resources.js); no screen draws an icon for it |
-| `flutez.png` | — |  |
-| `saxz.png` | — |  |
-| `trumpetz.png` | — |  |
-| `breathz.png` | — |  |
-| `clarinetz.png` | — |  |
+| `skillz.breathz.jpg` | — |  |
+| `skillz.clarinetz.jpg` | — |  |
+| `skillz.flutez.jpg` | — |  |
+| `skillz.saxz.jpg` | — |  |
+| `skillz.trumpetz.jpg` | — |  |
 
 ## Duplicates (3)
 | File | Registry key | Note |
