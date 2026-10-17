@@ -30,3 +30,16 @@ test("memory is bounded", () => {
   assert.ok(Object.keys(row.counts).length <= 40);
   assert.equal(row.last, "v99");
 });
+
+import { suggestion } from "./remember.js";
+
+test("suggests the habit only at 65%+ over 5+ uses and only when it differs", () => {
+  const row = (counts) => ({ last: null, counts });
+  assert.equal(suggestion(row({ a: 4 }), "b"), null);                 // too few uses
+  assert.equal(suggestion(row({ a: 6, b: 4 }), "b"), null);           // 60% is not a habit
+  assert.equal(suggestion(row({ a: 7, b: 3 }), "a"), null);           // already on it
+  const s = suggestion(row({ a: 7, b: 3 }), "b");
+  assert.equal(s.value, "a");
+  assert.equal(s.share, 0.7);
+  assert.equal(suggestion(row({ a: 7, b: 3 }), "b", ["b", "c"]), null); // no longer offered
+});

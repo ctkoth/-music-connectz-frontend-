@@ -13,6 +13,8 @@ import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import { budgetOf, runTimeoutMs, shellRoyaltyLine, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
 import { chargeLine, drumVoice, midiName, missingLine } from "../instrumentalz.js";
 import { useRemembered } from "../useRemembered.js";
+import { remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // Instrumental ConnectZ — AI-composed MIDI loops. Keys, moods, instruments,
 // limits and price all come from /api/economy/instrumentalz/; the .mid is
@@ -226,6 +228,7 @@ export default function InstrumentalConnectZ() {
             <select className="neon-input mt-1 w-full" value={key} onChange={(e) => setKey(e.target.value)}>
               {(s?.keys || []).map((k) => <option key={k.key} value={k.key}>{k.key}</option>)}
             </select>
+<UsualHint field="instrumentalz.key" value={key} onUse={setKey} />
           </label>
           <label className="text-sm text-white/70">Length
             <select className="neon-input mt-1 w-full" value={bars} onChange={(e) => setBars(Number(e.target.value))}>

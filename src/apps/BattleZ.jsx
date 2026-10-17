@@ -38,6 +38,7 @@ import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
 import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // An entry's take counts its own listening (listen.js), because rating a
 // battle take requires hearing it first — the same rule posts follow, and the
@@ -709,6 +710,7 @@ export default function BattleZ() {
               </optgroup>
             ))}
               </select>
+<UsualHint field="battlez.genre" value={form.genre} onUse={(v) => { remember("battlez.genre", v); setForm({ ...form, genre: v }); }} />
               <input className="neon-input !py-2 text-xs" inputMode="numeric"
                      placeholder="Entry fee in SpinaZ (0 = free)"
                      value={form.entry_spinaz}

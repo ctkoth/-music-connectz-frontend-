@@ -49,6 +49,7 @@ import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -665,6 +666,7 @@ function HostForm({ onCreated, onFlash }) {
         <option value="music">Music room</option>
         <option value="fitness">🏋️ Fitness / lifting — a gym space or training session</option>
       </select>
+<UsualHint field="venuez.category" value={f.category} onUse={(v) => { remember("venuez.category", v); setF({ ...f, category: v }); }} />
 
       <div className="space-y-1">
         <select className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
@@ -673,6 +675,7 @@ function HostForm({ onCreated, onFlash }) {
           <option value="free">Free — nobody pays</option>
           <option value="spinaz">SpinaZ entry {SPINAZ} — a flat price in SpinaZ</option>
         </select>
+<UsualHint field="venuez.kind" value={f.kind} onUse={(v) => { remember("venuez.kind", v); setF({ ...f, kind: v }); }} />
         {f.kind === "spinaz" && (
           <input className="neon-input !py-2 text-xs" type="number" min="1" inputMode="numeric"
                  placeholder={`Entry per visitor, in ${SPINAZ}`} value={f.spinaz_price} onChange={set("spinaz_price")} />
@@ -694,6 +697,7 @@ function HostForm({ onCreated, onFlash }) {
           <option value="hour">Per hour</option>
           <option value="total">Agreed total</option>
         </select>
+<UsualHint field="venuez.basis" value={f.basis} onUse={(v) => { remember("venuez.basis", v); setF({ ...f, basis: v }); }} />
         <input className="neon-input !py-2 text-xs" type="number" min="1" max="500"
                placeholder="Seats" value={f.capacity} onChange={set("capacity")} />
       </div>

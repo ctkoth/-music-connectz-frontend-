@@ -66,6 +66,8 @@ import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 import LeaderboardZ from "./LeaderboardZ.jsx";
 import { useRemembered } from "../useRemembered.js";
+import { remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -418,6 +420,7 @@ export default function PostZ() {
               </optgroup>
             ))}
           </select>
+<UsualHint field="postz.genre" value={genre} onUse={setGenre} />
           {/* Any genre can be freestyled, so this is a toggle next to the
               genre rather than an entry inside it. */}
           <button type="button" data-tour="post-freestyle"

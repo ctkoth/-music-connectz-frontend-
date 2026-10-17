@@ -56,3 +56,23 @@ export function seed(prefix, defaults, keys) {
   for (const k of keys) { const v = recall(`${prefix}.${k}`); if (v != null) out[k] = v; }
   return out;
 }
+
+export const SUGGEST_SHARE = 0.65;   // "most used" means at least this much of the time
+export const SUGGEST_MIN_USES = 5;   // …and enough uses that a share means something
+
+// A suggestion, when the member's usual choice differs from what is showing.
+// The default stays their LAST choice; this only speaks when one other value
+// carries >= 65% of their uses, so it is a habit and not a coincidence.
+export function suggestion(row, current, allowed) {
+  const entries = Object.entries(row.counts || {}).filter(([v]) => !allowed || allowed.includes(v));
+  const total = entries.reduce((n, [, c]) => n + c, 0);
+  if (total < SUGGEST_MIN_USES) return null;
+  const [value, n] = entries.sort((a, b) => b[1] - a[1])[0];
+  const share = n / total;
+  if (share < SUGGEST_SHARE || String(value) === String(current)) return null;
+  return { value, share, n: total };
+}
+
+export function suggest(field, current, allowed) {
+  return suggestion(load(field), current, allowed);
+}

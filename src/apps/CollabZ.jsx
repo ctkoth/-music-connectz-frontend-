@@ -40,6 +40,7 @@ import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
 import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -400,6 +401,7 @@ export default function CollabZ() {
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
+<UsualHint field="collabz.currency" value={form.currency} onUse={(v) => { remember("collabz.currency", v); setForm({ ...form, currency: v }); }} />
           <p className="text-[11px] text-white/45 sm:col-span-2">
             {form.currency === "spinaz"
               ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash.`

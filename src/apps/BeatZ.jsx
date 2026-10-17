@@ -11,6 +11,7 @@ import { api } from "../api.js";
 import { MONEY } from "../resources.js";
 import MemberName from "../MemberName.jsx";
 import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const usd = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const LICENSE = {
@@ -227,6 +228,7 @@ function SellForm({ onListed }) {
         <option value="nonexclusive">{LICENSE.nonexclusive}</option>
         <option value="exclusive">{LICENSE.exclusive}</option>
       </select>
+<UsualHint field="beatz.license_type" value={f.license_type} onUse={(v) => { remember("beatz.license_type", v); setF({ ...f, license_type: v }); }} />
       <p className="text-xs text-white/45">
         {f.license_type === "exclusive"
           ? "After one artist buys it, nobody else can: further purchases are refused. The beat stays on your page, marked as sold."

@@ -31,6 +31,7 @@ import { goToTab } from "../goto.js";
 import { IconImg } from "../App.jsx";
 import { takeDirectzPreset as takePreset } from "../directzPreset.js";
 import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // ReelZ, EpisodeZ and MovieZ — DirectZ's children by length (directzPreset.js).
 const FMT_ICON = { reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png" };
@@ -203,6 +204,7 @@ export default function DirectZ() {
                 <option key={f.key} value={f.key}>{f.name} · {f.length}</option>
               ))}
             </select>
+<UsualHint field="directz.fmt" value={form.fmt} onUse={(v) => { remember("directz.fmt", v); setForm({ ...form, fmt: v }); }} />
           </label>
           <label className="text-[11px] text-white/50">
             Genre
@@ -211,6 +213,7 @@ export default function DirectZ() {
               <option value="">— pick a genre —</option>
               {asList(spec?.genres).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
+<UsualHint field="directz.genre" value={form.genre} onUse={(v) => { remember("directz.genre", v); setForm({ ...form, genre: v }); }} />
           </label>
           <label className="text-[11px] text-white/50">
             What it's for
@@ -219,6 +222,7 @@ export default function DirectZ() {
               <option value="">— optional —</option>
               {asList(spec?.video_types).map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+<UsualHint field="directz.video_type" value={form.video_type} onUse={(v) => { remember("directz.video_type", v); setForm({ ...form, video_type: v }); }} />
           </label>
         </div>
 

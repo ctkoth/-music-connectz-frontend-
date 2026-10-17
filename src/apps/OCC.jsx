@@ -38,6 +38,8 @@ import { ENERGY, amount } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import { useRemembered } from "../useRemembered.js";
+import { remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -602,6 +604,7 @@ export default function OCC() {
                         onChange={(e) => setLang(e.target.value)}>
                   {asList(spec.execute.languages).map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
+<UsualHint field="occ.lang" value={lang} onUse={setLang} />
                 <span className="text-[10px] text-white/35">
                   {lim.blocked ? "Can't start a run right now" : `This run: up to ${lim.seconds}s`}
                   {" · "}{spec.execute.seconds_left_today}s of sandbox time left today

@@ -11,6 +11,7 @@ import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Vide
 import { api } from "../api.js";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
+import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
@@ -989,6 +990,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </optgroup>
             ))}
           </select>
+          <UsualHint field={`${appKey}.genre`} value={genre} onUse={setGenre} allowed={GENRES} server={(price?.usual_top || {}).genre} />
         </label>
         {price?.range_label && !refMode && (
           <label className="text-[11px] text-white/50">
@@ -996,6 +998,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
               {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
+            <UsualHint field={`${appKey}.range`} value={range} onUse={setRange} allowed={(price.ranges || []).map((r) => r.key)} server={(price?.usual_top || {}).target}
+                       label={(v) => (price.ranges || []).find((r) => r.key === v)?.label || v} />
           </label>
         )}
         {price?.style_label && (
@@ -1005,6 +1009,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               <option value="">Any</option>
               {(price.styles || []).map((v) => <option key={v.key} value={v.label}>{v.label}</option>)}
             </select>
+            <UsualHint field={`${appKey}.style`} value={style} onUse={setStyle} allowed={(price.styles || []).map((v) => v.label)} server={(price?.usual_top || {}).style} />
           </label>
         )}
         {!refMode && <label className="text-[11px] text-white/50">
@@ -1013,6 +1018,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
               .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>
+          <UsualHint field={`${appKey}.difficulty`} value={difficulty} onUse={setDifficulty} server={(price?.usual_top || {}).difficulty}
+                     label={(v) => DIFFICULTY_LABEL[v] || v} />
         </label>}
       </div>
       {refMode ? (
