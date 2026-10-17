@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
-import { Copy, Download, Flag, Loader2, PenLine } from "lucide-react";
+import { Copy, Download, Flag, Loader2, PenLine, Star } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
-import { handOff } from "../handoff.js";
+import { handOff, onHandoff } from "../handoff.js";
 import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
@@ -150,7 +150,19 @@ export default function SentenceConnectZ() {
   const [draft, setDraft] = useState("");
   const [royalty, setRoyalty] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [items, setItems] = useState(null);      // a fixer's ranked suggestions
+  const [picked, setPicked] = useState([]);      // which of them the member is using
+  const [hidden, setHidden] = useState(false);   // the suggestions, minimised
   const timer = useRef(null);
+
+  // The coach hands a weak score here with the writer for it already chosen, and
+  // the genre it was scored in. The bars themselves aren't carried: the coach
+  // never kept the member's words, so they paste the ones they want fixed.
+  useEffect(() => (IN_SHELL ? undefined : onHandoff("sentenceconnectz", (p) => {
+    if (p.kind) setKind(String(p.kind));
+    const g = p.style || p.genre;
+    if (g) setGenre(String(g).slice(0, 60));
+  })), []);
 
   const load = () => api("/api/economy/sentencez/").then(setS).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
@@ -166,6 +178,10 @@ export default function SentenceConnectZ() {
   // The royalty is the server's number — on the piece when it sends one, else the
   // screen's GET. Never a figure typed here: with neither, no share is stated.
   const open = (w) => {
+    const its = Array.isArray(w.items) ? w.items : null;
+    setItems(its); setHidden(false);
+    // Every suggestion starts selected: "suggest all", the member narrows down.
+    setPicked(its ? its.map((i) => i.idx) : []);
     setWork(w); setDraft(w.text);
     const pct = w.royalty_pct ?? s?.royalty_pct;
     setRoyalty(pct == null ? null : { royalty_pct: pct, kept_share: 1 });
@@ -205,6 +221,21 @@ export default function SentenceConnectZ() {
     open(w);
     load();
     setBusy(false);
+  }
+
+  // The draft is the lines the member has ticked, in the order they are shown.
+  // Using fewer lines keeps less of the original, and the royalty (the server's
+  // number, re-read as the draft changes) scales with it.
+  const toggle = (idx) => {
+    const next = picked.includes(idx) ? picked.filter((i) => i !== idx) : [...picked, idx];
+    setPicked(next);
+    setDraft((items || []).filter((i) => next.includes(i.idx)).map((i) => i.line).join("\n"));
+  };
+  async function rate(idx, stars) {
+    try {
+      const r = await api(`/api/economy/sentencez/${work.id}/punchline/${idx}/rate/`, { method: "POST", body: { stars } });
+      setItems(r.items);
+    } catch (e) { setErr(e.message); }
   }
 
   const current = kinds.find((k) => k.key === kind);
@@ -323,6 +354,45 @@ export default function SentenceConnectZ() {
           <p className="text-[11px] text-white/45">Written by AI. Check it before you use it.</p>
           {work.legal_note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.legal_note}</p>}
           {work.note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.note}</p>}
+          {items && (
+            <div className="space-y-2" data-tour="sentencez-fixes">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] text-white/50">{work.rank_note}</p>
+                <button className="re-link text-[11px]" onClick={() => setHidden((h) => !h)}>
+                  {hidden ? `Show the ${items.length} suggestions` : "Minimise"}
+                </button>
+              </div>
+              {!hidden && items.map((it) => (
+                <div key={it.idx} className="space-y-1 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+                  <label className="flex items-start gap-2">
+                    <input type="checkbox" className="mt-1" checked={picked.includes(it.idx)} onChange={() => toggle(it.idx)}
+                           aria-label={`Use: ${it.line}`} />
+                    <span className="font-semibold text-white">{it.line}</span>
+                  </label>
+                  <p className="text-[11px] text-mcz-cyan/80">
+                    {it.technique_label}{it.where ? ` · ${it.where}` : ""}
+                    {" · "}
+                    {it.community
+                      ? <span className="text-emerald-300">members rate this kind {it.community.avg}★ ({it.community.n} ratings)</span>
+                      : <span className="text-white/45">no member ratings for this kind yet — rate it to help rank them</span>}
+                  </p>
+                  {it.why && <p className="text-[12px] text-white/70">{it.why}</p>}
+                  <div className="flex items-center gap-1" role="group" aria-label="Rate this suggestion">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} type="button" onClick={() => rate(it.idx, n)} aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                              className={(it.my_stars || 0) >= n ? "text-mcz-gold" : "text-white/25 hover:text-white/60"}>
+                        <Star size={14} fill={(it.my_stars || 0) >= n ? "currentColor" : "none"} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {!hidden && <p className="text-[11px] text-white/45">
+                Tick the ones you will use — the box below holds exactly those. Using them anywhere that earns pays
+                K-Oth's royalty on the part you keep, shown under the box before you attach anything.
+              </p>}
+            </div>
+          )}
           <textarea className="neon-input min-h-64 w-full font-mono text-sm" aria-label={`${work.label}, editable`}
                     value={draft} onChange={(e) => setDraft(e.target.value)} />
           <div className="flex flex-wrap items-center gap-3">

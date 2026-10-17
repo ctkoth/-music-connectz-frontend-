@@ -63,3 +63,9 @@ test("the cut note counts what was left off, and is silent when nothing was", ()
   assert.match(cutNote(50, 300), /your brief holds 300\./);
   assert.match(cutNote(1, 300), /^1 character didn't fit and was left off/);
 });
+
+test("the standalone writer never offers a fixer", () => {
+  const kinds = [{ key: "resume", allowed: true }, { key: "punchlines", allowed: true, fixer: true }];
+  assert.deepEqual(visibleKinds(kinds, true).map((k) => k.key), ["resume"]);
+  assert.deepEqual(visibleKinds(kinds, false).map((k) => k.key), ["resume", "punchlines"]);
+});

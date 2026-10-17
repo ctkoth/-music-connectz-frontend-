@@ -18,7 +18,10 @@ const NAME = { premium: "Premium", statz: "StatZ" };
  */
 export function visibleKinds(kinds, standalone) {
   const list = Array.isArray(kinds) ? kinds : [];
-  return standalone ? list.filter((k) => k.allowed !== false) : list;
+  // A fixer repairs a score the music coach gave (punchlines, hooks…); the
+  // writer-only standalone has no coach, so offering one there is a door to a
+  // screen that is not there.
+  return standalone ? list.filter((k) => k.allowed !== false && !k.fixer) : list;
 }
 
 /**

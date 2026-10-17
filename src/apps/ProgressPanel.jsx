@@ -22,6 +22,8 @@ import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { IN_SHELL, shellHas } from "../standalone.js";
+import RecentTakes from "../components/RecentTakes.jsx";
+import CoachingBoard from "../components/CoachingBoard.jsx";
 
 /** A finding that may legitimately have no number.
  *  `—` and the server's sentence, never a 0 standing in for "not measured". */
@@ -82,6 +84,7 @@ export default function ProgressPanel({ appKey }) {
 
   return (
     <section className="space-y-4" data-tour={`${appKey}-progress`}>
+      <CoachingBoard appKey={appKey} coaching={data.coaching} />
       <header className="flex items-baseline gap-2">
         <h3 className="font-display text-lg font-bold">Your history</h3>
         <span className="text-[12px] text-white/40">
@@ -225,29 +228,7 @@ export default function ProgressPanel({ appKey }) {
         ) : <p className="text-[12px] text-white/45">{trend.why}</p>}
       </div>
 
-      {takes.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Recent takes</p>
-          <ul className="space-y-1">
-            {takes.map((t) => (
-              <li key={t.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
-                <span className="font-bold">{t.overall ?? "—"}<span className="text-white/35">/10</span></span>
-                <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
-                {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
-                {t.range_class && <span className="text-white/35">{t.range_class}</span>}
-                {/* A score is never a dead end either — it opens the thing it
-                    scored. */}
-                {/* Only a door this build has: a take scored from a post or a diary
-                    page names PostZ or JournalZ, which the SkillZ app does not mount. */}
-                {t.open_in?.tab && shellHas(t.open_in.tab) && (
-                  <button onClick={() => goToSpot(t.open_in.tab, t.open_in.target)}
-                          className="ml-auto text-mcz-cyan hover:underline">open</button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <RecentTakes takes={takes} dimensions={asList(data.dimensions)} appKey={appKey} />
     </section>
   );
 }
