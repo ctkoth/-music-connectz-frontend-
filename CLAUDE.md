@@ -1377,3 +1377,25 @@ brief is built server-side; nothing the screen sends reaches it. A failed run sa
 charged." and no standalone shell offers it. `SpinaZ` is worth 1¢ (Corey's valuation); a
 members-only join pays its author the server's `RESTRICTED_JOIN_REWARD_SPINAZ`, read from
 `/api/economy/earn/`, never typed here.
+
+## ViewZ results: DAW tracks for StatZ, numbers for everyone, and the sample says when it ends
+
+`ViewZ.jsx` has three tabs. **Timeline** is the existing every-viewer-a-track view. **My posts**
+lists the member's posts with views, stayed %, came-back % and who is here now, and opens one
+post (`/api/economy/views/post/<id>/`): the numbers, the views by day, what the people who
+visited DID (rated, commented, liked, messaged), and — for StatZ — every viewer as a track with
+each visit as a clip showing its date, time and length. **My links** is every share link with its
+opens. `DawLanes.jsx` is the one lane/clock component both the timeline and the post view draw
+with. Open pages re-ask every 15 s (the screen is "real time"; the past is the same data, kept),
+and a promo post's LogZ row shows its link's opens read now.
+
+- **Numbers are every tier's; names and tracks are StatZ's or the free sample's.** Without it the
+  tracks area is `StatzSample` (try free / upgrade) and the server's `viewers_locked` sentence.
+- **The words are defined on the screen** (`definitions` from the server): "stayed" and "came back"
+  are not video retention, and nothing blends them into one score. A percentage of nobody is `—`.
+- **Link opens are the public page's counter; who opened is not recorded**, so none is claimed, and
+  "joined from your invites" is not split by link for the same reason.
+- **The sample says how long is left**: the banner shows the end CLOCK time as well as the countdown,
+  and `statzWarn.js` fires a notification (only if already permitted) at the server's
+  `warn_at_seconds` (10 min, 1 min), once each per sample. The end-of-sample notice and the
+  "also in StatZ, and why the hour doesn't cover it" list (`also_in_statz`) are the server's too.

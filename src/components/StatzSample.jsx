@@ -3,6 +3,7 @@ import { Crown, Timer } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
+import { endsAtText, latestDue, warningText } from "../statzWarn.js";
 
 // The StatZ sample: one hour of StatZ-only features, once per member. The end
 // time is the server's, so the countdown here is a display of it, never the
@@ -40,6 +41,12 @@ export function useStatzTrial() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [raw?.active]);
+  // The warnings before the end: ten minutes and one, said once each per sample.
+  useEffect(() => {
+    if (!raw?.active || over) return;
+    const t = latestDue(left, raw.warn_at_seconds, saidFor(raw.ends_at));
+    if (t != null) notifyLeft(raw, t);
+  }, [left, over, raw]);  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!over) return undefined;
     notifyEnded(raw);
@@ -64,6 +71,21 @@ export function useStatzTrial() {
 // yes). Once per sample, keyed on the server's end time, so a reload cannot repeat
 // it. What locks is the Coach CHOOSING; whatever it already built stays built.
 const told = new Set();
+const saidMap = new Map();
+const saidFor = (endsAt) => { if (!saidMap.has(endsAt)) saidMap.set(endsAt, new Set()); return saidMap.get(endsAt); };
+// Says every threshold the clock has already passed as said, so a tab that slept
+// through ten minutes does not then say both, and a later one does not say it again.
+function notifyLeft(s, threshold) {
+  const said = saidFor(s.ends_at);
+  (s.warn_at_seconds || []).forEach((t) => { if (t >= threshold) said.add(t); });
+  try {
+    playSound("message");
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      const { title, body } = warningText(threshold, s.features);
+      new Notification(title, { body, tag: `statz-sample-${threshold}` });
+    }
+  } catch { /* a notification is a nicety */ }
+}
 function notifyEnded(s) {
   if (!s?.ends_at || told.has(s.ends_at)) return;
   told.add(s.ends_at);
@@ -127,7 +149,7 @@ export function StatzTimerBanner() {
       ? "border-mcz-ember/60 bg-mcz-ember/15 animate-pulse" : "border-mcz-gold/40 bg-mcz-gold/10"}`}>
       <span className="font-semibold text-mcz-gold"><Timer size={14} className="mr-1 inline" />StatZ sample</span>
       <span className="font-mono tabular-nums text-white">{clock(left)}</span>
-      <span className="text-white/60">left — {s.features.map((f) => f.label.toLowerCase()).join(", ")}</span>
+      <span className="text-white/60">left ({endsAtText(s.ends_at)}) — {s.features.map((f) => f.label.toLowerCase()).join(", ")}</span>
       <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={() => upgrade(s)}>Upgrade to keep it</button>
     </div>
   );

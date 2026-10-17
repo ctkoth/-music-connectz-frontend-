@@ -61,6 +61,16 @@ function Outcome({ o }) {
           ? (o.file.url ? <a className="text-mcz-cyan underline" href={o.file.url} target="_blank" rel="noreferrer">{o.file.name}</a> : (o.file.why || o.file.name))
           : (o.file?.why || "Not kept.")}
       </p>
+      {o.results && (
+        <p className="text-white/60" data-logz-results>
+          <b className="text-white/70">Results so far:</b> the link in this post has been opened {o.results.opens} {o.results.opens === 1 ? "time" : "times"} —
+          read now, so this line is the live number.{" "}
+          <a className="text-mcz-cyan underline" href={o.results.url} target="_blank" rel="noreferrer">See the card</a>
+          {o.results.open_in?.tab && shellHas(o.results.open_in.tab) && (
+            <> · <button className="text-mcz-cyan underline" onClick={() => goToSpot(o.results.open_in.tab, o.results.open_in.target)}>Open in ViewZ</button></>
+          )}
+        </p>
+      )}
       <p className="flex flex-wrap gap-3">
         {o.share_url && <a className="text-mcz-cyan underline" href={o.share_url} target="_blank" rel="noreferrer">Shared card</a>}
         {o.open_in?.tab && shellHas(o.open_in.tab) && (
