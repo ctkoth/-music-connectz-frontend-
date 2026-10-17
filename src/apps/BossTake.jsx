@@ -1700,6 +1700,26 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
+          {/* HookZ: the chorus rated on its own, like the song above and for the same
+              reason — a strong chorus in a rough take (or the reverse) is exactly the
+              information one blended number hides. Absent, never 0, when the take has
+              no chorus or hook to judge. Not part of the overall. */}
+          {result.hook_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.hook_score)}`}>
+                🪝 HookZ {result.hook_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-fuchsia-300/80">
+                  HookZ (chorus) — rated apart from the performance score
+                </p>
+                {result.hook_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.hook_why}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Where you are, and where you're going. A score with no
               destination is a number, not coaching — so the two sit together,
               current read first. Each row hides itself when the coach had
