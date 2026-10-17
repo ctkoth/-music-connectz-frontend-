@@ -410,7 +410,7 @@ export default function PostZ() {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+          <select data-memo="own" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>

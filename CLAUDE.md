@@ -1258,3 +1258,30 @@ and the tab is visible; the server decides. SoundCloud's player frame alone gets
 `allow-same-origin` (its Widget API's postMessage is ignored from an opaque
 "null" origin); api.js is loaded lazily from w.soundcloud.com. Unverified in a
 browser.
+
+## Remembered choices (Corey's rule — applies to every dropdown)
+
+**A field opens on what the member last picked there, and suggests their habit
+when it differs.** Last used is the default; if ONE other value carries at least
+65% of their uses (and there are at least 5), a "You usually pick X (70% of 20) —
+use it" button sits under the field. Below that bar nothing is said — 3 of 5 is
+not a habit.
+
+It is a paradigm, so it is not wired per form: `autoMemo.js` runs at the document
+level (started in `main.jsx`) and covers every `<select>`. It deliberately
+does NOT touch:
+
+- a select with an empty-value option ("All skillz", "Pick a post…", "Any") —
+  that is a filter or an item picker; pre-filtering a list to last week's choice
+  hides things, and ids don't carry across lists;
+- who-can-see-this / privacy selects (defaulting to Public because the last post
+  was public is an accident);
+- selects that save or send on change — mark them `data-nomemo="true"` (settings,
+  report reasons: an autofill would fire the save);
+- selects a screen wires itself — `data-memo="own"` (BossTake, which also reads
+  the member's history from the server: `price.usual` and `price.usual_top`).
+
+**A new `<select>` is covered automatically. If its onChange writes anywhere,
+add `data-nomemo`.** `remember.js` holds the rule and is tested; keys are the
+field's label plus its option set, per device. Hand-wired fields use
+`useRemembered` / `seed` / `<UsualHint>`.

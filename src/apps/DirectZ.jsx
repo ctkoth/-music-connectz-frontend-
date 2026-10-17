@@ -196,7 +196,7 @@ export default function DirectZ() {
         <div className="grid gap-2 sm:grid-cols-3">
           <label className="text-[11px] text-white/50">
             Format
-            <select className="neon-input !py-2 text-xs" value={form.fmt}
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.fmt}
                     onChange={(e) => { remember("directz.fmt", e.target.value); setForm({ ...form, fmt: e.target.value }); }}>
               {/* The band is IN the option, so the rule is readable while
                   choosing rather than after uploading a three-hour film. */}
@@ -208,7 +208,7 @@ export default function DirectZ() {
           </label>
           <label className="text-[11px] text-white/50">
             Genre
-            <select className="neon-input !py-2 text-xs" value={form.genre}
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
                     onChange={(e) => { remember("directz.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
               <option value="">— pick a genre —</option>
               {asList(spec?.genres).map((g) => <option key={g} value={g}>{g}</option>)}
@@ -217,7 +217,7 @@ export default function DirectZ() {
           </label>
           <label className="text-[11px] text-white/50">
             What it's for
-            <select className="neon-input !py-2 text-xs" value={form.video_type}
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.video_type}
                     onChange={(e) => { remember("directz.video_type", e.target.value); setForm({ ...form, video_type: e.target.value }); }}>
               <option value="">— optional —</option>
               {asList(spec?.video_types).map((t) => <option key={t} value={t}>{t}</option>)}

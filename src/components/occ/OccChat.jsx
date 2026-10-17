@@ -111,7 +111,7 @@ function ReportReply({ id, saved, ensureSaved }) {
   return (
     <div className="space-y-2 rounded-lg border border-white/10 p-3 text-xs">
       <label className="block text-white/60" htmlFor={`rep-${id}`}>What is wrong with it?</label>
-      <select id={`rep-${id}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
+      <select data-nomemo="true" id={`rep-${id}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
         {REPORT_REASONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
       </select>
       <input className="neon-input w-full" maxLength={280} aria-label="Anything we should know (optional)"

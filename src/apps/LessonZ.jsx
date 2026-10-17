@@ -243,7 +243,7 @@ function Browse() {
               {o.remote_ok && <span><Wifi size={11} className="mr-0.5 inline" />Remote OK</span>}
             </p>
             <div className="flex items-center gap-2 pt-1">
-              <select
+              <select data-memo="own"
                 className="neon-input !w-auto !py-2 text-xs"
                 value={methods[o.id] || (o.in_person_ok ? "in_person" : o.remote_ok ? "remote" : "callz")}
                 onChange={(e) => setMethods({ ...methods, [o.id]: e.target.value })}
@@ -366,7 +366,7 @@ function Teach() {
           <input className={`neon-input ${errors.title ? "border-mcz-pink" : ""}`} placeholder="Lesson title" value={form.title} onChange={set("title")} />
           {errors.title && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.title}</p>}
         </div>
-        <select className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
+        <select data-memo="own" className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
           <option value="per_hour">Per hour</option>
           <option value="per_lesson">Per lesson</option>
         </select>

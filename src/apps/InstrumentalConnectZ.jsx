@@ -225,7 +225,7 @@ export default function InstrumentalConnectZ() {
               onChange={(e) => setBpm(Number(e.target.value) || lo)} />
           </label>
           <label className="text-sm text-white/70">Key
-            <select className="neon-input mt-1 w-full" value={key} onChange={(e) => setKey(e.target.value)}>
+            <select data-memo="own" className="neon-input mt-1 w-full" value={key} onChange={(e) => setKey(e.target.value)}>
               {(s?.keys || []).map((k) => <option key={k.key} value={k.key}>{k.key}</option>)}
             </select>
 <UsualHint field="instrumentalz.key" value={key} onUse={setKey} />

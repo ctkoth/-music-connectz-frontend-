@@ -981,7 +981,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
           Genre
-          <select value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
+          <select data-memo="own" value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -995,7 +995,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         {price?.range_label && !refMode && (
           <label className="text-[11px] text-white/50">
             {price.range_label}
-            <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
+            <select data-memo="own" value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
               {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
             <UsualHint field={`${appKey}.range`} value={range} onUse={setRange} allowed={(price.ranges || []).map((r) => r.key)} server={(price?.usual_top || {}).target}
@@ -1005,7 +1005,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         {price?.style_label && (
           <label className="text-[11px] text-white/50">
             {price.style_label}
-            <select value={style} onChange={(e) => setStyle(e.target.value)} className="neon-input !py-2 text-xs">
+            <select data-memo="own" value={style} onChange={(e) => setStyle(e.target.value)} className="neon-input !py-2 text-xs">
               <option value="">Any</option>
               {(price.styles || []).map((v) => <option key={v.key} value={v.label}>{v.label}</option>)}
             </select>
@@ -1014,7 +1014,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         )}
         {!refMode && <label className="text-[11px] text-white/50">
           Difficulty
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
+          <select data-memo="own" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
             {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
               .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>

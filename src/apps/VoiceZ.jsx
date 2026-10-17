@@ -107,7 +107,7 @@ export default function VoiceZ() {
           <div key={s.key} className="space-y-1">
             <label className="text-sm font-semibold text-white/80" htmlFor={`vz-${s.key}`}>{s.label}</label>
             <p className="text-[11px] text-white/45">{s.desc}</p>
-            <select id={`vz-${s.key}`} className="neon-input w-full" value={s.choice} onChange={(e) => pick(s.key, e.target.value)}>
+            <select data-nomemo="true" id={`vz-${s.key}`} className="neon-input w-full" value={s.choice} onChange={(e) => pick(s.key, e.target.value)}>
               {s.options.map((o) => <option key={o.choice} value={o.choice}>{o.label}</option>)}
             </select>
             <p className="text-xs text-white/60">{surfaceResult(s, s.choice) || s.result}</p>

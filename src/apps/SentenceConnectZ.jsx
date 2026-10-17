@@ -107,7 +107,7 @@ function ReportOutput({ work }) {
   return (
     <div className="space-y-2 rounded-lg border border-white/10 p-3 text-xs">
       <label className="block text-white/60" htmlFor={`rep-${work.id}`}>What is wrong with it?</label>
-      <select id={`rep-${work.id}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
+      <select data-nomemo="true" id={`rep-${work.id}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
         <option value="harassment">Harassment</option>
         <option value="hate">Hate or abuse</option>
         <option value="nsfw">Adult content</option>

@@ -124,7 +124,7 @@ export default function MerchZ() {
         <input className="neon-input" required maxLength={120} placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <textarea className="neon-input" rows={2} maxLength={500} placeholder="What is it?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         <div className="flex flex-wrap gap-2">
-          <select className="neon-input !w-auto" value={form.category} onChange={(e) => { remember("merchz.category", e.target.value); setForm({ ...form, category: e.target.value }); }}>
+          <select data-memo="own" className="neon-input !w-auto" value={form.category} onChange={(e) => { remember("merchz.category", e.target.value); setForm({ ...form, category: e.target.value }); }}>
             {CATS.filter(([k]) => k).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
 <UsualHint field="merchz.category" value={form.category} onUse={(v) => { remember("merchz.category", v); setForm({ ...form, category: v }); }} />

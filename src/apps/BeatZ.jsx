@@ -224,7 +224,7 @@ function SellForm({ onListed }) {
         <input className={input} placeholder="Price in $ (1–500)" inputMode="decimal" required value={f.price}
                onChange={(e) => setF({ ...f, price: e.target.value.replace(/[^0-9.]/g, "") })} />
       </div>
-      <select aria-label="License type" className={input} value={f.license_type} onChange={set("license_type")}>
+      <select data-memo="own" aria-label="License type" className={input} value={f.license_type} onChange={set("license_type")}>
         <option value="nonexclusive">{LICENSE.nonexclusive}</option>
         <option value="exclusive">{LICENSE.exclusive}</option>
       </select>

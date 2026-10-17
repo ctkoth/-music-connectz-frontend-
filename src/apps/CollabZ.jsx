@@ -396,7 +396,7 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <input className="neon-input sm:col-span-2" placeholder="What are we making?"
                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <select aria-label="Escrow currency" className="neon-input" value={form.currency}
+          <select data-memo="own" aria-label="Escrow currency" className="neon-input" value={form.currency}
                   onChange={(e) => { remember("collabz.currency", e.target.value); setForm({ ...form, currency: e.target.value }); }}>
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>

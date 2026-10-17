@@ -52,7 +52,7 @@ export default function ReportTake({ takeId, appKey }) {
         coach wrote about it. Your recording isn't kept, so they can't hear it.
       </p>
       <label className="block text-white/60" htmlFor={`rep-take-${takeId}`}>What is wrong with it?</label>
-      <select id={`rep-take-${takeId}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
+      <select data-nomemo="true" id={`rep-take-${takeId}`} className="neon-input" value={reason} onChange={(e) => setReason(e.target.value)}>
         <option value="harassment">Harassment</option>
         <option value="hate">Hate or abuse</option>
         <option value="nsfw">Adult content</option>

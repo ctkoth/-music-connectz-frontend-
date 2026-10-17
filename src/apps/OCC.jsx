@@ -599,7 +599,7 @@ export default function OCC() {
                 the seconds it actually ran — a run that never starts costs nothing.
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <select className="neon-input !w-auto !py-1.5 text-xs" value={lang}
+                <select data-memo="own" className="neon-input !w-auto !py-1.5 text-xs" value={lang}
                         aria-label="Language"
                         onChange={(e) => setLang(e.target.value)}>
                   {asList(spec.execute.languages).map((l) => <option key={l} value={l}>{l}</option>)}
