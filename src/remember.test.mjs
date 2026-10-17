@@ -43,3 +43,11 @@ test("suggests the habit only at 65%+ over 5+ uses and only when it differs", ()
   assert.equal(s.share, 0.7);
   assert.equal(suggestion(row({ a: 7, b: 3 }), "b", ["b", "c"]), null); // no longer offered
 });
+
+test("a habit opens over a one-off last choice; below the bar, last wins", () => {
+  const row = (counts, last) => ({ last, counts });
+  assert.equal(pick(row({ a: 9, b: 1 }, "b")), "a");          // Drill x9, Trap once last
+  assert.equal(pick(row({ a: 6, b: 4 }, "b")), "b");          // 60% is not a habit
+  assert.equal(pick(row({ a: 3, b: 1 }, "b")), "b");          // too few uses
+  assert.equal(pick(row({ a: 9, b: 1 }, "b"), ["b", "c"]), "b"); // habit retired
+});

@@ -1261,11 +1261,12 @@ browser.
 
 ## Remembered choices (Corey's rule — applies to every dropdown)
 
-**A field opens on what the member last picked there, and suggests their habit
-when it differs.** Last used is the default; if ONE other value carries at least
-65% of their uses (and there are at least 5), a "You usually pick X (70% of 20) —
-use it" button sits under the field. Below that bar nothing is said — 3 of 5 is
-not a habit.
+**A field opens on what the member last picked there — unless one value is their
+habit.** If ONE value carries at least 65% of their uses (and there are at least 5)
+it opens instead of a one-off last choice: nine Drill takes and one Trap, Trap
+last, opens on Drill. Below that bar the last choice wins, and the "You usually
+pick X (70% of 20) — use it" button shows whenever the field is on something
+other than their habit. 3 of 5 is not a habit.
 
 It is a paradigm, so it is not wired per form: `autoMemo.js` runs at the document
 level (started in `main.jsx`) and covers every `<select>`. It deliberately

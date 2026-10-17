@@ -5,6 +5,8 @@
 //
 // Pure functions up top (tested under plain node); the hook is below.
 const PREFIX = "mcz_pref:";
+export const SUGGEST_SHARE = 0.65;   // "most used" means at least this much of the time
+export const SUGGEST_MIN_USES = 5;   // …and enough uses that a share means something
 const MAX_VALUES = 40; // a free-text field must not grow this without bound
 
 function load(field) {
@@ -15,12 +17,27 @@ function load(field) {
   return { last: null, counts: {} };
 }
 
+// The value carrying >= 65% of >= 5 (still-offered) uses, else null.
+export function topShare(row, allowed) {
+  const entries = Object.entries(row.counts || {}).filter(([v]) => !allowed || allowed.includes(v));
+  const total = entries.reduce((n, [, c]) => n + c, 0);
+  if (total < SUGGEST_MIN_USES) return null;
+  const [value, n] = entries.sort((a, b) => b[1] - a[1])[0];
+  return n / total >= SUGGEST_SHARE ? { value, share: n / total, n: total } : null;
+}
+
 // What to open on. `allowed` is the list of values the field can currently
 // hold (undefined = anything); a remembered value that is no longer offered is
 // never returned, so a retired option can't be restored into a select that
-// has no such row. Last used wins; the most used is the fallback.
+// has no such row.
+//
+// Last used wins — UNLESS one value is a habit (>= 65% of >= 5 uses) and the
+// last one was a one-off, in which case the habit opens: somebody who sends
+// Drill nine times in ten and Trap once should not find Trap waiting.
 export function pick(row, allowed) {
   const ok = (v) => v != null && v !== "" && (!allowed || allowed.includes(v));
+  const habit = topShare(row, allowed);
+  if (habit) return habit.value;
   if (ok(row.last)) return row.last;
   let best = null;
   for (const [v, n] of Object.entries(row.counts || {})) {
@@ -57,20 +74,13 @@ export function seed(prefix, defaults, keys) {
   return out;
 }
 
-export const SUGGEST_SHARE = 0.65;   // "most used" means at least this much of the time
-export const SUGGEST_MIN_USES = 5;   // …and enough uses that a share means something
 
 // A suggestion, when the member's usual choice differs from what is showing.
 // The default stays their LAST choice; this only speaks when one other value
 // carries >= 65% of their uses, so it is a habit and not a coincidence.
 export function suggestion(row, current, allowed) {
-  const entries = Object.entries(row.counts || {}).filter(([v]) => !allowed || allowed.includes(v));
-  const total = entries.reduce((n, [, c]) => n + c, 0);
-  if (total < SUGGEST_MIN_USES) return null;
-  const [value, n] = entries.sort((a, b) => b[1] - a[1])[0];
-  const share = n / total;
-  if (share < SUGGEST_SHARE || String(value) === String(current)) return null;
-  return { value, share, n: total };
+  const t = topShare(row, allowed);
+  return t && String(t.value) !== String(current) ? t : null;
 }
 
 export function suggest(field, current, allowed) {
