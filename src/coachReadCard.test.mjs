@@ -72,7 +72,7 @@ const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").rep
 test("a shown read has the number, every LABELLED dimension, the notes and the caveat on one card", () => {
   const t = text(r.shown);
   assert.match(t, /9 \/10/);
-  assert.match(t, /Pitch 8 \/10/);
+  assert.match(t, /8 Pitch/);   // the house rating layout: number, then label, then detail
   assert.match(t, /Quartz-bright hook that lands/);
   assert.match(t, /Zinnia entry/);
   assert.match(t, /Mulberry breath/);

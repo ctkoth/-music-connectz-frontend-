@@ -2,8 +2,11 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { openDoor } from "../doors.js";
+import { api } from "../api.js";
+import { shareLink, shareText } from "../shareText.js";
 import { shellHas } from "../standalone.js";
 import { PROMPTZ } from "../resources.js";
+import { RatingGrid, RatingNumber } from "./Rating.jsx";
 
 // The coach's recent submissions, and where each one can go next.
 //
@@ -22,8 +25,6 @@ import { PROMPTZ } from "../resources.js";
 // in the coach was scored and not kept. The panel says so rather than letting
 // "export" imply the recording goes too.
 
-const shown = (t) => (t.exact != null ? Number(t.exact).toFixed(1) : (t.overall ?? "—"));
-
 function Cost({ cost }) {
   if (!cost) return null;
   return cost.free_today
@@ -33,15 +34,29 @@ function Cost({ cost }) {
 
 function Row({ t, labels, appKey }) {
   const [open, setOpen] = useState(false);
+  const [shareMsg, setShareMsg] = useState("");
+  const [shareUrl, setShareUrl] = useState(t.share_url || "");
   const read = t.read || {};
   const doors = (t.exports || []).filter((e) => shellHas(e.tab));
-  const go = openDoor;
+  // "Share this score" is not a handoff to another screen: it asks the server for
+  // the public link of THIS take (minted once, from what the coach said), then
+  // opens the device's share sheet — or copies — with the link in it.
+  async function shareIt() {
+    setShareMsg("");
+    try {
+      const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
+      setShareUrl(r.share_url);
+      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact }), url: r.share_url });
+      setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
+    } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
+  }
+  const go = (e) => (e.kind === "share" ? shareIt() : openDoor(e));
   return (
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left">
         {open ? <ChevronDown size={13} className="text-white/40" /> : <ChevronRight size={13} className="text-white/40" />}
-        <span className="font-bold">{shown(t)}<span className="text-white/35">/10</span></span>
+        <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
         <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
         {t.genre && <span className="text-white/35">{t.genre}</span>}
         {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
@@ -50,12 +65,8 @@ function Row({ t, labels, appKey }) {
       {open && (
         <div className="space-y-2 border-t border-white/[0.06] px-3 py-2">
           {read.verdict && <p className="text-white/75">{read.verdict}</p>}
-          {t.scores && Object.keys(t.scores).length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(t.scores).map(([k, v]) => labels[k]
-                ? <span key={k} className="pill">{labels[k]} <b>{v}</b></span> : null)}
-            </div>
-          )}
+          <RatingGrid rows={Object.entries(t.scores || {}).filter(([k]) => labels[k]).map(([k, v]) => ({
+            key: k, label: labels[k], value: v }))} />
           {read.strengths?.length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What worked</p>
@@ -98,6 +109,14 @@ function Row({ t, labels, appKey }) {
                   </button>
                   <Cost cost={e.cost} />
                   <span className="text-[11px] text-white/45">{e.note}</span>
+                  {e.kind === "share" && shareUrl && (
+                    <span className="flex flex-wrap gap-2 text-[11px]">
+                      <a href={shareUrl} target="_blank" rel="noreferrer" className="text-white/55 underline">See the card</a>
+                      <a href={`/api/economy/scores/${shareUrl.replace(/^\/s\//, "")}/card.png?format=story`} download="coach-score-story.png"
+                         target="_blank" rel="noreferrer" className="text-white/55 underline">Story card (TikTok / Reels)</a>
+                    </span>
+                  )}
+                  {e.kind === "share" && shareMsg && <span className="text-[11px] text-emerald-300">{shareMsg}</span>}
                 </div>
               ))}
               <p className="text-[11px] text-white/35">

@@ -15,6 +15,8 @@ import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
+import { shellHas } from "../standalone.js";
+import { RatingGrid, RatingNumber, RatingRow } from "../components/Rating.jsx";
 
 const when = (iso) => {
   const d = new Date(iso);
@@ -25,6 +27,49 @@ const when = (iso) => {
   if (mins < 1440) return `${Math.floor(mins / 60)}h ago`;
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
+
+// A rating is a number AND the reason for it, side by side. Large beside the
+// title so it is the first thing the eye lands on; each dimension's own number
+// carries what the coach heard behind it, so none of them stands alone.
+function Outcome({ o }) {
+  if (!o) return null;
+  const r = o.rating, rep = o.report || {};
+  return (
+    <div className="space-y-3 px-4 pb-3 pl-[7.5rem] text-[12px]">
+      {r && (
+        <div className="space-y-2">
+          <RatingRow size="xl" outOf value={r.score} exact={r.exact} label="Overall"
+                     detail={rep.verdict || "The rating this spend bought."} className="sm:max-w-md" />
+          <RatingGrid rows={[
+            ...(r.dimensions || []).map((d) => ({
+              key: d.key, label: d.label, value: d.value,
+              detail: d.detail ? `${d.at ? `${d.at} · ` : ""}${d.detail}` : "No moment was filed under this one." })),
+            ...(r.hook != null ? [{ key: "hook", label: "HookZ 🪝", value: r.hook, detail: "The chorus, counted in the overall." }] : []),
+            ...(r.feelz != null ? [{ key: "feelz", label: "FeelZ 💗", value: r.feelz, detail: "How it moves a listener, counted in the overall." }] : []),
+          ]} />
+        </div>
+      )}
+      {rep.strengths?.length > 0 && <p className="text-white/60"><b className="text-emerald-300">Worked:</b> {rep.strengths.join(" · ")}</p>}
+      {rep.fixes?.length > 0 && <p className="text-white/60"><b className="text-mcz-ember">Fix:</b> {rep.fixes.join(" · ")}</p>}
+      {rep.practice?.length > 0 && (
+        <p className="text-white/60"><b className="text-mcz-cyan">Practise:</b> {rep.practice.map((p) => p.what).join(" · ")}</p>
+      )}
+      {rep.items?.length > 0 && rep.items.map((i, n) => <p key={n} className="text-white/70">· {i.line}</p>)}
+      <p className="text-white/50">
+        <b className="text-white/70">File:</b>{" "}
+        {o.file?.kept
+          ? (o.file.url ? <a className="text-mcz-cyan underline" href={o.file.url} target="_blank" rel="noreferrer">{o.file.name}</a> : (o.file.why || o.file.name))
+          : (o.file?.why || "Not kept.")}
+      </p>
+      <p className="flex flex-wrap gap-3">
+        {o.share_url && <a className="text-mcz-cyan underline" href={o.share_url} target="_blank" rel="noreferrer">Shared card</a>}
+        {o.open_in?.tab && shellHas(o.open_in.tab) && (
+          <button className="text-mcz-cyan underline" onClick={() => goToSpot(o.open_in.tab, o.open_in.target)}>Open it</button>
+        )}
+      </p>
+    </div>
+  );
+}
 
 // A row, and the doors out of it.
 //
@@ -88,12 +133,19 @@ function Row({ e, onDone }) {
           e.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
           {e.display}
         </span>
+        {e.outcome?.rating && (
+          <span className="shrink-0" title="The rating this spend bought">
+            <RatingNumber size="lg" value={e.outcome.rating.score} exact={e.outcome.rating.exact} />
+          </span>
+        )}
         <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
         <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
           {when(e.at)}
         </span>
         <ChevronDown size={13} className={`shrink-0 text-white/25 ${open ? "rotate-180" : ""}`} />
       </button>
+
+      {open && <Outcome o={e.outcome} />}
 
       {open && doors.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-4 pb-3 pl-[7.5rem]">

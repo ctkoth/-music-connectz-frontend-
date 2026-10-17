@@ -24,19 +24,14 @@ import { goToSpot } from "../goto.js";
 import { IN_SHELL, shellHas } from "../standalone.js";
 import RecentTakes from "../components/RecentTakes.jsx";
 import CoachingBoard from "../components/CoachingBoard.jsx";
+import { RatingRow } from "../components/Rating.jsx";
 
 /** A finding that may legitimately have no number.
  *  `—` and the server's sentence, never a 0 standing in for "not measured". */
 function Finding({ label, score, why, suffix = "/ 10" }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-white/40">{label}</p>
-      <p className="text-lg font-bold">
-        {score == null ? <span className="text-white/30">—</span> : <>{score}<span className="text-[12px] font-normal text-white/40"> {suffix}</span></>}
-      </p>
-      {why && <p className="mt-0.5 text-[11px] text-white/45">{why}</p>}
-    </div>
-  );
+  // The house layout for a rating: the number large, its label and its reason
+  // beside it. A finding with no number shows "—" and the server's `why`.
+  return <RatingRow value={score} label={label} detail={why || (score != null && suffix === "/ 10" ? "out of 10" : "")} size="lg" />;
 }
 
 const STRAIN_STYLE = {

@@ -18,7 +18,8 @@ export default function ScoreCard() {
     api(`/api/economy/scores/${encodeURIComponent(token)}/`, { auth: false })
       .then(setD).catch(() => setErr("That score card isn't here any more."));
   }, [token]);
-  usePageTitle(d ? `${d.score}/10 on ${d.label}` : "Score card", d?.verdict || "");
+  const shown = d ? (d.shown || d.score) : "";
+  usePageTitle(d ? (d.progress ? `${d.progress.label} ${d.progress.was} → ${d.progress.now} on ${d.label}` : `${shown}/10 on ${d.label}`) : "Score card", d?.verdict || "");
 
   const ref = d?.username ? `?ref=${encodeURIComponent(d.username)}` : "";
   return (
@@ -36,17 +37,19 @@ export default function ScoreCard() {
 
       {d && (
         <div className="space-y-5">
-          <img src={d.image} alt={`${d.score}/10 on ${d.label}`} className="w-full rounded-2xl shadow-neon" />
+          <img src={d.image} alt={d.progress ? `${d.progress.label} ${d.progress.was} to ${d.progress.now} on ${d.label}` : `${shown}/10 on ${d.label}`} className="w-full rounded-2xl shadow-neon" />
           <div className="neon-frame space-y-2 p-5 text-center">
             <p className="text-sm text-white/60">
-              {d.username ? <>@{d.username}'s</> : "A"} {d.label} take{d.genre ? ` · ${d.genre}` : ""}, scored by the AI coach
+              {d.username ? <>@{d.username}'s</> : "A"} {d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
             </p>
             {d.verdict && <p className="text-white/85">“{d.verdict}”</p>}
             <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">
             <Link to={`/try/${d.app_key}${ref}`} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
-              🎤 Get your take scored — free, no account
+              {d.progress ? "📈 Start your own climb — free, no account"
+                : Number(shown) >= 5 ? `🎤 Beat ${d.username ? `@${d.username}'s ` : "this "}${shown} — free, no account`
+                : "🎤 Get your take scored — free, no account"}
             </Link>
             <p className="text-[12px] text-white/45">
               Upload a clip or record one.{" "}

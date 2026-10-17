@@ -11,6 +11,9 @@ import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Vide
 import { api } from "../api.js";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
+import { shareLink, shareText } from "../shareText.js";
+import { heardFor, ratingTone as scoreColor } from "../rating.js";
+import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
@@ -71,8 +74,6 @@ const mmssOf = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const mb = (n) => (n / 1024 / 1024).toFixed(1);
 
-const scoreColor = (n) =>
-  n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
 
 /** What this take costs, stated before it is sent.
  *
@@ -1601,25 +1602,24 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {listenersLine(result.listeners, result.score) && (
             <p className="text-[12px] font-semibold text-emerald-300">{listenersLine(result.listeners, result.score)}</p>
           )}
-          <div className="flex flex-wrap gap-2">
-            {/* The take's OWN dimensions. `result.rated_lyrics` rather than
-                the toggle's current state: the member may have switched it
-                since, and a chip row that follows a checkbox instead of the
-                take would relabel a score that was never given. */}
-            {Object.entries({
-              ...(price?.scores || {}),
-              ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
-              ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
-              ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
-              ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
-            }).map(([k, label]) => (
-              <span key={k} className="pill">
-                {label} <span className={`font-bold ${scoreColor(k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : result.scores?.[k])}`}>
-                  {k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : (result.scores?.[k] ?? "—")}
-                </span>
-              </span>
-            ))}
-          </div>
+          {/* Each number is LARGE and sits with the reason for it: the strongest moment
+              the coach filed under that dimension (`heard`, by `dim`), or its own
+              sentence for HookZ and FeelZ. A bare number is the score with no
+              description this app does not ship. */}
+          <RatingGrid rows={Object.entries({
+            ...(price?.scores || {}),
+            ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
+            ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+            ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
+            ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
+          }).map(([k, label]) => ({
+            key: k, label,
+            value: k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : result.scores?.[k],
+            // The take's OWN dimensions (`rated_lyrics`, not the toggle's state now): the
+            // member may have switched it since, and a row that followed a checkbox
+            // would relabel a score that was never given.
+            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why : heardFor(result.heard, k),
+          }))} />
 
           {result.strengths?.length > 0 && (
             <div>
@@ -1674,7 +1674,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
-          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} />}
           {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
           {!trial && !IN_SHELL_COACH && !result.reference && <CoachVoicePlayer result={result} />}
@@ -1869,27 +1869,27 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
 /** Share the score card. Counts nothing on a cancel — a share sheet somebody
  *  backed out of is not a share. */
-function ShareScore({ url, score }) {
+function ShareScore({ url, score, exact }) {
   const [msg, setMsg] = useState("");
   const [per, setPer] = useState(null);     // referral reward, the server's number
   useEffect(() => {
     api("/api/economy/tiers/", { auth: false }).then((t) => setPer(t?.join?.referrer_spinaz || null)).catch(() => {});
   }, []);
-  const full = `${window.location.origin}${url}`;
-  const text = `The AI coach gave my take ${score}/10 🎤 — get yours scored free:`;
+  const shown = exact != null ? Number(exact).toFixed(1) : score;
   const go = async () => {
-    try {
-      if (navigator.share) { await navigator.share({ title: "Music ConnectZ", text, url: full }); setMsg("Shared."); }
-      else { await navigator.clipboard.writeText(`${text} ${full}`); setMsg("Copied — paste it anywhere."); }
-    } catch { /* cancelled */ }
+    const how = await shareLink({ text: shareText({ score, exact }), url });
+    if (how === "shared") setMsg("Shared.");
+    else if (how === "copied") setMsg("Copied — paste it anywhere.");
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={go}
               className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
-        <Share2 size={13} /> Share your {score}/10
+        <Share2 size={13} /> Share your {shown}/10
       </button>
       <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-white/45 underline">See the card</a>
+      <a href={`/api/economy/scores/${url.replace(/^\/s\//, "")}/card.png?format=story`} download="coach-score-story.png"
+         target="_blank" rel="noreferrer" className="text-[11px] text-white/45 underline">Story card (TikTok / Reels)</a>
       {per > 0 && <span className="text-[11px] text-white/45">Anyone who joins from it: <span className="text-emerald-300">+{per} 🍥</span> for you.</span>}
       {msg && <span className="text-[11px] text-emerald-300">{msg}</span>}
     </div>

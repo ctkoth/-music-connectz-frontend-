@@ -20,9 +20,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import CoachReadCard from "../components/CoachReadCard.jsx";
 import MentionText from "../MentionParser.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
-
-const scoreColor = (n) =>
-  n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
+import { ratingTone } from "../rating.js";
 
 export default function PublicPost() {
   const { id } = useParams();
@@ -90,7 +88,7 @@ export default function PublicPost() {
             </Link>
             {post.rating != null && (
               <span className="flex items-center gap-1 text-xs text-mcz-ember">
-                <Flame size={13} /> <span className={`font-bold ${scoreColor(post.rating)}`}>{post.rating}</span>
+                <Flame size={13} /> <span className={`font-bold ${ratingTone(post.rating)}`}>{post.rating}</span>
                 <span className="text-white/40">/10</span>
               </span>
             )}

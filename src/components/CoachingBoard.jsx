@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { openDoor } from "../doors.js";
+import { shareLink, shareText } from "../shareText.js";
 import { shellHas } from "../standalone.js";
 import { PROMPTZ } from "../resources.js";
+import { RatingRow } from "./Rating.jsx";
 
 // What to celebrate, what is strong, what to watch and what to work on — read
 // from the server's `coaching` block, worded by the server.
@@ -39,6 +41,30 @@ function Agree({ appKey, row, yes, no, onSaved }) {
   );
 }
 
+// A measured climb, as a card. The server builds it from the same trend this board
+// shows, so the numbers on it are the numbers above it and nobody can mint a bigger one.
+function ShareWin({ appKey, win }) {
+  const [msg, setMsg] = useState("");
+  async function go() {
+    setMsg("");
+    try {
+      const r = await api(`/api/${appKey}/win/${encodeURIComponent(win.key)}/share/`, { method: "POST" });
+      const how = await shareLink({
+        text: shareText({ progress: { label: win.label, was: win.was, now: win.now, days: 14 } }), url: r.share_url });
+      setMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied." : "");
+    } catch (e) { setMsg(e.message || "Couldn't make the card."); }
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button type="button" onClick={go}
+              className="rounded-md bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-300 hover:bg-emerald-400/20">
+        Share this win
+      </button>
+      {msg && <span className="text-[11px] text-emerald-300">{msg}</span>}
+    </span>
+  );
+}
+
 function Cost({ cost }) {
   if (!cost) return null;
   return cost.free_today
@@ -59,7 +85,12 @@ export default function CoachingBoard({ appKey, coaching }) {
       {wins.length > 0 && (
         <div className="space-y-1">
           <p className="text-[11px] uppercase tracking-wide text-emerald-300/90">🎉 You're improving</p>
-          {wins.map((w) => <p key={w.key} className="text-white/80">{w.text}</p>)}
+          {wins.map((w) => (
+            <p key={w.key} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/80">
+              <span>{w.text}</span>
+              <ShareWin appKey={appKey} win={w} />
+            </p>
+          ))}
         </div>
       )}
 
@@ -68,7 +99,7 @@ export default function CoachingBoard({ appKey, coaching }) {
           <p className="text-[11px] uppercase tracking-wide text-mcz-gold/90">💪 What you're strong at</p>
           {strengths.map(withSaved).map((s) => (
             <div key={s.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="text-white/85"><b>{s.label}</b> <span className="text-white/45">{s.average} / 10 across {s.takes} takes</span></span>
+              <RatingRow value={s.average} label={s.label} detail={`across ${s.takes} takes`} />
               <Agree appKey={appKey} row={s} yes="Yes, that's me" no="Not really" onSaved={onSaved} />
             </div>
           ))}
@@ -91,7 +122,7 @@ export default function CoachingBoard({ appKey, coaching }) {
           {problems.map(withSaved).map((p) => (
             <div key={p.key} className="space-y-1 rounded-lg bg-white/5 p-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-white/90"><b>{p.label}</b> <span className="text-white/45">{p.average} / 10 across {p.takes} takes</span></span>
+                <RatingRow value={p.average} label={p.label} detail={`across ${p.takes} takes`} />
                 <Agree appKey={appKey} row={p} yes="Glad I saw this — I agree" no="Not quite" onSaved={onSaved} />
               </div>
               {p.help.filter((h) => shellHas(h.tab)).map((h) => (

@@ -21,13 +21,13 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { SPINAZ } from "../resources.js";
+import { RatingGrid, RatingNumber } from "./Rating.jsx";
+import { ratingTone } from "../rating.js";
 import {
   READ_CHOICES, REMOVE_RESULT, dimensionRows, firstSentence, givenOn,
   memberSees, readChoiceLabel, readResult, strangerSees,
 } from "../coachVis.js";
 
-const scoreColor = (n) =>
-  n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
 
 // What joining pays, from the server — the same numbers the shared score card
 // states. Fetched only where a stranger is looking; a failed fetch just means
@@ -119,9 +119,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
   return (
     <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3" data-testid="coach-shown">
       <div className="flex items-start gap-3">
-        <div className={`font-display text-4xl font-extrabold leading-none ${scoreColor(read.score)}`}>
-          {read.score}<span className="text-base text-white/30">/10</span>
-        </div>
+        <RatingNumber size="xl" outOf value={read.score} exact={read.score_exact} />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
             👑 Coach's read · {read.label}
@@ -153,14 +151,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
       {open && (
         <div className="mt-3 space-y-2">
           {rows.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {rows.map((r) => (
-                <span key={r.key} className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[12px] text-white/80">
-                  {r.label} <span className={`font-bold ${scoreColor(r.value)}`}>{r.value}</span>
-                  <span className="text-white/30">/10</span>
-                </span>
-              ))}
-            </div>
+            <RatingGrid rows={rows.map((r) => ({ key: r.key, label: r.label, value: r.value, detail: r.detail }))} />
           )}
           {read.verdict && <p className="text-[13px] leading-relaxed text-white/85">{read.verdict}</p>}
           {read.song_score != null && read.labels?.song_score && (
@@ -169,7 +160,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
                 {read.labels.song_score} · the song, separate from the performance score
               </p>
               <p className="text-[12px] leading-relaxed text-white/80">
-                <span className={`font-bold ${scoreColor(read.song_score)}`}>{read.song_score}</span>
+                <span className={`font-bold ${ratingTone(read.song_score)}`}>{read.song_score}</span>
                 <span className="text-white/30">/10</span>
                 {read.song_why ? ` — ${read.song_why}` : ""}
               </p>
