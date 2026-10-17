@@ -4,6 +4,7 @@ import { goToSpot } from "../goto.js";
 import { openDoor } from "../doors.js";
 import { api } from "../api.js";
 import { shareLink, shareText } from "../shareText.js";
+import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
 import { shellHas } from "../standalone.js";
 import { PROMPTZ } from "../resources.js";
 import { RatingGrid, RatingNumber } from "./Rating.jsx";
@@ -36,6 +37,7 @@ function Row({ t, labels, appKey }) {
   const [open, setOpen] = useState(false);
   const [shareMsg, setShareMsg] = useState("");
   const [shareUrl, setShareUrl] = useState(t.share_url || "");
+  const [human, setHuman] = useState(false);
   const read = t.read || {};
   const doors = (t.exports || []).filter((e) => shellHas(e.tab));
   // "Share this score" is not a handoff to another screen: it asks the server for
@@ -46,6 +48,7 @@ function Row({ t, labels, appKey }) {
     try {
       const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(r.share_url);
+      try { await declareHuman(r.share_url, human); } catch { /* shared without the claim */ }
       const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact }), url: r.share_url });
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
@@ -103,6 +106,7 @@ function Row({ t, labels, appKey }) {
               <p className="text-[10px] uppercase tracking-widest text-white/40">Take it further</p>
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  {e.kind === "share" && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
                   <button onClick={() => go(e)} data-door={e.key}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                     {e.label}

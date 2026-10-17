@@ -24,6 +24,7 @@ import { goToSpot } from "../goto.js";
 import { IN_SHELL, shellHas } from "../standalone.js";
 import RecentTakes from "../components/RecentTakes.jsx";
 import CoachingBoard from "../components/CoachingBoard.jsx";
+import WhyCard from "../components/WhyCard.jsx";
 import { RatingRow } from "../components/Rating.jsx";
 
 /** A finding that may legitimately have no number.
@@ -79,6 +80,7 @@ export default function ProgressPanel({ appKey }) {
 
   return (
     <section className="space-y-4" data-tour={`${appKey}-progress`}>
+      <WhyCard />
       <CoachingBoard appKey={appKey} coaching={data.coaching} />
       <header className="flex items-baseline gap-2">
         <h3 className="font-display text-lg font-bold">Your history</h3>

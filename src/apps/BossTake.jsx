@@ -12,6 +12,7 @@ import { api } from "../api.js";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
+import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
 import { heardFor, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
@@ -1876,13 +1877,18 @@ function ShareScore({ url, score, exact }) {
     api("/api/economy/tiers/", { auth: false }).then((t) => setPer(t?.join?.referrer_spinaz || null)).catch(() => {});
   }, []);
   const shown = exact != null ? Number(exact).toFixed(1) : score;
+  const [human, setHuman] = useState(false);
   const go = async () => {
+    // The declaration goes first, so the card the follower opens already says it
+    // (or, unticked, makes no claim about who made it).
+    try { await declareHuman(url, human); } catch { /* the share still goes out, without the claim */ }
     const how = await shareLink({ text: shareText({ score, exact }), url });
     if (how === "shared") setMsg("Shared.");
     else if (how === "copied") setMsg("Copied — paste it anywhere.");
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>
       <button type="button" onClick={go}
               className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
         <Share2 size={13} /> Share your {shown}/10

@@ -43,6 +43,31 @@ export default function ScoreCard() {
               {d.username ? <>@{d.username}'s</> : "A"} {d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
             </p>
             {d.verdict && <p className="text-white/85">“{d.verdict}”</p>}
+            {/* Credit to the person, and the reason behind the robot: who made it (as
+                THEY declared), what the AI scored it, and the two reasons it gave — the
+                same sentences the performer got. */}
+            <p className="text-[12px] font-semibold text-white/80">
+              {d.human && d.username
+                ? `Human-made — declared by @${d.username}. The AI coach scored it.`
+                : "Scored by the AI coach."}
+            </p>
+            {d.listeners?.count > 0 && (
+              <p className="text-[12px] text-emerald-300">
+                Real listeners rated it {d.listeners.median}/10 ({d.listeners.count} {d.listeners.count === 1 ? "person" : "people"}) — the AI's {shown} is the coach's read, theirs is the room's.
+              </p>
+            )}
+            {d.why?.length > 0 && (
+              <div className="space-y-1 text-left text-[12px]">
+                <p className="text-center text-[11px] uppercase tracking-widest text-white/40">Why the coach said that</p>
+                {d.why.map((w) => (
+                  <p key={w.kind} className="text-white/70">
+                    <b className={w.kind === "strengths" ? "text-emerald-300" : "text-mcz-ember"}>
+                      {w.kind === "strengths" ? "Worked:" : "To fix:"}
+                    </b> {w.text}
+                  </p>
+                ))}
+              </div>
+            )}
             <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">
