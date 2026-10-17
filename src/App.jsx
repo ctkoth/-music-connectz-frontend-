@@ -224,6 +224,10 @@ export const CUSTOM_ICONS = {
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
   "violinz.png": "/icons/violinz-neon.svg",
+  "flutez.png": "/icons/flutez-neon.png",
+  "saxz.png": "/icons/saxz-neon.png",
+  "clarinetz.png": "/icons/clarinetz-neon.png",
+  "trumpetz.png": "/icons/trumpetz-neon.png",
   "guitarz.png": "/icons/guitarz-neon.svg",
   "bassz.png": "/icons/bassz.png",
   "keyz.png": "/icons/keyz-neon.svg",
@@ -353,7 +357,7 @@ export const CUSTOM_ICONS = {
   "metz.jpg": "/icons/metz-neon.svg",
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
-  "breathz.png": "/icons/breathz-neon.svg",
+  "breathz.png": "/icons/breathz-neon.png",
   "drumz.png": "/icons/drumz-neon.svg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
@@ -537,6 +541,18 @@ const TABS = [
   { key: "violinz", label: "ViolinZ", icon: "violinz.png",
     el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
+  { key: "flutez", label: "FluteZ", icon: "flutez.png",
+    el: <InstrumentZ appKey="flutez" icon="flutez.png" title="FluteZ" accent="#22d3ee"
+        tagline="Wind training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "saxz", label: "SaxZ", icon: "saxz.png",
+    el: <InstrumentZ appKey="saxz" icon="saxz.png" title="SaxZ" accent="#f59e0b"
+        tagline="Sax training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png",
+    el: <InstrumentZ appKey="clarinetz" icon="clarinetz.png" title="ClarinetZ" accent="#a78bfa"
+        tagline="Clarinet training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png",
+    el: <InstrumentZ appKey="trumpetz" icon="trumpetz.png" title="TrumpetZ" accent="#f97316"
+        tagline="Brass training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
   // The hub: every IntelligenceZ app, what each costs before it is opened, and

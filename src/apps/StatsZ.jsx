@@ -20,6 +20,10 @@ export default function StatsZ() {
     ["keyz", "⌨️ KeyZ", "keyboards"],
     ["drumz", "🥁 DrumZ", "drums"],
     ["violinz", "🎻 ViolinZ", "violin"],
+    ["flutez", "🪈 FluteZ", "flute"],
+    ["saxz", "🎷 SaxZ", "saxophone"],
+    ["clarinetz", "🎼 ClarinetZ", "clarinet"],
+    ["trumpetz", "🎺 TrumpetZ", "trumpet"],
   ];
 
   useEffect(() => {
@@ -107,6 +111,10 @@ export default function StatsZ() {
             ["keyz", "⌨️ KeyZ", "keyboards"],
             ["drumz", "🥁 DrumZ", "drums"],
             ["violinz", "🎻 ViolinZ", "violin"],
+            ["flutez", "🪈 FluteZ", "flute"],
+            ["saxz", "🎷 SaxZ", "saxophone"],
+            ["clarinetz", "🎼 ClarinetZ", "clarinet"],
+            ["trumpetz", "🎺 TrumpetZ", "trumpet"],
           ].map(([key, label, description]) => {
             const stats = instruments[key];
             if (!stats) return null;

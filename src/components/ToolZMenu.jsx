@@ -16,6 +16,7 @@ import './ToolZMenu.css';
 const ICON_KEY = {
   singz: "singz.png", rapz: "rapz.png", guitarz: "guitarz.png", bassz: "bassz.png",
   keyz: "keyz.png", drumz: "drumz.png", violinz: "violinz.png",
+  flutez: "flutez.png", saxz: "saxz.png", clarinetz: "clarinetz.png", trumpetz: "trumpetz.png",
   battlez: "battlez.png", collabz: "collabz.png", infernoz: "infernoz.png",
   socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
   messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
@@ -31,7 +32,7 @@ const ICON_KEY = {
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
 };
 const EMOJI = {
-  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
+  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
@@ -93,6 +94,10 @@ const COACH_GROUPS = [
         { key: 'bassz', label: 'BassZ', color: 'green', desc: 'Bass coaching' },
         { key: 'keyz', label: 'KeyZ', color: 'cyan', desc: 'Keyboard coaching' },
         { key: 'violinz', label: 'ViolinZ', color: 'yellow', desc: 'String instrument coaching' },
+        { key: 'flutez', label: 'FluteZ', color: 'cyan', desc: 'Flute coaching — breath and tone scored' },
+        { key: 'saxz', label: 'SaxZ', color: 'orange', desc: 'Saxophone coaching — breath and tone scored' },
+        { key: 'clarinetz', label: 'ClarinetZ', color: 'purple', desc: 'Clarinet coaching — breath and tone scored' },
+        { key: 'trumpetz', label: 'TrumpetZ', color: 'orange', desc: 'Trumpet coaching — breath and tone scored' },
       ]
     },
     {
@@ -297,7 +302,7 @@ const CATEGORIES = [
 // Labels for the focus tiles that no ToolZ category names (see focus.js).
 const FOCUS_LABEL = {
   singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', bassz: 'BassZ', keyz: 'KeyZ',
-  drumz: 'DrumZ', violinz: 'ViolinZ', postz: 'PostZ', profilez: 'ProfileZ',
+  drumz: 'DrumZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
   bodiez: 'BodieZ',

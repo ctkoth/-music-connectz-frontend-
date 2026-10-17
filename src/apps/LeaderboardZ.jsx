@@ -138,6 +138,7 @@ export default function LeaderboardZ({ period = "week" }) {
           {Object.entries({
             singz: "🎤 SingZ", rapz: "🎙️ RapZ", guitarz: "🎸 GuitarZ",
             bassz: "🅱️ BassZ", keyz: "⌨️ KeyZ", drumz: "🥁 DrumZ", violinz: "🎻 ViolinZ",
+            flutez: "🪈 FluteZ", saxz: "🎷 SaxZ", clarinetz: "🎼 ClarinetZ", trumpetz: "🎺 TrumpetZ",
           }).map(([key, label]) => (
             <button key={key} onClick={() => goToSpot(key, `${key}-drills`)}
                     className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan">

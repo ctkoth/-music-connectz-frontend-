@@ -16,7 +16,8 @@
 export const FOCUS_MODE = true;
 
 // The coaches — the product. Ordered as the home screen shows them.
-export const FOCUS_COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "violinz"];
+export const FOCUS_COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "violinz",
+                               "flutez", "saxz", "clarinetz", "trumpetz"];
 
 // What a coached member needs around the coach: somewhere to post the take,
 // a profile, messages, a friend to challenge, practice tools the coach's own

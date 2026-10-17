@@ -66,7 +66,8 @@ export default function TrialTake() {
   // Each door titled for what someone searches: "free AI drum feedback",
   // not "DrumZ". Search engines read it after rendering.
   const SEARCH_NOUN = { singz: "singing", rapz: "rap", guitarz: "guitar", bassz: "bass",
-                        keyz: "piano", drumz: "drum", violinz: "violin" };
+                        keyz: "piano", drumz: "drum", violinz: "violin",
+                        flutez: "flute", saxz: "saxophone", clarinetz: "clarinet", trumpetz: "trumpet" };
   usePageTitle(`Free AI ${SEARCH_NOUN[appKey] || "music"} feedback — get your take scored`,
                `Upload or record a ${SEARCH_NOUN[appKey] || "music"} take and an AI coach scores it out of 10, says what cost you points, and gives you a drill. Free, no account.`);
   // The card for THIS take, minted by the server from the coach's own answer.

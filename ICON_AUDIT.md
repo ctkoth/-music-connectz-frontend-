@@ -204,13 +204,15 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (28)
+## Tabs and apps that ask for an icon no supplied file covers (32)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz-neon.svg
-- `breathz.png` → /icons/breathz-neon.svg
+- `breathz.png` → /icons/breathz-neon.png
 - `callz.png` → /icons/callz-neon.svg
+- `clarinetz.png` → /icons/clarinetz-neon.png
 - `facez.png` → /icons/facez.png
+- `flutez.png` → /icons/flutez-neon.png
 - `funnelz.png` → /icons/funnelz-neon.svg
 - `guitarz.png` → /icons/guitarz-neon.svg
 - `habitz.png` → /icons/habitz-neon.svg
@@ -228,11 +230,13 @@ Still what something draws today; custom art takes over where a default exists.
 - `postz.png` → /icons/postz-neon.svg
 - `ratez.png` → /icons/ratez.png
 - `royaltiez.png` → /icons/royaltiez-neon.svg
+- `saxz.png` → /icons/saxz-neon.png
 - `sonday.png` → /icons/sonday.png
 - `soundcloudengagementz.png` → /icons/soundcloudengagementz-neon.svg
 - `soundz.png` → /icons/soundz-neon.svg
 - `specz.png` → /icons/specz-neon.svg
+- `trumpetz.png` → /icons/trumpetz-neon.png
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 88 of 183 (most are the
+Registry keys with no supplied file: 92 of 187 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).

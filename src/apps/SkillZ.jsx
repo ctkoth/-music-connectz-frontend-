@@ -30,6 +30,10 @@ const FALLBACK = [
   { key: "bassz", label: "BassZ", icon: "bassz.png" },
   { key: "keyz", label: "KeyZ", icon: "keyz.png" },
   { key: "violinz", label: "ViolinZ", icon: "violinz.png" },
+  { key: "flutez", label: "FluteZ", icon: "flutez.png" },
+  { key: "saxz", label: "SaxZ", icon: "saxz.png" },
+  { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png" },
+  { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png" },
   { key: "drumz", label: "DrumZ", icon: "drumz.png" },
 ].map((a) => ({ ...a, built: true, in_app: true }));
 

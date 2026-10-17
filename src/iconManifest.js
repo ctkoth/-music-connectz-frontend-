@@ -1636,7 +1636,9 @@ export const TAB_ICONS_WITHOUT_ART = [
   "beatz.png",
   "breathz.png",
   "callz.png",
+  "clarinetz.png",
   "facez.png",
+  "flutez.png",
   "funnelz.png",
   "guitarz.png",
   "habitz.png",
@@ -1654,9 +1656,11 @@ export const TAB_ICONS_WITHOUT_ART = [
   "postz.png",
   "ratez.png",
   "royaltiez.png",
+  "saxz.png",
   "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
+  "trumpetz.png",
   "violinz.png"
 ];
