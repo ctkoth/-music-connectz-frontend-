@@ -66,6 +66,10 @@ export const ICON_DEFAULTS = {
   "callz_user.webp": "/icons/callz_user.png",
   "drumz.png": "/icons/drumz.png",
   "violinz.png": "/icons/violinz.png",
+  "flutez.png": "/icons/flutez.png",
+  "saxz.png": "/icons/saxz.png",
+  "clarinetz.png": "/icons/clarinetz.png",
+  "trumpetz.png": "/icons/trumpetz.png",
   "guitarz.png": "/icons/guitarz.png",
   "keyz.png": "/icons/keyz.png",
   "partnerz.jpg": "/icons/partnerz.jpg",
@@ -85,6 +89,7 @@ export const ICON_DEFAULTS = {
   "habitz.png": "/icons/habitz.png",
   "metz.jpg": "/icons/metz.jpg",
   "tunerz.jpg": "/icons/tunerz.jpg",
+  "breathz.png": "/icons/breathz.png",
   "onboardz.jpg": "/icons/onboardz.png"
 };
 
@@ -399,6 +404,19 @@ export const ICON_TREE = [
     ]
   },
   {
+    "parent": "breathz",
+    "label": "BreathZ",
+    "root": {
+      "file": "breathz.png",
+      "art": "/icons/breathz.png",
+      "key": null,
+      "status": "unplaced",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
+  },
+  {
     "parent": "bugz",
     "label": "BugZ",
     "root": {
@@ -467,6 +485,19 @@ export const ICON_TREE = [
       "key": "chordz.jpg",
       "status": "live",
       "note": "replaces the generated glyph /icons/chordz-neon.svg"
+    },
+    "extra": [],
+    "children": []
+  },
+  {
+    "parent": "clarinetz",
+    "label": "ClarinetZ",
+    "root": {
+      "file": "clarinetz.png",
+      "art": "/icons/clarinetz.png",
+      "key": null,
+      "status": "unplaced",
+      "note": ""
     },
     "extra": [],
     "children": []
@@ -700,6 +731,19 @@ export const ICON_TREE = [
       "art": null,
       "key": "filez.png",
       "status": "owed",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
+  },
+  {
+    "parent": "flutez",
+    "label": "FluteZ",
+    "root": {
+      "file": "flutez.png",
+      "art": "/icons/flutez.png",
+      "key": null,
+      "status": "unplaced",
       "note": ""
     },
     "extra": [],
@@ -1337,6 +1381,19 @@ export const ICON_TREE = [
     "children": []
   },
   {
+    "parent": "saxz",
+    "label": "SaxZ",
+    "root": {
+      "file": "saxz.png",
+      "art": "/icons/saxz.png",
+      "key": null,
+      "status": "unplaced",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
+  },
+  {
     "parent": "singz",
     "label": "SingZ",
     "root": {
@@ -1494,6 +1551,19 @@ export const ICON_TREE = [
         "also": []
       }
     ]
+  },
+  {
+    "parent": "trumpetz",
+    "label": "TrumpetZ",
+    "root": {
+      "file": "trumpetz.png",
+      "art": "/icons/trumpetz.png",
+      "key": null,
+      "status": "unplaced",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
   },
   {
     "parent": "tunerz",
