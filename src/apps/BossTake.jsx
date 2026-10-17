@@ -296,6 +296,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [bytes, setBytes] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  // The score is the point of the screen, and it lands BELOW a recorder and a
+  // history panel. Bring it into view when it arrives so it is the first thing
+  // seen, not something to scroll for.
+  const resultRef = useRef(null);
+  useEffect(() => {
+    if (result && resultRef.current) resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
   const [msg, setMsg] = useState("");
   // Why the recorder stopped itself, when it did. Kept apart from `msg`: an
   // auto-stop is not an error — the take is good, it just ended on its own, and
@@ -1575,7 +1582,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         </div>
       ) : result && (
-        <div className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
+        <div ref={resultRef} className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
           {result.reference && (
             <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">
               🎧 Reference listen — what this track shows
@@ -1594,6 +1601,72 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {listenersLine(result.listeners, result.score) && (
             <p className="text-[12px] font-semibold text-emerald-300">{listenersLine(result.listeners, result.score)}</p>
           )}
+          <div className="flex flex-wrap gap-2">
+            {/* The take's OWN dimensions. `result.rated_lyrics` rather than
+                the toggle's current state: the member may have switched it
+                since, and a chip row that follows a checkbox instead of the
+                take would relabel a score that was never given. */}
+            {Object.entries({
+              ...(price?.scores || {}),
+              ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
+              ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+            }).map(([k, label]) => (
+              <span key={k} className="pill">
+                {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
+                  {result.scores?.[k] ?? "—"}
+                </span>
+              </span>
+            ))}
+          </div>
+
+          {result.strengths?.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">{result.reference ? "What this track does well" : "What worked"}</p>
+              <ul className="mt-1 space-y-1">
+                {result.strengths.map((s, i) => (
+                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!result.reference && result.fixes?.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember/80">Fix this</p>
+              <ul className="mt-1 space-y-1">
+                {result.fixes.map((s, i) => (
+                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.reference && result.borrow && (
+            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
+              <span className="font-semibold text-mcz-cyan">Worth borrowing · </span>{result.borrow}
+            </p>
+          )}
+          {/* What to practise — and why, and how. A drill with no reason is a chore;
+              a reason with no steps is a lecture. `practice` is the coach's own, one per
+              fix, written about THIS take; `next_drill` is the older single-line form and
+              is only shown when no practice came back. */}
+          {!result.reference && (result.practice?.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-cyan/80">Practise this</p>
+              {result.practice.map((p, i) => (
+                <div key={i} className="space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] leading-relaxed text-white/75">
+                  <p><span className="font-semibold text-mcz-cyan">What · </span>{p.what}</p>
+                  {p.why && <p><span className="font-semibold text-mcz-cyan">Why · </span>{p.why}</p>}
+                  {p.how && <p><span className="font-semibold text-mcz-cyan">How · </span>{p.how}</p>}
+                </div>
+              ))}
+            </div>
+          ) : result.next_drill && (
+            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
+              <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
+            </p>
+          ))}
+
           <HeardList result={result} labels={price?.scores} />
 
           {/* The member's score card: the coach's own score and words, minted
@@ -1698,57 +1771,6 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               <p className="text-[10px] uppercase tracking-widest text-white/40">🎚️ Your mix</p>
               <p className="text-[12px] leading-relaxed text-white/75">{result.mix_note}</p>
             </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            {/* The take's OWN dimensions. `result.rated_lyrics` rather than
-                the toggle's current state: the member may have switched it
-                since, and a chip row that follows a checkbox instead of the
-                take would relabel a score that was never given. */}
-            {Object.entries({
-              ...(price?.scores || {}),
-              ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
-              ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
-            }).map(([k, label]) => (
-              <span key={k} className="pill">
-                {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
-                  {result.scores?.[k] ?? "—"}
-                </span>
-              </span>
-            ))}
-          </div>
-
-          {result.strengths?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">{result.reference ? "What this track does well" : "What worked"}</p>
-              <ul className="mt-1 space-y-1">
-                {result.strengths.map((s, i) => (
-                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {!result.reference && result.fixes?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember/80">Fix this</p>
-              <ul className="mt-1 space-y-1">
-                {result.fixes.map((s, i) => (
-                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {result.reference && result.borrow && (
-            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
-              <span className="font-semibold text-mcz-cyan">Worth borrowing · </span>{result.borrow}
-            </p>
-          )}
-          {!result.reference && result.next_drill && (
-            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
-              <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
-            </p>
           )}
 
           {!trial && !IN_SHELL_COACH && !result.reference && (
