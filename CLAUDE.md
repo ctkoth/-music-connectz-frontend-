@@ -1286,3 +1286,62 @@ does NOT touch:
 add `data-nomemo`.** `remember.js` holds the rule and is tested; keys are the
 field's label plus its option set, per device. Hand-wired fields use
 `useRemembered` / `seed` / `<UsualHint>`.
+
+## Credits buy outcomes, and a rating has one layout (Corey's rules)
+
+**Every credit spent buys something tangible, shareable, understandable, lucrative,
+braggable or learnable** — and says which. The server holds the list
+(`apps/economy/credit_outcomes.py`, served at `/api/economy/creditz/`) and a test
+fails if any module spends a resource without being on it, so a new way to spend
+cannot ship without saying what it buys and where the free way to the same thing
+is. On this side that means a spend is never a dead end: **LogZ rows open onto the
+rating, the report and the file** (`Transaction.ref`, `logz_outcomes.py`), and the
+file is shown when it was kept and said plainly ("scored, not kept") when it was
+not. Never a dead link, never a made-up one.
+
+**Every rating is drawn the same way: a LARGE number, its label, and the detail
+beside it** — `components/Rating.jsx`, with the colours and the one-decimal rule in
+`rating.js`. The coach result, LogZ, the history, the coaching board, a post's read
+card and the progress findings all use it, so a 6 is the same colour everywhere and
+no number ever stands alone. `rating.test.mjs` fails if a screen defines its own
+thresholds. A new screen that shows a score uses `RatingRow`/`RatingGrid`.
+
+## Growth intuition: what worked elsewhere, as rules for here
+
+Written down so it is a rule and not a mood. Each is an observation about a product
+that spread, and what it means for this one. They are from general knowledge of those
+products, not measurements of ours — ours are the funnel numbers in FunnelZ.
+
+- **Wordle** spread because the thing shared was a small, self-explanatory RESULT
+  that revealed no content, and everyone played the same puzzle so results were
+  comparable. → A shared score card shows the result and the reason, never the work;
+  and "beat my score" only means something when the challenge is the same. A weekly
+  shared prompt (same genre, same tempo) is what makes scores comparable.
+- **Strava** made effort a social object: real people, real effort, one-tap kudos,
+  segments to compare on. → A personal best (🏆) and a measured climb are the
+  shareable moments, not only a high score — a beginner can have both.
+- **Spotify Wrapped** is shared because it is about the person, built from their own
+  data, in a story-sized format. → The recap of a month of takes belongs in the
+  1080×1920 card the platform already draws.
+- **Duolingo** retains with a streak and loses people the day it breaks. → The streak
+  is a reason to come back and a card to share; never a guilt notification.
+- **Smule** builds the second person into the product: you sing WITH someone. → A
+  battle or collab link a non-member can answer at the free door is an invite that
+  does not feel like one.
+- **Genius** is "the reason behind it", written by people. → The AI's reasons carry
+  the score; human reasons from real listeners (rate with a reason) are what make it
+  trusted. Human credit is the differentiator: **the card says who made it, as THEY
+  declared it** (`DeclareHuman`) — a declaration, never a detection — and AI-generated
+  output is always labelled as such.
+- **Clubhouse** spiked on scarcity and invites and faded without retention. → Gating
+  something people already shared is a trap: keep the card public forever, make the
+  DEPTH (the full read) the members' side, and change defaults for NEW shares only —
+  never retroactively, never on a timer.
+- **Cara** (an artists' network) grew on being human-made while the big platforms
+  turned toward AI. → "Human-made, AI-scored" is a position; protect it by never
+  promoting AI-generated performances.
+
+The shape every shared thing here should have: self-explanatory without an account,
+flattering to the person who made it, about a result not a secret, comparable, and one
+tap from "get yours" for the person who opens it — with the sharer's handle as the
+referral code. A share that does not do all five is a poster.

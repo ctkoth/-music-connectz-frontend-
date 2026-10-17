@@ -9,11 +9,14 @@
 
 const fmt = (n) => (Number.isInteger(Number(n)) ? String(n) : Number(n).toFixed(1));
 
-export function shareText({ score, exact, progress } = {}) {
+export function shareText({ score, exact, progress, pb } = {}) {
   if (progress) {
     return `${progress.label}: ${fmt(progress.was)} → ${fmt(progress.now)} in ${progress.days} days with the AI coach 📈 — get your take scored free:`;
   }
   const n = exact ?? score;
+  // A personal best is about THEM, needs no comparison and a beginner can have one:
+  // the most shareable thing a score can be that is not a high score.
+  if (pb && n != null) return `New personal best with the AI coach: ${fmt(n)}/10 🏆 — get your take scored free:`;
   if (n == null) return "Get your take scored by the AI coach, free:";
   if (n >= 8) return `The AI coach gave my take ${fmt(n)}/10 🔥 — think you can beat it? Get yours scored free:`;
   if (n >= 5) return `The AI coach gave my take ${fmt(n)}/10 🎤 — get yours scored free:`;

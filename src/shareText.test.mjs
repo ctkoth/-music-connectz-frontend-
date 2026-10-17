@@ -20,3 +20,9 @@ test("an improvement says from, to and how long", () => {
   assert.match(t, /Flow/);
   assert.match(t, /4\.5 → 5\.8 in 14 days/);
 });
+
+test("a personal best is announced as one, whatever the number", () => {
+  assert.match(shareText({ score: 4, pb: true }), /personal best/);
+  assert.match(shareText({ score: 4, pb: true }), /4\/10/);
+  assert.doesNotMatch(shareText({ score: 4, pb: false }), /personal best/);
+});

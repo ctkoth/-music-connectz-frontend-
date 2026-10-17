@@ -49,7 +49,7 @@ function Row({ t, labels, appKey }) {
       const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(r.share_url);
       try { await declareHuman(r.share_url, human); } catch { /* shared without the claim */ }
-      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact }), url: r.share_url });
+      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb }), url: r.share_url });
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
   }
@@ -60,6 +60,7 @@ function Row({ t, labels, appKey }) {
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left">
         {open ? <ChevronDown size={13} className="text-white/40" /> : <ChevronRight size={13} className="text-white/40" />}
         <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
+        {t.pb && <span className="rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏆 Personal best</span>}
         <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
         {t.genre && <span className="text-white/35">{t.genre}</span>}
         {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
