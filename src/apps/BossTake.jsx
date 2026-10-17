@@ -248,11 +248,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // choose most) — per instrument, since a rap style is not a drum style. The
   // option lists arrive with `price`, so the memory is re-applied once they do
   // and only ever lands on a value the server still offers.
-  const [genre, setGenre, setGenreQuiet] = useRemembered(`${appKey}.genre`, "R&B", GENRES);
+  // `price.usual` is what the server read off the member's own past takes.
+  const usual = price?.usual || {};
+  const [genre, setGenre, setGenreQuiet] = useRemembered(`${appKey}.genre`, "R&B", GENRES, usual.genre);
   const [range, setRange] = useRemembered(`${appKey}.range`, "tenor",
-    price?.ranges ? price.ranges.map((r) => r.key) : undefined);
+    price?.ranges ? price.ranges.map((r) => r.key) : undefined, usual.target);
   const [difficulty, setDifficulty] = useRemembered(`${appKey}.difficulty`, "builder",
-    price?.difficulties);
+    price?.difficulties, usual.difficulty);
   // Have the coach judge the WRITING as well as the performance. Off by
   // default and deliberately so: somebody working on breath control has not
   // asked for their lyrics to be marked, and scoring a member on something
@@ -272,7 +274,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
   const [style, setStyle] = useRemembered(`${appKey}.style`, "",
-    price?.styles ? price.styles.map((v) => v.label) : undefined);
+    price?.styles ? price.styles.map((v) => v.label) : undefined, usual.style);
   // A post handed over from PostZ. It is a take that is already recorded and
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
@@ -1573,8 +1575,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </p>
           )}
           <div className="flex items-baseline gap-3">
-            <span className={`font-display text-4xl font-extrabold ${scoreColor(result.score)}`}>
-              {typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-lg text-white/30">/10</span>
+            <span className={`font-display text-6xl font-extrabold leading-none ${scoreColor(result.score)}`}>
+              {typeof result.score_exact === "number" ? result.score_exact.toFixed(1)
+                : typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-xl text-white/30">/10</span>
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>

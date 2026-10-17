@@ -8,17 +8,21 @@ import { recall, remember } from "./remember.js";
 // member hasn't chosen anything this visit. [value, set, setQuiet]:
 // `set` is a choice and is remembered; `setQuiet` is for values we supply
 // (a hand-off from another app) — it wins over the memory and is not counted.
-export function useRemembered(field, fallback, allowed) {
+export function useRemembered(field, fallback, allowed, usual) {
   const [value, setValue] = useState(() => recall(field, allowed) ?? fallback);
   const touched = useRef(false);
   const sig = allowed ? allowed.join("\u0001") : null;
 
+  // `usual` is what the server read off their past takes. This device's own
+  // memory is newer than that, so it wins; the server's is for the member whose
+  // history is on their account but not in this browser.
   useEffect(() => {
     if (touched.current || !allowed) return;
     const r = recall(field, allowed);
-    if (r != null) setValue(r);
+    if (r != null) { setValue(r); return; }
+    if (usual && allowed.includes(usual)) setValue(usual);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [field, sig]);
+  }, [field, sig, usual]);
 
   const set = useCallback((v) => {
     touched.current = true;
