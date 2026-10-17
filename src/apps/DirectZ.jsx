@@ -30,6 +30,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { goToTab } from "../goto.js";
 import { IconImg } from "../App.jsx";
 import { takeDirectzPreset as takePreset } from "../directzPreset.js";
+import { recall, remember } from "../remember.js";
 
 // ReelZ, EpisodeZ and MovieZ — DirectZ's children by length (directzPreset.js).
 const FMT_ICON = { reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png" };
@@ -45,7 +46,8 @@ export default function DirectZ() {
   // The craft rating is OFF by default. It sends the video to a model that
   // watches it, which costs real money — so posting must not quietly become a
   // paid action. The member asks for it, having read the price first.
-  const [form, setForm] = useState({ fmt: "reelz", genre: "", video_type: "",
+  const [form, setForm] = useState({ fmt: recall("directz.fmt") || "reelz", genre: recall("directz.genre") || "",
+                                     video_type: recall("directz.video_type") || "",
                                      title: "", description: "",
                                      craft_rating: false });
   const [work, setWork] = useState({});
@@ -194,7 +196,7 @@ export default function DirectZ() {
           <label className="text-[11px] text-white/50">
             Format
             <select className="neon-input !py-2 text-xs" value={form.fmt}
-                    onChange={(e) => setForm({ ...form, fmt: e.target.value })}>
+                    onChange={(e) => { remember("directz.fmt", e.target.value); setForm({ ...form, fmt: e.target.value }); }}>
               {/* The band is IN the option, so the rule is readable while
                   choosing rather than after uploading a three-hour film. */}
               {formats.map((f) => (
@@ -205,7 +207,7 @@ export default function DirectZ() {
           <label className="text-[11px] text-white/50">
             Genre
             <select className="neon-input !py-2 text-xs" value={form.genre}
-                    onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+                    onChange={(e) => { remember("directz.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
               <option value="">— pick a genre —</option>
               {asList(spec?.genres).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
@@ -213,7 +215,7 @@ export default function DirectZ() {
           <label className="text-[11px] text-white/50">
             What it's for
             <select className="neon-input !py-2 text-xs" value={form.video_type}
-                    onChange={(e) => setForm({ ...form, video_type: e.target.value })}>
+                    onChange={(e) => { remember("directz.video_type", e.target.value); setForm({ ...form, video_type: e.target.value }); }}>
               <option value="">— optional —</option>
               {asList(spec?.video_types).map((t) => <option key={t} value={t}>{t}</option>)}
             </select>

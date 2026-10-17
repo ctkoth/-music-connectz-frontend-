@@ -65,6 +65,7 @@ import RangeGates from "../RangeGates.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 import LeaderboardZ from "./LeaderboardZ.jsx";
+import { useRemembered } from "../useRemembered.js";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -212,7 +213,7 @@ export default function PostZ() {
   const [loadErr, setLoadErr] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [genre, setGenre] = useState("Trap");
+  const [genre, setGenre] = useRemembered("postz.genre", "Trap");
   // 🆓 Freestyle rides ALONGSIDE the genre, never instead of it. A freestyle
   // Trap verse is still Trap — putting Freestyle in the genre list would have
   // forced a choice between the two and split the tag across every family.

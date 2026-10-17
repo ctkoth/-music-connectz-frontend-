@@ -12,6 +12,7 @@ import RunClock from "../components/RunClock.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import { budgetOf, runTimeoutMs, shellRoyaltyLine, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
 import { chargeLine, drumVoice, midiName, missingLine } from "../instrumentalz.js";
+import { useRemembered } from "../useRemembered.js";
 
 // Instrumental ConnectZ — AI-composed MIDI loops. Keys, moods, instruments,
 // limits and price all come from /api/economy/instrumentalz/; the .mid is
@@ -101,11 +102,11 @@ export default function InstrumentalConnectZ() {
   const cl = useCharLimit();
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
-  const [genre, setGenre] = useState("");
+  const [genre, setGenre] = useRemembered("instrumentalz.genre", "");
   const [brief, setBrief] = useState("");
   const [picked, setPicked] = useState(["drums", "bass", "piano"]);
   const [bpm, setBpm] = useState(90);
-  const [key, setKey] = useState("A minor");
+  const [key, setKey] = useRemembered("instrumentalz.key", "A minor");
   const [bars, setBars] = useState(4);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);

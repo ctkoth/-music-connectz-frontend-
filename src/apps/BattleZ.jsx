@@ -37,6 +37,7 @@ import { onHandoff } from "../handoff.js";
 // which is the same missing line that had the trial's Record button dead.
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
+import { recall, remember } from "../remember.js";
 
 // An entry's take counts its own listening (listen.js), because rating a
 // battle take requires hearing it first — the same rule posts follow, and the
@@ -525,7 +526,7 @@ export default function BattleZ() {
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", genre: "Trap", entry_spinaz: "" });
+  const [form, setForm] = useState({ title: "", description: "", genre: recall("battlez.genre") || "Trap", entry_spinaz: "" });
   const [work, setWork] = useState({});
   const [gates, setGates] = useState({});
   const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
@@ -699,7 +700,7 @@ export default function BattleZ() {
                       value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid gap-2 sm:grid-cols-2">
               <select className="neon-input !py-2 text-xs" value={form.genre}
-                      onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+                      onChange={(e) => { remember("battlez.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
                 {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (

@@ -9,7 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
-import { GENRE_GROUPS } from "../genres.js";
+import { GENRE_GROUPS, GENRES } from "../genres.js";
+import { useRemembered } from "../useRemembered.js";
 import { onHandoff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
@@ -240,9 +241,18 @@ function CoachVoicePlayer({ result }) {
 export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
   const { user } = useAuth();
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
-  const [genre, setGenre] = useState("R&B");
-  const [range, setRange] = useState("tenor");
-  const [difficulty, setDifficulty] = useState("builder");
+  // What this take costs, read BEFORE anything is sent. A price you only see
+  // in the response is a bill, not a price.
+  const [price, setPrice] = useState(null);
+  // Each picker opens on what the member chose last time (else what they
+  // choose most) — per instrument, since a rap style is not a drum style. The
+  // option lists arrive with `price`, so the memory is re-applied once they do
+  // and only ever lands on a value the server still offers.
+  const [genre, setGenre, setGenreQuiet] = useRemembered(`${appKey}.genre`, "R&B", GENRES);
+  const [range, setRange] = useRemembered(`${appKey}.range`, "tenor",
+    price?.ranges ? price.ranges.map((r) => r.key) : undefined);
+  const [difficulty, setDifficulty] = useRemembered(`${appKey}.difficulty`, "builder",
+    price?.difficulties);
   // Have the coach judge the WRITING as well as the performance. Off by
   // default and deliberately so: somebody working on breath control has not
   // asked for their lyrics to be marked, and scoring a member on something
@@ -261,7 +271,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // RapZ picks a style the way SingZ picks a range. The list comes from the
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
-  const [style, setStyle] = useState("");
+  const [style, setStyle] = useRemembered(`${appKey}.style`, "",
+    price?.styles ? price.styles.map((v) => v.label) : undefined);
   // A post handed over from PostZ. It is a take that is already recorded and
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
@@ -293,9 +304,6 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [micWhy, setMicWhy] = useState("");
   // Show upgrade prompt when upload limit is hit
   const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
-  // What this take costs, read BEFORE anything is sent. A price you only see
-  // in the response is a bill, not a price.
-  const [price, setPrice] = useState(null);
   // "take" = the member's own performance. "reference" = somebody else's track,
   // listened to and forgotten: the server enforces it (`reference` on the POST)
   // and writes nothing that measures the member. Members only - the trial's one
@@ -432,7 +440,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // The post already says what it is. Its genre seeds the picker so the
       // coach isn't asked to score a Drill verse as "unspecified" — the member
       // can still change it before sending.
-      if (h.genre) setGenre(h.genre);
+      if (h.genre) setGenreQuiet(h.genre);
     });
   }, [appKey, trial]);
 

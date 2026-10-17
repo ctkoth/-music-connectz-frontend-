@@ -37,6 +37,7 @@ import { onHandoff } from "../handoff.js";
 import { ENERGY, amount } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
+import { useRemembered } from "../useRemembered.js";
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -284,7 +285,7 @@ export default function OCC() {
   const [draft, setDraft] = useState({ title: "", input_text: "", description: "" });
   const [work, setWork] = useState({});      // the attachment, MediaFields' shape
   const [busy, setBusy] = useState(false);
-  const [lang, setLang] = useState("python");
+  const [lang, setLang] = useRemembered("occ.lang", "python");
   const [source, setSource] = useState("");
   const [ran, setRan] = useState(null);
   const [running, setRunning] = useState(false);   // the sandbox, not any other busy
