@@ -125,6 +125,7 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const BreathZ = lazy(lazyRoute(() => import("./apps/BreathZ.jsx")));
 const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
 const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
@@ -352,6 +353,7 @@ export const CUSTOM_ICONS = {
   "metz.jpg": "/icons/metz-neon.svg",
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
+  "breathz.png": "/icons/breathz-neon.svg",
   "drumz.png": "/icons/drumz-neon.svg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
@@ -555,6 +557,7 @@ const TABS = [
   { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
+  { key: "breathz", label: "BreathZ", icon: "breathz.png", el: <BreathZ /> },
   // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
   // rendered inside InstrumentZ now rather than standing alone) and gained
   // the scored Boss Take coach the backend already had mounted at
@@ -869,6 +872,7 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  breathz: "🫁 BreathZ — free breath training for your takes: box breathing, long exhales, support hisses and bar breathing at your tempo. It earns XP for turning up and never changes a score — your coach's Breath score is the measure.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",

@@ -23,7 +23,7 @@ export const FOCUS_COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drum
 // notes link into, and the account screens that make it payable.
 export const FOCUS_SUPPORT = [
   "postz", "profilez", "messagez", "battlez",
-  "metz", "tunerz", "chordz",
+  "metz", "tunerz", "chordz", "breathz",
   "membershipz", "onboardz", "logz",
   // Not music, kept on purpose: Corey uses it.
   "bodiez",

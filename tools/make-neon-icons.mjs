@@ -258,6 +258,12 @@ const G = {
     <path d="M304 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
     <path d="M192 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
 
+  breathz: (a, b) => `
+    <circle cx="256" cy="250" r="96" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="250" r="58" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.75"/>
+    <circle cx="256" cy="250" r="22" fill="${b}" fill-opacity="0.55"/>
+    <path d="M150 360c34 16 68 16 106 0s72-16 106 0" stroke="${a}" stroke-width="12" stroke-linecap="round" fill="none" stroke-opacity="0.6"/>`,
+
   chordz: (a, b) => `
     <g stroke="${a}" stroke-width="13" stroke-linecap="round" fill="none">
       <path d="M146 140h220M146 180h220M146 220h220M146 260h220M146 300h220M146 340h220"/>
@@ -463,6 +469,7 @@ const APPS = [
   ["metz", "MetZ", C.cyan, C.gold],
   ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],
+  ["breathz", "BreathZ", C.cyan, C.emerald],
   ["drumz", "DrumZ", C.ember, C.gold],
 ];
 

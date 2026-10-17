@@ -78,6 +78,7 @@ export const APP_PURPOSE = {
   drumz:       { does: "Record drums and get scored",    words: "drums drumming beat record score take practice coach" },
   metz:        { does: "Metronome",                      words: "metronome tempo bpm beat click time signature practice" },
   tunerz:      { does: "Tune an instrument",              words: "tuner tune pitch pegs string guitar bass in tune" },
+  breathz:     { does: "Breath training, free",         words: "breath breathing breathe lungs air support exhale hold box hiss practice warm up sing rap" },
   chordz:      { does: "Chords and progressions",         words: "chords progression voicing theory scale music" },
   dawz:        { does: "Vote for the next DAW build",     words: "daw record produce mix beat maker software studio" },
   lilith:      { does: "Task manager",                    words: "tasks todo reminders manage organize checklist" },
