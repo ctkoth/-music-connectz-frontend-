@@ -1611,10 +1611,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
               ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
               ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
+              ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
             }).map(([k, label]) => (
               <span key={k} className="pill">
-                {label} <span className={`font-bold ${scoreColor(k === "hookz" ? result.hook_score : result.scores?.[k])}`}>
-                  {k === "hookz" ? result.hook_score : (result.scores?.[k] ?? "—")}
+                {label} <span className={`font-bold ${scoreColor(k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : result.scores?.[k])}`}>
+                  {k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : (result.scores?.[k] ?? "—")}
                 </span>
               </span>
             ))}
@@ -1716,6 +1717,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 {result.hook_why && (
                   <p className="text-[12px] leading-relaxed text-white/80">{result.hook_why}</p>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* FeelZ: how strongly the take moves a listener, rated apart from the polish
+              and counted in the overall. It is the AI's read as a listener — said on the
+              card — and real listeners' ratings (the line under the score) sit beside it
+              as the check. Absent, never 0, for an exercise with nothing to feel. */}
+          {result.feelz_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-rose-400/30 bg-rose-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.feelz_score)}`}>
+                💗 FeelZ {result.feelz_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-rose-300/80">
+                  FeelZ{result.feelz_emotion ? ` · ${result.feelz_emotion}` : ""} — {result.feelz_counted ? "counted in your overall score" : "not counted in the overall"}
+                </p>
+                {result.feelz_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.feelz_why}</p>
+                )}
+                <p className="text-[11px] text-white/45">
+                  The coach's read as a listener, not a prediction of how anyone will feel — people's own ratings are the real test.
+                </p>
               </div>
             </div>
           )}
