@@ -1610,10 +1610,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               ...(price?.scores || {}),
               ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
               ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+              ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
             }).map(([k, label]) => (
               <span key={k} className="pill">
-                {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
-                  {result.scores?.[k] ?? "—"}
+                {label} <span className={`font-bold ${scoreColor(k === "hookz" ? result.hook_score : result.scores?.[k])}`}>
+                  {k === "hookz" ? result.hook_score : (result.scores?.[k] ?? "—")}
                 </span>
               </span>
             ))}
@@ -1700,10 +1701,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </div>
           )}
 
-          {/* HookZ: the chorus rated on its own, like the song above and for the same
-              reason — a strong chorus in a rough take (or the reverse) is exactly the
-              information one blended number hides. Absent, never 0, when the take has
-              no chorus or hook to judge. Not part of the overall. */}
+          {/* HookZ: the chorus, with its own number on show AND counted in the overall
+              (it is one more strength-weighted part, `hook_counted`). Absent, never 0,
+              when the take has no chorus or hook to judge. */}
           {result.hook_score != null && (
             <div className="flex items-center gap-3 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-3">
               <span className={`font-display text-2xl font-extrabold ${scoreColor(result.hook_score)}`}>
@@ -1711,7 +1711,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </span>
               <div className="flex-1">
                 <p className="text-[10px] uppercase tracking-widest text-fuchsia-300/80">
-                  HookZ (chorus) — rated apart from the performance score
+                  HookZ (chorus) — {result.hook_counted ? "counted in your overall score" : "not counted in the overall"}
                 </p>
                 {result.hook_why && (
                   <p className="text-[12px] leading-relaxed text-white/80">{result.hook_why}</p>
