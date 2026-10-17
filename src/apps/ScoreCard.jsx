@@ -40,7 +40,8 @@ export default function ScoreCard() {
           <img src={d.image} alt={d.progress ? `${d.progress.label} ${d.progress.was} to ${d.progress.now} on ${d.label}` : `${shown}/10 on ${d.label}`} className="w-full rounded-2xl shadow-neon" />
           <div className="neon-frame space-y-2 p-5 text-center">
             <p className="text-sm text-white/60">
-              {d.username ? <>@{d.username}'s</> : "A"} {d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
+              {d.challenge && <span className="mr-1 rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏁 {d.challenge} challenge</span>}
+              {d.username ? <>@{d.username}'s</> : "A"} {d.recap ? `${d.label} month` : d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
             </p>
             {d.verdict && <p className="text-white/85">“{d.verdict}”</p>}
             {/* Credit to the person, and the reason behind the robot: who made it (as
@@ -71,7 +72,7 @@ export default function ScoreCard() {
             <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">
-            <Link to={`/try/${d.app_key}${ref}`} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
+            <Link to={`/try/${d.app_key}${ref}${d.progress ? "" : `${ref ? "&" : "?"}beat=${encodeURIComponent(token)}`}`} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
               {d.progress ? "📈 Start your own climb — free, no account"
                 : Number(shown) >= 5 ? `🎤 Beat ${d.username ? `@${d.username}'s ` : "this "}${shown} — free, no account`
                 : "🎤 Get your take scored — free, no account"}

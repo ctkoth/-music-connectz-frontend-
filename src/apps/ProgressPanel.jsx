@@ -81,7 +81,7 @@ export default function ProgressPanel({ appKey }) {
   return (
     <section className="space-y-4" data-tour={`${appKey}-progress`}>
       <WhyCard />
-      <CoachingBoard appKey={appKey} coaching={data.coaching} />
+      <CoachingBoard appKey={appKey} coaching={data.coaching} recap={data.recap} />
       <header className="flex items-baseline gap-2">
         <h3 className="font-display text-lg font-bold">Your history</h3>
         <span className="text-[12px] text-white/40">

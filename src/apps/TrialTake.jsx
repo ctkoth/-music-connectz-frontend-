@@ -16,6 +16,7 @@ import { api } from "../api.js";
 import { track } from "../track.js";
 import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 import RetakeRemind from "../components/RetakeRemind.jsx";
+import { beatVerdict } from "../challenge.js";
 
 const TRIAL_TOKEN_KEY = "mcz_trial_token";
 
@@ -81,6 +82,17 @@ export default function TrialTake() {
   const label = doors.find((d) => d.app_key === app)?.label || "SingZ";
   const [scored, setScored] = useState(false);
   const [score, setScore] = useState(null);
+  const [exact, setExact] = useState(null);
+  // "Beat my score": a share card's link carries its token (?beat=). Somebody
+  // opening it is being dared, and the comparison is the card's own number — read
+  // from the server's record of it, never from the URL — against theirs.
+  const [target, setTarget] = useState(null);
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("beat");
+    if (!token) return;
+    api(`/api/economy/scores/${encodeURIComponent(token)}/`, { auth: false })
+      .then((d) => { if (!d.progress) setTarget(d); }).catch(() => {});
+  }, []);
   const [shared, setShared] = useState("");
   // The take's claim token and the server's email offer, for RetakeRemind.
   const [remind, setRemind] = useState(null);
@@ -142,6 +154,7 @@ export default function TrialTake() {
       }
     }
     if (result.score != null) setScore(result.score);
+    if (typeof result.score_exact === "number") setExact(result.score_exact);
     if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
     if (result.remind && result.claim_token) setRemind({ ...result.remind, token: result.claim_token });
     setScored(true);
@@ -154,7 +167,10 @@ export default function TrialTake() {
   // The score card when there is one (it previews the score everywhere it is
   // pasted); the plain door otherwise.
   const shareUrl = cardUrl || `${window.location.origin}/try/${app}`;
-  const shareText = score != null
+  const verdictVs = target && score != null ? beatVerdict({ mine: exact ?? score, theirs: target.shown || target.score, who: target.username }) : null;
+  const shareText = verdictVs?.won
+    ? `I beat ${target.username ? `@${target.username}'s ` : "that "}${target.shown || target.score} on the AI coach — ${exact ?? score}/10 🔥 Think you can beat me? Get yours scored free:`
+    : score != null
     ? `I scored ${score}/10 on my ${label} take 🎤 — real AI coach, free, no account. Get yours scored:`
     : `Got my ${label} take scored free by an AI coach 🎤 — no account needed. Try it:`;
 
@@ -218,6 +234,12 @@ export default function TrialTake() {
         </div>
       </div>
 
+      {target && !scored && (
+        <p className="mb-3 rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-center text-sm text-mcz-gold">
+          🏁 {target.username ? `@${target.username}` : "Somebody"} scored <b>{target.shown || target.score}</b> on this. Think you can beat it? Take yours below — free, no account.
+        </p>
+      )}
+
       {/* The recorder comes FIRST. It sat under the full pricing table —
           ~1,200px down on a phone — on the page a visitor opened to get a
           free score. Pricing follows the score, where it is an answer. */}
@@ -241,6 +263,12 @@ export default function TrialTake() {
           <span className="font-semibold text-cyan-300">What comes back: </span>
           a score out of 10, what cost you the rest, and one drill to run next — e.g.
           “7/10 — pitch is solid, breath control cost you 2.”
+        </p>
+      )}
+
+      {scored && verdictVs && (
+        <p className={`mt-4 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${verdictVs.won ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-white/15 bg-white/5 text-white/80"}`}>
+          {verdictVs.text}
         </p>
       )}
 

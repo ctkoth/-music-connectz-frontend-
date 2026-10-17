@@ -13,6 +13,7 @@ import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
+import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
@@ -256,7 +257,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [genre, setGenre, setGenreQuiet] = useRemembered(`${appKey}.genre`, "R&B", GENRES, usual.genre);
   const [range, setRange] = useRemembered(`${appKey}.range`, "tenor",
     price?.ranges ? price.ranges.map((r) => r.key) : undefined, usual.target);
-  const [difficulty, setDifficulty] = useRemembered(`${appKey}.difficulty`, "builder",
+  const [difficulty, setDifficulty, setDifficultyQuiet] = useRemembered(`${appKey}.difficulty`, "builder",
     price?.difficulties, usual.difficulty);
   // Have the coach judge the WRITING as well as the performance. Off by
   // default and deliberately so: somebody working on breath control has not
@@ -987,6 +988,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
   const settings = (
     <>
+      {!refMode && price?.challenge && (
+        <WeeklyChallenge appKey={appKey} challenge={price.challenge}
+          onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
+      )}
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
           Genre

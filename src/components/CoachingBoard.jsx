@@ -72,16 +72,50 @@ function Cost({ cost }) {
     : <span className="text-mcz-ember">−{cost.amount} {PROMPTZ}</span>;
 }
 
-export default function CoachingBoard({ appKey, coaching }) {
+// A month of takes, as the member would tell it — built by the server from their own
+// history, shareable as a story-sized card. Absent below three takes (no month yet).
+function Recap({ appKey, recap }) {
+  const [msg, setMsg] = useState("");
+  if (!recap) return null;
+  async function go() {
+    setMsg("");
+    try {
+      const r = await api(`/api/${appKey}/recap/share/`, { method: "POST" });
+      const text = `My month with the AI coach: ${recap.takes} takes${recap.climb ? `, ${recap.climb.label} ${recap.climb.was} → ${recap.climb.now}` : ""}. Get yours scored free:`;
+      const how = await shareLink({ text, url: r.share_url });
+      setMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied." : "");
+    } catch (e) { setMsg(e.message || "Couldn't make the card."); }
+  }
+  return (
+    <div className="space-y-1.5 rounded-lg bg-white/5 p-2.5">
+      <p className="text-[11px] uppercase tracking-wide text-white/50">📅 Your last {recap.days} days</p>
+      <p className="text-white/85">
+        {recap.takes} takes · {recap.days_shown_up} days you showed up
+        {recap.best != null ? ` · best ${recap.best_exact ?? recap.best}` : ""}
+        {recap.climb ? ` · ${recap.climb.label} ${recap.climb.was} → ${recap.climb.now}` : ""}
+        {recap.strongest ? ` · strongest: ${recap.strongest.label}` : ""}
+      </p>
+      <span className="inline-flex items-center gap-2">
+        <button type="button" onClick={go}
+                className="rounded-md bg-mcz-cyan/10 px-2 py-0.5 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">Share my month</button>
+        {msg && <span className="text-[11px] text-emerald-300">{msg}</span>}
+      </span>
+    </div>
+  );
+}
+
+export default function CoachingBoard({ appKey, coaching, recap }) {
   const [saved, setSaved] = useState({});
   const c = coaching || {};
   const wins = c.wins || [], alerts = c.alerts || [], problems = c.problems || [], strengths = c.strengths || [];
-  if (!wins.length && !alerts.length && !problems.length && !strengths.length) return null;
+  if (!wins.length && !alerts.length && !problems.length && !strengths.length && !recap) return null;
   const withSaved = (r) => ({ ...r, agreed: r.key in saved ? saved[r.key] : r.agreed });
   const onSaved = (k, v) => setSaved((s) => ({ ...s, [k]: v }));
 
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3 text-[12px]" data-tour={`${appKey}-coaching`}>
+      <Recap appKey={appKey} recap={recap} />
+
       {wins.length > 0 && (
         <div className="space-y-1">
           <p className="text-[11px] uppercase tracking-wide text-emerald-300/90">🎉 You're improving</p>
