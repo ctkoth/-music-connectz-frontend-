@@ -5,7 +5,8 @@ import { openDoor } from "../doors.js";
 import { api } from "../api.js";
 import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
-import { shellHas } from "../standalone.js";
+import { shellHas, IN_SHELL } from "../standalone.js";
+import PromoPost from "./PromoPost.jsx";
 import { PROMPTZ } from "../resources.js";
 import { RatingGrid, RatingNumber } from "./Rating.jsx";
 
@@ -38,8 +39,13 @@ function Row({ t, labels, appKey }) {
   const [shareMsg, setShareMsg] = useState("");
   const [shareUrl, setShareUrl] = useState(t.share_url || "");
   const [human, setHuman] = useState(false);
+  const [promo, setPromo] = useState(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoMsg, setPromoMsg] = useState("");
   const read = t.read || {};
-  const doors = (t.exports || []).filter((e) => shellHas(e.tab));
+  // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
+  // that writer in its listing or its data-safety answers — so no shell offers it.
+  const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"));
   // "Share this score" is not a handoff to another screen: it asks the server for
   // the public link of THIS take (minted once, from what the coach said), then
   // opens the device's share sheet — or copies — with the link in it.
@@ -53,7 +59,21 @@ function Row({ t, labels, appKey }) {
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
   }
-  const go = (e) => (e.kind === "share" ? shareIt() : openDoor(e));
+  // "Write a promo post" is the share link (free) and then one paid writer run: the
+  // link first so the declaration is on the card before the text points at it.
+  async function promoIt() {
+    if (promoBusy) return;
+    setPromoBusy(true); setPromoMsg(""); setPromo(null);
+    try {
+      const sh = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
+      setShareUrl(sh.share_url);
+      try { await declareHuman(sh.share_url, human); } catch { /* the post is written without the claim */ }
+      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST" });
+      setPromo(r);
+    } catch (e) { setPromoMsg(`${e.message || "Couldn't write it."} Nothing was charged.`); }
+    finally { setPromoBusy(false); }
+  }
+  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt() : openDoor(e));
   return (
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
@@ -113,8 +133,8 @@ function Row({ t, labels, appKey }) {
               <p className="text-[10px] uppercase tracking-widest text-white/40">Take it further</p>
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  {e.kind === "share" && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
-                  <button onClick={() => go(e)} data-door={e.key}
+                  {(e.kind === "share" || e.kind === "promo") && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
+                  <button onClick={() => go(e)} data-door={e.key} disabled={e.kind === "promo" && promoBusy}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                     {e.label}
                   </button>
@@ -128,6 +148,9 @@ function Row({ t, labels, appKey }) {
                     </span>
                   )}
                   {e.kind === "share" && shareMsg && <span className="text-[11px] text-emerald-300">{shareMsg}</span>}
+                  {e.kind === "promo" && promoBusy && <span className="text-[11px] text-white/50">Writing…</span>}
+                  {e.kind === "promo" && promoMsg && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
+                  {e.kind === "promo" && promo && <PromoPost key={promo.id} promo={promo} onClose={() => setPromo(null)} />}
                 </div>
               ))}
               <p className="text-[11px] text-white/35">

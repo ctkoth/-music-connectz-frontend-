@@ -1366,3 +1366,14 @@ week), "beat my score" at the free door (`challenge.js`), the monthly recap, and
 reasons (one line with a rating, shown only to the performer — never on a public card).
 Adults and under-18s do not find or contact each other: member search, DMs and calls are
 age-grouped on the server (`may_contact`), unknown ages count as adults.
+
+## Promo post from a past take
+
+`RecentTakes` offers **Write a promo post** second, right after Share (`e.kind === "promo"`). It
+asks the server for the share link (free), sends the "I made this myself" declaration, then
+runs the paid writer — the price (`Cost`) sits on the control before it is pressed — and shows
+the text in `PromoPost.jsx`: an editable box with Copy, the card link and the royalty line. The
+brief is built server-side; nothing the screen sends reaches it. A failed run says "Nothing was
+charged." and no standalone shell offers it. `SpinaZ` is worth 1¢ (Corey's valuation); a
+members-only join pays its author the server's `RESTRICTED_JOIN_REWARD_SPINAZ`, read from
+`/api/economy/earn/`, never typed here.
