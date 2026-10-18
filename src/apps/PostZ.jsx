@@ -1291,6 +1291,18 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               />
               <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
             </div>
+            {social?.comment_cost_energy != null && (
+              <p className="mt-1 text-[11px]">
+                {social.comment_cost_energy > 0
+                  ? <><span className="text-mcz-ember">−{social.comment_cost_energy} {ENERGY}</span>{" "}
+                      <span className="text-white/45">per comment — your free ones today are used. Not posted means not charged.</span></>
+                  : <span className="text-emerald-300/80">
+                      {post.mine || post.author === user?.username
+                        ? "Free on your own post."
+                        : `Free · ${social.comment_free_left} of ${social.comment_free_per_day} free comments left today`}
+                    </span>}
+              </p>
+            )}
 
             {/* Show tier comparison when user is near comment character limit */}
             {commentCharState === "near" && charLimit && (

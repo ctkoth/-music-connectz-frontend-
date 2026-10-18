@@ -524,6 +524,7 @@ function WeeklyOpen({ onOpen }) {
 
 export default function BattleZ() {
   const [list, setList] = useState(null);
+  const [calloutCost, setCalloutCost] = useState(null);
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -538,7 +539,7 @@ export default function BattleZ() {
 
   const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => { const l = asList(d?.battles); setList(l); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
+    .then((d) => { const l = asList(d?.battles); setList(l); setCalloutCost(d?.challenge_cost_energy ?? null); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
@@ -680,7 +681,14 @@ export default function BattleZ() {
             <button className="neon-btn-primary !w-auto px-5" onClick={challenge}
                     disabled={busy || !duel.opponent.trim()}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
+              {calloutCost > 0 && <span className="ml-2 text-mcz-ember">−{calloutCost} {ENERGY}</span>}
             </button>
+            {calloutCost > 0 && (
+              <p className="text-[10px] text-white/35">
+                Charged when it is sent, <span className="text-emerald-300">+{calloutCost} {ENERGY}</span> back if they decline.
+                A challenge that fails to send is not charged.
+              </p>
+            )}
             <p className="text-[10px] text-white/35">
               1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
               and wagering whichever you pick, and the label is what the opponent sees.
