@@ -30,8 +30,10 @@ function QuotaLine({ q }) {
   return (
     <span>
       <span className={q.left ? "text-emerald-300" : "text-mcz-ember"}>{q.left} of {q.per_month}</span> release
-      {q.per_month === 1 ? "" : "s"} left this month on Free.{" "}
-      <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Premium sends as many as you like</button>
+      {q.per_month === 1 ? "" : "s"} left this month.{" "}
+      {q.next_per_month ? (
+        <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>The next plan sends {q.next_per_month} a month</button>
+      ) : null}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Send, Zap } from "lucide-react";
 import { api } from "../api.js";
+import { ENERGY } from "../resources.js";
 import { playSound } from "../sound.js";
 import { loadLimits, useCharLimit } from "../limits.js";
 import { editWindowLeft } from "../editing.js";
@@ -66,6 +67,14 @@ export default function MessageZ() {
     setBody([p.title, p.description].filter(Boolean).join("\n\n").slice(0, 4000));
   }), []);
 
+  // The price for THIS recipient, asked on blur and before Send is pressed.
+  const [quote, setQuote] = useState(null);
+  function askPrice() {
+    const t = to.trim();
+    if (!t) return setQuote(null);
+    api(`/api/economy/messages/?cost_for=${encodeURIComponent(t)}`).then(setQuote).catch(() => setQuote(null));
+  }
+
   async function send(e) {
     e.preventDefault();
     setBusy(true); setMsg("");
@@ -73,7 +82,7 @@ export default function MessageZ() {
       const r = await api("/api/economy/messages/", { method: "POST", body: { to, body } });
       setMsg(r.cost_energy ? `Sent · −${r.cost_energy} ⚡ Energy` : "Sent · reply = free ⚡");
       playSound(r.cost_energy ? "energy_spend" : "message");
-      setBody(""); load();
+      setBody(""); setQuote(null); load();
     } catch (err) { setMsg(err.message); } finally { setBusy(false); }
   }
 
@@ -97,7 +106,8 @@ export default function MessageZ() {
       <KarmaRewards />
 
       <form onSubmit={send} className="neon-frame space-y-3 p-4" data-tour="messagez-compose">
-        <input className="neon-input" placeholder="To (username)" value={to} onChange={(e) => setTo(e.target.value)} required />
+        <input className="neon-input" placeholder="To (username)" value={to}
+          onChange={(e) => { setTo(e.target.value); setQuote(null); }} onBlur={askPrice} required />
         {/* Enter sends, Shift+Enter breaks the line — what every messaging app
             does, so doing anything else here is the surprise. A textarea's
             default is the opposite, hence the handler.
@@ -118,7 +128,15 @@ export default function MessageZ() {
         {msg && <p className="text-sm text-mcz-gold">{msg}</p>}
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} Send
+          {quote && (quote.cost_energy
+            ? <span className="ml-2 text-mcz-ember">−{quote.cost_energy} {ENERGY}</span>
+            : <span className="ml-2 text-emerald-300">Free</span>)}
         </button>
+        {quote?.cost_energy > 0 && (
+          <p className="text-xs text-white/50">
+            First message to someone new. You have {quote.energy} {ENERGY}. Not sent means not charged.
+          </p>
+        )}
       </form>
 
       {!data ? (
