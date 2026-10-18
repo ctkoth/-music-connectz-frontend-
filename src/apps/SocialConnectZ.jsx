@@ -20,6 +20,8 @@ import { MapPin, Search, UserRound } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
+import RangeGates from "../RangeGates.jsx";
+import { gatesQuery } from "../gatesQuery.js";
 import { NATIONALITIES, personaLabel } from "./socialData.js";
 
 const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
@@ -30,20 +32,29 @@ export default function SocialConnectZ() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Your own standards, the same ranges every gated deal and door uses. Exclusive: a member with no
+  // value for one you set — or who hides it — is out.
+  const [ranges, setRanges] = useState({});
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
-    return api("/api/economy/members/")
+    const qs = gatesQuery(ranges);
+    return api(`/api/economy/members/${qs.length ? `?${qs.join("&")}` : ""}`)
       .then((d) => setRows(d.members || []))
       // The real error. A directory that quietly shows nobody on a 500 reads
       // as "no members" rather than "the request failed" — the exact
       // distinction the funnel's own `pct: null` rule exists to keep clear.
       .catch((e) => setError(e.message || "Couldn't load Social ConnectZ."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [ranges]);
 
-  useEffect(() => { load(); }, [load]);
+  // One delay for every range, for the reason VybeZ gives: these are number boxes, and each
+  // keystroke would otherwise be a full member search.
+  useEffect(() => {
+    const t = setTimeout(load, 300);
+    return () => clearTimeout(t);
+  }, [load]);
 
   const filtered = rows.filter((m) => {
     const natMatch = !nat || (m.nationalities || []).includes(nat);
@@ -73,6 +84,8 @@ export default function SocialConnectZ() {
           <Search size={16} className="text-white/40" />
           <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, region…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+      <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
+                  title="Your standards — who shows up here" />
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
           <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>

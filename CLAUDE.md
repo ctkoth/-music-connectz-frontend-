@@ -1506,3 +1506,16 @@ server says happened, including that a routine moved to another cadence restarts
 Trash first; Trash restores, and "Empty the Trash now" is the only hard delete besides the server's 30-day purge.
 `Suggested` shows "Recommended for you" — tasks and routines, each with the server's `because` and `why` — and decides
 nothing about who is shown what.
+
+## Inclusive principles, exclusive standards — set by the member (Corey's principle)
+
+**Freedom of choice; discourage bureaucracy; the platform's principles are inclusive and the standards are the
+members' own.** In practice: nobody is refused by the platform for who they are, and every member may set the
+bar for who they see, work with and hear from — a range on skill rating, price, attractiveness, age or distance
+(`RangeGates`, one spec, `gatesQuery.js` for the search). VybeZ and Social ConnectZ now carry the same ranges
+every gated deal and door already had. Two things keep it a choice rather than a trap: a range says out loud that
+it is **exclusive** (no value, or a hidden value, is out), and a member can **hide their own community
+attractiveness number** — the server honours it everywhere (`attractiveness_shown_medians`), so the standard is the
+searcher's and the number is the rated member's to show. Do not add an approval step, a queue or a "pending
+review" in front of a thing a member can simply set for themselves. The hard lines that remain are about harm,
+not preference: 18+ for anything that rates or sells looks, self-only photos, nothing stored, never weight or body fat.

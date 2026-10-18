@@ -140,6 +140,14 @@ export default function BodieZ() {
   // the control rather than dumping the member at the top of a new tab.
   const [prefillMuscle, setPrefillMuscle] = useState(null);
   const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("routinez"); };
+  // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
+  // not a child of this one) — read once and cleared, so it lands on the builder and only once.
+  useEffect(() => {
+    try {
+      const m = sessionStorage.getItem("bodiez.prefillMuscle");
+      if (m) { sessionStorage.removeItem("bodiez.prefillMuscle"); jumpToMuscleBuild(m); }
+    } catch { /* blocked */ }
+  }, []);
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   // Finished workouts, newest first — RoutineZ lists them so a logged one can

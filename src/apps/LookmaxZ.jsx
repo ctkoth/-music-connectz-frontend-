@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, goToTab } from "../goto.js";
 import { RatingRow } from "../components/Rating.jsx";
 import { PROMPTZ } from "../resources.js";
 
@@ -109,6 +109,26 @@ function Sector({ k, meta, data, shop, affiliate }) {
           {data.advice.map((a, i) => <li key={i}>{a}</li>)}
         </ul>
       )}
+      {data?.disclaimer && <p className="rounded-lg border border-mcz-gold/25 p-2 text-[11px] leading-snug text-white/60">{data.disclaimer}</p>}
+      {k === "proportions" && data?.measures && (
+        <p className="text-[11px] leading-snug text-white/55">
+          Measured in this photo, roughly — thirds {["upper", "middle", "lower"].map((m) => data.measures[m] ?? "—").join(" / ")} (reference about 0.33 each) ·
+          eye gap {data.measures.eye_gap_over_eye_width ?? "—"} eye-widths (about 1) · width to height {data.measures.width_over_height ?? "—"} (about 0.67) ·
+          balance {data.measures.symmetry ?? "—"} (1 is a mirror). Not in your overall.
+        </p>
+      )}
+      {k === "physique" && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-white/50">Not in your overall. Each low area opens BodieZ's builder for the muscles that train it.</p>
+          {(data?.doors || []).map((dr) => (
+            <button key={dr.factor} type="button" className="re-btn !w-auto mr-1.5 px-3 text-[12px]"
+              onClick={() => { try { sessionStorage.setItem("bodiez.prefillMuscle", dr.open_in.muscle); } catch { /* blocked */ } goToTab("bodiez"); }}>
+              {dr.open_in.label} · {dr.score}/10
+            </button>
+          ))}
+          {!data?.doors?.length && data?.score != null && <p className="text-[11px] text-emerald-300">Nothing here reads as lagging — keep logging in BodieZ.</p>}
+        </div>
+      )}
       {k === "body" && (
         <div className="space-y-1">
           <p className="text-[11px] text-white/60">{data?.sessions_28d ?? 0} session{data?.sessions_28d === 1 ? "" : "s"} logged in the last 28 days — shown, never scored: turning up is not the same as getting stronger.</p>
@@ -201,12 +221,15 @@ export default function LookmaxZ() {
   const [err, setErr] = useState("");
   const [picked, setPicked] = useState(null);
   const [self, setSelf] = useState(false);
+  // One acknowledgement per opt-in sector (proportions, body photo): each says what it is and is
+  // not, in the server's words, and is refused by the server without its tick.
+  const [acks, setAcks] = useState({});
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [shelf, setShelf] = useState(null);
 
-  const load = () => api("/api/economy/lookmaxz/").then((r) => { setD(r); setPicked((p) => p || r.photo_sectors); }).catch((e) => setErr(e.message));
+  const load = () => api("/api/economy/lookmaxz/").then((r) => { setD(r); setPicked((p) => p || r.default_sectors); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
   async function read() {
@@ -215,6 +238,7 @@ export default function LookmaxZ() {
     try {
       const body = new FormData();
       body.append("photo", file); body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
+      picked.filter((k) => d.opt_in_sectors?.includes(k)).forEach((k) => body.append(`${k}_ack`, "true"));
       const r = await api("/api/economy/lookmaxz/", { method: "POST", body });
       setRes(r);
       if (r.charged) window.dispatchEvent(new Event("mcz-stats-refresh"));
@@ -228,6 +252,8 @@ export default function LookmaxZ() {
   if (!d && !err) return <div className="p-6 text-white/50"><Loader2 className="animate-spin" size={16} /></div>;
   if (!d) return <p className="p-4 text-sm text-mcz-ember">{err}</p>;
 
+  const optIns = (picked || []).filter((k) => d.opt_in_sectors?.includes(k));
+  const optInsAcked = optIns.every((k) => acks[k]);
   const toggle = (k) => setPicked((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
   const meta = d.sectors;
 
@@ -255,17 +281,28 @@ export default function LookmaxZ() {
               {d.photo_sectors.map((k) => (
                 <button key={k} type="button" aria-pressed={picked?.includes(k)} onClick={() => toggle(k)}
                   className={`rounded-full border px-3 py-1 text-[12px] ${picked?.includes(k) ? "border-mcz-cyan bg-mcz-cyan/10 text-white" : "border-white/15 text-white/50"}`}>
-                  {meta[k].emoji} {meta[k].label}
+                  {meta[k].emoji} {meta[k].label}{d.opt_in_sectors?.includes(k) ? " · opt-in" : ""}
                 </button>
               ))}
             </div>
+            {optIns.map((k) => (
+              <div key={k} className="space-y-1.5 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.04] p-2.5">
+                <p className="text-[11px] font-semibold text-mcz-gold">{meta[k].emoji} {meta[k].label} — read this first</p>
+                <p className="text-[11px] leading-snug text-white/70">{k === "proportions" ? d.proportions_disclaimer : d.physique_disclaimer}</p>
+                {k === "proportions" && <p className="text-[10px] leading-snug text-white/45">{d.proportions_rule}</p>}
+                <label className="flex items-start gap-2 text-[12px] text-white/80">
+                  <input type="checkbox" checked={!!acks[k]} onChange={(e) => setAcks((a) => ({ ...a, [k]: e.target.checked }))} className="mt-0.5" />
+                  I've read this and want {meta[k].label.toLowerCase()} included.
+                </label>
+              </div>
+            ))}
             <label className="flex items-start gap-2 text-[12px] text-white/70">
               <input type="checkbox" checked={self} onChange={(e) => setSelf(e.target.checked)} className="mt-0.5" />
               This is a photo of me. I'm not uploading anyone else's.
             </label>
             <input aria-label="Photo of yourself" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-[12px] text-white/70" />
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !file || !self || !picked?.length || !d.affordable || !d.configured} onClick={read}>
+              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !file || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
                 {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Read my photo"}
               </button>
               <Price s={d} />

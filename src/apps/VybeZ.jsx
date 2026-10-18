@@ -23,6 +23,8 @@ import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { goToSpot, goToTab } from "../goto.js";
 import { useSubstanceScale } from "../substancez.js";
+import RangeGates from "../RangeGates.jsx";
+import { gatesQuery } from "../gatesQuery.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -106,6 +108,10 @@ export default function VybeZ() {
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
   const [maxKm, setMaxKm] = useState("");
+  // The community ranges — skill rating, skill price and attractiveness — are YOUR standard to set,
+  // and the same ranges every gated deal and door already uses. Exclusive, as everywhere: a member with
+  // no value, or who hides theirs, is out of a range you set.
+  const [ranges, setRanges] = useState({});
   const [more, setMore] = useState(false);
   // SubstanceZ, from the searcher's side: substances to steer clear of, and
   // how much of them is still fine ("" = none at all, the filter's original
@@ -153,6 +159,7 @@ export default function VybeZ() {
     if (ageMin) parts.push(`age_min=${ageMin}`);
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
+    parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract }));
     if (avoid.length) {
       parts.push(`substances=${avoid.join(",")}`);
       if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);
@@ -175,7 +182,7 @@ export default function VybeZ() {
         setError(e.message || "Couldn't run that search.");
       })
       .finally(() => setLoading(false));
-  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, avoid, avoidUpTo]);
+  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, ranges, avoid, avoidUpTo]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -295,6 +302,8 @@ export default function VybeZ() {
                 )}
               </label>
             </div>
+            <RangeGates keys={["rating", "price", "attract"]} value={ranges} onChange={setRanges}
+                        title="Your standards — rating, price, attractiveness" />
           </div>
         )}
       </div>
