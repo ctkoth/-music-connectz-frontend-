@@ -34,7 +34,7 @@ function Progress({ p, cadence }) {
 }
 
 /** Every routine the member has, grouped by how often it is kept. */
-export function RoutineList({ routines, keep }) {
+export function RoutineList({ routines, keep, buckets = [], move }) {
   return Object.keys(CADENCE).map((c) => {
     const rows = routines.filter((r) => (r.cadence || "daily") === c);
     if (!rows.length) return null;
@@ -61,6 +61,7 @@ export function RoutineList({ routines, keep }) {
                   Do it <ArrowRight size={12} />
                 </button>
               )}
+              {move && <MoveMenu entry={r} kind="routine" buckets={buckets} move={move} />}
               {r.verified ? (
                 <span className={`rounded-md border px-2 py-1 text-[11px] ${r.done_period
                   ? "border-emerald-400/40 text-emerald-300" : "border-white/10 text-white/40"}`}>
@@ -82,32 +83,83 @@ export function RoutineList({ routines, keep }) {
   });
 }
 
-/** What Lilith suggests, and why. Suggests only — nothing is added until it is tapped. */
+const BECAUSE = {
+  persona: "🎭 your persona", instrument: "🎼 your instrument", habit: "🔁 what you already do",
+  gap: "🧩 something missing", profile: "🧑‍🎤 your profile", activity: "📈 your activity", start: "🌱 a place to begin",
+};
+
+/** Recommended for you — routines AND one-off tasks, each with the reason, from the member's profile
+ *  (what is missing) and activity (what they did and didn't). Suggests only: nothing is added until
+ *  it is tapped, and the request names only WHICH one (+ the coach for an instrument-aware one). */
 export function Suggested({ items, add, busyKey }) {
   if (!items?.length) return null;
+  const routines = items.filter((s) => s.kind !== "task");
+  const tasks = items.filter((s) => s.kind === "task");
+  const row = (s) => (
+    <div key={`${s.kind}-${s.key}`} className="space-y-1 rounded-lg bg-white/5 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1 text-sm font-semibold">
+          {s.kind === "task" ? "✅" : CADENCE[s.cadence]?.emoji} {s.title}
+          {s.kind !== "task" && <span className="ml-2 text-[11px] font-normal text-white/40">{CADENCE[s.cadence]?.label}</span>}
+          {s.action && <span className="ml-2 text-[11px] font-normal text-mcz-cyan" title="Lilith keeps it from your real activity">✨</span>}
+        </span>
+        {s.app_key && (
+          <button onClick={() => goToSpot(s.app_key, s.target)} className="flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline">
+            Look <ArrowRight size={11} />
+          </button>
+        )}
+        <button onClick={() => add(s.kind === "task" ? "task" : "routine", s.key, s.app_key)} disabled={busyKey === s.key}
+                className="re-btn !w-auto px-3 py-1 text-[11px]">
+          {busyKey === s.key ? "…" : "Add"}
+        </button>
+      </div>
+      <p className="text-[11px] text-fuchsia-200/80">
+        <span className="text-white/40">Because {BECAUSE[s.because] || "of you"} — </span>{s.why}
+      </p>
+      <p className="text-[11px] text-white/40">{s.note}</p>
+    </div>
+  );
   return (
     <section className="space-y-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/5 p-3">
       <h3 className="flex items-center gap-2 font-display text-sm font-bold text-fuchsia-200">
-        <Sparkles size={15} /> Lilith suggests
+        <Sparkles size={15} /> Recommended for you
       </h3>
-      <p className="text-[11px] text-white/45">From who you say you are and what you actually do. Nothing is added until you tap it.</p>
-      {items.map((s) => (
-        <div key={s.key} className="space-y-1 rounded-lg bg-white/5 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="min-w-0 flex-1 text-sm font-semibold">
-              {CADENCE[s.cadence]?.emoji} {s.title}
-              <span className="ml-2 text-[11px] font-normal text-white/40">{CADENCE[s.cadence]?.label}</span>
-            </span>
-            <button onClick={() => add("routine", s.key, s.app_key)} disabled={busyKey === s.key}
-                    className="re-btn !w-auto px-3 py-1 text-[11px]">
-              {busyKey === s.key ? "…" : "Add"}
-            </button>
-          </div>
-          <p className="text-[11px] text-fuchsia-200/80">{s.why}</p>
-          <p className="text-[11px] text-white/40">{s.note}</p>
-        </div>
-      ))}
+      <p className="text-[11px] text-white/45">From your profile and what you actually do. Nothing is added until you tap it.</p>
+      {tasks.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">✅ Tasks</p>}
+      {tasks.map(row)}
+      {routines.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">🔥 Routines</p>}
+      {routines.map(row)}
     </section>
+  );
+}
+
+/** Move any entry anywhere: another bucket, a routine (and which cadence), or the 🗑️ Trash. */
+const BUCKET_EMOJI = { inbox: "📥", today: "‼️", upcoming: "❗", anytime: "👐🏼", someday: "❓", trash: "🗑️" };
+export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "weekly", "monthly"] }) {
+  const [open, setOpen] = useState(false);
+  const go = (to, extra) => { setOpen(false); move({ kind, id: entry.id, to, ...extra }); };
+  return (
+    <span className="relative" onClick={(e) => e.stopPropagation()}>
+      <button onClick={() => setOpen((o) => !o)} title="Move"
+              className="shrink-0 text-[11px] text-white/40 hover:text-white/70">⇄ Move</button>
+      {open && (
+        <span className="absolute right-0 z-20 mt-1 flex w-56 flex-wrap gap-1 rounded-lg border border-white/10 bg-[#120a1d] p-2 shadow-neon">
+          {kind === "task" && buckets.filter((b) => b.key !== "logbook" && b.key !== entry.bucket).map((b) => (
+            <button key={b.key} onClick={() => go(b.key)}
+                    className="rounded-md bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10">{BUCKET_EMOJI[b.key] || ""} {b.label.replace(/\s*\S+$/, "") || b.label}</button>
+          ))}
+          {cadences.filter((c) => c !== entry.cadence).map((c) => (
+            <button key={c} onClick={() => go(c)} className="rounded-md bg-fuchsia-400/10 px-2 py-1 text-[11px] text-fuchsia-200 hover:bg-fuchsia-400/20">
+              {kind === "task" ? "→ routine " : "→ "}{CADENCE[c].emoji} {CADENCE[c].label}
+            </button>
+          ))}
+          {kind === "routine" && (
+            <button onClick={() => go("task", { bucket: "today" })} className="rounded-md bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10">→ ✅ Task (streak is lost)</button>
+          )}
+          {kind === "routine" && <button onClick={() => go("trash")} className="rounded-md bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10">🗑️ Trash</button>}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -184,5 +236,21 @@ export function BuildCTA({ actions, onMake }) {
       </div>
       {sel && <p className="text-[11px] text-white/40">{f.goal} {sel.unit}{f.goal === 1 ? "" : "s"} {f.cadence === "daily" ? "a day" : f.cadence === "weekly" ? "a week" : "a month"} — opens {sel.app_key}.</p>}
     </form>
+  );
+}
+
+/** Routines in the Trash: restorable until the server empties them. */
+export function TrashedRoutines({ items, days, restore }) {
+  if (!items?.length) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">🗑️ Trash · emptied after {days} days</p>
+      {items.map((r) => (
+        <div key={r.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/55">
+          <span className="min-w-0 flex-1 truncate">{CADENCE[r.cadence]?.emoji} {r.title}</span>
+          <button onClick={() => restore(r)} className="text-[11px] text-mcz-cyan hover:underline">↩ Restore</button>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -29,7 +29,7 @@ import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
-import { BuildCTA, RoutineList, Starters, Suggested } from "../components/LilithCTA.jsx";
+import { BuildCTA, MoveMenu, RoutineList, Starters, Suggested, TrashedRoutines } from "../components/LilithCTA.jsx";
 
 // All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
 // here, so those two tabs drew nothing while their neighbours had art.
@@ -108,7 +108,12 @@ export default function Lilith() {
   }
 
   async function remove(task) {
-    if (!window.confirm(`Delete "${task.title}"?`)) return;
+    if (task.bucket !== "trash") {            // first press: to the Trash, restorable
+      const out = await call("/api/economy/lilith/move/", { method: "POST", body: { kind: "task", id: task.id, to: "trash" } });
+      if (out) load();
+      return;
+    }
+    if (!window.confirm(`Delete "${task.title}" for good?`)) return;
     const gone = await call(`/api/economy/lilith/tasks/${task.id}/`, { method: "DELETE" });
     if (gone !== null) load();
   }
@@ -142,6 +147,21 @@ export default function Lilith() {
     });
     setAddingKey("");
     if (made) load();
+  }
+  // Move any entry anywhere: a bucket, a routine (a cadence), a task, or the Trash. The server owns
+  // the rules (no moving finished tasks, ceilings, a changed cadence restarting the run) and says so.
+  async function moveEntry(body) {
+    if (body.kind === "routine" && body.to === "task" &&
+        !window.confirm("Turn this routine into a task? Its streak is lost.")) return;
+    if (body.kind === "routine" && ["daily", "weekly", "monthly"].includes(body.to) &&
+        !window.confirm("Change how often this is kept? Its run restarts.")) return;
+    const out = await call("/api/economy/lilith/move/", { method: "POST", body });
+    if (out) load();
+  }
+  async function emptyTrash() {
+    if (!window.confirm("Empty the Trash for good? This can't be undone.")) return;
+    const out = await call("/api/economy/lilith/trash/", { method: "DELETE" });
+    if (out) load();
   }
   async function makeCTA(f) {
     const made = await call("/api/economy/lilith/routines/", {
@@ -319,6 +339,12 @@ export default function Lilith() {
         </div>
       )}
 
+      {bucket === "trash" && rows.length > 0 && (
+        <p className="flex items-center gap-2 text-[11px] text-white/45">
+          🗑️ Emptied for good after {board?.trash_days || 30} days.
+          <button onClick={emptyTrash} className="ml-auto text-mcz-ember hover:underline">Empty the Trash now</button>
+        </p>
+      )}
       <ul className="space-y-1.5">
         {rows.length === 0 && (
           <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/40">
@@ -362,10 +388,7 @@ export default function Lilith() {
                 Do it <ArrowRight size={12} />
               </button>
             )}
-            {!t.done_at && bucket !== "today" && (
-              <button onClick={(e) => { e.stopPropagation(); move(t, "today"); }}
-                      className="shrink-0 text-[11px] text-white/40 hover:text-white/70">Today</button>
-            )}
+            {!t.done_at && <MoveMenu entry={t} kind="task" buckets={labels} move={moveEntry} />}
             <button onClick={(e) => { e.stopPropagation(); remove(t); }} title="Delete"
                     className="shrink-0 text-white/25 hover:text-mcz-ember"><Trash2 size={14} /></button>
           </li>
@@ -472,7 +495,9 @@ export default function Lilith() {
           Keeping one is the only thing here nobody can fake by typing, which is why
           it pays the most — at milestones, once for life.
         </p>
-        <RoutineList routines={routines} keep={keep} />
+        <RoutineList routines={routines} keep={keep} buckets={labels} move={moveEntry} />
+        <TrashedRoutines items={asList(board?.trash_routines)} days={board?.trash_days || 30}
+                         restore={(r) => moveEntry({ kind: "routine", id: r.id, to: r.cadence || "daily" })} />
         {!board?.at_routine_limit ? (
           <form onSubmit={addRoutine} className="flex gap-2">
             <input value={routineTitle} onChange={(e) => setRoutineTitle(e.target.value)}
