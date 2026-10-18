@@ -7,6 +7,8 @@ import { Link, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { usePageTitle } from "../pageTitle.js";
+import { RatingRow } from "../components/Rating.jsx";
+import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 
 export default function ScoreCard() {
   const { token } = useParams();
@@ -69,6 +71,17 @@ export default function ScoreCard() {
                 ))}
               </div>
             )}
+            {d.extras?.length > 0 && (
+              <div className="space-y-2 text-left">
+                {d.extras.map((x) => (
+                  <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                    detail={[x.detail,
+                      x.counted === true ? "Counts in the score above." : x.counted === false ? "Beside the score, not inside it." : ""].filter(Boolean).join(" ")} />
+                ))}
+                {d.extras.map((x) => x.key === "feelz" && <FeelzTips key="ft" tips={x.tips} cause={x.cause?.label} />)}
+              </div>
+            )}
+            <div className="text-left"><MixTips tips={d.mix_tips} /></div>
             <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">

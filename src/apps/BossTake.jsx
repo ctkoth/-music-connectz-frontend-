@@ -1716,7 +1716,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
-          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
           {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
           {!trial && !IN_SHELL_COACH && !result.reference && <CoachVoicePlayer result={result} />}
@@ -1913,7 +1913,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
 /** Share the score card. Counts nothing on a cancel — a share sheet somebody
  *  backed out of is not a share. */
-function ShareScore({ url, score, exact }) {
+function ShareScore({ url, score, exact, extras }) {
   const [msg, setMsg] = useState("");
   const [per, setPer] = useState(null);     // referral reward, the server's number
   useEffect(() => {
@@ -1925,7 +1925,7 @@ function ShareScore({ url, score, exact }) {
     // The declaration goes first, so the card the follower opens already says it
     // (or, unticked, makes no claim about who made it).
     try { await declareHuman(url, human); } catch { /* the share still goes out, without the claim */ }
-    const how = await shareLink({ text: shareText({ score, exact }), url });
+    const how = await shareLink({ text: shareText({ score, exact, extras }), url });
     if (how === "shared") setMsg("Shared.");
     else if (how === "copied") setMsg("Copied — paste it anywhere.");
   };

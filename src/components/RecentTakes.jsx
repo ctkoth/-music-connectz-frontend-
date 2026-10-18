@@ -66,7 +66,7 @@ function Row({ t, labels, appKey }) {
       const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(r.share_url);
       try { await declareHuman(r.share_url, human); } catch { /* shared without the claim */ }
-      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb }), url: r.share_url });
+      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb, extras: t.extras }), url: r.share_url });
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
   }

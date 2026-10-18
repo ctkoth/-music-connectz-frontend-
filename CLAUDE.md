@@ -1533,3 +1533,13 @@ each is inside the overall or beside it (`extras`, `extras_note`). **A low FeelZ
 delivery, phrasing, dynamics, pacing, intention, mic & gear, room — each as what / why / how, a gear tip pointing at the
 priced gear advice) and **mix suggestions** when the vocal is hard to make out because of the mix. All of it is the
 server's: a high FeelZ carries no tips, and nothing is invented to fill the space.
+
+## A shared rating carries every metric the coach gave
+
+The public card (`ScoreCard.jsx`, `/s/<token>`), a post's coach read (`CoachReadCard.jsx`), the card picture and the share
+sentence all show **HookZ 🪝 and FeelZ 💗** beside the score — each with its reason, the emotion heard, whether it counts in the
+score above, and (for a low FeelZ) the coach's **what / why / how** and the mix suggestions (`FeelTips.jsx`, shared with the take
+rows). `extras` / `mix_tips` come from the server already cleaned; the screen filters nothing and invents nothing, and a metric the
+coach did not give is absent, never a 0. `shareText({extras})` adds "(HookZ 8 · FeelZ 6)" to the sentence only when they exist.
+The picture carries the numbers and the emotion only — the fixes stay on the page, because a card is a result and a fix is for the
+person who made it.

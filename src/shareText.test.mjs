@@ -26,3 +26,12 @@ test("a personal best is announced as one, whatever the number", () => {
   assert.match(shareText({ score: 4, pb: true }), /4\/10/);
   assert.doesNotMatch(shareText({ score: 4, pb: false }), /personal best/);
 });
+
+test("HookZ and FeelZ ride the share sentence when the coach gave them, and only then", async () => {
+  const { shareText, extrasText } = await import("./shareText.js");
+  const ex = [{ label: "HookZ 🪝", value: 8 }, { label: "FeelZ 💗", value: 6.5 }];
+  assert.equal(extrasText(ex), "HookZ 8 · FeelZ 6.5");
+  assert.match(shareText({ score: 7, exact: 7.2, extras: ex }), /7\.2\/10 \(HookZ 8 · FeelZ 6\.5\)/);
+  assert.equal(shareText({ score: 7, exact: 7.2 }), shareText({ score: 7, exact: 7.2, extras: [] }));
+  assert.equal(extrasText([{ label: "FeelZ", value: null }]), "");
+});
