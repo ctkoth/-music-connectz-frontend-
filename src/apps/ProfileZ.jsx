@@ -81,7 +81,7 @@ function Verify18Card() {
   const verified = !!st.verified_18plus;
   const last = st.last;
   return (
-    <div className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
+    <div data-tour="verify-18" className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
       </p>

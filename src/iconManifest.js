@@ -1722,6 +1722,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "keyz.png",
   "lessonz.png",
   "logo.png",
+  "lookmaxz.png",
   "merchz.png",
   "mimez.png",
   "money.png",

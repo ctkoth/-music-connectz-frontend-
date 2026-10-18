@@ -81,6 +81,7 @@ const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
 const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
+const LookmaxZ = lazy(lazyRoute(() => import("./apps/LookmaxZ.jsx")));
 const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
 const DistributeZ = lazy(lazyRoute(() => import("./apps/DistributeZ.jsx")));
 const RateConnectZ = lazy(lazyRoute(() => import("./apps/RateConnectZ.jsx")));
@@ -322,6 +323,7 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
+  "lookmaxz.png": "/icons/lookmaxz-neon.svg",
   "beatz.png": "/icons/beatz-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
@@ -502,6 +504,7 @@ const TABS = [
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
   { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
   { key: "facez", label: "FaceZ", icon: "facez.png", el: <FaceZ /> },
+  { key: "lookmaxz", label: "LookZMaxZ", icon: "lookmaxz.png", el: <LookmaxZ /> },
   { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
   { key: "ratez", label: "Rate ConnectZ", icon: "ratez.png", el: <RateConnectZ /> },
   { key: "sonday", label: "Sonday", icon: "sonday.png", el: <Sonday /> },

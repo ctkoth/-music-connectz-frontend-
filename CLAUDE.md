@@ -1478,3 +1478,31 @@ Lilith closed since the last look, announced with the server's sentence.
 `personaLabel(p)` (`socialData.js`) is the DISPLAY string for a persona — "Independent Artist · 🎤 Rapper,
 🎶 Singer" from the server's derived `roles` — used on the profile pill, the public profile, the member
 card and the member search text. Identity and filtering keep using `personaName(p)`, which never carries roles.
+
+## LookZMaxZ: for adults, factors explained before a photo, and a shop the model cannot write into
+
+`LookmaxZ.jsx` (key and API stay `lookmaxz`; the member-facing name is LookZMaxZ, as Corey's art spells it) is
+AttractivenessZ grown into sectors — face, skin, teeth, styling, and body. It decides nothing: the sectors, factors,
+the **what / why / how** for every factor, the rating scale, the price, the products and the marketplaces all come
+from `/api/economy/lookmaxz/`.
+
+- **Adults only, the whole screen.** Unverified members get the server's sentence and a button that lands on
+  `data-tour="verify-18"` in ProfileZ; no shop, no body card, no markets. A shop framed as looksmaxing is the same
+  push for a minor as the rating.
+- **Every factor is explained BEFORE the photo is sent** (`HowItsRated`, from `factor_info`), with the scale and the
+  server's one-sentence rule for the arithmetic. The prompt the model sees is built from the same `what` text.
+- **Price on the button, free parts named.** One price per reading however many sectors; unreadable is "Not charged."
+- **Body is BodieZ's measured progress, never a photo**, and sessions are shown but never scored.
+- **A factor the photo did not show is "Not visible in this photo — not guessed."**, never a number.
+- **Links are the marketplace's own search, new tab, `nofollow sponsored`, no affiliate tag** — the screen says we
+  earn nothing. StatZ edits their own list; everyone else sees Amazon, eBay, Walmart and a door to StatZ.
+- The neon icon is a stand-in (`lookmaxz-neon.svg`); Corey's LookZMaxZ art is owed as `public/icons/lookzmaxz.png`
+  (listed in `icons.test.mjs` PLACEHOLDER). That art draws a golden-ratio face grid; the feature deliberately never scores proportions.
+
+## Lilith: move any entry anywhere, Trash, and recommendations from profile and activity
+
+`MoveMenu` (⇄ Move) is on every task and routine row; it posts to `/api/economy/lilith/move/` and renders whatever the
+server says happened, including that a routine moved to another cadence restarts its run (`streak_reset`). Delete moves to
+Trash first; Trash restores, and "Empty the Trash now" is the only hard delete besides the server's 30-day purge.
+`Suggested` shows "Recommended for you" — tasks and routines, each with the server's `because` and `why` — and decides
+nothing about who is shown what.

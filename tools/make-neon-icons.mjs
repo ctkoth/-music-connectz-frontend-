@@ -65,6 +65,15 @@ const G = {
           fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
     <path d="M312 298l74 74" stroke="${a}" stroke-width="20" stroke-linecap="round"/>`,
 
+  // LookmaxZ: a hand mirror with a sparkle in the glass — what you can change about
+  // how you present. Deliberately NOT a face (the feature refuses to score one) and
+  // not FaceZ's photo frame; the four-point star is the "after".
+  lookmaxz: (a, b) => `
+    <circle cx="232" cy="208" r="104" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M232 138c6 40 14 48 54 56-40 8-48 16-54 56-6-40-14-48-54-56 40-8 48-16 54-56z"
+          fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M232 312v78M200 390h64" stroke="${a}" stroke-width="18" stroke-linecap="round"/>`,
+
   // BeatZ: a record with a waveform cut across it — a beat you can license.
   beatz: (a, b) => `
     <circle cx="256" cy="256" r="150" fill="none" stroke="${a}" stroke-width="16"/>
@@ -481,6 +490,7 @@ const APPS = [
   // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
+  ["lookmaxz", "LookZMaxZ", C.pink, C.gold],
   ["beatz", "BeatZ", C.purple, C.gold],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
