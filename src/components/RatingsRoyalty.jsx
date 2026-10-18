@@ -42,13 +42,13 @@ export default function RatingsRoyalty() {
                 <li key={p.post_id} className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="truncate text-white/80">{p.title || `Post #${p.post_id}`}</span>
                   <span className={p.factor < 1 ? "text-mcz-ember" : "text-emerald-300"}>
-                    earns {p.pct}% of the full rate <span className="text-white/40">· {p.why}</span>
+                    {p.factor < 1 ? "−" : p.factor > 1 ? "+" : ""}{p.factor === 1 ? "base rate" : `${Math.abs(p.pct - 100)}%`} <span className="text-white/40">· earns {p.pct}% of the base rate · {p.why}</span>
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[11px] text-white/40">None of your tracks has {r.min_raters} outside ratings yet, so all earn the full rate.</p>
+            <p className="text-[11px] text-white/40">None of your tracks has {r.min_raters} outside ratings yet, so all earn the base rate.</p>
           )}
         </div>
       )}

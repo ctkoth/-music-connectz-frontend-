@@ -1458,7 +1458,7 @@ says "you asked for N, it gave M" rather than showing a number the text does not
 ## Ratings and royalties: said before the payout
 
 `RatingsRoyalty.jsx` (in RoyaltieZ) renders the server's rule, each of the member's posts with the share
-of the full per-play rate it earns and why ("5 outside ratings, median 3/10", or "2 of 5 so far — full
+of the base per-play rate it earns ((median − 5) × 10%) and why ("5 outside ratings, median 3/10", or "2 of 5 so far — full
 rate until then"), and the **opt-in to let the AI coach count toward skill ratings**, with the server's
 note stating that it can lower a rating as well as raise it. Nothing is typed here: the rule, floor,
 factors and the toggle's wording come from `/royalty/ratings/` and `/skillz-coach/`. A failed fetch
