@@ -121,7 +121,7 @@ const TOOLZ_MENU = {
     {
       group: 'Quick Connect',
       apps: [
-        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating', soon: true },
+        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects, and dating for 18+', soon: true },
       ]
     },
     {

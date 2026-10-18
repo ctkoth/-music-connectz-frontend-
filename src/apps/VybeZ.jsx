@@ -21,7 +21,7 @@ import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
-import { goToSpot } from "../goto.js";
+import { goToSpot, goToTab } from "../goto.js";
 import { useSubstanceScale } from "../substancez.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
@@ -119,6 +119,10 @@ export default function VybeZ() {
   const [originShared, setOriginShared] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // VybeZ — finding someone — is 18+. The server says so (403 `adult_only`) with its own
+  // sentence, shown as it came; nothing here works out an age. Collabs, battles and the coach
+  // stay open at any age, so the card points at the door that does.
+  const [locked, setLocked] = useState("");
 
   // Fetched ONCE at the screen level and handed down as a lookup, never
   // per-card — a card component calling this hook itself would mean up to
@@ -137,7 +141,7 @@ export default function VybeZ() {
   );
 
   const search = useCallback(() => {
-    const parts = [];
+    const parts = ["vybez=1"];       // names this surface, so the 18+ rule applies to it and not to other member pickers
     const p = personalityQuery(personality);
     if (p) parts.push(p);
     const rq = religionQuery(religions);
@@ -166,7 +170,10 @@ export default function VybeZ() {
       })
       // The real error. A search that quietly returns nothing on a 500 is the
       // worst bug class in this app, and it has shipped twice.
-      .catch((e) => setError(e.message || "Couldn't run that search."))
+      .catch((e) => {
+        if (e.status === 403 && /18\+/.test(e.message || "")) { setLocked(e.message); return; }
+        setError(e.message || "Couldn't run that search.");
+      })
       .finally(() => setLoading(false));
   }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, avoid, avoidUpTo]);
 
@@ -185,6 +192,20 @@ export default function VybeZ() {
     return () => clearTimeout(t);
   }, [search]);
 
+  if (locked) {
+    return (
+      <div className="space-y-4" data-vybez-locked>
+        <header className="flex items-center gap-3">
+          <IconImg icon="vybez.png" alt="VybeZ" className="h-11 w-11 rounded-xl" />
+          <h2 className="font-display text-xl font-extrabold">VybeZ</h2>
+        </header>
+        <div className="neon-frame space-y-3 p-4">
+          <p className="text-sm text-white/80">{locked}</p>
+          <button className="re-btn !w-auto px-3 py-1.5" onClick={() => goToTab("collabz")}>Find collaborators in CollabZ</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">

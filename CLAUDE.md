@@ -1426,3 +1426,13 @@ upgrade, because a notification the member blocked is not a lock they were told 
 notice and the 5-min / 1-min warnings are keyed on the window's end time, so each day's window says
 its own. **ViewZ has an ActionZ tab** (all posts, `views/mine/`): counts for everybody, the named log
 for StatZ, and where all the views came from; a row opens that post's own results.
+
+## Dating is 18+, collabs are open at any age (Corey's calls)
+
+VybeZ — the find-a-person screen — names itself with `?vybez=1` and the server refuses a minor (403,
+`adult_only`, its own sentence) which the screen shows as it came, with a button to CollabZ. Nothing in
+the client works out an age. The plain member search stays open to minors (age-grouped) because
+CollabZ, BattleZ and MessageZ pick people with it: choosing a collaborator your own age is not dating.
+InfernoZ ("projects & dating") is unbuilt; **when it is built its dating half must refuse minors the same
+way.** Collabs and battles stay open across ages, but a direct message or call between an adult and a
+minor does not (`may_contact`).
