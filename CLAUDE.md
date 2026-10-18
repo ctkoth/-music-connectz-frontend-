@@ -1463,3 +1463,18 @@ rate until then"), and the **opt-in to let the AI coach count toward skill ratin
 note stating that it can lower a rating as well as raise it. Nothing is typed here: the rule, floor,
 factors and the toggle's wording come from `/royalty/ratings/` and `/skillz-coach/`. A failed fetch
 renders nothing.
+
+## Lilith: call-to-action routines, starters and suggestions
+
+`components/LilithCTA.jsx`. A routine or task marked `verified` is **never ticked here** — Lilith keeps it
+from the platform's own records, the row shows "✅ 2 of 3 this week" and "Lilith keeps it", and the old
+Keep/Done buttons are absent for it (the server would answer 409 anyway). Routines are grouped 🌅 Daily /
+📅 Weekly / 🗓️ Monthly, each with its streak in its own unit (`7d`, `4w`, `3mo`) and the next rung. "Lilith
+suggests" shows the server's ranked routines WITH THE REASON; nothing is added until tapped, and adding sends
+only `kind` + `key` (+ the coach for an instrument-aware one) — never a title or an action. "Build a
+call-to-action" picks from `board.actions`, the server's list of verifiable things. `board.swept` is what
+Lilith closed since the last look, announced with the server's sentence.
+
+`personaLabel(p)` (`socialData.js`) is the DISPLAY string for a persona — "Independent Artist · 🎤 Rapper,
+🎶 Singer" from the server's derived `roles` — used on the profile pill, the public profile, the member
+card and the member search text. Identity and filtering keep using `personaName(p)`, which never carries roles.

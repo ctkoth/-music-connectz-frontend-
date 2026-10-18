@@ -13,7 +13,7 @@ import { IconImg } from "../App.jsx";
 import CopyLink, { profileUrl } from "../CopyLink.jsx";
 import { handOff } from "../handoff.js";
 import { ENERGY, MONEY } from "../resources.js";
-import { personaName } from "./socialData.js";
+import { personaLabel, personaName } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
@@ -284,7 +284,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                       landed. Rendering it raw put an object where React wants
                       a child and took every member profile down. */}
                   {data.personas.map((p, i) => (
-                    <Pill key={(p && p.key) || personaName(p) || i}>{personaName(p)}</Pill>
+                    <Pill key={(p && p.key) || personaName(p) || i}>{personaLabel(p)}</Pill>
                   ))}
                 </div>
               </div>

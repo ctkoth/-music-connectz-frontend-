@@ -94,6 +94,9 @@ export default function PublicProfile() {
             <div key={i}>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
                 {persona.name || persona.key}
+                {Array.isArray(persona.roles) && persona.roles.length > 0 && (
+                  <span className="ml-2 normal-case tracking-normal text-mcz-cyan/80">· {persona.roles.join(", ")}</span>
+                )}
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {(persona.skills || []).map((s, j) => (

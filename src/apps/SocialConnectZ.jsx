@@ -20,7 +20,7 @@ import { MapPin, Search, UserRound } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
-import { NATIONALITIES } from "./socialData.js";
+import { NATIONALITIES, personaLabel } from "./socialData.js";
 
 const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
 
@@ -47,7 +47,7 @@ export default function SocialConnectZ() {
 
   const filtered = rows.filter((m) => {
     const natMatch = !nat || (m.nationalities || []).includes(nat);
-    const personaNames = (m.personas || []).map((p) => p.name).join(" ");
+    const personaNames = (m.personas || []).map((p) => personaLabel(p, 99)).join(" ");
     const text = `${m.username} ${m.display_name || ""} ${personaNames} ${(m.regions || []).join(" ")}`.toLowerCase();
     const qMatch = !q || text.includes(q.toLowerCase());
     return natMatch && qMatch;
@@ -107,7 +107,7 @@ export default function SocialConnectZ() {
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
                 {m.personas?.[0]?.name && (
-                  <div className="text-[11px] text-white/50">{m.personas[0].name}</div>
+                  <div className="text-[11px] text-white/50">{personaLabel(m.personas[0])}</div>
                 )}
               </div>
             </div>

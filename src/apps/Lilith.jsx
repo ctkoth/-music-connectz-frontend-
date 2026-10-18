@@ -29,6 +29,7 @@ import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
+import { BuildCTA, RoutineList, Starters, Suggested } from "../components/LilithCTA.jsx";
 
 // All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
 // here, so those two tabs drew nothing while their neighbours had art.
@@ -129,6 +130,24 @@ export default function Lilith() {
   async function keep(r) {
     const out = await call(`/api/economy/lilith/routines/${r.id}/`, { method: "POST" });
     if (out) { if (out.milestone) setPaid(out.milestone); load(); }
+  }
+
+  // Starters and suggestions: the server copies its own content onto the board, so what is sent is
+  // only WHICH one (and, for an instrument-aware one, which coach) — never a title or an action.
+  const [addingKey, setAddingKey] = useState("");
+  async function addStarter(kind, key, app_key) {
+    setAddingKey(key);
+    const made = await call("/api/economy/lilith/starters/", {
+      method: "POST", body: { kind, key, ...(app_key ? { app_key } : {}) },
+    });
+    setAddingKey("");
+    if (made) load();
+  }
+  async function makeCTA(f) {
+    const made = await call("/api/economy/lilith/routines/", {
+      method: "POST", body: { title: f.title, action: f.action, cadence: f.cadence, goal: f.goal },
+    });
+    if (made) load();
   }
 
   async function loadTags(task) {
@@ -310,7 +329,13 @@ export default function Lilith() {
           <li key={t.id}
               className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => { setExpandedTask(t); loadTags(t); }}>
-            {!t.done_at && (
+            {!t.done_at && t.verified && (
+              <span className={`shrink-0 text-[11px] ${t.progress?.met ? "text-emerald-300" : "text-white/50"}`}
+                    title="Lilith ticks this one herself when your real activity shows it">
+                ✨ {t.progress ? `${t.progress.done}/${t.progress.goal}` : ""}
+              </span>
+            )}
+            {!t.done_at && !t.verified && (
               <button onClick={(e) => { e.stopPropagation(); tick(t); }} title="Done"
                       className="shrink-0 rounded-md border border-emerald-400/40 p-1 text-emerald-300 hover:bg-emerald-400/10">
                 <Check size={14} />
@@ -424,6 +449,21 @@ export default function Lilith() {
         </>
       )}
 
+      {/* What Lilith closed for you since you last looked — from the platform's records, not a tick. */}
+      {asList(board?.swept).length > 0 && (
+        <div className="space-y-1 rounded-xl border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-[12px]">
+          {asList(board.swept).map((w, i) => (
+            <p key={i} className="text-white/75">
+              ✨ <b>{w.title}</b> — {w.said}
+              {w.milestone && <span className="text-emerald-300"> {w.milestone.said} <Gain spinaz={w.milestone.spinaz} energy={w.milestone.energy} /></span>}
+              {w.xp ? <> <Gain xp={w.xp} /></> : null}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <Suggested items={asList(board?.suggested)} add={addStarter} busyKey={addingKey} />
+
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <h3 className="flex items-center gap-2 font-display text-sm font-bold">
           <Flame size={15} className="text-mcz-ember" /> Routines
@@ -432,22 +472,7 @@ export default function Lilith() {
           Keeping one is the only thing here nobody can fake by typing, which is why
           it pays the most — at milestones, once for life.
         </p>
-        {routines.map((r) => (
-          <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-            <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>
-            <span className="text-[12px] text-mcz-ember">{r.streak}d</span>
-            {r.next_milestone && (
-              <span className="text-[11px] text-white/45">
-                {r.next_milestone.away} more →{" "}
-                <Gain spinaz={r.next_milestone.spinaz} energy={r.next_milestone.energy} />
-              </span>
-            )}
-            <button onClick={() => keep(r)} disabled={r.done_today}
-                    className="rounded-md border border-emerald-400/40 px-2 py-1 text-[11px] text-emerald-300 disabled:border-white/10 disabled:text-white/30">
-              {r.done_today ? "Kept today" : "Keep it"}
-            </button>
-          </div>
-        ))}
+        <RoutineList routines={routines} keep={keep} />
         {!board?.at_routine_limit ? (
           <form onSubmit={addRoutine} className="flex gap-2">
             <input value={routineTitle} onChange={(e) => setRoutineTitle(e.target.value)}
@@ -463,6 +488,9 @@ export default function Lilith() {
           </p>
         )}
       </section>
+
+      <Starters starters={board?.starters} add={addStarter} busyKey={addingKey} />
+      <BuildCTA actions={asList(board?.actions)} onMake={makeCTA} />
 
       {/* What the tiers buy here is AUTOMATION, never access — said plainly,
           because a free member has a working task manager and should be told
