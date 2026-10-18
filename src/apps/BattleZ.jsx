@@ -525,6 +525,7 @@ function WeeklyOpen({ onOpen }) {
 export default function BattleZ() {
   const [list, setList] = useState(null);
   const [calloutCost, setCalloutCost] = useState(null);
+  const [hostCost, setHostCost] = useState(null);
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -539,7 +540,7 @@ export default function BattleZ() {
 
   const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => { const l = asList(d?.battles); setList(l); setCalloutCost(d?.challenge_cost_energy ?? null); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
+    .then((d) => { const l = asList(d?.battles); setList(l); setCalloutCost(d?.challenge_cost_energy ?? null); setHostCost(d?.host_cost_energy ?? null); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
@@ -732,6 +733,7 @@ export default function BattleZ() {
               <button className="neon-btn-primary !w-auto px-5" onClick={create}
                       disabled={busy || !form.title.trim()}>
                 {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
+                {hostCost > 0 && <span className="ml-2 text-mcz-ember">−{hostCost} {ENERGY}</span>}
               </button>
               {Number(form.entry_spinaz || 0) > 0 && (
                 <span className="text-sm text-emerald-300">+{Number(form.entry_spinaz)} {SPINAZ}/entry</span>

@@ -111,9 +111,10 @@ function FollowButton({ username, onCounts }) {
   const [rel, setRel] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [cost, setCost] = useState(0);
   useEffect(() => {
     api(`/api/economy/follow/?username=${encodeURIComponent(username)}`)
-      .then((d) => setRel(d.relationship)).catch(() => {});
+      .then((d) => { setRel(d.relationship); setCost(d.follow_cost_energy || 0); }).catch(() => {});
   }, [username]);
   if (!rel || rel.label === "self") return null;
   async function toggle() {
@@ -122,6 +123,7 @@ function FollowButton({ username, onCounts }) {
       const d = await api("/api/economy/follow/", { method: "POST",
         body: { username, action: rel.is_following ? "unfollow" : "follow" } });
       setRel(d.relationship);
+      setCost(d.follow_cost_energy || 0);
       onCounts?.({ followers: d.followers, following: d.following });
       if (d.relationship.is_following) playSound("follow");
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -133,6 +135,7 @@ function FollowButton({ username, onCounts }) {
       <button className={rel.is_following ? "re-btn !w-auto px-4 py-1.5 text-sm" : "neon-btn-primary !w-auto px-4 py-1.5 text-sm"}
         disabled={busy} onClick={toggle} title={rel.is_following ? "Tap to unfollow" : ""}>
         {label}
+        {cost > 0 && !rel.is_following && <span className="ml-1.5 text-mcz-ember">−{cost} {ENERGY}</span>}
       </button>
       {err && <span className="text-xs text-mcz-ember">{err}</span>}
     </div>
