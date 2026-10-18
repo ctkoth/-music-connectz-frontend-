@@ -258,6 +258,54 @@ const G = {
     <path d="M304 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
     <path d="M192 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
 
+  // Winds and brass: drawn as the instrument's SILHOUETTE, not a diagram of
+  // it. The first set was a pill with dots (a flute), a bare hook (a sax), a
+  // stick (a clarinet) and a line with a triangle (a trumpet) — four icons
+  // that read as shapes rather than instruments, which is the one thing an
+  // icon exists to prevent. Each is tilted or curved the way the real thing is
+  // held, because a perfectly horizontal flute is a ruler.
+  flutez: (a, b) => `
+    <g transform="rotate(-32 256 220)">
+      <rect x="84" y="200" width="344" height="40" rx="20" fill="none" stroke="${a}" stroke-width="15"/>
+      <path d="M118 200v-26" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+      <ellipse cx="150" cy="220" rx="13" ry="8" fill="none" stroke="${b}" stroke-width="8"/>
+      <circle cx="214" cy="220" r="10" fill="${b}"/><circle cx="256" cy="220" r="10" fill="${b}"/>
+      <circle cx="298" cy="220" r="10" fill="${b}"/>
+      <circle cx="350" cy="220" r="10" fill="${b}"/><circle cx="388" cy="220" r="10" fill="${b}"/>
+      <path d="M326 200v-18M326 240v18" stroke="${a}" stroke-width="8" stroke-linecap="round"/>
+    </g>`,
+
+  saxz: (a, b) => `
+    <path d="M150 118c40-14 66 4 70 44v140c0 44 20 64 54 64s58-22 58-58v-26" fill="none" stroke="${a}" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M296 282h72" stroke="${a}" stroke-width="20" stroke-linecap="round"/>
+    <path d="M136 108l-12-20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="220" cy="196" r="11" fill="${b}"/><circle cx="220" cy="238" r="11" fill="${b}"/><circle cx="220" cy="280" r="11" fill="${b}"/>
+    <path d="M254 188h24M254 230h24" stroke="${b}" stroke-width="9" stroke-linecap="round" stroke-opacity="0.8"/>`,
+
+  clarinetz: (a, b) => `
+    <g transform="rotate(24 256 230)">
+      <path d="M244 82l12-26 12 26" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="240" y="92" width="32" height="30" rx="6" fill="none" stroke="${a}" stroke-width="12"/>
+      <path d="M246 130h20v196h-20z" fill="none" stroke="${a}" stroke-width="14" stroke-linejoin="round"/>
+      <path d="M232 326h48l22 44h-92z" fill="none" stroke="${a}" stroke-width="13" stroke-linejoin="round"/>
+      <circle cx="256" cy="168" r="9" fill="${b}"/><circle cx="256" cy="206" r="9" fill="${b}"/>
+      <circle cx="256" cy="244" r="9" fill="${b}"/><circle cx="256" cy="282" r="9" fill="${b}"/>
+      <path d="M232 168h14M266 206h14M232 244h14" stroke="${b}" stroke-width="8" stroke-linecap="round" stroke-opacity="0.8"/>
+    </g>`,
+
+  trumpetz: (a, b) => `
+    <path d="M84 232h22M106 232h188" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M154 232v56a18 18 0 0 0 18 18h122" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M294 218l102-62v170l-102-62z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M196 232v-48M232 232v-48M268 232v-48" stroke="${b}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M180 170h32M216 170h32M252 170h32" stroke="${b}" stroke-width="12" stroke-linecap="round"/>`,
+
+  breathz: (a, b) => `
+    <circle cx="256" cy="250" r="96" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="250" r="58" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.75"/>
+    <circle cx="256" cy="250" r="22" fill="${b}" fill-opacity="0.55"/>
+    <path d="M150 360c34 16 68 16 106 0s72-16 106 0" stroke="${a}" stroke-width="12" stroke-linecap="round" fill="none" stroke-opacity="0.6"/>`,
+
   chordz: (a, b) => `
     <g stroke="${a}" stroke-width="13" stroke-linecap="round" fill="none">
       <path d="M146 140h220M146 180h220M146 220h220M146 260h220M146 300h220M146 340h220"/>
@@ -463,6 +511,11 @@ const APPS = [
   ["metz", "MetZ", C.cyan, C.gold],
   ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],
+  ["breathz", "BreathZ", C.cyan, C.emerald],
+  ["flutez", "FluteZ", C.cyan, C.gold],
+  ["saxz", "SaxZ", C.gold, C.ember],
+  ["clarinetz", "ClarinetZ", C.purple, C.cyan],
+  ["trumpetz", "TrumpetZ", C.ember, C.gold],
   ["drumz", "DrumZ", C.ember, C.gold],
 ];
 

@@ -37,6 +37,8 @@ import { onHandoff } from "../handoff.js";
 // which is the same missing line that had the trial's Record button dead.
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
+import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // An entry's take counts its own listening (listen.js), because rating a
 // battle take requires hearing it first — the same rule posts follow, and the
@@ -525,7 +527,7 @@ export default function BattleZ() {
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", genre: "Trap", entry_spinaz: "" });
+  const [form, setForm] = useState({ title: "", description: "", genre: recall("battlez.genre") || "Trap", entry_spinaz: "" });
   const [work, setWork] = useState({});
   const [gates, setGates] = useState({});
   const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
@@ -665,7 +667,7 @@ export default function BattleZ() {
             <div className="grid gap-2 sm:grid-cols-3">
               <input className="neon-input !py-2 text-xs" placeholder="Opponent username" data-tour="battlez-opponent"
                      value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
-              <select className="neon-input !py-2 text-xs" value={duel.kind}
+              <select aria-label="Battle type" className="neon-input !py-2 text-xs" value={duel.kind}
                       onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>
                 <option value="1v1">1v1 ⚔️</option>
                 <option value="freestyle">Freestyle 🎤</option>
@@ -679,6 +681,10 @@ export default function BattleZ() {
                     disabled={busy || !duel.opponent.trim()}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
             </button>
+            <p className="text-[10px] text-white/35">
+              1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
+              and wagering whichever you pick, and the label is what the opponent sees.
+            </p>
             <p className="text-[10px] text-white/35">
               Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.
@@ -694,8 +700,8 @@ export default function BattleZ() {
             <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="Rules, brief, what you want back"
                       value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid gap-2 sm:grid-cols-2">
-              <select className="neon-input !py-2 text-xs" value={form.genre}
-                      onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+              <select data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
+                      onChange={(e) => { remember("battlez.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
                 {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -704,6 +710,7 @@ export default function BattleZ() {
               </optgroup>
             ))}
               </select>
+<UsualHint field="battlez.genre" value={form.genre} onUse={(v) => { remember("battlez.genre", v); setForm({ ...form, genre: v }); }} />
               <input className="neon-input !py-2 text-xs" inputMode="numeric"
                      placeholder="Entry fee in SpinaZ (0 = free)"
                      value={form.entry_spinaz}

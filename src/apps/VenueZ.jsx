@@ -48,6 +48,8 @@ import { labelForSkill } from "../personaSkills.js";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
+import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -607,15 +609,18 @@ function Venue({ v, onChanged, onFlash }) {
 
 function HostForm({ onCreated, onFlash }) {
   const talk = useSay();
-  const [f, setF] = useState({
+  const [f, setF] = useState(() => seed("venuez", {
     title: "", area: "", address: "", kind: "performance", starts_at: "",
     hours: 2, basis: "hour", capacity: 1, min_age: 0, description: "",
     category: "music", spinaz_price: "",
-  });
+  }, ["kind", "basis", "category", "area", "hours"]));
   const [skills, setSkills] = useState([]);
   const [gates, setGates] = useState({});
   const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => {
+    if (["kind", "basis", "category", "area", "hours"].includes(k)) remember(`venuez.${k}`, e.target.value);
+    setF({ ...f, [k]: e.target.value });
+  };
 
   async function create() {
     if (!f.title.trim() || !f.area.trim() || !f.starts_at) {
@@ -656,19 +661,21 @@ function HostForm({ onCreated, onFlash }) {
       <input className="neon-input !py-2 text-xs" placeholder="What is it?"
              value={f.title} onChange={set("title")} />
 
-      <select className="neon-input !py-2 text-xs" value={f.category} onChange={set("category")}
+      <select data-memo="own" className="neon-input !py-2 text-xs" value={f.category} onChange={set("category")}
               aria-label="What kind of room">
         <option value="music">Music room</option>
         <option value="fitness">🏋️ Fitness / lifting — a gym space or training session</option>
       </select>
+<UsualHint field="venuez.category" value={f.category} onUse={(v) => { remember("venuez.category", v); setF({ ...f, category: v }); }} />
 
       <div className="space-y-1">
-        <select className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
+        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
           <option value="performance">{f.category === "fitness" ? "Training — they pay your Weightlifter rates" : "Performance — they come for you"}</option>
           <option value="session">Session 🤝 — you want the room full</option>
           <option value="free">Free — nobody pays</option>
           <option value="spinaz">SpinaZ entry {SPINAZ} — a flat price in SpinaZ</option>
         </select>
+<UsualHint field="venuez.kind" value={f.kind} onUse={(v) => { remember("venuez.kind", v); setF({ ...f, kind: v }); }} />
         {f.kind === "spinaz" && (
           <input className="neon-input !py-2 text-xs" type="number" min="1" inputMode="numeric"
                  placeholder={`Entry per visitor, in ${SPINAZ}`} value={f.spinaz_price} onChange={set("spinaz_price")} />
@@ -686,10 +693,11 @@ function HostForm({ onCreated, onFlash }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <select className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
+        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
           <option value="hour">Per hour</option>
           <option value="total">Agreed total</option>
         </select>
+<UsualHint field="venuez.basis" value={f.basis} onUse={(v) => { remember("venuez.basis", v); setF({ ...f, basis: v }); }} />
         <input className="neon-input !py-2 text-xs" type="number" min="1" max="500"
                placeholder="Seats" value={f.capacity} onChange={set("capacity")} />
       </div>

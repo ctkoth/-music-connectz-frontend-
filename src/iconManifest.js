@@ -56,6 +56,7 @@ export const ICON_DEFAULTS = {
   "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
   "personaz_designer.png": "/icons/personaz.designer.jpg",
   "substancez.png": "/icons/profilez.substancez.jpg",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "zodiacz.png": "/icons/profilez.zodiacz.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
@@ -65,6 +66,10 @@ export const ICON_DEFAULTS = {
   "callz_user.webp": "/icons/callz_user.png",
   "drumz.png": "/icons/drumz.png",
   "violinz.png": "/icons/violinz.png",
+  "flutez.png": "/icons/flutez.png",
+  "saxz.png": "/icons/saxz.png",
+  "clarinetz.png": "/icons/clarinetz.png",
+  "trumpetz.png": "/icons/trumpetz.png",
   "guitarz.png": "/icons/guitarz.png",
   "keyz.png": "/icons/keyz.png",
   "partnerz.jpg": "/icons/partnerz.jpg",
@@ -84,6 +89,7 @@ export const ICON_DEFAULTS = {
   "habitz.png": "/icons/habitz.png",
   "metz.jpg": "/icons/metz.jpg",
   "tunerz.jpg": "/icons/tunerz.jpg",
+  "breathz.png": "/icons/breathz.png",
   "onboardz.jpg": "/icons/onboardz.png"
 };
 
@@ -1288,6 +1294,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "voicez",
+        "label": "VoiceZ",
+        "file": "profilez.voicez.jpg",
+        "art": "/icons/profilez.voicez.jpg",
+        "key": "voicez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "zodiacz",
         "label": "ZodiacZ",
         "file": "profilez.zodiacz.jpg",
@@ -1560,7 +1576,58 @@ export const ICON_TREE = [
       "note": ""
     },
     "extra": [],
-    "children": []
+    "children": [
+      {
+        "child": "breathz",
+        "label": "BreathZ",
+        "file": "skillz.breathz.jpg",
+        "art": "/icons/skillz.breathz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "clarinetz",
+        "label": "ClarinetZ",
+        "file": "skillz.clarinetz.jpg",
+        "art": "/icons/skillz.clarinetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "flutez",
+        "label": "FluteZ",
+        "file": "skillz.flutez.jpg",
+        "art": "/icons/skillz.flutez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "saxz",
+        "label": "SaxZ",
+        "file": "skillz.saxz.jpg",
+        "art": "/icons/skillz.saxz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "trumpetz",
+        "label": "TrumpetZ",
+        "file": "skillz.trumpetz.jpg",
+        "art": "/icons/skillz.trumpetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
   },
   {
     "parent": "directz",
@@ -1623,8 +1690,11 @@ export const TAB_ICONS_WITHOUT_ART = [
   "adz.png",
   "bassz.png",
   "beatz.png",
+  "breathz.png",
   "callz.png",
+  "clarinetz.png",
   "facez.png",
+  "flutez.png",
   "funnelz.png",
   "guitarz.png",
   "habitz.png",
@@ -1642,9 +1712,11 @@ export const TAB_ICONS_WITHOUT_ART = [
   "postz.png",
   "ratez.png",
   "royaltiez.png",
+  "saxz.png",
   "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
+  "trumpetz.png",
   "violinz.png"
 ];

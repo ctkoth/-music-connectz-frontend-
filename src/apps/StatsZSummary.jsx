@@ -54,6 +54,10 @@ export default function StatsZSummary() {
     keyz: "⌨️ KeyZ",
     drumz: "🥁 DrumZ",
     violinz: "🎻 ViolinZ",
+    flutez: "🪈 FluteZ",
+    saxz: "🎷 SaxZ",
+    clarinetz: "🎼 ClarinetZ",
+    trumpetz: "🎺 TrumpetZ",
   };
 
   return (

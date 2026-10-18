@@ -4,6 +4,8 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { MONEY } from "../resources.js";
+import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // MercheZ — the creator marketplace: apparel, art, beats, sample packs,
 // accessories, digital goods and routines. Legal goods only. The backend
@@ -26,7 +28,7 @@ export default function MerchZ() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", category: "apparel", price: "" });
+  const [form, setForm] = useState(() => seed("merchz", { title: "", description: "", category: "apparel", price: "" }, ["category"]));
   const [img, setImg] = useState(null);
 
   const load = () => {
@@ -122,9 +124,10 @@ export default function MerchZ() {
         <input className="neon-input" required maxLength={120} placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <textarea className="neon-input" rows={2} maxLength={500} placeholder="What is it?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         <div className="flex flex-wrap gap-2">
-          <select className="neon-input !w-auto" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+          <select data-memo="own" className="neon-input !w-auto" value={form.category} onChange={(e) => { remember("merchz.category", e.target.value); setForm({ ...form, category: e.target.value }); }}>
             {CATS.filter(([k]) => k).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
+<UsualHint field="merchz.category" value={form.category} onUse={(v) => { remember("merchz.category", v); setForm({ ...form, category: v }); }} />
           <input className="neon-input !w-32" required type="number" min="1" max="5000" step="0.01" placeholder="Price $" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           <label className="re-btn !w-auto cursor-pointer px-3 text-xs">{img ? img.name.slice(0, 18) : "Add a photo"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => setImg(e.target.files?.[0] || null)} />

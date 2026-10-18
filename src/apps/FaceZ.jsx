@@ -4,6 +4,8 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToTab } from "../goto.js";
 import MemberName from "../MemberName.jsx";
+import { useMentionHandlers } from "../MentionParser.jsx";
+import { FACE_FEED_NOTE, tagOutcome, unknownTagLine } from "../facez.js";
 
 // FaceZ — the faces you've saved for Video ConnectZ (and Image ConnectZ when it
 // ships), and, for adults, a feed of other members' faces to rate. The API
@@ -17,7 +19,10 @@ export default function FaceZ() {
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState("");
   const [tagged, setTagged] = useState("");
+  // What happened to the tag on the last upload, when it was not what was asked.
+  const [note, setNote] = useState("");
   const [rated, setRated] = useState({});
+  const { goToProfile } = useMentionHandlers();
 
   const load = () => api("/api/economy/facez/").then(setD).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
@@ -25,12 +30,17 @@ export default function FaceZ() {
   async function upload(e) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setNote("");
     try {
       const body = new FormData();
       body.append("image", file); body.append("name", name.trim());
       if (tagged.trim()) body.append("tagged", tagged.trim().replace(/^@/, ""));
-      await api("/api/economy/facez/", { method: "POST", body });
+      const r = await api("/api/economy/facez/", { method: "POST", body });
+      // The photo is saved even when the tag is not: a handle nobody holds is
+      // dropped by the server and answered 201. Read what it kept rather than
+      // letting the line under the form claim that someone was told.
+      const t = tagOutcome(tagged, r);
+      if (t.state === "unknown") setNote(unknownTagLine(t.handle));
       setName(""); setTagged(""); await load();
     } catch (x) { setErr(x.message); } finally { setBusy(false); }
   }
@@ -56,7 +66,7 @@ export default function FaceZ() {
           <p className="text-sm text-white/60">Faces for your AI videos — clear, front-facing photos work best.</p>
         </div>
       </header>
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
       {!d && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
       {d && (
@@ -70,18 +80,35 @@ export default function FaceZ() {
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
             </label>
           </div>
-          <p className="text-[11px] text-white/45">Free. Tagging someone tells them. Your faces count toward your storage.</p>
+          <p className="text-[11px] text-white/45">Free. Tagging a member tells them. Faces aren't counted toward your storage allowance.</p>
+          {/* Before the file is chosen, not after: adding a face is entering the
+              feed below, and the only way back out is deleting it. */}
+          <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/65">{FACE_FEED_NOTE}</p>
+          {note && <p role="status" className="text-xs text-mcz-gold">{note}</p>}
           {d.mine.length === 0 ? (
             <p className="text-sm text-white/55">No faces yet — add one, then star in a video.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {d.mine.map((f) => (
-                <div key={f.id} className="group relative overflow-hidden rounded-xl border border-white/10">
-                  <img src={f.url} alt={f.name || "face"} className="aspect-square w-full object-cover" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/70 px-1.5 py-1 text-[10px]">
-                    <span className="truncate">{f.name || "Untitled"}{f.count ? ` · ${f.median ?? "–"}★ (${f.count})` : ""}</span>
-                    <button onClick={() => remove(f.id)} aria-label="Delete face" className="text-white/60 hover:text-mcz-ember"><Trash2 size={12} /></button>
+                <div key={f.id} className="group overflow-hidden rounded-xl border border-white/10">
+                  <div className="relative">
+                    <img src={f.url} alt={f.name || "face"} className="aspect-square w-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/70 px-1.5 py-1 text-[10px]">
+                      <span className="truncate">{f.name || "Untitled"}{f.count ? ` · ${f.median ?? "–"}★ (${f.count})` : ""}</span>
+                      <button onClick={() => remove(f.id)} aria-label="Delete face" className="text-white/60 hover:text-mcz-ember"><Trash2 size={12} /></button>
+                    </div>
                   </div>
+                  {/* Who this face is tagged as — the member was told, and a
+                      name you cannot see on your own photo is a tag you cannot
+                      check or mean to change. Below the picture, not over it:
+                      the name and delete control already sit on the image. */}
+                  {f.tagged && (
+                    <div className="border-t border-white/10 px-1.5 py-1 text-[10px] text-white/50">
+                      tagged{" "}
+                      <button type="button" onClick={() => goToProfile(f.tagged)} title={`View @${f.tagged}'s profile`}
+                        className="break-all font-semibold text-mcz-cyan hover:underline">@{f.tagged}</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

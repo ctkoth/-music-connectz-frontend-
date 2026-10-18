@@ -17,7 +17,7 @@ import CharLimit from "../CharLimit.jsx";
 import CopyLink from "../CopyLink.jsx";
 import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
@@ -29,6 +29,7 @@ import ConnectionZ from "../ConnectionZ.jsx";
 import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
+import PortfolioLinks from "../PortfolioLinks.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
@@ -520,7 +521,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   })();
 
   async function deleteAccount() {
-    if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
+    if (!window.confirm(
+      "Permanently delete your account and ALL your data? This cannot be undone.\n\n" +
+      `Your posts, uploads and journal entries are deleted, and so is everything in your wallet: ` +
+      `${SPINAZ} SpinaZ, ${ENERGY} Energy, ${PROMPTZ} PromptZ, ${XP} XP and any ${MONEY} cash balance. ` +
+      `Money is not paid out or refunded when the account is deleted, so withdraw it first.\n\n` +
+      "Any Premium, StatZ or auto top-up billing is cancelled at Stripe first, with no refund of the " +
+      "paid period. If that can't be done, nothing is deleted.")) return;
     setDeleting(true);
     try {
       await api("/api/auth/me/", { method: "DELETE" });
@@ -862,6 +869,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         </div>
         <div data-tour="reach-gates"><ReachGates /></div>
 
+        {/* The portfolio: the links that say who you are. They have been shown on
+            the profile and the widget board all along, and nothing mounted could
+            make one. */}
+        <div className="border-t border-white/10 pt-3">
+          <PortfolioLinks />
+        </div>
+
         {/* Sits with the sign-ins above it: importing a catalogue is the same
             SoundCloud authorisation, spent on a track list instead of a
             login. */}
@@ -1181,6 +1195,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-300/80">Danger zone</p>
         <p className="mb-3 text-xs text-white/50">
           Permanently delete your account and all your data (posts, referrals, messages, SpinaZ). This can't be undone.
+        </p>
+        <p className="mb-3 text-xs text-mcz-ember">
+          Premium, StatZ and auto top-up billing is cancelled at Stripe first, with no refund of the
+          paid period. If it can't be cancelled, your account is not deleted and you're told.
         </p>
         <button
           className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"

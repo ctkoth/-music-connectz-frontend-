@@ -7,6 +7,7 @@ import Login from "../../src/auth/Login.jsx";
 import Register from "../../src/auth/Register.jsx";
 import ForgotPassword from "../../src/auth/ForgotPassword.jsx";
 import DeleteAccount from "./DeleteAccount.jsx";
+import VersionBadge from "../../src/components/VersionBadge.jsx";
 
 const BodieZ = lazy(() => import("../../src/apps/BodieZ.jsx"));
 
@@ -28,6 +29,8 @@ function PolicyLinks() {
       <a className="underline" href={`${MAIN}/privacy.html`} target="_blank" rel="noreferrer">Privacy policy</a>
       {" · "}
       <a className="underline" href={`${MAIN}/terms.html`} target="_blank" rel="noreferrer">Terms</a>
+      {" · "}
+      <VersionBadge />
     </p>
   );
 }

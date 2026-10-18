@@ -7,11 +7,26 @@ import OAuthButtons from "./OAuthButtons.jsx";
 import { AuthShell } from "./Register.jsx";
 import { track } from "../track.js";
 import { api } from "../api.js";
+import { readReturn } from "./returnTo.js";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ identifier: "", password: "" });
+  // Set by DupeZ's "sign in to confirm": who they are about to prove is theirs,
+  // and which account stayed signed in on this device so they can switch back.
+  // Read, not consumed, so a double render in dev cannot lose it; it is cleared
+  // once the sign-in lands.
+  const [confirming] = useState(() => {
+    try {
+      const as = sessionStorage.getItem("mcz_login_as") || "";
+      const back = readReturn()?.username || "";
+      return as && back ? { as, back } : null;
+    } catch { return null; }
+  });
+  // Having come from DupeZ's "sign in to confirm", the claim waiting on this
+  // account is in DupeZ — landing on the default tab would leave them to hunt.
+  const home = confirming ? "/dupe" : "/";
+  const [form, setForm] = useState({ identifier: confirming?.as || "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [linkFailed, setLinkFailed] = useState(null);
@@ -29,6 +44,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(form);
+      try { sessionStorage.removeItem("mcz_login_as"); } catch { /* nothing to clear */ }
       track("login_success");
 
       // If there's a pending OAuth link from the "I already have one" flow, link it now
@@ -63,7 +79,7 @@ export default function Login() {
         }
       }
 
-      navigate("/");
+      navigate(home);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -88,13 +104,13 @@ export default function Login() {
               the {name} link didn't go through.
             </p>
           </div>
-          <button className="neon-btn-primary" onClick={() => navigate("/")}>
+          <button className="neon-btn-primary" onClick={() => navigate(home)}>
             Continue to Music ConnectZ
           </button>
           <p className="text-center text-sm text-white/55">
             Or try {name} again — you'll come straight back here.
           </p>
-          <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+          <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
           {error && <p className="text-sm text-mcz-pink">{error}</p>}
         </div>
       </AuthShell>
@@ -103,6 +119,13 @@ export default function Login() {
 
   return (
     <AuthShell title="Welcome back" subtitle="Log in with your username, email, or phone.">
+      {confirming && (
+        <p className="mb-3 rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-sm text-white/80">
+          Sign in to <span className="font-semibold">@{confirming.as}</span> to confirm it is yours.{" "}
+          <span className="font-semibold">@{confirming.back}</span> stays signed in on this device, so
+          you can switch straight back from the bar at the top once you are in.
+        </p>
+      )}
       <form onSubmit={submit} className="space-y-3">
         <div className="relative">
           <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
@@ -128,7 +151,7 @@ export default function Login() {
         </button>
       </form>
 
-      <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
+      <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
 
       <p className="pt-2 text-center text-sm text-white/55">
         New here?{" "}

@@ -59,8 +59,15 @@ export default function UseIn({ source, sourceId, pct, text }) {
           <button className="re-link" onClick={() => goToSpot("postz", "composer")}>PostZ</button>.
         </p>
       ) : (
+        <>
+        {pct != null && (
+          <p className="text-xs text-white/50">
+            Using it anywhere below costs <span className="text-mcz-ember">−{pct}%</span> of what you earn from that deal, battle or release,
+            paid to K-Oth. Nothing is taken from a refund or a draw, or from anyone but you.
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto" value={pick} onChange={(e) => setPick(e.target.value)}>
+          <select aria-label="Where to use this piece" className="neon-input !w-auto" value={pick} onChange={(e) => setPick(e.target.value)}>
             <option value="">Pick a deal, battle or release…</option>
             {targets.map((t) => (
               <option key={`${t.kind}:${t.id}`} value={`${t.kind}:${t.id}`}>{KIND_LABEL[t.kind]} — {t.title}</option>
@@ -75,6 +82,7 @@ export default function UseIn({ source, sourceId, pct, text }) {
             </>
           )}
         </div>
+        </>
       )}
       {msg && <p className="text-xs text-mcz-ember">{msg}</p>}
     </div>

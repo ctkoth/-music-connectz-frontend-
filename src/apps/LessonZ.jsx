@@ -8,6 +8,7 @@ import OfferMap from "./OfferMap.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { asList } from "../shape.js";
 import MentionText from "../MentionParser.jsx";
+import { seed, remember } from "../remember.js";
 
 const SKILLS = ["mimez", "directz", "singz", "rapz", "dawz", "designz", "shotz", "writez",
   "guitar", "piano", "vocals", "drums", "bass", "violin", "saxophone", "dj"];
@@ -242,7 +243,7 @@ function Browse() {
               {o.remote_ok && <span><Wifi size={11} className="mr-0.5 inline" />Remote OK</span>}
             </p>
             <div className="flex items-center gap-2 pt-1">
-              <select
+              <select data-memo="own"
                 className="neon-input !w-auto !py-2 text-xs"
                 value={methods[o.id] || (o.in_person_ok ? "in_person" : o.remote_ok ? "remote" : "callz")}
                 onChange={(e) => setMethods({ ...methods, [o.id]: e.target.value })}
@@ -281,10 +282,10 @@ function Browse() {
 /* ----------------------------------------------------------------- Teach */
 function Teach() {
   const talk = useSay();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => seed("lessonz", {
     skill: "guitar", title: "", description: "", pricing_mode: "per_hour",
     price: "25.00", city: "", remote_ok: true, in_person_ok: true, callz_ok: false,
-  });
+  }, ["skill", "pricing_mode", "price", "city"]));
   const [elig, setElig] = useState(null);
   const [gates, setGates] = useState({});
   const [msg, setMsg] = useState("");
@@ -292,6 +293,7 @@ function Teach() {
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => {
     const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    if (["skill", "pricing_mode", "price", "city"].includes(k)) remember(`lessonz.${k}`, val);
     setForm({ ...form, [k]: val });
     setErrors({ ...errors, [k]: null });
   };
@@ -364,7 +366,7 @@ function Teach() {
           <input className={`neon-input ${errors.title ? "border-mcz-pink" : ""}`} placeholder="Lesson title" value={form.title} onChange={set("title")} />
           {errors.title && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.title}</p>}
         </div>
-        <select className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
+        <select data-memo="own" className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
           <option value="per_hour">Per hour</option>
           <option value="per_lesson">Per lesson</option>
         </select>
@@ -560,11 +562,12 @@ function Posts() {
 /* -------------------------------------------------------------- PostForm */
 function PostForm() {
   const talk = useSay();
-  const [form, setForm] = useState({ skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" });
+  const [form, setForm] = useState(() => seed("lessonz.post", { skill: "mimez", title: "", description: "", price: "5.00", visibility: "public", media_ref: "", preview_ref: "" }, ["skill", "price"]));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState({});
   const set = (k) => (e) => {
+    if (k === "skill" || k === "price") remember(`lessonz.post.${k}`, e.target.value);
     setForm({ ...form, [k]: e.target.value });
     setErrors({ ...errors, [k]: null });
   };
@@ -606,12 +609,21 @@ function PostForm() {
           <input className={`neon-input ${errors.price ? "border-mcz-pink" : ""}`} placeholder="Price (USD)" inputMode="decimal" value={form.price} onChange={set("price")} />
           {errors.price && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.price}</p>}
         </div>
-        <select className="neon-input" value={form.visibility} onChange={set("visibility")}>
+        <select aria-label="Who can see this lesson" className="neon-input" value={form.visibility} onChange={set("visibility")}>
           <option value="public">Public — anyone</option>
           <option value="premium">Premium tier</option>
           <option value="statz">StatZ tier</option>
           <option value="private">Only me</option>
         </select>
+        <p className="text-xs text-white/40 sm:col-span-2">
+          {{
+            public: "Anyone who can open LessonZ can see this lesson.",
+            premium: "Members on Premium or StatZ can see this lesson.",
+            statz: "Only members on StatZ can see this lesson.",
+            private: "Only you can see this lesson.",
+          }[form.visibility] || ""}
+          {" "}Whoever can see it pays your price to unlock.
+        </p>
         <div>
           <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} title="The media file ID from your upload (audio/video)" />
           {errors.media_ref && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.media_ref}</p>}

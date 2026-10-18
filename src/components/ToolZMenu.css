@@ -538,3 +538,37 @@
     width: 100%;
   }
 }
+
+/* "Coming soon" is a label, not a control. It used to share .open-btn's border,
+   glow and hover lift, so it looked pressable and did nothing — the dead button
+   this app keeps relearning, drawn on purpose. */
+.open-btn[aria-disabled="true"] {
+  cursor: default;
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.6;
+  text-shadow: none;
+  box-shadow: none;
+  text-align: center;
+  transition: none;
+}
+
+.open-btn[aria-disabled="true"]:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* The card around it is quiet too: no lift, no glow, no yellow border on hover,
+   and no neon text-shadow on the name. An app that is not built does not get the
+   prominence of one that is. */
+.app-detail-card.soon {
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+.app-detail-card.soon:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: currentColor;
+}

@@ -242,6 +242,25 @@ The signals are rendered as words — "Same email on a linked sign-in", strong o
 weak — never folded into a percentage. A number nobody can check, behind an
 action nobody can undo, is the substance rule's failure case at its worst.
 
+### Closing a duplicate you have not signed in to: proof, or sign in and come back
+
+Corey asked for "more than 90% probability" before a duplicate could be deleted
+without signing in to it. There is no probability to show — nothing is calibrated, and
+a made-up 92% behind a deletion is the failure case above — so the screen states the
+bar the server enforces instead: **the provider confirmed the same address on both
+accounts**. `proof_rule` comes from `/api/economy/dupez/` and is rendered unreworded.
+
+- **Short of proof, the claim is finished by signing in to the other account.** The 202
+  carries `confirm_by_sign_in`; the button stashes the main account's tokens and signs in
+  as the other (`auth/returnTo.js`), where `DupeZVerifyView` is the confirm.
+- **`ReturnBar` is the way back, and it is on every screen while the stash exists.** One
+  slot only (`stashReturn` refuses a second, so a chain of switches cannot bury the first
+  account), 12 hours, tokens only. It is a convenience on the device that made it and
+  holds no more than the signed-in session already did; `clearReturn` runs on any real
+  sign-out so a shared machine does not keep it.
+- **Accounts not proven tied to the member arrive redacted** (handle and reasons, no
+  email, balance or posts). Render whatever fields came; never go looking for more.
+
 ## FunnelZ offers: the panel decides nothing
 
 `OfferPanel.jsx` sits above the feed in PostZ — where every member lands after
@@ -813,9 +832,16 @@ answer**, or it ships inside a fitness app.
   data, grep every `on_delete`, and ask what the delete path leaves behind.
 - **Deleting an account has to take the files, and has to say what it does NOT do.**
   The rows cascaded and the bytes did not (`apps/accounts/erasure.py` now removes them
-  after the delete commits). It also still does not cancel Stripe subscriptions or an
-  auto top-up — the delete screen and `delete-account.html` warn about it; the fix is a
-  product decision (see `play/bodiez/README.md`, "Still yours to decide").
+  after the delete commits), and `apps/economy/stripe_cancel.py` cancels Premium, StatZ and
+  auto top-up billing at Stripe FIRST, refusing the delete if it can't (the account is
+  not deleted, the member is told, and the BodieZ screen shows the server's sentence).
+  The screen, `delete-account.html` and the policy all state that, and that the rest of a
+  paid period is not refunded — change one and change all three. The main site says it too:
+  ProfileZ's danger zone and confirm, and every DupeZ control that deletes an account
+  (`BILLING_NOTE`, beside the owner's Approve and in both confirms). It is stated
+  unconditionally rather than read from the account, because the cancel is a no-op when
+  there is nothing to cancel and a per-card field would be one more query on a screen
+  that lists every duplicate.
 - **Listing numbers are quoted, not read.** `play/bodiez/listing/full-description.txt`
   carries "60 of 90" and "37 of 90 have a demo clip". They are right today. The backend's
   `tools/count_adaptive_exercises.py` recounts them.
@@ -1110,3 +1136,266 @@ declared untouched (it is held in state, not derived from the list).
   frequency, so the per-substance split, the frequency chips and "how often not
   set" must be skipped for it — keyed off `"my_frequency" in o` and
   `by_frequency`, never off the key name alone.
+
+## BodieZ supersets: link by hand for free, the Coach's choosing is StatZ's
+
+`src/supersets.js` is the whole client-side model: a superset is a `group` label
+on two ADJACENT routine rows, and `linkWithNext`, `unlink`, `normalize` and
+`blocks` are the only code that makes or reads one. `valid_groups` on the server
+is the rule; this mirrors it, so a pair the screen draws is a pair the server
+keeps. Any edit that could pull two rows apart (reorder, delete, add in between)
+goes through `normalize`, which drops a label that no longer has its partner —
+never guess at a pairing.
+
+- **Linking by hand is in the designer's own rows and gated by nothing.**
+  `PairWithCoach.jsx` is what is gated, and it says so on the control before
+  anything is pressed, with the free way beside it. The modes, what each means
+  and the example all come from `/api/economy/bodiez/pair/`; the screen decides
+  nothing about who is paired with whom. Nothing is saved until Save routine, and
+  Undo restores the rows from before.
+- **In a session, a pair is one block.** The rest clock holds while the first half
+  of a pair has been done and the second has not ("go straight to the Fly") so it
+  never says rest in the middle of a superset. The "next" marker only appears in a
+  pair that is under way: three untouched pairs would each say it, and a marker on
+  three rows at once marks nothing.
+- **Rest alerts (`useRestAlertPrefs`) are the sample's or StatZ's.** The
+  preference is the member's and survives the sample ending; `allowed` gates the
+  effect, so a lapse locks the control without erasing what they chose. The
+  notification only fires while the page is hidden — on screen, the beep is
+  enough. **A locked phone pauses a page, and the copy says that**; "keep my screen
+  on" is the one thing here that keeps the clock running.
+
+### A countdown reaching 0:00 is not the sample being over
+
+`useStatzTrial` floors the seconds left, so the display reads 0:00 for the last
+second while the server still has it. The first version refetched the moment the
+display reached zero, was told the sample was still active, and — with nothing to
+ask again — left the banner up and every feature unlocked until somebody navigated
+away. Found by expiring a real sample in a browser, not by reading the code. The
+sample is OVER when the clock passes the server's end time; the screen locks on
+that moment without waiting for a fetch to agree, then asks the server to confirm
+and asks again (a few times, two seconds apart) if its clock has not caught up. A
+lock that depends on a response arriving at the right millisecond is a lock that
+sometimes does not lock.
+
+## RoutineZ: every routine is editable, and so is every logged workout
+
+The RoutineZ tab in `BodieZ.jsx` holds the Coach builders (moved out of the
+Coach tab so a built routine lands, open to edit, right under them), every
+routine with its server `source` label, and the logged workouts. The designer
+renames and re-notes too, so a Coach-built routine becomes fully the member's.
+`PastWorkout` doubles as the editor of a logged workout (`editing` prop); a
+repeated set drops its `id`, or an edit reads it as the same row twice. The
+muscle builder's "Fit in N min" trims round-robin across muscles and says how
+many it left out — never a silently shorter routine.
+
+## Sentence ConnectZ on its own: the writer is the whole app, so nothing in it may point elsewhere
+
+`standalone/sentencez/` is `SentenceConnectZ.jsx` with sign-in and nothing else
+(`VITE_STANDALONE="sentencez"`, README beside it). It is the same screen the main site
+mounts, not a copy, so the file answers to both: every control that would go to a
+ProfileZ, PostZ, DistributeZ or MembershipZ the standalone does not have is simply not
+rendered there, because a door to a screen that is not there is the dead button this
+repo already knows. The persona-gated agreements are dropped for the same reason (the
+persona is set in ProfileZ), and **nothing offers a purchase** — out of free writes it
+says they renew tomorrow, because Play would not allow selling from inside the app and
+a price with no way to pay it is not a price.
+
+- **Whose voice is said BEFORE the button.** `voice` is served per kind (`koth`,
+  `academic`, `plain`) and `VoiceNote` states it. The same button writes a lyric in
+  K-Oth's register and a resume in nobody's, and a screen that did not say would let
+  somebody believe their resume had a house style.
+- **The brief's limit is its own** (`brief_limit`, served), stated while they type.
+  400 characters is a post; a resume cannot be written from one. The next tier's number
+  is `brief_ladder`, never typed here, and the standalone shows no upgrade at all.
+- **A kind the screen does not know is shown by what the server sent** — `hint` and
+  `style_label` are served per kind, so a kind added server-side is a usable chip and a
+  right-labelled field without a client release.
+- **Report this output** is the in-app flag Play asks for on AI-generated content. It
+  posts to `/api/economy/report/` as `sentence:<id>`; the owner's queue is where it lands.
+- `src/sentencez.js` holds the pure decisions (which kinds to list, which to land on,
+  what the next tier takes) and is tested under plain node, which is why it does not
+  import `limits.js` — that pulls in `api.js`, which reads `import.meta.env`.
+
+## The portfolio had a reader on three screens and no editor on any
+
+A member's `links` are shown on the member card's full profile, the public profile and
+the widget board — and **nothing mounted could make one.** The writer was
+`POST /api/economy/profile/`, and the only editor lived in `src/mcz2/`, which is not
+mounted. So the portfolio side of the platform, widgets included, had nothing to show
+unless somebody typed an API call. Same shape as the member search with no caller and the
+five coaches nothing linked to: built, and invisible.
+
+`PortfolioLinks.jsx` is the editor, in ProfileZ. It decides nothing:
+
+- **The ceiling is stated BEFORE anything is added**, in a unit a member can check
+  ("12 / 25 links"), with what the next tier holds beside it near the top
+  (`tiers[next].profile_links`, never typed here) — the cost/gain rule for a limit.
+- **Past a ceiling the server REFUSES with its own sentence** and the screen shows it
+  unreworded. The old flat 50 cut the list silently and answered 200; the client did not
+  know either.
+- **What the server dropped is said** ("Saved 24. 1 weren't kept — only web and email
+  links are"): the save returns the cleaned list, and a shorter one than was sent is
+  reported rather than shown as a clean save.
+- **Pasting a dozen is the case that matters** (`portfolio.js`): lines become rows, `Label |
+  url` keeps the label, and the summary names everything that did not go in — duplicates,
+  not-links, and the ones the ceiling left out (the first pasted are the ones kept).
+- **Somebody over a ceiling is told they keep everything** and can still reorder and
+  remove; it is never worded as a loss.
+- `portfolio.js` imports nothing that reads `import.meta.env` so it runs under plain node;
+  the helper is named `moveRow` because `imports.test.mjs` matches by NAME and a plain
+  `move` collided with a local one in `WidgetBoard.jsx`.
+
+## SoundCloud on a post card: a link back, and a play count that is a fact
+
+`PostEmbeds.jsx` shows, under an imported SoundCloud player, "Listen / follow on
+SoundCloud" (only from a public `permalink`; `soundcloudPlay.js scFollowLink`
+refuses private tracks, anything carrying a secret/token and non-soundcloud.com
+hosts; older imports with no permalink get nothing) with where it opens stated
+beside it, hidden in every standalone shell. "N plays on Music ConnectZ" shows
+only above 0. The client only reports wall-clock seconds while the widget plays
+and the tab is visible; the server decides. SoundCloud's player frame alone gets
+`allow-same-origin` (its Widget API's postMessage is ignored from an opaque
+"null" origin); api.js is loaded lazily from w.soundcloud.com. Unverified in a
+browser.
+
+## Remembered choices (Corey's rule — applies to every dropdown)
+
+**A field opens on what the member last picked there — unless one value is their
+habit.** If ONE value carries at least 65% of their uses (and there are at least 5)
+it opens instead of a one-off last choice: nine Drill takes and one Trap, Trap
+last, opens on Drill. Below that bar the last choice wins, and the "You usually
+pick X (70% of 20) — use it" button shows whenever the field is on something
+other than their habit. 3 of 5 is not a habit.
+
+It is a paradigm, so it is not wired per form: `autoMemo.js` runs at the document
+level (started in `main.jsx`) and covers every `<select>`. It deliberately
+does NOT touch:
+
+- a select with an empty-value option ("All skillz", "Pick a post…", "Any") —
+  that is a filter or an item picker; pre-filtering a list to last week's choice
+  hides things, and ids don't carry across lists;
+- who-can-see-this / privacy selects (defaulting to Public because the last post
+  was public is an accident);
+- selects that save or send on change — mark them `data-nomemo="true"` (settings,
+  report reasons: an autofill would fire the save);
+- selects a screen wires itself — `data-memo="own"` (BossTake, which also reads
+  the member's history from the server: `price.usual` and `price.usual_top`).
+
+**A new `<select>` is covered automatically. If its onChange writes anywhere,
+add `data-nomemo`.** `remember.js` holds the rule and is tested; keys are the
+field's label plus its option set, per device. Hand-wired fields use
+`useRemembered` / `seed` / `<UsualHint>`.
+
+## Credits buy outcomes, and a rating has one layout (Corey's rules)
+
+**Every credit spent buys something tangible, shareable, understandable, lucrative,
+braggable or learnable** — and says which. The server holds the list
+(`apps/economy/credit_outcomes.py`, served at `/api/economy/creditz/`) and a test
+fails if any module spends a resource without being on it, so a new way to spend
+cannot ship without saying what it buys and where the free way to the same thing
+is. On this side that means a spend is never a dead end: **LogZ rows open onto the
+rating, the report and the file** (`Transaction.ref`, `logz_outcomes.py`), and the
+file is shown when it was kept and said plainly ("scored, not kept") when it was
+not. Never a dead link, never a made-up one.
+
+**Every rating is drawn the same way: a LARGE number, its label, and the detail
+beside it** — `components/Rating.jsx`, with the colours and the one-decimal rule in
+`rating.js`. The coach result, LogZ, the history, the coaching board, a post's read
+card and the progress findings all use it, so a 6 is the same colour everywhere and
+no number ever stands alone. `rating.test.mjs` fails if a screen defines its own
+thresholds. A new screen that shows a score uses `RatingRow`/`RatingGrid`.
+
+## Growth intuition: what worked elsewhere, as rules for here
+
+Written down so it is a rule and not a mood. Each is an observation about a product
+that spread, and what it means for this one. They are from general knowledge of those
+products, not measurements of ours — ours are the funnel numbers in FunnelZ.
+
+- **Wordle** spread because the thing shared was a small, self-explanatory RESULT
+  that revealed no content, and everyone played the same puzzle so results were
+  comparable. → A shared score card shows the result and the reason, never the work;
+  and "beat my score" only means something when the challenge is the same. A weekly
+  shared prompt (same genre, same tempo) is what makes scores comparable.
+- **Strava** made effort a social object: real people, real effort, one-tap kudos,
+  segments to compare on. → A personal best (🏆) and a measured climb are the
+  shareable moments, not only a high score — a beginner can have both.
+- **Spotify Wrapped** is shared because it is about the person, built from their own
+  data, in a story-sized format. → The recap of a month of takes belongs in the
+  1080×1920 card the platform already draws.
+- **Duolingo** retains with a streak and loses people the day it breaks. → The streak
+  is a reason to come back and a card to share; never a guilt notification.
+- **Smule** builds the second person into the product: you sing WITH someone. → A
+  battle or collab link a non-member can answer at the free door is an invite that
+  does not feel like one.
+- **Genius** is "the reason behind it", written by people. → The AI's reasons carry
+  the score; human reasons from real listeners (rate with a reason) are what make it
+  trusted. Human credit is the differentiator: **the card says who made it, as THEY
+  declared it** (`DeclareHuman`) — a declaration, never a detection — and AI-generated
+  output is always labelled as such.
+- **Clubhouse** spiked on scarcity and invites and faded without retention. → Gating
+  something people already shared is a trap: keep the card public forever, make the
+  DEPTH (the full read) the members' side, and change defaults for NEW shares only —
+  never retroactively, never on a timer.
+- **Cara** (an artists' network) grew on being human-made while the big platforms
+  turned toward AI. → "Human-made, AI-scored" is a position; protect it by never
+  promoting AI-generated performances.
+
+The shape every shared thing here should have: self-explanatory without an account,
+flattering to the person who made it, about a result not a secret, comparable, and one
+tap from "get yours" for the person who opens it — with the sharer's handle as the
+referral code. A share that does not do all five is a poster.
+
+## Keep this take: opt-in, per take, and the shells never offer it
+
+A take recorded in the coach is scored and **not stored** unless the member ticks
+**Keep this take** (`BossTake`, member recorder only). Default off, remembered once
+chosen: what is kept is somebody's voice. Keeping sends the ORIGINAL (the smaller copy
+is for scoring only), counts against their storage, costs no credits, and the file then
+opens from the history and LogZ. A take that does not fit is still scored, and the
+screen says why it was not kept.
+
+**Every standalone shell hides it** (`IN_SHELL_COACH`), because the Play listing and
+`play/skillz/data-safety.md` say a take is never stored there and that is still true. The
+main-site privacy policy says "by default we do not store the recording" and names the
+option; **a privacy sentence is a claim about the code**, so if keep ever becomes a
+default, `privacy.html`, both Play documents, `ReportTake.jsx` and `LogZ` change together.
+
+Also here: the weekly challenge (`WeeklyChallenge.jsx`, the server derives it from the ISO
+week), "beat my score" at the free door (`challenge.js`), the monthly recap, and listener
+reasons (one line with a rating, shown only to the performer — never on a public card).
+Adults and under-18s do not find or contact each other: member search, DMs and calls are
+age-grouped on the server (`may_contact`), unknown ages count as adults.
+
+## Promo post from a past take
+
+`RecentTakes` offers **Write a promo post** second, right after Share (`e.kind === "promo"`). It
+asks the server for the share link (free), sends the "I made this myself" declaration, then
+runs the paid writer — the price (`Cost`) sits on the control before it is pressed — and shows
+the text in `PromoPost.jsx`: an editable box with Copy, the card link and the royalty line. The
+brief is built server-side; nothing the screen sends reaches it. A failed run says "Nothing was
+charged." and no standalone shell offers it. `SpinaZ` is worth 1¢ (Corey's valuation); a
+members-only join pays its author the server's `RESTRICTED_JOIN_REWARD_SPINAZ`, read from
+`/api/economy/earn/`, never typed here.
+
+## ViewZ results: DAW tracks for StatZ, numbers for everyone, and the sample says when it ends
+
+`ViewZ.jsx` has three tabs. **Timeline** is the existing every-viewer-a-track view. **My posts**
+lists the member's posts with views, stayed %, came-back % and who is here now, and opens one
+post (`/api/economy/views/post/<id>/`): the numbers, the views by day, what the people who
+visited DID (rated, commented, liked, messaged), and — for StatZ — every viewer as a track with
+each visit as a clip showing its date, time and length. **My links** is every share link with its
+opens. `DawLanes.jsx` is the one lane/clock component both the timeline and the post view draw
+with. Open pages re-ask every 15 s (the screen is "real time"; the past is the same data, kept),
+and a promo post's LogZ row shows its link's opens read now.
+
+- **Numbers are every tier's; names and tracks are StatZ's or the free sample's.** Without it the
+  tracks area is `StatzSample` (try free / upgrade) and the server's `viewers_locked` sentence.
+- **The words are defined on the screen** (`definitions` from the server): "stayed" and "came back"
+  are not video retention, and nothing blends them into one score. A percentage of nobody is `—`.
+- **Link opens are the public page's counter; who opened is not recorded**, so none is claimed, and
+  "joined from your invites" is not split by link for the same reason.
+- **The sample says how long is left**: the banner shows the end CLOCK time as well as the countdown,
+  and `statzWarn.js` fires a notification (only if already permitted) at the server's
+  `warn_at_seconds` (10 min, 1 min), once each per sample. The end-of-sample notice and the
+  "also in StatZ, and why the hour doesn't cover it" list (`also_in_statz`) are the server's too.

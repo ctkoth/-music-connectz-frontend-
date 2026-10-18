@@ -7,3 +7,6 @@ __pycache__/
 db.sqlite3
 staticfiles/
 dist-bodiez/
+dist-sentencez/
+dist-intelligencez/
+dist-skillz/

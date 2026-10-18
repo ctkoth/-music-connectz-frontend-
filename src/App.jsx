@@ -20,6 +20,8 @@ import NotificationsPanel from "./components/NotificationsPanel.jsx";
 import { reportTimezone } from "./push.js";
 import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
+import ReturnBar from "./components/ReturnBar.jsx";
+import UpdateNotice from "./components/UpdateNotice.jsx";
 import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
 import { ICON_DEFAULTS } from "./iconManifest.js";
@@ -59,6 +61,7 @@ const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
 const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const VoiceZ = lazy(lazyRoute(() => import("./apps/VoiceZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
@@ -72,6 +75,8 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
@@ -120,6 +125,7 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const BreathZ = lazy(lazyRoute(() => import("./apps/BreathZ.jsx")));
 const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
 const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
@@ -218,6 +224,10 @@ export const CUSTOM_ICONS = {
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
   "violinz.png": "/icons/violinz-neon.svg",
+  "flutez.png": "/icons/flutez-neon.png",
+  "saxz.png": "/icons/saxz-neon.png",
+  "clarinetz.png": "/icons/clarinetz-neon.png",
+  "trumpetz.png": "/icons/trumpetz-neon.png",
   "guitarz.png": "/icons/guitarz-neon.svg",
   "bassz.png": "/icons/bassz.png",
   "keyz.png": "/icons/keyz-neon.svg",
@@ -347,6 +357,7 @@ export const CUSTOM_ICONS = {
   "metz.jpg": "/icons/metz-neon.svg",
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
+  "breathz.png": "/icons/breathz-neon.png",
   "drumz.png": "/icons/drumz-neon.svg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
@@ -365,6 +376,7 @@ export const CUSTOM_ICONS = {
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "viewz.png": "/icons/viewz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
   "languagez.png": "/icons/languagez.png",
   "languagez_pt.png": "/icons/languagez_pt.png",
@@ -484,6 +496,7 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "voicez", label: "VoiceZ", icon: "voicez.png", el: <VoiceZ /> },
   { key: "personaz", label: "PersonaZ", icon: "personaz.png", el: <PersonaZ /> },
   { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
@@ -528,10 +541,27 @@ const TABS = [
   { key: "violinz", label: "ViolinZ", icon: "violinz.png",
     el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
+  { key: "flutez", label: "FluteZ", icon: "flutez.png",
+    el: <InstrumentZ appKey="flutez" icon="flutez.png" title="FluteZ" accent="#22d3ee"
+        tagline="Wind training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "saxz", label: "SaxZ", icon: "saxz.png",
+    el: <InstrumentZ appKey="saxz" icon="saxz.png" title="SaxZ" accent="#f59e0b"
+        tagline="Sax training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png",
+    el: <InstrumentZ appKey="clarinetz" icon="clarinetz.png" title="ClarinetZ" accent="#a78bfa"
+        tagline="Clarinet training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png",
+    el: <InstrumentZ appKey="trumpetz" icon="trumpetz.png" title="TrumpetZ" accent="#f97316"
+        tagline="Brass training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  // The hub: every IntelligenceZ app, what each costs before it is opened, and
+  // the newest thing the member made in any of them. It is also the Home of the
+  // standalone IntelligenceZ app (standalone/intelligencez/).
+  { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
+  { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -543,6 +573,7 @@ const TABS = [
   { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
+  { key: "breathz", label: "BreathZ", icon: "breathz.png", el: <BreathZ /> },
   // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
   // rendered inside InstrumentZ now rather than standing alone) and gained
   // the scored Boss Take coach the backend already had mounted at
@@ -857,6 +888,7 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  breathz: "🫁 BreathZ — free breath training for your takes: box breathing, long exhales, support hisses and bar breathing at your tempo. It earns XP for turning up and never changes a score — your coach's Breath score is the measure.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
@@ -867,6 +899,11 @@ const TAB_ABOUT = {
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
+  sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
+  instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
+  occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
@@ -1033,6 +1070,8 @@ function Home() {
       <div className="min-h-screen">
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+        <ReturnBar />
+        <UpdateNotice />
         <div
           className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
