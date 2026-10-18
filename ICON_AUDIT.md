@@ -232,7 +232,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `keyz.png` → /icons/keyz-neon.svg
 - `lessonz.png` → /icons/lessonz-neon.svg
 - `logo.png` → /mcz-logo-v5.jpg
-- `lookmaxz.png` → /icons/lookmaxz-neon.svg
+- `lookmaxz.png` → /icons/lookzmaxz.jpg
 - `merchz.png` → /icons/merchz.png
 - `mimez.png` → /icons/mimez-neon.svg
 - `money.png` → /icons/money-neon.svg

@@ -1496,8 +1496,8 @@ from `/api/economy/lookmaxz/`.
 - **A factor the photo did not show is "Not visible in this photo — not guessed."**, never a number.
 - **Links are the marketplace's own search, new tab, `nofollow sponsored`, no affiliate tag** — the screen says we
   earn nothing. StatZ edits their own list; everyone else sees Amazon, eBay, Walmart and a door to StatZ.
-- The neon icon is a stand-in (`lookmaxz-neon.svg`); Corey's LookZMaxZ art is owed as `public/icons/lookzmaxz.png`
-  (listed in `icons.test.mjs` PLACEHOLDER). That art draws a golden-ratio face grid; the feature deliberately never scores proportions.
+- The tile is Corey's supplied LookZMaxZ art (`public/icons/lookzmaxz.jpg`, 512px). Note it draws a golden-ratio face
+  grid; the feature deliberately never scores proportions, so the art says more than the screen does.
 
 ## Lilith: move any entry anywhere, Trash, and recommendations from profile and activity
 

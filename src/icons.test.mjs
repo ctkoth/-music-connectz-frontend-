@@ -68,7 +68,6 @@ const OWED = {
 // those a debt would invent one. `node tools/icon-audit.mjs` prints every key
 // on an SVG; this lists the ones somebody is waiting on art for.
 const PLACEHOLDER = {
-  "lookmaxz.png": "have: the LookZMaxZ neon art (face grid, golden spiral, rising bars) on Corey's machine — commit it as public/icons/lookzmaxz.png and point the path back",
   "chordz.jpg": "have: chordz.jpg on Corey's machine — commit it and point the path back",
   "journalz.jpg": "have: journalz.jpg on Corey's machine — commit it and point the path back",
   "metz.jpg": "metz.jpg is committed but measured illegible at 28-36px (busy neon-sign frame + text banner) — a simplified illustration is owed",

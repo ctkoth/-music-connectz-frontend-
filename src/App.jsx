@@ -323,7 +323,7 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
-  "lookmaxz.png": "/icons/lookmaxz-neon.svg",
+  "lookmaxz.png": "/icons/lookzmaxz.jpg",
   "beatz.png": "/icons/beatz-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",

@@ -490,7 +490,6 @@ const APPS = [
   // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
-  ["lookmaxz", "LookZMaxZ", C.pink, C.gold],
   ["beatz", "BeatZ", C.purple, C.gold],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
