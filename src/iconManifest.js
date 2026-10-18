@@ -892,6 +892,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "ratez",
+        "label": "RateZ",
+        "file": "intelligence.ratez.jpg",
+        "art": "/icons/intelligence.ratez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "sentenceconz",
         "label": "Sentence ConnectZ",
         "file": "intelligence.sentenceconz.png",
@@ -1263,6 +1273,16 @@ export const ICON_TREE = [
     },
     "extra": [],
     "children": [
+      {
+        "child": "languagez",
+        "label": "LanguageZ",
+        "file": "profilez.languagez.jpg",
+        "art": "/icons/profilez.languagez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
       {
         "child": "preferencez",
         "label": "PreferenceZ",

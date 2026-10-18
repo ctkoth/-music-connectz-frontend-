@@ -181,7 +181,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `bodiez.upperlegz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `lilith.taskz.webp` | — | current art for registry key lilithz.png, kept as the fallback |
 
-## No place — no tab, app or registry key uses these (22)
+## No place — no tab, app or registry key uses these (24)
 | File | Registry key | Note |
 |---|---|---|
 | `bodiez-old.jpg` | — |  |
@@ -206,6 +206,8 @@ Still what something draws today; custom art takes over where a default exists.
 | `skillz.flutez.jpg` | — |  |
 | `skillz.saxz.jpg` | — |  |
 | `skillz.trumpetz.jpg` | — |  |
+| `intelligence.ratez.jpg` | — |  |
+| `profilez.languagez.jpg` | — |  |
 
 ## Duplicates (3)
 | File | Registry key | Note |
