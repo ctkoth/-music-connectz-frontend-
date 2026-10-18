@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Loader2, Radio } from "lucide-react";
 import { api } from "../api.js";
@@ -34,12 +34,18 @@ function useLive(path, deps = []) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const inflight = useRef(null);
   const load = useCallback(() => {
-    if (!path) return Promise.resolve();
+    // A slow answer must not stack a second request behind it every 15 s.
+    if (!path || inflight.current === path) return Promise.resolve();
+    inflight.current = path;
     setBusy(true);
-    return api(path).then((x) => { setD(x); setErr(""); })
-      .catch((e) => setErr(e.message || "Couldn't load."))
-      .finally(() => setBusy(false));
+    // Only the answer for the screen that is CURRENT may land: switching tabs mid-request must
+    // not paint the previous tab's numbers.
+    const mine = () => inflight.current === path;
+    return api(path).then((x) => { if (mine()) { setD(x); setErr(""); } })
+      .catch((e) => { if (mine()) setErr(e.message || "Couldn't load."); })
+      .finally(() => { if (mine()) { inflight.current = null; setBusy(false); } });
   }, [path]);
   useEffect(() => {
     setD(null);
