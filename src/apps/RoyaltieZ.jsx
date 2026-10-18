@@ -21,6 +21,7 @@ import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { goToSpot } from "../goto.js";
 import Withdraw from "../components/Withdraw.jsx";
+import RatingsRoyalty from "../components/RatingsRoyalty.jsx";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
@@ -110,6 +111,8 @@ export default function RoyaltieZ() {
           Held separately from your spendable balance until you cash it out.
         </p>
       </div>
+
+      <RatingsRoyalty />
 
       {/* An empty balance means two very different things and guessing wrong is
           the difference between "I've earned nothing" and "this isn't wired
