@@ -177,7 +177,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
           {me.accepted_at ? (
             <>
-              You've accepted this collab, so you can message the others on it (and call, when the other member is on StatZ).
+              You've accepted this collab, so you can message the others on it (and call, when you are both on StatZ).
               <button className="ml-2 underline" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: false })}>Withdraw</button>
             </>
           ) : (
