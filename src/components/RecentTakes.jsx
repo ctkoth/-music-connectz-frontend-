@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { openDoor } from "../doors.js";
@@ -7,8 +7,10 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
+import { saveText } from "../download.js";
 import { PROMPTZ } from "../resources.js";
 import { RatingGrid, RatingNumber } from "./Rating.jsx";
+import { DEFAULT_FILTER, DEFAULT_SORT, filterTakes, genresOf, isDefault, needsAll, sortTakes } from "../takeSort.js";
 
 // The coach's recent submissions, and where each one can go next.
 //
@@ -42,6 +44,7 @@ function Row({ t, labels, appKey }) {
   const [promo, setPromo] = useState(null);
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoMsg, setPromoMsg] = useState("");
+  const [promoFor, setPromoFor] = useState("post");
   const read = t.read || {};
   // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
   // that writer in its listing or its data-safety answers — so no shell offers it.
@@ -61,19 +64,25 @@ function Row({ t, labels, appKey }) {
   }
   // "Write a promo post" is the share link (free) and then one paid writer run: the
   // link first so the declaration is on the card before the text points at it.
-  async function promoIt() {
+  async function promoIt(kind = "post") {
     if (promoBusy) return;
-    setPromoBusy(true); setPromoMsg(""); setPromo(null);
+    setPromoBusy(true); setPromoMsg(""); setPromo(null); setPromoFor(kind);
     try {
       const sh = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(sh.share_url);
       try { await declareHuman(sh.share_url, human); } catch { /* the post is written without the claim */ }
-      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST" });
+      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST", body: { kind } });
       setPromo(r);
     } catch (e) { setPromoMsg(`${e.message || "Couldn't write it."} Nothing was charged.`); }
     finally { setPromoBusy(false); }
   }
-  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt() : openDoor(e));
+  const [dlMsg, setDlMsg] = useState("");
+  async function downloadIt(fmt) {
+    setDlMsg("");
+    try { saveText(await api(`/api/${appKey}/take/${t.id}/download/?format=${fmt}`)); }
+    catch (e) { setDlMsg(e.message || "Couldn't make the file."); }
+  }
+  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt(e.promo_kind) : e.kind === "download" ? downloadIt("txt") : openDoor(e));
   return (
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
@@ -134,7 +143,7 @@ function Row({ t, labels, appKey }) {
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   {(e.kind === "share" || e.kind === "promo") && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
-                  <button onClick={() => go(e)} data-door={e.key} disabled={e.kind === "promo" && promoBusy}
+                  <button onClick={() => go(e)} data-door={e.key} disabled={(e.kind === "promo" && promoBusy)}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                     {e.label}
                   </button>
@@ -148,9 +157,10 @@ function Row({ t, labels, appKey }) {
                     </span>
                   )}
                   {e.kind === "share" && shareMsg && <span className="text-[11px] text-emerald-300">{shareMsg}</span>}
-                  {e.kind === "promo" && promoBusy && <span className="text-[11px] text-white/50">Writing…</span>}
-                  {e.kind === "promo" && promoMsg && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
-                  {e.kind === "promo" && promo && <PromoPost key={promo.id} promo={promo} onClose={() => setPromo(null)} />}
+                  {e.kind === "promo" && promoBusy && promoFor === e.promo_kind && <span className="text-[11px] text-white/50">Writing…</span>}
+                  {e.kind === "promo" && promoMsg && promoFor === e.promo_kind && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
+                  {e.kind === "promo" && promo && e.promo_kind === promoFor && <PromoPost key={`${promo.id}-${promoFor}`} promo={promo} onClose={() => setPromo(null)} />}
+                  {e.kind === "download" && (<><button type="button" onClick={() => downloadIt("json")} className="text-[11px] text-white/55 underline">as JSON</button>{t.file?.kept && t.file.url && <a href={t.file.url} download className="text-[11px] text-mcz-cyan underline">Download the recording</a>}{dlMsg && <span className="text-[11px] text-mcz-ember">{dlMsg}</span>}</>)}
                 </div>
               ))}
               <p className="text-[11px] text-white/35">
@@ -164,15 +174,77 @@ function Row({ t, labels, appKey }) {
   );
 }
 
-export default function RecentTakes({ takes, dimensions, appKey }) {
-  if (!takes?.length) return null;
+export default function RecentTakes({ takes, dimensions, appKey, total, showingAll, onShowAll }) {
+  const [sort, setSort] = useState(DEFAULT_SORT);
+  const [filter, setFilter] = useState(DEFAULT_FILTER);
+  const [allMsg, setAllMsg] = useState("");
+  // Any order but newest-first, and any filter, is only true over EVERY take — the ten
+  // newest sorted by score are not the member's best ten — so asking for one loads the rest.
+  useEffect(() => { if (needsAll(sort, filter) && !showingAll && onShowAll) onShowAll(); }, [sort, filter, showingAll, onShowAll]);
   const labels = Object.fromEntries((dimensions || []).map((d) => [d.key, d.label]));
+  const list = useMemo(() => sortTakes(filterTakes(takes || [], filter), sort), [takes, sort, filter]);
+  const genres = useMemo(() => genresOf(takes || []), [takes]);
+  if (!takes?.length) return null;
+  const loading = needsAll(sort, filter) && !showingAll;
+  const downloadAll = async (fmt) => {
+    setAllMsg("");
+    try { saveText(await api(`/api/${appKey}/takes/export/?format=${fmt}`)); }
+    catch (e) { setAllMsg(e.message || "Couldn't make the file."); }
+  };
   return (
     <div>
       <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Recent takes</p>
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]" data-take-controls>
+        <label className="flex items-center gap-1.5 text-white/55">Sort by
+          <select data-nomemo="true" value={sort.by} onChange={(e) => setSort((x) => ({ ...x, by: e.target.value }))}
+                  className="neon-input !w-auto !py-0.5 text-[12px]">
+            <option value="date">Date</option>
+            <option value="overall">Overall score</option>
+            {(dimensions || []).map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+          </select>
+        </label>
+        <button type="button" data-sort-dir onClick={() => setSort((x) => ({ ...x, dir: x.dir === "asc" ? "desc" : "asc" }))}
+                className="rounded-md bg-white/10 px-2 py-0.5 text-white/70 hover:bg-white/15"
+                title="Flip the order">
+          {sort.by === "date" ? (sort.dir === "desc" ? "Newest first ↓" : "Oldest first ↑")
+            : (sort.dir === "desc" ? "Highest first ↓" : "Lowest first ↑")}
+        </button>
+        <label className="flex items-center gap-1.5 text-white/55">
+          <input type="checkbox" checked={filter.pbOnly} onChange={(e) => setFilter((f) => ({ ...f, pbOnly: e.target.checked }))} />
+          🏆 Personal bests only
+        </label>
+        {genres.length > 1 && (
+          <select data-nomemo="true" aria-label="Genre" value={filter.genre} onChange={(e) => setFilter((f) => ({ ...f, genre: e.target.value }))}
+                  className="neon-input !w-auto !py-0.5 text-[12px]">
+            <option value="">All genres</option>
+            {genres.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        )}
+        {!isDefault(sort, filter) && (
+          <button type="button" onClick={() => { setSort(DEFAULT_SORT); setFilter(DEFAULT_FILTER); }} className="text-white/45 underline">Reset</button>
+        )}
+      </div>
+      {loading && <p className="mb-1 text-[11px] text-white/45">Loading every take so the order is true across all of them…</p>}
+      {!loading && list.length === 0 && <p className="text-[12px] text-white/50">No takes match that filter.</p>}
       <ul className="space-y-1">
-        {takes.map((t) => <Row key={t.id} t={t} labels={labels} appKey={appKey} />)}
+        {list.map((t) => <Row key={t.id} t={t} labels={labels} appKey={appKey} />)}
       </ul>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]" data-download-all>
+        <span className="text-white/45">Download all {total ?? takes.length} takes:</span>
+        <button type="button" onClick={() => downloadAll("csv")} className="text-mcz-cyan underline">spreadsheet (.csv)</button>
+        <button type="button" onClick={() => downloadAll("json")} className="text-mcz-cyan underline">.json</button>
+        {allMsg && <span className="text-mcz-ember">{allMsg}</span>}
+      </div>
+      {!showingAll && total > takes.length && onShowAll && (
+        <button type="button" onClick={onShowAll} data-show-all
+                className="mt-2 text-[12px] text-mcz-cyan underline">
+          Show all {total} takes — {total - takes.length} older {total - takes.length === 1 ? "one is" : "ones are"} not listed
+        </button>
+      )}
+      <p className="mt-2 text-[11px] text-white/35">
+        Takes are listed with their score and the coach's read. The recording itself is only here when you ticked
+        "Keep this take" or the take came from a post or journal entry — older takes were scored and not stored.
+      </p>
     </div>
   );
 }

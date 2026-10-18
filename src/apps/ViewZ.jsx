@@ -166,6 +166,68 @@ function Numbers({ d }) {
   );
 }
 
+const DEVICE_LABEL = { phone: "📱 phone", tablet: "📲 tablet", desktop: "💻 desktop", unknown: "unknown" };
+
+// Where the visits came from and on what — counts, never names, so every tier sees them.
+// "direct" is a visit that carried no ?src= (a link pasted somewhere untagged, or typed): a
+// real bucket, said as it is, not folded into "unknown".
+function Sources({ d }) {
+  const src = d.sources || [], dev = d.devices || [];
+  if (!src.length) return null;
+  const total = src.reduce((n, x) => n + x.visits, 0) || 1;
+  return (
+    <div data-viewz-sources className="space-y-1.5">
+      <p className="text-[11px] uppercase tracking-wide text-white/40">Where the visits came from</p>
+      <ul className="space-y-1">
+        {src.map((x) => (
+          <li key={x.src} className="flex items-center gap-2 text-[12px]">
+            <span className="w-24 shrink-0 truncate text-white/70">{x.src}</span>
+            <span className="h-2 flex-1 overflow-hidden rounded bg-white/10"><span className="block h-full rounded bg-mcz-cyan/60" style={{ width: `${(x.visits / total) * 100}%` }} /></span>
+            <span className="w-28 shrink-0 text-right text-white/55">{x.visits} {x.visits === 1 ? "visit" : "visits"} · {x.people} {x.people === 1 ? "person" : "people"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[12px] text-white/55">On: {dev.map((x) => `${DEVICE_LABEL[x.dev] || x.dev} ${x.visits}`).join(" · ")}</p>
+      <p className="text-[11px] text-white/35">A source is the <code>?src=</code> on the link a visitor used (your share links carry one); "direct" is a visit that carried none.</p>
+    </div>
+  );
+}
+
+const ACTION_ICON = { rating: "⭐", comment: "💬", like: "👍", share: "🔁", join: "🚪", message: "✉️" };
+
+// ActionZ: what people DID from this post — a rating, a comment, a like, a share, a
+// members-only join, a message sent after looking — newest first. Names are StatZ's, with
+// the counts above open to everybody; `via_page` says whether they also came and looked.
+function ActionZ({ d }) {
+  return (
+    <div className="space-y-1.5" data-actionz>
+      <p className="text-[11px] uppercase tracking-wide text-white/40">ActionZ — what people did from this post</p>
+      {d.action_log == null ? (
+        <div className="neon-frame space-y-2 p-4">
+          <StatzSample what="ActionZ by name" />
+          <p className="text-xs text-white/45">{d.action_log_locked}</p>
+        </div>
+      ) : d.action_log.length === 0 ? (
+        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">Nobody has rated, commented, liked or shared this yet.</p>
+      ) : (
+        <ul className="max-h-72 space-y-1 overflow-y-auto">
+          {d.action_log.map((a, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
+              <span>{ACTION_ICON[a.type] || "•"}</span>
+              <button className="font-semibold text-mcz-cyan hover:underline" onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: a.who }))}>@{a.who}</button>
+              <span className="text-white/60">{a.label}</span>
+              {a.detail && <span className="min-w-0 truncate text-white/75">{a.detail}</span>}
+              <span className="ml-auto text-white/35" title={a.via_page ? "Also looked at the post's page" : "Acted from the feed, without opening the post"}>
+                {a.via_page ? "saw it here · " : "from the feed · "}{new Date(a.at).toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function History({ days }) {
   const max = Math.max(1, ...days.map((x) => x.views));
   return (
@@ -210,6 +272,8 @@ function PostDetail({ id, onBack }) {
           </div>
           <Numbers d={d} />
           <History days={d.by_day} />
+          <Sources d={d} />
+          <ActionZ d={d} />
           <div className="space-y-1.5" data-tour="viewz-tracks">
             <p className="text-[11px] uppercase tracking-wide text-white/40">Every viewer, every visit — time, date and length</p>
             {d.viewers == null ? (

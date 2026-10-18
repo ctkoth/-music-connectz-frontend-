@@ -46,11 +46,15 @@ export default function ProgressPanel({ appKey }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+  // The first page is the newest ten. "Show all" asks the server for the rest; it is
+  // remembered across reloads of the panel (goal saves, declares) so the list does not
+  // snap shut under somebody who is reading it.
+  const [all, setAll] = useState(false);
 
-  const load = () => api(`/api/${appKey}/progress/`)
+  const load = () => api(`/api/${appKey}/progress/${all ? "?takes=all" : ""}`)
     .then((d) => { setData(d); setErr(""); })
     .catch((e) => setErr(e.message || "Couldn't load your progress."));
-  useEffect(() => { load(); }, [appKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [appKey, all]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function declare(patch) {
     setSaving(true);
@@ -225,7 +229,8 @@ export default function ProgressPanel({ appKey }) {
         ) : <p className="text-[12px] text-white/45">{trend.why}</p>}
       </div>
 
-      <RecentTakes takes={takes} dimensions={asList(data.dimensions)} appKey={appKey} />
+      <RecentTakes takes={takes} dimensions={asList(data.dimensions)} appKey={appKey}
+                   total={data.total_takes} showingAll={all} onShowAll={() => setAll(true)} />
     </section>
   );
 }

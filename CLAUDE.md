@@ -1399,3 +1399,17 @@ and a promo post's LogZ row shows its link's opens read now.
   and `statzWarn.js` fires a notification (only if already permitted) at the server's
   `warn_at_seconds` (10 min, 1 min), once each per sample. The end-of-sample notice and the
   "also in StatZ, and why the hour doesn't cover it" list (`also_in_statz`) are the server's too.
+
+## Recent takes: all of them, in any order, and out as files
+
+`RecentTakes` lists the newest ten, says how many older ones are not listed and loads the rest
+(`?takes=all`). **Sort** (date, overall score by its exact decimal, or any single dimension) and
+**filter** (personal bests, a genre) are in `takeSort.js`; anything but newest-first needs every take,
+so choosing one loads the rest first — the ten newest sorted by score are not the member's best ten.
+A take with no value for the sorted field sorts last in both directions, never as 0. Each take has a
+free **Download** door (text, JSON, and the recording when it was kept) and the list has **download
+all** (.csv with a BOM so Excel reads the emoji headers, or .json) — `download.js` makes the file from
+the server's text. **Write an Instagram caption** sits beside the promo post, and **See how its link is
+doing** opens ViewZ's links tab. A post's ViewZ page also shows where the visits came from (`sources`,
+`devices`) and **ActionZ**: who rated, commented, liked, shared, joined or messaged — by name for
+StatZ (sample or paid), counts for everybody.
