@@ -121,7 +121,7 @@ function Row({ t, labels, appKey }) {
                   detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
               ))}
               {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}
-              <FeelzTips tips={t.extras.find((x) => x.key === "feelz")?.tips} />
+              <FeelzTips tips={t.extras.find((x) => x.key === "feelz")?.tips} cause={t.extras.find((x) => x.key === "feelz")?.cause?.label} />
             </div>
           )}
           <MixTips tips={t.mix_tips} />

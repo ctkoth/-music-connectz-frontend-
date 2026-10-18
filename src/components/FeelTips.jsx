@@ -13,11 +13,12 @@ function Wwh({ x }) {
 }
 
 /** `onGear` (optional) turns a Mic & gear / Room tip into a way to the priced gear advice. */
-export function FeelzTips({ tips, onGear }) {
+export function FeelzTips({ tips, onGear, cause }) {
   if (!tips?.length) return null;
   return (
     <div className="space-y-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.03] p-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-rose-300/80">To bring more feeling</p>
+      {cause && <p className="text-[11px] text-white/60">What the coach hears holding it back: <span className="font-semibold text-white/85">{cause}</span>. Delivery comes first — it is the biggest lever.</p>}
       {tips.map((t, i) => (
         <div key={i} className="space-y-0.5">
           <p className="text-[10px] uppercase tracking-widest text-white/40">{t.label}</p>

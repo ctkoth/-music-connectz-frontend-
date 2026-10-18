@@ -1785,7 +1785,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </div>
             </div>
           )}
-          <FeelzTips tips={result.feelz_tips} onGear={() => spotlight("coach-upgrades")} />
+          <FeelzTips tips={result.feelz_tips} cause={result.feelz_cause_label} onGear={() => spotlight("coach-upgrades")} />
           <MixTips tips={result.mix_tips} />
 
           {/* Where you are, and where you're going. A score with no
