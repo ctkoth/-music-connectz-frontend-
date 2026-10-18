@@ -12,6 +12,7 @@ import UseIn from "../components/UseIn.jsx";
 import { money, runTimeoutMs, splitCost, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
 import { firstPollDelay, newestPending, pollIsHopeless } from "../videoz.js";
 import { FACE_FEED_NOTE } from "../facez.js";
+import StitchedMusicVideo from "../components/StitchedMusicVideo.jsx";
 
 // Video ConnectZ — music, bio and promo videos, optionally starting from the
 // member's own FaceZ photo. Price, kinds and faces come from
@@ -170,6 +171,8 @@ export default function VideoConnectZ() {
           <p className="text-sm text-white/60">Music, bio and promo videos — starring your FaceZ if you want.</p>
         </div>
       </header>
+
+      <StitchedMusicVideo />
 
       {s && !s.configured && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">Video ConnectZ isn't switched on yet.</p>}
 
