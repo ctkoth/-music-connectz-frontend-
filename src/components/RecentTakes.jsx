@@ -7,6 +7,8 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
+import HashtagCount, { hashtagBody } from "./HashtagCount.jsx";
+import { useRemembered } from "../useRemembered.js";
 import { saveText } from "../download.js";
 import { PROMPTZ } from "../resources.js";
 import { RatingGrid, RatingNumber } from "./Rating.jsx";
@@ -45,6 +47,7 @@ function Row({ t, labels, appKey }) {
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoMsg, setPromoMsg] = useState("");
   const [promoFor, setPromoFor] = useState("post");
+  const [tags, setTags] = useRemembered("promo-hashtags", "");
   const read = t.read || {};
   // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
   // that writer in its listing or its data-safety answers — so no shell offers it.
@@ -71,7 +74,7 @@ function Row({ t, labels, appKey }) {
       const sh = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(sh.share_url);
       try { await declareHuman(sh.share_url, human); } catch { /* the post is written without the claim */ }
-      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST", body: { kind } });
+      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST", body: { kind, ...hashtagBody(tags) } });
       setPromo(r);
     } catch (e) { setPromoMsg(`${e.message || "Couldn't write it."} Nothing was charged.`); }
     finally { setPromoBusy(false); }
@@ -148,6 +151,7 @@ function Row({ t, labels, appKey }) {
                     {e.label}
                   </button>
                   <Cost cost={e.cost} />
+                  {e.kind === "promo" && <HashtagCount value={tags} onChange={setTags} />}
                   <span className="text-[11px] text-white/45">{e.note}</span>
                   {e.kind === "share" && shareUrl && (
                     <span className="flex flex-wrap gap-2 text-[11px]">

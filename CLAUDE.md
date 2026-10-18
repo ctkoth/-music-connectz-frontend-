@@ -1446,3 +1446,11 @@ minor does not (`may_contact`).
   the Stripe return (`?verify=done`) until the check ends, disables the button once verified (no
   re-scan) and states the daily limit. It decides nothing: `last`, `can_start` and
   `attempts_left_today` are the server's.
+
+## Hashtags: the member picks how many, most relevant first
+
+`HashtagCount.jsx` is one number box on the promo-post / caption control (RecentTakes) and on
+Sentence ConnectZ's post and caption kinds (the server marks those with `hashtags: true`, and serves
+`hashtag_max`). **Blank is "writer's choice" and 0 is "none"** — kept apart on screen and on the wire
+(`hashtagBody` sends nothing when blank). The choice is remembered. If the writer miscounts, the screen
+says "you asked for N, it gave M" rather than showing a number the text does not have.

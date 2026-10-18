@@ -26,6 +26,11 @@ export default function PromoPost({ promo, onClose }) {
   return (
     <div className="basis-full space-y-1.5 rounded-lg border border-mcz-cyan/25 bg-black/30 p-2" data-promo-window>
       <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/80">{promo.kind === "caption" ? "Your caption" : "Your post"} — edit it, then copy</p>
+      {promo.hashtags && promo.hashtags.got !== promo.hashtags.asked && (
+        <p className="text-[11px] text-amber-300">
+          You asked for {promo.hashtags.asked} hashtag{promo.hashtags.asked === 1 ? "" : "s"}; the writer gave {promo.hashtags.got}. Add or cut to taste.
+        </p>
+      )}
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8}
                 className="neon-input w-full text-[12px]" aria-label="Promo post" />
       <div className="flex flex-wrap items-center gap-2 text-[11px]">
