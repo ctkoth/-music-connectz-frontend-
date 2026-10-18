@@ -2,7 +2,7 @@
 //
 // A superset is DATA on the rows — two ADJACENT rows sharing a `group` label —
 // and linking two lifts by hand is free at every tier. What the Coach adds is
-// choosing the partner (the server's `superset.py`, StatZ or the free hour), and
+// choosing the partner (the server's `superset.py`, StatZ or the daily free sample), and
 // it hands back rows in this same shape, so a pair the Coach made and a pair a
 // member made are the same thing and edit the same way.
 //

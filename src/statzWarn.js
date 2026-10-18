@@ -3,7 +3,7 @@
 // said once per sample — keyed on the server's end time by the caller, so a reload
 // cannot repeat it. Kept pure so it runs under plain node.
 
-export const DEFAULT_WARN_AT = [600, 60];
+export const DEFAULT_WARN_AT = [300, 60];
 
 /** The warnings that are due: thresholds the clock has crossed and that have not been said. */
 export function dueWarnings(left, warnAt = DEFAULT_WARN_AT, said = new Set()) {
@@ -32,3 +32,11 @@ export const endsAtText = (iso, locale) => {
   const t = Date.parse(iso);
   return Number.isFinite(t) ? `ends at ${new Date(t).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}` : "";
 };
+
+/** "5h 12m" / "42m" / "under a minute" — how long until the next free sample opens. */
+export function untilText(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (s < 60) return "under a minute";
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}

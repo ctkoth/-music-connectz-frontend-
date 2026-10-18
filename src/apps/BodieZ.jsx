@@ -812,7 +812,7 @@ function Elapsed({ since }) {
   return clock(secondsSince(since));
 }
 
-// ---- Rest alerts: StatZ's, or the free hour's -------------------------------
+// ---- Rest alerts: StatZ's, or the daily free sample's -------------------------------
 //
 // The in-page beep and vibration above are everybody's. What StatZ adds is the
 // part that reaches a member who has put the phone down: a notification when rest

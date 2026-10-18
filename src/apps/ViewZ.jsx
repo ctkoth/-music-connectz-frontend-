@@ -10,6 +10,8 @@ import DawLanes, { dur } from "../components/DawLanes.jsx";
 // ViewZ — how your things are being looked at, three ways:
 //   Timeline — every viewer of your posts and profile as a track, every visit a clip.
 //   My posts — one post at a time: the numbers, the history by day, and who.
+//   ActionZ — what people DID across all your posts (rated, commented, liked, shared…), and
+//             where all your views came from.
 //   My links — every share link you sent out and how often it was opened.
 // Everything here is /api/economy/views/*; the screen only draws it. The numbers are
 // yours at every tier; WHO viewed (names, and the tracks) is StatZ's, with the free
@@ -25,7 +27,7 @@ const KIND = {
 const KIND_LABEL = { post: "Post", profile: "Profile", tab: "App page" };
 const DEV_ICON = { phone: "📱", tablet: "📲", desktop: "💻" };
 const RANGES = [["1h", "1 hour"], ["24h", "24 hours"], ["7d", "7 days"]];
-const TABS = [["timeline", "Timeline"], ["posts", "My posts"], ["links", "My links"]];
+const TABS = [["timeline", "Timeline"], ["posts", "My posts"], ["actionz", "ActionZ"], ["links", "My links"]];
 
 /** Ask for `path` now and every POLL_MS while the tab is visible. */
 function useLive(path, deps = []) {
@@ -317,6 +319,49 @@ function MyPosts({ open, setOpen }) {
   );
 }
 
+const COUNT_LABEL = { rating: "⭐ rated", comment: "💬 commented", like: "👍 liked", share: "🔁 shared", join: "🚪 joined" };
+
+// ActionZ across every post: what people did, newest first, naming the post each was on.
+// Counts are every tier's; the named log is StatZ's (sample included). Clicking a row opens
+// that post's own results.
+function AllActionZ({ openPost }) {
+  const { d, err } = useLive("/api/economy/views/mine/");
+  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
+  const counts = d.action_counts || {};
+  const total = Object.values(counts).reduce((n, x) => n + x, 0);
+  return (
+    <div className="space-y-4" data-actionz-all>
+      <div className="flex flex-wrap gap-2 text-sm">
+        {Object.keys(COUNT_LABEL).map((k) => <Pill key={k}>{COUNT_LABEL[k]} {counts[k] || 0}</Pill>)}
+      </div>
+      {total === 0 && <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">Nobody has rated, commented, liked or shared your posts yet. Share one from <button className="re-link" onClick={() => goToTab("postz")}>PostZ</button> and it lands here.</p>}
+      {d.action_log == null ? (
+        total > 0 && (
+          <div className="neon-frame space-y-2 p-4">
+            <StatzSample what="ActionZ by name" />
+            <p className="text-xs text-white/45">{d.action_log_locked}</p>
+          </div>
+        )
+      ) : (
+        <ul className="max-h-[28rem] space-y-1 overflow-y-auto">
+          {d.action_log.map((a, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
+              <span>{ACTION_ICON[a.type] || "•"}</span>
+              <button className="font-semibold text-mcz-cyan hover:underline" onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: a.who }))}>@{a.who}</button>
+              <span className="text-white/60">{a.label}</span>
+              <button className="min-w-0 truncate text-white/80 hover:underline" onClick={() => openPost(a.post)}>{a.post_title}</button>
+              {a.detail && <span className="min-w-0 truncate text-white/55">{a.detail}</span>}
+              <span className="ml-auto text-white/35">{new Date(a.at).toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Sources d={d} />
+      <p className="text-[11px] text-white/40">Messages are not listed here: a message is about a person, not a post, so it appears on a post's own page when it follows a visit to it. Updates every {POLL_MS / 1000} seconds.</p>
+    </div>
+  );
+}
+
 function MyLinks() {
   const { d, err } = useLive("/api/economy/views/mine/");
   if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
@@ -370,6 +415,7 @@ export default function ViewZ() {
       </div>
       {tab === "timeline" && <Timeline />}
       {tab === "posts" && <MyPosts open={open} setOpen={setOpen} />}
+      {tab === "actionz" && <AllActionZ openPost={(id) => { setTab("posts"); setOpen(id); }} />}
       {tab === "links" && <MyLinks />}
     </div>
   );

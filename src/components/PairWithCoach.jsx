@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { StatzSample, useStatzTrial } from "./StatzSample.jsx";
 import { normalize } from "../supersets.js";
 
-// The Coach choosing superset partners for a routine. StatZ's, or the free hour's.
+// The Coach choosing superset partners for a routine. StatZ's, or the daily free sample's.
 //
 // Linking two lifts by hand is NOT gated and lives in the designer's own rows: a
 // superset is just an order of work, and a tier that could say whether somebody

@@ -1413,3 +1413,16 @@ the server's text. **Write an Instagram caption** sits beside the promo post, an
 doing** opens ViewZ's links tab. A post's ViewZ page also shows where the visits came from (`sources`,
 `devices`) and **ActionZ**: who rated, commented, liked, shared, joined or messaged — by name for
 StatZ (sample or paid), counts for everybody.
+
+## The StatZ sample is a first hour, then fifteen minutes a day
+
+`statz_trial.state()` now says `minutes` (the window on offer: 60 the first time ever, then 15),
+`last_minutes` (the one just used, so "your free hour is used" never says fifteen), `first`,
+`daily_minutes`, and — once a window is spent — `next_at` / `seconds_until_next`. A new window opens
+24 hours after the last one STARTED (not at the server's midnight, which is evening in New York).
+When it runs out the control locks and says when more opens, with the upgrade as the primary button;
+`StatzTimerBanner` also shows a dismissible "Your free StatZ N minutes are up" banner with the
+upgrade, because a notification the member blocked is not a lock they were told about. The end
+notice and the 5-min / 1-min warnings are keyed on the window's end time, so each day's window says
+its own. **ViewZ has an ActionZ tab** (all posts, `views/mine/`): counts for everybody, the named log
+for StatZ, and where all the views came from; a row opens that post's own results.
