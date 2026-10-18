@@ -7,11 +7,12 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
+import PostTake from "./PostTake.jsx";
 import HashtagCount, { hashtagBody } from "./HashtagCount.jsx";
 import { useRemembered } from "../useRemembered.js";
 import { saveText } from "../download.js";
 import { PROMPTZ } from "../resources.js";
-import { RatingGrid, RatingNumber } from "./Rating.jsx";
+import { RatingGrid, RatingNumber, RatingRow } from "./Rating.jsx";
 import { DEFAULT_FILTER, DEFAULT_SORT, filterTakes, genresOf, isDefault, needsAll, sortTakes } from "../takeSort.js";
 
 // The coach's recent submissions, and where each one can go next.
@@ -48,10 +49,13 @@ function Row({ t, labels, appKey }) {
   const [promoMsg, setPromoMsg] = useState("");
   const [promoFor, setPromoFor] = useState("post");
   const [tags, setTags] = useRemembered("promo-hashtags", "");
+  const [posting, setPosting] = useState(false);
   const read = t.read || {};
   // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
   // that writer in its listing or its data-safety answers — so no shell offers it.
-  const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"));
+  const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"))
+    // A post is PostZ's, and no standalone shell has PostZ.
+    .filter((e) => !(IN_SHELL && e.kind === "post_take"));
   // "Share this score" is not a handoff to another screen: it asks the server for
   // the public link of THIS take (minted once, from what the coach said), then
   // opens the device's share sheet — or copies — with the link in it.
@@ -85,7 +89,7 @@ function Row({ t, labels, appKey }) {
     try { saveText(await api(`/api/${appKey}/take/${t.id}/download/?format=${fmt}`)); }
     catch (e) { setDlMsg(e.message || "Couldn't make the file."); }
   }
-  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt(e.promo_kind) : e.kind === "download" ? downloadIt("txt") : openDoor(e));
+  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt(e.promo_kind) : e.kind === "download" ? downloadIt("txt") : e.kind === "post_take" ? setPosting((p) => !p) : openDoor(e));
   return (
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
@@ -109,6 +113,15 @@ function Row({ t, labels, appKey }) {
                     {read.verdict && <p className="text-white/75">{read.verdict}</p>}
           <RatingGrid rows={Object.entries(t.scores || {}).filter(([k]) => labels[k]).map(([k, v]) => ({
             key: k, label: labels[k], value: v }))} />
+          {t.extras?.length > 0 && (
+            <div className="space-y-1.5">
+              {t.extras.map((x) => (
+                <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                  detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
+              ))}
+              {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}
+            </div>
+          )}
           {read.strengths?.length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What worked</p>
@@ -164,6 +177,7 @@ function Row({ t, labels, appKey }) {
                   {e.kind === "promo" && promoBusy && promoFor === e.promo_kind && <span className="text-[11px] text-white/50">Writing…</span>}
                   {e.kind === "promo" && promoMsg && promoFor === e.promo_kind && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
                   {e.kind === "promo" && promo && e.promo_kind === promoFor && <PromoPost key={`${promo.id}-${promoFor}`} promo={promo} onClose={() => setPromo(null)} />}
+                  {e.kind === "post_take" && posting && <PostTake appKey={appKey} take={t} onClose={() => setPosting(false)} />}
                   {e.kind === "download" && (<><button type="button" onClick={() => downloadIt("json")} className="text-[11px] text-white/55 underline">as JSON</button>{t.file?.kept && t.file.url && <a href={t.file.url} download className="text-[11px] text-mcz-cyan underline">Download the recording</a>}{dlMsg && <span className="text-[11px] text-mcz-ember">{dlMsg}</span>}</>)}
                 </div>
               ))}
