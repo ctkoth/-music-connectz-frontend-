@@ -173,6 +173,23 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
         </button>
       )}
 
+      {deal.i_am_participant && !deal.mine && ["draft", "funded", "delivered", "disputed"].includes(deal.status) && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
+          {me.accepted_at ? (
+            <>
+              You've accepted this collab, so you can message the others on it (and call, when the other member is on StatZ).
+              <button className="ml-2 underline" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: false })}>Withdraw</button>
+            </>
+          ) : (
+            <>
+              @{deal.initiator} put you on this. Accepting lets everyone on it message you — including members in a different age group, which is
+              not allowed anywhere else — and you can withdraw at any time.
+              <button className="ml-2 rounded bg-mcz-cyan/20 px-2 py-0.5 text-mcz-cyan" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: true })}>Accept</button>
+            </>
+          )}
+        </div>
+      )}
+
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
@@ -301,10 +318,10 @@ export default function CollabZ() {
     } catch (e) { setMsg(e.message || "Couldn't start that release."); }
   }
 
-  async function action(id, verb) {
+  async function action(id, verb, body = {}) {
     setBusy(true); setMsg("");
     try {
-      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body: {} });
+      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body });
       await load();
     } catch (e) { setMsg(e.message || "That didn't go through."); }
     finally { setBusy(false); }

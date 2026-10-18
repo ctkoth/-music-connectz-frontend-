@@ -1436,3 +1436,13 @@ CollabZ, BattleZ and MessageZ pick people with it: choosing a collaborator your 
 InfernoZ ("projects & dating") is unbuilt; **when it is built its dating half must refuse minors the same
 way.** Collabs and battles stay open across ages, but a direct message or call between an adult and a
 minor does not (`may_contact`).
+
+## Collab consent and the ID check say what happened
+
+- `CollabZ.jsx`: a member put on a deal by someone else sees **Accept** (and **Withdraw** once
+  accepted) with the age-group consequence stated up front. The server's `NO_CROSS_AGE_MESSAGE` /
+  `NO_CROSS_AGE_CALL` are rendered unreworded wherever a DM or call is refused. Naming is not consent.
+- `Verify18Card` (ProfileZ) leads with **Success** or **Failure** and the server's reason, polls after
+  the Stripe return (`?verify=done`) until the check ends, disables the button once verified (no
+  re-scan) and states the daily limit. It decides nothing: `last`, `can_start` and
+  `attempts_left_today` are the server's.

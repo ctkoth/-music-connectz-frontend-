@@ -41,44 +41,69 @@ function Verify18Card() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [waiting, setWaiting] = useState(false);
+
+  const load = () => api("/api/economy/identity/").then((r) => { setSt(r); return r; })
+    .catch(() => { setSt((p) => p || { verified_18plus: false, stripe_enabled: false }); return null; });
 
   useEffect(() => {
-    // A verify return (?verify=done) — refetch status and acknowledge.
-    if (new URLSearchParams(window.location.search).get("verify") === "done") {
-      setMsg("Thanks! If your ID cleared, your 18+ badge appears within a minute.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
+    // A verify return (?verify=done): the server asks Stripe how it ended, so ask until it says.
+    const back = new URLSearchParams(window.location.search).get("verify") === "done";
+    if (back) window.history.replaceState({}, "", window.location.pathname);
+    let tries = 0, timer;
+    const go = async () => {
+      const r = await load();
+      if (back && r?.last?.result === "pending" && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
+      else setWaiting(false);
+    };
+    go();
+    return () => clearTimeout(timer);
   }, []);
 
   async function start() {
     setBusy(true); setMsg("");
     try {
       const r = await api("/api/economy/identity/", { method: "POST", body: {} });
-      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); return; }
+      if (r?.already || r?.verified_18plus) { await load(); setBusy(false); return; }
+      if (r?.pending) { setMsg(r.detail || "Still checking."); await load(); setBusy(false); return; }
       if (r?.url) { window.location.href = r.url; return; }
       setMsg("Couldn't start verification — try again.");
     } catch (e) {
-      setMsg(/503|not configured/i.test(e?.message || "") ? "ID verification isn't switched on yet." : "Couldn't start verification — try again.");
+      const m = e?.message || "";
+      setMsg(/503|not configured/i.test(m) ? "ID verification isn't switched on yet."
+        : (m && !/^HTTP|failed to fetch/i.test(m) ? m : "Couldn't start verification — try again."));
+      load();
     }
     setBusy(false);
   }
 
   if (!st) return null;
   const verified = !!st.verified_18plus;
+  const last = st.last;
   return (
     <div className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
       </p>
       {verified ? (
-        <p className="flex items-center gap-2 text-sm text-emerald-300"><Check size={15} /> You're verified 18+ — money betting &amp; adult features are unlocked.</p>
+        <>
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. Money betting &amp; adult features are unlocked.</p>
+          <p className="text-[11px] text-white/45">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
+        </>
       ) : (
         <>
+          {last?.result === "failure" && (
+            <p className="text-sm text-mcz-ember"><span className="font-semibold">Failure — your last check did not pass.</span> {last.detail}</p>
+          )}
+          {last?.result === "pending" && (
+            <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
+          )}
           <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled}>
-            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : "Verify I'm 18+"}
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>
+          {st.can_start === false && last?.result !== "pending" && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
+          {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/40">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
           {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
         </>
       )}
