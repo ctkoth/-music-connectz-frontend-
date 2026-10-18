@@ -1519,3 +1519,17 @@ attractiveness number** — the server honours it everywhere (`attractiveness_sh
 searcher's and the number is the rated member's to show. Do not add an approval step, a queue or a "pending
 review" in front of a thing a member can simply set for themselves. The hard lines that remain are about harm,
 not preference: 18+ for anything that rates or sells looks, self-only photos, nothing stored, never weight or body fat.
+
+## A take can be posted and heard, and FeelZ says what, why and how
+
+`PostTake.jsx` (the "Post it — score & feedback" door on every take row, hidden in the standalone shells) posts a take
+through `/api/<key>/take/<id>/post/`: the member ticks the score, the coach's feedback and the recording, and the
+server builds the post from what it stored. **A take is only playable by link if it was kept** — scored takes are not
+stored unless "Keep this take" was ticked — and the control says so before it is pressed rather than letting a post
+promise audio that is not there. Free, and counted against the day's submissions, with the real numbers shown.
+
+Each row also shows **HookZ 🪝 and FeelZ 💗** as labelled ratings with the coach's reason, the emotion heard, and whether
+each is inside the overall or beside it (`extras`, `extras_note`). **A low FeelZ comes with specific tips** (`FeelTips.jsx`:
+delivery, phrasing, dynamics, pacing, intention, mic & gear, room — each as what / why / how, a gear tip pointing at the
+priced gear advice) and **mix suggestions** when the vocal is hard to make out because of the mix. All of it is the
+server's: a high FeelZ carries no tips, and nothing is invented to fill the space.

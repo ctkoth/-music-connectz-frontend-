@@ -46,7 +46,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div data-tour="coach-upgrades" className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <p className="text-[12px] font-semibold text-white/80">🎛️ Gear and settings for this take</p>
       <p className="text-[11px] leading-relaxed text-white/55">{q.explain}</p>
       <p className="text-[11px] text-white/55">{marketsLine(q.markets)}</p>

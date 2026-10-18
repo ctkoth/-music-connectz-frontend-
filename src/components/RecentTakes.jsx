@@ -8,6 +8,7 @@ import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
 import PostTake from "./PostTake.jsx";
+import { FeelzTips, MixTips } from "./FeelTips.jsx";
 import HashtagCount, { hashtagBody } from "./HashtagCount.jsx";
 import { useRemembered } from "../useRemembered.js";
 import { saveText } from "../download.js";
@@ -120,8 +121,10 @@ function Row({ t, labels, appKey }) {
                   detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
               ))}
               {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}
+              <FeelzTips tips={t.extras.find((x) => x.key === "feelz")?.tips} />
             </div>
           )}
+          <MixTips tips={t.mix_tips} />
           {read.strengths?.length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What worked</p>

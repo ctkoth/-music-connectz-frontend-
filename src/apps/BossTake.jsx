@@ -18,13 +18,14 @@ import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, spotlight } from "../goto.js";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
+import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 import SpeakingIn from "../components/SpeakingIn.jsx";
 import { IN_SHELL as IN_SHELL_COACH, IN_SKILLZ } from "../standalone.js";
 import ReportTake from "../components/ReportTake.jsx";
@@ -1784,6 +1785,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </div>
             </div>
           )}
+          <FeelzTips tips={result.feelz_tips} onGear={() => spotlight("coach-upgrades")} />
+          <MixTips tips={result.mix_tips} />
 
           {/* Where you are, and where you're going. A score with no
               destination is a number, not coaching — so the two sit together,
