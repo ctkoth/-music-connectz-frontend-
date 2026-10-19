@@ -1,17 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, Palette, X, Heart, Search, Upload, Image as ImageIcon } from "lucide-react";
+import { playSound } from "../sound.js";
+import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
 import { api, tokenStore } from "../api.js";
+import PersonalitieZ from "../PersonalitieZ.jsx";
+import ReligionZ from "../ReligionZ.jsx";
+import LanguageZ from "../LanguageZ.jsx";
+import { ProfileFieldsEditor, deviceTimezone } from "../components/ProfileFieldz.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
-import { PERSONAS, PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
+import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
 import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears } from "../personaSkills.js";
 import { useCharLimit } from "../limits.js";
+import VoiceCard from "../components/VoiceCard.jsx";
+import { PERSONAS } from "../personaVoice.js";
 import CharLimit from "../CharLimit.jsx";
+import CopyLink from "../CopyLink.jsx";
+import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
-import { spotlight, openMember } from "../goto.js";
+import { spotlight, goToTab, goToSpot } from "../goto.js";
+import { useTransactionModal } from "../TransactionModalContext.jsx";
+import MemberName from "../MemberName.jsx";
+import SignBonus from "../SignBonus.jsx";
+import { useSubstanceScale, frequencyHint } from "../substancez.js";
+import ConnectionZ from "../ConnectionZ.jsx";
+import VisibilitieZ from "../VisibilitieZ.jsx";
+import ReachGates from "../ReachGates.jsx";
+import SoundCloudImport from "../SoundCloudImport.jsx";
+import PortfolioLinks from "../PortfolioLinks.jsx";
+import WhatINeed from "./WhatINeed.jsx";
+import { openHoroscope } from "../components/Horoscope.jsx";
+import StatsZSummary from "./StatsZSummary.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -20,44 +41,69 @@ function Verify18Card() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [waiting, setWaiting] = useState(false);
+
+  const load = () => api("/api/economy/identity/").then((r) => { setSt(r); return r; })
+    .catch(() => { setSt((p) => p || { verified_18plus: false, stripe_enabled: false }); return null; });
 
   useEffect(() => {
-    // A verify return (?verify=done) — refetch status and acknowledge.
-    if (new URLSearchParams(window.location.search).get("verify") === "done") {
-      setMsg("Thanks! If your ID cleared, your 18+ badge appears within a minute.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
+    // A verify return (?verify=done): the server asks Stripe how it ended, so ask until it says.
+    const back = new URLSearchParams(window.location.search).get("verify") === "done";
+    if (back) window.history.replaceState({}, "", window.location.pathname);
+    let tries = 0, timer;
+    const go = async () => {
+      const r = await load();
+      if (back && r?.last?.result === "pending" && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
+      else setWaiting(false);
+    };
+    go();
+    return () => clearTimeout(timer);
   }, []);
 
   async function start() {
     setBusy(true); setMsg("");
     try {
       const r = await api("/api/economy/identity/", { method: "POST", body: {} });
-      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); return; }
+      if (r?.already || r?.verified_18plus) { await load(); setBusy(false); return; }
+      if (r?.pending) { setMsg(r.detail || "Still checking."); await load(); setBusy(false); return; }
       if (r?.url) { window.location.href = r.url; return; }
       setMsg("Couldn't start verification — try again.");
     } catch (e) {
-      setMsg(/503|not configured/i.test(e?.message || "") ? "ID verification isn't switched on yet." : "Couldn't start verification — try again.");
+      const m = e?.message || "";
+      setMsg(/503|not configured/i.test(m) ? "ID verification isn't switched on yet."
+        : (m && !/^HTTP|failed to fetch/i.test(m) ? m : "Couldn't start verification — try again."));
+      load();
     }
     setBusy(false);
   }
 
   if (!st) return null;
   const verified = !!st.verified_18plus;
+  const last = st.last;
   return (
-    <div className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
+    <div data-tour="verify-18" className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
       </p>
       {verified ? (
-        <p className="flex items-center gap-2 text-sm text-emerald-300"><Check size={15} /> You're verified 18+ — money betting &amp; adult features are unlocked.</p>
+        <>
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. Money betting &amp; adult features are unlocked.</p>
+          <p className="text-[11px] text-white/45">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
+        </>
       ) : (
         <>
+          {last?.result === "failure" && (
+            <p className="text-sm text-mcz-ember"><span className="font-semibold">Failure — your last check did not pass.</span> {last.detail}</p>
+          )}
+          {last?.result === "pending" && (
+            <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
+          )}
           <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled}>
-            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : "Verify I'm 18+"}
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>
+          {st.can_start === false && last?.result !== "pending" && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
+          {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/40">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
           {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
         </>
       )}
@@ -66,22 +112,12 @@ function Verify18Card() {
   );
 }
 
-// SubstanceZ — what a member uses, declared by them. A profile metric, so it is
-// filterable on Social ConnectZ like every other one. Order runs legal → heavy;
-// the copy stays non-judgemental because honest data beats flattering data.
-const SUBSTANCES = [
-  ["cigarettes", "Cigarettes", "🚬"],
-  ["caffeine", "Caffeine", "☕"],
-  ["alcohol", "Alcohol", "🍺"],
-  ["thc", "THC", "🍃"],
-  ["dxm", "DXM", "🧴"],
-  ["adderall", "Adderall", "💊"],
-  ["benzos", "Benzos", "💊"],
-  ["opioids", "Opioids", "💊"],
-  ["heroin", "Heroin", "💉"],
-  ["crack", "Crack", "💎"],
-  ["meth", "Meth", "💎"],
-];
+// The persona list lives in personaVoice.js — one list for ProfileZ and PersonaZ.
+
+// SubstanceZ — what a member uses, declared by them. The substances and the
+// frequency scale come from the server (../substancez.js): this file used to
+// carry its own copy of the list, in a different order from the one the
+// SubstanceZ app and the search read.
 
 // PreferenceZ — the genders a member is attracted to. Any one, any mix, or all.
 const PARTNER_GENDERS = [
@@ -102,6 +138,17 @@ const ZODIAC_RANGES = {
 
 const ZODIAC_EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",
   Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓" };
+
+// The OTHER zodiac. Unicode, like the western one above — the live app has
+// never used artwork for a sign, so an animal needs no icon file to ship and
+// custom art can replace these later without changing anything structural.
+//
+// The animal itself comes from the SERVER (`zodiac_cn`), because the year turns
+// at lunar new year rather than on 1 January and the boundary needs a table. A
+// client computing `year % 12` would disagree with the profile for about seven
+// weeks of every year.
+const CN_ZODIAC_EMOJI = { Rat:"🐀",Ox:"🐂",Tiger:"🐅",Rabbit:"🐇",Dragon:"🐉",Snake:"🐍",
+  Horse:"🐎",Goat:"🐐",Monkey:"🐒",Rooster:"🐓",Dog:"🐕",Pig:"🐖" };
 
 // Premium ICONS (cosmetic art), independent of whether the PersonaZ is premium.
 // Only the manga-styled alternate art is premium. Every PersonaZ in the grid —
@@ -245,12 +292,82 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
   );
 }
 
+// Bio, interests and pet peeves — for ONE persona, not the account-level bio
+// above. A "Session bassist, night owl" GhostWriter and a "Loud, opinionated"
+// Manager are different roles a member plays, and one shared bio line would
+// flatten them into a single voice. Declared, never scored — the same reason
+// PersonalitieZ is a declaration and not a quiz result.
+function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
+  const [bio, setBio] = useState(persona.bio || "");
+  const [interests, setInterests] = useState((persona.interests || []).join(", "));
+  const [petPeeves, setPetPeeves] = useState((persona.pet_peeves || []).join(", "));
+
+  function save() {
+    onChange({
+      bio: bio.trim(),
+      interests: interests.split(",").map((s) => s.trim()).filter(Boolean),
+      pet_peeves: petPeeves.split(",").map((s) => s.trim()).filter(Boolean),
+    });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+         onClick={onClose}>
+      <div className="neon-frame max-h-[85vh] w-full max-w-md overflow-y-auto p-5"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold">{personaLabel} — bio &amp; interests</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+        <p className="mb-4 text-[11px] text-white/45">
+          What you say about THIS role — separate from your account bio above.
+          Nothing here is scored or inferred; it's what you type.
+        </p>
+
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">Bio</span>
+          <textarea className="neon-input min-h-[80px] w-full text-sm" maxLength={500}
+                    value={bio} onChange={(e) => setBio(e.target.value)}
+                    placeholder="A couple sentences about this role." />
+        </label>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+            Interests <span className="normal-case text-white/30">(comma-separated)</span>
+          </span>
+          <input className="neon-input w-full text-sm" value={interests}
+                 onChange={(e) => setInterests(e.target.value)}
+                 placeholder="vinyl, analog synths, late-night sessions" />
+        </label>
+        <label className="mb-4 block">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+            Pet peeves <span className="normal-case text-white/30">(comma-separated)</span>
+          </span>
+          <input className="neon-input w-full text-sm" value={petPeeves}
+                 onChange={(e) => setPetPeeves(e.target.value)}
+                 placeholder="late gear, off-tempo clicks" />
+        </label>
+
+        <button className="re-btn !w-auto px-5" onClick={save}>Save</button>
+      </div>
+    </div>
+  );
+}
+
 // Profile picture — view what you have, pick a new one, preview it, save.
 // The picture lives on the economy profile (/api/economy/profile/), not on
 // /api/auth/me/, so this reads its own copy rather than threading it through.
-const AVATAR_MAX_MB = 8;
+// The cap comes from the server (`avatar_max_mb`), which is the same number
+// ProfileAvatarView refuses on. It was `const AVATAR_MAX_MB = 8` here — a
+// second copy of a real server limit, and the copy that would not move when
+// the real one did.
+const AVATAR_MAX_MB_FALLBACK = 8;
 
 function AvatarCard() {
+  // The cap the server actually refuses on, rather than a copy of it.
+  const { avatarMaxMb: avatarCap } = useTierLadder();
   const [url, setUrl] = useState(null);       // what's saved on the server
   const [preview, setPreview] = useState(""); // local object URL, pre-save
   const [file, setFile] = useState(null);
@@ -272,7 +389,8 @@ function AvatarCard() {
     if (!f) return;
     setMsg("");
     if (!f.type.startsWith("image/")) return setMsg("That file isn't an image. Use a JPG, PNG, WebP or GIF.");
-    if (f.size > AVATAR_MAX_MB * 1024 * 1024) return setMsg(`That image is too big — keep it under ${AVATAR_MAX_MB}MB.`);
+    const capMb = avatarCap ?? AVATAR_MAX_MB_FALLBACK;
+    if (f.size > capMb * 1024 * 1024) return setMsg(`That image is too big — keep it under ${capMb}MB.`);
     if (preview) URL.revokeObjectURL(preview);
     setFile(f);
     setPreview(URL.createObjectURL(f));
@@ -354,13 +472,30 @@ function AvatarCard() {
   );
 }
 
-export default function ProfileZ() {
+
+export default function ProfileZ({ onViewProfile, onMessage }) {
+  const { openTransactions } = useTransactionModal();
   const [me, setMe] = useState(null);
   const [sel, setSel] = useState([]);
   const [birthday, setBirthday] = useState("");
   const [nats, setNats] = useState(() => loadSocial().profile?.nationalities || []);
-  const [subs, setSubs] = useState({});        // SubstanceZ: {key: "sometimes"|"often"}
+  const [subs, setSubs] = useState({});        // SubstanceZ: {key: "rarely"|"sometimes"|"often"|"daily"|"yes"}
+  const subScale = useSubstanceScale();
   const [sober, setSober] = useState(false);   // sober BY CHOICE — a claim, not a blank
+  // PersonalitieZ, as the server stores it: a 4-slot code with "-" for an
+  // axis not answered. Kept as the code rather than four pieces of state so
+  // what this screen holds is exactly what the column holds.
+  const [personality, setPersonality] = useState("");
+  // ReligionZ — one declared branch (the leaf key, e.g. "catholic"), or ""
+  // for "hasn't said". Same shape as personality: what this screen holds is
+  // exactly what the column holds.
+  const [religion, setReligion] = useState("");
+  // LanguageZ — {lang_key: "beginner"|"intermediate"|"fluent"}. Same shape
+  // SubstanceZ already holds for "what, and how often".
+  const [languages, setLanguages] = useState({});
+  // Popular-site fields (pronouns, headline, genres…), one object, one save.
+  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "label", "timezone", "pinned_post_id", "cover_url"];
+  const [pf, setPf] = useState(null);
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -370,12 +505,25 @@ export default function ProfileZ() {
   const [deleting, setDeleting] = useState(false);
   // Chosen PersonaZ artwork, and which persona's icon picker is open.
   const [icons, setIcons] = useState(loadPersonaIcons);
+  // The PUBLIC SoundCloud client id, from the same open endpoint the login
+  // buttons read. Never a build-time copy — that is how a client id ends up
+  // stale in one place and right in another.
+  const [scClientId, setScClientId] = useState("");
+  // The audiences a profile field may name, this member's own custom groups
+  // included. Served, never built here.
+  const { audiences } = useTierLadder();
   const [pickingIcon, setPickingIcon] = useState(null);
   const [pickingSkills, setPickingSkills] = useState(null); // persona key
+  const [pickingFlavor, setPickingFlavor] = useState(null); // persona key
   const [natQuery, setNatQuery] = useState("");
   const [bio, setBio] = useState("");
   // What you wear: the badges you show and the title you picked out of them.
   const [worn, setWorn] = useState({ badges: [], title: "", hidden: 0 });
+  // Handle editing (Premium only)
+  const [handleEdit, setHandleEdit] = useState("");
+  const [handleAvailable, setHandleAvailable] = useState(null);
+  const [handleChecking, setHandleChecking] = useState(false);
+  const [handleMsg, setHandleMsg] = useState("");
   const cl = useCharLimit();
   const premium = isPremiumTier(me?.tier);
   // Matches by PREFIX, not substring: typing "i" should give Irish, Italian,
@@ -398,7 +546,13 @@ export default function ProfileZ() {
   })();
 
   async function deleteAccount() {
-    if (!window.confirm("Permanently delete your account and ALL your data? This cannot be undone.")) return;
+    if (!window.confirm(
+      "Permanently delete your account and ALL your data? This cannot be undone.\n\n" +
+      `Your posts, uploads and journal entries are deleted, and so is everything in your wallet: ` +
+      `${SPINAZ} SpinaZ, ${ENERGY} Energy, ${PROMPTZ} PromptZ, ${XP} XP and any ${MONEY} cash balance. ` +
+      `Money is not paid out or refunded when the account is deleted, so withdraw it first.\n\n` +
+      "Any Premium, StatZ or auto top-up billing is cancelled at Stripe first, with no refund of the " +
+      "paid period. If that can't be done, nothing is deleted.")) return;
     setDeleting(true);
     try {
       await api("/api/auth/me/", { method: "DELETE" });
@@ -411,12 +565,19 @@ export default function ProfileZ() {
   }
 
   useEffect(() => {
+    api("/api/auth/oauth-config/", { auth: false })
+      .then((c) => setScClientId(c?.soundcloud || ""))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     api("/api/auth/me/").then((d) => {
       setMe(d); setBirthday(d.birthday || "");
       // Server may hold the old string form or the dict form — normalize once.
       setSel((d.personas || []).map((x) =>
         typeof x === "string" ? { key: x, name: x, skills: [] }
-                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [] }));
+                              : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
+                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setMsg(e.message));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
@@ -432,7 +593,14 @@ export default function ProfileZ() {
         ? Object.fromEntries(d.substances.map((k) => [k, "yes"]))
         : (d?.substances || {}));
       setSober(!!d?.sober);
+      setPersonality(d?.personality || "");
+      setReligion(d?.religion || "");
+      setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
+      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear"].includes(k) ? [] : "")]));
+      got.pinned_post_id = d?.pinned_post?.id ?? d?.pinned_post_id ?? null;
+      if (!got.timezone) got.timezone = deviceTimezone();
+      setPf(got);
     }).catch(() => {});
   }, []);
 
@@ -454,6 +622,10 @@ export default function ProfileZ() {
   const skillsOf = (key) => (sel.find((x) => x.key === key)?.skills) || [];
   function setSkills(key, skills) {
     setSel((cur) => cur.map((x) => (x.key === key ? { ...x, skills } : x)));
+  }
+  const personaOf = (key) => sel.find((x) => x.key === key) || {};
+  function setFlavor(key, flavor) {
+    setSel((cur) => cur.map((x) => (x.key === key ? { ...x, ...flavor } : x)));
   }
 
   function toggleNat(name) {
@@ -484,11 +656,13 @@ export default function ProfileZ() {
       });
       await api("/api/economy/profile/", {
         method: "POST",
-        body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners, nationalities: nats },
+        body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
+                nationalities: nats, personality, religion, languages, ...(pf || {}) },
       });
       setMe(d);
       setSaved(true);
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ and PreferenceZ are live.");
+      playSound("saved");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ, LanguageZ and music details are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -504,12 +678,54 @@ export default function ProfileZ() {
       <header className="flex items-center gap-4">
         <IconImg icon="personaz.png" alt="ProfileZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
-          <h2 className="font-display text-3xl font-extrabold" style={{ color: "#ffcf3f" }}>{me.username}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-3xl font-extrabold" style={{ color: "#ffcf3f" }}>{me.username}</h2>
+            {/* Your own link, on your own profile, in plain sight. This is the
+                one people actually need — it is what you paste into a bio or
+                send to a venue, and reading it out of the URL bar of a page
+                you have to navigate to first is why nobody had it. */}
+            <CopyLink username={me.username} />
+          </div>
           <p className="flex flex-wrap gap-2 pt-1 text-sm">
-            <span className="pill uppercase !text-mcz-cyan">{me.tier} tier</span>
-            {me.zodiac && <span className="pill">{ZODIAC_EMOJI[me.zodiac]} {me.zodiac}</span>}
-            <span className="pill !text-mcz-gold"><Zap size={11} className="inline" /> {me.energy} Energy</span>
-            <span className="pill !text-mcz-pink">{SPINAZ} {me.spinaz} SpinaZ</span>
+            {/* Your own tier, on your own identity page — even more relevant
+                here than the top bar's copy of this same pill, which already
+                opens MembershipZ. */}
+            <button type="button" onClick={() => goToTab("membershipz")}
+                    className="pill uppercase !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+              {me.tier} tier
+            </button>
+            {/* The sign is set right here on this page; what it's WORTH lives
+                in the SignBonus panel further down (spotlight("birthday")
+                already lands there for the "no birthday" case below). */}
+            {me.zodiac && (
+              <button type="button" onClick={() => openHoroscope(me.zodiac)} title={`Today's ${me.zodiac} horoscope`}
+                      className="pill cursor-pointer hover:!border-mcz-gold/60 hover:!text-mcz-gold transition active:scale-95">
+                {ZODIAC_EMOJI[me.zodiac]} {me.zodiac}
+              </button>
+            )}
+            {me.zodiac_cn && (
+              <button type="button" onClick={() => spotlight("birthday")}
+                      title={me.zodiac_cn.approximate
+                        ? "Worked out from your birth year — that year's lunar new year date isn't in our table, so if you were born in January or early February this may be the neighbouring animal."
+                        : `Year of the ${me.zodiac_cn.animal}`}
+                      className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
+                {CN_ZODIAC_EMOJI[me.zodiac_cn.animal] || me.zodiac_cn.emoji} {me.zodiac_cn.animal}
+                {/* Said, not hidden: a sign somebody is told is theirs,
+                    wrongly, is worse than one the app admits it is unsure of. */}
+                {me.zodiac_cn.approximate && <span className="ml-1 text-white/30">?</span>}
+              </button>
+            )}
+            {/* Same figures CommunityBar shows in the top bar, already wired
+                to open their LogZ history there — this header had the
+                identical numbers sitting inert. */}
+            <button type="button" onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                    className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+              <Zap size={11} className="inline" /> {me.energy} Energy
+            </button>
+            <button type="button" onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                    className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+              {SPINAZ} {me.spinaz} SpinaZ
+            </button>
           </p>
           {/* Worn, not filed away. The medals sit on the card the room sees,
               and tapping one drops you at the panel that switches it. */}
@@ -531,7 +747,72 @@ export default function ProfileZ() {
 
       <AvatarCard />
 
+      <VoiceCard />
+
       <Verify18Card />
+
+      {/* HandleZ — customize your profile handle/username (Premium only) */}
+      {premium && (
+        <div className="neon-frame space-y-3 p-4">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+            <span className="text-mcz-cyan">Handle</span>
+          </p>
+          <p className="text-sm text-white/60">Your current handle: <span className="font-semibold text-white">{me.username}</span></p>
+          <input
+            type="text"
+            placeholder="New handle (3-20 chars, letters/numbers/underscore)"
+            value={handleEdit}
+            onChange={(e) => {
+              const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20);
+              setHandleEdit(v);
+              // Real-time availability check
+              if (v.length >= 3 && v !== me.username) {
+                setHandleChecking(true);
+                api(`/api/auth/check-username/?username=${encodeURIComponent(v)}`)
+                  .then((r) => {
+                    setHandleAvailable(r.available);
+                    setHandleMsg(r.reason || (r.available ? "✓ Available!" : ""));
+                  })
+                  .catch(() => setHandleMsg(""))
+                  .finally(() => setHandleChecking(false));
+              } else if (v === me.username) {
+                setHandleAvailable(false);
+                setHandleMsg("This is already your handle");
+              } else {
+                setHandleAvailable(null);
+                setHandleMsg("");
+              }
+            }}
+            className="neon-input text-sm"
+          />
+          {handleChecking && <p className="text-xs text-mcz-gold">Checking...</p>}
+          {handleMsg && (
+            <p className={`text-xs ${handleAvailable ? "text-emerald-300" : "text-mcz-ember"}`}>
+              {handleMsg}
+            </p>
+          )}
+          <button
+            className="neon-btn-primary !py-2 !text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!handleAvailable || handleChecking}
+            onClick={async () => {
+              setHandleMsg("");
+              try {
+                await api("/api/auth/me/", { method: "PATCH", body: { username: handleEdit } });
+                setHandleEdit("");
+                setHandleAvailable(null);
+                setHandleMsg("Handle updated!");
+                setTimeout(() => setHandleMsg(""), 2000);
+                // Reload to update all references to username
+                window.location.reload();
+              } catch (e) {
+                setHandleMsg(e.message || "Couldn't update handle.");
+              }
+            }}
+          >
+            Update Handle
+          </button>
+        </div>
+      )}
 
       {/* ReferZ — invite links + referred members.
           `referral-code` is the anchor EarnZ has been linking to since it
@@ -565,21 +846,67 @@ export default function ProfileZ() {
         {ref?.members?.length > 0 && (
           <div className="space-y-1 border-t border-white/[0.06] pt-2">
             {ref.members.map((m) => (
-              <div key={m.username} className="flex items-center justify-between text-sm">
-                <button className="text-white/80 hover:underline" onClick={() => openMember(m.username)}>{m.username}</button>
-                <span className="text-[11px] text-white/40">
-                  {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
-                </span>
+              <div key={m.username} className="flex items-center justify-between rounded bg-white/[0.03] px-2 py-1.5">
+                <div>
+                  <MemberName username={m.username} className="text-sm" />
+                  <p className="text-[11px] text-white/40">
+                    {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  {onViewProfile && <button onClick={() => onViewProfile(m.username)} title="View profile" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Eye size={13} /></button>}
+                  {onMessage && <button onClick={() => onMessage(m.username)} title="Message" className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white transition"><Mail size={13} /></button>}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
+      <WhatINeed />
+
+      <StatsZSummary />
+
       <div className="neon-frame space-y-2 p-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-white/45">ZodiacZ — birthday</p>
-        <input type="date" className="neon-input !w-auto" value={birthday || ""} onChange={(e) => setBirthday(e.target.value)} />
+        <input data-tour="birthday" type="date" className="neon-input !w-auto" value={birthday || ""} onChange={(e) => setBirthday(e.target.value)} />
         <p className="text-xs text-white/40">Your sign auto-detects from your birthday. Only the sign shows publicly.</p>
+
+        {/* The bonus sits under the field that decides it. The sign is set
+            here, so this is where somebody finds out what it's worth — and
+            they find out BEFORE going and doing the thing, which is the whole
+            of the rule. */}
+        <div className="border-t border-white/10 pt-3">
+          <SignBonus onOpenBirthday={() => spotlight("birthday")} />
+        </div>
+
+        {/* A link you can make and never unmake is one a mistake is permanent
+            in — and the mistake here signs you into the wrong account forever,
+            because a known provider_uid wins before any other check. */}
+        <div className="border-t border-white/10 pt-3" data-tour="connections">
+          <ConnectionZ connections={me?.connections} onChange={setMe} />
+        </div>
+
+        {/* Set per field, because "public" is not one decision. Somebody can
+            want their first name found and their birthday not. */}
+        <div className="border-t border-white/10 pt-3" data-tour="visibility">
+          <VisibilitieZ visibility={me?.visibility} audiences={audiences} onChange={setMe} />
+        </div>
+        <div data-tour="reach-gates"><ReachGates /></div>
+
+        {/* The portfolio: the links that say who you are. They have been shown on
+            the profile and the widget board all along, and nothing mounted could
+            make one. */}
+        <div className="border-t border-white/10 pt-3">
+          <PortfolioLinks />
+        </div>
+
+        {/* Sits with the sign-ins above it: importing a catalogue is the same
+            SoundCloud authorisation, spent on a track list instead of a
+            login. */}
+        <div className="border-t border-white/10 pt-3" data-tour="sc-import">
+          <SoundCloudImport clientId={scClientId} />
+        </div>
       </div>
 
       <div>
@@ -620,6 +947,12 @@ export default function ProfileZ() {
                     + Skills
                   </button>
                 )}
+                {hasPersona(key) && (
+                  <button onClick={() => setPickingFlavor(key)}
+                    className="mt-1 w-full rounded-lg border border-mcz-gold/30 py-1 text-[10px] font-semibold text-mcz-gold hover:bg-mcz-gold/10">
+                    + Bio &amp; interests
+                  </button>
+                )}
                 {hasVariants && (
                   <button
                     onClick={() => setPickingIcon(key)}
@@ -635,8 +968,29 @@ export default function ProfileZ() {
         </div>
       </div>
 
+      {/* PersonalitieZ — four axes, three states each. It sits beside the
+          other declared metrics rather than in a dating screen of its own,
+          because it is one declaration that every member search filters on:
+          CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
+          column. A personality field that only worked in the dating app
+          would be the fourth copy of a profile filter within a year. */}
+      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} />}
+
+      <PersonalitieZ value={personality} onChange={setPersonality} />
+
+      {/* ReligionZ — one declared branch out of fifty, grouped into
+          families (Christianity → Catholic, Lutheran, ...; Islam → Sunni,
+          Shia, ...). Same shape and same reasoning as PersonalitieZ above:
+          a declaration filterable everywhere, never a score. */}
+      <ReligionZ value={religion} onChange={setReligion} />
+
+      {/* LanguageZ — languages spoken AND how well, grouped by region.
+          Multi-select where ReligionZ is one-of, because a member commonly
+          speaks several languages and (usually) practises one religion. */}
+      <LanguageZ value={languages} onChange={setLanguages} />
+
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
-      <div>
+      <div data-tour="preferencez">
         <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Heart size={13} className="text-mcz-pink" /> PreferenceZ — partner genderZ ({partners.length} selected)
         </p>
@@ -658,15 +1012,37 @@ export default function ProfileZ() {
       </div>
 
       {/* SubstanceZ — declared use and how often, another searchable metric. */}
-      <div>
+      <div data-tour="substancez">
         <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
           SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})
         </p>
+        {/* Who can see this, said BEFORE anything is declared. SubstanceZ is open
+            to members by default, and a default that is not stated is a
+            disclosure by accident. The level is the server's own answer for this
+            member (VisibilitieZ's), never assumed here. */}
+        {Array.isArray(me?.visibility) && (() => {
+          const who = (field) => {
+            const row = me.visibility.find((v) => v.field === field);
+            if (!row) return "";
+            return (Array.isArray(row.level) ? row.level : [row.level])
+              .map((t) => (audiences || []).find((a) => a.token === t)?.label || t).join(" + ");
+          };
+          const subsWho = who("substances");
+          if (!subsWho) return null;
+          return (
+            <p className="mb-2 text-[11px] text-white/55">
+              Who can see this: <span className="font-semibold text-white/80">{subsWho}</span>
+              {sober && who("sober") && <> · sober by choice: <span className="font-semibold text-white/80">{who("sober")}</span></>}
+              . Adults only, always.{" "}
+              <button type="button" className="re-link" onClick={() => goToSpot("profilez", "visibility")}>Change who</button>
+            </p>
+          );
+        })()}
         <p className="mb-2 text-[11px] text-white/40">
-          What you actually use, and how often — sometimes and often are different lives. Honest beats
-          flattering; it's a filter, so it puts you with people who live the same way. Tap once for
-          sometimes, twice for often, again to clear.
+          What you actually use, and how often — a daily habit and a few times a year are different
+          lives. Honest beats flattering; it's a filter, so it puts you with people who live the same
+          way. Pick how often for each one you use; leave the rest blank.
         </p>
 
         {/* Sober BY CHOICE is a claim. An empty list only means you didn't say. */}
@@ -678,34 +1054,68 @@ export default function ProfileZ() {
           <span className="mr-1">🚫</span>Sober by choice
         </button>
 
-        <div className={`flex flex-wrap gap-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
-          {SUBSTANCES.map(([key, label, glyph]) => {
-            const stance = subs[key];
-            return (
-              <button key={key}
-                onClick={() => setSubs((v) => {
-                  const next = { ...v };
-                  if (!next[key]) next[key] = "sometimes";
-                  else if (next[key] === "sometimes") next[key] = "often";
-                  else delete next[key];
-                  return next;
-                })}
-                className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                  stance === "often"
-                    ? "border-mcz-ember/80 bg-mcz-ember/15 text-white shadow-neon"
-                    : stance
-                      ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
-                      : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
-                <span className="mr-1">{glyph}</span>{label}
-                {stance && (
-                  <span className={`ml-1.5 text-[10px] ${stance === "often" ? "text-mcz-ember" : "text-mcz-cyan"}`}>
-                    · {stance === "yes" ? "declared" : stance}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {subScale === null && (
+          <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+        )}
+        {subScale === false && (
+          <p className="text-[11px] text-mcz-ember">
+            Couldn't load the SubstanceZ list. What you've already declared is unchanged — reload to edit it.
+          </p>
+        )}
+        {subScale && (
+          <>
+            {/* The scale, said once up front: "often" has to mean the same thing to everyone. */}
+            <p className="mb-2 text-[10px] text-white/35">
+              {subScale.frequencies.map((f) => `${f.label} = ${f.hint}`).join(" · ")}
+            </p>
+            <div className={`space-y-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
+              {subScale.substances.map((sub) => {
+                const stance = subs[sub.key];
+                const unsaid = stance === subScale.legacy;
+                return (
+                  <div key={sub.key}
+                       className={`rounded-xl border p-2.5 transition ${
+                         stance ? "border-mcz-cyan/50 bg-mcz-cyan/5" : "border-white/10 bg-black/30"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-white"><span className="mr-1.5">{sub.emoji}</span>{sub.label}</span>
+                      {stance && (
+                        <button type="button" className="text-[11px] text-white/45 hover:text-white" disabled={sober}
+                                onClick={() => setSubs((v) => { const n = { ...v }; delete n[sub.key]; return n; })}>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div role="group" aria-label={`How often: ${sub.label}`} className="mt-1.5 flex flex-wrap gap-1.5">
+                      {subScale.frequencies.map((f) => {
+                        const on = stance === f.key;
+                        return (
+                          <button key={f.key} type="button" aria-pressed={on} disabled={sober} title={f.hint}
+                                  onClick={() => setSubs((v) => ({ ...v, [sub.key]: f.key }))}
+                                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                                    on
+                                      ? (f.key === "often" || f.key === "daily"
+                                          ? "border-mcz-ember/80 bg-mcz-ember/15 text-white shadow-neon"
+                                          : "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon")
+                                      : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
+                            {f.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {stance && !unsaid && (
+                      <p className="mt-1 text-[10px] text-white/40">{frequencyHint(subScale, stance)}</p>
+                    )}
+                    {unsaid && (
+                      <p className="mt-1 text-[10px] text-amber-300/90">
+                        You picked this before frequency existed — choose how often so it reads right.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {sober ? (
           <p className="mt-2 text-[11px] text-emerald-300/80">
@@ -811,6 +1221,10 @@ export default function ProfileZ() {
         <p className="mb-3 text-xs text-white/50">
           Permanently delete your account and all your data (posts, referrals, messages, SpinaZ). This can't be undone.
         </p>
+        <p className="mb-3 text-xs text-mcz-ember">
+          Premium, StatZ and auto top-up billing is cancelled at Stripe first, with no refund of the
+          paid period. If it can't be cancelled, your account is not deleted and you're told.
+        </p>
         <button
           className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
           disabled={deleting}
@@ -828,6 +1242,16 @@ export default function ProfileZ() {
           skills={skillsOf(pickingSkills)}
           onChange={(sk) => setSkills(pickingSkills, sk)}
           onClose={() => setPickingSkills(null)}
+        />
+      )}
+
+      {pickingFlavor && (
+        <FlavorModal
+          personaKey={pickingFlavor}
+          personaLabel={(PERSONAS.find(([k]) => k === pickingFlavor) || [])[1] || pickingFlavor}
+          persona={personaOf(pickingFlavor)}
+          onChange={(flavor) => setFlavor(pickingFlavor, flavor)}
+          onClose={() => setPickingFlavor(null)}
         />
       )}
 
@@ -877,7 +1301,11 @@ export default function ProfileZ() {
             </div>
             {!premium && (
               <p className="mt-4 text-[11px] text-white/45">
-                The PersonaZ is free for everyone — only the alternate artwork needs Premium. Upgrade in MembershipZ to unlock it.
+                The PersonaZ is free for everyone — only the alternate artwork needs Premium.{" "}
+                <button type="button" onClick={() => { setPickingIcon(null); goToSpot("membershipz", "membershipz-plans"); }}
+                        className="text-mcz-cyan hover:underline">
+                  Upgrade in MembershipZ to unlock it.
+                </button>
               </p>
             )}
           </div>

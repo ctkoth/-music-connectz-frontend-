@@ -1,0 +1,36 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-sing" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Microphone body -->
+  <rect x="85" y="50" width="30" height="40" rx="3" fill="none" stroke="#00ffff" stroke-width="2.5" filter="url(#glow-sing)"/>
+
+  <!-- Microphone grille -->
+  <line x1="95" y1="55" x2="105" y2="55" stroke="#00ffff" stroke-width="1" filter="url(#glow-sing)"/>
+  <line x1="95" y1="62" x2="105" y2="62" stroke="#00ffff" stroke-width="1" filter="url(#glow-sing)"/>
+  <line x1="95" y1="69" x2="105" y2="69" stroke="#00ffff" stroke-width="1" filter="url(#glow-sing)"/>
+  <line x1="95" y1="76" x2="105" y2="76" stroke="#00ffff" stroke-width="1" filter="url(#glow-sing)"/>
+  <line x1="95" y1="83" x2="105" y2="83" stroke="#00ffff" stroke-width="1" filter="url(#glow-sing)"/>
+
+  <!-- Mic stand -->
+  <path d="M100 90 L100 110" stroke="#ffff00" stroke-width="2" filter="url(#glow-sing)"/>
+  <ellipse cx="100" cy="112" rx="12" ry="4" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-sing)"/>
+
+  <!-- Sound waves -->
+  <path d="M60 80 Q50 80, 50 90" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-sing)"/>
+  <path d="M55 75 Q40 75, 40 95" fill="none" stroke="#ff00ff" stroke-width="1.5" opacity="0.7" filter="url(#glow-sing)"/>
+
+  <path d="M140 80 Q150 80, 150 90" fill="none" stroke="#00ff00" stroke-width="2" filter="url(#glow-sing)"/>
+  <path d="M145 75 Q160 75, 160 95" fill="none" stroke="#00ff00" stroke-width="1.5" opacity="0.7" filter="url(#glow-sing)"/>
+
+  <!-- Musical notes -->
+  <path d="M70 50 L70 65 Q75 70, 80 68" fill="none" stroke="#ffff00" stroke-width="1.5" filter="url(#glow-sing)"/>
+  <path d="M130 45 L130 60 Q135 65, 140 63" fill="none" stroke="#ffff00" stroke-width="1.5" filter="url(#glow-sing)"/>
+</svg>

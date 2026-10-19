@@ -13,20 +13,34 @@
 //
 // Every money figure is stated BEFORE the button that moves it, per the
 // cost/gain rule — a price you discover by paying it is a bill.
+import { useAuth } from "../auth/AuthContext.jsx";
+import PartnerzMark from "../components/PartnerzMark.jsx";
+import { celebratePartnerz } from "../milestones.js";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowRight, Check, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
+  ArrowRight, Check, Clock, Disc3, Handshake, Image as ImageIcon, Loader2, Mic, Music, Plus,
   Scale, Send, ShieldCheck, Star, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot, openMember } from "../goto.js";
+import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
-import { MONEY, SPINAZ } from "../resources.js";
+import { ENERGY, MONEY, SPINAZ } from "../resources.js";
+import { labelForSkill } from "../personaSkills.js";
+import Refused, { isInsufficient } from "../Refused.jsx";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import SkillsUsed from "../SkillsUsed.jsx";
+import MentionText from "../MentionParser.jsx";
+import MemberName from "../MemberName.jsx";
+import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -41,6 +55,36 @@ function Amount({ cents, currency }) {
     : <span>{money(cents)} {MONEY}</span>;
 }
 
+// The escrow window, before the money goes in rather than after.
+//
+// The server has shipped `auto_release_days` since CollabZ was written and no
+// screen ever read it — so a payer funded a deal without being told how long
+// their cash sits or when their last chance to dispute it closes. That is the
+// cost/gain rule broken on the most expensive button in the app: the cost of
+// funding is not only the amount, it is the amount AND the days.
+//
+// It is also where PartnerZ becomes visible. A window that is quietly four
+// days shorter than the one on the card beside it reads as a bug; named, it
+// is the only thing being somebody's PartnerZ is worth.
+function EscrowWindow({ deal }) {
+  const days = deal.auto_release_days;
+  if (!days) return null;
+  const base = deal.auto_release_default_days;
+  return (
+    <p className="text-[11px] text-white/50">
+      <Clock size={11} className="mr-1 inline align-[-1px]" />
+      Releases itself {days} day{days === 1 ? "" : "s"} after it's funded unless
+      somebody disputes it.
+      {deal.auto_release_partnerz && base > days && (
+        <span className="text-emerald-300">
+          {" "}PartnerZ — {base - days} days sooner than usual, because you've
+          finished work together before.
+        </span>
+      )}
+    </p>
+  );
+}
+
 function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
@@ -53,6 +97,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-semibold">{deal.title || "Untitled deal"}</p>
+          <PartnerzMark pairs={deal.partnered} />
           <p className="text-xs text-white/55">
             by <button className="hover:underline" onClick={() => openMember(deal.initiator)}>@{deal.initiator}</button>
             {" · "}{STATUS_LABEL[deal.status] || deal.status}
@@ -86,7 +131,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
       {/* The work. A deal you can't hear is a settlement about nothing. */}
       {(deal.media_url || deal.image_url || deal.description || deal.lyrics) && (
         <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
-          {deal.description && <p className="text-[12px] text-white/70">{deal.description}</p>}
+          {deal.description && <p className="text-[12px] text-white/70"><MentionText text={deal.description} /></p>}
           {deal.media_url && (
             deal.media_type === "video"
               ? <video src={deal.media_url} controls className="w-full rounded-lg" />
@@ -129,10 +174,27 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
         </button>
       )}
 
+      {deal.i_am_participant && !deal.mine && ["draft", "funded", "delivered", "disputed"].includes(deal.status) && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
+          {me.accepted_at ? (
+            <>
+              You've accepted this collab, so you can message the others on it (and call, when you are both on StatZ).
+              <button className="ml-2 underline" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: false })}>Withdraw</button>
+            </>
+          ) : (
+            <>
+              @{deal.initiator} put you on this. Accepting lets everyone on it message you — including members in a different age group, which is
+              not allowed anywhere else — and you can withdraw at any time.
+              <button className="ml-2 rounded bg-mcz-cyan/20 px-2 py-0.5 text-mcz-cyan" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: true })}>Accept</button>
+            </>
+          )}
+        </div>
+      )}
+
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
-            <button className="truncate text-white/75 hover:underline" onClick={() => openMember(p.username)}>@{p.username}</button>
+            <MemberName username={p.username} className="truncate text-white/75" />
             <span className="flex shrink-0 items-center gap-2 text-[11px]">
               {p.pays_cents > 0 && (
                 <span className="text-mcz-ember">−<Amount cents={p.pays_cents} currency={cur} /></span>
@@ -153,6 +215,8 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
           </li>
         ))}
       </ul>
+
+      {["draft", "funded", "delivered"].includes(deal.status) && <EscrowWindow deal={deal} />}
 
       <div className="flex flex-wrap gap-2">
         {deal.status === "draft" && me.pays_cents > 0 && (
@@ -184,20 +248,38 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
 }
 
 export default function CollabZ() {
+  const talk = useSay();
   const [deals, setDeals] = useState(null);
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
-                                     description: "", split_mode: "worth" });
+  const [form, setForm] = useState(() => seed("collabz", { title: "", currency: "money", partner: "", mine: "", theirs: "",
+                                     description: "", split_mode: "rating" }, ["currency"]));
+  // A member card's "Collab" lands here with the partner already filled in.
+  useEffect(() => onHandoff("collabz", (p) => {
+    if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
+  }), []);
   const [work, setWork] = useState({});
   const [storage, setStorage] = useState(null);
   const [gates, setGates] = useState({});
+  // The refusal body when the deal costs more ⚡ than they hold.
+  const [short, setShort] = useState(null);
+  // The skills the starter is bringing, and the server's price for them.
+  const [skills, setSkills] = useState([]);
+  const [cost, setCost] = useState(null);
 
+  useEffect(() => {
+    const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
+  }, [skills]);
+
+  const { user } = useAuth();
   const load = useCallback(async () => {
     try {
       const d = await api("/api/economy/collab/");
-      setDeals(asList(d?.deals ?? d));
+      const list = asList(d?.deals ?? d);
+      setDeals(list);
+      celebratePartnerz(list, user?.username, "collab");
     } catch (e) {
       setMsg(e.message || "Couldn't load CollabZ.");
       setDeals([]);
@@ -217,7 +299,8 @@ export default function CollabZ() {
       await api("/api/economy/social/rate/", {
         method: "POST", body: { item: itemKey, action: "rate", score: Math.round(score) },
       });
-      setMsg(`Rated @${username} ${Math.round(score)}/10.`);
+      playSound("rating_given");
+      setMsg(talk(P.collab_rated(username, Math.round(score))));
       load();
     } catch (e) { setMsg(e.message || "Couldn't rate that."); }
   }
@@ -230,20 +313,23 @@ export default function CollabZ() {
       setMsg(r.ready
         ? `Release ready — "${r.title}" by ${r.artist_name}, filled in from this deal.`
         : `Release started. It still needs ${r.missing.join(", ")}.`);
+      // The release lives in DistributeZ — open it there rather than leaving
+      // a release nobody can find.
+      goToSpot("distributez", "distributez-releases");
     } catch (e) { setMsg(e.message || "Couldn't start that release."); }
   }
 
-  async function action(id, verb) {
+  async function action(id, verb, body = {}) {
     setBusy(true); setMsg("");
     try {
-      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body: {} });
+      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body });
       await load();
     } catch (e) { setMsg(e.message || "That didn't go through."); }
     finally { setBusy(false); }
   }
 
   async function create() {
-    setBusy(true); setMsg("");
+    setBusy(true); setMsg(""); setShort(null);
     try {
       const cents = (v) => Math.max(0, Math.round(Number(v || 0) * 100));
       // Host the recording before the deal is written, and let a refused
@@ -270,13 +356,20 @@ export default function CollabZ() {
             { username: me, worth_cents: cents(form.mine) },
             { username: form.partner.trim(), worth_cents: cents(form.theirs) },
           ],
+          skills,
         },
       });
       setForm({ ...form, title: "", partner: "", mine: "", theirs: "", description: "" });
-      setWork({}); setGates({});
-      setMsg("Deal drafted — fund your share to put it in escrow.");
+      setWork({}); setGates({}); setSkills([]);
+      setMsg(talk(P.collab_drafted));
+      // Only once the deal actually exists — a refused draft is not a collab.
+      playSound("collab");
       load();
-    } catch (e) { setMsg(e.message || "Couldn't create that deal."); }
+    } catch (e) {
+      // A priced refusal stays on screen with the way out; a flash would not.
+      if (isInsufficient(e)) { setShort(e); playSound("error"); return; }
+      setMsg(e.message || "Couldn't create that deal."); playSound("error");
+    }
     finally { setBusy(false); }
   }
 
@@ -321,12 +414,19 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <input className="neon-input sm:col-span-2" placeholder="What are we making?"
                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <select className="neon-input" value={form.currency}
-                  onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+          <select data-memo="own" aria-label="Escrow currency" className="neon-input" value={form.currency}
+                  onChange={(e) => { remember("collabz.currency", e.target.value); setForm({ ...form, currency: e.target.value }); }}>
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
-          <input className="neon-input" placeholder="Their username"
+<UsualHint field="collabz.currency" value={form.currency} onUse={(v) => { remember("collabz.currency", v); setForm({ ...form, currency: v }); }} />
+          <p className="text-[11px] text-white/45 sm:col-span-2">
+            {form.currency === "spinaz"
+              ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash.`
+              : `Each payer's share is held in escrow in real cash ${MONEY} from their balance.`}
+            {" "}A payer can cancel for a refund of what they funded before the work is delivered, or while a dispute is open.
+          </p>
+          <input className="neon-input" placeholder="Their username" data-tour="collabz-partner"
                  value={form.partner} onChange={(e) => setForm({ ...form, partner: e.target.value })} />
           <input className="neon-input" inputMode="decimal" placeholder="Your contribution is worth"
                  value={form.mine} onChange={(e) => setForm({ ...form, mine: e.target.value })} />
@@ -354,13 +454,38 @@ export default function CollabZ() {
             can rate it.
           </span>
         </label>
+        <SkillsUsed value={skills} onChange={setSkills} label="Skills you're bringing" />
         <button className="neon-btn-primary !w-auto px-6" onClick={create}
-                disabled={busy || !form.partner.trim()}>
+                disabled={busy || !form.partner.trim()
+                          || (cost?.cost?.amount > 0 && !cost.affordable)}>
           {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Draft the deal
+          {cost?.cost?.amount > 0 && (
+            <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+          )}
         </button>
         <p className="text-[11px] text-white/35">
-          Drafting costs nothing. Money only moves when you fund your share, and it stays held until release.
+          {/* This used to read "Drafting costs nothing" flatly, and naming a
+              skill now makes that false. The money half is unchanged — ⚡ is
+              what starting it costs you, escrow is still untouched until you
+              fund. */}
+          {cost?.cost?.amount > 0 ? (
+            <>
+              Drafting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
+              {" "}— the combined price of the skills you named:{" "}
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
+              {!cost.affordable && (
+                <span className="text-mcz-ember">
+                  {" "}You have {cost.energy} — not enough, so this won't draft yet.
+                </span>
+              )}
+              {" "}Money only moves when you fund your share, and it stays held until release.
+            </>
+          ) : (
+            <>Drafting costs nothing. Money only moves when you fund your share, and it stays
+              held until release.</>
+          )}
         </p>
+        {short && <Refused err={short} />}
       </div>
     </div>
   );

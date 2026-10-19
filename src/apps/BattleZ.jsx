@@ -9,20 +9,37 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
-import { useEffect, useState } from "react";
+import { celebrateBattles, celebratePartnerz } from "../milestones.js";
+import PartnerzMark from "../components/PartnerzMark.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { useEffect, useRef, useState } from "react";
+import { trackListening } from "../listen.js";
 import {
   ArrowLeft, Check, Coins, Crown, Loader2, Lock, Plus, Star, Swords, Timer,
   Trophy, Users, X,
 } from "lucide-react";
 import { api } from "../api.js";
+import Refused, { isInsufficient } from "../Refused.jsx";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
+import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
-import { SPINAZ } from "../resources.js";
+import { ENERGY, SPINAZ } from "../resources.js";
+import { labelForSkill } from "../personaSkills.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
+import SkillsUsed from "../SkillsUsed.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { openMember } from "../goto.js";
+// Called on both entry paths and imported on neither — `hasBlobs` and
+// `uploadWork` threw ReferenceError the moment somebody entered a battle,
+// which is the same missing line that had the trial's Record button dead.
+import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
+import MentionText from "../MentionParser.jsx";
+import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 // "@username" as a real link to their profile — every place BattleZ mentions
 // a contestant by name uses this instead of a bare "@{name}" string.
@@ -35,15 +52,26 @@ function AtUser({ user }) {
   );
 }
 
+// An entry's take counts its own listening (listen.js), because rating a
+// battle take requires hearing it first — the same rule posts follow, and the
+// server enforces it. The battle's own beat (no item_key) is just a player.
+function Heard({ item }) {
+  const ref = useRef(null);
+  useEffect(() => trackListening(ref.current, item.item_key), [item.item_key]);
+  return item.media_type === "video"
+    ? <video ref={ref} src={item.media_url} controls className="w-full rounded-lg" />
+    : <audio ref={ref} src={item.media_url} controls className="w-full" />;
+}
+
 function Work({ item }) {
   if (!item.media_url && !item.image_url && !item.lyrics) return null;
   return (
     <div className="space-y-2">
-      {item.media_url && (
+      {item.media_url && (item.item_key ? <Heard item={item} /> : (
         item.media_type === "video"
           ? <video src={item.media_url} controls className="w-full rounded-lg" />
           : <audio src={item.media_url} controls className="w-full" />
-      )}
+      ))}
       {item.image_url && <img src={item.image_url} alt="" className="w-full rounded-lg" />}
       {item.lyrics && (
         <details>
@@ -124,11 +152,25 @@ function Side({ side, board, battle, onRate, onSubmit }) {
 }
 
 function Detail({ id, onBack, onFlash, seed }) {
+  const talk = useSay();
   const [b, setB] = useState(null);
   const [work, setWork] = useState({});
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [showEntry, setShowEntry] = useState(false);
+  // The refusal body when the entry costs more ⚡ than they hold.
+  const [short, setShort] = useState(null);
+  // The skills that went into the take, and what they price it at. The quote
+  // comes from the server on every change so the number ON the button is the
+  // number that will be charged — a price the client works out itself is a
+  // guess that disagrees with the bill exactly when it matters.
+  const [skills, setSkills] = useState([]);
+  const [cost, setCost] = useState(null);
+
+  useEffect(() => {
+    const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
+  }, [skills]);
 
   const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -152,6 +194,7 @@ function Detail({ id, onBack, onFlash, seed }) {
 
   async function enter() {
     setBusy(true);
+    setShort(null);
     try {
       // Host the take before the entry is written. It used to be blanked
       // whenever a blob was present, so a recorded entry went in silent.
@@ -161,12 +204,18 @@ function Detail({ id, onBack, onFlash, seed }) {
         method: "POST",
         body: { title: title.trim(), lyrics: hosted.lyrics || "",
                 ...primaryMedia(hosted),
-                image_url: hosted.image_url || "" },
+                image_url: hosted.image_url || "", skills },
       });
-      setTitle(""); setWork({}); setShowEntry(false);
-      onFlash("You're in.");
+      setTitle(""); setWork({}); setSkills([]); setShowEntry(false);
+      onFlash(talk(P.battle_entered));
       load();
-    } catch (e) { onFlash(e.message || "Couldn't enter."); }
+    } catch (e) {
+      // A priced refusal is not a flash message. It stays on screen under the
+      // button, with what it costs and where to go get it — the flash would be
+      // gone in 3.2s, taking the answer with it.
+      if (isInsufficient(e)) { setShort(e); return; }
+      onFlash(e.message || "Couldn't enter.");
+    }
     finally { setBusy(false); }
   }
 
@@ -178,6 +227,7 @@ function Detail({ id, onBack, onFlash, seed }) {
       await api("/api/economy/social/rate/", {
         method: "POST", body: { item: entry.item_key, action: "rate", score: Math.round(score) },
       });
+      playSound("rating_given");
       load();
     } catch (e) { onFlash(e.message || "Couldn't rate that."); }
   }
@@ -203,14 +253,17 @@ function Detail({ id, onBack, onFlash, seed }) {
     try {
       setB(await api(`/api/economy/battlez/${id}/wager/`,
                      { method: "POST", body: { side, amount: Math.round(amount) } }));
-      onFlash(`−${Math.round(amount)} ${SPINAZ} staked. It's held until the result.`);
-    } catch (e) { onFlash(e.message || "Couldn't place that."); }
+      onFlash(talk(P.battle_staked(Math.round(amount))));
+      // After the server takes it, never before: a refused wager stakes
+      // nothing, and it must not sound like it did.
+      playSound("battle");
+    } catch (e) { onFlash(e.message || "Couldn't place that."); playSound("error"); }
   }
 
   async function settle() {
     try {
       setB(await api(`/api/economy/battlez/${id}/settle/`, { method: "POST", body: {} }));
-      onFlash("Settled.");
+      onFlash(talk(P.battle_settled));
     } catch (e) { onFlash(e.message || "Couldn't settle it."); }
   }
 
@@ -224,6 +277,7 @@ function Detail({ id, onBack, onFlash, seed }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="font-display text-lg font-extrabold">{b.title}</h3>
+            <PartnerzMark pairs={b.partnered} />
             <p className="text-[11px] text-white/45">
               hosted by <AtUser user={b.host} />
               {b.genre && <> · {b.genre}</>}
@@ -235,7 +289,7 @@ function Detail({ id, onBack, onFlash, seed }) {
             <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
           )}
         </div>
-        {b.description && <p className="text-[13px] text-white/75">{b.description}</p>}
+        {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />
         {Object.keys(b.gates || {}).length > 0 && (
           <p className="flex items-center gap-1.5 text-[11px] text-white/45">
@@ -371,16 +425,24 @@ function Detail({ id, onBack, onFlash, seed }) {
         )}
       </div>
 
-      {b.status === "open" && (is1v1 ? showEntry : (!b.mine && !b.entered)) && (
+      {b.status === "open" && (is1v1 ? showEntry : ((!b.mine || b.kind === "weekly") && !b.entered)) && (
         <div className="neon-frame space-y-3 p-4">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Enter</p>
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
                  value={title} onChange={(e) => setTitle(e.target.value)} />
           <MediaFields value={work} onChange={setWork} label="Your entry" />
-          <button className="neon-btn-primary !w-auto px-5" onClick={enter} disabled={busy}>
+          <SkillsUsed value={skills} onChange={setSkills} label="Skills used on this take" />
+          {/* Both prices, before the button. They are different resources going
+              to different places: the fee is 🍥 to the host, the skills are ⚡
+              to nobody — it is what putting the work up costs you. */}
+          <button className="neon-btn-primary !w-auto px-5" onClick={enter}
+                  disabled={busy || (cost?.cost?.amount > 0 && !cost.affordable)}>
             {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Enter
             {b.entry_spinaz > 0 && (
               <span className="ml-1 text-mcz-ember">−{b.entry_spinaz} {SPINAZ}</span>
+            )}
+            {cost?.cost?.amount > 0 && (
+              <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
             )}
           </button>
           {/* The fee is stated on the button, and what happens to it here. */}
@@ -389,6 +451,20 @@ function Detail({ id, onBack, onFlash, seed }) {
               ? `The entry fee goes to @${b.host} for their time. It isn't returned if you withdraw.`
               : "Free to enter."}
           </p>
+          {cost?.cost?.amount > 0 && (
+            <p className="text-[10px] text-white/35">
+              The ⚡ is the combined price of the skills you named:{" "}
+              {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
+              {/* Unlike a post, a take that can't be paid for is REFUSED, so
+                  this says so rather than "we'll take what's there". */}
+              {!cost.affordable && (
+                <span className="text-mcz-ember">
+                  {" "}You have {cost.energy} — not enough, so this won't go up yet.
+                </span>
+              )}
+            </p>
+          )}
+          {short && <Refused err={short} />}
         </div>
       )}
       {b.entered && <p className="text-[12px] text-emerald-300">You're in this one.</p>}
@@ -396,12 +472,76 @@ function Detail({ id, onBack, onFlash, seed }) {
   );
 }
 
+/** The Weekly Open — one battle a week anyone can enter, ranked by what
+ *  other members rate each take. Everything here is the server's: the week,
+ *  the deadline, who placed and how many ratings each take still needs. */
+function WeeklyOpen({ onOpen }) {
+  const [d, setD] = useState(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { api("/api/economy/battlez/weekly/").then(setD).catch(() => setD(null)); }, []);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
+  const w = d?.week;
+  if (!w) return null;
+  const left = Math.max(0, new Date(w.ends_at).getTime() - now);
+  const days = Math.floor(left / 864e5), hrs = Math.floor((left % 864e5) / 36e5);
+  const top = w.board.slice(0, 5);
+  return (
+    <div className="neon-frame mb-4 space-y-3 border-mcz-gold/40 p-4" data-tour="weekly-open">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="flex items-center gap-1.5 font-display text-lg font-extrabold text-mcz-gold">
+          <Trophy size={16} /> {w.title}
+        </p>
+        <span className="text-[11px] text-white/50">ends in {days}d {hrs}h</span>
+      </div>
+      <p className="text-[12px] text-white/60">
+        {w.description} A take places once {d.min_ratings} members have rated it.
+        {d.prize_spinaz > 0 && <> Winner: <span className="text-emerald-300">+{d.prize_spinaz} {SPINAZ}</span>.</>}
+      </p>
+      {d.last_week?.winner && (
+        <p className="text-[12px] text-white/70">👑 Last week: <b>@{d.last_week.winner}</b></p>
+      )}
+      {top.length === 0 ? (
+        <p className="text-[12px] text-white/45">No takes in yet — be first in.</p>
+      ) : (
+        <ol className="space-y-1">
+          {top.map((r) => (
+            <li key={r.entry_id} className="flex items-center justify-between gap-2 text-[12px]">
+              <span className="min-w-0 truncate">
+                <span className="tabular-nums text-white/35">{r.rank ? `#${r.rank}` : "—"}</span>{" "}
+                <span className={r.mine ? "text-mcz-cyan" : "text-white/85"}>@{r.username}</span>
+                {r.title ? <span className="text-white/40"> · {r.title}</span> : null}
+              </span>
+              <span className="shrink-0 tabular-nums">
+                {r.rank
+                  ? <><b className="text-mcz-ember">{r.median}</b><span className="text-white/30">/10 · {r.count}</span></>
+                  : <span className="text-white/40">needs {r.needs} more rating{r.needs === 1 ? "" : "s"}</span>}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button className="re-btn !w-auto px-4" onClick={() => onOpen(w.id)}>
+          {w.entered ? "See the entries & rate" : "Enter this week"}
+        </button>
+        {w.board.some((r) => !r.mine && !r.rated_by_me) && (
+          <span className="self-center text-[11px] text-white/45">
+            {w.board.filter((r) => !r.mine && !r.rated_by_me).length} take(s) waiting for your rating
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function BattleZ() {
   const [list, setList] = useState(null);
+  const [calloutCost, setCalloutCost] = useState(null);
+  const [hostCost, setHostCost] = useState(null);
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", genre: "Trap", entry_spinaz: "" });
+  const [form, setForm] = useState({ title: "", description: "", genre: recall("battlez.genre") || "Trap", entry_spinaz: "" });
   const [work, setWork] = useState({});
   const [gates, setGates] = useState({});
   const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
@@ -410,13 +550,15 @@ export default function BattleZ() {
   // A post carried in from PostZ, waiting for a battle to be entered into.
   const [seed, setSeed] = useState(null);
 
+  const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => setList(asList(d?.battles)))
+    .then((d) => { const l = asList(d?.battles); setList(l); setCalloutCost(d?.challenge_cost_energy ?? null); setHostCost(d?.host_cost_energy ?? null); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
   useEffect(() => onHandoff("battlez", (h) => {
     if (h?.kind === "post" && h.post_id) setSeed(h);
+    if (h?.opponent) setDuel((d) => ({ ...d, opponent: String(h.opponent) }));
   }), []);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3200); };
@@ -496,6 +638,7 @@ export default function BattleZ() {
                 onFlash={flash} seed={seed} />
       ) : (
         <>
+          <WeeklyOpen onOpen={setOpen} />
           {list === null ? (
             <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
           ) : list.length === 0 ? (
@@ -536,9 +679,9 @@ export default function BattleZ() {
               Throw down a challenge
             </p>
             <div className="grid gap-2 sm:grid-cols-3">
-              <input className="neon-input !py-2 text-xs" placeholder="Opponent username"
+              <input className="neon-input !py-2 text-xs" placeholder="Opponent username" data-tour="battlez-opponent"
                      value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
-              <select className="neon-input !py-2 text-xs" value={duel.kind}
+              <select aria-label="Battle type" className="neon-input !py-2 text-xs" value={duel.kind}
                       onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>
                 <option value="1v1">1v1 ⚔️</option>
                 <option value="freestyle">Freestyle 🎤</option>
@@ -551,7 +694,18 @@ export default function BattleZ() {
             <button className="neon-btn-primary !w-auto px-5" onClick={challenge}
                     disabled={busy || !duel.opponent.trim()}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
+              {calloutCost > 0 && <span className="ml-2 text-mcz-ember">−{calloutCost} {ENERGY}</span>}
             </button>
+            {calloutCost > 0 && (
+              <p className="text-[10px] text-white/35">
+                Charged when it is sent, <span className="text-emerald-300">+{calloutCost} {ENERGY}</span> back if they decline.
+                A challenge that fails to send is not charged.
+              </p>
+            )}
+            <p className="text-[10px] text-white/35">
+              1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
+              and wagering whichever you pick, and the label is what the opponent sees.
+            </p>
             <p className="text-[10px] text-white/35">
               Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.
@@ -567,8 +721,8 @@ export default function BattleZ() {
             <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="Rules, brief, what you want back"
                       value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid gap-2 sm:grid-cols-2">
-              <select className="neon-input !py-2 text-xs" value={form.genre}
-                      onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+              <select data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
+                      onChange={(e) => { remember("battlez.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
                 {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -577,6 +731,7 @@ export default function BattleZ() {
               </optgroup>
             ))}
               </select>
+<UsualHint field="battlez.genre" value={form.genre} onUse={(v) => { remember("battlez.genre", v); setForm({ ...form, genre: v }); }} />
               <input className="neon-input !py-2 text-xs" inputMode="numeric"
                      placeholder="Entry fee in SpinaZ (0 = free)"
                      value={form.entry_spinaz}
@@ -586,15 +741,16 @@ export default function BattleZ() {
             <MediaFields value={work} onChange={setWork} label="The beat / brief" />
             <RangeGates value={gates} onChange={setGates} title="Who can enter" />
 
-            <button className="neon-btn-primary !w-auto px-5" onClick={create}
-                    disabled={busy || !form.title.trim()}>
-              {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
-            </button>
-            {Number(form.entry_spinaz || 0) > 0 && (
-              <p className="text-[10px] text-emerald-300">
-                +{Number(form.entry_spinaz)} {SPINAZ} to you per entry.
-              </p>
-            )}
+            <div className="flex items-center gap-2">
+              <button className="neon-btn-primary !w-auto px-5" onClick={create}
+                      disabled={busy || !form.title.trim()}>
+                {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
+                {hostCost > 0 && <span className="ml-2 text-mcz-ember">−{hostCost} {ENERGY}</span>}
+              </button>
+              {Number(form.entry_spinaz || 0) > 0 && (
+                <span className="text-sm text-emerald-300">+{Number(form.entry_spinaz)} {SPINAZ}/entry</span>
+              )}
+            </div>
           </div>
         </>
       )}

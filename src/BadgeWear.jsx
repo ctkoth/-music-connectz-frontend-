@@ -21,7 +21,7 @@
 import { CUSTOM_ICONS, IconImg } from "./App.jsx";
 import { asList } from "./shape.js";
 
-export function Medal({ badge, className = "h-12 w-12" }) {
+export function Medal({ badge, className = "h-16 w-16" }) {
   // The registry guard matters: a badge naming art the frontend hasn't shipped
   // would render the MCZ logo, which says nothing. The emoji says everything.
   return CUSTOM_ICONS[badge.icon] ? (
@@ -45,7 +45,7 @@ export const badgeTip = (b) =>
  * card is somewhere you can go rather than a fact with nowhere to take it.
  * Left off, the strip is read-only and the tooltip carries the meaning.
  */
-export function BadgeWear({ badges, title, size = "h-7 w-7", onOpen, className = "" }) {
+export function BadgeWear({ badges, title, size = "h-10 w-10", onOpen, className = "" }) {
   const list = asList(badges);
   if (!title && list.length === 0) return null;
   const Tag = onOpen ? "button" : "span";
@@ -80,7 +80,7 @@ export function BadgeWearList({ badges, title }) {
       <ul className="space-y-1.5">
         {list.map((b) => (
           <li key={b.key} className="flex items-start gap-2">
-            <Medal badge={b} className="h-7 w-7" />
+            <Medal badge={b} className="h-9 w-9" />
             <span className="min-w-0 text-[11px]">
               <span className="text-white/75">{b.name}</span>
               {b.temporary && (

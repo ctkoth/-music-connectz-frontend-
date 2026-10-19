@@ -1,47 +1,164 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AtSign, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
+import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
+import HabitOnboarding from "../components/HabitOnboarding.jsx";
+
+// The BodieZ-only build (standalone/bodiez, `npm run build:bodiez`) sets this at
+// build time. It shares this screen with the main site and is not the music
+// platform, so the parts of signup that sell the music platform stay off it.
+const STANDALONE = !!import.meta.env.VITE_STANDALONE;
+// What each shell calls itself in the one line that says the account is shared.
+// It said "BodieZ" in every shell, which was wrong the day a second one shipped.
+const STANDALONE_NAME = { bodiez: "BodieZ", sentencez: "Sentence ConnectZ", intelligencez: "IntelligenceZ", skillz: "SkillZ" };
+import { track } from "../track.js";
+import { api } from "../api.js";
+import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
+import RuleNote from "../RuleNote.jsx";
+
+/** Which field a registration was refused on, as a funnel slug. */
+function regFailWhy(err) {
+  if (!err?.status) return "network";
+  if (err.status >= 500) return "server";
+  const keys = Object.keys(err.data && typeof err.data === "object" ? err.data : {});
+  return ["username", "email", "password", "birthday"].find((k) => keys.includes(k)) || "other";
+}
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const ref = (params.get("ref") || "").trim();
+  // ?ref= on this URL, or the one remembered when they arrived through a
+  // member's score card and tried the coach first.
+  const ref = (params.get("ref") || (() => { try { return localStorage.getItem("mcz_ref") || ""; } catch { return ""; } })()).trim();
   // A take they had scored at the door, before they had an account to put it
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
-  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", password2: "", birthday: "" });
+  // A week built on the BodieZ trial door's split builder — free, no account,
+  // computed client-side. It only survives as real routines if this
+  // registration completes; see BodieZTrial.jsx's own comment on why.
+  const trialSplit = storedTrialSplit();
+  const [showOptional, setShowOptional] = useState(false);
+  const [form, setForm] = useState({ username: "", email: "", phone: "", password: "", birthday: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showHabitOnboarding, setShowHabitOnboarding] = useState(false);
+  // Every tier number this screen states, from the server.
+  //
+  // It had "3 scored takes/day", "5 scored takes/day", "2x faster Energy" and
+  // the two referral amounts typed into the copy — the tenth place a tier
+  // number lived, and CLAUDE.md says how that ends. The "2x" was already
+  // wrong: the floors are 2 and 6 ⚡/hr, so for somebody reading a SIGNUP page
+  // — who has no verified reach and is therefore on the floor — Premium is 3x,
+  // and the screen was understating the thing it was selling.
+  const [tiers, setTiers] = useState(null);
+  const [join, setJoin] = useState(null);
+  useEffect(() => {
+    // Nothing below renders in the BodieZ-only build, so nothing to ask for.
+    if (STANDALONE) return undefined;
+    let on = true;
+    api("/api/economy/tiers/", { auth: false })
+      .then((d) => { if (!on) return; if (d?.tiers) setTiers(d.tiers); if (d?.join) setJoin(d.join); })
+      // Silent, and the cards render nothing rather than a made-up number.
+      .catch(() => {});
+    return () => { on = false; };
+  }, []);
+
+  // Is this handle free, asked BEFORE the form is submitted.
+  //
+  // `check-username/` existed the whole time, sat behind IsAuthenticated, and
+  // was therefore unreachable from the only screen that needs it — so the way
+  // you learned a username was taken was to fill in the whole form and press
+  // the button. On blur rather than per keystroke: one request when they move
+  // on, no debounce to get wrong.
+  const [handle, setHandle] = useState(null);
+  // The rule itself, stated BEFORE somebody picks a handle that breaks it —
+  // which is the whole point, and is why it is read rather than typed. Seeded
+  // by one blank check on mount, because the endpoint answers `rule` whatever
+  // it is asked about, and kept fresh from every later answer.
+  const [handleRule, setHandleRule] = useState("");
+
+  async function askHandle(u) {
+    const r = await api(`/api/auth/check-username/?username=${encodeURIComponent(u)}`,
+                        { auth: false });
+    if (r?.rule) setHandleRule(r.rule);
+    return r;
+  }
+
+  useEffect(() => {
+    askHandle("").catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function checkHandle() {
+    const u = form.username.trim();
+    if (!u) return setHandle(null);
+    try {
+      setHandle(await askHandle(u));
+    } catch {
+      // A failed check must never block a signup. They press the button and
+      // the server decides, exactly as it did before this existed.
+      setHandle(null);
+    }
+  }
+
+  useEffect(() => {
+    track("register_view", { has_ref: !!ref, has_trial: !!trialToken });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (form.password !== form.password2) return setError("Passwords don't match.");
     setBusy(true);
     try {
-      await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken });
+      await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken,
+                       trial_split: trialSplit || undefined });
       clearTrialToken();
-      navigate("/");
+      clearTrialSplit();
+      track("register_success");
+      // Show habit onboarding before going home — new users hook into daily returns.
+      // Not in the BodieZ-only build: that onboarding is a music habit (appKey
+      // "singz"), and somebody who just signed up to log a workout would be asked
+      // how often they practise singing before they have seen the app they came for.
+      if (STANDALONE) navigate("/");
+      else setShowHabitOnboarding(true);
     } catch (err) {
       setError(err.message);
+      // After the message is set, so a measurement can never be the reason the
+      // member is not told why. The FIELD the server refused, never its
+      // sentence - that can quote what they typed.
+      track("register_fail", { why: regFailWhy(err) });
     } finally {
       setBusy(false);
     }
   }
 
+  function completeOnboarding() {
+    setShowHabitOnboarding(false);
+    navigate("/");
+  }
+
   return (
-    <AuthShell title="Create your account" subtitle="Join Music ConnectZ — train, create, climb the SkillZ board.">
+    <>
+    <AuthShell title="Create your account"
+               subtitle={STANDALONE
+                 ? `One account for ${STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "this app"} and Music ConnectZ — the same sign-in works in both.`
+                 : "Connect & elevate — post your work, find your people, get real feedback, and get paid for it."}>
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
-          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span> — you start with <span className="font-semibold">100 SpinaZ</span>, they earn 300.
+          <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>
+          {join ? (
+            <> — <span className="font-semibold">+{join.joinee_spinaz} 🍥</span> for you,
+              +{join.referrer_spinaz} 🍥 for them{join.referrer_monthly_cap ? ` (for their first ${join.referrer_monthly_cap} invites in any 30 days)` : ""}. Both sides, because both sides show up.</>
+          ) : null}
         </div>
       )}
       {trialToken && (
@@ -49,17 +166,52 @@ export default function Register() {
           <Sparkles size={15} /> Your scored take is waiting — it saves to this account.
         </div>
       )}
+
+      {/* The gain, before the button. SIGNUP_WELCOME_SPINAZ has been paid on
+          every registration since it was written and no screen ever said so —
+          the cost/gain rule's other half, and the half that gets forgotten. A
+          reward found out by accident is a coincidence, and a coincidence
+          changes nobody's behaviour. */}
+      {join?.welcome_spinaz > 0 && !ref && !STANDALONE && (
+        <p className="text-sm text-emerald-300">
+          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span> in your balance the moment you join.
+        </p>
+      )}
+
       <form onSubmit={submit} className="space-y-3">
-        <Field icon={User} placeholder="Username" value={form.username} onChange={set("username")} autoComplete="username" />
+        <div>
+          <Field icon={User} placeholder="Username" value={form.username}
+                 onChange={(e) => { setHandle(null); set("username")(e); }}
+                 onBlur={checkHandle} autoComplete="username" />
+          {/* The server's sentence, never a reworded one — it is the same
+              `username_problem` the register endpoint refuses with, so the
+              form and the submit can never disagree about why. */}
+          {handle && (
+            <p className={`mt-1 text-[11px] ${handle.available ? "text-emerald-300" : "text-mcz-pink"}`}>
+              {handle.available ? `${form.username.trim()} is free.` : handle.reason}
+            </p>
+          )}
+          {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
+        </div>
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
-        <Field icon={Phone} type="tel" placeholder="Phone number" value={form.phone} onChange={set("phone")} autoComplete="tel" />
+        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
+
+        {/* Optional, so folded: five fields looked like twice the work. */}
+        {showOptional ? (
+          <div className="space-y-3">
+        <Field icon={Phone} type="tel" placeholder="Phone number (optional)" value={form.phone} onChange={set("phone")} autoComplete="tel" required={false} />
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
-          <p className="mt-1 text-[11px] text-white/35">Birthday (optional) — unlocks your ZodiacZ sign</p>
+          <p className="mt-1 text-[11px] text-white/35">{STANDALONE ? "Birthday (optional)" : "Birthday (optional) — unlocks your ZodiacZ sign"}</p>
         </div>
-        <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
-        <PasswordField placeholder="Repeat password" value={form.password2} onChange={set("password2")} autoComplete="new-password" />
+          </div>
+        ) : (
+          <button type="button" onClick={() => setShowOptional(true)}
+                  className="text-xs text-white/45 hover:text-white/75">
+            {STANDALONE ? "+ Add phone or birthday (optional)" : "+ Add phone or birthday (optional — birthday unlocks your ZodiacZ sign)"}
+          </button>
+        )}
 
         {error && <p className="text-sm text-mcz-pink">{error}</p>}
 
@@ -71,36 +223,125 @@ export default function Register() {
 
       <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
 
+      {/* The one-account rule, read from the server (`rulez.js`). It used to
+          OPEN the form, above the username — a warning as the first thing a
+          stranger reads reads as an accusation at the door. Still on this
+          screen, still before anyone is signed up; just after the fields. */}
+      <RuleNote rule="one_account" />
+
       <p className="pt-2 text-center text-sm text-white/55">
         Already have an account?{" "}
         <Link to="/login" className="text-mcz-cyan hover:underline">
           Log in
         </Link>
       </p>
+
+      {/* What you unlock — same pattern as TrialTake, so all new users see
+          tier differentiation upfront, whether they came via trial or direct signup.
+          Not in the BodieZ-only build: a workout log has no AI-run allowance, no ⚡
+          and no 🍥 to show, and a "START FREE, UPGRADE ANYTIME" ladder inside an app
+          that has nothing to buy is a price for something the screen cannot sell. */}
+      {!STANDALONE && (
+      <div className="space-y-3 pt-4 border-t border-white/10">
+        <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
+          Start free, upgrade anytime
+        </p>
+        {/* Every number here is the server's.
+          *
+          * "Advanced analytics" and "Priority support" used to sit on the
+          * Premium card and neither exists anywhere in the codebase — a
+          * signup page selling two features that were never built. Gone. What
+          * is listed now is what the ladder actually ladders, and it is read
+          * from /api/economy/tiers/ so it cannot drift from what a member
+          * gets. The card renders only when the fetch succeeded: no tiers
+          * means no card, never an invented figure. */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(tiers || []).filter((t) => t.key === "free" || t.key === "premium").map((t) => (
+            <div key={t.key}
+                 className={`rounded-lg border p-3 ${t.key === "free"
+                   ? "border-emerald-300/20 bg-emerald-300/5"
+                   : "border-mcz-gold/30 bg-mcz-gold/5"}`}>
+              <p className={`mb-2 font-semibold ${t.key === "free" ? "text-emerald-300" : "text-mcz-gold"}`}>
+                {t.label}
+              </p>
+              <ul className="space-y-1 text-[11px] text-white/75">
+                {t.key === "premium" && <li>✓ Everything in Free</li>}
+                <li>✓ Keep all your takes</li>
+                <li>✓ {t.daily_prompts} AI runs/day — coach, OCC, DirectZ</li>
+                <li>✓ {t.energy_per_hour} ⚡/hour</li>
+                <li>✓ {t.upload_mb >= 1024 ? `${Math.round(t.upload_mb / 1024)}GB` : `${t.upload_mb}MB`} per upload</li>
+                <li>✓ Post, rate and earn 🍥</li>
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
     </AuthShell>
+
+    {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+    </>
   );
 }
 
-function Field({ icon: Icon, ...props }) {
+function Field({ icon: Icon, required = true, ...props }) {
+  // `required` used to be inferred from the placeholder text ("Phone number"
+  // was the one field this compared against), so renaming or rewording any
+  // placeholder silently changed what the form would block on. It's an
+  // explicit prop now — the one field that is optional (phone) says so, and
+  // nothing here can make a field required by accident again.
   return (
     <div className="relative">
       <Icon size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
-      <input className="neon-input pl-10" {...props} required={props.placeholder !== "Phone number"} />
+      <input className="neon-input pl-10" {...props} required={required} />
     </div>
   );
 }
 
 export function AuthShell({ title, subtitle, children }) {
+  const build = import.meta.env.VITE_STANDALONE ? null : recommendedBuild();
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
-        <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
+        <img src="/logo.png?v=2" alt={import.meta.env.VITE_STANDALONE ? (STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "") : "Music ConnectZ"} className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}
         </div>
       </div>
       <div className="neon-frame space-y-5 p-6">{children}</div>
-    </div>
+
+      {/* Free, no account needed — both builds load the live site, so they're
+          always whatever the web app is, never a version behind it. Picks
+          Android on an Android visitor rather than defaulting to Windows for
+          everyone; SpecZ (inside the app) still lists every option. */}
+      {build && (
+      <a
+        href={build.href}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
+      >
+        <Download size={15} className="shrink-0 text-mcz-cyan" />
+        <div>
+          <span className="font-semibold text-white">
+            {build.emoji} Download for {build.key === "android" ? "Android (.apk)" : "Windows (.exe)"}
+          </span>
+          <span className="ml-1.5 text-emerald-300">Free</span>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
+            {build.note} {build.key === "android"
+              ? "You'll need to allow installs from this source."
+              : "Unsigned build — SmartScreen: More info → Run anyway."}
+          </p>
+        </div>
+      </a>
+      )}
+      {!import.meta.env.VITE_STANDALONE && alternateBuild() && (
+        <a href={alternateBuild().href} target="_blank" rel="noreferrer"
+           className="mt-1.5 block text-center text-[11px] text-mcz-cyan hover:underline">
+          {alternateBuild().emoji} On Android? Get the {alternateBuild().label} instead
+        </a>
+      )}
+    </main>
   );
 }

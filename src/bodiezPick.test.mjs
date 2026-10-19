@@ -1,0 +1,61 @@
+// pickForDay's equipment filter accepts a string (the member app's own
+// single-select, unchanged) or an array (the trial door's multi-select).
+// See bodiezPick.js's own comment for why both shapes have to work.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { pickForDay } from "./bodiezPick.js";
+
+const EXERCISES = [
+  { id: 1, muscle_group: "chest", equipment: "barbell", name: "Bench Press" },
+  { id: 2, muscle_group: "chest", equipment: "dumbbell", name: "Dumbbell Press" },
+  { id: 3, muscle_group: "back", equipment: "cable", name: "Cable Row" },
+  { id: 4, muscle_group: "back", equipment: "dumbbell", name: "Dumbbell Row" },
+];
+
+test("no equipment filter picks the first exercise per muscle", () => {
+  const picks = pickForDay(["chest", "back"], null, EXERCISES, "");
+  assert.deepEqual(picks.map((p) => p.id), [1, 3]);
+});
+
+test("a single equipment string still works (the member app's own select)", () => {
+  const picks = pickForDay(["chest", "back"], null, EXERCISES, "dumbbell");
+  assert.deepEqual(picks.map((p) => p.id), [2, 4]);
+});
+
+test("an equipment array matches ANY of the selected types", () => {
+  const picks = pickForDay(["chest", "back"], null, EXERCISES, ["cable", "dumbbell"]);
+  // chest has no cable exercise, so it falls to dumbbell; back has both and
+  // takes whichever the library lists first among the selected types.
+  assert.deepEqual(picks.map((p) => p.id), [2, 3]);
+});
+
+test("an empty equipment array means no filter, same as an empty string", () => {
+  const picks = pickForDay(["chest", "back"], null, EXERCISES, []);
+  assert.deepEqual(picks.map((p) => p.id), [1, 3]);
+});
+
+test("a muscle with no exercise in the selected equipment is skipped, not crashed", () => {
+  const picks = pickForDay(["chest", "back"], null, EXERCISES, ["cable"]);
+  assert.deepEqual(picks.map((p) => p.id), [3]); // chest has no cable exercise
+});
+
+test("N per muscle takes them in library order, one is still the default", () => {
+  assert.deepEqual(pickForDay(["chest"], null, EXERCISES, "", 2).map((p) => p.id), [1, 2]);
+  assert.deepEqual(pickForDay(["chest"], null, EXERCISES, "").map((p) => p.id), [1]);
+});
+
+test("a muscle with fewer than N gives what it has, never an invented row", () => {
+  assert.deepEqual(pickForDay(["chest", "back"], null, EXERCISES, "cable", 6).map((p) => p.id), [3]);
+});
+
+test("equipment narrows the pool before the count is applied", () => {
+  assert.deepEqual(pickForDay(["back"], null, EXERCISES, ["dumbbell"], 3).map((p) => p.id), [4]);
+});
+
+test("the pool is taken in library (id) order, not the order the list happens to be sorted in", () => {
+  // The server serves the list sorted by name; a newer row that sorts earlier
+  // must not displace the original first choice.
+  const list = [{ id: 9, muscle_group: "abs", equipment: "bodyweight", name: "Abdominal Brace Hold" },
+                { id: 1, muscle_group: "abs", equipment: "machine", name: "Cable Crunch" }];
+  assert.deepEqual(pickForDay(["abs"], null, list, "").map((p) => p.id), [1]);
+});

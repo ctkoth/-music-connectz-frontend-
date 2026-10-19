@@ -1,0 +1,599 @@
+// Generates the neon tab icons — one chassis, one glyph per app.
+//
+// Twenty-six icons drawn by hand would drift: different stroke weights,
+// different glow, a wordmark two pixels off on half of them. So the frame,
+// the background, the glow filters and the wordmark live here ONCE, and each
+// app contributes only the shape in the middle. Adding an app to the set is
+// a glyph and a colour, not a redraw.
+//
+//   node tools/make-neon-icons.mjs
+//
+// Writes public/icons/<key>-neon.svg. Re-run it after editing a glyph; the
+// files are checked in so a deploy never depends on this having been run.
+import { writeFileSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "icons");
+
+// The MCZ palette, and nothing else. An icon set is a set because it draws
+// from one box of pens.
+const C = {
+  cyan: "#22e6ff",
+  pink: "#ff2bd1",
+  purple: "#a855f7",
+  gold: "#ffcf3f",
+  ember: "#ff5500",
+  emerald: "#34d399",
+  ink: "#f4f2ff",
+};
+
+/* ------------------------------------------------------------------ glyphs
+   Each returns markup centred in roughly x 130-382, y 96-300. Strokes are
+   heavy (12-16) because the dock draws these at 36px, where anything finer
+   turns to mud. `a` is the app's accent, `b` a secondary from the palette. */
+const G = {
+  onboardz: (a, b) => `
+    <rect x="150" y="104" width="212" height="196" rx="26" fill="none" stroke="${a}" stroke-width="14"/>
+    <path d="M186 162l26 26 52-56" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M186 236h140" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.75"/>
+    <path d="M186 272h92" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.45"/>`,
+
+  playlistz: (a, b) => `
+    <path d="M146 130h150M146 186h150M146 242h96" stroke="${a}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M296 226l72 42-72 42z" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round"/>`,
+
+  social: (a, b) => `
+    <path d="M256 296c-58-40-92-70-92-108a52 52 0 0 1 92-32 52 52 0 0 1 92 32c0 38-34 68-92 108z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="212" cy="180" r="15" fill="${b}"/>
+    <circle cx="300" cy="180" r="15" fill="${b}"/>`,
+
+  // VybeZ: the member search. It rendered `social_connectz.png` — the exact
+  // same heart as the Social ConnectZ tab beside it — so two different tabs
+  // carried one mark and neither said which was which.
+  //
+  // They are different things and the glyph has to say so: Social ConnectZ is
+  // the ROOM (a heart, who is here), VybeZ is LOOKING (regions, genders, both
+  // zodiacs, sober, substances, five range gates and distance). So: a lens
+  // with a heart inside it. At tab-strip size the circle-and-handle
+  // silhouette is unmistakable against a plain heart, which is the only test
+  // a 24px icon has to pass.
+  vybez: (a, b) => `
+    <circle cx="228" cy="214" r="112" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M228 268c-34-24-54-41-54-63a31 31 0 0 1 54-19 31 31 0 0 1 54 19c0 22-20 39-54 63z"
+          fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M312 298l74 74" stroke="${a}" stroke-width="20" stroke-linecap="round"/>`,
+
+  // LookmaxZ: a hand mirror with a sparkle in the glass — what you can change about
+  // how you present. Deliberately NOT a face (the feature refuses to score one) and
+  // not FaceZ's photo frame; the four-point star is the "after".
+  lookmaxz: (a, b) => `
+    <circle cx="232" cy="208" r="104" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M232 138c6 40 14 48 54 56-40 8-48 16-54 56-6-40-14-48-54-56 40-8 48-16 54-56z"
+          fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M232 312v78M200 390h64" stroke="${a}" stroke-width="18" stroke-linecap="round"/>`,
+
+  // BeatZ: a record with a waveform cut across it — a beat you can license.
+  beatz: (a, b) => `
+    <circle cx="256" cy="256" r="150" fill="none" stroke="${a}" stroke-width="16"/>
+    <circle cx="256" cy="256" r="26" fill="none" stroke="${a}" stroke-width="12"/>
+    <path d="M150 256v0M178 226v60M206 196v120M234 236v40M278 236v40M306 186v140M334 216v80M362 246v20"
+          stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
+  profilez: (a, b) => `
+    <path d="M300 118h84v70a42 42 0 0 1-84 0z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.85"/>
+    <path d="M148 112h150v86a75 75 0 0 1-150 0z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="192" cy="170" r="13" fill="${a}"/>
+    <circle cx="254" cy="170" r="13" fill="${a}"/>
+    <path d="M196 224a40 40 0 0 0 54 0" fill="none" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M223 274v34M300 230v40" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.7"/>`,
+
+  specz: (a, b) => `
+    <path d="M256 106l38 78 86 12-62 60 15 85-77-40-77 40 15-85-62-60 86-12z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="256" cy="204" r="20" fill="${b}"/>`,
+
+  membershipz: (a, b) => `
+    <path d="M146 190l34 88h152l34-88-58 34-52-70-52 70z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="256" cy="132" r="16" fill="${b}"/>
+    <path d="M180 300h152" stroke="${b}" stroke-width="15" stroke-linecap="round"/>`,
+
+  adz: (a, b) => `
+    <rect x="142" y="116" width="228" height="152" rx="22" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M232 164l52 28-52 28z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M212 302h88" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 268v34" stroke="${a}" stroke-width="15"/>`,
+
+  offerz: (a, b) => `
+    <rect x="150" y="176" width="212" height="124" rx="16" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M138 152h236v40H138z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M256 152v148" stroke="${b}" stroke-width="15"/>
+    <path d="M256 152c-30-46-76-30-58 0M256 152c30-46 76-30 58 0" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
+  mimez: (a, b) => `
+    <circle cx="256" cy="188" r="86" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M222 160l24 24M246 160l-24 24" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M290 154l22 22M312 154l-22 22" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M212 232h88" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M256 274v34" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.6"/>`,
+
+  directz: (a, b) => `
+    <rect x="142" y="176" width="228" height="124" rx="16" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M146 152l224-34 8 44-224 34z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M206 128l22 40M266 118l22 40M326 108l22 40" stroke="${b}" stroke-width="13"/>`,
+
+  lessonz: (a, b) => `
+    <path d="M256 116l122 56-122 56-122-56z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M180 202v62c0 22 34 40 76 40s76-18 76-40v-62" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M378 172v70" stroke="${a}" stroke-width="13" stroke-linecap="round"/>`,
+
+  singz: (a, b) => `
+    <rect x="216" y="98" width="80" height="126" rx="40" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M170 202a86 86 0 0 0 172 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 288v34" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M132 168v34M148 152v66M364 168v34M380 152v66" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-opacity="0.8"/>`,
+
+  rapz: (a, b) => `
+    <g stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.9">
+      <path d="M124 268v-52M160 288v-96M352 288v-96M388 268v-52"/>
+    </g>
+    <rect x="216" y="96" width="80" height="120" rx="40" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M186 196a70 70 0 0 0 140 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 266v46M214 312h84" stroke="${a}" stroke-width="15" stroke-linecap="round"/>`,
+
+  messagez: (a, b) => `
+    <rect x="140" y="140" width="232" height="164" rx="22" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M152 158l104 74 104-74" fill="none" stroke="${b}" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/>`,
+
+  keyconnectz: (a, b) => `
+    <circle cx="238" cy="192" r="94" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M144 192h188M238 98c34 40 34 148 0 188M238 98c-34 40-34 148 0 188" fill="none" stroke="${a}" stroke-width="12" stroke-opacity="0.8"/>
+    <circle cx="330" cy="268" r="34" fill="none" stroke="${b}" stroke-width="15"/>
+    <path d="M352 292l38 38M366 306l-14 14" stroke="${b}" stroke-width="15" stroke-linecap="round"/>`,
+
+  occ: (a, b) => `
+    <path d="M126 196c46-62 214-62 260 0-46 62-214 62-260 0z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="256" cy="196" r="44" fill="none" stroke="${b}" stroke-width="15"/>
+    <circle cx="256" cy="196" r="16" fill="${b}"/>
+    <path d="M186 288l-32 30 32 30M326 288l32 30-32 30" fill="none" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  royaltiez: (a, b) => `
+    <ellipse cx="220" cy="164" rx="86" ry="34" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M134 164v56c0 19 39 34 86 34s86-15 86-34v-56" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M134 220v56c0 19 39 34 86 34s86-15 86-34v-56" fill="none" stroke="${a}" stroke-width="15" stroke-opacity="0.75" stroke-linejoin="round"/>
+    <path d="M356 308V196" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M320 232l36-36 36 36" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  callz: (a, b) => `
+    <path d="M158 122c14-14 38-12 50 4l26 36c9 12 7 29-4 39l-20 18c14 30 38 54 68 68l18-20c10-11 27-13 39-4l36 26c16 12 18 36 4 50l-20 20c-14 14-35 18-53 10-52-23-104-60-142-98s-75-90-98-142c-8-18-4-39 10-53z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M300 150a76 76 0 0 1 62 62M300 106a120 120 0 0 1 106 106" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.9"/>`,
+
+  soundz: (a, b) => `
+    <path d="M150 212h56l74-62v212l-74-62h-56z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M326 186a76 76 0 0 1 0 140M362 152a130 130 0 0 1 0 208" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
+  logz: (a, b) => `
+    <rect x="150" y="106" width="212" height="196" rx="22" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M186 156h140M186 204h140M186 252h84" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.65"/>
+    <path d="M300 236l30 30-30 30" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  journalz: (a, b) => `
+    <path d="M158 116h140a34 34 0 0 1 34 34v152H192a34 34 0 0 1-34-34z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M192 302a34 34 0 0 1 0-68h140" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M356 128l30 30-84 84-38 8 8-38z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round"/>`,
+
+  habitz: (a, b) => `
+    <path d="M256 96c46 54 76 88 76 130a76 76 0 0 1-152 0c0-42 30-76 76-130z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M256 186c22 28 34 44 34 62a34 34 0 0 1-68 0c0-18 12-34 34-62z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round"/>`,
+
+  collabz: (a, b) => `
+    <rect x="118" y="150" width="180" height="116" rx="58" fill="none" stroke="${a}" stroke-width="16"/>
+    <rect x="214" y="150" width="180" height="116" rx="58" fill="none" stroke="${b}" stroke-width="16"/>
+    <path d="M256 300v34" stroke="${a}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.6"/>`,
+
+  battlez: (a, b) => `
+    <path d="M146 108l152 152M366 108L214 260" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M290 268l52 52M170 268l-52 52" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="256" cy="286" r="20" fill="none" stroke="${b}" stroke-width="14"/>`,
+
+  labelz: (a, b) => `
+    <path d="M262 108l122 122-132 132-122-122V108z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <circle cx="204" cy="166" r="22" fill="${b}"/>
+    <path d="M262 236l14 30 32 4-24 22 6 32-28-16-28 16 6-32-24-22 32-4z" fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>`,
+
+  groupz: (a, b) => `
+    <circle cx="256" cy="146" r="42" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M180 288a76 76 0 0 1 152 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="148" cy="182" r="30" fill="none" stroke="${b}" stroke-width="13"/>
+    <circle cx="364" cy="182" r="30" fill="none" stroke="${b}" stroke-width="13"/>
+    <path d="M108 296a54 54 0 0 1 56-50M404 296a54 54 0 0 0-56-50" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round"/>`,
+
+  bugz: (a, b) => `
+    <rect x="186" y="150" width="140" height="152" rx="70" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M186 226h140" stroke="${a}" stroke-width="13" stroke-opacity="0.6"/>
+    <path d="M214 138a42 42 0 0 1 84 0" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M222 112l-22-24M290 112l22-24" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M186 186h-52M186 246h-56M186 296h-46M326 186h52M326 246h56M326 296h46"
+          stroke="${a}" stroke-width="13" stroke-linecap="round"/>`,
+
+  // SoundCloud's own identity IS a cloud made of waveform bars, so the bars
+  // ARE the glyph: their tops trace the cloud silhouette rather than a cloud
+  // being drawn around them. Deliberately not a copy of SoundCloud's
+  // trademark — this is MCZ's neon house style saying which service the tab
+  // talks to, which is what an integration icon is for. A pixel-accurate
+  // logo would imply a partnership we do not have.
+  //
+  // The accent is C.ember (#ff5500), which the palette already held and which
+  // happens to be SoundCloud's own orange — so it reads correctly without a
+  // colour being added to the set for one tile.
+  soundcloudengagementz: (a, b) => `
+    <g stroke="${a}" stroke-width="16" stroke-linecap="round">
+      <path d="M150 268v-28"/>
+      <path d="M180 268v-52"/>
+      <path d="M210 268v-84"/>
+      <path d="M240 268v-116"/>
+      <path d="M270 268v-100"/>
+    </g>
+    <g stroke="${b}" stroke-width="16" stroke-linecap="round">
+      <path d="M300 268v-72"/>
+      <path d="M330 268v-44"/>
+      <path d="M360 268v-26"/>
+    </g>
+    <path d="M138 268h236" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-opacity="0.45"/>
+    <path d="M196 140a54 54 0 0 1 100 14" fill="none" stroke="${b}" stroke-width="12"
+          stroke-linecap="round" stroke-opacity="0.55"/>`,
+
+  funnelz: (a, b) => `
+    <path d="M132 116h248l-92 108v86l-64 30v-116z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M170 156h172" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.8"/>
+    <circle cx="256" cy="330" r="14" fill="${b}"/>`,
+
+  metz: (a, b) => `
+    <rect x="180" y="140" width="152" height="80" rx="12" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="180" cy="140" r="8" fill="${a}"/>
+    <circle cx="332" cy="140" r="8" fill="${a}"/>
+    <line x1="256" y1="140" x2="230" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
+    <line x1="256" y1="140" x2="280" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.4"/>
+    <circle cx="256" cy="140" r="6" fill="${b}"/>
+    <path d="M210 300h92" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.7"/>
+    <path d="M216 320h80" stroke="${a}" stroke-width="11" stroke-linecap="round" stroke-opacity="0.4"/>`,
+
+  tunerz: (a, b) => `
+    <path d="M160 180h192M176 216h160" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="256" cy="288" r="72" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="288" r="50" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.7"/>
+    <path d="M256 240v48" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M304 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M192 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
+
+  // Winds and brass: drawn as the instrument's SILHOUETTE, not a diagram of
+  // it. The first set was a pill with dots (a flute), a bare hook (a sax), a
+  // stick (a clarinet) and a line with a triangle (a trumpet) — four icons
+  // that read as shapes rather than instruments, which is the one thing an
+  // icon exists to prevent. Each is tilted or curved the way the real thing is
+  // held, because a perfectly horizontal flute is a ruler.
+  flutez: (a, b) => `
+    <g transform="rotate(-32 256 220)">
+      <rect x="84" y="200" width="344" height="40" rx="20" fill="none" stroke="${a}" stroke-width="15"/>
+      <path d="M118 200v-26" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+      <ellipse cx="150" cy="220" rx="13" ry="8" fill="none" stroke="${b}" stroke-width="8"/>
+      <circle cx="214" cy="220" r="10" fill="${b}"/><circle cx="256" cy="220" r="10" fill="${b}"/>
+      <circle cx="298" cy="220" r="10" fill="${b}"/>
+      <circle cx="350" cy="220" r="10" fill="${b}"/><circle cx="388" cy="220" r="10" fill="${b}"/>
+      <path d="M326 200v-18M326 240v18" stroke="${a}" stroke-width="8" stroke-linecap="round"/>
+    </g>`,
+
+  saxz: (a, b) => `
+    <path d="M150 118c40-14 66 4 70 44v140c0 44 20 64 54 64s58-22 58-58v-26" fill="none" stroke="${a}" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M296 282h72" stroke="${a}" stroke-width="20" stroke-linecap="round"/>
+    <path d="M136 108l-12-20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="220" cy="196" r="11" fill="${b}"/><circle cx="220" cy="238" r="11" fill="${b}"/><circle cx="220" cy="280" r="11" fill="${b}"/>
+    <path d="M254 188h24M254 230h24" stroke="${b}" stroke-width="9" stroke-linecap="round" stroke-opacity="0.8"/>`,
+
+  clarinetz: (a, b) => `
+    <g transform="rotate(24 256 230)">
+      <path d="M244 82l12-26 12 26" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="240" y="92" width="32" height="30" rx="6" fill="none" stroke="${a}" stroke-width="12"/>
+      <path d="M246 130h20v196h-20z" fill="none" stroke="${a}" stroke-width="14" stroke-linejoin="round"/>
+      <path d="M232 326h48l22 44h-92z" fill="none" stroke="${a}" stroke-width="13" stroke-linejoin="round"/>
+      <circle cx="256" cy="168" r="9" fill="${b}"/><circle cx="256" cy="206" r="9" fill="${b}"/>
+      <circle cx="256" cy="244" r="9" fill="${b}"/><circle cx="256" cy="282" r="9" fill="${b}"/>
+      <path d="M232 168h14M266 206h14M232 244h14" stroke="${b}" stroke-width="8" stroke-linecap="round" stroke-opacity="0.8"/>
+    </g>`,
+
+  trumpetz: (a, b) => `
+    <path d="M84 232h22M106 232h188" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M154 232v56a18 18 0 0 0 18 18h122" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M294 218l102-62v170l-102-62z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M196 232v-48M232 232v-48M268 232v-48" stroke="${b}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M180 170h32M216 170h32M252 170h32" stroke="${b}" stroke-width="12" stroke-linecap="round"/>`,
+
+  breathz: (a, b) => `
+    <circle cx="256" cy="250" r="96" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="250" r="58" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.75"/>
+    <circle cx="256" cy="250" r="22" fill="${b}" fill-opacity="0.55"/>
+    <path d="M150 360c34 16 68 16 106 0s72-16 106 0" stroke="${a}" stroke-width="12" stroke-linecap="round" fill="none" stroke-opacity="0.6"/>`,
+
+  chordz: (a, b) => `
+    <g stroke="${a}" stroke-width="13" stroke-linecap="round" fill="none">
+      <path d="M146 140h220M146 180h220M146 220h220M146 260h220M146 300h220M146 340h220"/>
+    </g>
+    <g stroke="${b}" stroke-width="12" stroke-linecap="round" fill="none">
+      <circle cx="170" cy="140" r="6" fill="${b}"/>
+      <circle cx="210" cy="180" r="6" fill="${b}"/>
+      <circle cx="240" cy="220" r="6" fill="${b}"/>
+      <circle cx="280" cy="260" r="6" fill="${b}"/>
+      <circle cx="310" cy="300" r="6" fill="${b}"/>
+    </g>`,
+
+  drumz: (a, b) => `
+    <circle cx="190" cy="160" r="40" fill="none" stroke="${a}" stroke-width="14"/>
+    <circle cx="320" cy="160" r="40" fill="none" stroke="${a}" stroke-width="14"/>
+    <circle cx="255" cy="240" r="50" fill="none" stroke="${b}" stroke-width="14"/>
+    <path d="M160 200v60M220 280v40M290 280v40M350 200v60" stroke="${a}" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="190" cy="160" r="6" fill="${b}"/>
+    <circle cx="320" cy="160" r="6" fill="${b}"/>
+    <circle cx="255" cy="240" r="8" fill="${b}"/>`,
+
+
+
+
+
+
+
+
+
+  // ---- the five that were rendering the MCZ logo -------------------------
+  // Registered in CUSTOM_ICONS pointing at art that was never committed, so
+  // each fell back to the logo — silently, which is why they survived. These
+  // are stand-ins in the house chassis: drop the real art in public/icons/ and
+  // point the registry back at it.
+
+  // A whistle with two call arcs. NOT a speech bubble and not a person — the
+  // coach app is the instruction, and `personaz_coach` below is the human, so
+  // the two must not read as the same icon at 36px.
+  coachz: (a, b) => `
+    <circle cx="214" cy="212" r="66" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M274 178h64a26 26 0 0 1 0 52h-64" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M186 146l40-34" stroke="${a}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M356 150a86 86 0 0 1 0 124" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>
+    <path d="M394 118a140 140 0 0 1 0 188" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
+
+  // The coach PERSONA: a person, with the whistle on a lanyard so it reads as
+  // the same role as the app above without repeating its shape.
+  personaz_coach: (a, b) => `
+    <circle cx="256" cy="140" r="44" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M168 300a88 88 0 0 1 176 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M224 186l32 54 32-54" fill="none" stroke="${b}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8"/>
+    <circle cx="256" cy="262" r="26" fill="none" stroke="${b}" stroke-width="13"/>`,
+
+  // Three rising bars and a trend line. The top tier, so it climbs.
+  statsz: (a, b) => `
+    <path d="M154 300v-72M256 300v-126M358 300v-180" stroke="${a}" stroke-width="26" stroke-linecap="round"/>
+    <path d="M136 186l60-52 60 34 84-82" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M300 86h56v56" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // A door standing open with light coming through it. An opportunity is a way
+  // in, so the glyph is the opening rather than a briefcase or a handshake —
+  // both of which already belong to other tabs here.
+  opportunitiez: (a, b) => `
+    <path d="M168 300V112h104v188" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M272 124l88-26v216l-88 26" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <circle cx="292" cy="212" r="9" fill="${a}"/>
+    <path d="M118 212h34M126 168h26M126 256h26" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>`,
+
+  // Two figures joined by a link. GroupZ is a crowd and CollabZ is two rounded
+  // panels; PartnerZ is specifically a PAIR who have finished work together,
+  // so it is two of them and the thing holding them together.
+  partnerz: (a, b) => `
+    <circle cx="170" cy="150" r="38" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M112 286a58 58 0 0 1 116 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="342" cy="150" r="38" fill="none" stroke="${b}" stroke-width="15"/>
+    <path d="M284 286a58 58 0 0 1 116 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M228 218h24M260 218h24" stroke="${a}" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="218" r="22" fill="none" stroke="${b}" stroke-width="12"/>`,
+
+  // ---- Lilith buckets with no art -----------------------------------------
+  // Lilith renders six buckets and had icons for four, so inbox and someday
+  // drew nothing at all while their neighbours had art — a strip that reads as
+  // half-finished rather than deliberate. These are stand-ins in the neon
+  // chassis; the other four are bespoke PNGs, so the strip is mixed until
+  // matching art lands. Present-and-different beats absent, and swapping one
+  // back is a single registry line.
+  //
+  // rewardz and automationz are NOT here on purpose: the blueprint names them
+  // but `models.BUCKETS` does not, so nothing can render them. Art for a
+  // screen that does not exist is what the eight deleted keys already taught.
+
+  // A tray with something dropping into it. Deliberately not an envelope —
+  // MessageZ owns that shape, and these sit two tabs apart.
+  lilith_inbox: (a, b) => `
+    <path d="M132 208v76a20 20 0 0 0 20 20h208a20 20 0 0 0 20-20v-76" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M132 208h72l18 34h68l18-34h72" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M256 96v82" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M222 148l34 34 34-34" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // A crescent and a star — "not now, but not dropped". Not a clock: Today and
+  // Upcoming are the time-bound ones, and Someday is the bucket with no date.
+  lilith_someday: (a, b) => `
+    <path d="M318 112a104 104 0 1 0 74 152 116 116 0 0 1-74-152z" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M168 128l12 30 30 12-30 12-12 30-12-30-30-12 30-12z" fill="none" stroke="${b}" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M360 236l8 20 20 8-20 8-8 20-8-20-20-8 20-8z" fill="none" stroke="${b}" stroke-width="10" stroke-linejoin="round" stroke-opacity="0.75"/>`,
+
+  // ---- sub-types: the modal apps inside BattleZ and CollabZ ---------------
+  // Named <parent>.<subtype>, matching collabz.coverz.png which was already
+  // committed. Each has to read as its PARENT plus one distinguishing mark —
+  // they sit side by side on the parent's page, so the differences must be the
+  // legible part at 36px, not the similarities.
+
+  // Three-way: two crowds facing off with a third mark between. The cypher is
+  // the one with MORE than one artist a side.
+  "battlez.cypher": (a, b) => `
+    <circle cx="150" cy="158" r="30" fill="none" stroke="${a}" stroke-width="13"/>
+    <circle cx="206" cy="196" r="24" fill="none" stroke="${a}" stroke-width="12" stroke-opacity="0.7"/>
+    <circle cx="362" cy="158" r="30" fill="none" stroke="${b}" stroke-width="13"/>
+    <circle cx="306" cy="196" r="24" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.7"/>
+    <path d="M110 300a54 54 0 0 1 108 0M294 300a54 54 0 0 1 108 0" fill="none" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M256 118v72M256 214v58" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
+
+  // One versus one: a single figure each side of a hard divide.
+  "battlez.1v1": (a, b) => `
+    <circle cx="164" cy="156" r="38" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M106 292a58 58 0 0 1 116 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="348" cy="156" r="38" fill="none" stroke="${b}" stroke-width="15"/>
+    <path d="M290 292a58 58 0 0 1 116 0" fill="none" stroke="${b}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 96v320" stroke="${a}" stroke-width="12" stroke-linecap="round" stroke-dasharray="26 22" stroke-opacity="0.85"/>`,
+
+  // Freestyle: a mic with motion off it — unplanned, still moving.
+  "battlez.freestyle": (a, b) => `
+    <rect x="222" y="92" width="68" height="112" rx="34" fill="none" stroke="${a}" stroke-width="15"/>
+    <path d="M180 186a76 76 0 0 0 152 0" fill="none" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M256 262v46" stroke="${a}" stroke-width="15" stroke-linecap="round"/>
+    <path d="M118 150c22 22 22 58 0 80M148 170c10 10 10 26 0 36" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
+    <path d="M394 150c-22 22-22 58 0 80M364 170c-10 10-10 26 0 36" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round"/>`,
+
+  // Remix: two arrows chasing each other round a centre. The loop is the point.
+  "collabz.remixez": (a, b) => `
+    <path d="M150 196a106 106 0 0 1 180-52" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M296 88l40 50-56 22" fill="none" stroke="${a}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M362 216a106 106 0 0 1-180 52" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round"/>
+    <path d="M216 324l-40-50 56-22" fill="none" stroke="${b}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>`,
+
+  // Originalz: a star on a blank sheet — the one that is not derived from
+  // anything, which is what separates it from CoverZ and RemixeZ beside it.
+  "collabz.originalz": (a, b) => `
+    <path d="M160 96h142l52 52v216a20 20 0 0 1-20 20H160a20 20 0 0 1-20-20V116a20 20 0 0 1 20-20z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M300 96v56h54" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M248 196l20 44 48 6-35 33 9 47-42-23-42 23 9-47-35-33 48-6z" fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>`,
+};
+
+// key → [label, accent, secondary]. Colours are assigned so the dock reads as
+// a set rather than a rainbow accident, and so apps that already have a
+// colour in code keep it (SingZ pink, RapZ amber, CollabZ yellow, BugZ cyan).
+const APPS = [
+  ["battlez.cypher", "Cypher", C.ember, C.cyan],
+  ["battlez.1v1", "1v1", C.ember, C.pink],
+  ["battlez.freestyle", "Freestyle", C.ember, C.gold],
+  ["collabz.remixez", "RemixeZ", C.cyan, C.purple],
+  ["collabz.originalz", "OriginalZ", C.cyan, C.gold],
+  ["lilith_inbox", "Inbox", C.cyan, C.emerald],
+  ["lilith_someday", "Someday", C.purple, C.gold],
+  ["coachz", "CoachZ", C.emerald, C.cyan],
+  ["personaz_coach", "Coach", C.emerald, C.gold],
+  ["statsz", "StatZ", C.gold, C.cyan],
+  ["opportunitiez", "OpportunitieZ", C.cyan, C.gold],
+  ["partnerz", "PartnerZ", C.purple, C.emerald],
+  ["onboardz", "OnboardZ", C.emerald, C.gold],
+  ["playlistz", "PlaylistZ", C.cyan, C.pink],
+  ["social_connectz", "Social ConnectZ", C.pink, C.cyan],
+  // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
+  // that belongs together while never being mistaken for each other.
+  ["vybez", "VybeZ", C.cyan, C.pink],
+  ["beatz", "BeatZ", C.purple, C.gold],
+  ["personaz", "ProfileZ", C.purple, C.cyan],
+  ["specz", "SpecZ", C.gold, C.pink],
+  ["money", "MembershipZ", C.gold, C.emerald],
+  ["adz", "AdZ", C.cyan, C.gold],
+  ["offerz", "OfferZ", C.emerald, C.gold],
+  ["mimez", "MimeZ", C.purple, C.pink],
+  ["directz", "DirectZ", C.ember, C.cyan],
+  ["lessonz", "LessonZ", C.gold, C.cyan],
+  ["singz", "SingZ", C.pink, C.cyan],
+  ["rapz", "RapZ", C.gold, C.ember],
+  ["messagez", "MessageZ", C.cyan, C.pink],
+  ["keyconnectz", "KeyConnectZ", C.emerald, C.gold],
+  ["occ", "OCC", C.cyan, C.purple],
+  ["logz", "LogZ", C.purple, C.gold],
+  ["royaltiez", "RoyaltieZ", C.gold, C.emerald],
+  ["callz", "CallZ", C.emerald, C.cyan],
+  ["soundz", "SoundZ", C.cyan, C.pink],
+  ["journalz", "JournalZ", C.pink, C.gold],
+  ["habitz", "HabitZ", C.ember, C.gold],
+  ["collabz", "CollabZ", C.gold, C.cyan],
+  ["battlez", "BattleZ", C.ember, C.cyan],
+  ["labelz", "LabelZ", C.purple, C.gold],
+  ["groupz", "GroupZ", C.cyan, C.purple],
+  ["bugz", "BugZ", C.cyan, C.emerald],
+  ["funnelz", "FunnelZ", C.emerald, C.cyan],
+  ["soundcloudengagementz", "SoundCloud Engagement", C.ember, C.cyan],
+  ["metz", "MetZ", C.cyan, C.gold],
+  ["tunerz", "TunerZ", C.emerald, C.cyan],
+  ["chordz", "ChordZ", C.pink, C.gold],
+  ["breathz", "BreathZ", C.cyan, C.emerald],
+  ["flutez", "FluteZ", C.cyan, C.gold],
+  ["saxz", "SaxZ", C.gold, C.ember],
+  ["clarinetz", "ClarinetZ", C.purple, C.cyan],
+  ["trumpetz", "TrumpetZ", C.ember, C.gold],
+  ["drumz", "DrumZ", C.ember, C.gold],
+];
+
+// Which glyph a file uses — most are named for the app, a couple aren't
+// (the ProfileZ tile is personaz.png, MembershipZ is money.png).
+const GLYPH_FOR = { social_connectz: "social", personaz: "profilez", money: "membershipz" };
+
+/** The wordmark. The name plain, a trailing Z lit in the accent — the split
+ *  the set already used. Long names get a smaller size rather than being
+ *  squeezed, and "Social ConnectZ" wraps to two lines because at one line it
+ *  would be too small to read at any size this is actually drawn. */
+function wordmark(label, accent) {
+  const [head, tail] = label.endsWith("Z")
+    ? [label.slice(0, -1), "Z"]
+    : [label, ""];
+  const lit = tail ? `<tspan fill="${accent}">${tail}</tspan>` : "";
+  const words = label.split(" ");
+  if (words.length > 1) {
+    // Two lines: everything but the last word, then the last word with its Z.
+    const first = words.slice(0, -1).join(" ");
+    const last = words[words.length - 1];
+    const lastHead = last.endsWith("Z") ? last.slice(0, -1) : last;
+    const lastLit = last.endsWith("Z") ? `<tspan fill="${accent}">Z</tspan>` : "";
+    return `
+    <text x="256" y="418" text-anchor="middle" font-size="58" fill="${C.ink}" filter="url(#glowSoft)">${first}</text>
+    <text x="256" y="474" text-anchor="middle" font-size="58" fill="${C.ink}" filter="url(#glowSoft)">${lastHead}${lastLit}</text>`;
+  }
+  const size = label.length >= 11 ? 62 : label.length >= 9 ? 72 : 86;
+  return `
+    <text x="256" y="452" text-anchor="middle" font-size="${size}" fill="${C.ink}" filter="url(#glowSoft)">${head}${lit}</text>`;
+}
+
+function icon(key, label, accent, secondary) {
+  const glyph = G[GLYPH_FOR[key] || key];
+  if (!glyph) throw new Error(`no glyph for ${key}`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="${label}">
+  <title>${label}</title>
+  <!-- Generated by tools/make-neon-icons.mjs — edit the glyph there, not here. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="120%">
+      <stop offset="0%" stop-color="#1b1136"/>
+      <stop offset="55%" stop-color="#0e0b1a"/>
+      <stop offset="100%" stop-color="#07060d"/>
+    </radialGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="92" fill="none" stroke="${accent}" stroke-opacity="0.35" stroke-width="4"/>
+
+  <g filter="url(#glow)" stroke-linecap="round">${glyph(accent, secondary)}
+  </g>
+
+  <g font-family="Poppins, system-ui, sans-serif" font-weight="800" letter-spacing="-2">${wordmark(label, accent)}
+  </g>
+</svg>
+`;
+}
+
+mkdirSync(OUT, { recursive: true });
+for (const [key, label, a, b] of APPS) {
+  writeFileSync(join(OUT, `${key}-neon.svg`), icon(key, label, a, b));
+}
+console.log(`wrote ${APPS.length} icons to public/icons/`);

@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="PostZ">
+  <title>PostZ</title>
+  <!-- Neon PostZ. Same composition as the cream/teal original — post card,
+       avatar, music thumbnail, waveform, the action row, a megaphone and a
+       share badge — rebuilt in the MCZ palette: mcz-cyan #22e6ff,
+       mcz-pink #ff2bd1, mcz-purple #a855f7, mcz-gold #ffcf3f on mcz-panel.
+       Strokes are heavy on purpose: the dock renders this at 36px, and hairlines
+       at that size turn to mud. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="120%">
+      <stop offset="0%" stop-color="#1b1136"/>
+      <stop offset="55%" stop-color="#0e0b1a"/>
+      <stop offset="100%" stop-color="#07060d"/>
+    </radialGradient>
+    <!-- One glow, reused. Two blurs stacked: a tight core and a wide bloom,
+         which is what stops it looking like a drop shadow. -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="bloom"/>
+      <feMerge>
+        <feMergeNode in="bloom"/>
+        <feMergeNode in="core"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="92" fill="none" stroke="#a855f7" stroke-opacity="0.35" stroke-width="4"/>
+
+  <g filter="url(#glow)">
+    <!-- The post card itself -->
+    <rect x="70" y="66" width="330" height="266" rx="30" fill="none" stroke="#22e6ff" stroke-width="9"/>
+
+    <!-- Avatar + name lines + the overflow dots -->
+    <circle cx="122" cy="116" r="23" fill="none" stroke="#ff2bd1" stroke-width="8"/>
+    <path d="M110 128a12 12 0 0 1 24 0" fill="none" stroke="#ff2bd1" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="122" cy="106" r="7" fill="#ff2bd1"/>
+    <rect x="163" y="100" width="132" height="10" rx="5" fill="#22e6ff" fill-opacity="0.85"/>
+    <rect x="163" y="122" width="86" height="10" rx="5" fill="#22e6ff" fill-opacity="0.45"/>
+    <circle cx="329" cy="110" r="6" fill="#a855f7"/>
+    <circle cx="352" cy="110" r="6" fill="#a855f7"/>
+    <circle cx="375" cy="110" r="6" fill="#a855f7"/>
+
+    <!-- Artwork tile with the note -->
+    <rect x="98" y="160" width="96" height="96" rx="18" fill="none" stroke="#a855f7" stroke-width="8"/>
+    <path d="M143 178v46" stroke="#ff2bd1" stroke-width="8" stroke-linecap="round"/>
+    <path d="M143 178l30-8v20l-30 8" fill="#ff2bd1"/>
+    <circle cx="134" cy="226" r="12" fill="#ff2bd1"/>
+
+    <!-- Waveform — the thing that says this post is a sound, not a picture -->
+    <g stroke="#22e6ff" stroke-width="8" stroke-linecap="round">
+      <path d="M214 218v-18"/>
+      <path d="M234 226v-34"/>
+      <path d="M254 234v-50"/>
+      <path d="M274 226v-34"/>
+      <path d="M294 230v-42"/>
+      <path d="M314 220v-22"/>
+    </g>
+    <rect x="214" y="248" width="118" height="9" rx="4.5" fill="#22e6ff" fill-opacity="0.4"/>
+
+    <!-- Divider + action row: rate, comment, repost -->
+    <path d="M92 280h286" stroke="#a855f7" stroke-opacity="0.5" stroke-width="5" stroke-linecap="round"/>
+    <path d="M122 320c-15-11-24-18-24-28a13 13 0 0 1 24-8 13 13 0 0 1 24 8c0 10-9 17-24 28z"
+          fill="none" stroke="#ff2bd1" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M186 292h52a11 11 0 0 1 11 11v14a11 11 0 0 1-11 11h-26l-14 12v-12h-12a11 11 0 0 1-11-11v-14a11 11 0 0 1 11-11z"
+          fill="none" stroke="#22e6ff" stroke-width="8" stroke-linejoin="round"/>
+    <g stroke="#a855f7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M288 302h32l-11-11"/>
+      <path d="M320 320h-32l11 11"/>
+    </g>
+  </g>
+
+  <!-- Megaphone: the post going OUT. Deliberately breaking the card's edge,
+       because the whole point of a post is that it leaves the box. -->
+  <g filter="url(#glow)">
+    <path d="M356 236l82-44v104l-82-30z" fill="none" stroke="#ffcf3f" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M356 236h-24a16 16 0 0 0-16 16v14a16 16 0 0 0 16 16h24z"
+          fill="none" stroke="#ffcf3f" stroke-width="10" stroke-linejoin="round"/>
+    <path d="M330 282l8 34" stroke="#ffcf3f" stroke-width="10" stroke-linecap="round"/>
+    <g stroke="#ffcf3f" stroke-width="9" stroke-linecap="round" stroke-opacity="0.9">
+      <path d="M456 186l22-16"/>
+      <path d="M466 240h28"/>
+      <path d="M456 294l22 16"/>
+    </g>
+  </g>
+
+  <!-- Share badge -->
+  <g filter="url(#glowSoft)">
+    <circle cx="392" cy="322" r="40" fill="#0e0b1a" stroke="#22e6ff" stroke-width="8"/>
+    <g stroke="#22e6ff" stroke-width="7" stroke-linecap="round" fill="#22e6ff">
+      <circle cx="410" cy="304" r="8"/>
+      <circle cx="374" cy="322" r="8"/>
+      <circle cx="410" cy="340" r="8"/>
+      <path d="M403 308l-22 10M381 326l22 10" fill="none"/>
+    </g>
+  </g>
+
+  <!-- Wordmark, same split the rest of the set uses: the name plain, the Z lit. -->
+  <g font-family="Poppins, system-ui, sans-serif" font-weight="800" font-size="86" letter-spacing="-2">
+    <text x="256" y="452" text-anchor="middle" fill="#f4f2ff" filter="url(#glowSoft)">
+      Post<tspan fill="#ff2bd1">Z</tspan>
+    </text>
+  </g>
+</svg>

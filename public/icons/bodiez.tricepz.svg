@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Triceps">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left tricep - three heads -->
+    <path d="M50 70 Q45 90 55 110" fill="none" stroke="#00ff88" stroke-width="5"/>
+    <path d="M70 75 Q60 95 65 115" fill="none" stroke="#00ff88" stroke-width="4" stroke-opacity="0.8"/>
+    <path d="M65 70 Q70 90 75 110" fill="none" stroke="#00ff88" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Right tricep - three heads -->
+    <path d="M150 70 Q155 90 145 110" fill="none" stroke="#22e6ff" stroke-width="5"/>
+    <path d="M130 75 Q140 95 135 115" fill="none" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <path d="M135 70 Q130 90 125 110" fill="none" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Connection marker -->
+    <circle cx="60" cy="112" r="4" fill="#ff00ff" opacity="0.7"/>
+    <circle cx="140" cy="112" r="4" fill="#ff00ff" opacity="0.7"/>
+  </g>
+</svg>

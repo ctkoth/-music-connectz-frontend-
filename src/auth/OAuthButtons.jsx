@@ -1,82 +1,52 @@
 import { useEffect, useRef, useState } from "react";
-import { Apple, Facebook, Github } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
+import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-
-const REDIRECT =
-  import.meta.env.VITE_OAUTH_REDIRECT ||
-  (typeof window !== "undefined" ? `${window.location.origin}/oauth/callback` : "");
+import { goesExternal, openProvider, statePrefixFor, appShell } from "../externalAuth.js";
+import { GoogleG, ID_TOKEN_AUTH, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
 const VITE_ID = (key) => import.meta.env[`VITE_${key.toUpperCase()}_CLIENT_ID`] || "";
 
-/* --- inline brand glyphs (lucide lacks these) --- */
-const Spotify = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.3c-.2.4-.7.5-1 .3-2.9-1.8-6.5-2.2-10.8-1.2-.4.1-.8-.2-.9-.6-.1-.4.2-.8.6-.9 4.7-1.1 8.7-.6 11.9 1.4.3.2.4.7.2 1zm1.5-3.3c-.3.4-.8.6-1.3.3-3.3-2-8.3-2.6-12.2-1.4-.5.1-1-.1-1.1-.6-.1-.5.1-1 .6-1.1 4.5-1.4 10-.7 13.8 1.6.4.2.5.8.2 1.2zm.1-3.4C15.2 8.3 8.7 8.1 4.9 9.2c-.6.2-1.2-.2-1.4-.7-.2-.6.2-1.2.7-1.4 4.4-1.3 11.5-1 16 1.7.5.3.7 1 .4 1.5-.3.5-1 .7-1.5.3z"/>
-  </svg>
-);
-const Microsoft = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <rect x="1" y="1" width="10" height="10"/><rect x="13" y="1" width="10" height="10"/>
-    <rect x="1" y="13" width="10" height="10"/><rect x="13" y="13" width="10" height="10"/>
-  </svg>
-);
-const GoogleG = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4c-.2 1.2-1 2.3-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/>
-    <path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6C4.7 19.8 8.1 22 12 22z"/>
-    <path d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1C2.4 8.8 2 10.4 2 12s.4 3.2 1.1 4.6L6.4 14z"/>
-    <path d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9C17 2.9 14.7 2 12 2 8.1 2 4.7 4.2 3.1 7.4L6.4 10c.8-2.3 3-4.1 5.6-4.1z"/>
-  </svg>
-);
-const XTwitter = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7 3.9H5.2L17.8 20z"/>
-  </svg>
-);
-const SoundCloud = (p) => (
-  <svg viewBox="0 0 24 24" width={p.size} height={p.size} fill={p.color || "currentColor"}>
-    <path d="M1 14.5v2.9c0 .2.2.4.4.4s.4-.2.4-.4v-2.9c0-.2-.2-.4-.4-.4s-.4.2-.4.4zm2.2-1.2v5.2c0 .3.2.5.5.5s.5-.2.5-.5v-5.2c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.3-1.6v6.9c0 .3.2.5.5.5s.5-.2.5-.5v-6.9c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.3-.9v7.8c0 .3.2.5.5.5s.5-.2.5-.5V10.8c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm2.4-1.9v9.7c0 .3.2.5.5.5h.1c.2 0 .4-.2.4-.5V8.9c0-.3-.2-.5-.5-.5s-.5.2-.5.5zm10.1 3.4c-.4 0-.8.1-1.2.2A5.5 5.5 0 0 0 13.9 7c-.5 0-1 .1-1.4.2-.2.1-.3.2-.3.4v10.6c0 .2.2.4.4.4h7.7a3.2 3.2 0 0 0 0-6.3z"/>
-  </svg>
-);
+// Google is prepended here rather than living in the shared registry — it
+// renders as its own Google Identity Services button below, not one of these
+// grid tiles, and `oauthProviders.jsx` says why it stays out of that list.
+const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#ffffff" },
+                    ...REDIRECT_PROVIDERS];
 
-/* provider registry: brand color + authorize url builder per provider */
-const PROVIDERS = [
-  { key: "google",     label: "Google",     Icon: GoogleG,    color: "#ffffff" },
-  { key: "apple",      label: "Apple",      Icon: Apple,      color: "#ffffff" },
-  { key: "spotify",    label: "Spotify",    Icon: Spotify,    color: "#1DB954",
-    auth: (id, s) => `https://accounts.spotify.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=user-read-email&state=${s}` },
-  { key: "microsoft",  label: "Microsoft",  Icon: Microsoft,  color: "#00A4EF",
-    auth: (id, s) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=User.Read&state=${s}` },
-  { key: "github",     label: "GitHub",     Icon: Github,     color: "#ffffff",
-    auth: (id, s) => `https://github.com/login/oauth/authorize?client_id=${id}&redirect_uri=${REDIRECT}&scope=read:user%20user:email&state=${s}` },
-  { key: "twitter",    label: "Twitter / X", Icon: XTwitter,  color: "#ffffff", pkce: true,
-    auth: (id, s, ch) => `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=tweet.read%20users.read&state=${s}&code_challenge=${ch}&code_challenge_method=S256` },
-  { key: "soundcloud", label: "SoundCloud", Icon: SoundCloud, color: "#FF5500",
-    auth: (id, s) => `https://secure.soundcloud.com/authorize?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&state=${s}` },
-  { key: "facebook",   label: "Facebook",   Icon: Facebook,   color: "#1877F2",
-    auth: (id, s) => `https://www.facebook.com/v18.0/dialog/oauth?response_type=code&client_id=${id}&redirect_uri=${REDIRECT}&scope=email,public_profile&state=${s}` },
-];
-// Instagram and TikTok are deliberately absent. The backend can only complete a
-// sign-in for google/github/apple plus its OAUTH2_PROVIDERS registry (spotify,
-// microsoft, facebook, soundcloud, twitter); anything else comes back as an
-// unsupported provider. Only re-add a button here alongside a backend handler.
+// The standalone BodieZ build is on another origin, and the providers' redirect
+// URIs are registered for musicconnectz.net only — a button there would open a
+// provider that then refuses to come back. Absent is honest; broken is not.
+// Sign in with Apple is hidden until Corey says to turn it back on. Flip this one
+// flag; nothing else about the Apple flow (startApple, the redirect, the backend)
+// was removed.
+const APPLE_ENABLED = false;
 
-function rand() {
-  const a = new Uint8Array(32);
-  crypto.getRandomValues(a);
-  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-async function pkceChallenge(verifier) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+export default function OAuthButtons(props) {
+  return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
 }
 
-export default function OAuthButtons({ onSuccess, onError }) {
+function OAuthButtonsInner({ onSuccess, onError }) {
   const { oauth } = useAuth();
+  const navigate = useNavigate();
+  // Google and Apple sign in by popup, so their answer lands HERE rather than
+  // on /oauth/callback. A brand-new member's answer is a question ("do you
+  // already have an account?"), and passing it to onSuccess as if it were a
+  // sign-in sent them to the home page still signed out — every first-time
+  // Google signup ended there.
+  const [choice, setChoice] = useState(null);
+  // Which build we're in decides how Google and Apple can work at all.
+  const shell = appShell();
+  // In the Android and Windows apps their popups have nothing to return to,
+  // so they go through the device's real browser instead (ID_TOKEN_AUTH).
+  const viaBrowser = shell === "android" || shell === "desktop";
+  // An app built before that hand-back existed can't do either — say so
+  // rather than render a button that dead-ends.
+  const oldApp = shell === "android-old" || shell === "desktop-old";
+  const finish = (res) => (res?.needs_choice ? setChoice(res) : onSuccess?.(res));
   const googleBtn = useRef(null);
   const [busy, setBusy] = useState("");
   // Provider client IDs served by the backend (GET /api/auth/oauth/config/).
@@ -96,10 +66,13 @@ export default function OAuthButtons({ onSuccess, onError }) {
   // server has answered it is the authority, and VITE_* is only for when it
   // never answers at all.
   const [served, setServed] = useState(false);
-  // Apple reports a bad Services ID as `invalid_client` from inside its own
-  // popup, which the catch below used to relabel "cancelled" — the one word
-  // that makes an owner stop looking. Remember it and say what it means.
-  const [appleErr, setAppleErr] = useState("");
+  // Six providers deep in a same-sized icon grid made every option look
+  // equally likely to work, which is worse than showing none: a first-time
+  // visitor can't tell "the one everyone has" from "the one from 2019 nobody
+  // configured." Featured providers (Spotify and SoundCloud) are shown
+  // side-by-side; the long tail collapses behind a toggle instead of eating
+  // screen space by default.
+  const [showMore, setShowMore] = useState(false);
 
   // Nothing is enabled while the answer is still in flight: a button that
   // appears and then vanishes is worse than one that arrives a moment late.
@@ -129,7 +102,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
   /* Google Identity Services button, rendered once its client_id is known. */
   useEffect(() => {
     const gid = clientId("google");
-    if (!gid || !googleBtn.current) return;
+    if (!gid || !googleBtn.current || viaBrowser || oldApp || shell === "inapp") return;
     const render = () => {
       if (!window.google?.accounts?.id || !googleBtn.current) return;
       window.google.accounts.id.initialize({
@@ -137,7 +110,7 @@ export default function OAuthButtons({ onSuccess, onError }) {
         callback: async (resp) => {
           try {
             setBusy("google");
-            onSuccess?.(await oauth("google", { credential: resp.credential }));
+            finish(await oauth("google", { credential: resp.credential }));
           } catch (e) { onError?.(e.message); } finally { setBusy(""); }
         },
       });
@@ -176,41 +149,76 @@ export default function OAuthButtons({ onSuccess, onError }) {
     return () => { clearTimeout(giveUp); poll && clearInterval(poll); };
   }, [cfg, oauth, onSuccess, onError]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sign in with Apple — Apple's own JS in popup mode hands back an identity
+  // token, which the server verifies against its Services ID. Shown only when
+  // the server has that ID, so the button never leads somewhere that fails.
+  // Google/Apple in the Android or Windows app: out to the real browser,
+  // back through the app's deep link, finished on /oauth/callback.
+  async function startViaBrowser(key) {
+    const id = clientId(key);
+    if (!id) return onError?.(`${key === "google" ? "Google" : "Apple"} sign-in isn't available right now.`);
+    clearFlowMarkers();
+    const p = { key };
+    const state = statePrefixFor(p) + rand();
+    sessionStorage.setItem("mcz_oauth_provider", key);
+    sessionStorage.setItem("mcz_oauth_state", state);
+    sessionStorage.removeItem("mcz_oauth_verifier");
+    await openProvider(p, ID_TOKEN_AUTH[key](id, state, rand()));
+  }
+
+  async function startApple() {
+    if (viaBrowser) return startViaBrowser("apple");
+    const id = clientId("apple");
+    if (!id) return onError?.("Apple sign-in isn't available right now.");
+    setBusy("apple");
+    try {
+      if (!window.AppleID?.auth) {
+        await new Promise((ok, fail) => {
+          const sc = document.createElement("script");
+          sc.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+          sc.onload = ok;
+          sc.onerror = () => fail(new Error("Apple sign-in didn't load. Use email or another option."));
+          document.head.appendChild(sc);
+        });
+      }
+      window.AppleID.auth.init({
+        clientId: id, scope: "name email", usePopup: true,
+        redirectURI: `${window.location.origin}/login`,
+      });
+      const resp = await window.AppleID.auth.signIn();
+      const token = resp?.authorization?.id_token;
+      if (!token) throw new Error("Apple didn't send a sign-in token back.");
+      finish(await oauth("apple", { id_token: token }));
+    } catch (e) {
+      // Closing the popup is a choice, not an error worth a red line.
+      if (e?.error !== "popup_closed_by_user") onError?.(e?.message || e?.error || "Apple sign-in didn't finish.");
+    } finally { setBusy(""); }
+  }
+
   async function start(p) {
     const id = clientId(p.key);
     if (p.key === "google") {
       return onError?.(id ? "Use the Google button above." : "Google sign-in isn't available yet.");
     }
-    if (p.key === "apple") {
-      if (!id) return onError?.("Apple sign-in isn't available right now.");
-      try {
-        setBusy("apple");
-        await new Promise((res, rej) => {
-          if (document.getElementById("apple-js")) return res();
-          const s = document.createElement("script");
-          s.id = "apple-js";
-          s.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
-          s.onload = res; s.onerror = rej; document.head.appendChild(s);
-        });
-        window.AppleID.auth.init({ clientId: id, scope: "name email", redirectURI: REDIRECT, usePopup: true });
-        const data = await window.AppleID.auth.signIn();
-        setAppleErr("");
-        onSuccess?.(await oauth("apple", { id_token: data?.authorization?.id_token }));
-      } catch (e) {
-        // Apple rejects with a plain object carrying `error`, not an Error, so
-        // `e.message` is undefined and every failure read as "cancelled" —
-        // including the one that isn't the member's doing at all.
-        const why = String(e?.error || e?.message || "");
-        const bad = /invalid[_\s-]?client/i.test(why);
-        if (bad) setAppleErr(why);
-        onError?.(bad ? "Apple refused this site's sign-in setup." : (e?.message || "Apple sign-in was cancelled."));
-      }
-      finally { setBusy(""); }
-      return;
-    }
     if (!id) return onError?.(`${p.label} sign-in isn't available right now.`);
 
-    const state = rand();
+    // Facebook refuses to log anyone in from inside the Facebook or Instagram
+    // app's own embedded browser — it shows a dead-end page that never
+    // redirects back. That strands Spotify too, since Spotify itself offers
+    // "Continue with Facebook" on its own login screen. There is nothing we
+    // can do once the member is on Facebook's page, so warn before we send
+    // them there rather than let them hit a screen that goes nowhere.
+    if (isInAppBrowser() && (p.key === "facebook" || p.key === "spotify")) {
+      return onError?.(
+        `Facebook sign-in doesn't work inside the ${/Instagram/i.test(navigator.userAgent) ? "Instagram" : "Facebook"} app's browser. Open this page in Chrome or Safari and try again.`
+      );
+    }
+
+    // This is an ordinary sign-in, not an import or a connect — a marker left
+    // over from either of those, abandoned mid-flow in this tab, would
+    // otherwise hijack the callback that is about to happen.
+    clearFlowMarkers();
+    const state = statePrefixFor(p) + rand();
     sessionStorage.setItem("mcz_oauth_provider", p.key);
     sessionStorage.setItem("mcz_oauth_state", state);
     let challenge = "";
@@ -221,18 +229,40 @@ export default function OAuthButtons({ onSuccess, onError }) {
     } else {
       sessionStorage.removeItem("mcz_oauth_verifier");
     }
-    window.location.href = p.auth(encodeURIComponent(id), state, challenge);
+    await openProvider(p, p.auth(encodeURIComponent(id), state, challenge));
   }
 
   // Google renders as its own GIS button when configured; otherwise it shows in
   // the grid like the rest. All provider logos are always visible so the
   // login/register screen presents the full set of social options.
-  const hasGoogle = !!clientId("google");
+  const hasGoogle = !!clientId("google") && !viaBrowser && !oldApp && shell !== "inapp";
+  const googleViaBrowser = !!clientId("google") && viaBrowser;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   // Only hide the generic Google button once GSI has actually put one on the
   // screen. Hiding it on `hasGoogle` alone meant configuring Google could
   // REMOVE the member's only way to use it.
-  const grid = PROVIDERS.filter((p) => !(p.key === "google" && hasGoogle && gsi !== "failed"));
+  // In the apps and in-app browsers Google is the button above (or the note
+  // explaining why it can't be), never a dead tile in the grid.
+  const grid = PROVIDERS.filter((p) => !(p.key === "google"
+    && ((hasGoogle && gsi !== "failed") || viaBrowser || oldApp || shell === "inapp")));
+  // The one-tap sign-ins people actually have go up front; the long tail folds.
+  const FEATURED = ["google", "spotify", "soundcloud"];
+  // Google is only featured as a tile when it is configured (GIS failed to
+  // render it) — an unconfigured tile up front would be a dead button.
+  const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
+  const featured = grid.filter(isFeatured);
+  const rest = grid.filter((p) => !isFeatured(p));
+  const hasApple = APPLE_ENABLED && !!clientId("apple") && !oldApp && shell !== "inapp";
+  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || (APPLE_ENABLED && clientId("apple")));
+
+  if (choice) {
+    const go = choiceRoutes(choice, navigate, oauth);
+    const create = async () => {
+      setBusy("choice");
+      try { await go.create(); } catch (e) { onError?.(e.message); setBusy(""); }
+    };
+    return <AccountChoice choice={choice} onCreate={create} onSignIn={go.signIn} busy={busy === "choice"} />;
+  }
 
   return (
     <div className="space-y-3">
@@ -241,6 +271,47 @@ export default function OAuthButtons({ onSuccess, onError }) {
       </div>
 
       {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
+
+      {googleViaBrowser && (
+        <div className="flex justify-center">
+          <button type="button" onClick={() => startViaBrowser("google")} aria-label="Continue with Google"
+                  className="flex h-10 w-[280px] items-center justify-center gap-2 rounded-full border border-white/20 bg-[#131314] text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95">
+            <GoogleG size={16} color="#ffffff" /> Continue with Google
+          </button>
+        </div>
+      )}
+
+      {/* Instagram's, TikTok's and Facebook's own browsers: Google refuses to
+          sign anyone in there ("disallowed_useragent") and Apple's popup has
+          nowhere to land. Most visitors from a social link are in one. */}
+      {blockedHere && (
+        <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] leading-relaxed text-white/80">
+          {oldApp ? (
+            <p>Google and Apple sign-in need the latest version of the app. Update it, or use email or another option below.</p>
+          ) : (
+            <>
+              <p>Google and Apple don't allow sign-in inside this app's browser. Open this page in Chrome or Safari to use them — or sign up with email right here.</p>
+              <button type="button" className="mt-1 text-mcz-cyan underline"
+                      onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => onError?.("Link copied — paste it into Chrome or Safari."))}>
+                Copy this page's link
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {hasApple && (
+        <div className="flex justify-center">
+          <button type="button" onClick={startApple} disabled={busy === "apple"}
+                  aria-label="Continue with Apple"
+                  className="flex h-10 w-[280px] items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition hover:bg-white/90 active:scale-95">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor">
+              <path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.75.73 1.05 1.6 2.24 2.73 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.3-3.51zM14.2 6.12c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.07 1.96-.49 2.56-1.21z"/>
+            </svg>
+            {busy === "apple" ? "Opening Apple…" : "Continue with Apple"}
+          </button>
+        </div>
+      )}
 
       {/* Say what went wrong, and print the origin Google has to be told about
           — that is the fix in almost every case, and it is not guessable. */}
@@ -266,42 +337,51 @@ export default function OAuthButtons({ onSuccess, onError }) {
         </div>
       )}
 
-      {/* `invalid_client` is Apple's answer to three different mistakes and it
-          names none of them. All three are on the Services ID, and none is
-          guessable from the popup — so list them, with the two values Apple
-          has to be told, which are the parts nobody can look up for you. */}
-      {appleErr && (
-        <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] leading-relaxed text-mcz-ember">
-          <p className="font-semibold">Apple refused this site's sign-in setup.</p>
-          <p className="mt-1 text-mcz-ember/80">
-            Use email, or another provider below. If you run this site,{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">invalid_client</code> means one
-            of three things on the Apple <span className="font-semibold">Services ID</span>: it's
-            the App ID (bundle ID) rather than a Services ID, Sign in with Apple isn't enabled on
-            it, or these two aren't registered on it —{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">{origin.replace(/^https?:\/\//, "")}</code>{" "}
-            as a domain, and{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">{REDIRECT}</code> as a return
-            URL. The same string goes in{" "}
-            <code className="rounded bg-black/40 px-1 text-white/80">APPLE_OAUTH_CLIENT_ID</code>.
-          </p>
+      {featured.length > 0 && (
+        <div className={`grid gap-2 ${featured.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+          {featured.map((p) => (
+            <button
+              key={p.key}
+              title={p.label}
+              aria-label={`Continue with ${p.label}`}
+              onClick={() => start(p)}
+              disabled={busy === p.key}
+              className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+            >
+              <p.Icon size={20} color={p.color} />
+            </button>
+          ))}
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-2">
-        {grid.map((p) => (
+      {rest.length > 0 && (
+        <>
           <button
-            key={p.key}
-            title={p.label}
-            aria-label={`Continue with ${p.label}`}
-            onClick={() => start(p)}
-            disabled={busy === p.key}
-            className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+            type="button"
+            onClick={() => setShowMore((v) => !v)}
+            className="flex w-full items-center justify-center gap-1 py-1 text-xs font-semibold text-white/40 hover:text-white/70"
           >
-            <p.Icon size={20} color={p.color} />
+            {showMore ? "Fewer options" : `More sign-in options (${rest.length})`}
+            <ChevronDown size={13} className={`transition ${showMore ? "rotate-180" : ""}`} />
           </button>
-        ))}
-      </div>
+          {showMore && (
+            <div className="grid grid-cols-5 gap-2">
+              {rest.map((p) => (
+                <button
+                  key={p.key}
+                  title={p.label}
+                  aria-label={`Continue with ${p.label}`}
+                  onClick={() => start(p)}
+                  disabled={busy === p.key}
+                  className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95"
+                >
+                  <p.Icon size={20} color={p.color} />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

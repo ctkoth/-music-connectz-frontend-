@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileSignature, Loader2, Plus } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
-import { openMember } from "../goto.js";
+import MentionText from "../MentionParser.jsx";
+import { goToSpot, openMember } from "../goto.js";
 
 export default function LabelZ() {
+  const talk = useSay();
   const [data, setData] = useState(null);
   const [contracts, setContracts] = useState(null);
   const [msg, setMsg] = useState("");
@@ -25,7 +29,7 @@ export default function LabelZ() {
   }
   async function sendOffer() {
     setMsg("");
-    try { await api("/api/labelz/contracts/", { method: "POST", body: offer }); setMsg("Contract offered — signed on your side, awaiting the artist."); load(); }
+    try { await api("/api/labelz/contracts/", { method: "POST", body: offer }); setMsg(talk(P.label_offered)); load(); }
     catch (e) { setMsg(e.message); }
   }
   async function respond(id, action) {
@@ -67,9 +71,13 @@ export default function LabelZ() {
           <button className="neon-btn-primary !w-auto px-5" onClick={createLabel}><Plus size={16} /> Create label</button>
         </div>
       ) : (
-        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
-          Creating a label requires Premium/StatZ tier or the A&amp;R Scout / Manager persona — set yours in ProfileZ.
-        </p>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50 space-y-1.5">
+          <p>Creating a label requires Premium/StatZ tier or the A&amp;R Scout / Manager persona.</p>
+          <div className="flex flex-wrap gap-3">
+            <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Upgrade in MembershipZ</button>
+            <button className="re-link" onClick={() => goToSpot("profilez", "personas")}>Set your persona in ProfileZ</button>
+          </div>
+        </div>
       )}
 
       <div>
@@ -82,7 +90,7 @@ export default function LabelZ() {
                 by <button className="hover:underline" onClick={() => openMember(l.owner)}>{l.owner}</button>
                 {" · "}{l.member_count} member{l.member_count === 1 ? "" : "s"}
               </p>
-              {l.bio && <p className="mt-1 text-sm text-white/60">{l.bio}</p>}
+              {l.bio && <p className="mt-1 text-sm text-white/60"><MentionText text={l.bio} /></p>}
             </div>
           ))}
           {labels.length === 0 && <p className="text-sm text-white/45">No labels yet — found the first one.</p>}

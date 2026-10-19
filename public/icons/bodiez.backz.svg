@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Back">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Trapezius -->
+    <path d="M70 60 L130 60 L120 85 L80 85 Z" fill="none" stroke="#00ff88" stroke-width="3"/>
+    <!-- Lats -->
+    <path d="M60 95 Q55 120 65 145 L85 145 Q75 125 80 95 Z" fill="none" stroke="#22e6ff" stroke-width="3"/>
+    <path d="M140 95 Q145 120 135 145 L115 145 Q125 125 120 95 Z" fill="none" stroke="#22e6ff" stroke-width="3"/>
+    <!-- Erector spinae center line -->
+    <line x1="100" y1="80" x2="100" y2="150" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+  </g>
+</svg>

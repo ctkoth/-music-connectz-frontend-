@@ -1,3 +1,29 @@
+// ⚠️ BLUEPRINT — NOT MOUNTED, AND ITS DATA SHAPES ARE NOT CURRENT.
+//
+// `CLAUDE.md` says changing this file changes nothing. That is true of the
+// CODE and false of the DATA, and the difference has already cost a member
+// their profile once.
+//
+// PERSONA_CHOICES below is `{ name, emoji, icon }`. The live app's persona is
+// a keyed string (`src/personaSkills.js`: `indieartist: "🎤 Independent
+// Artist"`) which the server normalizes to `{ key, name, skills }`
+// (`apps/economy/personaz.py`). Two shapes for one concept — and the
+// blueprint's shape reached production as the PRINTED FORM of a dict:
+//
+//     "{'name': 'Independent Artist', 'emoji': '🎤', 'skills': []}"
+//
+// stored as the persona's NAME, rendering as machine noise on the owner's own
+// profile and dropping his priced skills out of post pricing, the experience
+// metric and his public card. Repaired Sep 4, 2026.
+//
+// So before copying ANY shape out of this file: check what the server actually
+// stores. "Not mounted" is not "inert" — a reference app's shapes escape into
+// real rows, and nothing in here is versioned against the live one.
+//
+// What this file is still good for: it is the SPEC. The RoyaltieZ UI exists
+// here and nowhere else, and the backend for it is finished and unreachable.
+// See BLUEPRINT_AUDIT.md.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";

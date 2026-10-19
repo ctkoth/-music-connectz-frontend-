@@ -11,6 +11,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bug, Image as ImageIcon, Loader2, Star, Trash2 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
+import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import { asList } from "../shape.js";
@@ -20,6 +23,7 @@ const STATUS_STYLE = {
 };
 
 export default function BugZ() {
+  const talk = useSay();
   const [bugs, setBugs] = useState(null);
   const [meta, setMeta] = useState(null);
   const [form, setForm] = useState({ title: "", body: "" });
@@ -45,6 +49,9 @@ export default function BugZ() {
 
   function attach(f) {
     if (!f) return;
+    // A zero-byte screenshot is a round trip that can only fail, and it
+    // happens for real — a cancelled export, a sync placeholder.
+    if (!f.size) return setMsg("That file is empty — there's nothing in it to attach.");
     const capMb = meta?.max_mb;
     if (capMb && f.size > capMb * 1024 * 1024) {
       return setMsg(`That's ${(f.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
@@ -77,9 +84,13 @@ export default function BugZ() {
       await api("/api/economy/bugz/", { method: "POST", body });
       setForm({ title: "", body: "" });
       dropShot();
-      setMsg(`Reported! If the team squashes it, you earn +${meta?.bounty_spinaz ?? 200} ${SPINAZ}.`);
+      // Sent, not paid. The bounty lands if and when it's squashed, so this
+      // is the message sound — playing the coin here would promise in audio
+      // what the sentence right next to it carefully says is conditional.
+      setMsg(talk(P.bugz_reported(meta?.bounty_spinaz ?? 200)));
+      playSound("message");
       load();
-    } catch (err) { setMsg(err.message); } finally { setBusy(false); }
+    } catch (err) { setMsg(err.message); playSound("error"); } finally { setBusy(false); }
   }
 
   return (

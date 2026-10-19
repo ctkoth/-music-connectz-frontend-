@@ -1,0 +1,57 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-social" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Central hub -->
+  <circle cx="100" cy="100" r="12" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-social)"/>
+
+  <!-- Connection nodes -->
+  <!-- Top node -->
+  <circle cx="100" cy="40" r="8" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="100" y1="48" x2="100" y2="88" stroke="#00ffff" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Top-right node -->
+  <circle cx="145" cy="55" r="8" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="138" y1="65" x2="108" y2="95" stroke="#ffff00" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Right node -->
+  <circle cx="160" cy="100" r="8" fill="none" stroke="#00ff00" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="152" y1="100" x2="112" y2="100" stroke="#00ff00" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Bottom-right node -->
+  <circle cx="145" cy="145" r="8" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="138" y1="135" x2="108" y2="105" stroke="#ff00ff" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Bottom node -->
+  <circle cx="100" cy="160" r="8" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="100" y1="152" x2="100" y2="112" stroke="#00ffff" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Bottom-left node -->
+  <circle cx="55" cy="145" r="8" fill="none" stroke="#ffff00" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="62" y1="135" x2="92" y2="105" stroke="#ffff00" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Left node -->
+  <circle cx="40" cy="100" r="8" fill="none" stroke="#00ff00" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="48" y1="100" x2="88" y2="100" stroke="#00ff00" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Top-left node -->
+  <circle cx="55" cy="55" r="8" fill="none" stroke="#ff00ff" stroke-width="2" filter="url(#glow-social)"/>
+  <line x1="62" y1="65" x2="92" y2="95" stroke="#ff00ff" stroke-width="1.5" opacity="0.7" filter="url(#glow-social)"/>
+
+  <!-- Decorative sparks -->
+  <circle cx="70" cy="30" r="2" fill="#ffff00" filter="url(#glow-social)"/>
+  <circle cx="130" cy="25" r="2" fill="#00ffff" filter="url(#glow-social)"/>
+  <circle cx="170" cy="65" r="2" fill="#ff00ff" filter="url(#glow-social)"/>
+  <circle cx="175" cy="135" r="2" fill="#00ff00" filter="url(#glow-social)"/>
+  <circle cx="130" cy="175" r="2" fill="#ffff00" filter="url(#glow-social)"/>
+  <circle cx="70" cy="180" r="2" fill="#00ffff" filter="url(#glow-social)"/>
+  <circle cx="25" cy="135" r="2" fill="#ff00ff" filter="url(#glow-social)"/>
+  <circle cx="20" cy="65" r="2" fill="#00ff00" filter="url(#glow-social)"/>
+</svg>

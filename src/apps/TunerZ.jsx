@@ -1,0 +1,567 @@
+import { useEffect, useRef, useState } from "react";
+import { Mic, MicOff, Volume2 } from "lucide-react";
+import { api } from "../api.js";
+import { onHandoff } from "../handoff.js";
+
+const STANDARD_TUNING = {
+  guitar: [
+    { string: "E", freq: 82.41 },
+    { string: "A", freq: 110.0 },
+    { string: "D", freq: 146.83 },
+    { string: "G", freq: 196.0 },
+    { string: "B", freq: 246.94 },
+    { string: "e", freq: 329.63 },
+  ],
+  bass: [
+    { string: "E", freq: 41.2 },
+    { string: "A", freq: 55.0 },
+    { string: "D", freq: 73.42 },
+    { string: "G", freq: 98.0 },
+  ],
+  ukulele: [
+    { string: "G", freq: 392.0 },
+    { string: "C", freq: 261.63 },
+    { string: "E", freq: 329.63 },
+    { string: "A", freq: 440.0 },
+  ],
+};
+
+// Pitch detection by the McLeod method (NSDF), replacing a hand-rolled
+// autocorrelation that had two faults a tuner cannot afford.
+//
+//   * It was AMPLITUDE-SENSITIVE. The old score was
+//     `1 - Σ|x[i] - x[i+τ]| / N`, a raw difference with no normalisation, so
+//     a quiet signal produced small differences, a value near 1, and sailed
+//     past the fixed `> 0.9` threshold. A quiet room gave confident nonsense
+//     instead of "no signal".
+//   * It RETURNED ON THE FIRST peak it liked, scanning lags upward — so it
+//     took the smallest period above threshold, which is how a detector locks
+//     onto a harmonic and reports the note an octave up.
+//
+// The NSDF is normalised into [-1, 1] by construction, so one clarity
+// threshold means the same thing at any volume. And the fundamental is chosen
+// as the FIRST key maximum within `NSDF_K` of the highest one, which is the
+// standard octave-safe pick: a harmonic peak is never taller than the
+// fundamental's by more than that margin, so preferring the earliest tall
+// peak keeps the period whole.
+const NSDF_K = 0.9;          // how close to the best peak still counts
+const NSDF_MIN_CLARITY = 0.5; // below this it is noise, not a note
+const RMS_GATE = 0.01;
+const PITCH_MIN_HZ = 55;      // A1 — below any voice or guitar string
+const PITCH_MAX_HZ = 1400;    // above the top of a soprano's range
+
+function autoCorrelate(buffer, sampleRate) {
+  const SIZE = buffer.length;
+
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < RMS_GATE) return -1;
+
+  // Only lags that could be a musical pitch. Bounding this is what keeps an
+  // O(n²) detector inside a 60fps frame.
+  const minLag = Math.max(2, Math.floor(sampleRate / PITCH_MAX_HZ));
+  const maxLag = Math.min(Math.floor(sampleRate / PITCH_MIN_HZ),
+                          Math.floor(SIZE / 2));
+  if (maxLag <= minLag + 2) return -1;
+
+  const window = SIZE - maxLag;
+  const nsdf = new Float32Array(maxLag + 1);
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    let acf = 0, norm = 0;
+    for (let i = 0; i < window; i++) {
+      const a = buffer[i], b = buffer[i + tau];
+      acf += a * b;
+      norm += a * a + b * b;
+    }
+    nsdf[tau] = norm > 0 ? (2 * acf) / norm : 0;
+  }
+
+  // Key maxima: the tallest point of each positive run.
+  const peaks = [];
+  let i = minLag;
+  while (i <= maxLag) {
+    if (nsdf[i] > 0) {
+      let top = i;
+      while (i <= maxLag && nsdf[i] > 0) {
+        if (nsdf[i] > nsdf[top]) top = i;
+        i++;
+      }
+      peaks.push(top);
+    } else i++;
+  }
+  if (!peaks.length) return -1;
+
+  let best = peaks[0];
+  for (const p of peaks) if (nsdf[p] > nsdf[best]) best = p;
+  if (nsdf[best] < NSDF_MIN_CLARITY) return -1;
+
+  const cutoff = NSDF_K * nsdf[best];
+  const chosen = peaks.find((p) => nsdf[p] >= cutoff) ?? best;
+
+  // Parabolic interpolation — a lag is a whole number of samples, and a note
+  // is not, so without this the reading quantises and the cents jump.
+  const y1 = nsdf[chosen - 1] ?? nsdf[chosen];
+  const y2 = nsdf[chosen];
+  const y3 = nsdf[chosen + 1] ?? nsdf[chosen];
+  const denom = 2 * (2 * y2 - y1 - y3);
+  const period = chosen + (denom !== 0 ? (y3 - y1) / denom : 0);
+
+  const hz = period > 0 ? sampleRate / period : -1;
+  return hz >= PITCH_MIN_HZ && hz <= PITCH_MAX_HZ ? hz : -1;
+}
+
+// Frequency -> note name, octave and cents, computed the same way
+// apps/economy/take_analyzer.freq_to_note does it on the server.
+//
+// What was here compared the raw frequency against a table of OCTAVE-ZERO
+// notes (C 16.35Hz .. B 30.87Hz) by linear distance. For any pitch a person
+// can actually sing, the nearest entry in that table is always B0 — so the
+// tuner named every note "B" and reported cents in the thousands, which the
+// needle pinned and which made drill accuracy (100 - |cents| * 2) permanently
+// zero. It was not imprecise; it never worked.
+//
+// Doing the arithmetic instead of searching a table also means the tuner and
+// the take analyser cannot disagree about what note somebody sang, which they
+// necessarily did while one used a table and the other used logarithms.
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const A4_HZ = 440;
+
+function findClosestNote(frequency) {
+  if (!frequency || frequency <= 0) return null;
+  const semitonesFromA4 = 12 * Math.log2(frequency / A4_HZ);
+  const semitone = Math.round(semitonesFromA4);
+  const cents = Math.round(100 * (semitonesFromA4 - semitone));
+
+  const index = ((semitone + 9) % 12 + 12) % 12;
+  const octave = 4 + Math.floor((semitone + 9) / 12);
+  const exact = A4_HZ * Math.pow(2, semitone / 12);
+
+  return {
+    note: NOTE_NAMES[index],
+    octave,
+    name: `${NOTE_NAMES[index]}${octave}`,
+    freq: exact,
+    detectedFreq: frequency,
+    cents,
+  };
+}
+
+function TunerZ() {
+  // Which note is being drilled, and where it came from.
+  //
+  // A handoff, not the URL. Tabs here switch WITHOUT navigating, so
+  // `window.location.search` never changes once the app is loaded — reading
+  // the drill out of it meant the drill only ever armed if somebody pasted a
+  // link, which nothing in the app produces. The URL is still read once as
+  // the seed, so a pasted link keeps working.
+  const [drill, setDrill] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    const note = p.get("note");
+    if (!note) return null;
+    return {
+      note,
+      freq: p.get("freq") ? parseFloat(p.get("freq")) : null,
+      cents: p.get("cents") ? parseInt(p.get("cents"), 10) : null,
+      key: p.get("key") || null,
+      bpm: p.get("bpm") ? parseInt(p.get("bpm"), 10) : null,
+    };
+  });
+
+  useEffect(() => {
+    const arm = (d) => d?.note && setDrill({
+      note: d.note,
+      freq: d.freq != null ? Number(d.freq) : null,
+      cents: d.cents != null ? Number(d.cents) : null,
+      key: d.key || null,
+      bpm: d.bpm != null ? Number(d.bpm) : null,
+    });
+    // onHandoff takes on mount as well as on a later handoff, so this covers
+    // both arriving from PostZ and being handed a note while already open.
+    return onHandoff("tunerz", arm);
+  }, []);
+
+  const drillNote = drill?.note || null;
+  const drillFreq = drill?.freq ?? null;
+  const drillCentsOff = drill?.cents ?? null;
+  const drillKey = drill?.key || null;
+  const drillBpm = drill?.bpm ?? null;
+  const isDrillMode = !!drillNote;
+
+  const [isListening, setIsListening] = useState(false);
+  const [frequency, setFrequency] = useState(0);
+  const [note, setNote] = useState(null);
+  const [instrument, setInstrument] = useState("guitar");
+  const [targetString, setTargetString] = useState(0);
+  const [accuracy, setAccuracy] = useState(0);
+  const [drillAccuracy, setDrillAccuracy] = useState(0);
+  const [drillHistory, setDrillHistory] = useState([]);
+  // A drill that silently failed to save is the bug class this repo has
+  // shipped twice: the handler reports the REAL error rather than answering
+  // "saved" on a failure.
+  const [saveErr, setSaveErr] = useState("");
+  const [historyStale, setHistoryStale] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const streamRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const dataArrayRef = useRef(null);
+  const sessionStartRef = useRef(null);
+  const lastFrequencyRef = useRef(0);
+
+  const startListening = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 4096;
+
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      dataArrayRef.current = new Float32Array(analyser.fftSize);
+
+      sessionStartRef.current = Date.now();
+      lastFrequencyRef.current = 0;
+      setIsListening(true);
+      detectPitch();
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+    }
+  };
+
+  const stopListening = async () => {
+    setIsListening(false);
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+
+    if (isDrillMode && drillNote && sessionStartRef.current) {
+      const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      const finalFreq = lastFrequencyRef.current;
+      const finalNote = finalFreq > 0 ? findClosestNote(finalFreq) : null;
+      const finalCentsOff = finalNote ? finalNote.cents : null;
+
+      try {
+        await api("/api/economy/tunerz/drills/", {
+          method: "POST",
+          body: {
+            weak_note: drillNote,
+            original_frequency: drillFreq,
+            original_cents_off: drillCentsOff,
+            accuracy_percent: Math.round(drillAccuracy),
+            duration_seconds: durationSeconds,
+            final_frequency: finalFreq || null,
+            final_cents_off: finalCentsOff,
+            key_context: drillKey,
+            bpm_context: drillBpm,
+          },
+        });
+        setHistoryStale((n) => n + 1);
+      } catch (err) {
+        setSaveErr(err.message || "That drill didn't save.");
+      }
+    }
+
+    setFrequency(0);
+    setNote(null);
+  };
+
+  const detectPitch = () => {
+    if (!analyserRef.current || !isListening) return;
+
+    analyserRef.current.getFloatTimeDomainData(dataArrayRef.current);
+    const detectedFreq = autoCorrelate(dataArrayRef.current, audioContextRef.current.sampleRate);
+
+    if (detectedFreq > -1) {
+      setFrequency(detectedFreq);
+      lastFrequencyRef.current = detectedFreq;
+      const closestNote = findClosestNote(detectedFreq);
+      setNote(closestNote);
+    } else {
+      setFrequency(0);
+      setNote(null);
+    }
+
+    animationFrameRef.current = requestAnimationFrame(detectPitch);
+  };
+
+  // In drill mode, use the target frequency from coach feedback
+  const targetFreq = isDrillMode ? drillFreq : STANDARD_TUNING[instrument][targetString].freq;
+
+  // Calculate deviation from target
+  const deviation = note ? note.cents : 0;
+  const deviationPercent = Math.max(-50, Math.min(50, deviation / 2));
+
+  useEffect(() => {
+    const acc = isDrillMode && frequency > 0 ? Math.max(0, 100 - Math.abs(deviation) * 2) : 0;
+    setDrillAccuracy(acc);
+  }, [isDrillMode, frequency, deviation]);
+
+  useEffect(() => {
+    return () => {
+      if (isListening) stopListening();
+    };
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    const q = isDrillMode ? `?note=${encodeURIComponent(drillNote)}` : "";
+    api(`/api/economy/tunerz/drills/${q}`)
+      .then((d) => { if (live) setDrillHistory(Array.isArray(d) ? d : (d?.drills || [])); })
+      .catch(() => { if (live) setDrillHistory([]); });
+    return () => { live = false; };
+  }, [isDrillMode, drillNote, historyStale]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-8">
+      <div className="mx-auto max-w-2xl">
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <h1 className="mb-2 text-5xl font-bold text-white">TunerZ</h1>
+          <p className="text-lg text-slate-400">
+            {isDrillMode ? "Practice drill from coach feedback" : "(instrument tuner)"}
+          </p>
+        </div>
+
+        {/* Drill Context */}
+        {isDrillMode && (
+          <div data-tour="tunerz-drill"
+               className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+            <div className="text-center">
+              <div className="text-sm text-slate-400 mb-2">Coach said you were:</div>
+              <div className="text-3xl font-bold text-cyan-400 mb-3">{drillNote} {drillCentsOff && `(${Math.abs(drillCentsOff)}¢ ${drillCentsOff < 0 ? 'flat' : 'sharp'})`}</div>
+              {drillKey && <div className="text-sm text-slate-300 mb-2">Key: {drillKey}</div>}
+              {drillBpm && <div className="text-sm text-slate-300">Song tempo: {drillBpm} BPM</div>}
+            </div>
+          </div>
+        )}
+
+        {saveErr && (
+          <div className="mb-4 rounded-lg border border-mcz-ember/40 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
+            {saveErr}
+          </div>
+        )}
+
+        {/* Microphone Control */}
+        {/* Third copy of the same MetZ/DrumZ row. "Start Listening" is a
+            wider label than "Play", so this one broke at 320px even after
+            the other two were fixed — found by walking all 42 tabs rather
+            than the six a spot check had named. */}
+        <div className="mb-8 flex flex-wrap justify-center gap-4">
+          <button
+            onClick={startListening}
+            disabled={isListening}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 font-bold text-white transition-all hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Mic size={20} /> Start Listening
+          </button>
+          <button
+            onClick={stopListening}
+            disabled={!isListening}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-mcz-ember px-6 py-3 font-bold text-white transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <MicOff size={20} /> Stop
+          </button>
+        </div>
+
+        {/* Listening Status */}
+        <div className="mb-8 text-center">
+          <div className="inline-block rounded-full bg-slate-700/50 px-4 py-2">
+            <span className="text-sm text-slate-300">
+              {isListening ? (
+                <>
+                  <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
+                  Listening...
+                </>
+              ) : (
+                <>
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-slate-500"></span>
+                  Ready
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Instrument Selection (hidden in drill mode) */}
+        {!isDrillMode && (
+          <>
+            <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Instrument</label>
+              <select
+                value={instrument}
+                onChange={(e) => {
+                  setInstrument(e.target.value);
+                  setTargetString(0);
+                }}
+                className="w-full rounded bg-slate-700 px-3 py-2 text-white"
+              >
+                <option value="guitar">Guitar</option>
+                <option value="bass">Bass Guitar</option>
+                <option value="ukulele">Ukulele</option>
+              </select>
+            </div>
+
+            {/* String Selection */}
+            <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+              <label className="block text-sm font-semibold text-slate-300 mb-3">String</label>
+              <div className="grid grid-cols-3 gap-2">
+                {STANDARD_TUNING[instrument].map((string, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setTargetString(idx)}
+                    className={`rounded py-2 font-semibold transition-all ${
+                      targetString === idx
+                        ? "bg-cyan-500 text-slate-900"
+                        : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                    }`}
+                  >
+                    {string.string}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Tuner Display */}
+        {isListening && (
+          <div className="mb-8 rounded-xl bg-slate-800/50 p-8 backdrop-blur">
+            {/* Frequency & Note */}
+            <div className="mb-8 text-center">
+              {!isDrillMode && <div className="text-2xl text-slate-400 mb-2">Target: {STANDARD_TUNING[instrument][targetString].string}</div>}
+              {note ? (
+                <>
+                  <div className="mb-2 text-6xl font-bold text-cyan-400">{note.name}</div>
+                  <div className="text-lg text-slate-300">
+                    Detected: {frequency.toFixed(1)} Hz | Target: {targetFreq?.toFixed(1)} Hz
+                  </div>
+                  <div className={`text-lg font-semibold ${
+                    Math.abs(deviation) < 5 ? "text-emerald-400" : "text-amber-400"
+                  }`}>
+                    {deviation > 0 ? `↓ ${deviation} cents flat` : deviation < 0 ? `↑ ${Math.abs(deviation)} cents sharp` : "✓ In tune"}
+                  </div>
+
+                  {/* Drill mode accuracy */}
+                  {isDrillMode && (
+                    <div className="mt-4 text-sm text-slate-400">
+                      Accuracy: <span className={drillAccuracy > 80 ? "text-emerald-400 font-bold" : "text-amber-400"}>{Math.round(drillAccuracy)}%</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-lg text-slate-400">Play a note...</div>
+              )}
+            </div>
+
+            {/* Tuning Gauge */}
+            <div className="relative mb-8 h-12 overflow-hidden rounded-lg bg-slate-700/50">
+              <div className="absolute inset-0 flex items-center">
+                <div className="h-full w-1/2 bg-gradient-to-r from-slate-700 to-transparent"></div>
+                <div className="absolute left-1/2 top-0 h-full w-1 bg-white/30"></div>
+                <div className="h-full w-1/2 bg-gradient-to-l from-slate-700 to-transparent"></div>
+              </div>
+
+              {/* Drill mode goal marker - show where they were originally off */}
+              {isDrillMode && drillCentsOff && (
+                <div
+                  className="absolute top-0 h-full w-1 bg-purple-400/50 border-l border-purple-300"
+                  style={{
+                    left: `calc(50% + ${Math.max(-50, Math.min(50, drillCentsOff / 2))}%)`,
+                  }}
+                  title={`Goal: ${drillCentsOff < 0 ? 'fix flat by' : 'fix sharp by'} ${Math.abs(drillCentsOff)}¢`}
+                ></div>
+              )}
+
+              {/* Indicator - current detection */}
+              <div
+                className={`absolute top-0 h-full w-2 transition-all ${
+                  Math.abs(deviation) < 5 ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+                style={{
+                  left: `calc(50% + ${deviationPercent}%)`,
+                  transform: "translateX(-50%)",
+                }}
+              ></div>
+            </div>
+
+            {/* Deviation Scale */}
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Flat</span>
+              <span>In Tune</span>
+              <span>Sharp</span>
+            </div>
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="rounded-lg bg-slate-800/30 p-6 text-center text-sm text-slate-400">
+          {isDrillMode ? (
+            <>
+              <p>The purple line shows where you were flat/sharp in your recording. Hit the green area (in tune) to complete this drill.</p>
+              <p className="mt-2">When you're consistently hitting 80%+ accuracy, you've locked it in—move to the next weak note.</p>
+            </>
+          ) : (
+            <>
+              <p>Allow microphone access and play a note to see the detected frequency and tuning accuracy.</p>
+              <p className="mt-2">The gauge shows how far you are from the target note (±50 cents).</p>
+            </>
+          )}
+        </div>
+
+        {/* Drill History */}
+        {drillHistory.length > 0 && (
+          <div className="mt-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full text-left font-semibold text-slate-300 mb-4 hover:text-emerald-400 transition-colors"
+            >
+              {showHistory ? "▼ " : "▶ "} Drill History ({drillHistory.length} attempts)
+            </button>
+            {showHistory && (
+              <div className="space-y-3">
+                {drillHistory.map((drill, idx) => (
+                  <div key={idx} className="rounded bg-slate-700/50 p-4 text-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className="text-cyan-400 font-bold">{drill.weak_note}</span>
+                        <span className="text-slate-400 ml-2">{drill.duration_seconds}s</span>
+                      </div>
+                      <div className={drill.accuracy_percent >= 80 ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                        {drill.accuracy_percent}% accuracy
+                      </div>
+                    </div>
+                    {drill.improvement !== null && (
+                      <div className="text-slate-300">
+                        Improvement: <span className={drill.improvement > 0 ? "text-emerald-400" : "text-slate-400"}>
+                          {drill.improvement > 0 ? `+${drill.improvement}¢` : `${drill.improvement}¢`}
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-500 mt-1">
+                      {new Date(drill.created_at).toLocaleDateString()} {new Date(drill.created_at).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default TunerZ;

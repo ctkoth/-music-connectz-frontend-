@@ -1,13 +1,71 @@
 #!/usr/bin/env bash
-# Normalize your icon files into public/icons/ with registry names.
-#   bash RENAME_ICONS.sh ~/path/to/your/icons/folder
-# Converts jpg->png names as-is (the app serves them fine either way; keep the
-# extension in the DEST name — browsers read content, but consistent .png keys
-# are what the registry expects, so jpgs are copied under .png names).
+# Import your icon artwork into public/icons/ under the names the registry
+# actually asks for.
+#
+#   bash RENAME_ICONS.sh /path/to/folder/with/the/art
+#
+# On Windows use Git Bash and FORWARD slashes:
+#   bash RENAME_ICONS.sh "/c/Users/ctkot/OneDrive/Documents/mcz-icons"
+#
+# IT COPIES, it does not move. Point SRC at a folder OUTSIDE the repo. Pointing
+# it at public/icons leaves the messy original beside the clean copy, both get
+# committed, and the deploy ships the same image twice under two names — that
+# is exactly what happened once already: 57 byte-identical pairs. The guard
+# below refuses that case rather than trusting anyone to remember.
+#
+# MATCHING IS FUZZY ON PURPOSE. The names on the left are the ones the art had
+# when this list was written, trailing spaces and all ("Arsenal icon .jpg").
+# Requiring an exact match meant one renamed file printed "missing" and copied
+# nothing, which is the whole reason this script kept appearing to do nothing.
+# So a source is found by its name with case, spaces, dots, dashes and
+# underscores ignored: "CoachZ.jpg", "coachz.jpg" and "Coach Z .jpg" all hit
+# the same line. Two files that normalise the same way are AMBIGUOUS and
+# neither is copied — a wrong icon copied silently is worse than one not
+# copied loudly.
+#
+# THE DESTINATION EXTENSION IS THE REAL FORMAT. This used to copy jpgs under
+# .png names on the theory that browsers read content not extensions. True,
+# but the registry keys are filenames, and four of them (chordz, tunerz, metz,
+# journalz) were .png against .jpg art — so the file landed and the icon still
+# did not appear. Keys and destinations now agree; do not "tidy" a .jpg back
+# to .png here.
+#
+# Afterwards:  npm test  &&  node tools/icon-audit.mjs
 SRC="${1:?usage: bash RENAME_ICONS.sh /path/to/icons}"
 DST="public/icons"
+
+# The mistake that made 57 duplicates, refused rather than documented.
+if [ "$(cd "$SRC" 2>/dev/null && pwd -P)" = "$(cd "$DST" 2>/dev/null && pwd -P)" ]; then
+  echo "REFUSED: the source folder IS public/icons. Copy the art somewhere else first," >&2
+  echo "         or every file lands twice — once under each name." >&2
+  exit 1
+fi
+[ -d "$SRC" ] || { echo "No such folder: $SRC" >&2; exit 1; }
 mkdir -p "$DST"
-copy(){ [ -f "$SRC/$1" ] && cp "$SRC/$1" "$DST/$2" && echo "OK  $1 -> $2" || echo "--  missing: $1"; }
+
+ok=0; missing=0; ambiguous=0
+# Lowercase, and drop everything that is not a letter or a digit.
+norm(){ printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]'; }
+
+copy(){
+  want=$(norm "${1%.*}")
+  found=""; hits=0
+  for f in "$SRC"/*; do
+    [ -f "$f" ] || continue
+    base=${f##*/}
+    case "$base" in *.png|*.PNG|*.jpg|*.JPG|*.jpeg|*.JPEG|*.webp|*.WEBP|*.svg|*.SVG) ;; *) continue ;; esac
+    [ "$(norm "${base%.*}")" = "$want" ] || continue
+    found=$f; hits=$((hits + 1))
+  done
+  if [ "$hits" -gt 1 ]; then
+    echo "??  ambiguous: $hits files look like '$1' — none copied"; ambiguous=$((ambiguous + 1)); return
+  fi
+  if [ -z "$found" ]; then
+    echo "--  missing:   $1"; missing=$((missing + 1)); return
+  fi
+  cp "$found" "$DST/$2" && echo "OK  ${found##*/} -> $2" && ok=$((ok + 1))
+}
+
 copy "Arsenal icon .jpg" "arsenal.png"
 copy "azrael icon .jpg" "azrael.png"
 copy "Battle Cypher.jpg" "battlez.png"
@@ -93,4 +151,30 @@ copy "writez.png" "writez.png"
 copy "ZodiacZ.png" "zodiacz.png"
 copy "Callz. Ai.png" "callz_ai.png"
 copy "Callz. User.png" "callz_user.png"
-echo done
+# ---- The neon signs Corey pasted into chat on Sep 13 -------------------------
+# An image in a chat message is not a file — it never reaches the repo — so
+# these five have to come off the machine they live on. Destination names are
+# what src/App.jsx already asks for, so dropping them in is the whole job.
+#
+# CoachZ, MetZ, TunerZ and ChordZ each replace a fallback: CoachZ is showing
+# the MCZ logo right now, and the other three are on a generated -neon.svg.
+# Point the registry path back at the real file once each lands — the key is
+# already right.
+copy "CoachZ.jpg"     "coachz.jpg"      # -> registry already says /icons/coachz.jpg
+copy "toolz.metz.jpg" "metz.jpg"        # -> registry says metz-neon.svg; key is already metz.jpg
+copy "tunerz.jpg"     "tunerz.jpg"      # -> registry says tunerz-neon.svg
+copy "chordz.jpg"     "chordz.jpg"      # -> registry says chordz-neon.svg
+# RecordingZ has no tab and no registry key in this build — the art has
+# nowhere to be rendered yet, so this only parks it.
+copy "recordingz.jpg" "recordingz.jpg"
+
+# The remaining four the audit still reports. With these, every registry entry
+# that is missing art has a line here, so one run imports the lot.
+copy "journalz.jpg"        "journalz.jpg"        # -> registry says journalz-neon.svg
+copy "personaz.coach.jpg"  "personaz_coach.jpg"  # -> underscored, like every personaz_<role>
+copy "statsz.png"          "statsz.png"
+copy "opportunitiez.png"   "opportunitiez.png"
+
+echo
+echo "copied $ok · missing $missing · ambiguous $ambiguous"
+echo "next:  npm test  &&  node tools/icon-audit.mjs"

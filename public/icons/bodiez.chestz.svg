@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Chest">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left pec -->
+    <path d="M70 70 Q55 85 60 110 L85 100" fill="none" stroke="#00ff88" stroke-width="6"/>
+    <!-- Right pec -->
+    <path d="M130 70 Q145 85 140 110 L115 100" fill="none" stroke="#22e6ff" stroke-width="6"/>
+    <!-- Center line -->
+    <line x1="100" y1="65" x2="100" y2="120" stroke="#ff00ff" stroke-width="3" stroke-opacity="0.7"/>
+    <!-- Upper chest definition -->
+    <path d="M75 75 Q80 70 85 75" fill="none" stroke="#00ff88" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M125 75 Q120 70 115 75" fill="none" stroke="#22e6ff" stroke-width="2" stroke-opacity="0.6"/>
+  </g>
+</svg>

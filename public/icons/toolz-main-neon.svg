@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Music ConnectZ">
+  <title>Music ConnectZ</title>
+  <defs>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0080ff"/>
+      <stop offset="14%" stop-color="#0040ff"/>
+      <stop offset="28%" stop-color="#7f00ff"/>
+      <stop offset="42%" stop-color="#ff0080"/>
+      <stop offset="56%" stop-color="#ff4000"/>
+      <stop offset="70%" stop-color="#ffff00"/>
+      <stop offset="84%" stop-color="#00ff00"/>
+      <stop offset="100%" stop-color="#0080ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#000000"/>
+
+  <!-- Rainbow border -->
+  <rect x="20" y="20" width="472" height="472" rx="60" fill="none" stroke="url(#rainbow)" stroke-width="12"/>
+
+  <!-- Handshake with glow -->
+  <g filter="url(#glow)">
+    <!-- Left hand -->
+    <path d="M150 250 Q130 230 120 210 Q115 200 120 195 Q125 190 135 195 Q150 205 165 225 Z"
+          fill="none" stroke="#00ffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Right hand -->
+    <path d="M362 250 Q382 230 392 210 Q397 200 392 195 Q387 190 377 195 Q362 205 347 225 Z"
+          fill="none" stroke="#ff00ff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Left forearm -->
+    <line x1="150" y1="250" x2="180" y2="300" stroke="#00ffff" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Right forearm -->
+    <line x1="362" y1="250" x2="332" y2="300" stroke="#ff00ff" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Handshake point -->
+    <circle cx="256" cy="280" r="22" fill="#ffff00"/>
+
+    <!-- Musical note 1 (top left) -->
+    <g transform="translate(220, 140)">
+      <circle cx="0" cy="0" r="8" fill="#00ff88"/>
+      <line x1="8" y1="-8" x2="12" y2="-40" stroke="#00ff88" stroke-width="6" stroke-linecap="round"/>
+      <path d="M12 -40 Q20 -35 20 -20" fill="none" stroke="#00ff88" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <!-- Musical note 2 (top right) -->
+    <g transform="translate(280, 150)">
+      <circle cx="0" cy="0" r="8" fill="#ff00ff"/>
+      <line x1="8" y1="-8" x2="12" y2="-45" stroke="#ff00ff" stroke-width="6" stroke-linecap="round"/>
+      <path d="M12 -45 Q22 -38 22 -20" fill="none" stroke="#ff00ff" stroke-width="6" stroke-linecap="round"/>
+    </g>
+
+    <!-- Star (top right area) -->
+    <g transform="translate(340, 120)">
+      <path d="M0,-18 L4,-6 L18,-3 L8,6 L10,20 L0,14 L-10,20 L-8,6 L-18,-3 L-4,-6 Z"
+            fill="#ffff00" stroke="#ffff00" stroke-width="1" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Musical note 3 (lower) -->
+    <g transform="translate(256, 370)">
+      <circle cx="0" cy="0" r="8" fill="#00ff88"/>
+      <line x1="8" y1="-8" x2="12" y2="-45" stroke="#00ff88" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="18" cy="-25" r="7" fill="#00ff88"/>
+    </g>
+  </g>
+</svg>

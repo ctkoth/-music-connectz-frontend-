@@ -1,0 +1,47 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="neon-glow-bodiez">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" fill="rgba(40, 20, 0, 0.5)"/>
+
+  <!-- Human figure -->
+  <g filter="url(#neon-glow-bodiez)">
+    <!-- Head -->
+    <circle cx="100" cy="45" r="18" fill="none" stroke="#ff9900" stroke-width="2.5"/>
+
+    <!-- Body -->
+    <line x1="100" y1="63" x2="100" y2="110" stroke="#ff9900" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Left arm (flexed) -->
+    <path d="M 100 75 Q 75 65 70 85" fill="none" stroke="#ff9900" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="68" cy="88" r="8" fill="none" stroke="#ff9900" stroke-width="2"/>
+
+    <!-- Right arm (flexed) -->
+    <path d="M 100 75 Q 125 65 130 85" fill="none" stroke="#ff9900" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="132" cy="88" r="8" fill="none" stroke="#ff9900" stroke-width="2"/>
+
+    <!-- Left leg -->
+    <line x1="100" y1="110" x2="90" y2="160" stroke="#00ffff" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Right leg -->
+    <line x1="100" y1="110" x2="110" y2="160" stroke="#00ffff" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Heart accent -->
+    <path d="M 100 95 Q 105 90 110 95 Q 115 100 100 112 Q 85 100 90 95 Q 95 90 100 95"
+          fill="none" stroke="#ff00ff" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Energy/Power lines -->
+  <g filter="url(#neon-glow-bodiez)" opacity="0.7">
+    <line x1="140" y1="50" x2="155" y2="50" stroke="#ffff00" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="145" y1="65" x2="160" y2="65" stroke="#ffff00" stroke-width="1.5" stroke-dasharray="3,3"/>
+  </g>
+</svg>

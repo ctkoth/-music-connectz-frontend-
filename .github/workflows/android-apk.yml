@@ -8,7 +8,7 @@ name: Build Android APK
 on:
   push:
     branches: [main]
-    paths: ["src/**", "public/**", "index.html", "capacitor.config.json", "package.json", "resources/**", ".github/workflows/android-apk.yml"]
+    paths: ["src/**", "public/**", "index.html", "capacitor.config.json", "package.json", "resources/**", ".github/workflows/android-apk.yml", "android-overrides/**"]
   workflow_dispatch: {}
 
 permissions:
@@ -33,10 +33,47 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+      # Explicit packages, deliberately excluding the default list this action
+      # falls back to when `packages` is omitted — that list includes the
+      # legacy "tools" package, which Google has removed from the SDK
+      # repository entirely. `sdkmanager tools` then fails with "Failed to
+      # find package 'tools'" (exit 1) before anything Android-specific ever
+      # runs — this broke every build on main for two pushes running, unable
+      # to get as far as `cap add android`. What Capacitor 6's Gradle project
+      # (compileSdk/targetSdk 34) actually needs is platform-tools, the
+      # platform, and one build-tools release; none of those is "tools".
       - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-34 build-tools;34.0.0"
 
       - name: Add Android platform
         run: npx --yes cap add android
+
+      # Facebook refuses WebView logins, so Facebook and Spotify sign-in run in
+      # a Chrome tab and come back on net.musicconnectz.app://oauth/... — see
+      # src/externalAuth.js. Capacitor's template declares the scheme string
+      # (custom_url_scheme = appId) but no intent-filter for it, so without
+      # this the link has nowhere to land and the member is stranded in Chrome.
+      - name: Register the OAuth deep link
+        run: |
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          f = '''            <intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="@string/custom_url_scheme" android:host="oauth" />
+                      </intent-filter>
+                  </activity>'''
+          assert s.count("</activity>") == 1, "expected one activity in the template"
+          open(p, "w").write(s.replace("</activity>", f, 1))
+          PY
+          grep -n "custom_url_scheme" android/app/src/main/AndroidManifest.xml android/app/src/main/res/values/strings.xml
+
+      # A native watchdog for a page that never draws — see the file's header.
+      - name: Install the MainActivity override
+        run: cp android-overrides/MainActivity.java android/app/src/main/java/net/musicconnectz/app/MainActivity.java
 
       - name: Generate app icon + splash from the logo
         run: npx --yes @capacitor/assets generate --android --iconBackgroundColor "#07060d" --splashBackgroundColor "#07060d" || echo "asset gen skipped"
@@ -44,12 +81,42 @@ jobs:
       - name: Sync web assets into Android
         run: npx --yes cap sync android
 
+      # A fresh runner generates a fresh ~/.android/debug.keystore, so every
+      # build was signed by a different key and Android refused to install it
+      # over the previous one ("App not installed") — every update meant an
+      # uninstall. The key lives in a secret, not the repo: this repo is
+      # public, and a committed key would let anyone sign an "update" that
+      # installs over a member's copy.
+      #
+      # Signed explicitly with apksigner after the build rather than by dropping
+      # the key at ~/.android/debug.keystore: run #275 did exactly that, the key
+      # step passed, and the APK still came out under a different key. A check
+      # that passes while the result is wrong is worse than none, so the
+      # fingerprint is now printed from the APK itself, not the keystore.
       - name: Assemble debug APK
         run: |
           cd android
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/MusicConnectZ.apk"
+
+      - name: Sign with the fixed key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::ANDROID_DEBUG_KEYSTORE_B64 is not set — this APK gets a throwaway key and will not install over the previous build."
+          else
+            KS="$RUNNER_TEMP/mcz.keystore"
+            printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > "$KS"
+            echo "Keystore:"
+            keytool -list -keystore "$KS" -storepass android -alias androiddebugkey | grep SHA-256
+            "$APKSIGNER" sign --ks "$KS" --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android MusicConnectZ.apk
+            rm -f "$KS"
+          fi
+          echo "APK:"
+          "$APKSIGNER" verify --print-certs MusicConnectZ.apk | grep -i "SHA-256"
 
       - name: Publish to the apk-latest release
         uses: softprops/action-gh-release@v2

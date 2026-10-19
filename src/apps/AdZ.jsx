@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { celebrate } from "../celebrate.js";
 import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { SPINAZ } from "../resources.js";
 import EarnInstead from "../EarnInstead.jsx";
+import { goToSpot } from "../goto.js";
 
 // AdZ — Google AdMob rewarded video. The actual ad plays through the AdMob SDK
 // in the native (Capacitor) app; Google then calls the backend SSV endpoint to
@@ -18,7 +20,13 @@ export default function AdZ() {
     const loadStats = () => api("/api/economy/adz/").then(setStats).catch(() => setStats(null));
     loadStats();
     // A rewarded ad just paid out (via server-side verification) — refresh.
-    const onReward = () => setTimeout(loadStats, 1500);
+    const onReward = () => {
+      // The whole product is "watch it, get paid" and the getting-paid moment
+      // landed in silence. The event is fired by the native shell only after
+      // the server verified the reward, so this is coin actually arriving.
+      celebrate("spinaz", 0, { label: "ad reward landed" });
+      setTimeout(loadStats, 1500);
+    };
     window.addEventListener("mcz-ad-rewarded", onReward);
     return () => window.removeEventListener("mcz-ad-rewarded", onReward);
   }, []);
@@ -59,14 +67,25 @@ export default function AdZ() {
         ) : isNative ? (
           <>
             <p className="text-sm text-white/70">Rewarded ads are live. Watch a short clip to earn SpinaZ — your reward is credited automatically once the ad completes.</p>
-            <button
-              className="re-btn !w-auto px-5"
-              onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
-            >
-              <PlayCircle size={15} /> Watch an ad
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="re-btn !w-auto px-5"
+                onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
+              >
+                <PlayCircle size={15} /> Watch an ad
+              </button>
+              <span className="text-sm text-emerald-300">+1 {SPINAZ}</span>
+            </div>
             {!cfg.personalized && (
-              <p className="text-[11px] text-white/40">You'll see family-friendly, non-personalized ads.{cfg.age == null ? " Add your birthday in ProfileZ for age-appropriate settings." : ""}</p>
+              <p className="text-[11px] text-white/40 inline-flex flex-wrap items-center gap-1">
+                You'll see family-friendly, non-personalized ads.
+                {cfg.age == null && (
+                  <>
+                    Add your birthday for age-appropriate settings —
+                    <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>ProfileZ</button>
+                  </>
+                )}
+              </p>
             )}
           </>
         ) : (
@@ -76,7 +95,10 @@ export default function AdZ() {
               Rewarded ads play in the Music ConnectZ mobile app. Install it to watch ads and earn SpinaZ — your balance syncs here automatically.
             </p>
             {cfg.age == null && (
-              <p className="flex items-center gap-1.5 text-[11px] text-white/40"><Cake size={11} /> Add your birthday in ProfileZ so ads match your age.</p>
+              <p className="flex items-center gap-1.5 text-[11px] text-white/40">
+                <Cake size={11} /> Add your birthday so ads match your age —
+                <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>ProfileZ</button>
+              </p>
             )}
           </>
         )}

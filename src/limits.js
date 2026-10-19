@@ -12,6 +12,8 @@ let cache = null;          // resolved limits, shared across every mount
 let inFlight = null;       // one request even if ten components mount at once
 const listeners = new Set();
 
+// FALLBACK ONLY — what CharLimit shows if /limits/ hasn't answered. The live
+// numbers are the server's `tiers` ladder (useTierLadder).
 export const TIER_CHAR_LIMITS = { free: 400, premium: 1500, statz: "Unlimited" };
 
 export const TIER_LABEL = { free: "Free", premium: "Premium", statz: "StatZ", debug: "Debug" };
@@ -94,4 +96,97 @@ export function useCharLimit() {
     /** Trim to the cap — the guard for paste, which bypasses per-key limits. */
     clamp: (text) => (unlimited ? text : (text || "").slice(0, limit)),
   };
+}
+
+/**
+ * The per-upload size cap for the signed-in member, from the server.
+ *
+ * `upload_mb` has been in `/api/economy/limits/` since it shipped and most of
+ * the file inputs in this app never read it — a member could attach a 500MB
+ * video to a post, wait through the upload, and be refused by a 413 at the
+ * end. Checking it here costs nothing and turns a wasted wait into a sentence.
+ *
+ * `check(file)` returns null when the file is fine, or `{ msg, tierLimited }`
+ * when it isn't — `tierLimited` is what lets a caller tell "your tier's cap"
+ * apart from "no file"/"empty file" and show an upgrade path only where one
+ * genuinely exists, rather than parsing the sentence back apart to find out.
+ * Until the limits land it refuses NOTHING: guessing low would refuse files
+ * the member's tier actually allows, and the server is the real gate either
+ * way.
+ */
+export function useUploadLimit() {
+  const [lim, setLim] = useState(cache);
+
+  useEffect(() => {
+    let on = true;
+    listeners.add(setLim);
+    loadLimits().then((d) => on && setLim(d));
+    return () => { on = false; listeners.delete(setLim); };
+  }, []);
+
+  const mb = lim?.upload_mb ?? null;
+  return {
+    mb,
+    tier: lim?.tier || "free",
+    ready: !!lim,
+    check: (file) => {
+      if (!file) return { msg: "No file.", tierLimited: false };
+      // An empty file is a round trip that can only fail. It happens for real:
+      // a cancelled export, a sync placeholder, a recording that captured
+      // nothing.
+      if (!file.size) {
+        return { msg: "That file is empty — there's nothing in it to upload.", tierLimited: false };
+      }
+      if (mb && file.size > mb * 1024 * 1024) {
+        return {
+          msg: `That's ${(file.size / 1024 / 1024).toFixed(1)}MB — your tier allows `
+             + `${mb}MB per upload. A shorter clip, or a tier up raises it.`,
+          tierLimited: true,
+        };
+      }
+      return null;
+    },
+  };
+}
+
+/**
+ * The whole public tier ladder, from the server: what each tier's limits are
+ * and what it costs a month.
+ *
+ * `TierUpgradePrompt.jsx` carried its own copy of this table — the upload,
+ * storage and character ladders AND the prices ("$6/mo", "$15/mo"). Two copies
+ * of a limit is the "20 free prompts in nine places" pattern, and the client's
+ * copy is always the one nobody updates when the real one moves. A price is
+ * worse than a limit: a panel quoting a figure Stripe then charges differently
+ * is not drift, it is a member being shown a price that is not the price.
+ */
+export function useTierLadder() {
+  const [lim, setLim] = useState(cache);
+
+  useEffect(() => {
+    let on = true;
+    listeners.add(setLim);
+    loadLimits().then((d) => on && setLim(d));
+    return () => { on = false; listeners.delete(setLim); };
+  }, []);
+
+  return {
+    tiers: lim?.tiers || null,   // null until it lands — never a guessed table
+    avatarMaxMb: lim?.avatar_max_mb ?? null,
+    tier: lim?.tier || "free",
+    // The audiences a profile field may name, INCLUDING this member's own
+    // custom groups. Served rather than built here, so the visibility control
+    // offers real groups and "who can see this" reads from the same place as
+    // "who is in my circle".
+    audiences: lim?.audiences || null,
+    ready: !!lim?.tiers,
+  };
+}
+
+/** "$6/mo", or "Free" at zero. Cents in, because that is what the server
+ *  stores and rounding it anywhere else invents a price. */
+export function monthPrice(cents) {
+  if (!cents) return "Free";
+  const dollars = cents / 100;
+  return `$${Number.isInteger(dollars) ? dollars : dollars.toFixed(2)}/mo`;
 }

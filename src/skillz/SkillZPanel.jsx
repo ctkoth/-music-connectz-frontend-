@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Award, Flame, Loader2, Star, Trophy, Zap } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { openMember } from "../goto.js";
+import { XP } from "../resources.js";
+import MemberName from "../MemberName.jsx";
+import { IN_SHELL } from "../standalone.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -78,6 +80,13 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
     );
   }
 
+  // A tree with nothing in it to train is a level, an XP bar and a leaderboard for
+  // something nobody can do. In a shell — where this panel is among the first things a
+  // store reviewer scrolls to — it is not drawn until the server has drills for it.
+  // (`seed_skillz` seeds mimez, directz and lessonz only: no instrument coach has a
+  // drill yet, and nothing deploys the seed. See play/skillz/README.md.)
+  if (IN_SHELL && drills.length === 0) return null;
+
   const pct = profile
     ? Math.round((profile.xp_into_level / (profile.xp_into_level + profile.xp_to_next_level)) * 100)
     : 0;
@@ -117,19 +126,21 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               {items.map((d) => (
-                <div key={d.key} className="neon-frame flex items-center justify-between gap-3 p-4">
+                <div key={d.key} className="neon-frame flex flex-col gap-3 p-4">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{d.title}</p>
                     <p className="truncate text-xs text-white/55">{d.description}</p>
-                    <span className="pill mt-2 inline-block">+{d.xp} XP</span>
                   </div>
-                  <button
-                    onClick={() => train(d)}
-                    disabled={training === d.key}
-                    className="neon-btn-primary !w-auto px-4 py-2 text-xs"
-                  >
-                    {training === d.key ? <Loader2 className="animate-spin" size={14} /> : "Train"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => train(d)}
+                      disabled={training === d.key}
+                      className="neon-btn-primary !w-auto px-4 py-2 text-xs"
+                    >
+                      {training === d.key ? <Loader2 className="animate-spin" size={14} /> : "Train"}
+                    </button>
+                    <span className="text-sm text-emerald-300">+{d.xp} {XP}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -171,7 +182,8 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             <div key={row.username + i} className="flex items-center justify-between px-4 py-2 text-sm">
               <span className="flex items-center gap-3">
                 <span className="w-5 text-white/40">{i + 1}</span>
-                <button className="font-medium hover:underline" onClick={() => openMember(row.username)}>{row.username}</button>
+                {/* A name opens a profile and a message form, and the SkillZ app has neither. */}
+                {IN_SHELL ? <span className="font-semibold text-white/80">@{row.username}</span> : <MemberName username={row.username} bare />}
               </span>
               <span className="flex items-center gap-3 text-white/55">
                 <span>Lv {row.level}</span>

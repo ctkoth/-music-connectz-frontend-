@@ -9,17 +9,29 @@
 // login, because those exist for matching inside the app and are nobody's
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
+import { useViewTracker } from "../viewz.js";
+import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
+
+import { usePageTitle } from "../pageTitle.js";
+import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 import { Link, useParams } from "react-router-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import MentionText from "../MentionParser.jsx";
+import CopyLink from "../CopyLink.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
 export default function PublicProfile() {
   const { username } = useParams();
+  useViewTracker(`profile:${username}`);
   const [p, setP] = useState(null);
+  // The member, not the site. A shared profile whose tab says the
+  // platform name tells a reader nothing about who they opened.
+  usePageTitle(p?.display_name || p?.username,
+               p?.bio || (p?.username ? `${p.username} makes music on Music ConnectZ.` : ""));
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -32,12 +44,15 @@ export default function PublicProfile() {
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
-        <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-          Join free
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
+          <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
+            Join free
+          </Link>
+        </div>
       </header>
 
       {err && (
@@ -53,24 +68,38 @@ export default function PublicProfile() {
 
       {p && (
         <div className="neon-frame space-y-4 p-5">
+          <CoverBanner url={p.cover_url} />
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{p.display_name}</h1>
-            <p className="text-sm text-white/45">@{p.username}</p>
+            <p className="flex flex-wrap items-center gap-1.5 text-sm text-white/45">
+              <span>@{p.username}</span>
+              {/* This is the page being linked TO, so the button is the
+                  shortest path from "I like this person's work" to sending it
+                  to somebody else. */}
+              <CopyLink username={p.username} />
+            </p>
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-6 w-6"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
                        className="pt-1.5" />
           </div>
 
+          <ProfileFields p={p} />
+
           {p.bio && (
-            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">{p.bio}</p>
+            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-white/80">
+              <MentionText text={p.bio} />
+            </p>
           )}
 
           {p.personas?.map((persona, i) => (
             <div key={i}>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
                 {persona.name || persona.key}
+                {Array.isArray(persona.roles) && persona.roles.length > 0 && (
+                  <span className="ml-2 normal-case tracking-normal text-mcz-cyan/80">· {persona.roles.join(", ")}</span>
+                )}
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {(persona.skills || []).map((s, j) => (
@@ -108,6 +137,7 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+      <div className="mt-6 text-center"><ViewCount target={`profile:${username}`} /></div>
     </div>
   );
 }

@@ -19,31 +19,54 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Clapperboard, Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { asList } from "../shape.js";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import SkillZPanel from "../skillz/SkillZPanel.jsx";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { goToTab } from "../goto.js";
+import { IconImg } from "../App.jsx";
+import { takeDirectzPreset as takePreset } from "../directzPreset.js";
+import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
+
+// ReelZ, EpisodeZ and MovieZ — DirectZ's children by length (directzPreset.js).
+const FMT_ICON = { reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png" };
 
 const mmss = (s) =>
   s >= 3600 ? `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`
             : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 export default function DirectZ() {
+  const { user } = useAuth();
+  const talk = useSay();
   const [spec, setSpec] = useState(null);
   // The craft rating is OFF by default. It sends the video to a model that
   // watches it, which costs real money — so posting must not quietly become a
   // paid action. The member asks for it, having read the price first.
-  const [form, setForm] = useState({ fmt: "reelz", genre: "", video_type: "",
+  const [form, setForm] = useState({ fmt: recall("directz.fmt") || "reelz", genre: recall("directz.genre") || "",
+                                     video_type: recall("directz.video_type") || "",
                                      title: "", description: "",
                                      craft_rating: false });
   const [work, setWork] = useState({});
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   const probe = useRef(null);
 
   const load = () => api("/api/economy/directz/").then(setSpec).catch(() => {});
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const p = takePreset();
+    if (p) setForm((f) => ({ ...f, fmt: p }));
+    const h = (e) => { takePreset(); setForm((f) => ({ ...f, fmt: e.detail })); };
+    window.addEventListener("mcz-directz-fmt", h);
+    return () => window.removeEventListener("mcz-directz-fmt", h);
+  }, []);
 
   // Read the real duration off the file the member picked, so the band check
   // below is about their actual video rather than something they typed.
@@ -116,10 +139,16 @@ export default function DirectZ() {
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
                 description: "", craft_rating: false });
       setWork({}); setSeconds(0);
-      setMsg("Posted to DirectZ.");
+      setShowUploadLimitPrompt(false);
+      setMsg(talk(P.directz_posted));
       load();
     } catch (err) {
-      setMsg(err.message || "Couldn't post that one.");
+      const errMsg = err.message || "Couldn't post that one.";
+      setMsg(errMsg);
+      // Show tier upgrade prompt if error is about upload size limit
+      if (errMsg.toLowerCase().includes("upload") || errMsg.toLowerCase().includes("size") || errMsg.toLowerCase().includes("mb")) {
+        setShowUploadLimitPrompt(true);
+      }
     } finally { setBusy(false); }
   }
 
@@ -143,6 +172,22 @@ export default function DirectZ() {
         />
       </header>
 
+      {/* The three lengths, as the doors they are. Picking one sets the
+          format below; the band under each name is the server's. */}
+      {formats.length > 0 && (
+        <div className="grid grid-cols-3 gap-2" data-tour="directz-formats">
+          {formats.map((f) => (
+            <button key={f.key} type="button" onClick={() => setForm({ ...form, fmt: f.key })}
+              className={`flex flex-col items-center gap-1 rounded-xl border p-2 text-center transition ${
+                form.fmt === f.key ? "border-mcz-cyan bg-mcz-cyan/10 shadow-neon" : "border-white/10 bg-black/30 hover:border-white/30"}`}>
+              <IconImg icon={FMT_ICON[f.key] || "directz.png"} alt="" className="h-14 w-14 rounded-xl object-cover" />
+              <span className="text-sm font-bold">{f.name}</span>
+              <span className="text-[10px] text-white/50">{f.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <form onSubmit={submit} className="neon-frame space-y-3 p-4" data-tour="directz-releases">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Clapperboard size={14} /> Post a video
@@ -151,30 +196,33 @@ export default function DirectZ() {
         <div className="grid gap-2 sm:grid-cols-3">
           <label className="text-[11px] text-white/50">
             Format
-            <select className="neon-input !py-2 text-xs" value={form.fmt}
-                    onChange={(e) => setForm({ ...form, fmt: e.target.value })}>
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.fmt}
+                    onChange={(e) => { remember("directz.fmt", e.target.value); setForm({ ...form, fmt: e.target.value }); }}>
               {/* The band is IN the option, so the rule is readable while
                   choosing rather than after uploading a three-hour film. */}
               {formats.map((f) => (
                 <option key={f.key} value={f.key}>{f.name} · {f.length}</option>
               ))}
             </select>
+<UsualHint field="directz.fmt" value={form.fmt} onUse={(v) => { remember("directz.fmt", v); setForm({ ...form, fmt: v }); }} />
           </label>
           <label className="text-[11px] text-white/50">
             Genre
-            <select className="neon-input !py-2 text-xs" value={form.genre}
-                    onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
+                    onChange={(e) => { remember("directz.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
               <option value="">— pick a genre —</option>
               {asList(spec?.genres).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
+<UsualHint field="directz.genre" value={form.genre} onUse={(v) => { remember("directz.genre", v); setForm({ ...form, genre: v }); }} />
           </label>
           <label className="text-[11px] text-white/50">
             What it's for
-            <select className="neon-input !py-2 text-xs" value={form.video_type}
-                    onChange={(e) => setForm({ ...form, video_type: e.target.value })}>
+            <select data-memo="own" className="neon-input !py-2 text-xs" value={form.video_type}
+                    onChange={(e) => { remember("directz.video_type", e.target.value); setForm({ ...form, video_type: e.target.value }); }}>
               <option value="">— optional —</option>
               {asList(spec?.video_types).map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+<UsualHint field="directz.video_type" value={form.video_type} onUse={(v) => { remember("directz.video_type", v); setForm({ ...form, video_type: v }); }} />
           </label>
         </div>
 
@@ -240,6 +288,18 @@ export default function DirectZ() {
           <p className="flex items-start gap-2 text-[11px] text-mcz-gold">
             <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
           </p>
+        )}
+
+        {showUploadLimitPrompt && (
+          <TierUpgradePrompt
+            limit="upload_mb"
+            current={0}
+            userTier={user?.tier || "free"}
+            onUpgrade={() => {
+              setShowUploadLimitPrompt(false);
+              goToTab("membershipz");
+            }}
+          />
         )}
 
         <button className="neon-btn-primary" disabled={busy || !fits}>

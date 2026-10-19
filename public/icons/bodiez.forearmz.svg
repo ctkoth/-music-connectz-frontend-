@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Forearms">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#00ff88" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left forearm -->
+    <line x1="70" y1="60" x2="65" y2="140" stroke="#00ff88" stroke-width="6"/>
+    <path d="M65 85 Q60 90 70 95" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M63 110 Q58 115 68 120" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+    <!-- Right forearm -->
+    <line x1="130" y1="60" x2="135" y2="140" stroke="#22e6ff" stroke-width="6"/>
+    <path d="M135 85 Q140 90 130 95" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M137 110 Q142 115 132 120" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+    <!-- Wrist markers -->
+    <circle cx="65" cy="145" r="5" fill="none" stroke="#00ff88" stroke-width="2"/>
+    <circle cx="135" cy="145" r="5" fill="none" stroke="#22e6ff" stroke-width="2"/>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Abdominals">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#00ff88" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round">
+    <!-- Abs muscles -->
+    <rect x="80" y="50" width="40" height="25" rx="3" fill="none" stroke="#00ff88" stroke-width="3"/>
+    <rect x="80" y="80" width="40" height="25" rx="3" fill="none" stroke="#22e6ff" stroke-width="3"/>
+    <rect x="80" y="110" width="40" height="25" rx="3" fill="none" stroke="#00ff88" stroke-width="3"/>
+    <rect x="80" y="140" width="40" height="25" rx="3" fill="none" stroke="#22e6ff" stroke-width="3"/>
+    <!-- Center line -->
+    <line x1="100" y1="50" x2="100" y2="165" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.6"/>
+  </g>
+</svg>

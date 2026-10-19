@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { asList } from "../shape.js";
 
 const RAP_STYLES = ["boom-bap","trap","chopper","drill","conscious","emo","melodic","grime",
   "west-coast","east-coast","dirty-south","lofi","hyperpop","freestyle","battle","storytelling"];
 
 export function RapzProfilePanel() {
+  // `useSay()` returns the speaker; `talk` is the name every other file
+  // binds it to. Both Save handlers called `talk(...)` and neither bound
+  // it, so pressing Save threw ReferenceError — the dead-button failure
+  // this codebase has now shipped three times.
+  const talk = useSay();
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/rapz/profile/").then(setP).catch(() => {}); }, []);
@@ -16,7 +23,7 @@ export function RapzProfilePanel() {
   const styles = asList(p.top_styles);
   const toggle = (s) => setP({ ...p, top_styles: styles.includes(s) ? styles.filter((x) => x !== s) : [...styles, s].slice(0, 3) });
   async function save() {
-    try { setP(await api("/api/rapz/profile/", { method: "PATCH", body: p })); setMsg("RapZ profile saved."); }
+    try { setP(await api("/api/rapz/profile/", { method: "PATCH", body: p })); setMsg(talk(P.profile_saved("RapZ"))); }
     catch (e) { setMsg(e.message); }
   }
   return (
@@ -42,13 +49,18 @@ export function RapzProfilePanel() {
 }
 
 export function SingzProfilePanel() {
+  // `useSay()` returns the speaker; `talk` is the name every other file
+  // binds it to. Both Save handlers called `talk(...)` and neither bound
+  // it, so pressing Save threw ReferenceError — the dead-button failure
+  // this codebase has now shipped three times.
+  const talk = useSay();
   const [p, setP] = useState(null);
   const [msg, setMsg] = useState("");
   useEffect(() => { api("/api/singz/profile/").then(setP).catch(() => {}); }, []);
   if (!p) return null;
   const set = (k) => (e) => setP({ ...p, [k]: e.target.value });
   async function save() {
-    try { setP(await api("/api/singz/profile/", { method: "PATCH", body: p })); setMsg("SingZ profile saved."); }
+    try { setP(await api("/api/singz/profile/", { method: "PATCH", body: p })); setMsg(talk(P.profile_saved("SingZ"))); }
     catch (e) { setMsg(e.message); }
   }
   return (

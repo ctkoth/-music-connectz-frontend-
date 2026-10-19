@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Upper Legs">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="bloom"/>
+      <feMerge><feMergeNode in="bloom"/><feMergeNode in="core"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="#0a0810" stroke="#00ff88" stroke-width="2" stroke-opacity="0.4"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left quad -->
+    <path d="M75 80 L70 140" stroke="#00ff88" stroke-width="6"/>
+    <!-- Left hamstring -->
+    <path d="M75 80 L78 140" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Right quad -->
+    <path d="M125 80 L130 140" stroke="#00ff88" stroke-width="6"/>
+    <!-- Right hamstring -->
+    <path d="M125 80 L122 140" stroke="#22e6ff" stroke-width="4" stroke-opacity="0.8"/>
+    <!-- Hip definition -->
+    <path d="M70 80 Q75 75 85 80" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.7"/>
+    <path d="M130 80 Q125 75 115 80" fill="none" stroke="#ff00ff" stroke-width="2" stroke-opacity="0.7"/>
+    <!-- Knee markers -->
+    <circle cx="73" cy="120" r="4" fill="none" stroke="#00ff88" stroke-width="2"/>
+    <circle cx="127" cy="120" r="4" fill="none" stroke="#00ff88" stroke-width="2"/>
+  </g>
+</svg>

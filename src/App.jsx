@@ -1,89 +1,246 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
-import { openMember } from "./goto.js";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X } from "lucide-react";
+import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
+import { track } from "./track.js";
+import { openable } from "./openable.js";
+import { goToSpot, openMember } from "./goto.js";
 import { useAuth } from "./auth/AuthContext.jsx";
-import AdFrame from "./AdFrame.jsx";
-import Login from "./auth/Login.jsx";
-import Register from "./auth/Register.jsx";
-import ForgotPassword from "./auth/ForgotPassword.jsx";
-import ResetPassword from "./auth/ResetPassword.jsx";
-import MimeZ from "./apps/MimeZ.jsx";
-import DirectZ from "./apps/DirectZ.jsx";
-import LessonZ from "./apps/LessonZ.jsx";
-import InstrumentZ from "./apps/InstrumentZ.jsx";
-import MessageZ from "./apps/MessageZ.jsx";
-import ProfileZ from "./apps/ProfileZ.jsx";
-import GroupZ from "./apps/GroupZ.jsx";
-import CollabZ from "./apps/CollabZ.jsx";
-import BattleZ from "./apps/BattleZ.jsx";
-import LabelZ from "./apps/LabelZ.jsx";
-import BugZ from "./apps/BugZ.jsx";
-import PostZ from "./apps/PostZ.jsx";
-import KeyConnectZ from "./apps/KeyConnectZ.jsx";
-import OCC from "./apps/OCC.jsx";
-import SocialConnectZ from "./apps/SocialConnectZ.jsx";
-import SpecZ from "./apps/SpecZ.jsx";
-import MembershipZ from "./apps/MembershipZ.jsx";
-import AdZ from "./apps/AdZ.jsx";
-import OfferZ from "./apps/OfferZ.jsx";
-import OnboardZ from "./apps/OnboardZ.jsx";
-import PublicPost from "./apps/PublicPost.jsx";
-import PublicProfile from "./apps/PublicProfile.jsx";
-import TrialTake from "./apps/TrialTake.jsx";
-import PublicPlaylist from "./apps/PublicPlaylist.jsx";
-import PlaylistZ from "./apps/PlaylistZ.jsx";
-import Dock, { usePickConnectZ } from "./PickConnectZ.jsx";
+import MemberName from "./MemberName.jsx";
+import AccountChoice from "./auth/AccountChoice.jsx";
+import OAuthCallback from "./auth/OAuthCallback.jsx";
+import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
+import NowPlayingBar from "./components/NowPlayingBar.jsx";
+import { usePageTitle } from "./pageTitle.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
-import MemberProfile from "./apps/MemberProfile.jsx";
-import LogZ from "./apps/LogZ.jsx";
-import HabitZ from "./apps/HabitZ.jsx";
-import JournalZ from "./apps/JournalZ.jsx";
+import NotificationsPanel from "./components/NotificationsPanel.jsx";
+import { reportTimezone } from "./push.js";
+import SoundzPanel from "./components/SoundzPanel.jsx";
+import StorageWarning from "./components/StorageWarning.jsx";
+import ReturnBar from "./components/ReturnBar.jsx";
+import UpdateNotice from "./components/UpdateNotice.jsx";
+import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
+import { ICON_DEFAULTS } from "./iconManifest.js";
+
+// Every screen below used to be a static import, which means a cold visitor
+// hitting the logged-out Landing page paid for the ENTIRE authenticated app —
+// all ~28 tabs, SingZ through BugZ — before a single pixel of "here's what
+// this is" painted. That's the 730KB single chunk Vite's own build output
+// warns about. lazy() + Suspense (below) means each route/tab downloads only
+// when it's actually opened, so the cold path (Landing → /try → Register) now
+// ships close to nothing extra. JSX referencing a lazy component (as TABS
+// does, below) does NOT trigger its import — only mounting it does, which is
+// why TABS can stay exactly as written.
+import { lazyRoute } from "./chunkError.js";
+import { TransactionModalProvider, useTransactionModal } from "./TransactionModalContext.jsx";
+import TransactionModal from "./TransactionModal.jsx";
+// WidgetZ. Mounted at the top of the signed-in app rather than inside a tab,
+// because a widget outlives the screen it was opened from — that is the point
+// of it. A link opened on a member's card is still there when its owner has
+// been closed and a post is being read instead.
+import { WidgetProvider } from "./WidgetBoard.jsx";
+import { StatzTimerBanner } from "./components/StatzSample.jsx";
+import CelebrationLayer from "./components/CelebrationLayer.jsx";
+import Ticker from "./components/Ticker.jsx";
+import { checkBadges } from "./milestones.js";
+import { useViewTracker } from "./viewz.js";
+import { HoroscopeLayer } from "./components/Horoscope.jsx";
+import TierPanel from "./components/TierPanel.jsx";
+
+const Login = lazy(lazyRoute(() => import("./auth/Login.jsx")));
+const Register = lazy(lazyRoute(() => import("./auth/Register.jsx")));
+const ForgotPassword = lazy(lazyRoute(() => import("./auth/ForgotPassword.jsx")));
+const ResetPassword = lazy(lazyRoute(() => import("./auth/ResetPassword.jsx")));
+const MimeZ = lazy(lazyRoute(() => import("./apps/MimeZ.jsx")));
+const DirectZ = lazy(lazyRoute(() => import("./apps/DirectZ.jsx")));
+const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
+const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
+const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
+const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const VoiceZ = lazy(lazyRoute(() => import("./apps/VoiceZ.jsx")));
+const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
+const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
+const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
+const CollabZ = lazy(lazyRoute(() => import("./apps/CollabZ.jsx")));
+const VenueZ = lazy(lazyRoute(() => import("./apps/VenueZ.jsx")));
+const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
+const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
+const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
+const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
+const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
+const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
+const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
+const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
+const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
+const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
+const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
+const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
+const LookmaxZ = lazy(lazyRoute(() => import("./apps/LookmaxZ.jsx")));
+const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
+const DistributeZ = lazy(lazyRoute(() => import("./apps/DistributeZ.jsx")));
+const RateConnectZ = lazy(lazyRoute(() => import("./apps/RateConnectZ.jsx")));
+const Sonday = lazy(lazyRoute(() => import("./apps/Sonday.jsx")));
+const ParcelPrimate = lazy(lazyRoute(() => import("./apps/ParcelPrimate.jsx")));
+const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
+const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
+const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
+const BeatZ = lazy(lazyRoute(() => import("./apps/BeatZ.jsx")));
+// Logged-out doors. PersonalityTest is a trial like /try; MetZ and ChordZ are
+// the same components the app mounts as tabs — they make no API calls and
+// read no session, so serving them to a stranger costs nothing and needs no
+// second implementation.
+const PersonalityTest = lazy(lazyRoute(() => import("./apps/PersonalityTest.jsx")));
+const SpecZ = lazy(lazyRoute(() => import("./apps/SpecZ.jsx")));
+const MembershipZ = lazy(lazyRoute(() => import("./apps/MembershipZ.jsx")));
+const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
+const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
+const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
+const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
+const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
+const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
+const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
+const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
+const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
+const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
+const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
+const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
+const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
+const SoundZ = lazy(lazyRoute(() => import("./apps/SoundZ.jsx")));
+const SoundCloudEngagementZ = lazy(lazyRoute(() => import("./apps/SoundCloudEngagementZ.jsx")));
+const CoachZ = lazy(lazyRoute(() => import("./apps/CoachZ.jsx")));
+const FunnelZ = lazy(lazyRoute(() => import("./apps/FunnelZ.jsx")));
+const DupeZ = lazy(lazyRoute(() => import("./apps/DupeZ.jsx")));
+const HabitZ = lazy(lazyRoute(() => import("./apps/HabitZ.jsx")));
+const Lilith = lazy(lazyRoute(() => import("./apps/Lilith.jsx")));
+const BodieZ = lazy(lazyRoute(() => import("./apps/BodieZ.jsx")));
+const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
+const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
+const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
+const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const BreathZ = lazy(lazyRoute(() => import("./apps/BreathZ.jsx")));
+const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
+const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
+const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
+
+// A minimal, theme-matched fallback — Suspense shows this for the split
+// second a chunk is in flight. Same spinner RequireAuth already used, so a
+// lazy chunk loading doesn't look like a different kind of wait.
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center text-white/50">
+      <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+    </div>
+  );
+}
 
 // CUSTOM_ICONS registry — keyed to EXACT filenames (platform convention).
 // Complete platform set from Corey's icon inventory (Jul 6). Missing files
 // fall back to the MCZ logo via <IconImg> until dropped into /public/icons/.
+// ICON ARTWORK: Corey's own PNGs, not the generated neon set.
+//
+// The `-neon.svg` icons were generated by `tools/make-neon-icons.mjs` and they
+// are vector, so they scale — but they are simple line glyphs against real
+// designed artwork, and next to the actual icon set they read as low-detail.
+// The registry points at the artwork.
+//
+// Some keys still hold a neon SVG. This comment used to say "three" and name
+// them; there were six by then and there are eight now, which is the failure
+// this whole file's audit exists for — a hand-kept list nobody re-checks.
+// **`node tools/icon-audit.mjs` prints the live list.** Only the reasons that
+// carry information are worth writing down:
+//
+//   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
+//   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
+//   * journalz.png, chordz.jpg, tunerz.jpg — the artwork exists on Corey's
+//                   machine and has never been committed. Pointing at a file
+//                   that is not in the repo does not error, it silently falls
+//                   back to the MCZ logo, so these hold the generated glyph
+//                   instead. src/icons.test.mjs tracks the debt.
+//
+// The generator stays in `tools/` — it is what made the three above, and it is
+// how a new tab gets a placeholder before there is art for it.
 export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
   "background.png": "/icons/background.png",
-  "battlez.png": "/icons/battlez.png",
+  "battlez.1v1.png": "/icons/battlez.1v1-neon.svg",
+  "battlez.cypher.png": "/icons/battlez.cypher-neon.svg",
+  "battlez.cypher.jpg": "/icons/battlez.cypher-neon.svg",
+  "battlez.freestyle.png": "/icons/battlez.freestyle-neon.svg",
+  "battlez.png": "/icons/battlez-main.webp",
   "boardz.png": "/icons/boardz.png",
   "bodiez.png": "/icons/bodiez.png",
-  "bugz.png": "/icons/bugz.png",
-  "callz.png": "/icons/callz.png",
+  "bugz.png": "/icons/bugz-neon.svg",
+  "callz.png": "/icons/callz-neon.svg",
   "callz_ai.png": "/icons/callz_ai.png",
   "callz_ai.webp": "/icons/callz_ai.webp",
   "callz_user.png": "/icons/callz_user.png",
   "callz_user.webp": "/icons/callz_user.webp",
   "cleanconnectz.png": "/icons/cleanconnectz.png",
-  "collabz.png": "/icons/collabz.png",
+  // The detailed illustration Corey sent (two figures, a brick wall,
+  // hand-lettering) measured illegible at this icon's real size — cropped
+  // and zoomed from an actual rendered run, it read as a colored blob at
+  // the ~24-28px the tab strip and dock actually draw it. `public/icons/
+  // coachz.jpg` still holds that art (kept, not deleted — it's real work
+  // and may suit a banner or the CoachZ screen's own header someday), but
+  // the small icon points at the house glyph instead: a whistle with two
+  // call arcs, already hand-drawn in tools/make-neon-icons.mjs (`coachz`)
+  // for exactly this reason — deliberately NOT a person or a speech
+  // bubble, so it can't be mistaken for `personaz_coach` (the human) at
+  // the same size. One clear symbol, the same fix vybez's icon got.
+  "coachz.jpg": "/icons/coachz-neon.svg",
+  "collabz.coverz.png": "/icons/collabz.coverz.png",
+  "collabz.originalz.png": "/icons/collabz.originalz-neon.svg",
+  "collabz.remixez.png": "/icons/collabz.remixez-neon.svg",
+  "collabz.png": "/icons/collabz.jpg",
   "collabz_originalz.png": "/icons/collabz_originalz.png",
   "collabz_remixez.png": "/icons/collabz_remixez.png",
   "coverz.png": "/icons/coverz.png",
+  // Updated art, deliberately heavier than the rest of this set — five
+  // figures, a camera, a mixer, headphones. Fine at the size this was drawn
+  // to be admired at; CrewZ has no live tab yet (grep confirms — only
+  // src/mcz2/, which is not mounted), so nothing here is rendering it small
+  // today. Before it gets one, size-check it at 24-28px (tab strip) and
+  // 36-44px (dock) the way vybez's glyph was — "recognition rather than
+  // recall" is the whole test a small icon has to pass, and this much
+  // detail is likely to compress into noise at that size where the cleaner
+  // CollabZ/CoverZ/OriginalZ/RemixeZ marks won't. If it doesn't read, this
+  // is still the right art for a banner or the CrewZ screen's own header,
+  // just not for the 32px tile — same call the neon-icon toolchain makes
+  // for every other tab in this file.
   "crewz.png": "/icons/crewz.png",
   "dawz.png": "/icons/dawz.png",
   "dawz_formulawon.png": "/icons/dawz_formulawon.png",
   "designz.png": "/icons/designz.png",
   "developz.png": "/icons/developz.png",
   "instrumentz.png": "/icons/instrumentz.png",
-  "drumz.png": "/icons/drumz.png",
-  "violinz.png": "/icons/violinz.png",
-  "guitarz.png": "/icons/guitarz.png",
+  "drumz.png": "/icons/drumz-neon.svg",
+  "violinz.png": "/icons/violinz-neon.svg",
+  "flutez.png": "/icons/flutez-neon.png",
+  "saxz.png": "/icons/saxz-neon.png",
+  "clarinetz.png": "/icons/clarinetz-neon.png",
+  "trumpetz.png": "/icons/trumpetz-neon.png",
+  "guitarz.png": "/icons/guitarz-neon.svg",
   "bassz.png": "/icons/bassz.png",
-  "keyz.png": "/icons/keyz.png",
-  "directz.png": "/icons/directz.png",
+  "keyz.png": "/icons/keyz-neon.svg",
+  "directz.png": "/icons/directz-neon.svg",
   "distributez.png": "/icons/distributez.png",
   "energy.png": "/icons/energy.png",
   "facez.png": "/icons/facez.png",
   "favicon.webp": "/favicon.webp",
   "fruity_mobius.png": "/icons/fruity_mobius.png",
-  "groupz.png": "/icons/groupz.png",
+  "groupz.png": "/icons/groupz-neon.svg",
   "groupz_blocked.png": "/icons/groupz_blocked.png",
+  "partnerz.jpg": "/icons/partnerz-neon.svg",
   "groupz_custom.png": "/icons/groupz_custom.png",
   "groupz_fanz.png": "/icons/groupz_fanz.png",
   "groupz_friendz.png": "/icons/groupz_friendz.png",
@@ -93,32 +250,52 @@ export const CUSTOM_ICONS = {
   "inbox_alt.png": "/icons/inbox_alt.png",
   "intelligence.png": "/icons/intelligence.png",
   "intuition.png": "/icons/intuition.png",
-  "keyconnectz.png": "/icons/keyconnectz.png",
-  "labelz.png": "/icons/labelz.png",
-  "lessonz.png": "/icons/lessonz.png",
+  "intelligencez.png": "/icons/intelligencez.jpg",
+  "keyconnectz.png": "/icons/keyconnectz-neon.svg",
+  "labelz.png": "/icons/labelz-neon.svg",
+  "lessonz.png": "/icons/lessonz-neon.svg",
   "lilith_anytime.png": "/icons/lilith_anytime.png",
+  "lilith_inbox.png": "/icons/lilith_inbox-neon.svg",
   "lilith_logbook.png": "/icons/lilith_logbook.png",
+  "lilith_someday.png": "/icons/lilith_someday-neon.svg",
   "lilith_today.png": "/icons/lilith_today.png",
   "lilith_today2.png": "/icons/lilith_today2.png",
   "lilith_trash.png": "/icons/lilith_trash.png",
   "lilith_upcoming.png": "/icons/lilith_upcoming.png",
+  "lilithz.png": "/icons/lilith.taskz.webp",
   "logo.png": "/mcz-logo-v5.jpg",
+  // The handshake mark the header wears — the all-apps menu wears it too.
+  "musicconnectz.png": "/logo.png",
   "managez.png": "/icons/managez.png",
-  "messagez.png": "/icons/messagez.png",
+  "messagez.png": "/icons/messagez-neon.svg",
   "messagez_outbox.png": "/icons/messagez_outbox.png",
-  "mimez.png": "/icons/mimez.png",
+  "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
-  "occ.png": "/icons/occ.png",
-  "offerz.png": "/icons/offerz.png",
-  "adz.png": "/icons/adz.png",
-  "money.png": "/icons/money.png",
+  "occ.png": "/icons/occ-neon.svg",
+  "opportunitiez.png": "/icons/opportunitiez-neon.svg",
+  "infernoz.png": "/icons/infernoz.svg",
+  "offerz.png": "/icons/offerz-neon.svg",
+  "adz.png": "/icons/adz-neon.svg",
+  "money.png": "/icons/money-neon.svg",
   // New editions — neon signage dropped in Jul 16.
-  "specz.png": "/icons/specz.png",
+  "specz.png": "/icons/specz-neon.svg",
   "nationalitiez.png": "/icons/nationalitiez.png",
-  "onboardz.png": "/icons/onboardz.png",
-  "postz.png": "/icons/postz.png",
-  "personaz.png": "/icons/personaz.png",
+  "onboardz.png": "/icons/onboardz-neon.svg",
+  // Neon rebuild of the cream/teal PostZ mark. The key stays the .png the
+  // rest of the platform refers to and the value points at the SVG — the
+  // same indirection "logo.png" → the .jpg already uses, and the reason this
+  // registry maps names to paths instead of just globbing a folder.
+  "postz.png": "/icons/postz-neon.svg",
+  "personaz.png": "/icons/personaz-neon.svg",
+  // ProfileZ used to borrow personaz.png. It has its own art in Corey's folder
+  // now (profilez.png, applied through ICON_DEFAULTS once committed); until then
+  // it keeps the glyph it was already showing.
+  "profilez.png": "/icons/personaz-neon.svg",
   "personaz_arscout.png": "/icons/personaz_arscout.png",
+  // Underscored like every other personaz_<role>, and matching its own key.
+  // The dotted path was the source filename, which is what the import script
+  // is for.
+  "personaz_coach.jpg": "/icons/personaz_coach-neon.svg",
   "personaz_designer.png": "/icons/personaz_designer.png",
   // Manga-styled alternate art for the Designer PersonaZ — a Premium ICON only.
   // The PersonaZ itself is free to anyone; this is the cosmetic upgrade.
@@ -136,19 +313,23 @@ export const CUSTOM_ICONS = {
   "pickconz.png": "/icons/pickconz.png",
   "preferencez.png": "/icons/preferencez.png",
   "producez.png": "/icons/producez.png",
-  "rapz.png": "/icons/rapz.png",
+  "rapz.png": "/icons/rapz-neon.svg",
   "ratez.png": "/icons/ratez.png",
-  "royaltiez.png": "/icons/royaltiez.png",
+  "royaltiez.png": "/icons/royaltiez-neon.svg",
   "scoutz.png": "/icons/scoutz.png",
   "sentencez.png": "/icons/sentencez.png",
   "shotz.png": "/icons/shotz.png",
-  "singz.png": "/icons/singz.png",
+  "singz.png": "/icons/singz-neon.svg",
   "skillz.png": "/icons/skillz.png",
-  "social_connectz.png": "/icons/social_connectz.png",
+  "social_connectz.png": "/icons/social_connectz-neon.svg",
+  "vybez.png": "/icons/vybez-neon.svg",
+  "lookmaxz.png": "/icons/lookzmaxz.jpg",
+  "beatz.png": "/icons/beatz-neon.svg",
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
-  "playlistz.png": "/icons/playlistz.png",
+  "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
+  "statsz.png": "/icons/statsz-neon.svg",
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
   "trump_toupee.png": "/icons/trump_toupee.png",
@@ -163,25 +344,47 @@ export const CUSTOM_ICONS = {
   // Live surfaces whose art was on disk but never registered — so they were
   // silently falling back to the MCZ logo on their own tab. WorkZ is new art.
   "workz.png": "/icons/workz.png",
-  "habitz.png": "/icons/habitz.png",
-  "journalz.png": "/icons/journalz.png",
-  "logz.png": "/icons/logz.png",
+  "habitz.png": "/icons/habitz-neon.svg",
+  // .jpg — the art is journalz.jpg. Fourth of the four extension
+  // mismatches; on the neon glyph until it lands, then only the path moves.
+  "journalz.jpg": "/icons/journalz-neon.svg",
+  "logz.png": "/icons/logz-neon.svg",
+  "taskz.png": "/icons/taskz-neon.png",
+  // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
+  // illegible at the 28-36px this app actually renders it — a busy neon-sign
+  // frame plus a two-line text banner eats the pixel budget a metronome or
+  // tuner silhouette needs, the exact CoachZ failure mode. The existing
+  // hand-drawn glyphs stay wired until a simplified illustration replaces
+  // them; verified in a live browser, not assumed.
+  "metz.jpg": "/icons/metz-neon.svg",
+  "tunerz.jpg": "/icons/tunerz-neon.svg",
+  "chordz.jpg": "/icons/chordz-neon.svg",
+  "breathz.png": "/icons/breathz-neon.png",
+  "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
   "analytics.png": "/icons/analytics.png",
   "builder.png": "/icons/builder.png",
   "filez.png": "/icons/filez.png",
   "gamez.png": "/icons/gamez.png",
+  // No artwork for SoundZ — it is a tab this session added, so it takes a
+  // generated neon icon like FunnelZ does until there is a drawing for it.
+  "soundz.png": "/icons/soundz-neon.svg",
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
+  "videoconnectz.png": "/icons/intelligence.videoconz.png",
+  "viewz.png": "/icons/viewz.png",
+  "mixconnectz.png": "/icons/intelligence.mixconz.png",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
   "languagez.png": "/icons/languagez.png",
   "languagez_pt.png": "/icons/languagez_pt.png",
   "membership.png": "/icons/membership.png",
   "merchz.png": "/icons/merchz.png",
   "moodz.png": "/icons/moodz.png",
-  "onboardz.jpg": "/icons/onboardz.jpg",
+  "onboardz.jpg": "/icons/onboardz-neon.svg",
   "parcel.png": "/icons/parcel.png",
   "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
@@ -191,6 +394,12 @@ export const CUSTOM_ICONS = {
   "tier_statz.png": "/icons/tier_statz.png",
   "videoz.png": "/icons/videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
+  "reelz.png": "/icons/directz.reelz.jpg",
+  "episodez.png": "/icons/directz.episodez.jpg",
+  "moviez.png": "/icons/directz.moviez.jpg",
+  "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
+  "mangaz.png": "/icons/designz.mangaz.jpg",
+  "characterz.png": "/icons/designz.characterz.jpg",
   // BadgeZ artwork — each badge that has real art names it; the rest carry
   // their emoji. Registered so the fallback is the emoji, not a logo.
   "badge_owner.png": "/icons/badge_owner.png",
@@ -204,18 +413,20 @@ export const CUSTOM_ICONS = {
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
   // files fall back to the tab's emoji, not to the logo (see IconImg).
-  "editor.png": "/icons/editor.png",
-  "taskz.png": "/icons/taskz.png",
-  "codez.png": "/icons/codez.png",
-  "mistakez.png": "/icons/mistakez.png",
-  "characterz.png": "/icons/characterz.png",
-  "console.png": "/icons/console.png",
-  "search.png": "/icons/search.png",
-  "welcome.png": "/icons/welcome.png",
+  // Owner-only tab — reserved ahead of the artwork, same as the rest above;
+  // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
+  "funnelz.png": "/icons/funnelz-neon.svg",
 };
 
+// The sources an icon key may be drawn from, best first. Corey's own artwork
+// (ICON_DEFAULTS, built from his icon folder) always leads; the registry entry —
+// often a generated glyph — is the backup, never the other way round; the MCZ
+// logo is the last resort. ICON_DEFAULTS lists only committed files, so the
+// first source is never a known 404.
+export const iconSources = (icon) => [...new Set([ICON_DEFAULTS[icon], CUSTOM_ICONS[icon]].filter(Boolean))];
+
 // Renders a registry icon; if the file is missing (still being remade),
-// falls back to the MCZ logo instead of a broken image.
+// falls back to the next source and then the MCZ logo instead of a broken image.
 export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // A key can be registered before its artwork lands — that is deliberate, so
   // dropping the file into public/icons/ is the only step needed to light it
@@ -223,14 +434,20 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // shown instead of the MCZ logo (OCC passes the tab's emoji, which still
   // means the right thing where a generic logo would mean nothing).
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [icon]);
+  const [n, setN] = useState(0);
+  useEffect(() => { setFailed(false); setN(0); }, [icon]);
   if (failed && fallback !== null) return fallback;
+  const sources = iconSources(icon);
   return (
     <img
-      src={CUSTOM_ICONS[icon] || "/mcz-logo-v4.png"}
+      src={sources[n] || "/mcz-logo-v4.png"}
       alt={alt}
       className={className}
       onError={(e) => {
+        if (n + 1 < sources.length) {
+          setN(n + 1);
+          return;
+        }
         if (fallback !== null) {
           setFailed(true);
           return;
@@ -251,17 +468,51 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // Until this existed the whole app lived at "/" and switched tabs through a
 // custom event: no tab could be linked, bookmarked, or reached with the back
 // button. A screen with no address is one you can only tell somebody how to find.
+// Mini panes (see `minis` in the shell). ANY app can open as one, at EVERY
+// tier — Corey's call. SplitZ stays the Premium+ way to work side by side at
+// full size; a mini is the small version, free to everybody.
+export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
+export const canMini = () => true;
+const MAX_MINIS = 3;
+
 export const slugFor = (key) =>
   key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
 export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
 const TABS = [
+  { key: "toolz", label: "Music ConnectZ", icon: "musicconnectz.png", el: <ToolZMenu /> },
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
-  { key: "social", label: "Social ConnectZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
-  { key: "profilez", label: "ProfileZ", icon: "personaz.png", el: <ProfileZ /> },
+  { key: "social", label: "SocialiZeZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
+  // VybeZ gives /api/economy/members/ its first caller. That search — regions,
+  // genders, both zodiacs, sober, substances, five range gates and distance —
+  // has been implemented and reachable only by typing a URL.
+  // Its own mark. It rendered `social_connectz.png` — the identical heart the
+  // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
+  // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
+  // LOOKING, so the glyph is a lens with a heart in it.
+  { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
+  { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
+  { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
+  { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "voicez", label: "VoiceZ", icon: "voicez.png", el: <VoiceZ /> },
+  { key: "personaz", label: "PersonaZ", icon: "personaz.png", el: <PersonaZ /> },
+  { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
+  { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
+  { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
+  { key: "facez", label: "FaceZ", icon: "facez.png", el: <FaceZ /> },
+  { key: "lookmaxz", label: "LookZMaxZ", icon: "lookmaxz.png", el: <LookmaxZ /> },
+  { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
+  { key: "ratez", label: "Rate ConnectZ", icon: "ratez.png", el: <RateConnectZ /> },
+  { key: "sonday", label: "Sonday", icon: "sonday.png", el: <Sonday /> },
+  { key: "parcel", label: "Parcel Primate", icon: "parcel.png", el: <ParcelPrimate /> },
+  { key: "merchz", label: "MercheZ", icon: "merchz.png", el: <MerchZ /> },
+  // BeatZ — license beats, sell your own; real money, preview before paying.
+  { key: "beatz", label: "BeatZ", icon: "beatz.png", el: <BeatZ /> },
+  { key: "statsz", label: "StatsZ", icon: "statsz.png", el: <StatsZ /> },
+  { key: "opportunitiez", label: "OpportunitieZ", icon: "opportunitiez.png", el: <OpportunitieZ /> },
   { key: "specz", label: "SpecZ", icon: "specz.png", el: <SpecZ /> },
   { key: "membershipz", label: "MembershipZ", icon: "money.png", el: <MembershipZ /> },
   { key: "adz", label: "AdZ", icon: "adz.png", el: <AdZ /> },
@@ -275,17 +526,88 @@ const TABS = [
   { key: "rapz", label: "RapZ", icon: "rapz.png",
     el: <InstrumentZ appKey="rapz" icon="rapz.png" title="RapZ" accent="#f59e0b"
         tagline="Rap training — 16 style tracks, breath control, combo meter, Boss Mode." /> },
+  // These four had a real, scored, tested backend coach — /api/<key>/coach/,
+  // /trial/, /progress/ and a SkillZ tree, all mounted — and no route a
+  // signed-in member could reach any of it from. InstrumentZ has powered
+  // them "via props" per its own comment since it was written; nothing ever
+  // instantiated it here. See the note in InstrumentZ.jsx.
+  { key: "guitarz", label: "GuitarZ", icon: "guitarz.png",
+    el: <InstrumentZ appKey="guitarz" icon="guitarz.png" title="GuitarZ" accent="#eab308"
+        tagline="Guitar training — timing, tone, technique, dynamics and cleanliness scored on every take, Boss Mode included." /> },
+  { key: "bassz", label: "BassZ", icon: "bassz.png",
+    el: <InstrumentZ appKey="bassz" icon="bassz.png" title="BassZ" accent="#7c3aed"
+        tagline="Bass training — timing, tone, technique, dynamics and note length scored on every take, Boss Mode included." /> },
+  { key: "keyz", label: "KeyZ", icon: "keyz.png",
+    el: <InstrumentZ appKey="keyz" icon="keyz.png" title="KeyZ" accent="#38bdf8"
+        tagline="Keys training — timing, tone, technique, dynamics and voicing scored on every take, Boss Mode included." /> },
+  { key: "violinz", label: "ViolinZ", icon: "violinz.png",
+    el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
+        tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
+  { key: "flutez", label: "FluteZ", icon: "flutez.png",
+    el: <InstrumentZ appKey="flutez" icon="flutez.png" title="FluteZ" accent="#22d3ee"
+        tagline="Wind training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "saxz", label: "SaxZ", icon: "saxz.png",
+    el: <InstrumentZ appKey="saxz" icon="saxz.png" title="SaxZ" accent="#f59e0b"
+        tagline="Sax training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png",
+    el: <InstrumentZ appKey="clarinetz" icon="clarinetz.png" title="ClarinetZ" accent="#a78bfa"
+        tagline="Clarinet training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png",
+    el: <InstrumentZ appKey="trumpetz" icon="trumpetz.png" title="TrumpetZ" accent="#f97316"
+        tagline="Brass training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  // The hub: every IntelligenceZ app, what each costs before it is opened, and
+  // the newest thing the member made in any of them. It is also the Home of the
+  // standalone IntelligenceZ app (standalone/intelligencez/).
+  { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
+  { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
+  { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
+  { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
+  { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
+  { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
-  { key: "journalz", label: "JournalZ", icon: "journalz.png", el: <JournalZ /> },
+  { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
+  { key: "callz", label: "CallZ", icon: "callz.png", el: <CallZ /> },
+  { key: "gamez", label: "GameZ", icon: "gamez.png", el: <GameZ /> },
+  { key: "soundz", label: "SoundZ", icon: "soundz.png", el: <SoundZ /> },
+  { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
+  { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
+  { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
+  { key: "breathz", label: "BreathZ", icon: "breathz.png", el: <BreathZ /> },
+  // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
+  // rendered inside InstrumentZ now rather than standing alone) and gained
+  // the scored Boss Take coach the backend already had mounted at
+  // /api/drumz/coach/ with nothing here pointing at it.
+  { key: "drumz", label: "DrumZ", icon: "drumz.png",
+    el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#ef4444"
+        tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
+  { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
+  { key: "lilith", label: "Lilith", icon: "lilithz.png", el: <Lilith /> },
+  { key: "bodiez", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
+  { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
+  { key: "dawz", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
+  // Owner-only — filtered out of the Dock for everyone else in Home(),
+  // below. The route and TABS entry still exist for anyone who is the
+  // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
+  // shows nothing to a non-owner even if they reach it another way.
+  { key: "funnelz", label: "FunnelZ", icon: "funnelz.png", el: <FunnelZ /> },
+  // Not owner-only, unlike FunnelZ: a member needs to see their own
+  // duplicates to say which one is theirs. The server decides what each
+  // person is shown — the owner every group, a member only their own.
+  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
+  // The icon folder as a tree: each parent icon with its children named by
+  // filename (battlez.png -> battlez.cypher.png). Owner-only — it is the
+  // audit of which art is committed, wired, owed or unplaced, and the members
+  // have no use for a list of what is missing.
+  { key: "iconz", label: "IconZ", icon: "logo.png", el: <IconZ /> },
 ];
 
 function RequireAuth({ children }) {
@@ -300,34 +622,196 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-function CommunityBar() {
+// "/" is the one URL that gets shared, indexed and clicked cold — the
+// index.html SEO meta and every OG card point at it. A signed-in member
+// should land in the app; anyone else gets the marketing page that makes
+// good on what those links promised, not a bare "Welcome back" login form
+// (that redirect is still what every OTHER protected route does — a deep
+// link like /battle while logged out is someone who already knows what this
+// is, and /login is the right place to send them).
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  return user ? <Home /> : <Landing />;
+}
+
+// Notifications button — opens the habit reminders panel
+function NotificationsButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-mcz-cyan transition"
+      title="View notifications"
+    >
+      <Bell size={16} />
+    </button>
+  );
+}
+
+// SoundzPanel button — opens sound preferences
+function SoundzButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-mcz-cyan transition"
+      title="Sound preferences"
+    >
+      <Volume2 size={16} />
+    </button>
+  );
+}
+
+// SoundZ on/off. It lives in the header rather than buried in a settings
+// screen because it is the control somebody reaches for the moment a sound
+// surprises them — a mute you have to go hunting for is one you resent.
+// Flipping it ON plays the coin, so you hear what you just agreed to; the
+// click is also the user gesture browsers require before any audio at all.
+function SoundToggle() {
+  const [on, setOn] = useState(isSoundOn);
+  useEffect(() => {
+    const h = (e) => setOn(!!e.detail);
+    window.addEventListener("mcz-sound-changed", h);
+    return () => window.removeEventListener("mcz-sound-changed", h);
+  }, []);
+  return (
+    <button
+      onClick={() => {
+        const next = !on;
+        setSoundOn(next);
+        setOn(next);
+        if (next) playSoundPreview();
+      }}
+      className={`rounded-lg p-1.5 transition hover:bg-white/10 ${
+        on ? "text-mcz-cyan" : "text-white/40"}`}
+      title={on ? "SoundZ on — resource changes make a sound" : "SoundZ off — turn sounds on"}
+      aria-pressed={on}
+    >
+      {on ? <Volume2 size={16} /> : <VolumeX size={16} />}
+    </button>
+  );
+}
+
+// The community, in the header: how many members, how many here right now.
+// Two lines stacked so it costs ~40px — the header has none to spare on a
+// phone (see the min-w-0 note on the tab button). The numbers come from
+// CommunityBar's own once-a-minute poll; this never asks the server itself.
+function HeaderCounts() {
+  const [s, setS] = useState(null);
+  useEffect(() => {
+    const h = (e) => setS(e.detail);
+    window.addEventListener("mcz-community-stats", h);
+    return () => window.removeEventListener("mcz-community-stats", h);
+  }, []);
+  // Numbers or nothing: a counter that reads "NaN" is worse than no counter.
+  if (!s || !Number.isFinite(Number(s.total_members))) return null;
+  return (
+    <div className="flex shrink-0 flex-col items-start text-[10px] leading-tight tabular-nums" title={`${s.total_members} members · ${s.online_now} online now`}>
+      <span className="text-white/70">👥 {Number(s.total_members).toLocaleString()}</span>
+      <span className="text-emerald-300"><span className="mr-0.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />{Number(s.online_now || 0).toLocaleString()}</span>
+    </div>
+  );
+}
+
+function CommunityBar({ onOpenMembership, onOpenBirthday }) {
+  const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   useEffect(() => {
     let on = true;
-    const load = () => api("/api/auth/stats/").then((s) => on && setStats(s)).catch(() => {});
+    const load = () => api("/api/auth/stats/").then((s) => {
+      if (!on) return;
+      setStats(s);
+      // The header's counter chip reads the same answer — one poll, two places.
+      window.dispatchEvent(new CustomEvent("mcz-community-stats", { detail: s }));
+    }).catch(() => {});
     load();
     const t = setInterval(load, 60000); // refresh every minute
-    return () => { on = false; clearInterval(t); };
+    // celebrate() asks for this the moment a reward lands, so the balance
+    // counts to its new value now rather than up to a minute later.
+    window.addEventListener("mcz-stats-refresh", load);
+    // A badge lands server-side, often while the member is elsewhere; this
+    // is where they find out, once, with the fanfare it earned.
+    checkBadges();
+    window.addEventListener("mcz-stats-refresh", checkBadges);
+    return () => {
+      on = false; clearInterval(t);
+      window.removeEventListener("mcz-stats-refresh", load);
+      window.removeEventListener("mcz-stats-refresh", checkBadges);
+    };
   }, []);
+
+  async function loadAllMembers() {
+    setLoadingMembers(true);
+    try {
+      const response = await api("/api/auth/stats/all/");
+      setMembers(response.members || []);
+      setShowMembers(true);
+    } catch (e) {
+      console.error("Failed to load members:", e);
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
+
   if (!stats) return null;
   return (
-    <div className="neon-frame mb-6 space-y-2 p-4">
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="pill">👥 {stats.total_members} members</span>
+    <>
+      <div className="neon-frame mb-6 space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <button onClick={loadAllMembers} className="pill cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+            👥 {stats.total_members} members
+          </button>
         <span className="pill !border-emerald-400/40 !text-emerald-300">
           <span className="mr-1 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
           {stats.online_now} online now
         </span>
-        <span className="pill !text-mcz-gold">⚡ {stats.my_energy} Energy</span>
-        <span className="pill !text-mcz-pink">{SPINAZ} {stats.my_spinaz} SpinaZ</span>
+        <EnergyRegenerationDisplay />
+        <button onClick={() => openTransactions({ emoji: "⚡", label: "Energy", key: "energy" })}
+                className="pill !text-mcz-gold cursor-pointer hover:!border-mcz-gold/70 hover:!bg-mcz-gold/10 transition active:scale-95">
+          ⚡ <Ticker value={stats.my_energy} /> Energy
+        </button>
+        <button onClick={() => openTransactions({ emoji: SPINAZ, label: "SpinaZ", key: "spinaz" })}
+                className="pill !text-mcz-pink cursor-pointer hover:!border-mcz-pink/70 hover:!bg-mcz-pink/10 transition active:scale-95">
+          {SPINAZ} <Ticker value={stats.my_spinaz} /> SpinaZ
+        </button>
         {stats.my_promptz_daily != null && (
-          <span className="pill !text-mcz-cyan"
-                title={`Free AI prompts today (free 1 · premium 5 · statZ 10) — reset daily, don't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
+          <button onClick={() => openTransactions({ emoji: "🏷️", label: "PromptZ", key: "promptz" })}
+                  className="pill !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95"
+                  title={`Free AI prompts today — your tier's daily allowance, reset daily, doesn't stack.${stats.my_promptz ? ` Plus ${stats.my_promptz} prepaid PromptZ.` : ""}`}>
             🏷️ {stats.my_promptz_daily_remaining}/{stats.my_promptz_daily} prompts
-          </span>
+          </button>
         )}
-        <span className="pill uppercase !text-mcz-cyan">{stats.my_tier}</span>
-        {stats.my_zodiac && <span className="pill">{stats.my_zodiac}</span>}
+        {stats.my_money != null && (
+          <button onClick={() => openTransactions({ emoji: "💵", label: "Money", key: "money" })}
+                  className="pill !text-emerald-400 cursor-pointer hover:!border-emerald-400/70 hover:!bg-emerald-400/10 transition active:scale-95">
+            💵 <Ticker value={stats.my_money} format={(c) => `$${(c / 100).toFixed(2)}`} />
+          </button>
+        )}
+        {/* A fact with nowhere to take it — the cross-pollination rule's own
+            failure case. Every other pill here opens something; this one just
+            named a tier and stopped, on the one platform-wide surface that
+            sells the ladder it's sitting on. */}
+        <button onClick={() => onOpenMembership?.()}
+                className="pill uppercase !text-mcz-cyan cursor-pointer hover:!border-mcz-cyan/70 hover:!bg-mcz-cyan/10 transition active:scale-95">
+          {stats.my_tier}
+        </button>
+        {/* Same gap as the tier pill just above: a fact (your sign) with no
+            way to reach the panel that says what it's actually worth. */}
+        {stats.my_zodiac && (
+          <button onClick={() => onOpenBirthday?.()}
+                  className="pill cursor-pointer hover:!border-white/30 hover:!bg-white/10 transition active:scale-95">
+            {stats.my_zodiac}
+          </button>
+        )}
       </div>
       {stats.online_members?.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -343,7 +827,45 @@ function CommunityBar() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* Members modal */}
+      {showMembers && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="neon-frame max-h-[70vh] w-full max-w-md overflow-y-auto p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 font-display text-lg font-extrabold">Members ({members.length})</h3>
+            {loadingMembers ? (
+              <p className="flex items-center gap-2 text-white/50"><span className="animate-spin">⟳</span> Loading...</p>
+            ) : members.length > 0 ? (
+              <div className="space-y-2">
+                {members.map((username, i) => (
+                  // The row was one big button that only ever did one thing.
+                  // The name still opens them; the second thing anyone wants
+                  // from a list of people — say something — is beside it now.
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                  >
+                    <MemberName
+                      username={username}
+                      onOpen={(u) => { openMember(u); setShowMembers(false); }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/50">No members found.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -360,7 +882,7 @@ const TAB_ABOUT = {
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
-  membershipz: "💳 MembershipZ — upgrade your tier for lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Founding members lock in 50% off for life.",
+  membershipz: "💳 MembershipZ — upgrade your tier to reach further. Lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Connect with more collaborators. Founding members lock in 50% off for life.",
   adz: "📺 AdZ — watch a short rewarded ad and earn SpinaZ. Ads play in the mobile app via AdMob; your reward lands automatically when the ad finishes.",
   offerz: "🎁 OfferZ — complete offers (surveys, sign-ups, installs) on the offerwall and earn SpinaZ, credited automatically once the provider confirms.",
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
@@ -368,29 +890,67 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  breathz: "🫁 BreathZ — free breath training for your takes: box breathing, long exhales, support hisses and bar breathing at your tempo. It earns XP for turning up and never changes a score — your coach's Breath score is the measure.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
+  venuez: "📍 VenueZ — CollabZ in a room. Whoever receives the skill pays for it, priced from whoever brings it: a performance charges the visitor at your rates, a session charges you at theirs. The area is public; the address is released only to somebody you accept.",
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
-  groupz: "👥 GroupZ — combine users into editable groups: Friends, Fans, Partners, Blocked, Custom.",
+  groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
+  dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
+  funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
+  sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
+  instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
+  occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
+  dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
 function Home() {
   const { user, logout } = useAuth();
+  // Reminders and quiet hours run on the member's own clock; until the
+  // browser has said which, the server assumes US Eastern.
+  useEffect(() => { if (user) reportTimezone(); }, [user]);
   const navigate = useNavigate();
   // Read the slug off the path rather than from useParams: the tab routes are
   // listed explicitly (so an unknown address still redirects) and an explicit
   // path has no params to read.
   const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
+  useViewTracker(tab ? `tab:${tab}` : null);
   const [infoKey, setInfoKey] = useState(null);
   // LogicZ: what each tab is and what lives inside it, from the server, so the
   // description a member reads can't drift from the thing they land on.
   const [logicz, setLogicz] = useState({});
   const [memberKey, setMemberKey] = useState(null); // username whose profile is open
+  const [editMemberKey, setEditMemberKey] = useState(null); // username being edited (owner only)
+  const [deleteMemberKey, setDeleteMemberKey] = useState(null); // username being deleted (owner only)
+  const [notificationsOpen, setNotificationsOpen] = useState(false); // habit reminders panel
+  const [soundzOpen, setSoundzOpen] = useState(false); // sound preferences panel
   const [tourMe, setTourMe] = useState(null); // account state the tour gates on
+  // SplitZ — a second app mounted beside the first, real React trees, never
+  // an iframe. StatZ keeps it; Premium samples it with an upgrade nudge on
+  // the pane. Nulls out on every tab change: a split is a "look at these two
+  // together" moment, not a standing layout that should survive navigating
+  // away and quietly still be there ten screens later.
+  const [splitKey, setSplitKey] = useState(null);
+  // Mini tools — MetZ, TunerZ, ChordZ docked beside whatever app is open, at
+  // a fraction of the size, so a metronome, a tuner and a chord chart can sit
+  // next to the coach (and a SplitZ pane) at once: four panes on one screen.
+  // Kept per browser, because which tools you practise with is a habit.
+  const [minis, setMinis] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => TABS.some((t) => t.key === k)); } catch { return []; }
+  });
+  useEffect(() => { try { localStorage.setItem("mcz_minis", JSON.stringify(minis)); } catch { /* per-session then */ } }, [minis]);
+  useEffect(() => {
+    const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
+      : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
+    window.addEventListener("mcz-mini", h);
+    return () => window.removeEventListener("mcz-mini", h);
+  }, []);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
   }, []);
@@ -400,14 +960,33 @@ function Home() {
   const logic = infoTab ? logicz[infoTab.key] : null;
   const today = new Date().toLocaleDateString();
   // PickConnectZ dock — pinned apps + the ones this member opens most.
-  const { usage, pins, togglePin } = usePickConnectZ(tab);
+  const { usage, pins, hidden, togglePin, toggleHide } = usePickConnectZ(tab);
+  // FunnelZ is owner-only real visitor data — not something to advertise in
+  // the drawer for everyone. The route and TABS entry still exist (so the
+  // info modal, ⓘ, and a direct link work for the owner); this only trims
+  // what the Dock lists.
+  const dockApps = user?.is_owner ? TABS : TABS.filter((t) => t.key !== "funnelz" && t.key !== "iconz");
 
   // One way in and out of a tab: set the state AND the address, together. Two
   // paths would let the URL say one thing while the screen showed another.
   const openTab = (key) => {
     setTab(key);
+    setSplitKey(null);
     navigate(`/${slugFor(key)}`, { replace: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // The two special-cased apps need callbacks a bare `t.el` doesn't carry, so
+  // both the primary pane and the split pane resolve through this one
+  // function rather than duplicating the ProfileZ/GroupZ branches.
+  const appEl = (key) => {
+    if (key === "profilez") {
+      return <ProfileZ onViewProfile={setMemberKey} onMessage={() => openTab("messagez")} />;
+    }
+    if (key === "groupz") {
+      return <GroupZ onViewProfile={setMemberKey} onMessage={() => openTab("messagez")} />;
+    }
+    return TABS.find((t) => t.key === key)?.el;
   };
 
   const go = (delta) => {
@@ -428,12 +1007,21 @@ function Home() {
     return () => window.removeEventListener("mcz-goto-tab", h);
   }, [navigate]);
 
+  // ToolZ's ⊞ Split opens the app beside the current one — the same pane the
+  // Dock's split opens, with the same StatZ / sample note on it.
+  useEffect(() => {
+    const h = (e) => { if (TABS.some((t) => t.key === e.detail)) setSplitKey(e.detail); };
+    window.addEventListener("mcz-split", h);
+    return () => window.removeEventListener("mcz-split", h);
+  }, []);
+
   // Any screen anywhere can open a member's profile via openMember(username)
-  // (goto.js) instead of needing this modal threaded down as a prop.
+  // (goto.js) or a mention (MentionParser's goToProfile) — both dispatch this
+  // same event, so there is one "open this member" wire, not two.
   useEffect(() => {
     const h = (e) => setMemberKey(e.detail);
-    window.addEventListener("mcz-open-member", h);
-    return () => window.removeEventListener("mcz-open-member", h);
+    window.addEventListener("mcz-goto-profile", h);
+    return () => window.removeEventListener("mcz-goto-profile", h);
   }, []);
 
   useEffect(() => {
@@ -449,7 +1037,8 @@ function Home() {
     if (t && t.key !== tab) setTab(t.key);
   }, [slug]);
 
-  // New users land on OnboardZ until they've completed it; returning users on PostZ.
+  // New users land on OnboardZ until they've completed it (it pays a bonus);
+  // everybody else lands on ToolZ — every app, one tap away (Corey's call).
   // A checkout return (?checkout=…) lands on MembershipZ so the result is shown.
   useEffect(() => {
     // An address wins over the default landing — someone opening /battle asked
@@ -460,8 +1049,8 @@ function Home() {
       return;
     }
     api("/api/auth/me/")
-      .then((m) => setTab(m?.onboarded ? "postz" : "onboardz"))
-      .catch(() => setTab("postz"));
+      .then((m) => setTab(m?.onboarded ? "toolz" : "onboardz"))
+      .catch(() => setTab("toolz"));
   }, []);
 
   // Gate AFTER the hooks above, never before them. `tab` starts null, so an
@@ -478,53 +1067,82 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+    <TransactionModalProvider>
+      <WidgetProvider>
+      <div className="min-h-screen">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
+        <ReturnBar />
+        <UpdateNotice />
         <div
-          className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3"
+          className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
         >
-          <div className="flex items-center gap-1">
-            <button onClick={() => go(-1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
+          {/* Previous/next tab is a desktop nicety. On a phone the dock is the
+              nav, and these two cost the tab title its last 60px — it measured
+              12px wide at 390, then 0 once the member counters went in. */}
+          <div className="hidden items-center gap-1 sm:flex">
+            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
-            </button>
-            <button onClick={() => go(1)} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
+            </a>
+            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+               className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
-            </button>
+            </a>
           </div>
 
-          <button onClick={() => setTab("postz")} className="flex items-center gap-2">
-            <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-10 w-10 rounded-xl shadow-neon" />
+          <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
+             title="Music ConnectZ — every app">
+            <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-mark.png"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
               Music ConnectZ
             </span>
-          </button>
+          </a>
+          <HeaderCounts />
 
           {/* LogicZ: the tab's own icon, and clicking it opens the modal that
               says what this tab is. The control used to be text with a ⓘ — the
               icon is the thing the spec points at, and the thing a member's
               thumb actually finds. */}
-          <button data-tour="tab-info" className="flex flex-1 items-center justify-center gap-2"
+          {/* `min-w-0` is load-bearing, not tidying. A flex item's default
+              `min-width: auto` means this button could not shrink below its
+              own text however much `flex-1` asked it to — so on a phone the
+              tab name simply pushed the whole right-hand cluster off the
+              screen. PostZ fitted, MessageZ went 2px over, and KeyConnectZ
+              went 21px over with the Log out button entirely past the edge.
+              Every long tab name (OpportunitieZ, MembershipZ,
+              SoundCloudEngagementZ) was doing the same thing.
+
+              It read as fine because the overflow is on the RIGHT, where a
+              sticky header shows no scrollbar and nothing looks wrong until
+              you go to press the control that isn't there. */}
+          <button data-tour="tab-info"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-2"
                   onClick={() => setInfoKey(tab)} title="What is this tab?">
             {active?.icon && (
               <IconImg icon={active.icon} alt="" className="h-7 w-7 shrink-0 rounded-lg" />
             )}
             <span className="min-w-0 text-center">
-              <span className="block text-[11px] font-semibold text-white/70">
+              {/* Truncate rather than wrap: a two-line tab name would grow the
+                  sticky header on the screen with the least height to spare. */}
+              <span className="block truncate text-[11px] font-semibold text-white/70">
                 {active?.label} <span className="text-white/30">ⓘ</span>
               </span>
-              <span className="block text-[9px] text-white/35">{today}</span>
+              <span className="block truncate text-[9px] text-white/35">{today}</span>
             </span>
           </button>
 
-          <button
-            onClick={() => setTab("profilez")}
+          <a
+            {...openable("/profile", () => openTab("profilez"))}
             className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10"
-            title="ProfileZ"
+            title="ProfileZ — ctrl/cmd-click for a new tab"
           >
             <IconImg icon="personaz.png" alt="" className="h-7 w-7 rounded-full object-cover" />
-          </button>
+          </a>
+          <NotificationsButton onClick={() => setNotificationsOpen(true)} />
+          <SoundzButton onClick={() => setSoundzOpen(true)} />
+          <SoundToggle />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>
@@ -539,11 +1157,86 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar />
-        {/* keyed by tab so switching apps clears a previous app's crash */}
-        <ErrorBoundary key={tab} label={active?.label}>
-          {active?.el}
-        </ErrorBoundary>
+        <CommunityBar onOpenMembership={() => openTab("membershipz")}
+                      onOpenBirthday={() => goToSpot("profilez", "birthday")} />
+        <StorageWarning />
+        {/* keyed by tab so switching apps clears a previous app's crash.
+            SplitZ's pane sits beside it as a genuinely separate mounted
+            tree with its own boundary — one pane crashing must not take the
+            other down with it. */}
+        <div className={minis.some((k) => k !== tab && canMini(k, user?.tier)) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
+        {minis.some((k) => k !== tab && canMini(k, user?.tier)) && (
+          <aside className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 lg:order-last lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+                 aria-label="Mini tools">
+            {minis.filter((k) => k !== tab && canMini(k, user?.tier)).map((k) => {
+              const t = TABS.find((x) => x.key === k);
+              return (
+                <section key={k} className="neon-frame w-[82vw] max-w-[320px] shrink-0 overflow-hidden p-0 lg:w-auto lg:max-w-none">
+                  <div className="flex items-center justify-between border-b border-white/10 bg-black/30 px-2 py-1">
+                    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80">
+                      <IconImg icon={t?.icon} alt="" className="h-5 w-5 rounded object-cover" /> {t?.label}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <button onClick={() => openTab(k)} className="rounded px-1.5 text-[10px] text-white/50 hover:bg-white/10 hover:text-white" title="Open full size">⤢</button>
+                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
+                    </span>
+                  </div>
+                  {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
+                      quarter-size tool takes quarter-size room and its
+                      controls still hit where they are drawn. */}
+                  <div className="max-h-[38vh] overflow-y-auto p-2 lg:max-h-[30vh]" style={{ zoom: 0.72 }}>
+                    <ErrorBoundary key={k} label={t?.label}>
+                      <Suspense fallback={<RouteFallback />}>{t?.el}</Suspense>
+                    </ErrorBoundary>
+                  </div>
+                </section>
+              );
+            })}
+          </aside>
+        )}
+        <div className={splitKey ? "grid min-w-0 gap-4 lg:grid-cols-2" : "min-w-0"}>
+          <ErrorBoundary key={tab} label={active?.label}>
+            <StatzTimerBanner />
+            <CelebrationLayer />
+            <HoroscopeLayer />
+            <div key={tab} className="mcz-tab-enter">
+              <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
+            </div>
+          </ErrorBoundary>
+          {splitKey && (
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-mcz-cyan/10 px-3 py-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
+                  <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""
+                           className="h-4 w-4 rounded object-cover" />
+                  SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
+                </span>
+                <button onClick={() => setSplitKey(null)}
+                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                        aria-label="Close SplitZ">
+                  <X size={13} />
+                </button>
+              </div>
+              {/* Premium is SAMPLING, not keeping — the CTA sits on the pane
+                  every time it opens, cost/gain-style, because a StatZ perk
+                  discovered by using it once and losing it the next session
+                  reads as a bug rather than a reason to upgrade. */}
+              {!isStatZTier(user?.tier) && (
+                <button
+                  onClick={() => { setSplitKey(null); openTab("membershipz"); }}
+                  className="mb-2 flex w-full items-center justify-between rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-left text-[11px] text-mcz-gold hover:bg-mcz-gold/15"
+                >
+                  <span>✨ You're sampling SplitZ — StatZ keeps it permanently.</span>
+                  <span className="shrink-0 font-semibold underline">Upgrade →</span>
+                </button>
+              )}
+              <ErrorBoundary key={splitKey} label={TABS.find((t) => t.key === splitKey)?.label}>
+                <Suspense fallback={<RouteFallback />}>{appEl(splitKey)}</Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
+        </div>
+        </div>
       </main>
 
       {/* Tab description modal — opened by clicking the active tab / its icon. */}
@@ -553,7 +1246,7 @@ function Home() {
           onClick={() => setInfoKey(null)}
         >
           <div
-            className="neon-frame w-full max-w-md p-5"
+            className="neon-frame max-h-[90vh] w-full max-w-md overflow-y-auto p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center gap-3">
@@ -579,9 +1272,25 @@ function Home() {
                   <li key={a.name} className="flex items-start gap-2 text-[12px]">
                     <span className="shrink-0">{a.emoji}</span>
                     <span className="min-w-0">
-                      <span className={a.built ? "text-white/80" : "text-white/40"}>
-                        {a.name}
-                      </span>
+                      {/* A built app that names a tab is a DOOR, not a line
+                          of text. `tab` has been in the payload since `_app`
+                          was written and nothing ever read it — the
+                          cross-pollination rule broken on the one screen
+                          whose entire job is telling a member what this app
+                          has. A read-only surface is usually an unfinished
+                          one. */}
+                      {a.built && a.tab ? (
+                        <button
+                          onClick={() => { setInfoKey(null); openTab(a.tab); }}
+                          className="text-left text-white/80 underline decoration-white/25 underline-offset-2 hover:text-mcz-cyan"
+                        >
+                          {a.name}
+                        </button>
+                      ) : (
+                        <span className={a.built ? "text-white/80" : "text-white/40"}>
+                          {a.name}
+                        </span>
+                      )}
                       {!a.built && (
                         <span className="ml-1 text-[10px] text-mcz-gold">not built yet</span>
                       )}
@@ -594,113 +1303,139 @@ function Home() {
               </ul>
             )}
 
+            <TierPanel tab={infoTab.key} label={infoTab.label} onGo={() => setInfoKey(null)} />
+
             <button className="re-btn mt-5" onClick={() => setInfoKey(null)}>Got it</button>
           </div>
         </div>
       )}
 
+      {/* Habit reminders notification panel */}
+      <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+
+      {/* Sound preferences panel */}
+      <SoundzPanel isOpen={soundzOpen} onClose={() => setSoundzOpen(false)} />
+
       {memberKey && (
-        <MemberProfile username={memberKey} onClose={() => setMemberKey(null)} />
+        <Suspense fallback={null}>
+          <MemberProfile
+            username={memberKey}
+            onClose={() => setMemberKey(null)}
+            currentUsername={user?.username}
+            onEditProfile={() => { setMemberKey(null); openTab("profilez"); }}
+            isOwner={user?.is_owner}
+            onEditMember={(u) => { setMemberKey(null); setEditMemberKey(u); }}
+            onDeleteMember={(u) => { setDeleteMemberKey(u); }}
+          />
+        </Suspense>
+      )}
+
+      {editMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setEditMemberKey(null)}>
+          <div className="neon-frame w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-xl font-extrabold">Edit @{editMemberKey}</h3>
+              <button onClick={() => setEditMemberKey(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
+            <p className="mb-4 text-sm text-white/60">Account editing interface would go here. For now, direct the owner to manage this account via the backend admin panel or create a dedicated account management interface.</p>
+            <div className="flex gap-2">
+              <button className="re-btn" onClick={() => setEditMemberKey(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMemberKey && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setDeleteMemberKey(null)}>
+          <div className="neon-frame w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-3 font-display text-lg font-extrabold text-mcz-ember">Delete Account: @{deleteMemberKey}</h3>
+            <p className="mb-4 text-sm text-white/75">This action is permanent and cannot be undone. All posts, uploads, and data associated with this account will be deleted.</p>
+            <div className="flex gap-2">
+              <button className="re-btn-ghost" onClick={() => setDeleteMemberKey(null)}>Cancel</button>
+              <button className="re-btn !bg-mcz-ember/20 !text-mcz-ember hover:!bg-mcz-ember/40" onClick={async () => {
+                try {
+                  await api(`/api/auth/users/${encodeURIComponent(deleteMemberKey)}/`, { method: "DELETE" });
+                  setDeleteMemberKey(null);
+                  setMemberKey(null);
+                } catch (e) {
+                  alert(`Error: ${e.message}`);
+                }
+              }}>Delete Permanently</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <Tour me={tourMe} onRefreshMe={refreshTourMe} />
 
-      {/* Above the dock, so it sits at the foot of the page without fighting
-          the fixed navigation. AdFrame renders nothing AT ALL unless the server
-          says this member may see a third-party ad — including its own spacing,
-          which is why there is no wrapper here. A wrapper would survive the
-          null and leave a teen looking at a padded gap where an advert isn't. */}
-      <AdFrame site="ZACU2vY1f3nZNiZ6QTNJ" />
+      {/* One player for the whole app; keeps playing across tabs. */}
+      <NowPlayingBar />
 
-      <Dock
-        apps={TABS}
-        usage={usage}
-        pins={pins}
-        tier={user?.tier}
-        current={tab}
-        onOpen={openTab}
-        onTogglePin={togglePin}
-      />
-    </div>
+        <Dock
+          apps={dockApps}
+          usage={usage}
+          pins={pins}
+          hidden={hidden}
+          tier={user?.tier}
+          current={tab}
+          onOpen={openTab}
+          onTogglePin={togglePin}
+          onToggleHide={toggleHide}
+          onSplit={setSplitKey}
+          onMini={(k) => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}
+          minis={minis}
+        />
+      </div>
+      </WidgetProvider>
+      <TransactionModal />
+    </TransactionModalProvider>
   );
 }
 
-function OAuthCallback() {
-  const { oauth } = useAuth();
-  const navigate = useNavigate();
-  const [error, setError] = useState("");
 
-  const ran = useRef(false);
-
-  useEffect(() => {
-    if (ran.current) return; // StrictMode double-invokes; the values below are single-use
-    ran.current = true;
-
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const returnedState = params.get("state");
-
-    // Read then immediately clear: each of these belongs to exactly one
-    // sign-in attempt and must not be reusable by the next request.
-    const provider = sessionStorage.getItem("mcz_oauth_provider");
-    const expectedState = sessionStorage.getItem("mcz_oauth_state");
-    const verifier = sessionStorage.getItem("mcz_oauth_verifier");
-    sessionStorage.removeItem("mcz_oauth_provider");
-    sessionStorage.removeItem("mcz_oauth_state");
-    sessionStorage.removeItem("mcz_oauth_verifier");
-
-    const denied = params.get("error_description") || params.get("error");
-    if (denied) {
-      setError(denied);
-      return;
-    }
-    if (!code) {
-      navigate("/login", { replace: true });
-      return;
-    }
-    // The state check is what stops someone handing you a link that finishes
-    // THEIR sign-in in YOUR browser. It was generated and stored in start(),
-    // but nothing verified it came back, which left the flow open to CSRF.
-    // A missing provider means this tab never began a sign-in at all — don't
-    // guess one, or a stray code gets replayed against the wrong provider.
-    if (!provider || !expectedState) {
-      setError("This sign-in didn't start in this tab. Please try again from the login screen.");
-      return;
-    }
-    if (returnedState !== expectedState) {
-      setError("Sign-in couldn't be verified. Please start again from the login screen.");
-      return;
-    }
-
-    const redirect =
-      import.meta.env.VITE_OAUTH_REDIRECT || `${window.location.origin}/oauth/callback`;
-    const body = { code, redirect_uri: redirect };
-    if (verifier) body.code_verifier = verifier;
-    oauth(provider, body)
-      .then(() => navigate("/", { replace: true }))
-      .catch((e) => setError(e.message));
-  }, [oauth, navigate]);
-
+/** A tab component served to somebody with no account.
+ *
+ * MetZ and ChordZ make no API calls and read no session, so the tab IS the
+ * public tool — there is no second implementation to drift. This is only the
+ * chrome around it: a way back to the front door, and the one line that says
+ * what an account would add, because a free tool with no next step is a
+ * bounce with a metronome in it.
+ */
+function PublicTool({ title, heading, blurb, el }) {
+  useEffect(() => { track("landing_view"); }, []);
+  // Named for what people SEARCH ("free online metronome"), not only what we
+  // call it — nobody types "MetZ" into Google. Real title + description,
+  // which search engines read after rendering the page.
+  usePageTitle(heading || title, blurb);
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-white/60">
-      {error ? (
-        <>
-          <p className="text-mcz-pink">{error}</p>
-          <button className="neon-btn-ghost !w-auto px-4 py-2" onClick={() => navigate("/login")}>
-            Back to login
-          </button>
-        </>
-      ) : (
-        <>
-          <Loader2 className="animate-spin" size={20} /> Finishing sign-in…
-        </>
-      )}
+    <div className="mx-auto min-h-screen max-w-3xl px-4 py-8">
+      <header className="mb-6 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
+        </Link>
+        <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
+      </header>
+      <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{heading || title}</h1>
+      <p className="mb-4 text-sm text-white/55">{blurb ? `${blurb} ` : ""}Free, no account, nothing to install.</p>
+      <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
+      <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
+        <p className="mb-3 text-sm text-white/80">
+          The tools are free forever. The coach is the reason people stay — one take,
+          scored, no account needed either.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link to="/test" className="re-btn re-btn-cyan !w-auto px-5">Two-minute PersonalitieZ test</Link>
+          <Link to="/try" className="re-btn !w-auto px-5">Get a take scored</Link>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function App() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -710,18 +1445,25 @@ export default function App() {
       {/* Public — readable with no account. By link, never by browse: there is
           no anonymous feed and no anonymous member search. */}
       <Route path="/p/:id" element={<PublicPost />} />
+      <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
+      {/* Matched BEFORE /try/:appKey — route order matters here, or the
+          param route below would swallow this one first. BodieZ is not a
+          scored instrument (no audio, no model), so it gets its own small
+          trial screen rather than a mode bolted onto TrialTake's
+          recorder-first flow. */}
+      <Route path="/try/bodiez" element={<BodieZTrial />} />
       <Route path="/try/:appKey" element={<TrialTake />} />
+      <Route path="/test" element={<PersonalityTest />} />
+      <Route path="/test/:depth" element={<PersonalityTest />} />
+      {/* The two tools that are pure client audio. No account, no server. */}
+      <Route path="/tool/metz" element={<PublicTool title="MetZ" heading="Free online metronome — MetZ"
+             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />} />} />
+      <Route path="/tool/chordz" element={<PublicTool title="ChordZ" heading="Free chord finder & progression player — ChordZ"
+             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />} />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        }
-      />
+      <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
           catch-all so an unknown path still falls through to the redirect
           below instead of rendering an app shell with no tab in it. */}
@@ -738,5 +1480,6 @@ export default function App() {
       ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }

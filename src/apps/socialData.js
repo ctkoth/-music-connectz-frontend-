@@ -6,9 +6,27 @@
 const KEY = "mcz_social_v1";
 
 /** A persona is a display string here. ProfileZ used to store the whole
- *  {key, name, skills} object, which React refuses to render as a child. */
-const personaName = (p) =>
-  (p && typeof p === "object" ? (p.name || p.key || "") : p) || "";
+ *  {key, name, skills} object, which React refuses to render as a child.
+ *
+ *  The third shape is one nobody designed: a string holding the PRINTED form
+ *  of a dict — "{'name': 'Independent Artist', 'emoji': '🎤', 'skills': []}"
+ *  — written by a since-fixed server path. The server repairs it now, but this
+ *  runs against whatever a browser has cached and whatever is in localStorage,
+ *  so it recovers the name here too rather than putting machine noise on
+ *  somebody's own profile while a deploy catches up. */
+const personaName = (p) => {
+  if (p && typeof p === "object") return p.name || p.key || "";
+  const s = String(p || "");
+  if (s.startsWith("{") && s.endsWith("}")) {
+    // Single-quoted keys are Python's str(); JSON.parse wants double. Pull the
+    // name out with a pattern rather than trying to parse a dialect we did not
+    // write — a failed match falls through to the raw string, which is what
+    // was already being shown.
+    const m = s.match(/['"]name['"]\s*:\s*['"]([^'"]*)['"]/);
+    if (m) return m[1];
+  }
+  return s;
+};
 
 export function loadSocial() {
   try {
@@ -29,7 +47,19 @@ export function loadSocial() {
   }
 }
 
-export { personaName };
+/** What to SHOW next to a persona. For an Independent Artist the server adds `roles` — what their
+ *  declared skills say they are (Rapper, Singer, Guitarist…) — so the label is
+ *  "Independent Artist · Rapper, Guitarist" and not a title that says nothing about what they do.
+ *  Display only: identity and filtering still use personaName(), which never carries roles. */
+const personaLabel = (p, max = 3) => {
+  const name = personaName(p);
+  const roles = p && typeof p === "object" && Array.isArray(p.roles) ? p.roles.filter(Boolean) : [];
+  if (!roles.length) return name;
+  const shown = roles.slice(0, max).join(", ");
+  return `${name} · ${shown}${roles.length > max ? ` +${roles.length - max}` : ""}`;
+};
+
+export { personaName, personaLabel };
 
 export function saveSocial(next) {
   localStorage.setItem(KEY, JSON.stringify(next));
@@ -79,9 +109,7 @@ export const NATIONALITIES = [
 export const FLAG_FOR = Object.fromEntries(NATIONALITIES.map(([flag, name]) => [name, flag]));
 
 // Apps SpecZ can be attached to (used by the SpecZ store dropdown).
-export const SPEC_APPS = [
-  ["postz.png", "PostZ"], ["battlez.png", "BattleZ"], ["collabz.png", "CollabZ"],
-  ["singz.png", "SingZ"], ["rapz.png", "RapZ"], ["labelz.png", "LabelZ"],
-  ["groupz.png", "GroupZ"], ["social_connectz.png", "Social ConnectZ"],
-  ["lessonz.png", "LessonZ"], ["messagez.png", "MessageZ"],
-];
+// SPEC_APPS lived here — a hardcoded list of the apps a SpecZ could attach to.
+// The server publishes it now (`GET /api/economy/specz/` → `apps`), because a
+// second copy of a list the server validates against is a list that drifts,
+// and the tab would have started offering apps the API refuses.

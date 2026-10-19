@@ -4,12 +4,35 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Mic, Play, Square, Trash2, Upload, Video } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
-import { GENRE_GROUPS } from "../genres.js";
+import { GENRE_GROUPS, GENRES } from "../genres.js";
+import { useRemembered } from "../useRemembered.js";
+import { shareLink, shareText } from "../shareText.js";
+import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
+import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
+import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
+import { RatingGrid } from "./../components/Rating.jsx";
+import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
-import { goToSpot, openMember } from "../goto.js";
+import { goToSpot, openMember, spotlight } from "../goto.js";
+import { playSound } from "../sound.js";
+import { track, anonId } from "../track.js";
+import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import PostWithRead from "../components/PostWithRead.jsx";
+import HeardList from "../components/HeardList.jsx";
+import CoachUpgrades from "../components/CoachUpgrades.jsx";
+import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
+import SpeakingIn from "../components/SpeakingIn.jsx";
+import { IN_SHELL as IN_SHELL_COACH, IN_SKILLZ } from "../standalone.js";
+import ReportTake from "../components/ReportTake.jsx";
+import { listenersLine } from "../coachUpgrades.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { mediaError, bestMime, sizeLabel } from "../recorder.js";
+import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -25,6 +48,24 @@ import { goToSpot, openMember } from "../goto.js";
 // every constraint below `max` is a preference the encoder may ignore.
 const VIDEO_MAX_SECONDS = 90;
 
+// Why a take came back with no score, as one of the server's closed set of
+// slugs. Never the sentence the member read: the reason is what decides what
+// gets fixed, and free text is how a visitor's own words end up in a table
+// that is supposed to hold none.
+const failReason = (e) => {
+  const status = e?.status;
+  // Nobody answered inside the time we are willing to make somebody wait.
+  // Counted apart from "network" because the fixes are opposite: a dropped
+  // connection is the member's link, an unanswered request is ours. This is
+  // the row the 853-second spinner would have written, had anything been able
+  // to write one — it wrote nothing, forever, which is why it took a
+  // screenshot to find.
+  if (e?.timedOut) return "timeout";
+  if (!status) return "network";      // fetch never reached us
+  if (status >= 500) return "server";
+  return "refused";                   // 400/401/403/413/429 — we said no
+};
+
 const DIFFICULTY_LABEL = {
   starter: "Starter 🌱", builder: "Builder 🧩",
   performer: "Performer 🌟", stageboss: "Stage Boss 👑",
@@ -36,8 +77,6 @@ const mmssOf = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const mb = (n) => (n / 1024 / 1024).toFixed(1);
 
-const scoreColor = (n) =>
-  n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
 
 /** What this take costs, stated before it is sent.
  *
@@ -64,6 +103,18 @@ function Cost({ price, trial }) {
     );
   }
   const fromPromptz = price.promptz >= price.cost_cents;
+  // In a shell nothing is for sale, so "balance" would be a door to nowhere: say
+  // what is true — the free prompts renew tomorrow — and the price of a take from
+  // PromptZ the member already holds, and nothing else.
+  if (IN_SHELL_COACH) {
+    return (
+      <span className="text-[11px] text-mcz-ember">
+        {price.promptz >= price.cost_cents
+          ? <>−{price.cost_cents} 🏷️ <span className="text-white/35">from the {price.promptz} PromptZ you hold — today's free prompts are used and renew tomorrow</span></>
+          : <><span className="text-white/55">Today's free prompts are used. They renew tomorrow.</span></>}
+      </span>
+    );
+  }
   return (
     <span className="text-[11px] text-mcz-ember">
       −{price.cost_cents} 🏷️{" "}
@@ -98,18 +149,137 @@ function AllowanceLadder({ price }) {
   );
 }
 
+/** Coach Corey, read aloud — the house voice free at every tier, Premium can
+ * sample any catalog voice once, StatZ can save a standing choice. Never on
+ * the trial: this is a member's own take, on their own account, and the
+ * StatZ upsell inside the picker has nothing to say to a visitor who has no
+ * tier yet.
+ *
+ * The text read aloud is assembled client-side from the fields already on
+ * screen — nothing new is asked of the server, and it stays under
+ * MAX_SPEAK_CHARS by construction (verdict + now + goal + two fixes is
+ * nowhere near 2000 characters for any take this coach has ever produced).
+ */
+function CoachVoicePlayer({ result }) {
+  const [voices, setVoices] = useState(null);
+  const [chosen, setChosen] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    api("/api/economy/coachvoice/").then(setVoices).catch(() => {});
+  }, []);
+
+  const text = [
+    result.verdict,
+    result.now && `Where you're at: ${result.now}`,
+    result.goal && `What you're aiming at: ${result.goal}`,
+    ...(result.fixes || []).slice(0, 2),
+  ].filter(Boolean).join(" ");
+
+  async function play(voiceId) {
+    setBusy(true); setErr("");
+    try {
+      const d = await api("/api/economy/coachvoice/speak/", {
+        method: "POST", body: voiceId ? { text, voice: voiceId } : { text },
+      });
+      const audio = new Audio(`data:${d.mime};base64,${d.audio_b64}`);
+      audioRef.current = audio;
+      audio.play();
+      setVoices((v) => v && { ...v, speak_used_today: d.speak_used_today, speak_remaining: d.speak_remaining });
+    } catch (e) {
+      setErr(e.message || "Couldn't play that.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveDefault() {
+    if (!chosen) return;
+    try {
+      const d = await api("/api/economy/coachvoice/", { method: "PATCH", body: { voice: chosen } });
+      setVoices(d);
+      setChosen("");
+    } catch (e) {
+      setErr(e.message || "Couldn't save that.");
+    }
+  }
+
+  if (!voices || !text) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      <button onClick={() => play(chosen || undefined)} disabled={busy}
+              className="neon-btn-ghost !w-auto inline-flex items-center gap-1 px-3 py-1.5 text-xs">
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+        Hear it — {(voices.voices.find((v) => v.id === (chosen || voices.voice)) || {}).label || "Coach Corey"}
+      </button>
+      {voices.can_sample && (
+        <select className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
+                value={chosen} onChange={(e) => setChosen(e.target.value)}>
+          <option value="">{voices.voices.find((v) => v.id === voices.voice)?.label} (yours)</option>
+          {voices.voices.filter((v) => v.id !== voices.voice).map((v) => (
+            <option key={v.id} value={v.id}>{v.label} — sample</option>
+          ))}
+        </select>
+      )}
+      {!voices.can_sample && (
+        <span className="text-white/35">
+          Premium can sample other voices; StatZ can save one —{" "}
+          <button className="re-link" onClick={() => goToSpot("membershipz")}>upgrade</button>
+        </span>
+      )}
+      {voices.can_choose && chosen && chosen !== voices.voice && (
+        <button className="re-link text-[10px]" onClick={saveDefault}>
+          save as my coach's voice
+        </button>
+      )}
+      {err && <span className="text-mcz-ember">{err}</span>}
+    </div>
+  );
+}
+
 // `trial` swaps the member coach for the no-account door. Same recorder, same
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
-export default function BossTake({ appKey = "singz", trial = false, onResult }) {
+export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
+  const { user } = useAuth();
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
-  const [genre, setGenre] = useState("R&B");
-  const [range, setRange] = useState("tenor");
-  const [difficulty, setDifficulty] = useState("builder");
+  // What this take costs, read BEFORE anything is sent. A price you only see
+  // in the response is a bill, not a price.
+  const [price, setPrice] = useState(null);
+  // Each picker opens on what the member chose last time (else what they
+  // choose most) — per instrument, since a rap style is not a drum style. The
+  // option lists arrive with `price`, so the memory is re-applied once they do
+  // and only ever lands on a value the server still offers.
+  // `price.usual` is what the server read off the member's own past takes.
+  const usual = price?.usual || {};
+  const [genre, setGenre, setGenreQuiet] = useRemembered(`${appKey}.genre`, "R&B", GENRES, usual.genre);
+  const [range, setRange] = useRemembered(`${appKey}.range`, "tenor",
+    price?.ranges ? price.ranges.map((r) => r.key) : undefined, usual.target);
+  const [difficulty, setDifficulty, setDifficultyQuiet] = useRemembered(`${appKey}.difficulty`, "builder",
+    price?.difficulties, usual.difficulty);
+  // Have the coach judge the WRITING as well as the performance. Off by
+  // default and deliberately so: somebody working on breath control has not
+  // asked for their lyrics to be marked, and scoring a member on something
+  // they did not submit for scoring is how a coach stops being trusted.
+  //
+  // Only offered where the server says the coach can do it (`rates_lyrics`) —
+  // a drum take has no words, and a toggle a screen cannot honour is the
+  // switch that changes nothing.
+  const [rateLyrics, setRateLyrics] = useState(false);
+  // Have the coach judge the RECORDING as well as the playing. Off by default
+  // for the same reason as lyrics, and one more: most takes here are a phone in
+  // a bedroom, so a coach that scored production by default would be marking
+  // somebody down for their room — a number they could raise by buying an
+  // interface rather than by getting better.
+  const [rateMix, setRateMix] = useState(false);
   // RapZ picks a style the way SingZ picks a range. The list comes from the
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
-  const [style, setStyle] = useState("");
+  const [style, setStyle] = useRemembered(`${appKey}.style`, "",
+    price?.styles ? price.styles.map((v) => v.label) : undefined, usual.style);
   // A post handed over from PostZ. It is a take that is already recorded and
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
@@ -130,26 +300,151 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
   const [bytes, setBytes] = useState(0);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  // The score is the point of the screen, and it lands BELOW a recorder and a
+  // history panel. Bring it into view when it arrives so it is the first thing
+  // seen, not something to scroll for.
+  const resultRef = useRef(null);
+  useEffect(() => {
+    if (result && resultRef.current) resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
   const [msg, setMsg] = useState("");
   // Why the recorder stopped itself, when it did. Kept apart from `msg`: an
   // auto-stop is not an error — the take is good, it just ended on its own, and
   // dressing it in the red warning box would read as a failure.
   const [stopNote, setStopNote] = useState("");
-  // What this take costs, read BEFORE anything is sent. A price you only see
-  // in the response is a bill, not a price.
-  const [price, setPrice] = useState(null);
+  // Why the last mic attempt failed, kept so the trial can stop offering a
+  // button that cannot work here. Funnel: one browser pressed Record 21 times
+  // into a refusal while upload sat unused.
+  const [micWhy, setMicWhy] = useState("");
+  // Show upgrade prompt when upload limit is hit
+  const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
+  // "take" = the member's own performance. "reference" = somebody else's track,
+  // listened to and forgotten: the server enforces it (`reference` on the POST)
+  // and writes nothing that measures the member. Members only - the trial's one
+  // free take is for a stranger's own performance.
+  const [mode, setMode] = useState("take");
+  const refMode = !trial && mode === "reference" && !!price?.reference?.available;
+  const [scoringElapsed, setScoringElapsed] = useState(0);
+  // Bytes on the wire: { loaded, total, pct, bytesPerSecond, etaSeconds, done }
+  // while the take uploads, null once the server has it. Only the multipart
+  // path can produce this — a take handed over from PostZ is already stored,
+  // so there is nothing to send and nothing to measure.
+  const [upload, setUpload] = useState(null);
+  // The smaller copy the coach gets instead of a big audio take: `copyPlan` is
+  // the estimate shown BESIDE Send (from the file's own header), `packing` is
+  // { pct } while the copy is being made, before the upload bar. The original
+  // `blob` is never replaced - posting and storage still use it.
+  const [copyPlan, setCopyPlan] = useState(null);
+  const [packing, setPacking] = useState(null);
+  // Optional, because a smaller copy is a different file to the one that was
+  // recorded and nobody has measured the coach's scores on both. Default ON
+  // (it makes big uploads several times faster); a member who wants the
+  // original scored as-is turns it off, and the choice is remembered on this
+  // device. Storage can throw (private window), so every touch is guarded.
+  const [smallerCopy, setSmallerCopy] = useState(() => {
+    try { return localStorage.getItem("mcz_coach_smaller_copy") !== "0"; } catch { return true; }
+  });
+  // Keep this take: opt-in, per take, and remembered once chosen. Default OFF — what is
+  // kept is somebody's voice, and the privacy policy says a take is scored, not stored,
+  // unless they ask. Keeping sends the ORIGINAL (the smaller copy is for scoring only),
+  // and the file then counts against their storage like any upload.
+  const [keep, setKeep] = useState(() => {
+    try { return localStorage.getItem("mcz_keep_take") === "1"; } catch { return false; }
+  });
+  function chooseKeep(on) {
+    setKeep(on);
+    try { localStorage.setItem("mcz_keep_take", on ? "1" : "0"); } catch { /* per-device convenience only */ }
+  }
+  function chooseSmallerCopy(on) {
+    setSmallerCopy(on);
+    try { localStorage.setItem("mcz_coach_smaller_copy", on ? "1" : "0"); } catch { /* per-device convenience only */ }
+  }
+  // Why the last send came back with nothing, or "". Separate from `msg`
+  // because a visitor at the trial door needs the way FORWARD, and a red line
+  // is not one — see the card below.
+  // The whole failure, not a label for it: {why, status, data}. The server
+  // says something specific on every one of these — which cap, which cause —
+  // and a card that keeps only a category throws that away.
+  const [failed, setFailed] = useState(null);
   const rec = useRef(null);
   const chunks = useRef([]);
   const fileInput = useRef(null);
+  // WHAT THE MICROPHONE IS ACTUALLY SENDING, while it is being sent.
+  //
+  // "The microphone was open but captured nothing" names three possible causes
+  // — muted input, wrong device, or a take too short to encode — and cannot
+  // say which. That is the exact fault the recorder audit was about: every
+  // failure reported a cause that was not the cause. Bytes arriving is not the
+  // same question as sound arriving, either: a muted input still produces a
+  // perfectly valid file full of silence, which the coach then refuses with a
+  // 502 after the visitor has already spent their one free take.
+  //
+  // So the level is measured off the live stream and shown while recording. A
+  // meter that never moves is the member's answer before they finish
+  // performing, not ours afterwards.
+  const meter = useRef(null);         // {ctx, analyser, raf, peak, source}
+  const [level, setLevel] = useState(0);      // 0-1, right now
+  const [heard, setHeard] = useState(false);  // did it ever cross the floor
+  // The device the browser actually opened. When somebody has three inputs and
+  // the browser picked the HDMI one, this is the only thing on screen that
+  // says so.
+  const [inputName, setInputName] = useState("");
   // Whether the take now running came from the camera. A ref, not state,
   // because the size stop reads it from inside the recorder's own callback.
   const videoRec = useRef(false);
+  // The live camera, while it is recording. Without it a video take is
+  // recorded blind: you cannot tell whether you are in frame, whether the
+  // light is usable, or — before the facingMode fix above — that you were
+  // pointing the wrong camera at the ceiling. A recorder you cannot see
+  // yourself in is one people press once.
+  const preview = useRef(null);
+  const [previewOn, setPreviewOn] = useState(false);
+
+  /** One step of the JOIN funnel, from the trial door only.
+   *
+   * Trial-only because that is what the funnel measures — a member's recorder
+   * is not a step on the way to having an account, and counting both would
+   * put K-Oth's own takes in the number that says whether strangers get a
+   * score. The kinds are the server's closed set (FUNNEL_KINDS); anything
+   * else is dropped with a 400 and measures nothing, which is exactly what
+   * happened to the four `boss_take_*` names this replaced. */
+  function step(kind, meta = {}) {
+    if (!trial) return;
+    try {
+      track(kind, { app_key: appKey, ...meta });
+    } catch {
+      // Belt and braces, and earned: the calls this replaced sat OUTSIDE the
+      // try blocks around them, so one bad line in the measurement took the
+      // recorder down with it. `track` guards itself, but the guard that
+      // matters is the one between a measurement and the feature it measures
+      // — and it belongs here, once, rather than at six call sites.
+    }
+  }
 
   // The size ceiling, in bytes, as published by the server. One copy of the
   // number, on the server, where the transport that imposes it lives.
   const capBytes = price?.max_mb ? price.max_mb * 1024 * 1024 : 0;
+  // The longest the server will now let a take run before it gives up and
+  // says so. From the server, because a ceiling the screen invented would be
+  // the second place that number lives — and the whole point of showing it is
+  // that it is the real one.
+  const coachCeiling = price?.coach_budget_seconds || 0;
 
-  useEffect(() => { api(path, { auth: !trial }).then(setPrice).catch(() => {}); }, [path, trial]);
+  useEffect(() => {
+    // The trial's "one free take each" is counted per BROWSER now, not per IP
+    // address — a carrier's shared CGNAT address meant one stranger spent the
+    // take for everybody behind it. The server needs the same id the funnel
+    // uses, on the GET as well as the POST, or the door reports availability
+    // it will not honour a moment later.
+    api(trial ? `${path}?anon_id=${encodeURIComponent(anonId())}` : path, { auth: !trial })
+      .then((p) => {
+        setPrice(p);
+        onReady?.();
+      })
+      .catch(() => {
+        onReady?.();
+      });
+  }, [path, trial, onReady]);
 
   // A post arriving from PostZ. The trial door is for people with no account
   // and therefore no posts, so it never listens.
@@ -161,6 +456,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // rides as an id exactly like a post does.
       if (!((h?.kind === "post" && h.post_id)
             || (h?.kind === "journal" && h.journal_id))) return;
+      setMode("take");     // a handed-over post is the member's own take
       setFromPost(h);
       setTakeGone(false);
       setResult(null);
@@ -169,7 +465,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // The post already says what it is. Its genre seeds the picker so the
       // coach isn't asked to score a Drill verse as "unspecified" — the member
       // can still change it before sending.
-      if (h.genre) setGenre(h.genre);
+      if (h.genre) setGenreQuiet(h.genre);
     });
   }, [appKey, trial]);
 
@@ -192,7 +488,45 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, secs]);
 
-  function attach(b, name, video = false) {
+  // In the SkillZ app every coach stays mounted, only hidden, when the member moves to
+  // another one (standalone/skillz/Shell.jsx) — so a recorder left running would keep
+  // the microphone, and the camera, open under a screen nobody can see. The shell says
+  // which screen it left; this one stops its own recorder.
+  useEffect(() => {
+    if (!IN_SKILLZ) return undefined;
+    const leave = (e) => {
+      if (e.detail === appKey) stopRec("Recording stopped when you left this screen. What it caught is still here — send it, or record another.");
+    };
+    window.addEventListener("mcz-shell-leave", leave);
+    return () => window.removeEventListener("mcz-shell-leave", leave);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appKey]);
+
+  // Track elapsed time while scoring is in progress
+  // Counted from when SCORING starts, not from the click. The ceiling shown
+  // beside it (`coach_budget_seconds`) is the server's, and the server's clock
+  // only starts once the whole file has arrived — so a 129MB take that spent
+  // five minutes uploading read "05:02 of up to 02:00" on a run that was fine.
+  // While bytes are still going up the clock holds at zero; it is the upload
+  // bar's turn to speak.
+  const uploading = !!(upload && !upload.done) || !!packing;
+  useEffect(() => {
+    if (!busy) return;
+    if (uploading) { setScoringElapsed(0); return; }
+    const t = setInterval(() => setScoringElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [busy, uploading]);
+
+  // Estimate the coach copy for the Send button, from the file itself.
+  useEffect(() => {
+    setCopyPlan(null);
+    if (!blob || isVideo) return undefined;
+    let live = true;
+    previewCopy(blob).then((p) => { if (live) setCopyPlan(p); });
+    return () => { live = false; };
+  }, [blob, isVideo]);
+
+  function attach(b, name, video = false, recorded = false) {
     // Checked here rather than on submit, because the server sends the take to
     // a model that caps the whole request — an oversize take fails upstream and
     // comes back as "the coach couldn't process that", which blames the take
@@ -205,9 +539,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
       // their tier's is how somebody concludes the plan they paid for is being
       // ignored — and telling a Free member it ISN'T their tier when it is, is
       // the same lie pointing the other way. Fall back only for an old server.
-      return setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
+      setMsg(`That take is ${(b.size / 1024 / 1024).toFixed(1)}MB — keep it under ${capMb}MB. `
         + (price?.max_mb_why
            || "Trim it to the section you want scored, or record video at a shorter length."));
+      setShowUploadLimitPrompt(true);
+      step("try_failed", { why: "too_big" });
+      setFailed({ why: "too_big", status: 0, data: {} });
+      return;
     }
     if (url) URL.revokeObjectURL(url);
     // Keep the filename in state rather than assigning onto the Blob: File.name
@@ -221,48 +559,154 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     setUrl(URL.createObjectURL(b));
     setResult(null);
     setMsg("");
+    if (!recorded) step("try_attach");
   }
 
-  // Record into a container the coach's model can actually read. Chrome's
-  // default is audio/webm, which Gemini does not accept as audio — the server
-  // relabels it to video/webm now, but recording straight into ogg or mp4 where
-  // the browser supports it means the take never needs rescuing.
-  function bestMime(video) {
-    // VP8 first for video, not MP4. Android records MP4 through a hardware
-    // encoder that commonly ignores videoBitsPerSecond — which is how a
-    // 900kbps request produced a 20Mbps file. MP4 stays last for Safari, which
-    // cannot record WebM at all. The server relabels all of these correctly
-    // (see _RELABEL in vocalcoach.py), so the choice is purely about size.
-    const wanted = video
-      ? ["video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
-      : ["audio/ogg;codecs=opus", "audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
-    return wanted.find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
+  // Anything above this counts as "the input is live". It is deliberately
+  // low — a fifth of a percent of full scale — because the job is telling
+  // SILENCE from SOUND, not judging whether somebody sang loudly enough. Room
+  // tone from a working microphone clears it easily; a muted input does not
+  // clear it at all.
+  const SILENCE_FLOOR = 0.002;
+
+  function startMeter(stream) {
+    // Best-effort, and nothing downstream depends on it. If WebAudio is
+    // unavailable or the context will not start, the meter simply never
+    // reports — which leaves the recorder exactly as it was, rather than
+    // making a claim about the take from a measurement that did not run.
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      const source = ctx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      // NOT connected to ctx.destination, deliberately: that would play the
+      // member's own microphone back through their speakers, which is
+      // feedback in a room with no headphones.
+      const buf = new Float32Array(analyser.fftSize);
+      const state = { ctx, analyser, source, raf: 0, peak: 0 };
+      const tick = () => {
+        analyser.getFloatTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        state.peak = Math.max(state.peak, rms);
+        setLevel(rms);
+        if (rms > SILENCE_FLOOR) setHeard(true);
+        state.raf = requestAnimationFrame(tick);
+      };
+      state.raf = requestAnimationFrame(tick);
+      meter.current = state;
+    } catch {
+      meter.current = null;
+    }
   }
 
-  async function startRec(video = false) {
+  function stopMeter() {
+    const m = meter.current;
+    meter.current = null;
+    setLevel(0);
+    if (!m) return null;
+    try { cancelAnimationFrame(m.raf); } catch { /* nothing to cancel */ }
+    try { m.source.disconnect(); } catch { /* already gone */ }
+    // `running` is the only state a reading can be trusted from. A context the
+    // autoplay policy left suspended produces a flat line that looks exactly
+    // like a muted microphone, and reporting that as silence would be this
+    // recorder's oldest bug wearing a new hat.
+    const ran = m.ctx.state === "running";
+    try { m.ctx.close(); } catch { /* already closed */ }
+    return ran ? m.peak : null;
+  }
+
+  async function startRec(video = false, relaxed = false) {
     setMsg(""); setStopNote("");
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      return setMsg("This browser can't record. Attach a file instead.");
+      // The usual cause is not the browser. `mediaDevices` is undefined on any
+      // origin that isn't https (or localhost), and "this browser can't
+      // record" sends somebody to install a different browser to fix a URL.
+      if (typeof window !== "undefined" && window.isSecureContext === false) {
+        step("try_mic_denied", { video, why: "insecure" });
+        setMicWhy("insecure");
+        return setMsg("Recording needs a secure (https) connection — this page isn't on one. "
+          + "Upload a clip instead and the coach scores it the same.");
+      }
+      step("try_mic_denied", { video, why: "other" });
+      setMicWhy("other");
+      return setMsg("This browser can't record. Upload a clip instead — it scores the same.");
     }
+    if (!relaxed) step("try_record", { video });
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
+        relaxed ? { audio: true, ...(video ? { video: true } : {}) } :
         video
           // `max`, not bare values. A bare `width: 640` is an IDEAL the camera
           // may overshoot, and overshoot it did — straight to 1080p.
           ? { audio: true,
               video: { width: { max: 854 }, height: { max: 480 },
-                       frameRate: { max: 30 } } }
+                       frameRate: { max: 30 },
+                       // THE FRONT CAMERA. With no facingMode a phone hands
+                       // back the BACK camera, so a member who pressed
+                       // "record on camera" to sing was filming the ceiling —
+                       // and with no preview (below) there was nothing on
+                       // screen to tell them. That is most of what "the camera
+                       // doesn't work" actually was.
+                       //
+                       // `ideal`, never `exact`: exact fails outright on a
+                       // laptop with one camera, which would turn a wrong
+                       // camera into no camera.
+                       facingMode: { ideal: "user" } } }
           : { audio: true });
       chunks.current = [];
       setBytes(0);
       videoRec.current = video;
+      setHeard(false);
+      setLevel(0);
+      const audioTrack = stream.getAudioTracks()[0];
+      // Held as a local as well as in state. `onstop` closes over the values
+      // that existed when `startRec` ran, so reading `inputName` in there
+      // would always give the PREVIOUS take's device — a stale closure is how
+      // a message that exists to name the right cause ends up naming the
+      // wrong one, which is the whole fault being fixed here.
+      const label = audioTrack?.label || "";
+      setInputName(label);
+      // `muted` on a track means the SOURCE is delivering nothing — the
+      // browser's own word for it, not a guess. Known before the member
+      // performs, so it is said before rather than after.
+      if (audioTrack && audioTrack.muted) {
+        stream.getTracks().forEach((t) => t.stop());
+        setPreviewOn(false);
+        step("try_failed", { why: "empty" });
+        return setMsg(`"${audioTrack.label || "That input"}" is open but sending no audio — `
+          + "it's muted at the device or the operating system. Unmute it, pick a "
+          + "different input, or upload a clip instead.");
+      }
+      startMeter(stream);
+      if (video) {
+        setPreviewOn(true);
+        // Attached after the element mounts. `muted` is not cosmetic: an
+        // unmuted preview plays the member's own microphone back through
+        // their speakers, which is feedback in a room without headphones —
+        // the same reason the level meter never connects to the destination.
+        setTimeout(() => {
+          if (preview.current) {
+            preview.current.srcObject = stream;
+            preview.current.play?.().catch(() => { /* autoplay policy; the
+              frame still shows, and this is a preview rather than playback */ });
+          }
+        }, 0);
+      }
+      // Same reason: `secs` in `onstop` would be whatever it was at the moment
+      // recording started, which is zero.
+      const startedAt = Date.now();
       // Ask for a modest bitrate on video so a minute of take lands inside the
       // size cap. This is a HINT and phones ignore it — the byte count below is
       // what actually holds the line.
       const mimeType = bestMime(video);
       const mr = new MediaRecorder(stream, {
         ...(mimeType ? { mimeType } : {}),
-        ...(video ? { videoBitsPerSecond: 900_000 } : {}),
+        ...(video ? { videoBitsPerSecond: 900_000 } : { audioBitsPerSecond: 96_000 }),
       });
       // The stop that can't be argued with. A timeslice makes the recorder hand
       // over a chunk every second instead of one blob at the end, so we can
@@ -283,27 +727,94 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             + "It's still a take: send it, or record a shorter one.");
         }
       };
+      mr.onerror = (e) => {
+        setMsg(`The recorder stopped with an error (${e?.error?.name || "unknown"}). `
+          + "Upload a clip instead — it scores the same.");
+        step("try_failed", { why: "empty" });
+      };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        setPreviewOn(false);
+        if (preview.current) preview.current.srcObject = null;
+        // null means the meter never ran, so it gets no opinion. A reading of
+        // 0 from a context that DID run is a fact.
+        const peak = stopMeter();
+        const named = label ? `"${label}"` : (video ? "The camera" : "The microphone");
+        const held = (Date.now() - startedAt) / 1000;
+        // ...and a take too short for the analyser to have sampled anything is
+        // not evidence either. Verified in a browser rather than reasoned
+        // about: a 300ms take of a REAL tone came back reading zero peak and
+        // was reported as silent, which is this recorder's oldest bug — a
+        // message naming a cause that was not the cause — reintroduced by the
+        // thing written to end it. Below the floor, the meter says nothing.
+        const MEASURABLE_AFTER = 1.5;
+        const silent = peak !== null && peak <= SILENCE_FLOOR && held >= MEASURABLE_AFTER;
+        // A take with no bytes in it is not a take.
+        //
+        // This attached whatever it had, including nothing — which is exactly
+        // what a 0:00 / 0:00 player is: an empty Blob wearing a filename. The
+        // send then uploaded zero bytes, the coach answered 502, and it cost
+        // the visitor their one free take to find out. Refuse it here, where
+        // the reason is still knowable.
+        const total = chunks.current.reduce((n, c) => n + c.size, 0);
+        if (!total) {
+          setRecording(false);
+          step("try_failed", { why: "empty" });
+          // Three different causes, and until the meter existed this line had
+          // to list all three and let the member guess. Now it can say which.
+          if (held < 2) {
+            return setMsg("That was too short for the recorder to produce anything — "
+              + "it writes the file in one-second pieces. Hold it for a few seconds; "
+              + "eight is enough to score.");
+          }
+          if (silent) {
+            return setMsg(`${named} was open and never heard a sound — the level meter `
+              + "stayed flat the whole way through. It's muted, or the browser is on a "
+              + "different input than you think. Pick another input, or upload a clip.");
+          }
+          return setMsg(`${named} was open but the recorder produced no file. `
+            + "That's the browser rather than your input — upload a clip instead, "
+            + "it scores the same.");
+        }
+        // Bytes without sound. A muted input still produces a perfectly valid
+        // file full of silence, and sending it costs a free take to be told
+        // the audio was silent. Said here, where the take is still in hand:
+        // it is attached either way, because a meter that got it wrong must
+        // not be the reason somebody loses a performance.
+        if (silent) {
+          setStopNote(`Recorded, but ${named} never rose above silence for the whole take. `
+            + "If that's not right, check the input and record again — the coach can't "
+            + "score a silent file.");
+        }
         // Keep the recorder's own mime — the server normalises it — but give
         // the file an extension that matches, so an attached-file round trip
         // and a recorded one look the same to everything downstream.
         const type = mr.mimeType || (video ? "video/webm" : "audio/webm");
         const ext = type.includes("mp4") ? "mp4" : type.includes("ogg") ? "ogg" : "webm";
         attach(new Blob(chunks.current, { type }),
-               `${video ? "take-video" : "take"}.${ext}`, video);
+               `${video ? "take-video" : "take"}.${ext}`, video, true);
       };
       rec.current = mr;
       // One chunk a second. Without a timeslice the recorder holds everything
       // until stop(), and the first time we'd learn a take was 1.4GB is after
       // it was performed.
       mr.start(1000);
+      setMicWhy("");
       setSecs(0);
       setRecording(true);
-    } catch {
-      setMsg(video
-        ? "Camera access was refused. Allow it, record audio only, or attach a file instead."
-        : "Microphone access was refused. Allow it, or attach a file instead.");
+      playSound("record_start");
+    } catch (err) {
+      const { why, msg: line, retry } = mediaError(err, video);
+      // Our constraints were impossible on this device. That is ours to fix,
+      // not something to hand the member as a refusal — one retry with plain
+      // settings, then whatever it says the second time is real.
+      if (retry && !relaxed) {
+        setMsg(line);
+        return startRec(video, true);
+      }
+      step("try_mic_denied", { video, why });
+      setMicWhy(why);
+      setMsg(line);
     }
   }
 
@@ -313,43 +824,112 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
     if (rec.current?.state !== "recording") return;
     rec.current.stop();
     setRecording(false);
+    playSound("record_stop");
     if (note) setStopNote(note);
   }
 
   function discard() {
     if (url) URL.revokeObjectURL(url);
     setBlob(null); setIsVideo(false); setUrl(""); setResult(null); setMsg(""); setSecs(0);
-    setBytes(0); setStopNote("");
+    setBytes(0); setStopNote(""); setShowUploadLimitPrompt(false); setFailed(null);
+  }
+
+  function switchMode(next) {
+    if (next === mode || busy || recording) return;
+    discard();
+    setFromPost(null); setTakeGone(false);
+    setMode(next);
   }
 
   async function submit() {
-    if (!blob && !fromPost) return;
-    setBusy(true); setMsg(""); setResult(null);
+    if (!blob && !(fromPost && !refMode)) return;
+    // An empty file is a round trip that can only fail, and on the trial door
+    // it costs the visitor the one free take they came for. The recorder
+    // refuses to attach a 0-byte take now; this catches the same shape
+    // arriving from a file picker.
+    if (blob && !blob.size) {
+      step("try_failed", { why: "empty" });
+      setFailed({ why: "empty", status: 0, data: {} });
+      return setMsg("That file is empty — there's no audio in it to score. "
+        + "Record again, or pick a different clip.");
+    }
+    setBusy(true); setScoringElapsed(0); setUpload(null); setMsg(""); setResult(null); setFailed(null);
+    step("try_send");
     try {
+      // A big audio take goes to the coach as a smaller copy; the original
+      // stays in `blob` for posting. Any failure inside returns the original,
+      // so this can only make the send faster, never stop it.
+      let sendBlob = blob;
+      let sendName = takeName;
+      if (blob && !fromPost && smallerCopy && !(keep && !trial && !refMode && !IN_SHELL_COACH)) {
+        setPacking({ pct: 0 });
+        const made = await compressForCoach(blob, { isVideo, onProgress: (f) => setPacking({ pct: Math.round(f * 100) }) });
+        setPacking(null);
+        if (made.compressed) { sendBlob = made.file; sendName = made.file.name; }
+      }
       // A handed-over post is already stored, so it rides as its id. Uploading
       // the same file a second time to have it coached is the dead end this
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
-      const body = fromPost
+      const body = fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
               : { post_id: fromPost.post_id }),
-            genre, range, difficulty, ...(style ? { style } : {}) }
+            genre, range, difficulty, ...(style ? { style } : {}),
+            // A take handed over from PostZ takes the toggle too. It was
+            // missing here while the upload path had it, which is the quiet
+            // half of a feature: the control renders on both screens and only
+            // one of them honours it.
+            ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
+            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
         : (() => {
             const f = new FormData();
-            f.append("take", blob, takeName);
+            f.append("take", sendBlob, sendName);
             f.append("genre", genre);
+            if (style) f.append("style", style);
+            if (refMode) {
+              f.append("reference", "true");
+              return f;
+            }
             f.append("range", range);
             f.append("difficulty", difficulty);
-            if (style) f.append("style", style);
+            if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
+            if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
+            // Same id as the GET above, and as the funnel's. Blank in a
+            // private window, which the server reads as "unknown" rather than
+            // as a visitor who has already been here.
+            if (trial) f.append("anon_id", anonId());
             return f;
           })();
-      const out = await api(path, { method: "POST", body, auth: !trial });
+      const out = await api(path, {
+        method: "POST", body, auth: !trial,
+        // Only a FormData body has bytes to report. A handed-over post is
+        // already on the server, so `api` ignores this and the panel falls
+        // straight through to the scoring phase, which is correct.
+        onProgress: setUpload,
+      });
       setResult(out);
-      onResult?.(out);
+      if (out?.score == null) {
+        step("try_failed", { why: "empty" });
+        setFailed({ why: "empty", status: 200, data: {} });
+      }
+      else step("try_scored");
+      // The score landing is the moment worth hearing. The prompt it spent
+      // is announced separately, and only when one was actually spent — a
+      // take covered by the day's free allowance costs nothing, and saying
+      // otherwise in audio would be the same lie as saying it on screen.
+      playSound("score_in");
+      if (!trial && out?.cost_cents) playSound("promptz_spend");
+      // A reference listen is not a result of the member's: nothing upstream
+      // (post attach, history, SkillZ) gets it.
+      if (!refMode) onResult?.(out);
     } catch (e) {
       setMsg(e.message || "The coach couldn't take that one.");
-    } finally { setBusy(false); }
+      setFailed({ why: failReason(e), status: e?.status, data: e?.data || {} });
+      playSound("error");
+      step("try_failed", { why: failReason(e) });
+    } finally { setBusy(false); setPacking(null); }
   }
 
   // Measured in PostZ and carried over. Zero means nobody measured it, which
@@ -369,39 +949,66 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
 
   const mmss = mmssOf(secs);
 
-  return (
-    <div className="neon-frame space-y-4 p-4">
-      <div>
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
-          👑 Boss Take — {price?.label || "AI"} Coach
-        </p>
-        <p className="mt-1 text-[11px] text-white/45">
-          Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
-          actually worked, what to fix, and a drill to run before the next one. On camera the coach can
-          mark delivery and breath too.
-        </p>
-        {/* The ceiling, before the button that hits it. A limit you discover by
-            reaching it costs you the take you already performed. */}
-        <p className="mt-1 text-[11px] text-white/35">
-          Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
-          coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
-          the recorder stops itself before the take gets too big to send.
-        </p>
-        {/* When the member's own tier is what's holding the ceiling down, say
-            what a tier up would actually buy here — the same "frequency, not
-            access" upsell the allowance ladder makes, about size instead. */}
-        {price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
-          <p className="mt-1 text-[11px] text-white/35">
-            {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
-            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> — a tier up gets you there.
-          </p>
-        )}
-      </div>
+  // Whether this visitor can have a take AT ALL, answered before they perform
+  // one.
+  //
+  // `available`, `already_used`, `configured` and `cap_reached` have been in
+  // GET /api/<key>/trial/ the whole time and nothing has ever read them. So
+  // the door showed a stranger a recorder, let them do a take, and refused it
+  // on Send — the cost/gain rule broken the most expensive way there is,
+  // because the thing they spent was a performance. `price` null means the
+  // fetch failed, and a failed fetch is not a refusal: nothing is blocked.
+  const blocked = trial && price && price.available === false;
+  const blockedNote = !blocked ? "" : !price.configured
+    ? "The coach isn't switched on right now. That's our end, not yours — nothing here will fix it, so don't spend a take on it."
+    : price.already_used
+      ? `You've already had a free take ${price.per_address ? `(${price.per_address})` : "today"}. An account gets you more, every day.`
+      // Never phrased as something they did. The per-address ceiling was ONE
+      // for most of this app's life, so a mobile carrier's shared address
+      // meant a stranger spent the take and the next visitor got told they
+      // had used theirs — a false accusation on the one screen a stranger
+      // ever sees, and unanswerable, because there is nothing they can do
+      // about somebody else's phone.
+      : price.address_busy
+        ? "This network has already used today's free takes — that's the connection you're on, not you. Common on mobile data, where thousands of phones share one address. An account gets you the coach on any connection."
+        : price.cap_reached
+          ? "Today's free takes are all spoken for — they're capped so we can keep giving them away. Tomorrow, or make an account now."
+          : "The free take isn't available right now.";
 
+  // A shut door is a funnel step. `blocked` hides EVERY control — upload, mic
+  // and camera all vanish — so a visitor who was refused and one who looked
+  // and left produce the same two rows: a try_view and nothing after it. 18
+  // opened the trial and 1 started the recorder, and nothing could say which
+  // of those the other 17 were; they need opposite fixes.
+  //
+  // Fired once per mount, from the state that actually drove the render, so
+  // it can never disagree with what the visitor was shown.
+  const toldNo = useRef(false);
+  useEffect(() => {
+    if (!blocked || toldNo.current) return;
+    toldNo.current = true;
+    step("try_blocked", {
+      why: !price.configured ? "not_configured"
+        : price.already_used ? "already_used"
+        // Ordered above cap_reached because it is the narrower claim, and
+        // below already_used because a visitor who really has had their take
+        // should be told that rather than blamed on their network.
+        : price.address_busy ? "address_busy"
+        : price.cap_reached ? "cap_reached"
+        : undefined,
+    });
+  }, [blocked, price]);
+
+  const settings = (
+    <>
+      {!refMode && price?.challenge && (
+        <WeeklyChallenge appKey={appKey} challenge={price.challenge}
+          onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
+      )}
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
           Genre
-          <select value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
+          <select data-memo="own" value={genre} onChange={(e) => setGenre(e.target.value)} className="neon-input !py-2 text-xs">
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -410,37 +1017,173 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               </optgroup>
             ))}
           </select>
+          <UsualHint field={`${appKey}.genre`} value={genre} onUse={setGenre} allowed={GENRES} server={(price?.usual_top || {}).genre} />
         </label>
-        {price?.range_label && (
+        {price?.range_label && !refMode && (
           <label className="text-[11px] text-white/50">
             {price.range_label}
-            <select value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
+            <select data-memo="own" value={range} onChange={(e) => setRange(e.target.value)} className="neon-input !py-2 text-xs">
               {(price.ranges || []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
             </select>
+            <UsualHint field={`${appKey}.range`} value={range} onUse={setRange} allowed={(price.ranges || []).map((r) => r.key)} server={(price?.usual_top || {}).target}
+                       label={(v) => (price.ranges || []).find((r) => r.key === v)?.label || v} />
           </label>
         )}
         {price?.style_label && (
           <label className="text-[11px] text-white/50">
             {price.style_label}
-            <select value={style} onChange={(e) => setStyle(e.target.value)} className="neon-input !py-2 text-xs">
+            <select data-memo="own" value={style} onChange={(e) => setStyle(e.target.value)} className="neon-input !py-2 text-xs">
               <option value="">Any</option>
               {(price.styles || []).map((v) => <option key={v.key} value={v.label}>{v.label}</option>)}
             </select>
+            <UsualHint field={`${appKey}.style`} value={style} onUse={setStyle} allowed={(price.styles || []).map((v) => v.label)} server={(price?.usual_top || {}).style} />
           </label>
         )}
-        <label className="text-[11px] text-white/50">
+        {!refMode && <label className="text-[11px] text-white/50">
           Difficulty
-          <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
+          <select data-memo="own" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="neon-input !py-2 text-xs">
             {(price?.difficulties || ["starter", "builder", "performer", "stageboss"])
               .map((v) => <option key={v} value={v}>{DIFFICULTY_LABEL[v] || v}</option>)}
           </select>
-        </label>
+          <UsualHint field={`${appKey}.difficulty`} value={difficulty} onUse={setDifficulty} server={(price?.usual_top || {}).difficulty}
+                     label={(v) => DIFFICULTY_LABEL[v] || v} />
+        </label>}
       </div>
+      {refMode ? (
+        <p className="text-[11px] leading-relaxed text-white/45">
+          Genre{price?.style_label ? ` and ${price.style_label.toLowerCase()}` : ""} tell the coach what to
+          listen for. Nothing here is held against you - it's their track, not your take.
+        </p>
+      ) : (
+      <p className="text-[11px] leading-relaxed text-white/45">
+        These tell the coach what to hold your take against. Genre{price?.style_label ? ` and ${price.style_label.toLowerCase()}` : ""} set
+        what Style Match is measured against;{price?.range_label ? ` ${price.range_label.toLowerCase()} is the range it checks you aimed at;` : ""} Difficulty sets
+        how the 1-10 scale and your next goal are pitched. They change how the take is judged, not whether it is scored.
+      </p>
+      )}
+
+      {/* The server says whether this coach has words to read. Rendering it
+          off a hardcoded ["singz","rapz"] would be the two-door TrialTake
+          mistake again — a list in the client that the backend has already
+          moved past. */}
+      {price?.rates_lyrics && !refMode && (
+        <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={rateLyrics}
+                 onChange={(e) => setRateLyrics(e.target.checked)}
+                 className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-mcz-cyan" />
+          <span>
+            Rate my lyrics too
+            <span className="block text-white/35">
+              Scores{" "}
+              {Object.values(price.lyric_scores || {}).join(", ").toLowerCase()
+                || "rhyme scheme, punchlines, story, imagery and freshness"}
+              {" "}— weighted by the style you picked, so a dimension that style
+              isn't asking for reads "—" rather than a low mark. It judges the
+              craft, not what you're talking about, and if the words aren't clear
+              enough to catch it says so instead of guessing.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {/* The other half of "score the performance, not the mix". The coach is
+          told to ignore production unless this is on, so this is the only way
+          to hear about it — and it stays off by default because a phone
+          recording of a great take is still a great take. */}
+      {price?.rates_mix && !refMode && (
+        <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={rateMix}
+                 onChange={(e) => setRateMix(e.target.checked)}
+                 className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-mcz-cyan" />
+          <span>
+            Rate my mix too
+            <span className="block text-white/35">
+              Scores{" "}
+              {Object.values(price.mix_scores || {}).join(", ").toLowerCase()
+                || "balance, low end, space and level"}
+              {" "}— the recording judged as a recording. Leave it off and
+              production is ignored entirely: room noise and a phone mic never
+              pull your performance scores down either way. It rates the mix you
+              made, never the gear you used.
+            </span>
+          </span>
+        </label>
+      )}
+
+    </>
+  );
+
+  return (
+    <div className="neon-frame space-y-4 p-4">
+      <div>
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          {refMode ? "🎧 Reference listen" : "👑 Boss Take"} — {price?.label || "AI"} Coach
+        </p>
+        {!trial && price?.reference?.available && (
+          <div role="tablist" aria-label="Whose track" className="mt-2 flex flex-wrap gap-2">
+            {[["take", "My take"], ["reference", "Listen to someone else's track"]].map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={mode === k}
+                      onClick={() => switchMode(k)} disabled={busy || recording}
+                      className={`rounded-full border px-3 py-1 text-[11px] ${mode === k
+                        ? "border-mcz-cyan bg-mcz-cyan/15 text-white"
+                        : "border-white/15 text-white/55 hover:text-white"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+        {refMode && (
+          <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
+            <p>
+              Upload a track by another artist and hear what the coach hears in it - to get a feel for what
+              you know and like. {price.reference.notice}
+            </p>
+            <p className="font-semibold text-white/80">Not saved to your progress.</p>
+          </div>
+        )}
+        <p className={`mt-1 text-[11px] text-white/45 ${refMode ? "hidden" : ""}`}>
+          Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
+          actually worked, what to fix, and a drill to run before the next one. On camera the coach can
+          mark delivery and breath too.
+        </p>
+        {/* The ceiling, before the button that hits it. A limit you discover by
+            reaching it costs you the take you already performed. */}
+        <p className={`mt-1 text-[11px] text-white/35 ${trial || refMode ? "hidden" : ""}`}>
+          Video takes run up to {VIDEO_MAX_SECONDS} seconds — one verse or one section, which is what the
+          coach scores. Audio can run longer{price?.max_mb ? `, up to ${price.max_mb}MB` : ""}; either way
+          the recorder stops itself before the take gets too big to send.
+        </p>
+        {/* When the member's own tier is what's holding the ceiling down, say
+            what a tier up would actually buy here — the same "frequency, not
+            access" upsell the allowance ladder makes, about size instead. */}
+        {!IN_SHELL_COACH && price?.max_mb_is_tier_limit && price?.coach_max_mb > price?.max_mb && (
+          <p className="mt-1 text-[11px] text-white/35">
+            {price.max_mb}MB is your tier's upload limit. The coach itself takes up to{" "}
+            <span className="text-mcz-gold">{price.coach_max_mb}MB</span> —{" "}
+            <button type="button" onClick={() => goToSpot("membershipz")}
+                    className="text-mcz-cyan hover:underline">
+              a tier up gets you there
+            </button>.
+          </p>
+        )}
+      </div>
+
+      {/* On the trial the options fold away: a stranger came for a score,
+          and three dropdowns plus two checkboxes ahead of the record button
+          read as homework. The defaults score a take fine. */}
+      {trial ? (
+        <details className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+          <summary className="cursor-pointer text-[12px] text-white/55">
+            Options — genre, range, difficulty, lyrics, mix <span className="text-white/35">(the defaults are fine)</span>
+          </summary>
+          <div className="mt-3 space-y-4">{settings}</div>
+        </details>
+      ) : settings}
 
       {/* A post arrived from PostZ. It IS the take — there is nothing to record
           and nothing to upload, so the recorder steps aside and the only thing
           left is the price and the button that spends it. */}
-      {fromPost && !recording && (
+      {fromPost && !recording && !refMode && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
             {fromPost.kind === "journal" ? "📔 From your journal" : "🎧 From PostZ"}
@@ -509,44 +1252,132 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
         </div>
       )}
 
-      <div className={`flex flex-wrap items-center gap-2 ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
-        {!recording ? (
+      {/* Order matters at the trial door, and only there.
+          A visitor's first move is the browser's mic dialog — a permission
+          prompt, from a site they have never heard of, usually on a phone,
+          before they have been given anything. Leading with a file they
+          already have skips the one step nobody has to say yes to; the mic
+          stays right beside it for whoever would rather sing now. A member is
+          already past that, so their recorder keeps the order it had. */}
+      {/* Stated before the recorder, not after the performance. */}
+      {blocked && (
+        <div className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.07] p-4">
+          <p className="text-[12px] font-semibold text-white">No free take right now</p>
+          <p className="text-[11px] leading-relaxed text-white/70">{blockedNote}</p>
+          {/* An account is the honest answer to both of the caps. It is not
+              the answer to our own outage, so it isn't offered for that one. */}
+          {price.configured && (
+            <Link to="/register" className="re-btn re-btn-emerald !w-auto px-4">
+              Make a free account
+            </Link>
+          )}
+        </div>
+      )}
+
+      <div className={`flex flex-wrap items-center gap-2 ${blocked ? "hidden" : ""} ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
+        <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
+        {trial && !recording && (
+          <button className="neon-btn-primary !w-auto px-5" onClick={() => fileInput.current?.click()} disabled={busy}>
+            <Upload size={15} /> Upload a clip
+          </button>
+        )}
+        {!recording && !refMode ? (
           <>
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
+            {/* On the trial, a device with no usable mic (or an insecure page)
+                is told once, in the message above, and is not offered the
+                same button again - upload is the way through. A blocked
+                permission or a busy mic can be fixed, so it stays. */}
+            {!(trial && ["notfound", "insecure", "other"].includes(micWhy)) && (
+            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
                     data-tour="bosstake-mic">
-              <Mic size={15} /> {blob ? "Record again" : "Record a take"}
+              <Mic size={15} /> {blob ? "Record again" : micWhy ? "Try the mic again" : trial ? "Or record one now" : "Record a take"}
             </button>
+            )}
             {/* The coach watches as well as listens. On camera it can mark
                 delivery, breath and posture, which sound alone can't show. */}
-            <button className="re-btn !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
+            {!(trial && micWhy) && (
+            <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
+            )}
           </>
-        ) : (
+        ) : refMode ? null : (
           <button className="neon-btn-primary !w-auto px-4" onClick={() => stopRec()}>
             <Square size={14} /> Stop · {mmss}
           </button>
         )}
-        <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); } }} />
-        <button className="re-btn !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
-          <Upload size={15} /> Attach audio or video
-        </button>
+        {!trial && (
+          <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
+            <Upload size={15} /> {refMode ? "Upload their track" : "Attach audio or video"}
+          </button>
+        )}
         {blob && !recording && (
           <button className="re-btn !w-auto px-3 !text-red-300" onClick={discard} disabled={busy}>
             <Trash2 size={14} />
           </button>
         )}
       </div>
+      {trial && !blocked && !blob && !recording && (
+        <p className="text-[11px] text-white/40">
+          Eight seconds is enough to score. A voice note you already have works —
+          nothing to install, nothing to allow.
+        </p>
+      )}
+
+      {/* The camera, live, while it rolls. Mirrored, because a selfie preview
+          that is not mirrored reads as somebody else's face and people
+          instinctively correct the wrong way — the RECORDING is not mirrored,
+          only what they watch. */}
+      {previewOn && recording && (
+        <video ref={preview} muted playsInline autoPlay
+               className="w-full -scale-x-100 rounded-lg border border-mcz-ember/30" />
+      )}
 
       {recording && (
-        <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" />
-          Recording — {mmss}
-          {videoRec.current && ` / ${mmssOf(VIDEO_MAX_SECONDS)}`}
-          {bytes > 0 && ` · ${mb(bytes)}MB${price?.max_mb ? ` of ${price.max_mb}MB` : ""}`}
-        </p>
+        <div className="space-y-1.5">
+          <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" />
+            Recording — {mmss}
+            {videoRec.current && ` / ${mmssOf(VIDEO_MAX_SECONDS)}`}
+            {bytes > 0 && ` · ${mb(bytes)}MB${price?.max_mb ? ` of ${price.max_mb}MB` : ""}`}
+          </p>
+          {/* The live input level, and the device it is coming from.
+              Bytes ticking up says the recorder is writing; it says nothing
+              about whether anything is being recorded INTO it. A muted mic
+              produces a perfectly good file full of silence, and until this
+              bar existed the first anyone knew was a 502 after the take was
+              over — which on the trial door costs the visitor the one free
+              take they came for. A bar that never moves is the answer while
+              there is still time to do something about it.
+
+              `Math.min(1, level * 8)` is a display scale, not a measurement:
+              speech RMS sits around 0.05-0.15, so an unscaled bar would look
+              broken at normal volume. */}
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full transition-[width] duration-75 ${
+                  heard ? "bg-emerald-400" : "bg-white/25"}`}
+                style={{ width: `${Math.min(100, level * 800)}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[10px] text-white/40">
+              {heard ? "input live" : "no sound yet"}
+            </span>
+          </div>
+          {!heard && secs >= 3 && (
+            <p className="text-[11px] text-mcz-ember">
+              Nothing has reached {inputName ? `"${inputName}"` : "the microphone"} in {secs}s.
+              Stop, check the input isn't muted, or upload a clip instead — the coach
+              can't score silence.
+            </p>
+          )}
+          {heard && inputName && (
+            <p className="text-[10px] text-white/35">Input: {inputName}</p>
+          )}
+        </div>
       )}
 
       {/* The recorder stopped itself. Said plainly, in its own line, because
@@ -562,36 +1393,400 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           {isVideo
             ? <video src={url} controls playsInline className="w-full rounded-lg" />
             : <audio src={url} controls className="w-full" />}
+          {/* What is actually in the take, measured by us.
+              The player says 0:00 / 0:00 on a perfectly good recording,
+              every time: a MediaRecorder WebM carries no Duration in its
+              header because it was written as a live stream, so the element
+              has nothing to read. Somebody looking at 0:00 has no way to tell
+              that from a recording that genuinely captured nothing — which is
+              the difference between "send it" and "something is broken". We
+              counted the seconds and the bytes on the way in; this is them. */}
+          {blob && (
+            <p className="text-[11px] text-white/45">
+              {secs > 0 && <>{mmss} · </>}{sizeLabel(blob.size)}
+              <span className="text-white/30">
+                {" "}— the player may show 0:00 for a browser recording; that's the file's
+                header, not your take.
+              </span>
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-              {busy ? "Coaching your take…" : "Send it to the coach"}
+              {busy ? (refMode ? "Listening…" : "Coaching your take…")
+                : refMode ? "Listen to this track" : "Send it to the coach"}
             </button>
             <Cost price={price} trial={trial} />
+            {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
+          {/* The cost of keeping, said before the press: storage, not credits. */}
+          {blob && !trial && !refMode && !fromPost && !busy && !IN_SHELL_COACH && (
+            <label className="flex items-start gap-2 text-[11px] text-white/55" data-tour="keep-take">
+              <input type="checkbox" className="mt-0.5" checked={keep} onChange={(e) => chooseKeep(e.target.checked)}
+                     aria-label="Keep this take" />
+              <span>
+                Keep this take — saves the recording ({sizeLabel(blob.size)}) to your uploads so you can play it back from
+                your history and LogZ. <span className="text-white/40">It counts toward your storage, costs no credits, and you can delete it any time. Off by default.</span>
+              </span>
+            </label>
+          )}
+          {/* Before the press, from the file's own header: what the coach will
+              be sent. A copy for scoring, never a replacement for the original. */}
+          {blob && copyPlan && !busy && (
+            <label className="flex items-start gap-2 text-[11px] text-white/45">
+              <input type="checkbox" className="mt-0.5" checked={smallerCopy}
+                     onChange={(e) => chooseSmallerCopy(e.target.checked)}
+                     aria-label="Send the coach a smaller copy of this take" />
+              <span>
+                {smallerCopy
+                  ? <>{copyLine(copyPlan.originalBytes, copyPlan.estimateBytes)}
+                      <span className="text-white/30"> — sends faster; it is for scoring only. Untick to send the original as it is.</span></>
+                  : <>Sending the original file as it is — {sizeLabel(copyPlan.originalBytes)}, so the upload takes longer.
+                      <span className="text-white/30"> Tick to send a smaller copy for scoring instead.</span></>}
+              </span>
+            </label>
+          )}
           {price && (
             <p className="text-[11px] text-white/35">
-              A take the coach can't read isn't charged.
+              {refMode ? "A track the coach can't read isn't charged. Costs the same as a take." : "A take the coach can't read isn't charged."}
             </p>
           )}
-          {!trial && <AllowanceLadder price={price} />}
+          {!trial && !IN_SHELL_COACH && <AllowanceLadder price={price} />}
         </div>
       )}
 
-      {msg && (
+      {/* Suppressed on the trial when the card below is showing it: the two
+          were rendering the same failure in two different sets of words, one
+          of them invented here. */}
+      {msg && !(trial && failed) && (
         <p className="flex items-start gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] text-mcz-ember">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
         </p>
       )}
 
-      {result && (
+      {/* A spinner that ends in a red line is a bounce.
+          Somebody at the trial door came for a number and did not get one, and
+          what they need next is the move that gets them one. It never invents
+          a partial score: a made-up number at the exact moment somebody is
+          deciding whether any of this is real is the substance rule's worst
+          case.
+
+          It leads with the SERVER'S sentence, not a category of its own. The
+          first version of this card mapped every 5xx to "the coach is down at
+          our end, give it a minute and send the same take again" — which is
+          the wrong advice for a 502 "the audio was silent" (resending the
+          identical take fails identically) and a flat contradiction of a 503
+          "free takes are all spoken for today". A 429 got "try a shorter
+          clip", when the actual answer is that today's free take is spent and
+          an account is what lifts it. The server already knows which of those
+          it is and says so; the card's job is the NEXT MOVE, not a second
+          opinion about the cause. */}
+      {trial && failed && !busy && !result && (() => {
+        const spent = !!failed.data?.already_used || !!failed.data?.retry_tomorrow;
+        // Resending helps a dropped connection. It cannot help a take the
+        // coach read and refused, and it cannot help a used-up allowance.
+        const resendable = blob && (failed.why === "network" || failed.why === "server") && !spent;
+        return (
+          <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.06] p-4">
+            <p className="text-[12px] font-semibold text-white">
+              {spent
+                ? "No score this time — and nothing was charged for it."
+                : "No score came back — and nothing was charged for it."}
+            </p>
+            <p className="text-[11px] leading-relaxed text-white/70">
+              {msg || (failed.why === "network"
+                ? "The take never reached us. That is usually the connection rather than the take."
+                : "The coach couldn't read a take out of that one.")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {resendable && (
+                <button className="neon-btn-primary !w-auto px-4" onClick={submit} disabled={busy}>
+                  <Play size={15} /> Send it again
+                </button>
+              )}
+              {/* The allowance is spent, so the honest next move is the thing
+                  that lifts it — not another attempt at the same wall. */}
+              {spent ? (
+                <Link to="/register" className="re-btn re-btn-emerald !w-auto px-4">
+                  Make a free account
+                </Link>
+              ) : (
+                <button className="re-btn re-btn-emerald !w-auto px-4"
+                        onClick={() => fileInput.current?.click()} disabled={busy}>
+                  <Upload size={15} /> Try a shorter clip
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {showUploadLimitPrompt && !trial && !IN_SHELL_COACH && price?.max_mb_is_tier_limit && (
+        <TierUpgradePrompt
+          limit="upload_mb"
+          current={0}
+          userTier={user?.tier || "free"}
+          onUpgrade={() => goToSpot("membershipz")}
+        />
+      )}
+
+      {/* Two phases, told apart, because they fail differently and only one
+          of them can honestly show a percentage.
+          *
+          * This was a spinner and a rising second count, and a member watched
+          * it reach 853s on a take that was never coming back. A number that
+          * only goes up is not progress — it cannot distinguish "working" from
+          * "hung", which is the one thing the person watching needs to know.
+          *
+          * UPLOADING is measurable: bytes sent over bytes total, so it gets a
+          * real bar, a percent and an ETA. SCORING is not — the model takes
+          * as long as it takes and reports nothing on the way — so it gets no
+          * fake bar. It gets the CEILING instead: the longest this can now
+          * run before the server gives up and says so. "0:42 of up to 1:40" is
+          * a wait somebody can sit through; "853s" is one they abandon. */}
+      {busy && !result && (
+        <div className="space-y-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/5 p-4">
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin text-mcz-cyan" size={18} />
+            <span className="text-sm text-white/75">
+              {packing ? "Making a smaller copy for the coach…" : upload && !upload.done ? (refMode ? "Sending the track…" : "Sending your take…") : (refMode ? "Listening to the track…" : "Scoring your take…")}
+            </span>
+          </div>
+
+          {packing ? (
+            <div className="space-y-1">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-mcz-cyan transition-[width] duration-200" style={{ width: `${packing.pct}%` }} />
+              </div>
+              <div className="text-[11px] text-white/50">{packing.pct}% · your original is kept; only the copy is sent</div>
+            </div>
+          ) : upload && !upload.done ? (
+            <>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-mcz-cyan transition-[width] duration-200"
+                     style={{ width: `${upload.pct}%` }} />
+              </div>
+              <div className="flex justify-between text-[11px] text-white/50">
+                <span>
+                  {upload.pct}% · {sizeLabel(upload.loaded)} of {sizeLabel(upload.total)}
+                  {upload.bytesPerSecond ? ` · ${sizeLabel(upload.bytesPerSecond)}/s` : ""}
+                </span>
+                {/* Null until there is enough of a sample to mean anything. A
+                    wrong ETA is worse than none, because people plan around it. */}
+                <span>{upload.etaSeconds != null ? `${mmssOf(upload.etaSeconds)} left` : "…"}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between text-[11px] text-white/50">
+              <span>The AI coach is listening</span>
+              <span>
+                {coachCeiling && scoringElapsed > coachCeiling
+                  ? `${mmssOf(scoringElapsed)} — longer than the ${mmssOf(coachCeiling)} limit; still waiting on the answer`
+                  : <>{mmssOf(scoringElapsed)}{coachCeiling ? ` of up to ${mmssOf(coachCeiling)}` : ""}</>}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* The coach heard no performance — silence, a room, a TV, the wrong
+          file. That is not a bad take, it is not a take, and the two need
+          opposite answers: one is what to fix, the other is what to send.
+          Rendering a 2 here would be the substance rule's worst case, at the
+          exact moment a stranger is deciding whether any of this is real.
+          So: no number, no dimension chips, and the next move instead. */}
+      {result?.unscorable ? (
         <div className="space-y-3 border-t border-white/10 pt-3">
+          <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-3">
+            <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/70">
+              🎧 {result.reference ? "Nothing to read in that file" : "Nothing to score yet"}
+            </p>
+            <p className="pt-1.5 text-[12px] leading-relaxed text-white/80">
+              {result.unscorable}
+            </p>
+          </div>
+          {/* `discard`, not a partial reset — it also revokes the object URL
+              and clears the player, so the old take doesn't sit there under
+              the invitation to record a new one. */}
+          <button className="neon-btn" onClick={discard}>
+            {result.reference ? "Try another track" : "Try another take"}
+          </button>
+        </div>
+      ) : result && (
+        <div ref={resultRef} className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
+          {result.reference && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">
+              🎧 Reference listen — what this track shows
+            </p>
+          )}
           <div className="flex items-baseline gap-3">
-            <span className={`font-display text-4xl font-extrabold ${scoreColor(result.score)}`}>
-              {result.score}<span className="text-lg text-white/30">/10</span>
+            <span className={`font-display text-6xl font-extrabold leading-none ${scoreColor(result.score)}`}>
+              {typeof result.score_exact === "number" ? result.score_exact.toFixed(1)
+                : typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-xl text-white/30">/10</span>
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+          {/* What the number is, in the server's words, beside the number; and
+              real listener ratings (server-read only) next to the coach's. */}
+          {result.score_rule && <p className="text-[11px] text-white/45">{result.score_rule}</p>}
+          {result.kept && <p className="text-[11px] text-emerald-300">Kept — the recording is in your uploads and opens from your history.</p>}
+          {!result.kept && result.kept_note && <p className="text-[11px] text-mcz-gold">{result.kept_note}</p>}
+          {listenersLine(result.listeners, result.score) && (
+            <p className="text-[12px] font-semibold text-emerald-300">{listenersLine(result.listeners, result.score)}</p>
+          )}
+          {/* The human reasons beside the AI's. Only the performer is shown these: they are
+              a stranger's words about somebody's work, so they never reach a public card. */}
+          {result.listener_reasons?.length > 0 && (
+            <div className="space-y-0.5 text-[12px]">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What real listeners said</p>
+              {result.listener_reasons.map((r, i) => (
+                <p key={i} className="text-white/70"><b className={ratingTone(r.score)}>{r.score}</b> — “{r.text}”</p>
+              ))}
+            </div>
+          )}
+          {/* Each number is LARGE and sits with the reason for it: the strongest moment
+              the coach filed under that dimension (`heard`, by `dim`), or its own
+              sentence for HookZ and FeelZ. A bare number is the score with no
+              description this app does not ship. */}
+          <RatingGrid rows={Object.entries({
+            ...(price?.scores || {}),
+            ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
+            ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+            ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
+            ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
+          }).map(([k, label]) => ({
+            key: k, label,
+            value: k === "hookz" ? result.hook_score : k === "feelz" ? result.feelz_score : result.scores?.[k],
+            // The take's OWN dimensions (`rated_lyrics`, not the toggle's state now): the
+            // member may have switched it since, and a row that followed a checkbox
+            // would relabel a score that was never given.
+            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why : heardFor(result.heard, k),
+          }))} />
+
+          {result.strengths?.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">{result.reference ? "What this track does well" : "What worked"}</p>
+              <ul className="mt-1 space-y-1">
+                {result.strengths.map((s, i) => (
+                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!result.reference && result.fixes?.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember/80">Fix this</p>
+              <ul className="mt-1 space-y-1">
+                {result.fixes.map((s, i) => (
+                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.reference && result.borrow && (
+            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
+              <span className="font-semibold text-mcz-cyan">Worth borrowing · </span>{result.borrow}
+            </p>
+          )}
+          {/* What to practise — and why, and how. A drill with no reason is a chore;
+              a reason with no steps is a lecture. `practice` is the coach's own, one per
+              fix, written about THIS take; `next_drill` is the older single-line form and
+              is only shown when no practice came back. */}
+          {!result.reference && (result.practice?.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-cyan/80">Practise this</p>
+              {result.practice.map((p, i) => (
+                <div key={i} className="space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] leading-relaxed text-white/75">
+                  <p><span className="font-semibold text-mcz-cyan">What · </span>{p.what}</p>
+                  {p.why && <p><span className="font-semibold text-mcz-cyan">Why · </span>{p.why}</p>}
+                  {p.how && <p><span className="font-semibold text-mcz-cyan">How · </span>{p.how}</p>}
+                </div>
+              ))}
+            </div>
+          ) : result.next_drill && (
+            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
+              <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
+            </p>
+          ))}
+
+          <HeardList result={result} labels={price?.scores} />
+
+          {/* The member's score card: the coach's own score and words, minted
+              by the server, with their handle as the referral code. (The
+              trial page has its own share row under the result.) */}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
+          {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
+
+          {!trial && !IN_SHELL_COACH && !result.reference && <CoachVoicePlayer result={result} />}
+
+          {/* The SONG, kept out of the performance number entirely — its own
+              card, its own label, its own score, right beside the one it is
+              easiest to confuse with. A take can connect with real listeners
+              while the performance underneath still has real work to do;
+              rendering these as one grid or one number is exactly the
+              confusion this card exists to end. Absent (not 0) when the take
+              was a warm-up or exercise with no actual song to react to. */}
+          {result.song_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.song_score)}`}>
+                🎶 {result.song_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-amber-300/80">
+                  {result.reference ? "Song — separate from the reading above" : "Song — separate from the performance score above"}
+                </p>
+                {result.song_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.song_why}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* HookZ: the chorus, with its own number on show AND counted in the overall
+              (it is one more strength-weighted part, `hook_counted`). Absent, never 0,
+              when the take has no chorus or hook to judge. */}
+          {result.hook_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.hook_score)}`}>
+                🪝 HookZ {result.hook_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-fuchsia-300/80">
+                  HookZ (chorus) — {result.hook_counted ? "counted in your overall score" : "not counted in the overall"}
+                </p>
+                {result.hook_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.hook_why}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* FeelZ: how strongly the take moves a listener, rated apart from the polish
+              and counted in the overall. It is the AI's read as a listener — said on the
+              card — and real listeners' ratings (the line under the score) sit beside it
+              as the check. Absent, never 0, for an exercise with nothing to feel. */}
+          {result.feelz_score != null && (
+            <div className="flex items-center gap-3 rounded-lg border border-rose-400/30 bg-rose-400/[0.06] p-3">
+              <span className={`font-display text-2xl font-extrabold ${scoreColor(result.feelz_score)}`}>
+                💗 FeelZ {result.feelz_score}<span className="text-sm text-white/30">/10</span>
+              </span>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-rose-300/80">
+                  FeelZ{result.feelz_emotion ? ` · ${result.feelz_emotion}` : ""} — {result.feelz_counted ? "counted in your overall score" : "not counted in the overall"}
+                </p>
+                {result.feelz_why && (
+                  <p className="text-[12px] leading-relaxed text-white/80">{result.feelz_why}</p>
+                )}
+                <p className="text-[11px] text-white/45">
+                  The coach's read as a listener, not a prediction of how anyone will feel — people's own ratings are the real test.
+                </p>
+              </div>
+            </div>
+          )}
+          <FeelzTips tips={result.feelz_tips} cause={result.feelz_cause_label} onGear={() => spotlight("coach-upgrades")} />
+          <MixTips tips={result.mix_tips} />
 
           {/* Where you are, and where you're going. A score with no
               destination is a number, not coaching — so the two sit together,
@@ -603,7 +1798,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               {result.now && (
                 <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
-                    Where you're at
+                    {result.reference ? "What this track is" : "Where you're at"}
                   </p>
                   <p className="text-[12px] leading-relaxed text-white/75">{result.now}</p>
                 </div>
@@ -611,7 +1806,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
               {result.goal && (
                 <div className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-mcz-cyan/80">
-                    What you're aiming at
+                    {result.reference ? "What it's going for" : "What you're aiming at"}
                   </p>
                   <p className="text-[12px] leading-relaxed text-white/80">{result.goal}</p>
                 </div>
@@ -622,7 +1817,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           {result.range_profile && (
             <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
-                📏 Your range
+                📏 {result.reference ? "Its range" : "Your range"}
               </p>
               <p className="text-[12px] leading-relaxed text-white/75">{result.range_profile}</p>
             </div>
@@ -637,43 +1832,41 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(price?.scores || {}).map(([k, label]) => (
-              <span key={k} className="pill">
-                {label} <span className={`font-bold ${scoreColor(result.scores?.[k])}`}>
-                  {result.scores?.[k] ?? "—"}
-                </span>
-              </span>
-            ))}
-          </div>
-
-          {result.strengths?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/80">What worked</p>
-              <ul className="mt-1 space-y-1">
-                {result.strengths.map((s, i) => (
-                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
-                ))}
-              </ul>
+          {/* What it made of the writing, and — first — what it actually
+              heard. The words come before the verdict on purpose: a lyric
+              review is worth nothing if the member cannot check it was
+              listening to the right words, and this is the one field on the
+              screen where a confident wrong answer is hardest to spot. */}
+          {(result.lyrics_note || result.lyrics_read) && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-white/40">📝 Your words</p>
+              {result.lyrics_read && (
+                <p className="whitespace-pre-wrap text-[12px] italic leading-relaxed text-white/55">
+                  {result.lyrics_read}
+                </p>
+              )}
+              {result.lyrics_note && (
+                <p className="text-[12px] leading-relaxed text-white/75">{result.lyrics_note}</p>
+              )}
             </div>
           )}
 
-          {result.fixes?.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember/80">Fix this</p>
-              <ul className="mt-1 space-y-1">
-                {result.fixes.map((s, i) => (
-                  <li key={i} className="text-[12px] leading-relaxed text-white/65">· {s}</li>
-                ))}
-              </ul>
+          {/* Kept apart from the performance notes above, because that is the
+              whole claim the toggle makes: production is scored in its own box
+              or not at all. */}
+          {result.mix_note && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-white/40">🎚️ Your mix</p>
+              <p className="text-[12px] leading-relaxed text-white/75">{result.mix_note}</p>
             </div>
           )}
 
-          {result.next_drill && (
-            <p className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] text-white/70">
-              <span className="font-semibold text-mcz-cyan">Next drill · </span>{result.next_drill}
-            </p>
+          {!trial && !IN_SHELL_COACH && !result.reference && (
+            <CoachUpgrades appKey={appKey} price={price} takeScoreId={result.take_score_id} />
           )}
+          {/* Play requires an in-app way to flag AI output. The SkillZ app has it on
+              every score; the main site's coach does not offer it here. */}
+          {IN_SKILLZ && !result.reference && <ReportTake takeId={result.take_score_id} appKey={appKey} />}
 
           {!trial && (
             <p className="text-[11px]">
@@ -686,6 +1879,18 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           {/* The score is not a dead end either: it says which post it scored
               and takes you back to it. When the post is yours the coaching is
               kept ON it, so it is there next time without paying twice. */}
+          {result.reference && (
+            <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
+              <p className="text-[11px] text-white/60">
+                Not saved to your progress. This read of someone else's track isn't posted,
+                isn't on your profile and doesn't count toward your skills.
+              </p>
+              <button type="button" className="neon-btn !w-auto px-4"
+                      onClick={() => switchMode("take")}>
+                Now try your own take{style || genre ? ` in ${style || genre}` : ""}
+              </button>
+            </div>
+          )}
           {result.source === "post" && (
             <p className="text-[11px] text-white/45">
               {result.saved_to_post
@@ -701,6 +1906,41 @@ export default function BossTake({ appKey = "singz", trial = false, onResult }) 
           <p className="text-[10px] text-white/30">{price?.caveat}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+
+/** Share the score card. Counts nothing on a cancel — a share sheet somebody
+ *  backed out of is not a share. */
+function ShareScore({ url, score, exact, extras }) {
+  const [msg, setMsg] = useState("");
+  const [per, setPer] = useState(null);     // referral reward, the server's number
+  useEffect(() => {
+    api("/api/economy/tiers/", { auth: false }).then((t) => setPer(t?.join?.referrer_spinaz || null)).catch(() => {});
+  }, []);
+  const shown = exact != null ? Number(exact).toFixed(1) : score;
+  const [human, setHuman] = useState(false);
+  const go = async () => {
+    // The declaration goes first, so the card the follower opens already says it
+    // (or, unticked, makes no claim about who made it).
+    try { await declareHuman(url, human); } catch { /* the share still goes out, without the claim */ }
+    const how = await shareLink({ text: shareText({ score, exact, extras }), url });
+    if (how === "shared") setMsg("Shared.");
+    else if (how === "copied") setMsg("Copied — paste it anywhere.");
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>
+      <button type="button" onClick={go}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
+        <Share2 size={13} /> Share your {shown}/10
+      </button>
+      <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-white/45 underline">See the card</a>
+      <a href={`/api/economy/scores/${url.replace(/^\/s\//, "")}/card.png?format=story`} download="coach-score-story.png"
+         target="_blank" rel="noreferrer" className="text-[11px] text-white/45 underline">Story card (TikTok / Reels)</a>
+      {per > 0 && <span className="text-[11px] text-white/45">Anyone who joins from it: <span className="text-emerald-300">+{per} 🍥</span> for you.</span>}
+      {msg && <span className="text-[11px] text-emerald-300">{msg}</span>}
     </div>
   );
 }

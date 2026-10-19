@@ -4,7 +4,23 @@
   "webDir": "dist",
   "server": {
     "url": "https://musicconnectz.net",
-    "cleartext": false
+    "cleartext": false,
+    "allowNavigation": [
+      "github.com",
+      "*.github.com",
+      "twitter.com",
+      "*.twitter.com",
+      "x.com",
+      "*.x.com",
+      "api.twitter.com",
+      "facebook.com",
+      "*.facebook.com",
+      "accounts.spotify.com",
+      "secure.soundcloud.com",
+      "login.microsoftonline.com",
+      "*.live.com",
+      "admin.musicconnectz.net"
+    ]
   },
   "android": {
     "backgroundColor": "#07060d"

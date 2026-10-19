@@ -137,7 +137,7 @@ export default function BadgeZ({ username, onWear }) {
           <ul className="space-y-1.5">
             {locked.map((c) => (
               <li key={c.key} className="flex items-start gap-2 text-[11px] opacity-60">
-                <Medal badge={c} className="h-7 w-7" />
+                <Medal badge={c} className="h-9 w-9" />
                 <span className="min-w-0">
                   <span className="text-white/70">{c.name}</span>
                   {c.gifted && <span className="ml-1 text-[10px] text-white/35">gifted</span>}

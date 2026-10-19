@@ -211,6 +211,7 @@ export const PERSONA_SKILLS = {
     "Video Software": VIDEO_SOFTWARE,
     "Video Skills": {
       any_video_skill: "Any Video Skill 🎬",
+      filming: "Filming 🎥",
       cinematography: "Cinematography 🎥",
       camera_operation: "Camera Operation 📷",
       lighting: "Lighting Techniques 💡",
@@ -250,6 +251,95 @@ export const PERSONA_SKILLS = {
     },
   },
 
+  actor: {
+    "Acting": {
+      any_acting: "Any Acting Skill 🎭",
+      scene_work: "Scene Work 🎬",
+      character_development: "Character Development 🎭",
+      monologues: "Monologues 🗣️",
+      improv: "Improv 😂",
+      stage_acting: "Stage Acting 🎪",
+      screen_acting: "Screen Acting 🎥",
+      emotional_range: "Emotional Range 💫",
+    },
+    "TV/Film Genres": {
+      any_genre: "Any Genre 🎬",
+      drama: "Drama 🎭",
+      comedy: "Comedy 😂",
+      action: "Action 💥",
+      thriller: "Thriller 🔪",
+      scifi: "Sci-Fi 🚀",
+      fantasy: "Fantasy 🧙",
+      horror: "Horror 👻",
+      romance: "Romance 💕",
+      indie: "Indie Film 🎞️",
+    },
+    "Content": {
+      any_content: "Any Content 📱",
+      selfies: "Selfies 🤳",
+      tiktok: "TikTok Videos 🎵",
+      instagram_reels: "Instagram Reels 📸",
+      youtube_shorts: "YouTube Shorts 📹",
+    },
+  },
+
+  actress: {
+    "Acting": {
+      any_acting: "Any Acting Skill 🎭",
+      scene_work: "Scene Work 🎬",
+      character_development: "Character Development 🎭",
+      monologues: "Monologues 🗣️",
+      improv: "Improv 😂",
+      stage_acting: "Stage Acting 🎪",
+      screen_acting: "Screen Acting 🎥",
+      emotional_range: "Emotional Range 💫",
+    },
+    "TV/Film Genres": {
+      any_genre: "Any Genre 🎬",
+      drama: "Drama 🎭",
+      comedy: "Comedy 😂",
+      action: "Action 💥",
+      thriller: "Thriller 🔪",
+      scifi: "Sci-Fi 🚀",
+      fantasy: "Fantasy 🧙",
+      horror: "Horror 👻",
+      romance: "Romance 💕",
+      indie: "Indie Film 🎞️",
+    },
+    "Content": {
+      any_content: "Any Content 📱",
+      selfies: "Selfies 🤳",
+      tiktok: "TikTok Videos 🎵",
+      instagram_reels: "Instagram Reels 📸",
+      youtube_shorts: "YouTube Shorts 📹",
+    },
+  },
+
+  dancer: {
+    "Dance Styles": {
+      any_dance: "Any Dance Style 💃",
+      hip_hop: "Hip Hop 🎤",
+      ballet: "Ballet 🩰",
+      contemporary: "Contemporary 🎭",
+      jazz: "Jazz 🎷",
+      latin: "Latin 💃",
+      street_jazz: "Street Jazz 🔥",
+      popping: "Popping 🎪",
+      locking: "Locking 🔐",
+      freestyle: "Freestyle 🕺",
+      tap: "Tap 🎩",
+    },
+    "Performance": {
+      any_performance: "Any Performance 🎪",
+      choreography: "Choreography 📋",
+      video_dance: "Video Dance 📹",
+      live_performance: "Live Performance 🎭",
+      backup_dancer: "Backup Dancer 🕺",
+      soloist: "Soloist ⭐",
+      teaching: "Teaching Dance 👨‍🏫",
+    },
+  },
+
   mime: {
     "Performance": {
       any_mime: "Any Mime Skill 🤫",
@@ -258,6 +348,8 @@ export const PERSONA_SKILLS = {
       dance: "Dance 💃",
       drama: "Drama 🎭",
       comedy: "Comedy 😂",
+      pantomime: "Pantomime 🎭",
+      character_movement: "Character Movement 🎪",
     },
   },
 
@@ -298,6 +390,27 @@ export const PERSONA_SKILLS = {
       deal_structuring: "Deal Structuring 📜",
       roster_building: "Roster Building 👥",
       trend_reading: "Trend Reading 📈",
+    },
+  },
+
+  // Priced like any other persona, so a VenueZ training room charges a visitor
+  // at the lifter's own rates — Gym Space is the room itself, for a host who
+  // provides the place rather than the coaching.
+  weightlifter: {
+    "Coaching": {
+      any_coaching: "Any Lift Coaching 🏋️",
+      personal_training: "Personal Training 🏋️",
+      form_coaching: "Form Coaching 🎯",
+      program_design: "Program Design 📋",
+      spotting: "Spotting 🤝",
+      powerlifting: "Powerlifting 💪",
+      olympic_lifting: "Olympic Lifting 🥇",
+      mobility: "Mobility / Warm-ups 🧘",
+    },
+    "Space": {
+      gym_space: "Gym Space 🏟️",
+      home_gym: "Home Gym Access 🏠",
+      equipment_share: "Equipment Share 🔩",
     },
   },
 };
@@ -391,8 +504,61 @@ export const PERSONA_LABELS = {
   designer: "🎨 Designer",
   videographer: "🎬 Videographer",
   developer: "💻 Developer",
+  actor: "🎭 Actor",
+  actress: "🎭 Actress",
+  dancer: "💃 Dancer",
   mime: "🤡 Mime",
   director: "🎬 Director",
   manager: "📋 Manager",
   arscout: "🔎 A&R Scout",
+  weightlifter: "🏋️ Weightlifter",
 };
+
+/** A skill KEY as the member reads it — "any_daw" → "Any DAW 🎛️".
+ *
+ * The picker stores keys and the server echoes keys back, so every screen that
+ * renders a skill it got from the API — a price line, a refusal, a booking
+ * summary — was showing `any_daw` where the member had picked "Any DAW 🎛️".
+ * PostZ's composer had done it since it was written.
+ *
+ * One lookup rather than one per screen: five components each walking the tree
+ * is five chances for the same key to read five ways. An unknown key comes back
+ * as itself, because a key on screen beats an empty cell.
+ */
+let _skillLabels = null;
+export const labelForSkill = (key) => {
+  if (!_skillLabels) {
+    _skillLabels = {};
+    for (const cats of Object.values(PERSONA_SKILLS)) {
+      for (const skills of Object.values(cats)) {
+        Object.assign(_skillLabels, skills);
+      }
+    }
+  }
+  return _skillLabels[key] || key;
+};
+
+/** How long a skill has been practised, in the unit that reads naturally:
+ *  "12 days", "5 weeks", "8 months", "3 years 2 months". Sums every stint,
+ *  never counts past today, and returns null for an undated skill — an
+ *  undated skill has no length, it does not have a length of zero. */
+export function skillDuration(skill) {
+  const today = new Date();
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  let days = 0, counted = false;
+  for (const p of periodsOf(typeof skill === "string" ? { start: skill } : skill)) {
+    const a = asDate(p.start);
+    if (!a) continue;
+    const b = Math.min(asDate(p.end)?.getTime() ?? now, now);
+    if (b < a.getTime()) continue;
+    days += Math.round((b - a.getTime()) / 86400000); counted = true;
+  }
+  if (!counted) return null;
+  const n = (v, unit) => `${v} ${unit}${v === 1 ? "" : "s"}`;
+  if (days < 14) return n(days, "day");
+  if (days < 63) return n(Math.floor(days / 7), "week");
+  const months = Math.floor(days / 30.4375);
+  if (months < 24) return n(months, "month");
+  const y = Math.floor(months / 12), m = months % 12;
+  return m ? `${n(y, "year")} ${n(m, "month")}` : n(y, "year");
+}

@@ -9,37 +9,65 @@
 // number anybody can inflate by reloading is worth less than no number.
 // Comments: they're member-authored text, and publishing that to strangers
 // needs a moderation path this page doesn't have.
+import { useViewTracker } from "../viewz.js";
+import ViewCount from "../components/ViewCount.jsx";
+import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
-
-const scoreColor = (n) =>
-  n == null ? "text-white/30" : n >= 8 ? "text-emerald-300" : n >= 5 ? "text-mcz-gold" : "text-mcz-ember";
+import { useAuth } from "../auth/AuthContext.jsx";
+import CoachReadCard from "../components/CoachReadCard.jsx";
+import MentionText from "../MentionParser.jsx";
+import PostEmbeds from "../PostEmbeds.jsx";
+import { ratingTone } from "../rating.js";
 
 export default function PublicPost() {
   const { id } = useParams();
+  useViewTracker(`post:${id}`);
   const [post, setPost] = useState(null);
+  usePageTitle(post?.title && `${post.title} — ${post.author}`,
+               post?.description || (post?.author ? `A track by ${post.author}.` : ""));
   const [err, setErr] = useState("");
+  const { user, loading } = useAuth();
+  // `?stranger=1` is "open as a stranger sees it": the page is fetched with no
+  // credentials, so the server answers exactly what it answers a visitor from
+  // Reddit — the preview an author needs before pasting the link.
+  const asStranger = new URLSearchParams(window.location.search).has("stranger");
+  const signedIn = !!user && !asStranger;
 
   useEffect(() => {
-    // auth:false → works logged-out. A restricted or private post answers 404
-    // here on purpose, so this page can't confirm one exists.
-    api(`/api/postz/${id}/`, { auth: false })
+    if (loading) return;
+    // A signed-in member sends their token, so the coach's read the author kept
+    // for members is shown to them and locked for everyone else. The server
+    // decides which; this only says who is asking. A restricted or private post
+    // answers 404 here on purpose, so this page can't confirm one exists.
+    // A shared link is often the first request a cold server gets in a while,
+    // and that one can take longer than the default 30s to answer. So this
+    // waits longer and tries once more before telling the visitor it failed.
+    // Nothing is charged for a read, so a retry costs nothing but time.
+    const load = (tries) => api(`/api/postz/${id}/`, { auth: signedIn, timeoutMs: 90_000 })
       .then(setPost)
-      .catch((e) => setErr(e.message || "That post isn't available."));
-  }, [id]);
+      .catch((e) => {
+        if (e?.timedOut && tries > 0) return load(tries - 1);
+        setErr(e.message || "That post isn't available.");
+      });
+    load(1);
+  }, [id, loading, signedIn]);
 
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/mcz-logo-v5.jpg" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
+          <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
-        <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-          Join free
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
+          <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
+            Join free
+          </Link>
+        </div>
       </header>
 
       {err && (
@@ -63,7 +91,7 @@ export default function PublicPost() {
             </Link>
             {post.rating != null && (
               <span className="flex items-center gap-1 text-xs text-mcz-ember">
-                <Flame size={13} /> <span className={`font-bold ${scoreColor(post.rating)}`}>{post.rating}</span>
+                <Flame size={13} /> <span className={`font-bold ${ratingTone(post.rating)}`}>{post.rating}</span>
                 <span className="text-white/40">/10</span>
               </span>
             )}
@@ -84,7 +112,7 @@ export default function PublicPost() {
           )}
 
           {post.description && (
-            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90">{post.description}</p>
+            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-white/90"><MentionText text={post.description} /></p>
           )}
 
           {post.links?.length > 0 && (
@@ -98,6 +126,18 @@ export default function PublicPost() {
             </div>
           )}
 
+          <PostEmbeds post={post} canEdit={false} />
+
+          {/* The coach's read, on the same page as the song — in full when a
+              stranger may see it, a locked card with the way in when it is kept
+              for members, and nothing at all when it is the author's alone. */}
+          {asStranger && (
+            <p className="mt-3 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[11px] text-white/55">
+              You're seeing this page the way a stranger does — no account.
+            </p>
+          )}
+          <CoachReadCard coach={post.coach} signedIn={signedIn} author={post.author} />
+
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
             <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
@@ -109,6 +149,7 @@ export default function PublicPost() {
           </div>
         </article>
       )}
+      <div className="mt-6 text-center"><ViewCount target={`post:${id}`} /></div>
     </div>
   );
 }

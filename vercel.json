@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    { "source": "/exercise-demos/:file", "destination": "https://ctkoth.github.io/mcz-media/exercise-demos/:file", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://admin.musicconnectz.net/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }

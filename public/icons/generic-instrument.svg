@@ -1,0 +1,22 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="glow-generic" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Musical note -->
+  <path d="M100 50 L100 100 Q105 110, 115 108 Q125 105, 125 95 Q125 80, 115 75 Q105 70, 100 80"
+        fill="none" stroke="#00ffff" stroke-width="2.5" filter="url(#glow-generic)"/>
+
+  <!-- Base circle -->
+  <circle cx="85" cy="125" r="18" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-generic)"/>
+  <circle cx="115" cy="125" r="18" fill="none" stroke="#00ffff" stroke-width="2" filter="url(#glow-generic)"/>
+
+  <!-- Center connection -->
+  <line x1="85" y1="107" x2="115" y2="107" stroke="#ff00ff" stroke-width="1.5" filter="url(#glow-generic)"/>
+</svg>

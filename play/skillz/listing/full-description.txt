@@ -1,0 +1,25 @@
+SkillZ puts a coach for seven instruments in one app, and it tells you what a take costs before you press anything.
+
+The coaches: SingZ for voice, RapZ for rap, GuitarZ, BassZ, KeyZ, ViolinZ and DrumZ.
+
+Record a take. Pick a coach, press Record and play or sing. Or attach an audio or video file you already have — a video you record runs up to 90 seconds, and audio can be up to 100 MB on a free account. On camera the coach can mark delivery too. You choose a genre and one of four difficulty levels first, and SingZ and RapZ let you set the register you're aiming at.
+
+Get it scored. Every coach scores five things that fit its instrument, plus Style Match for the genre you picked. SingZ scores pitch, tone, breath, range and agility. RapZ scores flow, timing, breath, clarity and delivery. GuitarZ and BassZ score timing, tone, technique and dynamics, then cleanliness or note length. KeyZ swaps in voicing. DrumZ scores timing, groove, dynamics, consistency and fills. ViolinZ scores intonation, tone, bowing, timing and vibrato. Each number sits beside its name — Flow 7, not just 7 — with what worked, what to fix and one drill to run before the next take. SingZ and RapZ can read your lyrics too, and every coach can rate your mix, if you ask. Both are off until you turn them on.
+
+What a score isn't. It hears one take. It doesn't hear your history, your teacher or your room. So consistency, health and goal match aren't in the score — they're on your progress screen, worked out from your takes over time. Consistency is days trained out of the last fourteen. If a clip has no playing in it, the coach says so. It doesn't hand you a low number for a take it never heard.
+
+What it costs. You get 3 free prompts a day, and one scored take uses one. They renew every day. A take the coach can't read isn't charged. When the day's are used, they come back tomorrow — unless you already hold PromptZ from Music ConnectZ, in which case the app prices the take in PromptZ first and spends only what it said. Nothing in this app sells anything.
+
+Where your recording goes. The take is uploaded to our server and passed to Google's Gemini, which listens and scores it. What Gemini reports about it — its scores and notes, as text, not the recording — goes to Anthropic's Claude with a short summary of your earlier scores, and Claude checks the advice against it. Claude never hears the take. We don't add your name, username or email to either. Anything you say or sing in the take goes with it. The microphone, and the camera if you choose it, are asked for when you press Record, not before. The full account is in the app under "What leaves your device."
+
+What we keep. Not the recording. We keep the scores, what the coach heard and wrote, the genre, difficulty and date, on your account — that's your progress. Each scored take also gets a score page with the score, verdict, genre and your username on it. This app doesn't show or share it, but it opens for anyone who has its link.
+
+What it can't do. The coach is AI, and AI can be wrong, with confidence. It's coaching, not a teacher and not medical advice. Stop if anything hurts. Use Report this output under any score if it's harmful or plainly wrong.
+
+Not here yet: DJ, producer, A&R, illustration and video coaches. They're on the icon. They aren't built, so there's nothing to open.
+
+DrumZ also has a beat pad with two kits to warm up on before you record.
+
+One account. I built Music ConnectZ for people who make things and want straight numbers about them. This is the same account and the same data with the coaches pulled out on their own. Delete the account from inside the app and your scores, progress and score pages go with it.
+
+Whatever I add here gets its price on the button first. That's the rule I build by.

@@ -81,6 +81,15 @@ export default function KeyConnectZ() {
   }
 
   async function uploadWallpaper(file) {
+    // The cap was already printed under this button ("Up to {n}MB") and
+    // nothing checked it, so the number was a claim rather than a rule and
+    // the member found out by waiting. It is the server's number either way.
+    const capMb = state?.wallpaper_max_mb;
+    if (!file?.size) return setMsg("That file is empty — there's nothing in it to set.");
+    if (capMb && file.size > capMb * 1024 * 1024) {
+      return setMsg(`That's ${(file.size / 1024 / 1024).toFixed(1)}MB — keep a wallpaper `
+        + `under ${capMb}MB.`);
+    }
     setBusy(true); setMsg("");
     try {
       const body = new FormData();
@@ -138,8 +147,11 @@ export default function KeyConnectZ() {
 
       {/* The pad. Wallpaper behind, keys over it at the member's opacity. */}
       <div className="rounded-2xl border-2 p-3" style={padStyle}>
-        <div className="flex items-center gap-2 rounded-xl p-2" style={keyStyle}>
-          <select className="neon-input !w-auto !py-1.5 text-[11px]" value={source}
+        {/* The language pair. `min-w-0` on the selects as well as wrap: a
+            <select> sizes to its widest option, so "Português (Brasil)"
+            alone can be wider than the screen. */}
+        <div className="flex flex-wrap items-center gap-2 rounded-xl p-2" style={keyStyle}>
+          <select data-nomemo="true" className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={source}
                   onChange={(e) => { setSource(e.target.value); patch({ source_lang: e.target.value }); }}>
             {langs.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
           </select>
@@ -148,7 +160,7 @@ export default function KeyConnectZ() {
                   title={source === "auto" ? "Pick a source language to swap" : "Swap"}>
             <ArrowLeftRight size={14} />
           </button>
-          <select className="neon-input !w-auto !py-1.5 text-[11px]" value={target}
+          <select data-nomemo="true" className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={target}
                   onChange={(e) => { setTarget(e.target.value); patch({ target_lang: e.target.value }); }}>
             {langs.filter((l) => l.key !== "auto").map((l) => (
               <option key={l.key} value={l.key}>{l.label}</option>
@@ -239,7 +251,7 @@ export default function KeyConnectZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-[11px] text-white/50">
             Key colour
-            <select className="neon-input !py-2 text-xs" value={skin.dark_keys ? "dark" : "light"}
+            <select data-nomemo="true" className="neon-input !py-2 text-xs" value={skin.dark_keys ? "dark" : "light"}
                     onChange={(e) => patch({ dark_keys: e.target.value === "dark" })}>
               <option value="dark">Dark keys</option>
               <option value="light">Light keys</option>

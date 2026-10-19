@@ -15,7 +15,7 @@
 //     specific one would make them lie.
 import { useState } from "react";
 import { Check, ChevronDown, ChevronRight, X } from "lucide-react";
-import { PERSONA_SKILLS, PERSONA_LABELS } from "./personaSkills.js";
+import { PERSONA_SKILLS, PERSONA_LABELS, labelForSkill } from "./personaSkills.js";
 
 const isAny = (key) => key.startsWith("any_") || key === "any";
 
@@ -30,16 +30,6 @@ export default function SkillsUsed({ value = [], onChange, label = "Skills used"
     onChange([...next]);
   };
 
-  // A flat lookup so a chosen key can render its label without walking the tree.
-  const labelOf = (key) => {
-    for (const cats of Object.values(PERSONA_SKILLS)) {
-      for (const skills of Object.values(cats)) {
-        if (skills[key]) return skills[key];
-      }
-    }
-    return key;
-  };
-
   return (
     <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
@@ -50,7 +40,7 @@ export default function SkillsUsed({ value = [], onChange, label = "Skills used"
         <ul className="flex flex-wrap gap-1.5">
           {[...chosen].map((k) => (
             <li key={k} className="pill flex items-center gap-1 !text-mcz-cyan">
-              {labelOf(k)}
+              {labelForSkill(k)}
               <button onClick={() => toggle(k)} className="text-white/30 hover:text-red-300"
                       title="Remove" type="button">
                 <X size={10} />

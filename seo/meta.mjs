@@ -53,6 +53,13 @@ export const ROUTES = [
     api: (k) => `/api/economy/public/members/${encodeURIComponent(k)}/`,
   },
   {
+    // A shared score card. The page AND the image come from the server's own
+    // record of what the coach said — scoreshare.py.
+    kind: "score",
+    test: /^\/s\/([A-Za-z0-9_-]{6,32})\/?$/,
+    api: (k) => `/api/economy/scores/${encodeURIComponent(k)}/`,
+  },
+  {
     kind: "playlist",
     test: /^\/pl\/(\d+)\/?$/,
     api: (k) => `/api/playlistz/${encodeURIComponent(k)}/`,
@@ -116,11 +123,25 @@ export function metaFor(kind, data, { origin = DEFAULT_ORIGIN, path = "/" } = {}
     // never displace one somebody wrote.
     const said = clamp(data.description, 200);
     const rating = typeof data.rating === "number" ? ` Rated ${data.rating}/10 by members.` : "";
+    // The coach's read, ONLY when a stranger may see it. The edge fetch carries no
+    // credentials, so the server has already answered as a stranger — `shown`
+    // here means public. `coach.public` is checked as well anyway: if this
+    // function is ever handed a member's copy of the page, a read kept for
+    // members must not become a score in an og:title, which every chat app that
+    // unfurls the link would then repeat. Locked and absent reads get the
+    // generic tags below, with nothing about the score in them.
+    const read = data.coach && data.coach.state === "shown" && data.coach.public === true
+      && Number.isFinite(data.coach.read?.score) ? data.coach.read : null;
+    const verdict = read ? clamp(String(read.verdict || "").split(/(?<=[.!?])\s/)[0], 200) : "";
+    const scored = read ? ` — ${read.score}/10 from the Music ConnectZ coach` : "";
     return {
-      title: clamp(`${data.title || "Untitled"}${who} — Music ConnectZ`, 70),
-      description: said || clamp(
+      title: read
+        ? `${clamp(data.title || "Untitled", Math.max(20, 90 - scored.length))}${scored}`
+        : clamp(`${data.title || "Untitled"}${who} — Music ConnectZ`, 70),
+      description: (read && verdict) || said || clamp(
         `${kindWord}${who} on Music ConnectZ.${rating} Listen, rate it, or start a collab.`, 200),
-      image: absolute(data.media_type === "image" ? data.media_url : "", origin) || card,
+      image: (read && absolute(data.coach.card_image, origin))
+        || absolute(data.media_type === "image" ? data.media_url : "", origin) || card,
       type: data.media_type === "audio" ? "music.song"
         : data.media_type === "video" ? "video.other" : "article",
       url,
@@ -161,6 +182,28 @@ export function metaFor(kind, data, { origin = DEFAULT_ORIGIN, path = "/" } = {}
           ...(data.bio ? { description: clamp(data.bio, 300) } : {}),
           ...(skills.length ? { knowsAbout: skills.slice(0, 12).map(String) } : {}),
         },
+      },
+    };
+  }
+
+  if (kind === "score") {
+    if (data.score == null) return null;
+    const who = data.username ? ` — @${data.username}` : "";
+    return {
+      title: clamp(`${data.score}/10 on ${data.label || "the coach"}${who} | Music ConnectZ`, 70),
+      description: clamp(
+        `${data.verdict ? `“${data.verdict}” ` : ""}Scored by a real AI coach. Get your take scored free — no account needed.`, 200),
+      // /api is proxied on the site, so the card renders from our origin.
+      image: absolute(data.image, origin) || card,
+      type: "article",
+      url,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "Review",
+        name: `${data.label || "Coach"} score`,
+        url,
+        reviewRating: { "@type": "Rating", ratingValue: data.score, bestRating: 10, worstRating: 1 },
+        author: { "@type": "Organization", name: "Music ConnectZ AI coach" },
       },
     };
   }

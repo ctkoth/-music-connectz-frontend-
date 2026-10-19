@@ -18,14 +18,16 @@ const RANGES = [
   { key: "price", label: "Skill price", prefix: "$", money: true,
     note: "Their cheapest skill's hourly rate." },
   { key: "attract", label: "Attractiveness", suffix: "/10", min: 1, max: 10,
-    note: "Community median from RateZ." },
+    note: "Community median from RateZ — only members who show theirs." },
   { key: "age", label: "Age", min: 13, max: 120, note: "" },
 ];
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
 /** `value` and `onChange` speak the server's shape: {key: [min, max]}, km max-only. */
-export default function RangeGates({ value = {}, onChange, title = "Who can join" }) {
+// `keys` limits which ranges a screen shows. VybeZ already has its own age and distance boxes, so it
+// asks for the other three; a gated post or deal shows all five.
+export default function RangeGates({ value = {}, onChange, title = "Who can join", keys = null }) {
   const [open, setOpen] = useState(false);
 
   const pair = (key) => (Array.isArray(value[key]) ? value[key] : [null, null]);
@@ -71,7 +73,7 @@ export default function RangeGates({ value = {}, onChange, title = "Who can join
             range blank to ask nothing of it.
           </p>
 
-          {RANGES.map((r) => {
+          {RANGES.filter((r) => !keys || keys.includes(r.key)).map((r) => {
             const [lo, hi] = pair(r.key);
             const show = (v) => (v === null || v === undefined ? "" : r.money ? v / 100 : v);
             return (
@@ -90,6 +92,7 @@ export default function RangeGates({ value = {}, onChange, title = "Who can join
             );
           })}
 
+          {(!keys || keys.includes("km")) && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-28 shrink-0 text-[11px] text-white/55">Distance</span>
             <input className="neon-input !w-20 !py-1.5 text-[11px]" inputMode="numeric"
@@ -99,6 +102,7 @@ export default function RangeGates({ value = {}, onChange, title = "Who can join
               km — needs both of you sharing location
             </span>
           </div>
+          )}
         </div>
       )}
     </div>

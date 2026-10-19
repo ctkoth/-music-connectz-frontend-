@@ -3,8 +3,8 @@
 import { htmlFor, routeFor } from "./seo/meta.mjs";
 
 export const config = {
-  // Only the three public routes. Everything else never enters this function.
-  matcher: ["/p/:id", "/u/:username", "/pl/:id"],
+  // Only the public routes (posts, profiles, playlists, score cards). Everything else never enters this function.
+  matcher: ["/p/:id", "/u/:username", "/pl/:id", "/s/:token"],
 };
 
 export default async function middleware(request) {

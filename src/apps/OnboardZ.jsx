@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import { celebrate } from "../celebrate.js";
 import { Gift, Copy, Check, User, Star, Send, ArrowRight, PartyPopper, Cake, Info, Swords, ChevronDown, Compass } from "lucide-react";
 import { api } from "../api.js";
+import { useSay } from "../voice.js";
+import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY } from "../resources.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -23,8 +26,8 @@ const loadDone = () => { try { return JSON.parse(localStorage.getItem(OB_KEY)) |
 const SYSTEM = [
   ["PersonaZ are your classes",
    "And multiclass is the point. Producer and GhostWriter and Mix Engineer — every class you claim is another way somebody finds you. One class is a smaller surface, not a purer one."],
-  ["Experience is time served, not grind",
-   "Each skill carries the stretches you actually played it — start, and end if you stopped. Your experience is the SUM of those, so quitting for ten years does not quietly count as ten years of practice. There is no way to farm it in a weekend, which is exactly why it is worth showing."],
+  ["Experience is real-world service, not grind",
+   "Each skill carries the stretches you actually played it — start, and end if you stopped. Your experience counts what you built with real people, so quitting for ten years does not quietly count as ten years of practice. Service to others is what makes the number worth showing."],
   ["Energy is mana, and it regenerates",
    "Hourly, on its own, at your median reach divided by your tier — Free ÷10, Premium ÷5, StatZ ÷1. Energy runs the AI tools. Rating other people's work tops it up on top of that."],
   [`SpinaZ ${SPINAZ} is coin`,
@@ -36,7 +39,7 @@ const SYSTEM = [
   ["ZodiacZ and NationalitieZ are your origin",
    "Neither is cosmetic. Both are live filters on Social ConnectZ, which makes them how your people find you."],
   ["BattleZ is PvP, CollabZ is co-op, GroupZ and LabelZ are guilds",
-   "And your ratings are your visible stats — given by other players, never by you. You cannot score your own work."],
+   "Your ratings are your visible stats — given by other players as real feedback, never by you. You cannot score your own work. Every rating you give lifts somebody else's visibility while building your own credibility."],
 ];
 
 function SystemCard() {
@@ -47,10 +50,10 @@ function SystemCard() {
         <Swords size={18} className="mt-0.5 shrink-0 text-mcz-ember" />
         <span className="flex-1">
           <span className="block text-sm font-bold text-white">
-            Music ConnectZ runs like an RPG
+            Level up and connect
           </span>
           <span className="block text-[12px] text-white/50">
-            Not as a theme — as the actual system. Here's the map.
+            Music ConnectZ runs like an RPG — not as a theme, but as the actual system. Every mechanic serves growth and community both.
           </span>
         </span>
         <ChevronDown size={16} className={`mt-1 shrink-0 text-white/40 transition ${open ? "rotate-180" : ""}`} />
@@ -78,6 +81,7 @@ function Detail({ label, children }) {
 }
 
 export default function OnboardZ() {
+  const talk = useSay();
   const [me, setMe] = useState(null);
   const [ref, setRef] = useState(null);
   const [done, setDone] = useState(loadDone);
@@ -183,7 +187,13 @@ export default function OnboardZ() {
   useEffect(() => {
     if (allDone && me && !me.onboarded && !claim) {
       api("/api/auth/onboard/complete/", { method: "POST" })
-        .then(setClaim).catch(() => {});
+        .then((c) => {
+          setClaim(c);
+          // Both sides of the reward land at once, so play the coin — the
+          // bigger of the two — rather than stacking two sounds on one event.
+          if (c?.granted) celebrate("spinaz", Number(c.reward_spinaz) || 0, { label: "onboarding complete!", big: true });
+        })
+        .catch(() => {});
     }
   }, [allDone, me, claim]);
 
@@ -196,6 +206,16 @@ export default function OnboardZ() {
           <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
       </header>
+
+      {!allDone && (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-300/30 bg-emerald-300/5 px-4 py-3">
+          <Gift size={18} className="shrink-0 text-emerald-300" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-white">Complete all steps for a bonus:</p>
+            <p className="text-xs text-white/70">+150 {SPINAZ}  +50 {ENERGY}</p>
+          </div>
+        </div>
+      )}
 
       <SystemCard />
 
@@ -215,8 +235,8 @@ export default function OnboardZ() {
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
           <PartyPopper size={16} />
           {claim?.granted
-            ? <span>You're all set — <span className="font-semibold">+{claim.reward_spinaz} {SPINAZ} · +{claim.reward_energy} Energy</span> claimed!</span>
-            : <span>You're all set — welcome to Music ConnectZ.</span>}
+            ? <span>{talk(P.onboard_done(claim.reward_spinaz, claim.reward_energy))}</span>
+            : <span>{talk(P.onboard_done_plain)}</span>}
         </div>
       )}
 
@@ -291,7 +311,10 @@ export default function OnboardZ() {
                         </button>
                       </div>
                     ) : me?.zodiac ? (
-                      <p className="mt-1 text-[11px] text-mcz-ember">Your ZodiacZ: {me.zodiac}</p>
+                      <button type="button" onClick={() => goToSpot("profilez", "birthday")}
+                              className="mt-1 flex items-center gap-1 text-[11px] text-mcz-ember hover:underline">
+                        Your ZodiacZ: {me.zodiac} — see what it's worth <ArrowRight size={11} />
+                      </button>
                     ) : null}
                   </div>
                 )}

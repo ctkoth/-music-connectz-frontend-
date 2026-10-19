@@ -6,4 +6,9 @@
 # browser address bar across the top and no obvious reason why. Be explicit.
 /.well-known/*  /.well-known/:splat  200
 
+# The BodieZ demo videos moved out of this repo (src/media.js). A tab still
+# running an older bundle asks for the old path; send it to the new home
+# instead of the SPA shell, which a <video> would choke on.
+/exercise-demos/*  https://ctkoth.github.io/mcz-media/exercise-demos/:splat  302
+
 /*    /index.html   200

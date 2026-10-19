@@ -15,7 +15,11 @@ import {
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot, openMember } from "../goto.js";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
+import { playlistEditPayload, titleKeptNote } from "../editing.js";
 import { onHandoff } from "../handoff.js";
+import { useWidgets } from "../WidgetBoard.jsx";
 import { IconImg } from "../App.jsx";
 
 const PROVIDER_LABEL = {
@@ -35,9 +39,15 @@ const VISIBILITIES = [
 
 function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
   const isPost = item.kind === "post";
+  // A running order is the one screen where leaving for each row is worst: the
+  // list IS the thing, and a new tab per track is the order taken apart. Rows
+  // open on the board instead, so a set can be laid out side by side and
+  // played through without the list ever going away. The ↗ beside it still
+  // opens the distributor in a tab for anyone who wants that.
+  const { open: openWidget } = useWidgets();
   const open = () => {
     if (isPost) return goToSpot("social", "social-feed");
-    window.open(item.url, "_blank", "noopener,noreferrer");
+    openWidget(item.url, { label: item.title });
   };
   return (
     <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
@@ -242,6 +252,14 @@ function Collaborators({ pl, onChanged }) {
 function Detail({ id, onBack, onChanged }) {
   const [pl, setPl] = useState(null);
   const [copied, setCopied] = useState(false);
+  // Title and description, edited in place by the owner. The description cap is
+  // the server's (tier char limit via useCharLimit). The title has no limit the
+  // server serves, so none is typed here: what the server kept is reported.
+  const cl = useCharLimit();
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [metaDraft, setMetaDraft] = useState({ title: "", description: "" });
+  const [metaMsg, setMetaMsg] = useState("");
+  const [metaBusy, setMetaBusy] = useState(false);
 
   const load = () => api(`/api/economy/playlistz/${id}/`).then(setPl).catch(() => setPl(null));
   useEffect(() => { load(); }, [id]);
@@ -249,6 +267,31 @@ function Detail({ id, onBack, onChanged }) {
   if (!pl) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
 
   const items = asList(pl.items);
+
+  function startMetaEdit() {
+    setMetaDraft({ title: pl.title || "", description: pl.description || "" });
+    setMetaMsg("");
+    setEditingMeta(true);
+  }
+
+  async function saveMeta() {
+    const r = playlistEditPayload(metaDraft, { title: pl.title, description: pl.description || "" });
+    if (r.error) return setMetaMsg(r.error);
+    if (!Object.keys(r.body).length) return setEditingMeta(false);
+    setMetaBusy(true); setMetaMsg("");
+    try {
+      const saved = await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: r.body });
+      // The server answers 200 with what it kept — a title it cut is reported
+      // from that, not from what was typed.
+      const note = titleKeptNote(metaDraft.title, saved?.title);
+      setEditingMeta(false);
+      if (note) setMetaMsg(note);
+      await load(); onChanged?.();
+    } catch (e) {
+      // The server's own sentence, unreworded (e.g. the description's char limit).
+      setMetaMsg(e.message || "Couldn't save those changes.");
+    } finally { setMetaBusy(false); }
+  }
 
   async function move(index, delta) {
     const next = [...items];
@@ -284,23 +327,56 @@ function Detail({ id, onBack, onChanged }) {
     <div className="space-y-4">
       <button className="re-btn !w-auto px-3 text-xs" onClick={onBack}>← All playlists</button>
 
-      <div>
-        <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
-        <p className="text-[11px] text-white/40">
-          by <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button>
-          {" · "}{pl.post_count} from Music ConnectZ · {pl.link_count} outside
-          {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
-          {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
-        </p>
-        {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
-      </div>
+      {pl.mine && editingMeta ? (
+        <div className="space-y-2 rounded-lg border border-white/[0.08] bg-black/20 p-3">
+          <input className="neon-input" aria-label="Playlist title" value={metaDraft.title}
+                 onChange={(e) => setMetaDraft({ ...metaDraft, title: e.target.value })} />
+          <textarea rows={3} aria-label="Playlist description"
+                    className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                    maxLength={cl.unlimited ? undefined : cl.limit} value={metaDraft.description}
+                    onChange={(e) => setMetaDraft({ ...metaDraft, description: cl.clamp(e.target.value) })} />
+          <CharLimit cl={cl} value={metaDraft.description} />
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="re-btn !w-auto px-4 text-[12px]" onClick={saveMeta} disabled={metaBusy}>
+              {metaBusy ? <Loader2 className="animate-spin" size={13} /> : null} Save changes
+              <span className="ml-1 text-emerald-300">Free</span>
+            </button>
+            <button className="pill text-[11px]" onClick={() => { setEditingMeta(false); setMetaMsg(""); }}>Cancel</button>
+          </div>
+          {metaMsg && <p className="text-[11px] text-mcz-ember">{metaMsg}</p>}
+        </div>
+      ) : (
+        <div>
+          <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
+          <p className="text-[11px] text-white/40">
+            by <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button>
+            {" · "}{pl.post_count} from Music ConnectZ · {pl.link_count} outside
+            {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
+            {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
+          </p>
+          {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
+          {pl.mine && (
+            <button className="mt-1 text-[11px] text-white/40 hover:text-mcz-cyan" onClick={startMetaEdit}>
+              Edit title &amp; description · Free
+            </button>
+          )}
+          {metaMsg && <p className="mt-1 text-[11px] text-mcz-cyan">{metaMsg}</p>}
+        </div>
+      )}
 
       {pl.mine && (
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
+          <select aria-label="Who can open this playlist" className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
                   onChange={(e) => setVisibility(e.target.value)}>
             {VISIBILITIES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
+          <span className="text-[11px] text-white/40">
+            {{
+              public: "Anyone with the link can open it.",
+              restricted: "Any signed-in member can open it.",
+              private: "Only you and the collaborators you invited can open it.",
+            }[pl.visibility] || ""}
+          </span>
           {pl.visibility === "public" && (
             <button className="re-btn !w-auto px-3 text-xs" onClick={share}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Link copied" : "Copy share link"}
