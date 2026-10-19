@@ -146,6 +146,13 @@ export default function BodieZ() {
   // a dropdown. Read once by PastWorkout, then cleared.
   const [prefillPastRoutine, setPrefillPastRoutine] = useState(null);
   const jumpToLogPast = (routineId) => { setPrefillPastRoutine(routineId); setTab("today"); };
+  // Set by a goal card's "Train this" button — a goal shows a target and a
+  // current value, with nothing to act on. Jumps to Today and, once a
+  // session is running (started here or already open), pre-selects the
+  // goal's exercise in "Add an unplanned exercise" so logging a set toward
+  // it is the very next thing, not a hunt through the picker. Read once.
+  const [prefillGoalExercise, setPrefillGoalExercise] = useState(null);
+  const jumpToTrainGoal = (exerciseId) => { setPrefillGoalExercise(exerciseId); setTab("today"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -531,6 +538,7 @@ export default function BodieZ() {
               session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
               goals={coach?.goals}
+              initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
             <PastWorkout exercises={exercises} pickable={usable} routines={routines}
                          onSaved={(sm) => { setSummary(sm); load(); }}
@@ -566,7 +574,7 @@ export default function BodieZ() {
           )}
           {tab === "goals" && (
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
-                      onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} />
+                      onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} onTrain={jumpToTrainGoal} />
           )}
           {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
@@ -1100,7 +1108,8 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals }) {
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals,
+                      initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
@@ -1112,6 +1121,16 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // whenever there is no history yet, never an empty picker.
   const [unplannedSide, setUnplannedSide] = useSide(exerciseId);
   const unplannedLast = useHistory(exerciseId || null, unplannedSide);
+  // A goal card's "Train this" hands the exercise over this way. The
+  // "unplanned exercise" picker only exists once a session is running, so
+  // this waits for one rather than consuming the handoff on arrival — a
+  // member who looks at Today without starting a session still gets it
+  // pre-selected the moment they do.
+  useEffect(() => {
+    if (!initialExerciseId || !session) return;
+    setExerciseId(String(initialExerciseId));
+    onInitialExerciseConsumed?.();
+  }, [initialExerciseId, session]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!session) {
     return (
       <div className="re-card space-y-3">
@@ -2847,7 +2866,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
   );
 }
 
-function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight }) {
+function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight, onTrain }) {
   const unit = useUnit();
   const [weightInput, setWeightInput] = useState("");
   if (!goals) return null;
@@ -2902,6 +2921,17 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
                 <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
                   Achieved ✓
                 </span>
+              )}
+              {/* Only a strength goal names an exercise — a bodyweight goal is
+                  trained by weighing in, not by logging a set. Jumps to Today
+                  with this exercise ready in "Add an unplanned exercise" the
+                  moment a session is running, rather than leaving the member
+                  to go find it themselves. */}
+              {!g.achieved && g.exercise_id && (
+                <button className="neon-btn-ghost !w-auto px-2.5 py-1.5 text-[11px] inline-flex items-center gap-1"
+                        onClick={() => onTrain(g.exercise_id)}>
+                  <Dumbbell size={12} /> Train this
+                </button>
               )}
               <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                       onClick={() => onDelete(g.id)}>
