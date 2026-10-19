@@ -156,6 +156,13 @@ export default function BodieZ() {
   // it is the very next thing, not a hunt through the picker. Read once.
   const [prefillGoalExercise, setPrefillGoalExercise] = useState(null);
   const jumpToTrainGoal = (exerciseId) => { setPrefillGoalExercise(exerciseId); setTab("today"); };
+  // Set by SessionSummary's "Edit this workout" — the card shown right after
+  // finishing had no way to fix a session's own numbers (a dangling session
+  // left open for hours shows 0 sets and a nonsense duration, with nothing
+  // to do about it but hunt for it in RoutineZ's history list). Jumps there
+  // and opens the editor on this exact session. Read once.
+  const [prefillEditSession, setPrefillEditSession] = useState(null);
+  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("routinez"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -536,7 +543,10 @@ export default function BodieZ() {
           {tab === "today" && (
             <>
             <LbFix onFixed={load} />
-            {summary && <SessionSummary summary={summary} onClose={() => setSummary(null)} />}
+            {summary && (
+              <SessionSummary summary={summary} onClose={() => setSummary(null)}
+                             onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }} />
+            )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet}
@@ -553,6 +563,7 @@ export default function BodieZ() {
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                           onLogPast={jumpToLogPast}
+                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
@@ -710,7 +721,7 @@ function summaryText(sm, unit, brief = false) {
   return lines.join("\n");
 }
 
-function SessionSummary({ summary: sm, onClose }) {
+function SessionSummary({ summary: sm, onClose, onEdit }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
   const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
@@ -744,7 +755,12 @@ function SessionSummary({ summary: sm, onClose }) {
         <div><p className="text-2xl font-extrabold text-white">{sm.sets}</p><p className="re-label">sets</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.reps}</p><p className="re-label">reps</p></div>
       </div>
-      {sm.records.length > 0 ? (
+      {sm.sets === 0 ? (
+        // A session that sat open with nothing logged — the most likely story
+        // behind a 0-set, hours-long "workout" — has no record to report and
+        // nothing honest to share. Say so, and lead with the fix.
+        <p className="text-xs text-white/45">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
+      ) : sm.records.length > 0 ? (
         <div className="space-y-1">
           {sm.records.map((r, i) => (
             <p key={i} className="flex items-start gap-1.5 text-xs text-amber-200">
@@ -768,9 +784,18 @@ function SessionSummary({ summary: sm, onClose }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={share}>
-          <Share2 size={13} /> Share
+        {/* A session's own numbers are the member's to fix right here —
+            nothing logged, or a set typed in wrong, is as reachable as
+            sharing it. Primary when there is nothing honest to share yet. */}
+        <button className={`!w-auto px-3 py-2 text-xs inline-flex items-center gap-1 ${sm.sets === 0 ? "neon-btn-primary" : "neon-btn-ghost"}`}
+                onClick={onEdit}>
+          <Pencil size={13} /> Edit this workout
         </button>
+        {sm.sets > 0 && (
+          <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={share}>
+            <Share2 size={13} /> Share
+          </button>
+        )}
         {coaches.length > 0 ? coaches.map((c) => (
           <button key={c} className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(c)}>
             <MessageSquare size={13} /> Send to coach @{c}
@@ -1848,7 +1873,8 @@ const HISTORY_PAGE = 10;
 function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary }) {
+                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary,
+                        prefillEditSession, onEditConsumed }) {
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
@@ -1857,6 +1883,14 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
   const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
   const [made, setMade] = useState("");
   const goals = coach?.goals;
+  // "Edit this workout" from SessionSummary hands the session over this way
+  // — open it in the editor directly, rather than leaving the member to find
+  // it again, newest-first, in the list below.
+  useEffect(() => {
+    if (prefillEditSession == null) return;
+    setEditingSession(prefillEditSession);
+    onEditConsumed?.();
+  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const sourceOf = (r) => r.source || "member";
   const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
