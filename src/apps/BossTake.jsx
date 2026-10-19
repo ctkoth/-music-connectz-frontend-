@@ -4,6 +4,7 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import { ENERGY } from "../resources.js";
 import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -1235,6 +1236,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 {busy ? "Coaching this post…" : "Send this post to the coach"}
               </button>
               <Cost price={price} trial={trial} />
+              {/* The ⚡ half of the price, before the press. A post costs Energy on
+                  top of the prompt; a freshly recorded take does not. */}
+              {!trial && price?.post_energy_cost > 0 && fromPost?.kind !== "journal" && (
+                <span className="text-[11px] text-mcz-ember">
+                  −{price.post_energy_cost} {ENERGY}{" "}
+                  <span className="text-white/45">— coaching a post. Not run means not charged.</span>
+                </span>
+              )}
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3 text-[11px]">

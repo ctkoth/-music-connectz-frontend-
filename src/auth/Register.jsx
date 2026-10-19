@@ -174,7 +174,8 @@ export default function Register() {
           changes nobody's behaviour. */}
       {join?.welcome_spinaz > 0 && !ref && !STANDALONE && (
         <p className="text-sm text-emerald-300">
-          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span> in your balance the moment you join.
+          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span>
+          {join.welcome_energy > 0 && <> <span className="font-semibold">+{join.welcome_energy} ⚡</span></>} in your balance the moment you join.
         </p>
       )}
 

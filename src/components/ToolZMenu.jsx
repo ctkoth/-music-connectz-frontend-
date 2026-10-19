@@ -1,5 +1,6 @@
 import VersionBadge from "./VersionBadge.jsx";
 import React, { useState } from 'react';
+import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
 import { canMini, slugFor } from '../App.jsx';
@@ -328,6 +329,15 @@ export default function ToolZMenu() {
   // Focus mode: the coach leads and the thirteen categories wait behind one
   // tap. They are all still here — see focus.js for why they are not offered.
   const [showMore, setShowMore] = useState(!FOCUS_MODE);
+  // Two ways into the same apps: by the instrument you play, or by what you need.
+  // The choice is a per-device convenience, so storage failing changes nothing.
+  const [lens, setLens] = useState(() => {
+    try { return localStorage.getItem('mcz-home-lens') === 'need' ? 'need' : 'instrument'; } catch { return 'instrument'; }
+  });
+  const pickLens = (v) => {
+    setLens(v);
+    try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
+  };
   const openFocus = (key) => goToSpot(key, `${key}:main`);
   const [hoveredApp, setHoveredApp] = useState(null);
 
@@ -461,6 +471,22 @@ export default function ToolZMenu() {
       </div>
 
       {FOCUS_MODE && (
+        <div role="tablist" aria-label="How to find an app" className="toolz-lens"
+             style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
+          {[['instrument', 'By instrument'], ['need', 'By what you need']].map(([k, text]) => (
+            <button key={k} role="tab" aria-selected={lens === k}
+              className={`category-card ${lens === k ? 'cyan' : ''}`}
+              style={{ padding: '6px 14px', opacity: lens === k ? 1 : 0.6 }}
+              onClick={() => pickLens(k)}>{text}</button>
+          ))}
+        </div>
+      )}
+
+      {FOCUS_MODE && lens === 'need' && (
+        <NeedsView onOpen={openFocus} />
+      )}
+
+      {FOCUS_MODE && lens === 'instrument' && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
           <div className="category-grid">
