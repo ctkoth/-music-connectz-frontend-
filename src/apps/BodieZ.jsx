@@ -53,6 +53,9 @@ import { handOff } from "../handoff.js";
 import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
+import PromoPost from "../components/PromoPost.jsx";
+import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
+import { PROMPTZ } from "../resources.js";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -1312,6 +1315,83 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   );
 }
 
+// "Write about this workout" — a finished session becomes a poem, lyric,
+// caption or post through Sentence ConnectZ's own writer. The brief is built
+// server-side from the session's own logged sets (apps/economy/bodiez.py's
+// `workout_topic`), never from anything typed here, the same way a coach
+// take's promo post is: a tangible, saveable, editable, shareable thing comes
+// out the other end of a PromptZ spend, per the cost/gain rule, not a number
+// with no reason behind it.
+function WorkoutWrite({ sessionId, onClose }) {
+  const [spec, setSpec] = useState(null);
+  const [loadErr, setLoadErr] = useState("");
+  const [kind, setKind] = useState("");
+  const [tags, setTags] = useRemembered("bodiez-write-hashtags", "");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [runErr, setRunErr] = useState("");
+
+  useEffect(() => {
+    let on = true;
+    api(`/api/economy/bodiez/sessions/${sessionId}/write/`)
+      .then((d) => { if (!on) return; setSpec(d); setKind(d.kinds?.[0]?.key || "poem"); })
+      .catch((e) => { if (on) setLoadErr(e.message || "Couldn't check the price."); });
+    return () => { on = false; };
+  }, [sessionId]);
+
+  async function write() {
+    setBusy(true); setRunErr("");
+    try {
+      setResult(await api(`/api/economy/bodiez/sessions/${sessionId}/write/`,
+        { method: "POST", body: { kind, ...hashtagBody(tags) } }));
+    } catch (e) { setRunErr(e.message || "Couldn't write that. Nothing was charged."); }
+    finally { setBusy(false); }
+  }
+
+  if (result) {
+    return (
+      <PromoPost promo={result} onClose={onClose}
+                 title={spec.kinds.find((k) => k.key === result.kind)?.label || "What it wrote"}
+                 note="Written from this workout's own logged sets only — nothing invented. It's saved in Sentence ConnectZ, so if you use it in a release, battle or deal, K-Oth's royalty applies to the part you keep." />
+    );
+  }
+
+  return (
+    <div className="re-card space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="re-label">Write about this workout</p>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close"><X size={16} /></button>
+      </div>
+      {loadErr && <p className="text-[11px] text-mcz-ember">{loadErr}</p>}
+      {!spec && !loadErr && <p className="text-[11px] text-white/40">Checking the price…</p>}
+      {spec && (
+        <>
+          <div className="flex flex-wrap gap-1.5">
+            {spec.kinds.map((k) => (
+              <button key={k.key} onClick={() => setKind(k.key)}
+                      className={`pill ${kind === k.key ? "!bg-white/15 !text-white" : ""}`}>
+                {k.emoji} {k.label}
+              </button>
+            ))}
+          </div>
+          {(kind === "caption" || kind === "post") && <HashtagCount value={tags} onChange={setTags} />}
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                    disabled={busy} onClick={write}>
+              {busy ? <Loader2 className="animate-spin" size={13} /> : <Sparkles size={13} />}
+              {busy ? "Writing…" : "Write it"}
+            </button>
+            {spec.cost.free_today
+              ? <span className="text-[11px] text-emerald-300">free today</span>
+              : <span className="text-[11px] text-mcz-ember">−{spec.cost.amount} {PROMPTZ}</span>}
+          </div>
+          {runErr && <p className="text-[11px] text-mcz-ember">{runErr}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Log a workout that already happened. Sent as one request (the server
 // validates every set or saves none), lands as a finished session on that
 // date, and answers with the same summary a live one does — so the records it
@@ -1798,6 +1878,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
+  const [writingSession, setWritingSession] = useState(null);
   const [title, setTitle] = useState("");
   const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
   const [made, setMade] = useState("");
@@ -1977,12 +2058,25 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                           disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
                     <Plus size={12} /> Make a routine
                   </button>
+                  {/* A logged workout is settled data — exercises, sets, reps,
+                      any PR it beat — and nothing here ever did anything with
+                      it beyond showing it back. This is the same jump the
+                      coach's own take history offers ("write a promo post"),
+                      aimed at a workout instead of a take. */}
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          disabled={sets.length === 0}
+                          onClick={() => setWritingSession(writingSession === h.id ? null : h.id)}>
+                    <Sparkles size={12} /> {writingSession === h.id ? "Close" : "Write about this"}
+                  </button>
                   <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                           onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
+              {writingSession === h.id && (
+                <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingSession(null)} />
+              )}
             </div>
           );
         })}
