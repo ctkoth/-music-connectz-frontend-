@@ -644,7 +644,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         // string, and React refuses to render an object as a child — the
         // whole tab died with "Objects are not valid as a React child".
         user: me?.username, persona: sel[0]?.name || sel[0]?.key || "Creator",
-        icon: "personaz.png", nationalities: nats, looking: "collab",
+        icon: "personaz.png", nationalities: nats,
       },
     });
     try {

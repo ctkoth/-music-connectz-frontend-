@@ -26,7 +26,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
@@ -99,7 +99,8 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
           <p className="truncate font-semibold">{deal.title || "Untitled deal"}</p>
           <PartnerzMark pairs={deal.partnered} />
           <p className="text-xs text-white/55">
-            by @{deal.initiator} · {STATUS_LABEL[deal.status] || deal.status}
+            by <button className="hover:underline" onClick={() => openMember(deal.initiator)}>@{deal.initiator}</button>
+            {" · "}{STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
         {held > 0 && (

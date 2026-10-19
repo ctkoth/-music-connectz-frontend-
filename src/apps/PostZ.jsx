@@ -56,7 +56,7 @@ import { labelForSkill } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import ShareSheet from "../components/ShareSheet.jsx";
 import CoachReadCard, { CoachReadSetting } from "../components/CoachReadCard.jsx";
@@ -897,11 +897,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   return (
     <div ref={seenRef} className="re-card">
       <div className="mb-3 flex items-center gap-3">
-        <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
-                 className="h-10 w-10 rounded-lg object-cover" />
+        <button onClick={() => openMember(post.author)} title={`View ${post.author}'s profile`}>
+          <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
+                   className="h-10 w-10 rounded-lg object-cover" />
+        </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
+            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>

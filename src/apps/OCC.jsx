@@ -32,7 +32,7 @@ import RunClock from "../components/RunClock.jsx";
 import OccChat from "../components/occ/OccChat.jsx";
 import { doorsFor, gridTabs } from "../components/occ/occRoutes.js";
 import { perSecondText, runFailure, runLimit, runTimeoutMs } from "../components/occ/occPrice.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { ENERGY, amount } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
@@ -679,7 +679,8 @@ export default function OCC() {
                 </>
               ) : (
                 <>
-                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
+                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by{" "}
+                  <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button>.
                   Rewrite it here and keep the result — the post itself isn't touched.{" "}
                   <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
                     Back to the post

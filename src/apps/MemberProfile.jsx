@@ -13,7 +13,7 @@ import { IconImg } from "../App.jsx";
 import CopyLink, { profileUrl } from "../CopyLink.jsx";
 import { handOff } from "../handoff.js";
 import { ENERGY, MONEY } from "../resources.js";
-import { personaLabel, personaName } from "./socialData.js";
+import { personaLabel, personaName, FLAG_FOR } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
@@ -297,7 +297,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">NationalitieZ</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.nationalities.map((n) => <Pill key={n}>{n}</Pill>)}
+                  {data.nationalities.map((n) => <Pill key={n}>{FLAG_FOR[n] || "🌐"} {n}</Pill>)}
                 </div>
               </div>
             )}

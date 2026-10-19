@@ -87,6 +87,8 @@ export const ICON_DEFAULTS = {
   "royaltiez.png": "/icons/royaltiez.png",
   "playlistz.png": "/icons/playlistz.png",
   "habitz.png": "/icons/habitz.png",
+  "journalz.jpg": "/icons/journalz.png",
+  "taskz.png": "/icons/taskz.png",
   "metz.jpg": "/icons/metz.jpg",
   "tunerz.jpg": "/icons/tunerz.jpg",
   "breathz.png": "/icons/breathz.png",

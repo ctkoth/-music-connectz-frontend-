@@ -6,7 +6,7 @@ import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X }
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
-import { goToSpot } from "./goto.js";
+import { goToSpot, openMember } from "./goto.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
@@ -360,7 +360,6 @@ export const CUSTOM_ICONS = {
   "tunerz.jpg": "/icons/tunerz-neon.svg",
   "chordz.jpg": "/icons/chordz-neon.svg",
   "breathz.png": "/icons/breathz-neon.png",
-  "drumz.png": "/icons/drumz-neon.svg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -719,7 +718,7 @@ function HeaderCounts() {
   );
 }
 
-function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
+function CommunityBar({ onOpenMembership, onOpenBirthday }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
@@ -819,7 +818,7 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
           {(stats.online_members || []).map((u) => (
             <button
               key={u}
-              onClick={() => onOpenMember?.(u)}
+              onClick={() => openMember(u)}
               title={`View ${u}'s profile`}
               className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:shadow-neon active:scale-95"
             >
@@ -855,7 +854,7 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
                   >
                     <MemberName
                       username={username}
-                      onOpen={(u) => { onOpenMember?.(u); setShowMembers(false); }}
+                      onOpen={(u) => { openMember(u); setShowMembers(false); }}
                     />
                   </div>
                 ))}
@@ -1016,11 +1015,11 @@ function Home() {
     return () => window.removeEventListener("mcz-split", h);
   }, []);
 
-  // Cross-pollination: mentions open profiles
+  // Any screen anywhere can open a member's profile via openMember(username)
+  // (goto.js) or a mention (MentionParser's goToProfile) — both dispatch this
+  // same event, so there is one "open this member" wire, not two.
   useEffect(() => {
-    const h = (e) => {
-      setMemberKey(e.detail);
-    };
+    const h = (e) => setMemberKey(e.detail);
     window.addEventListener("mcz-goto-profile", h);
     return () => window.removeEventListener("mcz-goto-profile", h);
   }, []);
@@ -1158,7 +1157,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")}
+        <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash.

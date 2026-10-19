@@ -14,7 +14,10 @@
 // Real members now, real avatars (a member's own uploaded custom icon, via
 // `_avatar_url` server-side — never a generic persona placeholder standing
 // in for a person), and a persona chip is only shown when the member has
-// actually claimed one.
+// actually claimed one. A nationality pill carries its flag emoji
+// (`FLAG_FOR`, socialData.js) rather than a two-letter code, and a card is
+// clickable anywhere on it — not only on the name — because the whole card
+// is "this member", not just the text inside it.
 import { useCallback, useEffect, useState } from "react";
 import { MapPin, Search, UserRound } from "lucide-react";
 import { api } from "../api.js";
@@ -22,9 +25,8 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { gatesQuery } from "../gatesQuery.js";
-import { NATIONALITIES, personaLabel } from "./socialData.js";
-
-const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
+import { NATIONALITIES, FLAG_FOR, personaLabel } from "./socialData.js";
+import { openMember } from "../goto.js";
 
 export default function SocialConnectZ() {
   const [rows, setRows] = useState([]);
@@ -107,10 +109,16 @@ export default function SocialConnectZ() {
         <p className="re-card text-sm text-mcz-pink">{error}</p>
       )}
 
-      {/* Results */}
+      {/* Results — real members from GET /api/economy/members/. Tap anywhere
+          on a card to open the member's full profile; nothing here is a
+          dead end. */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div key={m.username} className="re-card">
+          <div
+            key={m.username}
+            onClick={() => openMember(m.username)}
+            className="re-card cursor-pointer transition hover:!border-white/20"
+          >
             <div className="mb-2 flex items-center gap-3">
               {m.avatar
                 ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
@@ -133,11 +141,11 @@ export default function SocialConnectZ() {
               {(m.nationalities || []).map((n) => (
                 <button
                   key={n}
-                  onClick={() => setNat(n)}
+                  onClick={(e) => { e.stopPropagation(); setNat(n); }}
                   className="pill hover:!text-white"
                   title={`Filter by ${n}`}
                 >
-                  {FLAG[n] || "🌐"} {n}
+                  {FLAG_FOR[n] || "🌐"} {n}
                 </button>
               ))}
             </div>

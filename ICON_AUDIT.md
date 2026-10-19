@@ -59,7 +59,7 @@ show committed dotted files the tree picked up from public/icons.
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
-## Adopted — committed under the registry key's own name (31)
+## Adopted — committed under the registry key's own name (33)
 The supplied list spells these differently, so they were never matched by
 name; the committed file is the artwork, and it is the default now.
 
@@ -92,6 +92,8 @@ name; the committed file is the artwork, and it is the default now.
 | `royaltiez.png` | `royaltiez.png` | /icons/royaltiez-neon.svg |
 | `playlistz.png` | `playlistz.png` | /icons/playlistz-neon.svg |
 | `habitz.png` | `habitz.png` | /icons/habitz-neon.svg |
+| `journalz.jpg` | `journalz.png` | /icons/journalz-neon.svg |
+| `taskz.png` | `taskz.png` | /icons/taskz-neon.png |
 | `metz.jpg` | `metz.jpg` | /icons/metz-neon.svg |
 | `tunerz.jpg` | `tunerz.jpg` | /icons/tunerz-neon.svg |
 | `breathz.png` | `breathz.png` | /icons/breathz-neon.png |

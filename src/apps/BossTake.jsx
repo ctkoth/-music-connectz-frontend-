@@ -18,7 +18,7 @@ import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
-import { goToSpot, spotlight } from "../goto.js";
+import { goToSpot, openMember, spotlight } from "../goto.js";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
@@ -1192,7 +1192,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <p className="text-[11px] text-white/45">
             {fromPost.kind === "journal"
               ? fromPost.day
-              : `by @${fromPost.author}`}
+              : <>by <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button></>}
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
@@ -1895,7 +1895,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="text-[11px] text-white/45">
               {result.saved_to_post
                 ? `Kept on "${result.post_title}" — it'll be on the post next time you look.`
-                : `Scored @${result.post_author}'s "${result.post_title}". This read is yours; their post is untouched.`}
+                : <>Scored <button className="hover:underline" onClick={() => openMember(result.post_author)}>@{result.post_author}</button>'s "{result.post_title}". This read is yours; their post is untouched.</>}
               {" "}
               <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
                 Back to the post

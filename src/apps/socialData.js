@@ -103,6 +103,11 @@ export const NATIONALITIES = [
   ["🇦🇺", "Australian"], ["🇳🇿", "Māori / NZ"], ["🌺", "Pacific Islander"], ["🪶", "Native American"],
 ];
 
+// name -> flag, so every place that renders a saved NationalitieZ (Social
+// ConnectZ's cards, MemberProfile's modal) shows the same flag rather than
+// each re-deriving its own lookup from NATIONALITIES.
+export const FLAG_FOR = Object.fromEntries(NATIONALITIES.map(([flag, name]) => [name, flag]));
+
 // Apps SpecZ can be attached to (used by the SpecZ store dropdown).
 // SPEC_APPS lived here — a hardcoded list of the apps a SpecZ could attach to.
 // The server publishes it now (`GET /api/economy/specz/` → `apps`), because a
