@@ -87,7 +87,7 @@ function Verify18Card() {
       </p>
       {verified ? (
         <>
-          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. Money betting &amp; adult features are unlocked.</p>
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. VybeZ, LookZMaxZ and other adult features are unlocked.</p>
           <p className="text-[11px] text-white/45">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
         </>
       ) : (
@@ -98,7 +98,7 @@ function Verify18Card() {
           {last?.result === "pending" && (
             <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
           )}
-          <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
+          <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock VybeZ (finding a date), LookZMaxZ and other adult features. We never store your ID — Stripe handles it.</p>
           <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
             {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>

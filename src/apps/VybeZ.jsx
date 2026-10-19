@@ -208,6 +208,18 @@ export default function VybeZ() {
         </header>
         <div className="neon-frame space-y-3 p-4">
           <p className="text-sm text-white/80">{locked}</p>
+          {/* This wall is a stated birthday in the 13-17 range — not an ID check — so
+              there are two honest ways out of it if that birthday is wrong: fix it, or
+              let a verified ID confirm 18+ (the server already lets ID verification
+              override a mistyped birthday, in the permissive direction only). Neither
+              is a workaround for an actual minor; both are just routing a member to the
+              control that fixes a wrong answer, same as any other field. */}
+          <p className="text-[11px] text-white/45">
+            If that birthday is wrong,{" "}
+            <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>fix it in ProfileZ</button>
+            {" "}or{" "}
+            <button className="re-link" onClick={() => goToSpot("profilez", "verify-18")}>verify you're 18+</button>.
+          </p>
           <button className="re-btn !w-auto px-3 py-1.5" onClick={() => goToTab("collabz")}>Find collaborators in CollabZ</button>
         </div>
       </div>
