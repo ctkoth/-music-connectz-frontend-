@@ -140,6 +140,12 @@ export default function BodieZ() {
   // the control rather than dumping the member at the top of a new tab.
   const [prefillMuscle, setPrefillMuscle] = useState(null);
   const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("routinez"); };
+  // Set by a routine card's "Log past session" button (pen-and-paper workouts
+  // logged after the fact) — jumps to Today, opens "Log a past workout" and
+  // fills in that routine, instead of leaving the member to find it again in
+  // a dropdown. Read once by PastWorkout, then cleared.
+  const [prefillPastRoutine, setPrefillPastRoutine] = useState(null);
+  const jumpToLogPast = (routineId) => { setPrefillPastRoutine(routineId); setTab("today"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -527,13 +533,15 @@ export default function BodieZ() {
               goals={coach?.goals}
             />
             <PastWorkout exercises={exercises} pickable={usable} routines={routines}
-                         onSaved={(sm) => { setSummary(sm); load(); }} />
+                         onSaved={(sm) => { setSummary(sm); load(); }}
+                         initialRoutineId={prefillPastRoutine} onInitialRoutineConsumed={() => setPrefillPastRoutine(null)} />
             </>
           )}
           {tab === "routinez" && (
             <RoutineZView routines={routines} history={history} exercises={exercises} pickable={usable}
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
+                          onLogPast={jumpToLogPast}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
@@ -1271,7 +1279,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 // Its sets keep their ids, so a set that was logged live keeps the rest time
 // the server measured; the date is only editable on one typed in afterwards,
 // because a live one's time was measured, not chosen.
-function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel }) {
+function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel,
+                        initialRoutineId = null, onInitialRoutineConsumed }) {
   const unit = useUnit();
   const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const editDate = editing ? new Date(new Date(editing.started_at).getTime() - new Date(editing.started_at).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : null;
@@ -1312,6 +1321,15 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     setRoutineId(r.id);
     setSets(rows);
   };
+  // "Log past session" on a routine card hands the routine over this way —
+  // open the panel already filled in, rather than leaving the member to
+  // find the same routine again in the dropdown below.
+  useEffect(() => {
+    if (!initialRoutineId) return;
+    setOpenState(true);
+    pickRoutine(initialRoutineId);
+    onInitialRoutineConsumed?.();
+  }, [initialRoutineId]);
   const patchSet = (i, patch) => setSets(sets.map((st, k) => (k === i ? { ...st, ...patch } : st)));
 
   // Copy: bring a lift in the way it was last done (every set, same weights and
@@ -1729,7 +1747,7 @@ const SOURCE_TONE = {
 const HISTORY_PAGE = 10;
 
 function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
-                        prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit, onCreate,
+                        prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
                         onRoutineFromSession, onDeleteSession, onSaveSession, onSummary }) {
   const [filter, setFilter] = useState("");
@@ -1834,6 +1852,14 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                           disabled={sessionOpen} title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
                           onClick={() => onStart(r.id)}>
                     <Play size={12} /> Start
+                  </button>
+                  {/* Trained this with pen and paper? Log it after the fact —
+                      opens "Log a past workout" on Today, already filled in
+                      with this routine's exercises, sets and reps, rather
+                      than making the member find it again in a dropdown. */}
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          title="Logged this on paper? Record it here" onClick={() => onLogPast(r.id)}>
+                    <CalendarDays size={12} /> Log past session
                   </button>
                   <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                           onClick={() => onDelete(r.id)} title="Delete permanently" aria-label="Delete routine">
