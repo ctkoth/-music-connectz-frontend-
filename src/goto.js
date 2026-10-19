@@ -18,8 +18,13 @@ export const goToTab = (key) =>
 // wherever a username shows up (a post's author, a battle opponent, a
 // comment, a collab partner…), without every one of those screens needing its
 // own copy of the modal or a prop threaded down from App.jsx.
+//
+// Same event MentionParser's `goToProfile` dispatches for an @mention
+// (`mcz-goto-profile`) — one wire for "open this member", not two. Use this
+// helper rather than dispatching the event directly, so a future rename only
+// happens here.
 export const openMember = (username) =>
-  username && window.dispatchEvent(new CustomEvent("mcz-open-member", { detail: username }));
+  username && window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: username }));
 
 const FLASH_MS = 2200;
 
