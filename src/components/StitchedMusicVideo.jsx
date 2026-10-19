@@ -75,7 +75,7 @@ export default function StitchedMusicVideo() {
   const filled = shots.map((x) => x.trim()).filter(Boolean);
   const n = filled.length;
   const cents = s.prices?.[String(n)] ?? 0;
-  const enough = n >= s.min_shots && (s.promptz || 0) + s.money_cents >= cents;
+  const enough = n >= s.min_shots && (s.owner_free || (s.promptz || 0) + s.money_cents >= cents);
   const pending = video?.status === "pending";
   const ready = s.configured && s.can_join && trackId && n >= s.min_shots && enough && !pending;
 
