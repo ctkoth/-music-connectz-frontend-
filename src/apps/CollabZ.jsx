@@ -85,12 +85,38 @@ function EscrowWindow({ deal }) {
   );
 }
 
-function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
+function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) {
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
   const held = cur === "spinaz" ? deal.held_spinaz : deal.held_cents;
 
   const act = (verb) => onAction(deal.id, verb);
+
+  // Mirrors the server's own gate (collab.py: CollabDetailView.patch) so the
+  // button only ever appears when the request would actually succeed — the
+  // server still decides for real, this just keeps the member from pressing
+  // a door that's already closed.
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const othersResponded = deal.participants.some(
+    (p) => p.username !== deal.initiator && (p.accepted_at || p.funded));
+  const canEdit = deal.mine && deal.status === "draft" && !othersResponded;
+
+  function startEdit() {
+    setDraft({
+      title: deal.title, description: deal.description,
+      worths: Object.fromEntries(deal.participants.map((p) => [p.username, (p.worth_cents / 100).toString()])),
+    });
+    setEditing(true);
+  }
+  async function saveEdit() {
+    const cents = (v) => Math.max(0, Math.round(Number(v || 0) * 100));
+    const ok = await onPatch(deal.id, {
+      title: draft.title.trim(), description: draft.description.trim(),
+      worths: Object.fromEntries(Object.entries(draft.worths).map(([u, v]) => [u, cents(v)])),
+    });
+    if (ok) setEditing(false);
+  }
 
   return (
     <div className="neon-frame space-y-3 p-4">
@@ -103,12 +129,42 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
             {" · "}{STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
-        {held > 0 && (
-          <span className="pill flex shrink-0 items-center gap-1 !text-emerald-300">
-            <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {held > 0 && (
+            <span className="pill flex items-center gap-1 !text-emerald-300">
+              <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
+            </span>
+          )}
+          {canEdit && !editing && (
+            <button className="text-white/40 hover:text-white" onClick={startEdit} title="Fix a typo in the title, brief or worth">
+              Edit
+            </button>
+          )}
+        </div>
       </div>
+
+      {editing && (
+        <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-black/30 p-3">
+          <input className="neon-input" placeholder="Title" value={draft.title}
+                 onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <textarea className="neon-input" rows={2} placeholder="Brief" value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          {deal.participants.map((p) => (
+            <label key={p.username} className="flex items-center justify-between gap-2 text-[11px] text-white/60">
+              @{p.username}'s contribution is worth
+              <input className="neon-input !w-28 !py-1" inputMode="decimal" value={draft.worths[p.username] ?? ""}
+                     onChange={(e) => setDraft({ ...draft, worths: { ...draft.worths, [p.username]: e.target.value } })} />
+            </label>
+          ))}
+          <div className="flex gap-2">
+            <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs" onClick={saveEdit} disabled={busy}>Save</button>
+            <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+          <p className="text-[10px] text-white/35">
+            This stays editable only until someone else accepts the deal or funds their share — once they have, the numbers are theirs too and this door closes.
+          </p>
+        </div>
+      )}
 
       {/* Back to where it came from. A deal that can't point at the post it
           grew out of is a dead end in the direction people travel. */}
@@ -242,6 +298,25 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
             <X size={13} /> Dispute
           </button>
         )}
+        {/* The /refund/ door existed on the server the whole time with
+            nothing here calling it — not even for a payer, who the copy on
+            the Start a deal form already promised could cancel. Shown to
+            whoever the server will actually let press it: a payer any time
+            before delivery, or the deal's own starter while it's still a
+            draft nobody has responded to (they may not be a payer at all —
+            they could be the one getting paid). */}
+        {deal.status === "draft" && (deal.mine || me.pays_cents > 0) && (
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+                  onClick={() => act("refund")} disabled={busy}>
+            <X size={13} /> Withdraw this deal
+          </button>
+        )}
+        {["funded", "disputed"].includes(deal.status) && me.pays_cents > 0 && (
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+                  onClick={() => act("refund")} disabled={busy}>
+            <X size={13} /> Cancel — refund what's held
+          </button>
+        )}
       </div>
     </div>
   );
@@ -328,6 +403,16 @@ export default function CollabZ() {
     finally { setBusy(false); }
   }
 
+  async function patchDeal(id, body) {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/economy/collab/${id}/`, { method: "PATCH", body });
+      await load();
+      return true;
+    } catch (e) { setMsg(e.message || "Couldn't save that."); return false; }
+    finally { setBusy(false); }
+  }
+
   async function create() {
     setBusy(true); setMsg(""); setShort(null);
     try {
@@ -398,7 +483,7 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           {deals.map((d) => (
             <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor}
-                  onDistribute={distribute} onFlash={setMsg} busy={busy} />
+                  onDistribute={distribute} onFlash={setMsg} onPatch={patchDeal} busy={busy} />
           ))}
         </div>
       )}
