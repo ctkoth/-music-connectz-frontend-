@@ -29,6 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
   Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
+  Rocket,
 } from "lucide-react";
 import { api } from "../api.js";
 import { PushAsk } from "../components/PushSettings.jsx";
@@ -978,6 +979,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               {editing ? <XIcon size={15} /> : <Pencil size={15} />}
             </button>
           )}
+          {post.boosted && (
+            <span className="rounded-full border border-mcz-ember/40 px-2 py-0.5 text-[10px] text-mcz-ember"
+                  title="Paid placement: a boosted post leads the feed. It does not change ratings or royalties.">
+              🚀 Boosted
+            </span>
+          )}
+          {post.mine && post.visibility === "public" && <BoostButton post={post} onChanged={onChanged} onFlash={onFlash} />}
           {post.mine && post.visibility === "public" && <PinButton id={post.id} />}
           {canEdit && (
             <button onClick={remove} disabled={busy}
@@ -1328,6 +1336,57 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   );
 }
 
+
+// Boost: spend ⚡ for a labelled day near the top of the feed. The price is ON the
+// button; pressing it opens the server's own quote (what it buys, your balance) and
+// nothing is charged until the second press.
+function BoostButton({ post, onChanged, onFlash }) {
+  const [q, setQ] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const cost = post.boost_cost_energy;
+  if (!cost) return null;
+  const show = async () => {
+    setOpen(true);
+    try { setQ(await api(`/api/economy/postz/${post.id}/boost/`)); } catch (e) { onFlash(e.message || "Couldn't check the boost."); setOpen(false); }
+  };
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await api(`/api/economy/postz/${post.id}/boost/`, { method: "POST", body: {} });
+      onChanged(post.id, { ...post, boosted: true, boosted_until: r.boosted_until });
+      onFlash(`Boosted — −${cost} ${ENERGY}. It leads the feed until it ends.`);
+      setOpen(false);
+    } catch (e) { onFlash(e.message || "Couldn't boost that."); }
+    finally { setBusy(false); }
+  };
+  return (
+    <span className="relative">
+      <button onClick={open ? () => setOpen(false) : show} aria-expanded={open}
+              title={`Boost this post: −${cost} ${ENERGY} for a day near the top of the feed`}
+              className="flex items-center gap-1 rounded-lg p-1.5 text-[11px] text-white/45 hover:bg-white/[0.06] hover:text-mcz-ember">
+        <Rocket size={14} /> <span className="text-mcz-ember">−{cost} {ENERGY}</span>
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Boost this post"
+             className="absolute right-0 z-20 mt-1 w-64 space-y-2 rounded-xl border border-white/10 bg-black/90 p-3 text-xs text-white/70">
+          {!q ? <p>Checking…</p> : (
+            <>
+              <p>{q.what_you_get}</p>
+              <p>You hold {q.energy} {ENERGY}. Not boosted means not charged.</p>
+              {q.allowed ? (
+                <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={go} disabled={busy || q.energy < cost}>
+                  Boost for −{cost} {ENERGY}
+                </button>
+              ) : <p className="text-mcz-ember">{q.why_not}</p>}
+              {q.allowed && q.energy < cost && <p className="text-mcz-ember">You are {cost - q.energy} {ENERGY} short.</p>}
+            </>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
 
 // Pin to profile — X/Instagram's "pinned post": your best work first on your
 // card. Only on your own public posts, because that is all a profile shows.
