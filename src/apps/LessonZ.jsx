@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi, AlertCircle } from "lucide-react";
+import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi, AlertCircle, Pencil, EyeOff, Eye } from "lucide-react";
 import { api } from "../api.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -75,7 +75,7 @@ export default function LessonZ() {
 
       {view === "posts" && <Posts />}
       {view === "browse" && <Browse />}
-      {view === "teach" && (<div className="space-y-5"><Teach /><PostForm /></div>)}
+      {view === "teach" && (<div className="space-y-5"><MyListings /><Teach /><PostForm /></div>)}
       {view === "bookings" && <Bookings />}
       {view === "train" && <SkillZPanel basePath="/api/lessonz" accent="#ffcf3f" />}
     </div>
@@ -275,6 +275,239 @@ function Browse() {
           <p className="text-sm text-white/45">No lessons match — widen the filters or be the first to teach.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ MyListings */
+// A teacher could publish an offer or a lesson post and never see it again
+// — there was no detail route at all, so a price typo or wanting to stop
+// teaching a skill meant nothing could be done short of asking for a
+// database edit by hand. This is the first screen that shows what's
+// actually published, live or unpublished, with a way to fix or pull it.
+function MyListings() {
+  const [offers, setOffers] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [o, p] = await Promise.all([
+        api("/api/lessonz/offers/?mine=1"),
+        api("/api/lessonz/posts/?mine=1"),
+      ]);
+      setOffers(asList(o));
+      setPosts(asList(p));
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading what you've published…</p>;
+  if (!offers.length && !posts.length) return null;
+
+  return (
+    <div className="neon-frame space-y-4 p-5">
+      <h3 className="font-semibold">What you've published</h3>
+      {msg && <p className="text-sm text-mcz-pink">{msg}</p>}
+      {offers.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Live lesson offers</p>
+          {offers.map((o) => <OfferRow key={o.id} offer={o} onChanged={load} />)}
+        </div>
+      )}
+      {posts.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Recorded lesson posts</p>
+          {posts.map((p) => <PostRow key={p.id} post={p} onChanged={load} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OfferRow({ offer, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  function startEdit() {
+    setDraft({
+      title: offer.title, description: offer.description, pricing_mode: offer.pricing_mode,
+      price: String(offer.price), city: offer.city || "",
+      remote_ok: offer.remote_ok, in_person_ok: offer.in_person_ok, callz_ok: offer.callz_ok,
+    });
+    setMsg("");
+    setEditing(true);
+  }
+
+  async function save() {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/lessonz/offers/${offer.id}/`, { method: "PATCH", body: draft });
+      setEditing(false);
+      onChanged();
+    } catch (e) { setMsg(e.message); } finally { setBusy(false); }
+  }
+
+  async function toggleActive() {
+    setBusy(true); setMsg("");
+    try {
+      if (offer.is_active) await api(`/api/lessonz/offers/${offer.id}/`, { method: "DELETE" });
+      else await api(`/api/lessonz/offers/${offer.id}/`, { method: "PATCH", body: { is_active: true } });
+      onChanged();
+    } catch (e) { setMsg(e.message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${!offer.is_active ? "opacity-60" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-sm">
+            {offer.title} {!offer.is_active && <span className="pill ml-1 !text-white/50">unpublished</span>}
+          </p>
+          <p className="text-xs text-white/55">
+            <span className="uppercase">{offer.skill}</span> · ${offer.price} {offer.pricing_mode === "per_hour" ? "/hr" : "/lesson"}
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" disabled={busy} onClick={startEdit}>
+            <Pencil size={12} /> Edit
+          </button>
+          <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" disabled={busy} onClick={toggleActive}>
+            {offer.is_active ? <><EyeOff size={12} /> Unpublish</> : <><Eye size={12} /> Republish</>}
+          </button>
+        </div>
+      </div>
+      {msg && <p className="mt-1 text-xs text-mcz-pink">{msg}</p>}
+      {editing && (
+        <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+          <input className="neon-input !py-2 text-xs" placeholder="Lesson title"
+                 value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="What you'll cover…"
+                    value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <select aria-label="Pricing mode" className="neon-input !py-2 text-xs" value={draft.pricing_mode}
+                    onChange={(e) => setDraft({ ...draft, pricing_mode: e.target.value })}>
+              <option value="per_hour">Per hour</option>
+              <option value="per_lesson">Per lesson</option>
+            </select>
+            <input className="neon-input !py-2 text-xs" placeholder="Price (USD)" inputMode="decimal"
+                   value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
+          </div>
+          <input className="neon-input !py-2 text-xs" placeholder="City (for distance search)"
+                 value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} />
+          <div className="flex gap-4 text-xs text-white/70">
+            <label className="flex items-center gap-1.5">
+              <input type="checkbox" checked={draft.remote_ok}
+                     onChange={(e) => setDraft({ ...draft, remote_ok: e.target.checked })} /> Remote OK
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="checkbox" checked={draft.in_person_ok}
+                     onChange={(e) => setDraft({ ...draft, in_person_ok: e.target.checked })} /> In person OK
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="checkbox" checked={draft.callz_ok}
+                     onChange={(e) => setDraft({ ...draft, callz_ok: e.target.checked })} /> CallZ (StatZ only)
+            </label>
+          </div>
+          {/* Skill isn't offered here — the rating that let this publish was
+              checked for THIS skill, and a booking already made froze its
+              own total, so none of the above touches what a student
+              already agreed to pay. */}
+          <div className="flex gap-2">
+            <button className="neon-btn-primary !w-auto px-4 py-1.5 text-xs" disabled={busy} onClick={save}>Save</button>
+            <button className="re-btn !w-auto px-4 py-1.5 text-xs" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostRow({ post, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  function startEdit() {
+    setDraft({
+      title: post.title, description: post.description, price: String(post.price),
+      visibility: post.visibility,
+    });
+    setMsg("");
+    setEditing(true);
+  }
+
+  async function save() {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/lessonz/posts/${post.id}/`, { method: "PATCH", body: draft });
+      setEditing(false);
+      onChanged();
+    } catch (e) { setMsg(e.message); } finally { setBusy(false); }
+  }
+
+  async function toggleActive() {
+    setBusy(true); setMsg("");
+    try {
+      if (post.is_active) await api(`/api/lessonz/posts/${post.id}/`, { method: "DELETE" });
+      else await api(`/api/lessonz/posts/${post.id}/`, { method: "PATCH", body: { is_active: true } });
+      onChanged();
+    } catch (e) { setMsg(e.message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${!post.is_active ? "opacity-60" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-sm">
+            {post.title} {!post.is_active && <span className="pill ml-1 !text-white/50">unpublished</span>}
+          </p>
+          <p className="text-xs text-white/55">
+            <span className="uppercase">{post.skill}</span> · ${post.price} · {post.visibility || "public"}
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" disabled={busy} onClick={startEdit}>
+            <Pencil size={12} /> Edit
+          </button>
+          <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" disabled={busy} onClick={toggleActive}>
+            {post.is_active ? <><EyeOff size={12} /> Unpublish</> : <><Eye size={12} /> Republish</>}
+          </button>
+        </div>
+      </div>
+      {msg && <p className="mt-1 text-xs text-mcz-pink">{msg}</p>}
+      {editing && (
+        <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+          <input className="neon-input !py-2 text-xs" placeholder="Title"
+                 value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="What students will learn…"
+                    value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <input className="neon-input !py-2 text-xs" placeholder="Price (USD)" inputMode="decimal"
+                   value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
+            <select aria-label="Who can see this lesson" className="neon-input !py-2 text-xs" value={draft.visibility}
+                    onChange={(e) => setDraft({ ...draft, visibility: e.target.value })}>
+              <option value="public">Public — anyone</option>
+              <option value="premium">Premium tier</option>
+              <option value="statz">StatZ tier</option>
+              <option value="private">Only me</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button className="neon-btn-primary !w-auto px-4 py-1.5 text-xs" disabled={busy} onClick={save}>Save</button>
+            <button className="re-btn !w-auto px-4 py-1.5 text-xs" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
