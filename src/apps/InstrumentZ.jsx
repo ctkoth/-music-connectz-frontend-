@@ -65,7 +65,9 @@ export default function InstrumentZ({ appKey, icon, title, tagline, accent }) {
       {/* Every InstrumentZ app takes a scored Boss Take — record in the
           browser or upload a file. The dimensions differ per instrument and
           come from /api/<appKey>/coach/. */}
-      <BossTake appKey={appKey} />
+      <div data-tour={`${appKey}-take`}>
+        <BossTake appKey={appKey} />
+      </div>
       {/* Directly under the recorder, because it is the same take seen over
           time — and because the three scores a single clip cannot show
           (consistency, health, goal match) are the ones the coach's own caveat

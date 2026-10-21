@@ -8,6 +8,7 @@ import { IconImg } from "../App.jsx";
 import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
 import { SPINAZ, ENERGY } from "../resources.js";
+import IntentPicker from "../components/IntentPicker.jsx";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -206,6 +207,14 @@ export default function OnboardZ() {
           <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
       </header>
+
+      {/* The first thing a brand-new member needs is not a system
+          explainer — it's "where do I go to do the thing I came here for,"
+          without already knowing this app's own names for CollabZ, DirectZ,
+          LessonZ etc. Role, then intent, then straight to the control. This
+          is a navigation tool, not a checklist step: it never gates the
+          completion bonus below and has no "done" state of its own. */}
+      <IntentPicker />
 
       {!allDone && (
         <div className="flex items-center gap-3 rounded-lg border border-emerald-300/30 bg-emerald-300/5 px-4 py-3">

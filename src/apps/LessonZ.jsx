@@ -577,7 +577,7 @@ function Teach() {
   }
 
   return (
-    <div className="neon-frame space-y-3 p-5">
+    <div className="neon-frame space-y-3 p-5" data-tour="lessonz-teach">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Teach one of your skillz</h3>
         {elig && (
