@@ -897,7 +897,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         {/* The portfolio: the links that say who you are. They have been shown on
             the profile and the widget board all along, and nothing mounted could
             make one. */}
-        <div className="border-t border-white/10 pt-3">
+        <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
         </div>
 

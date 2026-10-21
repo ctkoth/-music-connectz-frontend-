@@ -119,7 +119,7 @@ export default function MerchZ() {
         ))}
       </div>
 
-      <form onSubmit={sell} className="neon-frame space-y-2 p-4">
+      <form onSubmit={sell} className="neon-frame space-y-2 p-4" data-tour="merchz-sell">
         <h3 className="font-semibold">Sell something</h3>
         <input className="neon-input" required maxLength={120} placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <textarea className="neon-input" rows={2} maxLength={500} placeholder="What is it?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
