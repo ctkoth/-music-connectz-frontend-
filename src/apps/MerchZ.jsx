@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, ShoppingBag, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
@@ -141,6 +141,66 @@ export default function MerchZ() {
         )}
         <button className="neon-btn-primary !w-auto px-5" disabled={busy === "sell"}>{busy === "sell" ? <Loader2 className="animate-spin" size={16} /> : null} List it</button>
       </form>
+
+      <MySales />
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- MySales */
+// A seller could see what they'd LISTED but never what anyone had actually
+// BOUGHT from them — no screen, no refund door, nothing. Corey's call on who
+// eats the fee on a refund: the seller does. Refunding gives the buyer back
+// the FULL price, which is more than the seller received net of the
+// platform's cut, so that cost is stated up front, before the button.
+function MySales() {
+  const [sales, setSales] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState("");
+
+  const load = useCallback(() => {
+    api("/api/economy/merch/sales/").then((d) => setSales(d.sales || [])).catch((e) => setErr(e.message));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function refund(sale) {
+    if (!window.confirm(`Refund ${usd(sale.price_cents)} to @${sale.buyer}? You received ${usd(sale.net_received_cents)} net — the platform's fee isn't given back, so this costs you ${usd(sale.price_cents - sale.net_received_cents)} more than you were paid.`)) return;
+    setBusy(`r${sale.id}`); setErr("");
+    try {
+      await api(`/api/economy/merch/purchases/${sale.id}/refund/`, { method: "POST", body: {} });
+      window.dispatchEvent(new Event("mcz-stats-refresh"));
+      load();
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  }
+
+  if (!sales || sales.length === 0) return null;
+
+  return (
+    <div className="neon-frame space-y-2 p-4">
+      <h3 className="font-semibold">Your sales</h3>
+      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      <div className="space-y-2">
+        {sales.map((s) => (
+          <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
+            <div>
+              <p className="font-medium">{s.item_title} <span className="text-xs text-white/45">to @{s.buyer}</span></p>
+              <p className="text-xs text-white/55">
+                {s.refunded ? (
+                  <span className="text-mcz-ember">Refunded{s.refund_reason ? ` — ${s.refund_reason}` : ""}</span>
+                ) : (
+                  <>Sold for {usd(s.price_cents)} · <span className="text-emerald-300">+{usd(s.net_received_cents)} net</span></>
+                )}
+              </p>
+            </div>
+            {!s.refunded && (
+              <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={!!busy} onClick={() => refund(s)}>
+                {busy === `r${s.id}` ? <Loader2 className="animate-spin" size={12} /> : <Undo2 size={12} />}{" "}
+                Refund <span className="text-mcz-ember">−{usd(s.price_cents)}</span>
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
