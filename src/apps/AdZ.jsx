@@ -14,6 +14,7 @@ import { goToSpot } from "../goto.js";
 export default function AdZ() {
   const [cfg, setCfg] = useState(null);
   const [stats, setStats] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     api("/api/economy/adz/admob-config/").then(setCfg).catch(() => setCfg({ enabled: false }));
@@ -24,11 +25,21 @@ export default function AdZ() {
       // The whole product is "watch it, get paid" and the getting-paid moment
       // landed in silence. The event is fired by the native shell only after
       // the server verified the reward, so this is coin actually arriving.
+      setError(null);
       celebrate("spinaz", 0, { label: "ad reward landed" });
       setTimeout(loadStats, 1500);
     };
+    // The native shell fires this when a rewarded ad has no fill, errors out,
+    // or is closed before it finishes — the other half of "watch it, get
+    // paid" was going unheard, so a member who pressed Watch and saw nothing
+    // happen had no way to tell a hiccup from a reward quietly not landing.
+    const onError = (e) => setError(e?.detail ? String(e.detail) : "That ad didn't play. Try again?");
     window.addEventListener("mcz-ad-rewarded", onReward);
-    return () => window.removeEventListener("mcz-ad-rewarded", onReward);
+    window.addEventListener("mcz-ad-error", onError);
+    return () => {
+      window.removeEventListener("mcz-ad-rewarded", onReward);
+      window.removeEventListener("mcz-ad-error", onError);
+    };
   }, []);
 
   const isNative = typeof window !== "undefined" && !!window.Capacitor;
@@ -70,12 +81,20 @@ export default function AdZ() {
             <div className="flex items-center gap-2">
               <button
                 className="re-btn !w-auto px-5"
-                onClick={() => window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }))}
+                onClick={() => {
+                  setError(null);
+                  window.dispatchEvent(new CustomEvent("mcz-show-rewarded-ad", { detail: { unitId: cfg.rewarded_unit_id, personalized: cfg.personalized } }));
+                }}
               >
                 <PlayCircle size={15} /> Watch an ad
               </button>
               <span className="text-sm text-emerald-300">+1 {SPINAZ}</span>
             </div>
+            {error && (
+              <p className="flex items-start gap-2 text-sm text-mcz-ember">
+                <ShieldAlert size={16} className="mt-0.5 shrink-0" /> {error}
+              </p>
+            )}
             {!cfg.personalized && (
               <p className="text-[11px] text-white/40 inline-flex flex-wrap items-center gap-1">
                 You'll see family-friendly, non-personalized ads.
