@@ -2,6 +2,7 @@ import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import JoinLink from "../components/JoinLink.jsx";
+import TryLink from "../components/TryLink.jsx";
 import { AlertCircle, Loader2, Zap } from "lucide-react";
 import { api } from "../api.js";
 
@@ -78,8 +79,18 @@ export default function PublicBattle() {
             </div>
           )}
 
-          <div className="text-xs text-white/40 text-center pt-2">
-            <JoinLink owner={battle?.challenger} className="text-mcz-cyan hover:underline">Join Music ConnectZ</JoinLink> to participate in battles
+          {/* A dare a stranger can answer at the free door. Said plainly that the free take
+              is their score, not a battle entry — entering needs an account. Freestyle and
+              cypher battles are rap, so they open RapZ; anything else lets them pick. */}
+          <div className="space-y-2 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
+            <TryLink owner={battle?.challenger} app={["freestyle", "cypher"].includes(battle?.kind) ? "rapz" : ""}
+                     className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
+              ⚔️ Think you'd beat them? Get a take scored — free, no account
+            </TryLink>
+            <p className="text-[12px] text-white/55">
+              That's your score, not an entry. Entering a battle needs an account:{" "}
+              <JoinLink owner={battle?.challenger} className="text-mcz-cyan hover:underline">join Music ConnectZ</JoinLink>.
+            </p>
           </div>
         </div>
       )}
