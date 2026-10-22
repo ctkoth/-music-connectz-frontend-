@@ -83,6 +83,16 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
   });
 }
 
+/** How often to keep it. Opens on the starter's own rhythm; the server takes only one of the three. */
+function CadencePick({ value, onChange }) {
+  return (
+    <select aria-label="How often" data-nomemo="true" value={value} onChange={(e) => onChange(e.target.value)}
+            className="rounded-lg border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none">
+      {Object.keys(CADENCE).map((c) => <option key={c} value={c}>{CADENCE[c].emoji} {CADENCE[c].label}</option>)}
+    </select>
+  );
+}
+
 const BECAUSE = {
   persona: "🎭 your persona", instrument: "🎼 your instrument", habit: "🔁 what you already do",
   gap: "🧩 something missing", profile: "🧑‍🎤 your profile", activity: "📈 your activity", start: "🌱 a place to begin",
@@ -92,6 +102,7 @@ const BECAUSE = {
  *  (what is missing) and activity (what they did and didn't). Suggests only: nothing is added until
  *  it is tapped, and the request names only WHICH one (+ the coach for an instrument-aware one). */
 export function Suggested({ items, add, busyKey }) {
+  const [picked, setPicked] = useState({});
   if (!items?.length) return null;
   const routines = items.filter((s) => s.kind !== "task");
   const tasks = items.filter((s) => s.kind === "task");
@@ -108,7 +119,8 @@ export function Suggested({ items, add, busyKey }) {
             Look <ArrowRight size={11} />
           </button>
         )}
-        <button onClick={() => add(s.kind === "task" ? "task" : "routine", s.key, s.app_key)} disabled={busyKey === s.key}
+        {s.kind !== "task" && <CadencePick value={picked[s.key] || s.cadence} onChange={(c) => setPicked((p) => ({ ...p, [s.key]: c }))} />}
+        <button onClick={() => add(s.kind === "task" ? "task" : "routine", s.key, s.app_key, s.kind === "task" ? undefined : picked[s.key] || s.cadence)} disabled={busyKey === s.key}
                 className="re-btn !w-auto px-3 py-1 text-[11px]">
           {busyKey === s.key ? "…" : "Add"}
         </button>
@@ -166,6 +178,7 @@ export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "wee
 /** The whole library: every routine by cadence, and the one-off tasks. */
 export function Starters({ starters, add, busyKey }) {
   const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState({});
   if (!starters) return null;
   return (
     <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
@@ -185,7 +198,10 @@ export function Starters({ starters, add, busyKey }) {
                     <p className="text-[11px] text-white/45">{r.note}</p>
                   </div>
                   {r.on_board ? <span className="text-[11px] text-emerald-300"><Check size={12} className="inline" /> on your board</span>
-                    : <button onClick={() => add("routine", r.key)} disabled={busyKey === r.key} className="re-btn !w-auto px-3 py-1 text-[11px]">Add</button>}
+                    : <span className="flex items-center gap-1.5">
+                        <CadencePick value={picked[r.key] || r.cadence} onChange={(v) => setPicked((p) => ({ ...p, [r.key]: v }))} />
+                        <button onClick={() => add("routine", r.key, undefined, picked[r.key] || r.cadence)} disabled={busyKey === r.key} className="re-btn !w-auto px-3 py-1 text-[11px]">Add</button>
+                      </span>}
                 </div>
               ))}
             </div>
