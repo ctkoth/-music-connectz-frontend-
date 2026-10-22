@@ -41,6 +41,7 @@ import { demoSrc } from "../media.js";
 import {
   Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
+  GripVertical,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
@@ -1742,6 +1743,29 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setRows(normalize(next));
     setDirty(true);
   };
+  // Drag to reorder. Pointer events rather than HTML5 drag-and-drop, which never fires
+  // for a finger on a phone. Same `normalize` as the arrows, so a superset a drop pulls
+  // apart is dropped rather than left claiming a partner that is no longer beside it.
+  const [drag, setDrag] = useState(null);           // {from, over}
+  const moveTo = (from, to) => {
+    if (from === to) return;
+    const next = rows.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setRows(normalize(next));
+    setDirty(true);
+    setSwapIdx(null);
+  };
+  const dragHandlers = (i) => ({
+    onPointerDown: (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setDrag({ from: i, over: i }); },
+    onPointerMove: (e) => {
+      if (!drag) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-routine-row]");
+      if (el) setDrag((d) => (d ? { ...d, over: Number(el.dataset.routineRow) } : d));
+    },
+    onPointerUp: () => { if (drag) moveTo(drag.from, drag.over); setDrag(null); },
+    onPointerCancel: () => setDrag(null),
+  });
   const link = (i) => {
     const next = linkWithNext(rows, i);
     if (next) { setRows(next); setDirty(true); }
@@ -1802,9 +1826,16 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
         const ex = exercises.find((x) => x.id === r.exercise_id);
         const tag = badge(rows, i);
         return (
-          <div key={i}
+          <div key={i} data-routine-row={i}
                className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
-                 tag ? "border-l-2 border-fuchsia-400/60" : ""}`}>
+                 tag ? "border-l-2 border-fuchsia-400/60" : ""} ${
+                 drag?.from === i ? "opacity-40" : ""} ${
+                 drag && drag.over === i && drag.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
+            <button type="button" aria-label="Drag to reorder" title="Drag to reorder"
+                    className="cursor-grab touch-none select-none rounded p-1 text-white/30 hover:text-white active:cursor-grabbing"
+                    {...dragHandlers(i)}>
+              <GripVertical size={15} />
+            </button>
             <div className="flex flex-col">
               <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
                       disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>
