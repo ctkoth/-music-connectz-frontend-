@@ -1421,6 +1421,8 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const [side, setSide] = useSide(exerciseId);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [swapping, setSwapping] = useState(null);   // index of the exercise group being edited
+  const [swapEquip, setSwapEquip] = useState([]);
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const last = useHistory(exerciseId || null, side);
@@ -1528,7 +1530,40 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
 
       {grouped.map((g, gi) => (
         <div key={gi} className="rounded-lg bg-white/5 px-3 py-2">
-          <p className="text-xs font-semibold text-white">{nameOf(g.exercise_id)}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-white">
+              {nameOf(g.exercise_id)}
+              {exercises.find((e) => e.id === g.exercise_id)?.equipment && (
+                <span className="ml-1.5 font-normal text-white/40">
+                  · {EQUIPMENT_LABEL[exercises.find((e) => e.id === g.exercise_id).equipment] || exercises.find((e) => e.id === g.exercise_id).equipment}
+                </span>
+              )}
+            </p>
+            <button type="button" className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                    onClick={() => { setSwapEquip([]); setSwapping(swapping === gi ? null : gi); }}>
+              {swapping === gi ? "Done" : "Edit"}
+            </button>
+          </div>
+          {swapping === gi && (
+            <div className="mt-2 space-y-2 rounded-lg bg-black/30 p-2">
+              <p className="text-[11px] text-white/50">
+                Change this exercise (all {g.rows.length} set{g.rows.length === 1 ? "" : "s"}) — narrow by equipment, then pick. Weights and reps stay as typed.
+              </p>
+              <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
+              <ExercisePicker compact label="Change exercise" all={exercises}
+                              exercises={list.filter((ex) => swapEquip.length === 0 || swapEquip.includes(ex.equipment))}
+                              value={String(g.exercise_id)}
+                              onChange={(id) => {
+                                if (!id) return;
+                                const idxs = new Set(g.rows.map((r) => r.i));
+                                setSets(sets.map((st, k) => (idxs.has(k) ? { ...st, exercise_id: Number(id) } : st)));
+                              }} />
+              <button type="button" className="text-[11px] text-mcz-ember hover:underline"
+                      onClick={() => { const idxs = new Set(g.rows.map((r) => r.i)); setSets(sets.filter((_, k) => !idxs.has(k))); setSwapping(null); }}>
+                Remove this exercise
+              </button>
+            </div>
+          )}
           {g.rows.map((r) => (
             <div key={r.i} className="flex items-center justify-between gap-2 py-0.5 text-xs text-white/70">
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
