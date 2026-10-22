@@ -138,12 +138,12 @@ export default function Lilith() {
   }
 
   // Starters and suggestions: the server copies its own content onto the board, so what is sent is
-  // only WHICH one (and, for an instrument-aware one, which coach) — never a title or an action.
+  // only WHICH one (and, for an instrument-aware one, which coach, and for a routine how often: daily, weekly or monthly) — never a title or an action.
   const [addingKey, setAddingKey] = useState("");
-  async function addStarter(kind, key, app_key) {
+  async function addStarter(kind, key, app_key, cadence) {
     setAddingKey(key);
     const made = await call("/api/economy/lilith/starters/", {
-      method: "POST", body: { kind, key, ...(app_key ? { app_key } : {}) },
+      method: "POST", body: { kind, key, ...(app_key ? { app_key } : {}), ...(cadence ? { cadence } : {}) },
     });
     setAddingKey("");
     if (made) load();
