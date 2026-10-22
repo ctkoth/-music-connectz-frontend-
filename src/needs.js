@@ -70,6 +70,7 @@ export const NEEDS = [
     blurb: "Profile, plan and how things work.",
     apps: [
       { key: "profilez", label: "ProfileZ", why: "Your profile, links and what others can see." },
+      { key: "filez", label: "FileZ", why: "Every file you've uploaded: post one, make an image your picture, free up storage." },
       { key: "membershipz", label: "MembershipZ", why: "Your plan, and what each plan holds." },
       { key: "onboardz", label: "OnboardZ", why: "A short list of first steps, each linking to the control that does it." },
       { key: "bugz", label: "BugZ", why: "Report something that is broken." },

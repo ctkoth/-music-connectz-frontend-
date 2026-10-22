@@ -247,6 +247,13 @@ export default function PostZ() {
     if (p.title) setTitle(String(p.title).slice(0, 160));
     const body = p.description ?? p.text;
     if (body) setDescription(String(body).slice(0, 4000));
+    // A file from FileZ arrives already hosted: its stable address goes straight into
+    // the slot, so posting it uploads nothing a second time.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) {
+      if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    }
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
   }), []);
 
   useEffect(() => {
