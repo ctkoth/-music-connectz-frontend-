@@ -369,7 +369,9 @@ export const CUSTOM_ICONS = {
   // No artwork for SoundZ — it is a tab this session added, so it takes a
   // generated neon icon like FunnelZ does until there is a drawing for it.
   "soundz.png": "/icons/soundz-neon.svg",
-  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz.jpg",   // Corey's art (Oct 22)
+  // DupeZ had borrowed PersonaZ's mark, so two tabs looked identical. Its own art (Oct 22).
+  "dupez.png": "/icons/dupez.jpg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
@@ -600,7 +602,7 @@ const TABS = [
   // Not owner-only, unlike FunnelZ: a member needs to see their own
   // duplicates to say which one is theirs. The server decides what each
   // person is shown — the owner every group, a member only their own.
-  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
+  { key: "dupez", label: "DupeZ", icon: "dupez.png", el: <DupeZ /> },
   // The icon folder as a tree: each parent icon with its children named by
   // filename (battlez.png -> battlez.cypher.png). Owner-only — it is the
   // audit of which art is committed, wired, owed or unplaced, and the members
