@@ -1396,7 +1396,10 @@ function Home() {
  * what an account would add, because a free tool with no next step is a
  * bounce with a metronome in it.
  */
-function PublicTool({ title, heading, blurb, el }) {
+// `pitch` and `cta` tie the tool to the coach: somebody using a free metronome is
+// practising timing, which is exactly a dimension the coach scores. A generic "get a take
+// scored" asked them to make that connection themselves.
+function PublicTool({ title, heading, blurb, el, pitch, cta }) {
   useEffect(() => { track("landing_view"); }, []);
   // Named for what people SEARCH ("free online metronome"), not only what we
   // call it — nobody types "MetZ" into Google. Real title + description,
@@ -1416,12 +1419,11 @@ function PublicTool({ title, heading, blurb, el }) {
       <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
       <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
         <p className="mb-3 text-sm text-white/80">
-          The tools are free forever. The coach is the reason people stay — one take,
-          scored, no account needed either.
+          {pitch || "The tools are free forever. The coach is the reason people stay — one take, scored, no account needed either."}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
+          <Link to="/try" className="re-btn !w-auto px-5">{cta || "Get a take scored"}</Link>
           <Link to="/test" className="re-btn re-btn-cyan !w-auto px-5">Two-minute PersonalitieZ test</Link>
-          <Link to="/try" className="re-btn !w-auto px-5">Get a take scored</Link>
         </div>
       </div>
     </div>
@@ -1454,9 +1456,13 @@ export default function App() {
       <Route path="/test/:depth" element={<PersonalityTest />} />
       {/* The two tools that are pure client audio. No account, no server. */}
       <Route path="/tool/metz" element={<PublicTool title="MetZ" heading="Free online metronome — MetZ"
-             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />} />} />
+             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />}
+             pitch="Practising against a click? An AI coach scores your timing — and what else is working and what to fix — from one take. Free, no account."
+             cta="Get your timing scored" />} />
       <Route path="/tool/chordz" element={<PublicTool title="ChordZ" heading="Free chord finder & progression player — ChordZ"
-             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />} />} />
+             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />}
+             pitch="Found a progression you like? Sing or play over it and an AI coach scores the take — what's working and what to fix. Free, no account."
+             cta="Get scored over these chords" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a

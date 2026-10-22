@@ -17,6 +17,7 @@ import { usePageTitle } from "../pageTitle.js";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 import { Link, useParams } from "react-router-dom";
 import JoinLink from "../components/JoinLink.jsx";
+import TryLink from "../components/TryLink.jsx";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
@@ -131,6 +132,7 @@ export default function PublicProfile() {
               Message {p.display_name}, rate their work, or book a CallZ — that all lives inside.
             </p>
             <JoinLink owner={username} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
+            <div className="mt-3"><TryLink owner={username} className="inline-block rounded-xl border border-mcz-cyan/40 px-5 py-2 text-sm font-semibold text-mcz-cyan hover:bg-mcz-cyan/10" /></div>
           </div>
         </div>
       )}

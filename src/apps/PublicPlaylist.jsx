@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import JoinLink from "../components/JoinLink.jsx";
+import TryLink from "../components/TryLink.jsx";
 import { AlertCircle, ExternalLink, Link2, Loader2, Music } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -116,6 +117,7 @@ export default function PublicPlaylist() {
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this set, comment, and build your own — free.</p>
             <JoinLink owner={pl?.owner} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
+            <div className="mt-3"><TryLink owner={pl?.owner} className="inline-block rounded-xl border border-mcz-cyan/40 px-5 py-2 text-sm font-semibold text-mcz-cyan hover:bg-mcz-cyan/10" /></div>
           </div>
         </div>
       )}
