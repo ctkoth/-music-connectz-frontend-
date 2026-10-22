@@ -1699,6 +1699,9 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
   const [title, setTitle] = useState(routine.title || "");
   const [description, setDescription] = useState(routine.description || "");
   const [saving, setSaving] = useState(false);
+  const [swapIdx, setSwapIdx] = useState(null);   // row whose exercise is being changed
+  const [swapEquip, setSwapEquip] = useState([]);
+  const [swapErr, setSwapErr] = useState("");
 
   // Type to narrow, pick a muscle to narrow again; the member's own lifts come first.
   const filtered = useMemo(() => suggest(
@@ -1731,6 +1734,13 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     if (next) { setRows(next); setDirty(true); }
   };
   const apart = (i) => { setRows(unlink(rows, i)); setDirty(true); };
+  // Same sets, reps and weight and the same place in any superset — only the lift changes.
+  const swapExercise = (i, id) => {
+    if (!id || Number(id) === rows[i].exercise_id) return;
+    if (rows.some((r, k) => k !== i && r.exercise_id === Number(id))) { setSwapErr("That exercise is already in this routine."); return; }
+    setSwapErr("");
+    patchRow(i, { exercise_id: Number(id), added: undefined });
+  };
   const patchRow = (i, patch) => {
     const next = rows.slice();
     next[i] = { ...next[i], ...patch };
@@ -1779,7 +1789,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
         const ex = exercises.find((x) => x.id === r.exercise_id);
         const tag = badge(rows, i);
         return (
-          <div key={r.exercise_id}
+          <div key={i}
                className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
                  tag ? "border-l-2 border-fuchsia-400/60" : ""}`}>
             <div className="flex flex-col">
@@ -1824,8 +1834,22 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                 <Link2 size={13} />
               </button>
             )}
+            <button className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                    onClick={() => { setSwapEquip([]); setSwapErr(""); setSwapIdx(swapIdx === i ? null : i); }}>
+              {swapIdx === i ? "Done" : "Change"}
+            </button>
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
+            {swapIdx === i && (
+              <div className="w-full space-y-2 rounded-lg bg-black/30 p-2">
+                <p className="text-[11px] text-white/50">Swap this lift for another — sets, reps, weight and superset pairing stay.</p>
+                <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
+                <ExercisePicker compact label="Change exercise" all={exercises}
+                                exercises={(pickable || exercises).filter((x) => swapEquip.length === 0 || swapEquip.includes(x.equipment))}
+                                value={String(r.exercise_id)} onChange={(id) => swapExercise(i, id)} />
+                {swapErr && <p className="text-[11px] text-mcz-ember">{swapErr}</p>}
+              </div>
+            )}
           </div>
         );
       })}
