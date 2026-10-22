@@ -128,27 +128,53 @@ function Cost({ price, trial }) {
   );
 }
 
-/** What a tier buys here: how OFTEN, not whether.
+/** Out of free takes for today: the three ways on, each with its cost and gain, before
+ * anything is pressed. It used to be one grey line listing the ladder, with nothing to
+ * press — the moment a member most wants another take was the least helpful screen.
  *
- * Nothing locks a take any more, so there is no wall to explain — but the
- * ladder is still worth showing, because "you've used today's free one" is only
- * half an answer without "a tier up gets five". */
-function AllowanceLadder({ price }) {
+ * A tier says how OFTEN, never whether: a take still runs at every tier from PromptZ, and
+ * the free ones come back tomorrow — both said beside the upgrade, never instead of it.
+ * Tier prices come from /api/economy/tiers/, never typed here; a price that did not load
+ * is a line that does not render. */
+function OutOfTakes({ price }) {
+  const [tiers, setTiers] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/tiers/", { auth: false }).then((d) => on && setTiers(d?.tiers || null)).catch(() => {});
+    return () => { on = false; };
+  }, []);
   const ladder = price?.allowance_ladder;
   if (!ladder?.length || price.free_today) return null;
+  const at = ladder.findIndex((r) => r.tier === price.tier);
+  const mine = ladder[at];
+  const next = at >= 0 ? ladder[at + 1] : null;
+  const nextTier = next && tiers?.find?.((t) => t.key === next.tier);
+  const enough = price.promptz >= price.cost_cents;
+  const dollars = (c) => `$${(c / 100).toFixed(2)}`;
   return (
-    <p className="text-[11px] text-white/35">
-      Free takes a day:{" "}
-      {ladder.map((r, i) => (
-        <span key={r.tier}>
-          {i > 0 && " · "}
-          <span className={r.tier === price.tier ? "text-mcz-gold" : ""}>
-            {r.tier} {r.daily}
-          </span>
-        </span>
-      ))}
-      . Past that a take costs {price.cost_cents} 🏷️ at any tier.
-    </p>
+    <div className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.06] p-3">
+      <p className="text-[13px] font-semibold text-white">Today's free takes are used.</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+        <span className="text-white/70">Keep going now:</span>
+        <span className="text-mcz-ember">−{price.cost_cents} 🏷️</span>
+        <span className="text-white/45">a take{enough ? ` — you hold ${price.promptz}` : ""}</span>
+        {!enough && (
+          <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "promptz-door")}>Get PromptZ</button>
+        )}
+      </div>
+      {next && nextTier?.month_cents > 0 && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+          <span className="text-white/70">Or {nextTier.label}:</span>
+          <span className="text-emerald-300">+{next.daily - (mine?.daily || 0)} free takes a day</span>
+          <span className="text-mcz-ember">−{dollars(nextTier.month_cents)}/mo 💵</span>
+          <button type="button" className="re-btn !w-auto px-3 py-1 text-[11px]"
+                  onClick={() => goToSpot("membershipz", "membershipz-plans")}>See {nextTier.label}</button>
+        </div>
+      )}
+      {mine?.daily > 0 && (
+        <p className="text-[11px] text-white/45">Or wait: your <span className="text-emerald-300">{mine.daily}</span> free takes come back tomorrow.</p>
+      )}
+    </div>
   );
 }
 
@@ -1313,6 +1339,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </div>
       )}
 
+      {/* Before a take exists, so nobody performs first and finds out after; once there is
+          a take, the same card sits beside Send instead. */}
+      {!trial && !IN_SHELL_COACH && !url && !recording && <OutOfTakes price={price} />}
       <div className={`flex flex-wrap items-center gap-2 ${blocked ? "hidden" : ""} ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
@@ -1491,7 +1520,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {refMode ? "A track the coach can't read isn't charged. Costs the same as a take." : "A take the coach can't read isn't charged."}
             </p>
           )}
-          {!trial && !IN_SHELL_COACH && <AllowanceLadder price={price} />}
+          {!trial && !IN_SHELL_COACH && <OutOfTakes price={price} />}
         </div>
       )}
 
