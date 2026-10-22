@@ -5,6 +5,7 @@
 // Spotify link loses the four tracks that aren't on Spotify.
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
 import { AlertCircle, ExternalLink, Link2, Loader2, Music } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
@@ -40,9 +41,7 @@ export default function PublicPlaylist() {
         </Link>
         <div className="flex items-center gap-4">
           <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
-          <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-            Join free
-          </Link>
+          <JoinLink owner={pl?.owner} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
         </div>
       </header>
 
@@ -116,9 +115,7 @@ export default function PublicPlaylist() {
 
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this set, comment, and build your own — free.</p>
-            <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
-              Create your account
-            </Link>
+            <JoinLink owner={pl?.owner} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
           </div>
         </div>
       )}

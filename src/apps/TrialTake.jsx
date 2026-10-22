@@ -18,10 +18,7 @@ import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 import RetakeRemind from "../components/RetakeRemind.jsx";
 import { beatVerdict } from "../challenge.js";
 
-import { TRIAL_TOKEN_KEY, clearTrialToken, storedTrialToken } from "../trialToken.js";
-
-// Re-exported: Register has always imported these from here.
-export { clearTrialToken, storedTrialToken };
+import { TRIAL_APP_KEY, TRIAL_TOKEN_KEY } from "../trialToken.js";
 
 // The doors the front door offers come from GET /api/economy/trialdoorz/,
 // which reads them off the mounted routes.
@@ -137,6 +134,7 @@ export default function TrialTake() {
     if (result.claim_token) {
       try {
         localStorage.setItem(TRIAL_TOKEN_KEY, result.claim_token);
+        localStorage.setItem(TRIAL_APP_KEY, app);
       } catch {
         /* no storage → they can still sign up, they just lose the take */
       }

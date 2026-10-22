@@ -322,6 +322,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // the card, never the URL's, and only a card from THIS coach counts — a RapZ 8 is
   // not comparable with a SingZ take.
   const [beatTarget, setBeatTarget] = useState(null);
+  // Just joined to keep a free take (Register sends them here with ?claimed=1): say where
+  // it went. The claim made it the first row of their history, server-side.
+  const [claimed] = useState(() => !trial && new URLSearchParams(window.location.search).get("claimed") === "1");
   // The trial's optional address: the score is emailed the moment it exists (server-side).
   const [trialEmail, setTrialEmail] = useState("");
   useEffect(() => {
@@ -1207,6 +1210,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           {refMode ? "🎧 Reference listen" : "👑 Boss Take"} — {price?.label || "AI"} Coach
         </p>
+        {claimed && !result && (
+          <p className="mt-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[12px] text-emerald-200">
+            ✓ Welcome in — your free take is saved. It's the first entry in your history on this coach.
+            Send the next one and see what moved.
+          </p>
+        )}
         {beatTarget && !refMode && (
           <p className="mt-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 px-3 py-2 text-[12px] text-mcz-gold">
             🏁 To beat: {beatTarget.username ? `@${beatTarget.username}'s ` : ""}{beatTarget.shown || beatTarget.score}/10 on this coach

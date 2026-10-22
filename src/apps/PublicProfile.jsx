@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { usePageTitle } from "../pageTitle.js";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 import { Link, useParams } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
@@ -49,9 +50,7 @@ export default function PublicProfile() {
         </Link>
         <div className="flex items-center gap-4">
           <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
-          <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-            Join free
-          </Link>
+          <JoinLink owner={username} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
         </div>
       </header>
 
@@ -131,9 +130,7 @@ export default function PublicProfile() {
             <p className="mb-2 text-white/80">
               Message {p.display_name}, rate their work, or book a CallZ — that all lives inside.
             </p>
-            <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
-              Create your account
-            </Link>
+            <JoinLink owner={username} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
           </div>
         </div>
       )}
