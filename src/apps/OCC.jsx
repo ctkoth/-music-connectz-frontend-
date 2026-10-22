@@ -89,6 +89,12 @@ function Toggle({ toggle, on, allowed, onChange }) {
 function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith }) {
   const open = ["suggested", "queued", "running"].includes(task.status);
   const [sent, setSent] = useState(false);
+  // When the server offers `choices`, the member picks which ones the suggestion acts on.
+  // Everything starts ticked, so pressing Do it unchanged does exactly what the title says.
+  const choices = asList(match?.choices);
+  const [unticked, setUnticked] = useState(() => new Set());
+  const ticked = choices.filter((c) => !unticked.has(c.id));
+  const flip = (id) => setUnticked((cur) => { const n = new Set(cur); n.has(id) ? n.delete(id) : n.add(id); return n; });
   return (
     <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2">
@@ -152,13 +158,26 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
           <p><span className="text-mcz-gold">What · </span><span className="text-white/70">{task.what}</span></p>
           <p><span className="text-mcz-gold">Why · </span><span className="text-white/70">{task.why}</span></p>
           <p><span className="text-mcz-gold">How · </span><span className="text-white/70">{task.how}</span></p>
+          {match?.auto_safe && choices.length > 0 && (
+            <div className="space-y-0.5 pt-1">
+              <p className="text-[10px] text-white/45">Untick any you want to keep:</p>
+              {choices.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-[11px] text-white/70">
+                  <input type="checkbox" className="h-3.5 w-3.5 accent-cyan-400" checked={!unticked.has(c.id)} onChange={() => flip(c.id)} />
+                  <span className="truncate">{c.title}</span>
+                </label>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* "Do it" does it. It used to move the row to "queued" and nothing
                 ever ran it. Only the suggestions the server calls safe can be
                 done for you; the rest are a door to where you do them. */}
             {match?.auto_safe && (
-              <button className="re-btn !w-auto px-3 text-[11px]" onClick={() => onDoIt(task, match)}>
-                <Check size={11} /> Do it
+              <button className="re-btn !w-auto px-3 text-[11px] disabled:opacity-40"
+                      disabled={choices.length > 0 && ticked.length === 0}
+                      onClick={() => onDoIt(task, match, choices.length > 0 ? ticked.map((c) => c.id) : undefined)}>
+                <Check size={11} /> Do it{choices.length > 0 ? ` (${ticked.length} of ${choices.length})` : ""}
               </button>
             )}
             {match && !match.auto_safe && match.tab && (
@@ -369,10 +388,10 @@ export default function OCC() {
   // The tap that confirms a suggestion — and then OCC does it. The server
   // performs the safe ones and says what it did; anything it can't do for you is
   // a door, never a button that pretends.
-  const doSuggestion = async (t, match) => {
+  const doSuggestion = async (t, match, ids) => {
     try {
       const r = await api("/api/economy/occ/suggest/", {
-        method: "POST", body: { key: match.key, confirm: true },
+        method: "POST", body: { key: match.key, confirm: true, ...(ids ? { ids } : {}) },
       });
       flash(r.detail || "Done.");
     } catch (e) { flash(e.message || "Couldn't do that."); }
