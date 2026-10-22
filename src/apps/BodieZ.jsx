@@ -1052,8 +1052,10 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
+function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [] }) {
   const unit = useUnit();
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapEquip, setSwapEquip] = useState([]);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
   // A unit flip re-expresses the planned target; a number the member typed is left as typed.
@@ -1090,12 +1092,29 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
             {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
         </div>
+        {onSwap && (
+          <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                  onClick={() => { setSwapEquip([]); setSwapOpen(!swapOpen); }}>
+            {swapOpen ? "Done" : "Change"}
+          </button>
+        )}
         <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
           done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
                               : "bg-white/5 text-white/50 ring-white/10"}`}>
           {done}/{targetSets} sets
         </span>
       </div>
+      {swapOpen && onSwap && (
+        <div className="space-y-2 rounded-lg bg-black/30 p-2">
+          <p className="text-[11px] text-white/50">
+            Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under {planned.name}.
+          </p>
+          <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
+          <ExercisePicker compact label="Change exercise" all={allExercises} value={String(planned.exercise_id)}
+                          exercises={swapFrom.filter((x) => swapEquip.length === 0 || swapEquip.includes(x.equipment))}
+                          onChange={(id) => { if (id) { onSwap(Number(id)); } }} />
+        </div>
+      )}
       <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
       <div className="flex flex-wrap gap-2">
@@ -1149,6 +1168,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // whenever there is no history yet, never an empty picker.
   const [unplannedSide, setUnplannedSide] = useSide(exerciseId);
   const unplannedLast = useHistory(exerciseId || null, unplannedSide);
+  // Today-only swaps: planned exercise id -> the lift actually being done.
+  const [swaps, setSwaps] = useState({});
   // A goal card's "Train this" hands the exercise over this way. The
   // "unplanned exercise" picker only exists once a session is running, so
   // this waits for one rather than consuming the handoff on arrival — a
@@ -1188,10 +1209,17 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((e) => {
-      const ex = exercises.find((x) => x.id === e.exercise_id);
-      return { ...e, name: ex?.name || `Exercise #${e.exercise_id}`,
+      const id = swaps[e.exercise_id] ?? e.exercise_id;
+      const ex = exercises.find((x) => x.id === id);
+      return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment };
     }) : [];
+  // Swap one slot for another lift. Refused when that lift is already in the plan.
+  const swapProps = (p) => ({
+    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
+    allExercises: exercises,
+    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+  });
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
     (setsByExercise[s.exercise_id] ||= []).push(s);
@@ -1246,7 +1274,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
             if (b.single) {
               const p = b.single;
               return <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
-                                onLogSet={onLogSet} />;
+                                onLogSet={onLogSet} {...swapProps(p)} />;
             }
             const [x, y] = b.pair;
             const dx = (setsByExercise[x.exercise_id] || []).length;
@@ -1262,9 +1290,9 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
-                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet}
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
                            tag={`${b.group}1`} isNext={started && nxt === 0} />
-                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet}
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
                            tag={`${b.group}2`} isNext={started && nxt === 1} />
               </div>
             );
