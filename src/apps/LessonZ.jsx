@@ -331,6 +331,26 @@ function MyListings() {
   );
 }
 
+// The listing's public link (/l/<id>). A published listing only; anybody can open it,
+// it shows the city and never the exact location, and booking still needs an account.
+// The server does not serve an under-18 teacher's listing publicly, so neither do we.
+function ShareLesson({ id, title }) {
+  const [said, setSaid] = useState("");
+  async function share() {
+    const url = `${window.location.origin}/l/${id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title, url }); setSaid("Shared."); return; }
+      await navigator.clipboard.writeText(url); setSaid("Link copied.");
+    } catch (e) { if (e?.name !== "AbortError") setSaid(url); }
+  }
+  return (
+    <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" onClick={share}
+            title="Anyone with the link can see this listing (city, never your exact location). Not available for teachers under 18.">
+      {said || "Share"}
+    </button>
+  );
+}
+
 function OfferRow({ offer, onChanged }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -383,6 +403,7 @@ function OfferRow({ offer, onChanged }) {
           <button className="re-btn !w-auto px-2.5 py-1 text-[11px]" disabled={busy} onClick={toggleActive}>
             {offer.is_active ? <><EyeOff size={12} /> Unpublish</> : <><Eye size={12} /> Republish</>}
           </button>
+          {offer.is_active && <ShareLesson id={offer.id} title={offer.title} />}
         </div>
       </div>
       {msg && <p className="mt-1 text-xs text-mcz-pink">{msg}</p>}
