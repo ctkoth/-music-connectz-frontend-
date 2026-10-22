@@ -64,6 +64,24 @@ export function linkWithNext(rows, i) {
   return normalize(out);
 }
 
+/** Row `i` and row `j`, wherever they are, become a pair: row `j` moves to directly
+ *  below row `i`, and any pair either was in before comes apart first (its other half
+ *  stays where it was, as a single). Null for the same row or one out of range. */
+export function pairWith(rows, i, j) {
+  if (i === j || i < 0 || j < 0 || i >= rows.length || j >= rows.length) return null;
+  const freed = new Set([i, j, partnerOf(rows, i), partnerOf(rows, j)].filter((k) => k >= 0));
+  const out = rows.map((r, k) => {
+    if (!freed.has(k)) return { ...r };
+    const { group: _drop, ...rest } = r;
+    return rest;
+  });
+  const [moved] = out.splice(j, 1);
+  const at = j < i ? i - 1 : i;           // where row i sits once row j is out
+  out.splice(at + 1, 0, moved);
+  out[at].group = out[at + 1].group = "_";
+  return normalize(out);
+}
+
 /** The pair row `i` is in comes apart. */
 export function unlink(rows, i) {
   const p = partnerOf(rows, i);
