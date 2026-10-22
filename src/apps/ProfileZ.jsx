@@ -451,6 +451,12 @@ function AvatarCard() {
             <button className="re-btn !w-auto px-4" onClick={() => input.current?.click()} disabled={busy}>
               <Upload size={14} /> {shown ? "Change" : "Choose"}
             </button>
+            {!preview && (
+              <button className="re-btn !w-auto px-3" onClick={() => goToSpot("filez", "filez-list")} disabled={busy}
+                      title="Pick an image you've already uploaded">
+                From FileZ
+              </button>
+            )}
             {preview && (
               <>
                 <button className="neon-btn-primary !w-auto px-4" onClick={save} disabled={busy}>
