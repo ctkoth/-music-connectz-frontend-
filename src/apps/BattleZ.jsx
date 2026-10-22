@@ -151,6 +151,28 @@ function Side({ side, board, battle, onRate, onSubmit }) {
   );
 }
 
+// The battle's public link (/b/<id>). Said before it is pressed what a stranger sees:
+// the page is anybody's to open, and an under-18 member's entry is not on it — the
+// server leaves those out of the public read entirely.
+function ShareBattle({ id, title }) {
+  const [said, setSaid] = useState("");
+  async function share() {
+    const url = `${window.location.origin}/b/${id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title, text: `${title} — think you'd beat them?`, url }); setSaid("Shared."); return; }
+      await navigator.clipboard.writeText(url); setSaid("Link copied.");
+    } catch (e) { if (e?.name !== "AbortError") setSaid(url); }
+  }
+  return (
+    <span className="flex flex-col items-end">
+      <button className="re-btn !w-auto px-3 text-xs" onClick={share} title="Anyone with the link can watch. Entries from members under 18 aren't shown there.">
+        Share
+      </button>
+      <span className="text-[10px] text-white/35">{said || "public link · under-18 entries hidden"}</span>
+    </span>
+  );
+}
+
 function Detail({ id, onBack, onFlash, seed }) {
   const talk = useSay();
   const [b, setB] = useState(null);
@@ -285,9 +307,12 @@ function Detail({ id, onBack, onFlash, seed }) {
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
             </p>
           </div>
-          {b.mine && b.status === "open" && (
-            <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
-          )}
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <ShareBattle id={b.id} title={b.title} />
+            {b.mine && b.status === "open" && (
+              <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
+            )}
+          </div>
         </div>
         {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />

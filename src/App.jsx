@@ -103,6 +103,7 @@ const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
 const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
 const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
 const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
@@ -1442,6 +1443,7 @@ export default function App() {
       {/* Public — readable with no account. By link, never by browse: there is
           no anonymous feed and no anonymous member search. */}
       <Route path="/p/:id" element={<PublicPost />} />
+      <Route path="/b/:id" element={<PublicBattle />} />
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
