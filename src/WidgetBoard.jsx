@@ -44,6 +44,7 @@ import { goToSpot } from "./goto.js";
 import { tabForSlug } from "./App.jsx";
 import { useScreenShape } from "./useScreenShape.js";
 import { widgetHint } from "./widgetz.js";
+import { StatzSample, useStatzTrial } from "./components/StatzSample.jsx";
 
 const WidgetCtx = createContext(null);
 
@@ -83,9 +84,13 @@ export function WidgetProvider({ children }) {
   // The policy — who may frame a page, and what a visit pays. Read once, so
   // no control has to retype a tier or a reward number. A failure leaves it
   // null and every control falls back to the plain link.
+  // Read again when a StatZ sample starts or ends: page widgets are one of the things it
+  // unlocks, and the server's answer is what decides how a link opens.
+  const { s: sample } = useStatzTrial();
+  const sampleOn = !!sample?.active;
   useEffect(() => {
     api("/api/economy/widgetz/").then(setPolicy).catch(() => {});
-  }, []);
+  }, [sampleOn]);
 
   const close = useCallback((id) => {
     setWidgets((ws) => ws.filter((w) => w.id !== id));
@@ -439,6 +444,10 @@ function WidgetBody({ w, shape }) {
     return (
       <div className="space-y-2 p-3">
         <Note tone={w.gate === "unsafe" ? "ember" : "muted"}>{w.reason}</Note>
+        {/* Refused for the TIER, not for safety: the free StatZ sample opens it, the
+            same offer every other StatZ-only control makes where it is locked. How a
+            link opens is decided when it is opened, so the card says to open it again. */}
+        {w.gate === "tier" && <TierSample />}
         <a
           href={w.url}
           target="_blank"
@@ -488,6 +497,18 @@ function WidgetBody({ w, shape }) {
       )}
       {reward.line && (
         <p className="px-2 pb-1.5 text-[10px] text-emerald-300">{reward.line}</p>
+      )}
+    </div>
+  );
+}
+
+function TierSample() {
+  const { s } = useStatzTrial();
+  return (
+    <div className="space-y-1">
+      <StatzSample what="Opening any scanned site as a widget" />
+      {s?.active && !s?.is_statz && (
+        <p className="text-[11px] text-mcz-gold">Sample on — close this widget and open the link again to see the page here.</p>
       )}
     </div>
   );
@@ -566,16 +587,32 @@ function useDwellReward(w) {
  *  One component so the member card, the public post and anything else that
  *  grows links cannot drift into three different behaviours. */
 export function LinkList({ links, owner, className = "" }) {
+  const { policy } = useWidgets();
   const rows = asList(links);
   if (!rows.length) return null;
+  const urlOf = (l) => (typeof l === "string" ? l : l?.url);
+  // Offer the StatZ sample once, under the list, when it would change how one of these
+  // opens: a page that is going to a new tab only because of the tier. Never when the
+  // scanner is off — then no tier frames a page, and a sample would sell nothing.
+  const pw = policy?.page_widgets;
+  const tierIsWhy = pw && !pw.allowed && pw.scan_available
+    && rows.some((l) => urlOf(l) && widgetHint(urlOf(l), true).kind === "page");
   return (
-    <div className={`flex flex-wrap gap-1.5 ${className}`}>
-      {rows.map((l, i) => {
-        const url = typeof l === "string" ? l : l?.url;
-        if (!url) return null;
-        const label = typeof l === "string" ? "" : l?.label;
-        return <OpenAsWidget key={i} url={url} owner={owner} label={label || url} />;
-      })}
+    <div className={className}>
+      <div className="flex flex-wrap gap-1.5">
+        {rows.map((l, i) => {
+          const url = urlOf(l);
+          if (!url) return null;
+          const label = typeof l === "string" ? "" : l?.label;
+          return <OpenAsWidget key={i} url={url} owner={owner} label={label || url} />;
+        })}
+      </div>
+      {tierIsWhy && (
+        <div className="mt-2 space-y-1">
+          <p className="text-[11px] text-white/45">Outside pages open in a new tab. StatZ opens them right here, on this screen.</p>
+          <StatzSample what="Opening these links right here" />
+        </div>
+      )}
     </div>
   );
 }
