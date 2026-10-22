@@ -325,15 +325,6 @@ const G = {
     <path d="M224 186l32 54 32-54" fill="none" stroke="${b}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8"/>
     <circle cx="256" cy="262" r="26" fill="none" stroke="${b}" stroke-width="13"/>`,
 
-  // A door standing open with light coming through it. An opportunity is a way
-  // in, so the glyph is the opening rather than a briefcase or a handshake —
-  // both of which already belong to other tabs here.
-  opportunitiez: (a, b) => `
-    <path d="M168 300V112h104v188" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
-    <path d="M272 124l88-26v216l-88 26" fill="none" stroke="${a}" stroke-width="16" stroke-linejoin="round"/>
-    <circle cx="292" cy="212" r="9" fill="${a}"/>
-    <path d="M118 212h34M126 168h26M126 256h26" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.85"/>`,
-
   // Two figures joined by a link. GroupZ is a crowd and CollabZ is two rounded
   // panels; PartnerZ is specifically a PAIR who have finished work together,
   // so it is two of them and the thing holding them together.
@@ -432,7 +423,6 @@ const APPS = [
   ["lilith_someday", "Someday", C.purple, C.gold],
   ["coachz", "CoachZ", C.emerald, C.cyan],
   ["personaz_coach", "Coach", C.emerald, C.gold],
-  ["opportunitiez", "OpportunitieZ", C.cyan, C.gold],
   ["partnerz", "PartnerZ", C.purple, C.emerald],
   ["onboardz", "OnboardZ", C.emerald, C.gold],
   ["playlistz", "PlaylistZ", C.cyan, C.pink],

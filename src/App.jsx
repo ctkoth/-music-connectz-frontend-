@@ -271,7 +271,7 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ-neon.svg",
-  "opportunitiez.png": "/icons/opportunitiez-neon.svg",
+  "opportunitiez.png": "/icons/opportunitiez.jpg",   // Corey's art (Oct 22)
   "infernoz.png": "/icons/infernoz.svg",
   "offerz.png": "/icons/offerz-neon.svg",
   "adz.png": "/icons/adz-neon.svg",
