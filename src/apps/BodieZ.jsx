@@ -51,7 +51,7 @@ import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
-import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
+import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import PromoPost from "../components/PromoPost.jsx";
@@ -1771,6 +1771,12 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     if (next) { setRows(next); setDirty(true); }
   };
   const apart = (i) => { setRows(unlink(rows, i)); setDirty(true); };
+  // Any two lifts, not only neighbours: the partner moves to directly below, and a pair
+  // either was already in comes apart first (`pairWith` says how).
+  const pairUp = (i, j) => {
+    const next = pairWith(rows, i, j);
+    if (next) { setRows(next); setDirty(true); setSwapIdx(null); }
+  };
   // Same sets, reps and weight and the same place in any superset — only the lift changes.
   const swapExercise = (i, id) => {
     if (!id || Number(id) === rows[i].exercise_id) return;
@@ -1866,6 +1872,16 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
             <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="1" placeholder="reps"
                    aria-label="Reps" inputMode="numeric"
                    value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
+            {rows.length > 1 && (
+              <select aria-label="Superset with" data-nomemo="true" value=""
+                      onChange={(e) => e.target.value !== "" && pairUp(i, Number(e.target.value))}
+                      className="max-w-[9rem] rounded-lg border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none">
+                <option value="">{r.group ? "Re-pair with…" : "Superset with…"}</option>
+                {rows.map((o, k) => (k === i || k === partnerOf(rows, i) ? null : (
+                  <option key={k} value={k}>{exercises.find((x) => x.id === o.exercise_id)?.name || `#${o.exercise_id}`}{o.group ? " (breaks its pair)" : ""}</option>
+                )))}
+              </select>
+            )}
             {r.group ? (
               <button className="rounded p-1.5 text-fuchsia-300/70 hover:bg-white/10 hover:text-fuchsia-300"
                       title="Take this superset apart" aria-label="Unlink superset" onClick={() => apart(i)}>
