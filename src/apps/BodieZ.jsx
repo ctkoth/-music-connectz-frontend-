@@ -71,6 +71,7 @@ function Field({ label, className = "w-20", ...props }) {
   );
 }
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
+import { ExerciseSwap, SwapRow, useSwappedPicks } from "./ExerciseSwap.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { suggest } from "../exerciseSearch.js";
 import { useRemembered, useRememberedNumber } from "../useRemembered.js";
@@ -1055,7 +1056,6 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
 function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [] }) {
   const unit = useUnit();
   const [swapOpen, setSwapOpen] = useState(false);
-  const [swapEquip, setSwapEquip] = useState([]);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
   // A unit flip re-expresses the planned target; a number the member typed is left as typed.
@@ -1094,7 +1094,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
         </div>
         {onSwap && (
           <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
-                  onClick={() => { setSwapEquip([]); setSwapOpen(!swapOpen); }}>
+                  onClick={() => setSwapOpen(!swapOpen)}>
             {swapOpen ? "Done" : "Change"}
           </button>
         )}
@@ -1105,15 +1105,8 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
         </span>
       </div>
       {swapOpen && onSwap && (
-        <div className="space-y-2 rounded-lg bg-black/30 p-2">
-          <p className="text-[11px] text-white/50">
-            Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under {planned.name}.
-          </p>
-          <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
-          <ExercisePicker compact label="Change exercise" all={allExercises} value={String(planned.exercise_id)}
-                          exercises={swapFrom.filter((x) => swapEquip.length === 0 || swapEquip.includes(x.equipment))}
-                          onChange={(id) => { if (id) { onSwap(Number(id)); } }} />
-        </div>
+        <ExerciseSwap current={planned.exercise_id} all={allExercises} choices={swapFrom} onPick={onSwap}
+                      note={`Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under ${planned.name}.`} />
       )}
       <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
@@ -1450,7 +1443,6 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [swapping, setSwapping] = useState(null);   // index of the exercise group being edited
-  const [swapEquip, setSwapEquip] = useState([]);
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const last = useHistory(exerciseId || null, side);
@@ -1568,24 +1560,18 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
               )}
             </p>
             <button type="button" className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
-                    onClick={() => { setSwapEquip([]); setSwapping(swapping === gi ? null : gi); }}>
+                    onClick={() => setSwapping(swapping === gi ? null : gi)}>
               {swapping === gi ? "Done" : "Edit"}
             </button>
           </div>
           {swapping === gi && (
-            <div className="mt-2 space-y-2 rounded-lg bg-black/30 p-2">
-              <p className="text-[11px] text-white/50">
-                Change this exercise (all {g.rows.length} set{g.rows.length === 1 ? "" : "s"}) — narrow by equipment, then pick. Weights and reps stay as typed.
-              </p>
-              <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
-              <ExercisePicker compact label="Change exercise" all={exercises}
-                              exercises={list.filter((ex) => swapEquip.length === 0 || swapEquip.includes(ex.equipment))}
-                              value={String(g.exercise_id)}
-                              onChange={(id) => {
-                                if (!id) return;
-                                const idxs = new Set(g.rows.map((r) => r.i));
-                                setSets(sets.map((st, k) => (idxs.has(k) ? { ...st, exercise_id: Number(id) } : st)));
-                              }} />
+            <div className="mt-2 space-y-2">
+              <ExerciseSwap current={g.exercise_id} all={exercises} choices={list}
+                            note={`Change this exercise (all ${g.rows.length} set${g.rows.length === 1 ? "" : "s"}). Weights and reps stay as typed.`}
+                            onPick={(id) => {
+                              const idxs = new Set(g.rows.map((r) => r.i));
+                              setSets(sets.map((st, k) => (idxs.has(k) ? { ...st, exercise_id: id } : st)));
+                            }} />
               <button type="button" className="text-[11px] text-mcz-ember hover:underline"
                       onClick={() => { const idxs = new Set(g.rows.map((r) => r.i)); setSets(sets.filter((_, k) => !idxs.has(k))); setSwapping(null); }}>
                 Remove this exercise
@@ -1728,7 +1714,6 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
   const [description, setDescription] = useState(routine.description || "");
   const [saving, setSaving] = useState(false);
   const [swapIdx, setSwapIdx] = useState(null);   // row whose exercise is being changed
-  const [swapEquip, setSwapEquip] = useState([]);
   const [swapErr, setSwapErr] = useState("");
 
   // Type to narrow, pick a muscle to narrow again; the member's own lifts come first.
@@ -1863,18 +1848,16 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
               </button>
             )}
             <button className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
-                    onClick={() => { setSwapEquip([]); setSwapErr(""); setSwapIdx(swapIdx === i ? null : i); }}>
+                    onClick={() => { setSwapErr(""); setSwapIdx(swapIdx === i ? null : i); }}>
               {swapIdx === i ? "Done" : "Change"}
             </button>
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
             {swapIdx === i && (
-              <div className="w-full space-y-2 rounded-lg bg-black/30 p-2">
-                <p className="text-[11px] text-white/50">Swap this lift for another — sets, reps, weight and superset pairing stay.</p>
-                <EquipmentPicker selected={swapEquip} onToggle={(k) => setSwapEquip((cur) => toggleEquipment(cur, k))} />
-                <ExercisePicker compact label="Change exercise" all={exercises}
-                                exercises={(pickable || exercises).filter((x) => swapEquip.length === 0 || swapEquip.includes(x.equipment))}
-                                value={String(r.exercise_id)} onChange={(id) => swapExercise(i, id)} />
+              <div className="w-full space-y-2">
+                <ExerciseSwap current={r.exercise_id} all={exercises} choices={pickable || exercises}
+                              note="Swap this lift for another — sets, reps, weight and superset pairing stay."
+                              onPick={(id) => swapExercise(i, id)} />
                 {swapErr && <p className="text-[11px] text-mcz-ember">{swapErr}</p>}
               </div>
             )}
@@ -2593,13 +2576,15 @@ function DemoLink({ url }) {
 // onto every pick. `goals` comes from the server (BodieZCoachView) — never
 // retyped here, or this becomes the second place "8-12 reps for hypertrophy"
 // lives, and the two drift the way a tier number always does.
-function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
+function BuildRoutine({ bodymap, exercises, pickable, goals, onBuildRoutine }) {
   const [equipment, setEquipment] = useState([]);
   const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [open, setOpen] = useState(false);
   const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 1);
-  const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
+  const generated = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
     [bodymap, exercises, equipment, perMuscle]);
+  const sw = useSwappedPicks(generated, exercises, pickable);
+  const picks = sw.picks;
   const goal = goalKey ? goals?.[goalKey] : null;
 
   return (
@@ -2643,11 +2628,10 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
             <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
           ) : (
             <div className="space-y-1">
-              {picks.map((ex) => (
-                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
-                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                  <DemoLink url={ex.demo_url} />
-                </div>
+              {picks.map((ex, i) => (
+                <SwapRow key={generated[i].id} className="text-xs text-white/60" exercises={exercises}
+                         label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                         current={ex.id} choices={sw.choicesFor(i)} swapped={sw.swapped(i)} onPick={(id) => sw.swapAt(i, id)} />
               ))}
             </div>
           )}
@@ -2691,12 +2675,18 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
 
-  const preview = useMemo(() => {
+  const generated = useMemo(() => {
     if (!split) return [];
     return split.days.map((day) => ({
       ...day, picks: pickForDay(day.muscles, bodymap, exercises, equipment, perMuscle),
     }));
   }, [split, bodymap, exercises, equipment, perMuscle]);
+  // Swaps are per day and per generated pick, so the same lift can be changed on one day only.
+  const [swaps, setSwaps] = useState({});
+  const preview = useMemo(() => generated.map((day) => ({
+    ...day, orig: day.picks,
+    picks: day.picks.map((p) => (swaps[`${day.label}:${p.id}`] && exercises.find((x) => x.id === swaps[`${day.label}:${p.id}`])) || p),
+  })), [generated, swaps, exercises]);
 
   const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
 
@@ -2751,11 +2741,12 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                   {day.picks.length === 0 ? (
                     <p className="text-[11px] text-mcz-ember">No exercises match this equipment for this day.</p>
                   ) : (
-                    day.picks.map((ex) => (
-                      <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
-                        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                        <DemoLink url={ex.demo_url} />
-                      </div>
+                    day.picks.map((ex, i) => (
+                      <SwapRow key={day.orig[i].id} className="text-[11px] text-white/55" exercises={exercises}
+                               label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                               current={ex.id} swapped={ex.id !== day.orig[i].id}
+                               choices={exercises.filter((x) => x.id === ex.id || !day.picks.some((p) => p.id === x.id))}
+                               onPick={(id) => setSwaps((cur) => ({ ...cur, [`${day.label}:${day.orig[i].id}`]: id }))} />
                     ))
                   )}
                   <RoutineTime items={goalItems(day.picks, goal)} restSeconds={goal?.rest_seconds} className="mt-0.5" />
@@ -2805,7 +2796,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
 // Cardio and Full Body are left off the toggle row for the same reason
 // SplitBuilder never assigns either to a day — "cardio day" and "full body
 // day" aren't what picking muscles for a day means.
-function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onInitialMuscleConsumed, onBuildRoutine }) {
+function MuscleDayBuilder({ exercises, pickable, goals, dayTagLabels, initialMuscle, onInitialMuscleConsumed, onBuildRoutine }) {
   const MUSCLES = ["abs", "back", "biceps", "chest", "forearms", "glutes",
                     "shoulders", "triceps", "upper_legs", "lower_legs"];
   const [muscles, setMuscles] = useState([]);
@@ -2846,12 +2837,14 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
     for (let i = 0; i < perMuscle; i++) for (const pool of pools) if (pool[i]) out.push(pool[i]);
     return out;
   }, [muscles, exercises, equipment, perMuscle]);
-  const picks = useMemo(() => {
+  const trimmedPicks = useMemo(() => {
     if (!minutes) return allPicks;
     let n = allPicks.length;
     while (n > 1 && estimateRoutineSeconds(goalItems(allPicks.slice(0, n), goal), goal?.rest_seconds) > minutes * 60) n--;
     return allPicks.slice(0, n);
   }, [allPicks, minutes, goal]);
+  const sw = useSwappedPicks(trimmedPicks, exercises, pickable);
+  const picks = sw.picks;
   const trimmed = allPicks.length - picks.length;
 
   const dayLabel = dayTagLabels.find((d) => d.key === dayTag)?.label;
@@ -2938,11 +2931,10 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
             <p className="text-xs text-mcz-ember">No exercises match that equipment for these muscles.</p>
           ) : (
             <div className="space-y-1">
-              {picks.map((ex) => (
-                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
-                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                  <DemoLink url={ex.demo_url} />
-                </div>
+              {picks.map((ex, i) => (
+                <SwapRow key={trimmedPicks[i].id} className="text-xs text-white/60" exercises={exercises}
+                         label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                         current={ex.id} choices={sw.choicesFor(i)} swapped={sw.swapped(i)} onPick={(id) => sw.swapAt(i, id)} />
               ))}
             </div>
           )}
