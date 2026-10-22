@@ -244,11 +244,6 @@ const G = {
     <path d="M196 140a54 54 0 0 1 100 14" fill="none" stroke="${b}" stroke-width="12"
           stroke-linecap="round" stroke-opacity="0.55"/>`,
 
-  funnelz: (a, b) => `
-    <path d="M132 116h248l-92 108v86l-64 30v-116z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
-    <path d="M170 156h172" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.8"/>
-    <circle cx="256" cy="330" r="14" fill="${b}"/>`,
-
   metz: (a, b) => `
     <rect x="180" y="140" width="152" height="80" rx="12" fill="none" stroke="${a}" stroke-width="15"/>
     <circle cx="180" cy="140" r="8" fill="${a}"/>
@@ -515,7 +510,6 @@ const APPS = [
   ["labelz", "LabelZ", C.purple, C.gold],
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
-  ["funnelz", "FunnelZ", C.emerald, C.cyan],
   ["soundcloudengagementz", "SoundCloud Engagement", C.ember, C.cyan],
   ["metz", "MetZ", C.cyan, C.gold],
   ["tunerz", "TunerZ", C.emerald, C.cyan],
