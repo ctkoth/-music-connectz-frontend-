@@ -64,7 +64,7 @@ const OWED = {
 // the permanent answer.
 //
 // NOT exhaustive, deliberately: other keys sit on a `-neon.svg` because that
-// glyph IS the icon (postz, soundcloudengagementz), and calling
+// glyph IS the icon, and calling
 // those a debt would invent one. `node tools/icon-audit.mjs` prints every key
 // on an SVG; this lists the ones somebody is waiting on art for.
 const PLACEHOLDER = {

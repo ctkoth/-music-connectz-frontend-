@@ -324,14 +324,11 @@ which is by design (`IconImg` falls back rather than showing a broken image)
 and is therefore the kind of thing nobody reports. If a tile looks like the
 logo, check `public/icons/` before assuming the registry is wrong.
 
-Its glyph is in `tools/make-neon-icons.mjs` like every other one — **edit the
-glyph there, never the generated SVG.** SoundCloud's own identity is a cloud
-made of waveform bars, so the bars trace the cloud silhouette rather than a
-cloud being drawn around them. Deliberately NOT a copy of their trademark:
-using a service's mark to say which service a tab talks to is ordinary
-nominative use, but a pixel-accurate logo implies a partnership we do not
-have. The accent is `C.ember` (#ff5500), which the palette already held and
-which happens to be SoundCloud's own orange.
+It now uses Corey's own art (`soundcloudengagementz.jpg`, Oct 22) rather than a
+generated glyph. The rule that shaped the glyph still holds for any redraw: a
+cloud of waveform bars says which service the tab talks to, which is ordinary
+nominative use, but a pixel-accurate copy of SoundCloud's logo would imply a
+partnership we do not have.
 
 
 ## A call to a helper nobody imported is a dead button, and nothing here caught it

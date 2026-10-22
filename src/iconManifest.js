@@ -1715,6 +1715,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "breathz.png",
   "callz.png",
   "clarinetz.png",
+  "dupez.png",
   "facez.png",
   "flutez.png",
   "funnelz.png",
