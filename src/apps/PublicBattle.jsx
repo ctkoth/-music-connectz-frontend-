@@ -1,6 +1,7 @@
 import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
 import { AlertCircle, Loader2, Zap } from "lucide-react";
 import { api } from "../api.js";
 
@@ -27,9 +28,7 @@ export default function PublicBattle() {
         </Link>
         <div className="flex items-center gap-4">
           <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
-          <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-            Join free
-          </Link>
+          <JoinLink owner={battle?.challenger} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
         </div>
       </header>
 
@@ -80,7 +79,7 @@ export default function PublicBattle() {
           )}
 
           <div className="text-xs text-white/40 text-center pt-2">
-            <Link to="/register" className="text-mcz-cyan hover:underline">Join Music ConnectZ</Link> to participate in battles
+            <JoinLink owner={battle?.challenger} className="text-mcz-cyan hover:underline">Join Music ConnectZ</JoinLink> to participate in battles
           </div>
         </div>
       )}
