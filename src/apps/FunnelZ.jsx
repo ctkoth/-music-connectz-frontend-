@@ -397,6 +397,13 @@ export default function FunnelZ() {
       )}
 
       {steps && !loading && <Headline rows={data.headline} />}
+      {/* The other no-account door, read the same way: same browser, test then account. */}
+      {steps && !loading && data.quiz && (
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-widest text-white/40">PersonalitieZ test</p>
+          <Headline rows={[data.quiz]} />
+        </div>
+      )}
 
       {steps && !loading && (
         <div className="space-y-2">

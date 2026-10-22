@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
     return res.user;
   }
 
-  async function register({ username, email, phone, password, birthday, ref, trial_token, trial_split }) {
+  async function register({ username, email, phone, password, birthday, ref, trial_token, trial_split, personality }) {
     const res = await api("/api/auth/register/", {
       method: "POST",
       auth: false,
@@ -60,6 +60,9 @@ export function AuthProvider({ children }) {
         ref: ref || "",
         trial_token: trial_token || "",
         trial_split: trial_split || [],
+        // A PersonalitieZ result taken before joining (quizResult.js). Named here for
+        // the same reason as the two above: a field this list leaves out never arrives.
+        ...(personality ? { personality } : {}),
       },
     });
     return persist(res);

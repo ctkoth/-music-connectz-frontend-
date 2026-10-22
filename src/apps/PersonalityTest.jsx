@@ -17,6 +17,7 @@
 // personality and starts measuring how agreeable somebody is.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { keepQuizResult } from "../quizResult.js";
 import JoinLink from "../components/JoinLink.jsx";
 import { Loader2, RotateCcw } from "lucide-react";
 import { api } from "../api.js";
@@ -54,6 +55,7 @@ export default function PersonalityTest() {
         method: "POST", auth: false, body: { depth, answers },
       });
       setResult(out);
+      if (!out?.saved) keepQuizResult(out);
       track("quiz_done", { depth, axes: Object.keys(out.axes || {}).length });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
