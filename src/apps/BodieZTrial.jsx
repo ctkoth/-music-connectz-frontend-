@@ -21,6 +21,45 @@ import EquipmentPicker, { toggleEquipment } from "./EquipmentPicker.jsx";
 
 const TRIAL_SPLIT_KEY = "mcz_trial_split";
 
+// The trial's Change control. Same button and equipment chips as the member app's
+// ExerciseSwap, but a plain list of the SAME muscle's exercises instead of the full
+// picker: Register imports this file, and the picker brings the account-only
+// custom-exercise form with it. A stranger swapping a chest lift wants another chest lift.
+function TrialSwapRow({ ex, exercises, taken, swapped, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [equipment, setEquipment] = useState([]);
+  const options = exercises.filter((x) => x.muscle_group === ex.muscle_group
+    && (x.id === ex.id || !taken.includes(x.id))
+    && (equipment.length === 0 || equipment.includes(x.equipment)));
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2 text-[11px] text-white/55">
+        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}{swapped && <span className="ml-1.5 text-[10px] text-mcz-cyan/80">changed</span>}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          {ex.demo_url && (
+            <a href={demoSrc(ex.demo_url)} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-0.5 text-mcz-cyan hover:underline">
+              <PlayCircle size={12} /> Demo
+            </a>
+          )}
+          <button type="button" className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                  onClick={() => setOpen(!open)}>{open ? "Done" : "Change"}</button>
+        </span>
+      </div>
+      {open && (
+        <div className="space-y-2 rounded-lg bg-black/30 p-2">
+          <EquipmentPicker selected={equipment} onToggle={(k) => setEquipment((c) => toggleEquipment(c, k))} />
+          <select aria-label="Change exercise" value="" onChange={(e) => e.target.value && onPick(Number(e.target.value))}
+                  className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none">
+            <option value="">{options.length > 1 ? `Another ${MUSCLE_LABEL[ex.muscle_group] || ""} exercise…` : "Nothing else matches this equipment"}</option>
+            {options.filter((x) => x.id !== ex.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function storedTrialSplit() {
   try {
     const raw = localStorage.getItem(TRIAL_SPLIT_KEY);
@@ -101,12 +140,18 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
 
   const onToggleEquipment = (k) => setEquipment((cur) => toggleEquipment(cur, k));
 
-  const preview = useMemo(() => {
+  const generated = useMemo(() => {
     if (!split) return [];
     return split.days.map((day) => ({
       ...day, picks: pickForDay(day.muscles, null, exercises, equipment),
     }));
   }, [split, exercises, equipment]);
+  // Per day and per generated pick, so a lift changed on Monday stays as picked on Thursday.
+  const [swaps, setSwaps] = useState({});
+  const preview = useMemo(() => generated.map((day) => ({
+    ...day, orig: day.picks,
+    picks: day.picks.map((p) => (swaps[`${day.label}:${p.id}`] && exercises.find((x) => x.id === swaps[`${day.label}:${p.id}`])) || p),
+  })), [generated, swaps, exercises]);
 
   const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
 
@@ -182,16 +227,10 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
                   {day.picks.length === 0 ? (
                     <p className="text-[11px] text-mcz-ember">No exercises match this equipment for this day.</p>
                   ) : (
-                    day.picks.map((ex) => (
-                      <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
-                        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                        {ex.demo_url && (
-                          <a href={demoSrc(ex.demo_url)} target="_blank" rel="noreferrer"
-                             className="inline-flex shrink-0 items-center gap-0.5 text-mcz-cyan hover:underline">
-                            <PlayCircle size={12} /> Demo
-                          </a>
-                        )}
-                      </div>
+                    day.picks.map((ex, i) => (
+                      <TrialSwapRow key={day.orig[i].id} ex={ex} exercises={exercises}
+                                    taken={day.picks.map((p) => p.id)} swapped={ex.id !== day.orig[i].id}
+                                    onPick={(id) => setSwaps((cur) => ({ ...cur, [`${day.label}:${day.orig[i].id}`]: id }))} />
                     ))
                   )}
                 </div>
