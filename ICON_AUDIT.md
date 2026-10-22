@@ -2,8 +2,8 @@
 
 Filename and registry audit only — nothing here was judged by looking at the
 art. 120 distinct supplied files: **37 live** (committed, now the default),
-**57 owed** (has a place, file not in git), **22 with no place**,
-**3 duplicates**, 1 already used as backup art. The lists below also
+**57 owed** (has a place, file not in git), **21 with no place**,
+**3 duplicates**, 2 already used as backup art. The lists below also
 show committed dotted files the tree picked up from public/icons.
 
 ## Live — custom art is the default now (49)
@@ -59,7 +59,7 @@ show committed dotted files the tree picked up from public/icons.
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
-## Adopted — committed under the registry key's own name (33)
+## Adopted — committed under the registry key's own name (31)
 The supplied list spells these differently, so they were never matched by
 name; the committed file is the artwork, and it is the default now.
 
@@ -94,8 +94,6 @@ name; the committed file is the artwork, and it is the default now.
 | `habitz.png` | `habitz.png` | /icons/habitz-neon.svg |
 | `journalz.jpg` | `journalz.png` | /icons/journalz-neon.svg |
 | `taskz.png` | `taskz.png` | /icons/taskz-neon.png |
-| `metz.jpg` | `metz.jpg` | /icons/metz-neon.svg |
-| `tunerz.jpg` | `tunerz.jpg` | /icons/tunerz-neon.svg |
 | `breathz.png` | `breathz.png` | /icons/breathz-neon.png |
 | `onboardz.jpg` | `onboardz.png` | /icons/onboardz-neon.svg |
 
@@ -163,12 +161,13 @@ The tab keeps the artwork it had until the file is pushed. Rename with
 | `toolz.tunerz.jpg` | `tunerz.jpg` |  |
 | `analyticsz.png` | `analytics.png` |  |
 
-## Committed backup art (14)
+## Committed backup art (15)
 Still what something draws today; custom art takes over where a default exists.
 
 | File | Registry key | Note |
 |---|---|---|
 | `SubstanceZ.png` | — | current art for registry key substancez.png, kept as the fallback; on disk as "SubstanceZ.png"; commit it as substancez.png |
+| `tunerz.jpg` | — | current art for registry key tunerz.jpg, kept as the fallback; the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as "tunerz - Copy.jpg" — a copy |
 | `bodiez.absz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `bodiez.backz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `bodiez.bicepz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
@@ -183,7 +182,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `bodiez.upperlegz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `lilith.taskz.webp` | — | current art for registry key lilithz.png, kept as the fallback |
 
-## No place — no tab, app or registry key uses these (24)
+## No place — no tab, app or registry key uses these (23)
 | File | Registry key | Note |
 |---|---|---|
 | `bodiez-old.jpg` | — |  |
@@ -200,7 +199,6 @@ Still what something draws today; custom art takes over where a default exists.
 | `profilez.religionz.jpg` | — | ProfileZ has a religion field but no icon slot for it |
 | `recordingz.jpg` | — | no RecordingZ tab, app or registry key exists yet |
 | `stepz-good-bodiez.png` | — | StepZ is a BodieZ sub-tab that draws no icon; no key exists |
-| `tunerz.jpg` | — | the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as "tunerz - Copy.jpg" — a copy |
 | `whatineedz.png` | — | no tab or key — closest is PickConnectZ (pickconz.png), which already has art |
 | `xp.jpg` | — | XP is an emoji resource (⭐ in src/resources.js); no screen draws an icon for it |
 | `skillz.breathz.jpg` | — |  |

@@ -89,8 +89,6 @@ export const ICON_DEFAULTS = {
   "habitz.png": "/icons/habitz.png",
   "journalz.jpg": "/icons/journalz.png",
   "taskz.png": "/icons/taskz.png",
-  "metz.jpg": "/icons/metz.jpg",
-  "tunerz.jpg": "/icons/tunerz.jpg",
   "breathz.png": "/icons/breathz.png",
   "onboardz.jpg": "/icons/onboardz.png"
 };
@@ -1529,8 +1527,8 @@ export const ICON_TREE = [
       "file": "tunerz.jpg",
       "art": "/icons/tunerz.jpg",
       "key": null,
-      "status": "unplaced",
-      "note": "the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as \"tunerz - Copy.jpg\" — a copy"
+      "status": "fallback",
+      "note": "current art for registry key tunerz.jpg, kept as the fallback; the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as \"tunerz - Copy.jpg\" — a copy"
     },
     "extra": [],
     "children": []
