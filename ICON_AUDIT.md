@@ -227,7 +227,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `clarinetz.png` → /icons/clarinetz-neon.png
 - `facez.png` → /icons/facez.png
 - `flutez.png` → /icons/flutez-neon.png
-- `funnelz.png` → /icons/funnelz-neon.svg
+- `funnelz.png` → /icons/funnelz.jpg
 - `guitarz.png` → /icons/guitarz-neon.svg
 - `habitz.png` → /icons/habitz-neon.svg
 - `keyconnectz.png` → /icons/keyconnectz-neon.svg

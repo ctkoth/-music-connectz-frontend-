@@ -159,7 +159,6 @@ function RouteFallback() {
 // carry information are worth writing down:
 //
 //   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
-//   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
 //   * journalz.png, chordz.jpg, tunerz.jpg — the artwork exists on Corey's
 //                   machine and has never been committed. Pointing at a file
 //                   that is not in the repo does not error, it silently falls
@@ -413,9 +412,8 @@ export const CUSTOM_ICONS = {
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
   // files fall back to the tab's emoji, not to the logo (see IconImg).
-  // Owner-only tab — reserved ahead of the artwork, same as the rest above;
-  // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
-  "funnelz.png": "/icons/funnelz-neon.svg",
+  // Owner-only tab. Corey's art (supplied Oct 22), replacing the generated glyph.
+  "funnelz.png": "/icons/funnelz.jpg",
 };
 
 // The sources an icon key may be drawn from, best first. Corey's own artwork
