@@ -12,6 +12,7 @@ import { MONEY } from "../resources.js";
 import MemberName from "../MemberName.jsx";
 import { seed, remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
+import { IconImg } from "../App.jsx";
 
 const usd = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const LICENSE = {
@@ -46,7 +47,7 @@ export default function BeatZ() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <header className="flex items-center gap-3">
-        <img src="/icons/beatz-neon.svg" alt="" className="h-10 w-10" />
+        <IconImg icon="beatz.png" alt="" className="h-10 w-10 rounded-lg" />
         <div>
           <h2 className="font-display text-2xl font-extrabold">BeatZ</h2>
           <p className="text-sm text-white/55">License beats from producers here, or sell your own. Paid in {MONEY}, straight to the producer.</p>

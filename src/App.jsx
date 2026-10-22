@@ -323,12 +323,12 @@ export const CUSTOM_ICONS = {
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",
-  "beatz.png": "/icons/beatz-neon.svg",
+  "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
-  "statsz.png": "/icons/statsz-neon.svg",
+  "statsz.png": "/icons/statsz.jpg",        // Corey's art (Oct 22)
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
   "trump_toupee.png": "/icons/trump_toupee.png",
@@ -366,9 +366,7 @@ export const CUSTOM_ICONS = {
   "builder.png": "/icons/builder.png",
   "filez.png": "/icons/filez.png",
   "gamez.png": "/icons/gamez.png",
-  // No artwork for SoundZ — it is a tab this session added, so it takes a
-  // generated neon icon like FunnelZ does until there is a drawing for it.
-  "soundz.png": "/icons/soundz-neon.svg",
+  "soundz.png": "/icons/soundz.jpg",        // Corey's art (Oct 22)
   "soundcloudengagementz.png": "/icons/soundcloudengagementz.jpg",   // Corey's art (Oct 22)
   // DupeZ had borrowed PersonaZ's mark, so two tabs looked identical. Its own art (Oct 22).
   "dupez.png": "/icons/dupez.jpg",
