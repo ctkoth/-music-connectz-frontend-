@@ -159,7 +159,7 @@ function RouteFallback() {
 // carry information are worth writing down:
 //
 //   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
-//   * journalz.png, chordz.jpg, tunerz.jpg — the artwork exists on Corey's
+//   * journalz.png, chordz.jpg — the artwork exists on Corey's
 //                   machine and has never been committed. Pointing at a file
 //                   that is not in the repo does not error, it silently falls
 //                   back to the MCZ logo, so these hold the generated glyph
@@ -349,14 +349,11 @@ export const CUSTOM_ICONS = {
   "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz-neon.svg",
   "taskz.png": "/icons/taskz-neon.png",
-  // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
-  // illegible at the 28-36px this app actually renders it — a busy neon-sign
-  // frame plus a two-line text banner eats the pixel budget a metronome or
-  // tuner silhouette needs, the exact CoachZ failure mode. The existing
-  // hand-drawn glyphs stay wired until a simplified illustration replaces
-  // them; verified in a live browser, not assumed.
-  "metz.jpg": "/icons/metz-neon.svg",
-  "tunerz.jpg": "/icons/tunerz-neon.svg",
+  // Corey's simplified art (Oct 22): one big metronome, one fork over a dial. The first
+  // versions were a busy sign plus a text banner and blurred at 28-36px; these were
+  // checked at those sizes before they replaced the generated glyphs.
+  "metz.jpg": "/icons/metz.jpg",
+  "tunerz.jpg": "/icons/tunerz.jpg",
   "chordz.jpg": "/icons/chordz-neon.svg",
   "breathz.png": "/icons/breathz-neon.png",
   "toolz.png": "/icons/toolz-main.svg",

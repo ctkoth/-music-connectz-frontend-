@@ -206,24 +206,6 @@ const G = {
     <path d="M186 186h-52M186 246h-56M186 296h-46M326 186h52M326 246h56M326 296h46"
           stroke="${a}" stroke-width="13" stroke-linecap="round"/>`,
 
-  metz: (a, b) => `
-    <rect x="180" y="140" width="152" height="80" rx="12" fill="none" stroke="${a}" stroke-width="15"/>
-    <circle cx="180" cy="140" r="8" fill="${a}"/>
-    <circle cx="332" cy="140" r="8" fill="${a}"/>
-    <line x1="256" y1="140" x2="230" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round"/>
-    <line x1="256" y1="140" x2="280" y2="280" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-opacity="0.4"/>
-    <circle cx="256" cy="140" r="6" fill="${b}"/>
-    <path d="M210 300h92" stroke="${a}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.7"/>
-    <path d="M216 320h80" stroke="${a}" stroke-width="11" stroke-linecap="round" stroke-opacity="0.4"/>`,
-
-  tunerz: (a, b) => `
-    <path d="M160 180h192M176 216h160" stroke="${a}" stroke-width="13" stroke-linecap="round"/>
-    <circle cx="256" cy="288" r="72" fill="none" stroke="${a}" stroke-width="15"/>
-    <circle cx="256" cy="288" r="50" fill="none" stroke="${b}" stroke-width="12" stroke-opacity="0.7"/>
-    <path d="M256 240v48" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
-    <path d="M304 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round"/>
-    <path d="M192 288h20" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.5"/>`,
-
   // Winds and brass: drawn as the instrument's SILHOUETTE, not a diagram of
   // it. The first set was a pill with dots (a flute), a bare hook (a sax), a
   // stick (a clarinet) and a line with a triangle (a trumpet) — four icons
@@ -453,8 +435,6 @@ const APPS = [
   ["labelz", "LabelZ", C.purple, C.gold],
   ["groupz", "GroupZ", C.cyan, C.purple],
   ["bugz", "BugZ", C.cyan, C.emerald],
-  ["metz", "MetZ", C.cyan, C.gold],
-  ["tunerz", "TunerZ", C.emerald, C.cyan],
   ["chordz", "ChordZ", C.pink, C.gold],
   ["breathz", "BreathZ", C.cyan, C.emerald],
   ["flutez", "FluteZ", C.cyan, C.gold],
