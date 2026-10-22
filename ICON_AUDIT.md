@@ -221,7 +221,7 @@ Still what something draws today; custom art takes over where a default exists.
 ## Tabs and apps that ask for an icon no supplied file covers (34)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
-- `beatz.png` → /icons/beatz-neon.svg
+- `beatz.png` → /icons/beatz.jpg
 - `breathz.png` → /icons/breathz-neon.png
 - `callz.png` → /icons/callz-neon.svg
 - `clarinetz.png` → /icons/clarinetz-neon.png
@@ -249,7 +249,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `saxz.png` → /icons/saxz-neon.png
 - `sonday.png` → /icons/sonday.png
 - `soundcloudengagementz.png` → /icons/soundcloudengagementz.jpg
-- `soundz.png` → /icons/soundz-neon.svg
+- `soundz.png` → /icons/soundz.jpg
 - `specz.png` → /icons/specz-neon.svg
 - `trumpetz.png` → /icons/trumpetz-neon.png
 - `violinz.png` → /icons/violinz-neon.svg

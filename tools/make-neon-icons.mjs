@@ -74,13 +74,6 @@ const G = {
           fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
     <path d="M232 312v78M200 390h64" stroke="${a}" stroke-width="18" stroke-linecap="round"/>`,
 
-  // BeatZ: a record with a waveform cut across it — a beat you can license.
-  beatz: (a, b) => `
-    <circle cx="256" cy="256" r="150" fill="none" stroke="${a}" stroke-width="16"/>
-    <circle cx="256" cy="256" r="26" fill="none" stroke="${a}" stroke-width="12"/>
-    <path d="M150 256v0M178 226v60M206 196v120M234 236v40M278 236v40M306 186v140M334 216v80M362 246v20"
-          stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
-
   profilez: (a, b) => `
     <path d="M300 118h84v70a42 42 0 0 1-84 0z" fill="none" stroke="${b}" stroke-width="14" stroke-linejoin="round" stroke-opacity="0.85"/>
     <path d="M148 112h150v86a75 75 0 0 1-150 0z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
@@ -168,10 +161,6 @@ const G = {
   callz: (a, b) => `
     <path d="M158 122c14-14 38-12 50 4l26 36c9 12 7 29-4 39l-20 18c14 30 38 54 68 68l18-20c10-11 27-13 39-4l36 26c16 12 18 36 4 50l-20 20c-14 14-35 18-53 10-52-23-104-60-142-98s-75-90-98-142c-8-18-4-39 10-53z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
     <path d="M300 150a76 76 0 0 1 62 62M300 106a120 120 0 0 1 106 106" fill="none" stroke="${b}" stroke-width="13" stroke-linecap="round" stroke-opacity="0.9"/>`,
-
-  soundz: (a, b) => `
-    <path d="M150 212h56l74-62v212l-74-62h-56z" fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
-    <path d="M326 186a76 76 0 0 1 0 140M362 152a130 130 0 0 1 0 208" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round"/>`,
 
   logz: (a, b) => `
     <rect x="150" y="106" width="212" height="196" rx="22" fill="none" stroke="${a}" stroke-width="15"/>
@@ -336,12 +325,6 @@ const G = {
     <path d="M224 186l32 54 32-54" fill="none" stroke="${b}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8"/>
     <circle cx="256" cy="262" r="26" fill="none" stroke="${b}" stroke-width="13"/>`,
 
-  // Three rising bars and a trend line. The top tier, so it climbs.
-  statsz: (a, b) => `
-    <path d="M154 300v-72M256 300v-126M358 300v-180" stroke="${a}" stroke-width="26" stroke-linecap="round"/>
-    <path d="M136 186l60-52 60 34 84-82" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M300 86h56v56" fill="none" stroke="${b}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>`,
-
   // A door standing open with light coming through it. An opportunity is a way
   // in, so the glyph is the opening rather than a briefcase or a handshake —
   // both of which already belong to other tabs here.
@@ -449,7 +432,6 @@ const APPS = [
   ["lilith_someday", "Someday", C.purple, C.gold],
   ["coachz", "CoachZ", C.emerald, C.cyan],
   ["personaz_coach", "Coach", C.emerald, C.gold],
-  ["statsz", "StatZ", C.gold, C.cyan],
   ["opportunitiez", "OpportunitieZ", C.cyan, C.gold],
   ["partnerz", "PartnerZ", C.purple, C.emerald],
   ["onboardz", "OnboardZ", C.emerald, C.gold],
@@ -458,7 +440,6 @@ const APPS = [
   // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
-  ["beatz", "BeatZ", C.purple, C.gold],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
   ["money", "MembershipZ", C.gold, C.emerald],
@@ -475,7 +456,6 @@ const APPS = [
   ["logz", "LogZ", C.purple, C.gold],
   ["royaltiez", "RoyaltieZ", C.gold, C.emerald],
   ["callz", "CallZ", C.emerald, C.cyan],
-  ["soundz", "SoundZ", C.cyan, C.pink],
   ["journalz", "JournalZ", C.pink, C.gold],
   ["habitz", "HabitZ", C.ember, C.gold],
   ["collabz", "CollabZ", C.gold, C.cyan],
