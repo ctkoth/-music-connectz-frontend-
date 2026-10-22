@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import { usePageTitle } from "../pageTitle.js";
 import { RatingRow } from "../components/Rating.jsx";
 import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 
 export default function ScoreCard() {
   const { token } = useParams();
+  const { user } = useAuth();
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [join, setJoin] = useState(null);   // referral amounts, the server's
@@ -24,6 +26,15 @@ export default function ScoreCard() {
   usePageTitle(d ? (d.progress ? `${d.progress.label} ${d.progress.was} → ${d.progress.now} on ${d.label}` : `${shown}/10 on ${d.label}`) : "Score card", d?.verdict || "");
 
   const ref = d?.username ? `?ref=${encodeURIComponent(d.username)}` : "";
+  // A signed-in member is not a visitor: the dare opens THEIR coach, on their tier's
+  // daily takes, rather than the no-account door (one free take per browser). The
+  // tab slug is App.jsx's slugFor — the coach key without its trailing z.
+  const member = !!user;
+  const dare = d && !d.progress ? `beat=${encodeURIComponent(token)}` : "";
+  const to = !d ? "/try"
+    : member ? `/${d.app_key.endsWith("z") ? d.app_key.slice(0, -1) : d.app_key}${dare ? `?${dare}` : ""}`
+    : `/try/${d.app_key}${ref}${dare ? `${ref ? "&" : "?"}${dare}` : ""}`;
+  const free = member ? "uses one of today's coach takes" : "free, no account";
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
@@ -85,14 +96,15 @@ export default function ScoreCard() {
             <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">
-            <Link to={`/try/${d.app_key}${ref}${d.progress ? "" : `${ref ? "&" : "?"}beat=${encodeURIComponent(token)}`}`} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
-              {d.progress ? "📈 Start your own climb — free, no account"
-                : Number(shown) >= 5 ? `🎤 Beat ${d.username ? `@${d.username}'s ` : "this "}${shown} — free, no account`
-                : "🎤 Get your take scored — free, no account"}
+            <Link to={to} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
+              {d.progress ? `📈 Start your own climb — ${free}`
+                : Number(shown) >= 5 ? `🎤 Beat ${d.username ? `@${d.username}'s ` : "this "}${shown} — ${free}`
+                : `🎤 Get your take scored — ${free}`}
             </Link>
             <p className="text-[12px] text-white/45">
               Upload a clip or record one.{" "}
-              {d.username && join?.joinee_spinaz
+              {member ? `Same coach (${d.label}), so the two scores are comparable. How many takes you get a day is your tier's.`
+                : d.username && join?.joinee_spinaz
                 ? <>Join after through @{d.username}'s link: <span className="text-emerald-300">+{join.joinee_spinaz} 🍥</span> for you, <span className="text-emerald-300">+{join.referrer_spinaz} 🍥</span> for them.</>
                 : "Join after to keep it."}
             </p>
