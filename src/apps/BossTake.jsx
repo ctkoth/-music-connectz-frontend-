@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { beatVerdict } from "../challenge.js";
+import { EmailMe, ExampleCard, PracticeBeat } from "../components/TrialExtras.jsx";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
@@ -252,6 +253,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // the card, never the URL's, and only a card from THIS coach counts — a RapZ 8 is
   // not comparable with a SingZ take.
   const [beatTarget, setBeatTarget] = useState(null);
+  // The trial's optional address: the score is emailed the moment it exists (server-side).
+  const [trialEmail, setTrialEmail] = useState("");
   useEffect(() => {
     if (trial) return;
     const t = new URLSearchParams(window.location.search).get("beat");
@@ -915,6 +918,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // private window, which the server reads as "unknown" rather than
             // as a visitor who has already been here.
             if (trial) f.append("anon_id", anonId());
+            if (trial && trialEmail.trim() && price?.remind?.ready) f.append("email", trialEmail.trim());
             return f;
           })();
       const out = await api(path, {
@@ -1138,6 +1142,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <p className="mt-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 px-3 py-2 text-[12px] text-mcz-gold">
             🏁 To beat: {beatTarget.username ? `@${beatTarget.username}'s ` : ""}{beatTarget.shown || beatTarget.score}/10 on this coach
           </p>
+        )}
+        {trial && !result && !busy && (
+          <div className="mt-2 space-y-2">
+            <ExampleCard example={price?.example} />
+            {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
+          </div>
         )}
         {!trial && price?.reference?.available && (
           <div role="tablist" aria-label="Whose track" className="mt-2 flex flex-wrap gap-2">
@@ -1438,6 +1448,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </span>
             </p>
           )}
+          {trial && !busy && <EmailMe remind={price?.remind} value={trialEmail} onChange={setTrialEmail} />}
           <div className="flex flex-wrap items-center gap-3">
             <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
@@ -1614,6 +1625,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </span>
             </div>
           )}
+          {trial && trialEmail.trim() && price?.remind?.ready && (
+            <p className="text-center text-[12px] text-emerald-300">
+              We'll also email the score to {trialEmail.trim()}, so you can close this tab.
+            </p>
+          )}
+          {trial && <ExampleCard example={price?.example} open title="While the coach listens — a real take it scored" />}
         </div>
       )}
 
@@ -1654,6 +1671,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+          {trial && result.emailed && (
+            <p className={`text-[12px] ${result.emailed.sent ? "text-emerald-300" : "text-mcz-gold"}`}>
+              {result.emailed.sent ? `Sent to ${result.emailed.email}.` : result.emailed.detail}
+            </p>
+          )}
           {beatTarget && !result.reference && (() => {
             const v = beatVerdict({ mine: result.score_exact ?? result.score,
                                     theirs: beatTarget.shown || beatTarget.score, who: beatTarget.username });
