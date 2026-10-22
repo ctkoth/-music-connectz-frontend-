@@ -178,6 +178,49 @@ function OutOfTakes({ price }) {
   );
 }
 
+/** "Beat it tomorrow", under a member's score. The coach's value is the CHANGE between
+ * takes, which needs a second visit — so the score points at the next one: the number to
+ * beat (their best on this coach, from the server; a personal best when the server says
+ * this take is one), that tomorrow's free takes are coming, and one tap to have Lilith keep
+ * a daily run. That routine is the server's own starter (`daily_<coach>`): Lilith ticks it
+ * from real scored takes, so the streak cannot be typed. Never a guilt line, never a timer. */
+function BeatItTomorrow({ appKey, result, price }) {
+  const [pg, setPg] = useState(null);
+  const [added, setAdded] = useState("");
+  useEffect(() => {
+    let on = true;
+    api(`/api/${appKey}/progress/`).then((d) => on && setPg(d)).catch(() => {});
+    return () => { on = false; };
+  }, [appKey, result]);
+  if (result?.score == null || result.reference) return null;
+  const mine = price?.allowance_ladder?.find?.((r) => r.tier === price.tier);
+  const pb = pg?.takes?.[0]?.pb;
+  const best = pg?.personal_best;
+  const shown = typeof result.score_exact === "number" ? result.score_exact.toFixed(1) : result.score;
+  const head = pb ? `🏆 New personal best — ${shown}. Beat it tomorrow.`
+    : best != null && best > result.score ? `This one: ${shown}. Your best here: ${best}. Beat it tomorrow.`
+    : `${shown} is the one to beat. Same piece tomorrow — see if it moves.`;
+  async function remind() {
+    try {
+      const r = await api("/api/economy/lilith/starters/", {
+        method: "POST", body: { kind: "routine", key: `daily_${appKey}`, app_key: appKey },
+      });
+      setAdded(r?.already ? "It's already on your Lilith board." : "Added to Lilith — she ticks it when you send a take, and the run is your streak.");
+    } catch (e) { setAdded(e.message || "Couldn't add that."); }
+  }
+  return (
+    <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
+      <p className="text-[13px] font-semibold text-white">{head}</p>
+      {mine?.daily > 0 && (
+        <p className="text-[11px] text-white/50">Your <span className="text-emerald-300">{mine.daily}</span> free takes are back tomorrow.</p>
+      )}
+      {added ? <p className="text-[12px] text-emerald-300">{added}</p> : (
+        <button type="button" className="re-btn !w-auto px-3 py-1 text-[11px]" onClick={remind}>Remind me every day</button>
+      )}
+    </div>
+  );
+}
+
 /** Coach Corey, read aloud — the house voice free at every tier, Premium can
  * sample any catalog voice once, StatZ can save a standing choice. Never on
  * the trial: this is a member's own take, on their own account, and the
@@ -1807,6 +1850,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
           {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
+          {!trial && !IN_SHELL_COACH && <BeatItTomorrow appKey={appKey} result={result} price={price} />}
           {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
           {!trial && !IN_SHELL_COACH && !result.reference && <CoachVoicePlayer result={result} />}
