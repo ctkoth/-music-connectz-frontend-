@@ -128,7 +128,7 @@ function MetZ() {
 
   const handleReset = () => {
     handleStop();
-    setBpm(120);
+    setBpm(urlBpm || 120);   // back to the coach's tempo when there is one, never past it
     setTimeSignature(4);
   };
 
@@ -158,6 +158,12 @@ function MetZ() {
               <div className="text-sm text-slate-400 mb-2">Coach recommended practicing at:</div>
               <div className="text-2xl font-bold text-cyan-400">{urlBpm} BPM</div>
               <div className="text-xs text-slate-300 mt-2">Lock in the tempo, then focus on precision.</div>
+              {bpm !== urlBpm && (
+                <button onClick={() => !isPlaying && setBpm(urlBpm)} disabled={isPlaying}
+                        className="mt-3 rounded bg-cyan-500/20 px-3 py-1 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/30 disabled:opacity-50">
+                  Back to {urlBpm} BPM (you're at {bpm})
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -183,6 +189,18 @@ function MetZ() {
           <div className="mt-4 flex justify-between text-xs text-slate-400">
             <span>40</span>
             <span>240</span>
+          </div>
+
+          {/* Fine steps: the slider is hard to land on one beat, and the presets jump 20 at a time. */}
+          <div className="mt-4 flex justify-center gap-2">
+            {[-5, -1, 1, 5].map((d) => (
+              <button key={d} onClick={() => !isPlaying && setBpm((b) => Math.min(240, Math.max(40, b + d)))}
+                      disabled={isPlaying || (d < 0 ? bpm <= 40 : bpm >= 240)}
+                      aria-label={`${d > 0 ? "Up" : "Down"} ${Math.abs(d)} BPM`}
+                      className="rounded bg-slate-700 px-3 py-1.5 text-sm font-semibold text-slate-200 hover:bg-slate-600 disabled:opacity-50">
+                {d > 0 ? `+${d}` : d}
+              </button>
+            ))}
           </div>
         </div>
 
