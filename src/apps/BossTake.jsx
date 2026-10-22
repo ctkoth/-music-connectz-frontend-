@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
+import { beatVerdict } from "../challenge.js";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
@@ -246,6 +247,19 @@ function CoachVoicePlayer({ result }) {
 // line, and what happens after the score.
 export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
   const { user } = useAuth();
+  // "Beat this score" from a share card, for a signed-in member (a visitor gets the
+  // trial door, which does the same). The number to beat is the server's record of
+  // the card, never the URL's, and only a card from THIS coach counts — a RapZ 8 is
+  // not comparable with a SingZ take.
+  const [beatTarget, setBeatTarget] = useState(null);
+  useEffect(() => {
+    if (trial) return;
+    const t = new URLSearchParams(window.location.search).get("beat");
+    if (!t) return;
+    api(`/api/economy/scores/${encodeURIComponent(t)}/`, { auth: false })
+      .then((d) => { if (d && !d.progress && d.app_key === appKey) setBeatTarget(d); })
+      .catch(() => {});
+  }, [appKey, trial]);
   const path = trial ? `/api/${appKey}/trial/` : `/api/${appKey}/coach/`;
   // What this take costs, read BEFORE anything is sent. A price you only see
   // in the response is a bill, not a price.
@@ -1120,6 +1134,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           {refMode ? "🎧 Reference listen" : "👑 Boss Take"} — {price?.label || "AI"} Coach
         </p>
+        {beatTarget && !refMode && (
+          <p className="mt-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 px-3 py-2 text-[12px] text-mcz-gold">
+            🏁 To beat: {beatTarget.username ? `@${beatTarget.username}'s ` : ""}{beatTarget.shown || beatTarget.score}/10 on this coach
+          </p>
+        )}
         {!trial && price?.reference?.available && (
           <div role="tablist" aria-label="Whose track" className="mt-2 flex flex-wrap gap-2">
             {[["take", "My take"], ["reference", "Listen to someone else's track"]].map(([k, l]) => (
@@ -1635,6 +1654,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+          {beatTarget && !result.reference && (() => {
+            const v = beatVerdict({ mine: result.score_exact ?? result.score,
+                                    theirs: beatTarget.shown || beatTarget.score, who: beatTarget.username });
+            return v && (
+              <p className={`rounded-lg border px-3 py-2 text-center text-sm font-semibold ${v.won
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-white/15 bg-white/5 text-white/80"}`}>
+                {v.text}
+              </p>
+            );
+          })()}
           {/* What the number is, in the server's words, beside the number; and
               real listener ratings (server-read only) next to the coach's. */}
           {result.score_rule && <p className="text-[11px] text-white/45">{result.score_rule}</p>}
