@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
 import { api } from "../api.js";
 import { beatVerdict } from "../challenge.js";
-import { EmailMe, ExampleCard, PracticeBeat } from "../components/TrialExtras.jsx";
+import { EmailMe, ExampleCard, JoinWall, PracticeBeat } from "../components/TrialExtras.jsx";
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
@@ -1143,7 +1143,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             🏁 To beat: {beatTarget.username ? `@${beatTarget.username}'s ` : ""}{beatTarget.shown || beatTarget.score}/10 on this coach
           </p>
         )}
-        {trial && !result && !busy && (
+        {/* A shut door shows the join card and nothing that implies a take can be sent:
+            a beat to perform over, or options for a take, would read as controls that work. */}
+        {trial && !result && !busy && !blocked && (
           <div className="mt-2 space-y-2">
             <ExampleCard example={price?.example} />
             {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
@@ -1171,7 +1173,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="font-semibold text-white/80">Not saved to your progress.</p>
           </div>
         )}
-        <p className={`mt-1 text-[11px] text-white/45 ${refMode ? "hidden" : ""}`}>
+        <p className={`mt-1 text-[11px] text-white/45 ${refMode || blocked ? "hidden" : ""}`}>
           Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
           actually worked, what to fix, and a drill to run before the next one. On camera the coach can
           mark delivery and breath too.
@@ -1201,7 +1203,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {/* On the trial the options fold away: a stranger came for a score,
           and three dropdowns plus two checkboxes ahead of the record button
           read as homework. The defaults score a take fine. */}
-      {trial ? (
+      {trial && blocked ? null : trial ? (
         <details className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
           <summary className="cursor-pointer text-[12px] text-white/55">
             Options — genre, range, difficulty, lyrics, mix <span className="text-white/35">(the defaults are fine)</span>
@@ -1298,17 +1300,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           stays right beside it for whoever would rather sing now. A member is
           already past that, so their recorder keeps the order it had. */}
       {/* Stated before the recorder, not after the performance. */}
-      {blocked && (
+      {/* The three "no"s an account fixes get the join card: what an account is worth, in the
+          server's numbers, before the button. Our own outage keeps the plain note below. */}
+      {blocked && price.configured && (
+        <JoinWall note={blockedNote}
+                  reason={price.already_used ? "already_used" : price.address_busy ? "address_busy" : "cap_reached"} />
+      )}
+      {blocked && !price.configured && (
         <div className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.07] p-4">
           <p className="text-[12px] font-semibold text-white">No free take right now</p>
           <p className="text-[11px] leading-relaxed text-white/70">{blockedNote}</p>
-          {/* An account is the honest answer to both of the caps. It is not
-              the answer to our own outage, so it isn't offered for that one. */}
-          {price.configured && (
-            <Link to="/register" className="re-btn re-btn-emerald !w-auto px-4">
-              Make a free account
-            </Link>
-          )}
         </div>
       )}
 

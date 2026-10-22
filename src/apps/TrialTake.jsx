@@ -18,7 +18,10 @@ import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 import RetakeRemind from "../components/RetakeRemind.jsx";
 import { beatVerdict } from "../challenge.js";
 
-const TRIAL_TOKEN_KEY = "mcz_trial_token";
+import { TRIAL_TOKEN_KEY, clearTrialToken, storedTrialToken } from "../trialToken.js";
+
+// Re-exported: Register has always imported these from here.
+export { clearTrialToken, storedTrialToken };
 
 // The doors the front door offers come from GET /api/economy/trialdoorz/,
 // which reads them off the mounted routes.
@@ -34,22 +37,6 @@ const TRIAL_TOKEN_KEY = "mcz_trial_token";
 // have always existed still open, because a trial screen that renders
 // nothing is worse than one that renders less than it could.
 const FALLBACK = [{ app_key: "singz", label: "SingZ" }, { app_key: "rapz", label: "RapZ" }];
-
-export function storedTrialToken() {
-  try {
-    return localStorage.getItem(TRIAL_TOKEN_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-export function clearTrialToken() {
-  try {
-    localStorage.removeItem(TRIAL_TOKEN_KEY);
-  } catch {
-    /* private-mode browsers throw on storage; losing the token is survivable */
-  }
-}
 
 // Tier numbers come from /api/economy/tiers/, never typed here.
 const perDay = (n) => (n == null || n >= 999 ? "Unlimited" : `${n}/day`);
