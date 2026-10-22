@@ -5,6 +5,7 @@ import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
 import { clearTrialToken, storedTrialApp, storedTrialToken } from "../trialToken.js";
+import { clearQuizResult, storedQuizResult } from "../quizResult.js";
 import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 
@@ -122,8 +123,9 @@ export default function Register() {
     setBusy(true);
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken,
-                       trial_split: trialSplit || undefined });
+                       trial_split: trialSplit || undefined, personality: storedQuizResult() || undefined });
       clearTrialToken();
+      clearQuizResult();
       clearTrialSplit();
       track("register_success");
       // Show habit onboarding before going home — new users hook into daily returns.
