@@ -71,9 +71,19 @@ export default function GameZ() {
       const q = await api(`/api/economy/gamez/${game.id}/build/`);
       setQuote((prev) => ({ ...prev, [game.id]: q }));
     } catch (e) {
+      setQuote((prev) => ({ ...prev, [game.id]: false }));
       setMsg(e.message || "Couldn't read the build cost.");
     }
   }
+
+  // Every game's build price is asked for as the list loads, so the Build button carries
+  // it before anything is pressed. It used to sit behind a "What does a build cost?"
+  // press, a price you had to ask for.
+  useEffect(() => {
+    for (const g of asList(data?.games)) {
+      if (quote[g.id] === undefined) getQuote(g);
+    }
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function build(game) {
     setBusy(true); setMsg("");
@@ -228,13 +238,24 @@ export default function GameZ() {
                   {q ? (
                     <button className="re-btn re-btn-cyan !w-auto px-4"
                             disabled={busy || !q.allowed || g.status === "building"}
-                            onClick={() => build(g)}>
-                      <Hammer size={15} /> Build · −{q.cost?.per_second} {ENERGY}/sec
+                            onClick={() => build(g)} title={q.billing_note || ""}>
+                      <Hammer size={15} /> Build ·{" "}
+                      {/* No cost from the server means no build command: packaging is free. */}
+                      {q.cost?.per_second > 0
+                        ? <span className="text-mcz-ember">−{q.cost.per_second} {ENERGY}/sec</span>
+                        : <span className="text-emerald-300">Free</span>}
+                    </button>
+                  ) : q === false ? (
+                    <button className="re-btn !w-auto px-4" onClick={() => getQuote(g)}>
+                      <Hammer size={15} /> Build — couldn't read the price, try again
                     </button>
                   ) : (
-                    <button className="re-btn !w-auto px-4" onClick={() => getQuote(g)}>
-                      <Hammer size={15} /> What does a build cost?
+                    <button className="re-btn !w-auto px-4" disabled>
+                      <Loader2 size={15} className="animate-spin" /> Reading the build price…
                     </button>
+                  )}
+                  {q?.cost?.per_second > 0 && q.billing_note && (
+                    <span className="basis-full text-[11px] text-white/40">{q.billing_note}</span>
                   )}
                   <label className="re-btn re-btn-emerald !w-auto cursor-pointer px-4">
                     <Upload size={15} /> Add asset

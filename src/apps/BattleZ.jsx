@@ -9,6 +9,7 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
+import { Price } from "../components/Price.jsx";
 import { celebrateBattles, celebratePartnerz } from "../milestones.js";
 import PartnerzMark from "../components/PartnerzMark.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -188,6 +189,11 @@ function Detail({ id, onBack, onFlash, seed }) {
   // guess that disagrees with the bill exactly when it matters.
   const [skills, setSkills] = useState([]);
   const [cost, setCost] = useState(null);
+  const [stake, setStake] = useState("");
+  const [spinazLeft, setSpinazLeft] = useState(null);
+  useEffect(() => {
+    api("/api/economy/wallet/").then((w) => setSpinazLeft(w?.wallet?.spinaz ?? null)).catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
@@ -268,13 +274,17 @@ function Detail({ id, onBack, onFlash, seed }) {
     } catch (e) { onFlash(e.message || "Couldn't answer that."); }
   }
 
+  // The stake is typed in beside the buttons, so each button can say what it takes
+  // before it is pressed. It used to be a browser prompt: the button said "Back @x" and
+  // the price turned up in a popup, with no balance beside it.
   async function wager(side) {
-    const raw = window.prompt(`How many SpinaZ on @${b.scoreboard?.[side]?.username}?`);
-    const amount = Number(raw);
-    if (!raw || !Number.isFinite(amount) || amount <= 0) return;
+    const amount = Math.round(Number(stake));
+    if (!Number.isFinite(amount) || amount <= 0) return;
     try {
       setB(await api(`/api/economy/battlez/${id}/wager/`,
-                     { method: "POST", body: { side, amount: Math.round(amount) } }));
+                     { method: "POST", body: { side, amount } }));
+      setStake("");
+      api("/api/economy/wallet/").then((w) => setSpinazLeft(w?.wallet?.spinaz ?? null)).catch(() => {});
       onFlash(talk(P.battle_staked(Math.round(amount))));
       // After the server takes it, never before: a refused wager stakes
       // nothing, and it must not sound like it did.
@@ -387,12 +397,22 @@ function Detail({ id, onBack, onFlash, seed }) {
               </p>
             ) : b.status === "open" && !b.i_am_contestant ? (
               <>
-                <div className="flex flex-wrap gap-2">
-                  {["host", "opponent"].map((side) => (
-                    <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}>
-                      Back @{b.scoreboard?.[side]?.username}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input className="neon-input !w-24 !py-1 text-xs" type="number" min="1" step="1" inputMode="numeric"
+                         aria-label={`SpinaZ to stake`} placeholder={`${SPINAZ} stake`}
+                         value={stake} onChange={(e) => setStake(e.target.value)} />
+                  {["host", "opponent"].map((side) => {
+                    const n = Math.round(Number(stake)) || 0;
+                    const short = spinazLeft != null && n > spinazLeft;
+                    return (
+                      <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}
+                              disabled={n <= 0 || short}>
+                        Back @{b.scoreboard?.[side]?.username}
+                        {n > 0 && <span className="ml-1"><Price amount={n} emoji={SPINAZ} /></span>}
+                      </button>
+                    );
+                  })}
+                  {spinazLeft != null && <span className="text-[11px] text-white/45">You have {spinazLeft.toLocaleString()} {SPINAZ}</span>}
                 </div>
                 <p className="text-[10px] text-white/35">
                   Your stake leaves your wallet now and is held until the result. Winners split the

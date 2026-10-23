@@ -16,6 +16,8 @@
 // doesn't fit MovieZ, it fits ReelZ" — but only after the upload, which is the
 // right answer at the wrong moment when the thing uploaded is a three-hour film.
 // The same answer arrives here first.
+import { Price } from "../components/Price.jsx";
+import { PROMPTZ } from "../resources.js";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Clapperboard, Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -305,6 +307,13 @@ export default function DirectZ() {
         <button className="neon-btn-primary" disabled={busy || !fits}>
           {busy ? <Loader2 className="animate-spin" size={16} /> : <Clapperboard size={16} />}
           Post to DirectZ
+          {/* The craft rating is what this press spends, so its price rides on the
+              button as well as on the box that turns it on. */}
+          {form.craft_rating && spec?.craft && (
+            <span className="ml-2 text-[12px]">
+              <Price amount={spec.craft.cost_cents} emoji={PROMPTZ} freeToday={!!spec.craft.free_today} />
+            </span>
+          )}
         </button>
       </form>
 

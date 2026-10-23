@@ -1,3 +1,4 @@
+import { Price } from "./Price.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { goToSpot } from "../goto.js";
@@ -33,12 +34,8 @@ import { DEFAULT_FILTER, DEFAULT_SORT, filterTakes, genresOf, isDefault, needsAl
 // in the coach was scored and not kept. The panel says so rather than letting
 // "export" imply the recording goes too.
 
-function Cost({ cost }) {
-  if (!cost) return null;
-  return cost.free_today
-    ? <span className="text-emerald-300">free today</span>
-    : <span className="text-mcz-ember">−{cost.amount} {PROMPTZ}</span>;
-}
+// The shared price label (components/Price.jsx), fed this screen's quote shape.
+const Cost = ({ cost }) => (cost ? <Price amount={cost.amount} emoji={PROMPTZ} freeToday={!!cost.free_today} /> : null);
 
 function Row({ t, labels, appKey }) {
   const [open, setOpen] = useState(false);

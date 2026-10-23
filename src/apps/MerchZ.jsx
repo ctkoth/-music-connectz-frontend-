@@ -33,7 +33,7 @@ export default function MerchZ() {
 
   const load = () => {
     api("/api/economy/merch/").then((d) => setItems(d.items || [])).catch((e) => setErr(e.message));
-    api("/api/economy/wallet/").then((w) => setMoney(w.money_cents)).catch(() => {});
+    api("/api/economy/wallet/").then((w) => setMoney(w?.wallet?.money_cents ?? null)).catch(() => {});
   };
   useEffect(() => {
     load();
