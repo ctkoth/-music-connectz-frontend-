@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Zap, Music, X, Loader2, Bell, Globe, Volume2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
@@ -17,6 +17,22 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [language, setLanguage] = useState("en");
   const [soundEnabled, setSoundEnabled] = useState(true);
+  // The Premium line reads the ladder from the server, like Register's cards: it
+  // used to say "5 scored takes/day" and "advanced analytics" — a typed-in
+  // number that went stale the day the allowance moved, and a feature that was
+  // never built. No tiers, no line.
+  const [premium, setPremium] = useState(null);
+  const [free, setFree] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/tiers/", { auth: false }).then((d) => {
+      if (!on) return;
+      const list = Array.isArray(d?.tiers) ? d.tiers : [];
+      setPremium(list.find((t) => t.key === "premium") || null);
+      setFree(list.find((t) => t.key === "free") || null);
+    }).catch(() => {});
+    return () => { on = false; };
+  }, []);
 
   async function createHabit() {
     setCreating(true);
@@ -244,9 +260,13 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
 
           <div className="rounded-lg border border-mcz-gold/20 bg-mcz-gold/5 p-4 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-mcz-gold">Ready for more?</p>
-            <p className="text-xs text-white/75">
-              <span className="text-mcz-cyan">Premium</span> gives you 2x faster Energy, 5 scored takes/day, and advanced analytics.
-            </p>
+            {premium && (
+              <p className="text-xs text-white/75">
+                <span className="text-mcz-cyan">Premium</span> gives you {premium.daily_prompts} free AI runs a day
+                {free ? ` (you have ${free.daily_prompts})` : ""} and {premium.energy_per_hour} ⚡/hour
+                {free ? ` (you get ${free.energy_per_hour})` : ""}.
+              </p>
+            )}
             <Link to="/settings/membership" className="inline-flex items-center gap-1 text-xs font-medium text-mcz-gold hover:text-mcz-gold/80">
               View membership plans <ChevronRight size={12} />
             </Link>
