@@ -1,3 +1,4 @@
+import ShareStats from "../components/ShareStats.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Loader2, Radio } from "lucide-react";
@@ -271,6 +272,7 @@ function PostDetail({ id, onBack }) {
   return (
     <div className="space-y-3">
       <button className="re-link text-sm" onClick={onBack}>← All my posts</button>
+      <ShareStats endpoint={`/api/economy/views/post/${id}/share/`} />
       {!d ? (err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />) : (
         <>
           <div className="flex items-center gap-2">

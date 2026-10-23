@@ -4,6 +4,7 @@
 // component just doesn't bother calling it — or showing anything — for
 // anyone else. See apps/economy/models.py FunnelEvent on the backend: real
 // counts of real events only, never a fabricated number.
+import ShareStats from "../components/ShareStats.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
@@ -397,6 +398,7 @@ export default function FunnelZ() {
       )}
 
       {steps && !loading && <Headline rows={data.headline} />}
+      {steps && !loading && <ShareStats endpoint="/api/economy/funnel/share/" membersToggle defaultDays={[1, 7, 14, 30, 90].includes(days) ? days : 30} />}
       {/* The other no-account door, read the same way: same browser, test then account. */}
       {steps && !loading && data.quiz && (
         <div className="space-y-1">
