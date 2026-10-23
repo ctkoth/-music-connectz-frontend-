@@ -1767,6 +1767,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
           {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
+          {trial && result.as_member && (
+            <p className="text-[12px] text-white/60">
+              As a member this take would have been free (1 of your {result.as_member.daily_prompts} daily prompts),{" "}
+              <span className="text-mcz-ember">−{result.as_member.energy} ⚡</span>, and earned{" "}
+              <span className="text-emerald-300">+{result.as_member.xp} ⭐</span>. Join and it's kept, with the XP.
+            </p>
+          )}
           {trial && result.emailed && (
             <p className={`text-[12px] ${result.emailed.sent ? "text-emerald-300" : "text-mcz-gold"}`}>
               {result.emailed.sent ? `Sent to ${result.emailed.email}.` : result.emailed.detail}
