@@ -14,6 +14,7 @@
 // The gallery is the Images filter, and an image becomes the profile picture from here
 // in one press — the server copies it, so deleting the file later does not blank the
 // avatar.
+import Doors from "../components/Doors.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileAudio, FileVideo, Image as ImageIcon, File as FileIcon, Loader2, Send, Trash2, UserCircle2 } from "lucide-react";
@@ -186,6 +187,12 @@ export default function FileZ() {
                   <Trash2 size={14} />
                 </button>
               </div>
+              {/* Send it anywhere, or to a coach — the same bar every app uses. Post it is
+                  the priced button above, so the bar leaves it out. */}
+              {k !== "other" && u.url && (
+                <Doors noPost item={{ title: String(u.name || "").replace(/\.[a-z0-9]+$/i, ""), url: u.url,
+                                      kind: k, uploadId: u.id, postId: u.post?.id }} />
+              )}
             </div>
           );
         })}

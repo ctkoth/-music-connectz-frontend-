@@ -220,6 +220,11 @@ export default function JournalZ() {
     setBody([p.description, p.lyrics].filter(Boolean).join("\n\n"));
     if (p.author) setPeople((cur) => (cur.includes(p.author) ? cur : [...cur, p.author]));
     if (p.place) setPlaceName(p.place);
+    // A file handed over by the Doors bar arrives already hosted: its address goes into
+    // the slot, so nothing is uploaded twice.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
     flash(`"${p.title}" is in today's entry — it stays private until you share it.`);
   }), []);
 
