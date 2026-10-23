@@ -405,7 +405,8 @@ export default function OCC() {
     } catch (e) { flash(e.message || "Couldn't undo that."); }
   };
   const cancel = async (t) => {
-    await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }).catch(() => {});
+    try { await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }); }
+    catch (e) { flash(e.message || "Couldn't cancel that."); }
     loadTasks();
   };
   // Cross-pollination: OCC's own queue is a place work SITS, not a place a
@@ -513,7 +514,9 @@ export default function OCC() {
   }
 
   async function removeWork(w) {
-    await api(`/api/economy/occ/workz/${w.id}/`, { method: "DELETE" }).catch(() => {});
+    if (!window.confirm(`Remove “${w.title || "this work"}” from your WorkZ? It can't be undone.`)) return;
+    try { await api(`/api/economy/occ/workz/${w.id}/`, { method: "DELETE" }); }
+    catch (e) { flash(e.message || "Couldn't remove that."); }
     loadWorks();
   }
 

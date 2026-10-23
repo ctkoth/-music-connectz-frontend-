@@ -165,7 +165,7 @@ function AddTrack({ playlistId, onAdded }) {
           </p>
         </>
       ) : (
-        <select className="neon-input !py-2 text-xs" value={postId} onChange={(e) => setPostId(e.target.value)}>
+        <select aria-label="Post to add" className="neon-input !py-2 text-xs" value={postId} onChange={(e) => setPostId(e.target.value)}>
           <option value="">Pick a post…</option>
           {posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
@@ -198,8 +198,10 @@ function Collaborators({ pl, onChanged }) {
   }
 
   async function remove(username) {
-    await api(`${path}${username ? `?username=${encodeURIComponent(username)}` : ""}`,
-              { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`${path}${username ? `?username=${encodeURIComponent(username)}` : ""}`, { method: "DELETE" });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't remove them."); }
     onChanged();
   }
 
@@ -315,13 +317,21 @@ function Detail({ id, onBack, onChanged }) {
   }
   const move = (index, delta) => moveTo(index, index + delta);
 
+  // A refused write says why. These used to swallow the error and reload, so a
+  // failure looked like a press that did nothing.
   async function remove(itemId) {
-    await api(`/api/economy/playlistz/${id}/items/${itemId}/`, { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${id}/items/${itemId}/`, { method: "DELETE" });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't remove that track."); }
     load(); onChanged?.();
   }
 
   async function setVisibility(v) {
-    await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: { visibility: v } }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: { visibility: v } });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't change who can see it."); }
     load(); onChanged?.();
   }
 
@@ -432,18 +442,24 @@ function Appearances({ onOpen }) {
     .catch(() => setRows([]));
   useEffect(() => { load(); }, []);
 
+  const [msg, setMsg] = useState("");
   async function pull(row) {
     setBusy(`i${row.item_id}`);
-    await api(`/api/economy/playlistz/${row.playlist_id}/items/${row.item_id}/`,
-              { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${row.playlist_id}/items/${row.item_id}/`, { method: "DELETE" });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't take it out of that playlist."); }
     setBusy(""); load();
   }
 
   async function setAllowed(row, allowed) {
     setBusy(`p${row.post_id}`);
-    await api("/api/economy/postz/", {
-      method: "POST", body: { edit_id: row.post_id, allow_in_playlists: allowed },
-    }).catch(() => {});
+    try {
+      await api("/api/economy/postz/", {
+        method: "POST", body: { edit_id: row.post_id, allow_in_playlists: allowed },
+      });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't change that."); }
     setBusy(""); load();
   }
 
@@ -460,6 +476,8 @@ function Appearances({ onOpen }) {
   }
 
   return (
+    <>
+    {msg && <p className="text-[11px] text-mcz-ember">{msg}</p>}
     <ul className="space-y-1.5">
       {rows.map((r) => (
         <li key={r.item_id}
@@ -493,6 +511,7 @@ function Appearances({ onOpen }) {
         </li>
       ))}
     </ul>
+    </>
   );
 }
 
@@ -545,7 +564,7 @@ function PendingPost({ lists, onAdded, onDrop }) {
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto !py-2 text-xs" value={pick}
+          <select aria-label="Playlist" className="neon-input !w-auto !py-2 text-xs" value={pick}
                   onChange={(e) => setPick(e.target.value)}>
             <option value="">Which set?</option>
             {mine.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}

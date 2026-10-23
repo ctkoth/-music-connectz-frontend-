@@ -592,7 +592,7 @@ export default function JournalZ() {
                  value={q} onChange={(e) => setQ(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load()} />
         </span>
-        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
+        <select aria-label="Mood" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
                 value={mood} onChange={(e) => setMood(e.target.value)}>
           <option value="">Any mood</option>
           {moods.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}

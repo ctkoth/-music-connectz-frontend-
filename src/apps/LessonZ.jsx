@@ -194,7 +194,7 @@ function Browse() {
   return (
     <div className="space-y-4">
       <div className="neon-frame grid grid-cols-2 gap-3 p-4 sm:grid-cols-5">
-        <select className="neon-input" value={filters.skill} onChange={(e) => setFilters({ ...filters, skill: e.target.value })}>
+        <select aria-label="Skill" className="neon-input" value={filters.skill} onChange={(e) => setFilters({ ...filters, skill: e.target.value })}>
           <option value="">All skillz</option>
           {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -243,7 +243,7 @@ function Browse() {
               {o.remote_ok && <span><Wifi size={11} className="mr-0.5 inline" />Remote OK</span>}
             </p>
             <div className="flex items-center gap-2 pt-1">
-              <select data-memo="own"
+              <select aria-label="How the lesson happens" data-memo="own"
                 className="neon-input !w-auto !py-2 text-xs"
                 value={methods[o.id] || (o.in_person_ok ? "in_person" : o.remote_ok ? "remote" : "callz")}
                 onChange={(e) => setMethods({ ...methods, [o.id]: e.target.value })}
@@ -620,7 +620,7 @@ function Teach() {
           <input className={`neon-input ${errors.title ? "border-mcz-pink" : ""}`} placeholder="Lesson title" value={form.title} onChange={set("title")} />
           {errors.title && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.title}</p>}
         </div>
-        <select data-memo="own" className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
+        <select aria-label="Pricing" data-memo="own" className="neon-input" value={form.pricing_mode} onChange={set("pricing_mode")}>
           <option value="per_hour">Per hour</option>
           <option value="per_lesson">Per lesson</option>
         </select>
@@ -772,7 +772,7 @@ function Posts() {
   return (
     <div className="space-y-4">
       <div className="neon-frame flex gap-3 p-4">
-        <select className="neon-input" value={skill} onChange={(e) => setSkill(e.target.value)}>
+        <select aria-label="Skill" className="neon-input" value={skill} onChange={(e) => setSkill(e.target.value)}>
           <option value="">All skillz</option>
           {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -852,7 +852,7 @@ function PostForm() {
     <div className="neon-frame space-y-3 p-5">
       <h3 className="font-semibold">Post a recorded lesson</h3>
       <div className="grid gap-3 sm:grid-cols-2">
-        <select className="neon-input" value={form.skill} onChange={set("skill")}>
+        <select aria-label="Skill" className="neon-input" value={form.skill} onChange={set("skill")}>
           {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <div>

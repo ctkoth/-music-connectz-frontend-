@@ -174,7 +174,7 @@ export default function ProgressPanel({ appKey }) {
             <p className="text-[11px] leading-relaxed text-white/55">
               {rule.summary || "This only changes when the app eases you off the hard settings. It never moves a score."}
             </p>
-            <select id="fatigue-sens" value={declared.fatigue_sensitivity || ""} disabled={saving}
+            <select id="fatigue-sens" data-nomemo="true" value={declared.fatigue_sensitivity || ""} disabled={saving}
                     onChange={(e) => declare({ fatigue_sensitivity: e.target.value })}
                     className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white sm:w-80">
               {options.map((o) => (

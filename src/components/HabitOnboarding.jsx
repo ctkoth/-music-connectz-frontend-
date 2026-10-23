@@ -205,7 +205,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
                   <Globe size={16} className="text-mcz-cyan" />
                   <span className="text-sm font-medium text-white">Language</span>
                 </div>
-                <select
+                <select aria-label="Language"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   className="bg-white/5 border border-white/20 rounded px-2 py-1 text-xs text-white"

@@ -455,7 +455,7 @@ function Venue({ v, onChanged, onFlash }) {
     "Cancelled.",
   );
 
-  const callOff = () => act(
+  const callOff = () => window.confirm(`Call off “${v.title || v.name || "this"}”? Everyone who asked will see it's off.`) && act(
     () => api(`/api/economy/venuez/${v.id}/`, { method: "DELETE" }),
     "Called off. Everyone who asked can see that.",
   );
@@ -768,7 +768,7 @@ function HostForm({ onCreated, onFlash }) {
 <UsualHint field="venuez.category" value={f.category} onUse={(v) => { remember("venuez.category", v); setF({ ...f, category: v }); }} />
 
       <div className="space-y-1">
-        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
+        <select aria-label="Kind of booking" data-memo="own" className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
           <option value="performance">{f.category === "fitness" ? "Training — they pay your Weightlifter rates" : "Performance — they come for you"}</option>
           <option value="session">Session 🤝 — you want the room full</option>
           <option value="free">Free — nobody pays</option>
@@ -792,7 +792,7 @@ function HostForm({ onCreated, onFlash }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
+        <select aria-label="Pricing basis" data-memo="own" className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
           <option value="hour">Per hour</option>
           <option value="total">Agreed total</option>
         </select>

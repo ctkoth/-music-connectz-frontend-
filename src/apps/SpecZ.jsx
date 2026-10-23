@@ -81,6 +81,7 @@ export default function SpecZ() {
   }
 
   async function remove(id) {
+    if (!window.confirm("Delete this SpecZ? It can't be undone.")) return;
     setBusy(true);
     try {
       await api(`/api/economy/specz/${id}/`, { method: "DELETE" });
@@ -186,7 +187,7 @@ export default function SpecZ() {
                 <label className="re-label mb-1 block">Target app</label>
                 {/* The list comes from the server, so this cannot offer an app
                     the server would refuse. */}
-                <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                <select aria-label="App" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                         value={app} onChange={(e) => setApp(e.target.value)}>
                   {apps.map((a) => <option key={a.key} value={a.key}>{a.name}</option>)}
                 </select>

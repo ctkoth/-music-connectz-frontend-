@@ -189,7 +189,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
             account — the CTA below is what keeps it.
           </p>
           <div className="flex flex-wrap gap-2">
-            <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+            <select aria-label="Days per week" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                     value={days} onChange={(e) => setDays(e.target.value ? Number(e.target.value) : "")}>
               <option value="">Days per week…</option>
               {splits && Object.keys(splits).map((k) => (
@@ -197,7 +197,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
               ))}
             </select>
             {goals && (
-              <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
+              <select aria-label="Goal" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                       value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
                 <option value="">General (3 sets x 10)</option>
                 {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -446,7 +446,7 @@ export default function BodieZTrial() {
         </div>
         <div className="flex gap-2">
           {Object.keys(goals).length > 0 && (
-            <select className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
+            <select aria-label="Goal" className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-xs text-white outline-none"
                     value={goalKey} onChange={(e) => setGoalKey(e.target.value)}>
               <option value="">Any goal</option>
               {Object.entries(goals).map(([k, g]) => <option key={k} value={k}>{g.label}</option>)}
@@ -460,7 +460,7 @@ export default function BodieZTrial() {
             </span> — {goal.why}
           </p>
         )}
-        <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
+        <select aria-label="Exercise" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none"
                 value={exerciseId} onChange={(e) => setExerciseId(e.target.value)}>
           <option value="">Exercise…</option>
           {exercises.map((ex) => (
