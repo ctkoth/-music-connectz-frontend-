@@ -36,13 +36,14 @@
 // Deliberately not built yet: Nutrition, Community, and any XP/streak
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
   Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
-  GripVertical,
 } from "lucide-react";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
+import { moveItem, moveRun, moveWithinRun } from "../dragReorder.js";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
@@ -315,6 +316,22 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // Dragging a logged set: a display order only — rest, time and weight are untouched.
+  // The server's answer replaces the session, so a failed drag snaps back.
+  async function reorderSets(ids) {
+    if (!session) return;
+    const was = session;
+    setSession((cur) => {
+      if (!cur) return cur;
+      const byId = Object.fromEntries(cur.sets.map((x) => [x.id, x]));
+      return { ...cur, sets: ids.map((id, k) => ({ ...byId[id], position: k + 1 })) };
+    });
+    try {
+      const sess = await api(`/api/economy/bodiez/sessions/${was.id}/order/`, { method: "POST", body: { ids } });
+      setSession((cur) => (cur && cur.id === sess.id ? { ...cur, sets: sess.sets } : cur));
+    } catch (e) { setSession(was); setErr(e.message || "Couldn't move that set."); }
+  }
+
   async function addCustomDay(name) {
     try {
       await api("/api/economy/bodiez/custom-days/", { method: "POST", body: { name } });
@@ -551,7 +568,7 @@ export default function BodieZ() {
             )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
-              onStart={startSession} onFinish={finishSession} onLogSet={logSet}
+              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -1054,8 +1071,10 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [] }) {
+function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
+                     grip = null, onReorder = null }) {
   const unit = useUnit();
+  const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
@@ -1079,7 +1098,8 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        {grip}
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
             {planned.name}
@@ -1136,8 +1156,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
       </div>
       {doneSets.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {doneSets.map((s) => (
-            <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
+          {doneSets.map((s, si) => (
+            <span key={s.id} {...(onReorder && doneSets.length > 1 ? dndSets.row(si) : {})}
+                  className={`inline-flex items-center rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60${dndSets.rowClass(si)}`}>
+              {onReorder && doneSets.length > 1 && <DragGrip label="Drag this set" size={11} {...dndSets.grip(si)} />}
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
@@ -1149,7 +1171,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals,
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1164,6 +1186,32 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const unplannedLast = useHistory(exerciseId || null, unplannedSide);
   // Today-only swaps: planned exercise id -> the lift actually being done.
   const [swaps, setSwaps] = useState({});
+  // Today-only order of the plan (dragged), kept for this session on this device. The
+  // saved routine is not changed, the same as a swap.
+  const orderKey = session ? `mcz_bodiez_order_${session.id}` : "";
+  const [order, setOrderState] = useState([]);
+  useEffect(() => {
+    if (!orderKey) return;
+    try { setOrderState(JSON.parse(localStorage.getItem(orderKey) || "[]")); } catch { setOrderState([]); }
+  }, [orderKey]);
+  const setOrder = (ids) => {
+    setOrderState(ids);
+    try { localStorage.setItem(orderKey, JSON.stringify(ids)); } catch { /* blocked */ }
+  };
+  const planBlocksRef = useRef([]);
+  const dndPlan = useDragReorder("today-ex", (from, to) => {
+    const moved = moveItem(planBlocksRef.current, from, to);
+    setOrder(moved.flatMap((b) => (b.single ? [b.single.orig_id] : b.pair.map((x) => x.orig_id))));
+  });
+  // A logged set dragged inside its exercise: the exercise's sets take the same slots
+  // in the whole session's order, in their new order.
+  const reorderWithin = (exerciseId, from, to) => {
+    const all = asList(session?.sets);
+    const mine = all.filter((x) => x.exercise_id === exerciseId);
+    const moved = moveItem(mine, from, to);
+    let k = 0;
+    onReorderSets?.(all.map((x) => (x.exercise_id === exerciseId ? moved[k++].id : x.id)));
+  };
   // A goal card's "Train this" hands the exercise over this way. The
   // "unplanned exercise" picker only exists once a session is running, so
   // this waits for one rather than consuming the handoff on arrival — a
@@ -1199,9 +1247,11 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   }
 
   const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
+  const rank = (id) => { const k = order.indexOf(id); return k < 0 ? Infinity : k; };
   const planned = routine ? asList(routine.exercises)
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .sort((a, b) => rank(a.exercise_id) - rank(b.exercise_id))
     .map((e) => {
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
@@ -1263,12 +1313,18 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
       {planned.length > 0 && (
         <div className="space-y-2">
-          <p className="re-label">Your plan</p>
-          {blocks(planned).map((b) => {
+          <p className="re-label">Your plan <span className="font-normal normal-case text-white/35">— drag ⋮⋮ to change today's order</span></p>
+          {(planBlocksRef.current = blocks(planned)).map((b, bi) => {
+            const grip = <DragGrip label="Drag this exercise" {...dndPlan.grip(bi)} />;
             if (b.single) {
               const p = b.single;
-              return <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
-                                onLogSet={onLogSet} {...swapProps(p)} />;
+              return (
+                <div key={p.exercise_id} {...dndPlan.row(bi)} className={`rounded-xl${dndPlan.rowClass(bi)}`}>
+                  <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
+                             onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
+                             onLogSet={onLogSet} {...swapProps(p)} />
+                </div>
+              );
             }
             const [x, y] = b.pair;
             const dx = (setsByExercise[x.exercise_id] || []).length;
@@ -1278,15 +1334,18 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
             // each say it, and a marker that is on three rows at once marks nothing.
             const started = dx + dy > 0;
             return (
-              <div key={`${x.exercise_id}-${y.exercise_id}`}
-                   className="space-y-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/[0.03] p-2">
-                <p className="px-1 text-[11px] text-fuchsia-200/80">
+              <div key={`${x.exercise_id}-${y.exercise_id}`} {...dndPlan.row(bi)}
+                   className={`space-y-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/[0.03] p-2${dndPlan.rowClass(bi)}`}>
+                <p className="flex items-center gap-1 px-1 text-[11px] text-fuchsia-200/80">
+                  {grip}
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
                 <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
+                           onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
                            tag={`${b.group}1`} isNext={started && nxt === 0} />
                 <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
+                           onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
                            tag={`${b.group}2`} isNext={started && nxt === 1} />
               </div>
             );
@@ -1300,7 +1359,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           <LoggerRow key={id}
                      planned={{ exercise_id: id, name: ex?.name || `Exercise #${id}`,
                                 muscle_group: ex?.muscle_group, equipment: ex?.equipment, sets: setsByExercise[id].length }}
-                     doneSets={setsByExercise[id]} onLogSet={onLogSet} />
+                     doneSets={setsByExercise[id]} onLogSet={onLogSet}
+                     onReorder={(f, t) => reorderWithin(id, f, t)} />
         );
       })}
 
@@ -1434,7 +1494,10 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const setOpen = (v) => { setOpenState(v); if (!v && editing) onCancel?.(); };
   const [date, setDate] = useState(editDate || todayStr);
   const [notes, setNotes] = useState(editing?.notes || "");
-  const [sets, setSets] = useState(() => (editing ? asList(editing.sets).slice().sort((a, b) => a.id - b.id).map((st) => ({
+  // The member's order (`position`, set when a workout is typed in, edited or dragged),
+  // then the order things happened for a set logged live and never moved.
+  const [sets, setSets] = useState(() => (editing ? asList(editing.sets).slice()
+    .sort((a, b) => (a.position || 0) - (b.position || 0) || a.id - b.id).map((st) => ({
     id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
   const [exerciseId, setExerciseId] = useState("");
@@ -1512,6 +1575,19 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     finally { setBusy(false); }
   }
 
+  const grouped = [];
+  sets.forEach((st, i) => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.exercise_id === st.exercise_id) last.rows.push({ ...st, i });
+    else grouped.push({ exercise_id: st.exercise_id, rows: [{ ...st, i }] });
+  });
+  // Drag an exercise (all its sets go with it) or one set inside its exercise.
+  const exOf = (st) => st.exercise_id;
+  const groupOf = (i) => grouped.findIndex((g) => g.rows.some((r) => r.i === i));
+  const dndEx = useDragReorder("pw-ex", (from, to) => { setSets(moveRun(sets, exOf, from, to)); setSwapping(null); });
+  const dndSet = useDragReorder("pw-set", (from, to) => setSets(moveItem(sets, from, to)),
+                                (from, to) => groupOf(from) === groupOf(to));
+
   if (!open) {
     return (
       <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => setOpen(true)}>
@@ -1520,12 +1596,6 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     );
   }
 
-  const grouped = [];
-  sets.forEach((st, i) => {
-    const last = grouped[grouped.length - 1];
-    if (last && last.exercise_id === st.exercise_id) last.rows.push({ ...st, i });
-    else grouped.push({ exercise_id: st.exercise_id, rows: [{ ...st, i }] });
-  });
 
   return (
     <div className="re-card space-y-3">
@@ -1550,9 +1620,10 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       </div>
 
       {grouped.map((g, gi) => (
-        <div key={gi} className="rounded-lg bg-white/5 px-3 py-2">
+        <div key={gi} {...dndEx.row(gi)} className={`rounded-lg bg-white/5 px-3 py-2${dndEx.rowClass(gi)}`}>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-white">
+            <DragGrip label="Drag this exercise" {...dndEx.grip(gi)} />
+            <p className="min-w-0 flex-1 text-xs font-semibold text-white">
               {nameOf(g.exercise_id)}
               {exercises.find((e) => e.id === g.exercise_id)?.equipment && (
                 <span className="ml-1.5 font-normal text-white/40">
@@ -1580,8 +1651,10 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
             </div>
           )}
           {g.rows.map((r) => (
-            <div key={r.i} className="flex items-center justify-between gap-2 py-0.5 text-xs text-white/70">
+            <div key={r.i} {...dndSet.row(r.i)}
+                 className={`flex items-center justify-between gap-2 rounded py-0.5 text-xs text-white/70${dndSet.rowClass(r.i)}`}>
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                {g.rows.length > 1 && <DragGrip label="Drag this set" size={12} {...dndSet.grip(r.i)} />}
                 <input aria-label="Weight" type="number" min="0" step="0.5" inputMode="decimal" placeholder="bw"
                        className="w-20 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                        value={r.weight_kg != null ? String(fromKg(r.weight_kg, unit)) : ""}
@@ -1743,28 +1816,13 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setRows(normalize(next));
     setDirty(true);
   };
-  // Drag to reorder. Pointer events rather than HTML5 drag-and-drop, which never fires
-  // for a finger on a phone. Same `normalize` as the arrows, so a superset a drop pulls
-  // apart is dropped rather than left claiming a partner that is no longer beside it.
-  const [drag, setDrag] = useState(null);           // {from, over}
-  const moveTo = (from, to) => {
-    if (from === to) return;
-    const next = rows.slice();
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    setRows(normalize(next));
+  // Drag to reorder (the shared pattern in useDragReorder). Same `normalize` as the
+  // arrows, so a superset a drop pulls apart is dropped rather than left claiming a
+  // partner that is no longer beside it.
+  const dnd = useDragReorder("routine", (from, to) => {
+    setRows(normalize(moveItem(rows, from, to)));
     setDirty(true);
     setSwapIdx(null);
-  };
-  const dragHandlers = (i) => ({
-    onPointerDown: (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); setDrag({ from: i, over: i }); },
-    onPointerMove: (e) => {
-      if (!drag) return;
-      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-routine-row]");
-      if (el) setDrag((d) => (d ? { ...d, over: Number(el.dataset.routineRow) } : d));
-    },
-    onPointerUp: () => { if (drag) moveTo(drag.from, drag.over); setDrag(null); },
-    onPointerCancel: () => setDrag(null),
   });
   const link = (i) => {
     const next = linkWithNext(rows, i);
@@ -1832,16 +1890,10 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
         const ex = exercises.find((x) => x.id === r.exercise_id);
         const tag = badge(rows, i);
         return (
-          <div key={i} data-routine-row={i}
+          <div key={i} {...dnd.row(i)}
                className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
-                 tag ? "border-l-2 border-fuchsia-400/60" : ""} ${
-                 drag?.from === i ? "opacity-40" : ""} ${
-                 drag && drag.over === i && drag.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
-            <button type="button" aria-label="Drag to reorder" title="Drag to reorder"
-                    className="cursor-grab touch-none select-none rounded p-1 text-white/30 hover:text-white active:cursor-grabbing"
-                    {...dragHandlers(i)}>
-              <GripVertical size={15} />
-            </button>
+                 tag ? "border-l-2 border-fuchsia-400/60" : ""}${dnd.rowClass(i)}`}>
+            <DragGrip {...dnd.grip(i)} />
             <div className="flex flex-col">
               <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
                       disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>

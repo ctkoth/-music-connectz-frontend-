@@ -6,6 +6,7 @@ import CharLimit from "../CharLimit.jsx";
 import { useCharLimit } from "../limits.js";
 import MemberName from "../MemberName.jsx";
 import { goToSpot } from "../goto.js";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
 
 // Sonday — boards for the work in flight. Columns, cards, and who may touch them.
 //
@@ -214,6 +215,13 @@ function Board({ id, onBack, onGone }) {
   const [newCol, setNewCol] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [drag, setDrag] = useState(null);
+  // A finger has no HTML5 drag-and-drop, so the card's ⋮⋮ grip carries it across columns
+  // with the same pointer drag every other list uses; a mouse can still drag the card.
+  const colDnd = useDragReorder("sonday-col", (from, to) => {
+    const card = drag; setDrag(null);
+    const col = [...(b?.columns || [])].sort((x, y) => x.position - y.position)[to];
+    if (card && col && card.column !== col.id) move(card, col);
+  });
 
   const load = () => api(`${BASE}${id}/`).then((d) => { setB(d); setErr(""); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, [id]);
@@ -268,7 +276,8 @@ function Board({ id, onBack, onGone }) {
 
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2" data-tour="sonday-board">
         {cols.map((col, ci) => (
-          <div key={col.id} className="neon-frame w-64 shrink-0 snap-start space-y-2 p-2"
+          <div key={col.id} data-drag={`sonday-col:${ci}`}
+            className={`neon-frame w-64 shrink-0 snap-start space-y-2 p-2${colDnd.drag && colDnd.drag.over === ci && colDnd.drag.from !== ci ? " ring-1 ring-mcz-cyan/70" : ""}`}
             onDragOver={(e) => canEdit && drag && e.preventDefault()}
             onDrop={() => { if (drag && drag.column !== col.id) move(drag, col); setDrag(null); }}>
             <div className="flex items-center justify-between gap-1">
@@ -285,6 +294,12 @@ function Board({ id, onBack, onGone }) {
                 className="cursor-pointer rounded-lg border border-white/10 bg-black/40 p-2 text-sm hover:border-mcz-cyan/50"
                 onClick={() => setOpen(card)}>
                 <div className="flex items-start gap-1.5">
+                  {canEdit && cols.length > 1 && (
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <DragGrip label="Drag to another column" size={13} {...colDnd.grip(ci)}
+                        onPointerDown={(e) => { setDrag(card); colDnd.grip(ci).onPointerDown(e); }} />
+                    </span>
+                  )}
                   {card.color && <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${SWATCH[card.color]}`} />}
                   <p className="min-w-0 flex-1 break-words">{card.title}</p>
                 </div>
