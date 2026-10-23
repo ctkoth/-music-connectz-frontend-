@@ -18,6 +18,7 @@ import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
+import Gallery from "../components/Gallery.jsx";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 
 // What a member can DO with somebody from their card. Every card in the app
@@ -313,6 +314,8 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                 <LinkList links={data.links} owner={data.mine ? "" : username} />
               </div>
             )}
+
+            <Gallery username={username} mine={!!data.mine} />
 
             {data.mine && (
               <p className="text-[11px] text-white/35">This is you — edit any of it in ProfileZ.</p>

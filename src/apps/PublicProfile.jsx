@@ -23,6 +23,7 @@ import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import CopyLink from "../CopyLink.jsx";
+import Gallery from "../components/Gallery.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -126,6 +127,8 @@ export default function PublicProfile() {
               ))}
             </div>
           )}
+
+          <Gallery username={p.username} auth={false} />
 
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">
