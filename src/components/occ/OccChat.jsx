@@ -1,3 +1,4 @@
+import AiEnergy from "../AiEnergy.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Check, Flag, Loader2, Lock, MessageSquare, Save, Send } from "lucide-react";
 import { api } from "../../api.js";
@@ -418,6 +419,7 @@ export default function OccChat({ onKept }) {
               <span className="text-[11px] text-mcz-ember">{price.text}</span>
             )}
             {price.kind === "locked" && <span className="text-[11px] text-mcz-ember">{price.note}</span>}
+            {price.kind !== "locked" && <AiEnergy engine={state?.engine} className="text-[11px]" />}
             {/* The server's stated ceiling beside the clock: a wait with a stated
                 end is one somebody sits through, and a bare count that only goes
                 up cannot tell working from hung. */}

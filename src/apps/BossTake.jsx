@@ -4,6 +4,7 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
 import { ENERGY } from "../resources.js";
 import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -85,6 +86,15 @@ const mb = (n) => (n / 1024 / 1024).toFixed(1);
  *
  * Red minus for what leaves, green plus for what a free allowance covers —
  * never a bare number, and never only after the fact. */
+/** The XP a take earns, before it is sent: 10 for doing it plus (score − 5) × 10 above
+ * a 5, times the tier bonus — the server's formula (vocalcoach.coach_xp_base). */
+function XpGain() {
+  const d = useAiEnergy();
+  if (!d) return null;
+  const m = d.xp_multiplier || 1;
+  return <span className="text-[11px] text-emerald-300">+{Math.round(10 * m)}–{Math.round(60 * m)} ⭐ <span className="text-white/40">(more for a higher score)</span></span>;
+}
+
 function Cost({ price, trial }) {
   if (!price) return null;
   // The trial spends nothing the visitor owns — they have no wallet yet. Say
@@ -1347,7 +1357,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
                 {busy ? "Coaching it…" : fromPost.kind === "post" ? "Send this post to the coach" : "Send it to the coach"}
               </button>
-              <Cost price={price} trial={trial} />
+              <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
               {/* The ⚡ half of the price, before the press. A post costs Energy on
                   top of the prompt; a freshly recorded take does not. */}
               {!trial && price?.post_energy_cost > 0 && fromPost?.kind === "post" && (
@@ -1540,7 +1550,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {busy ? (refMode ? "Listening…" : "Coaching your take…")
                 : refMode ? "Listen to this track" : "Send it to the coach"}
             </button>
-            <Cost price={price} trial={trial} />
+            <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
             {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
           {/* The cost of keeping, said before the press: storage, not credits. */}
@@ -1756,6 +1766,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
           </div>
+          {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
           {trial && result.emailed && (
             <p className={`text-[12px] ${result.emailed.sent ? "text-emerald-300" : "text-mcz-gold"}`}>
               {result.emailed.sent ? `Sent to ${result.emailed.email}.` : result.emailed.detail}

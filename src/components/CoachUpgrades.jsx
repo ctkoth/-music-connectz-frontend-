@@ -1,3 +1,4 @@
+import AiEnergy from "./AiEnergy.jsx";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -84,7 +85,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
           </button>
           {pay && (
             <span className="text-[11px] text-mcz-ember">
-              −{pay.cost} {PROMPTZ}
+              −{pay.cost} {PROMPTZ} <AiEnergy />
               {pay.cash > 0 && <> ({pay.promptz} {PROMPTZ} + {pay.cash}¢ {MONEY})</>}
               <span className="text-white/40"> — a failed run isn't charged. A free daily prompt doesn't cover this one.</span>
             </span>

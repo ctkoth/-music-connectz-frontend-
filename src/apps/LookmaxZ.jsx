@@ -1,3 +1,4 @@
+import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
@@ -309,7 +310,7 @@ export default function LookmaxZ() {
               <button type="button" className="re-btn !w-auto px-4" disabled={busy || !file || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
                 {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Read my photo"}
               </button>
-              <Price s={d} />
+              <Price s={d} /> <AiEnergy className="text-[11px]" />
             </div>
             <p className="text-[11px] leading-snug text-white/45">{d.cost_note}</p>
             {!d.configured && <p className="text-[11px] text-white/40">The reader isn't switched on yet.</p>}

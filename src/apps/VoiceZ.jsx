@@ -1,3 +1,4 @@
+import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -84,7 +85,7 @@ export default function VoiceZ() {
     <span className="text-[11px]">
       {d.free_today
         ? <span className="text-emerald-300">Free today <span className="text-white/45">— uses 1 of your {d.daily_remaining} free prompts left</span></span>
-        : <span className="text-mcz-ember">−{d.preview_cost_cents} {PROMPTZ}</span>}
+        : <span className="text-mcz-ember">−{d.preview_cost_cents} {PROMPTZ}</span>} <AiEnergy />
       <span className="text-white/40"> · A reply that fails isn't charged.</span>
     </span>
   );
