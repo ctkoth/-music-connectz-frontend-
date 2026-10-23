@@ -31,6 +31,7 @@ const ICON_KEY = {
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
@@ -41,7 +42,7 @@ const EMOJI = {
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
 };
 
 // One app, several doors: CharacterZ and VoiceZ StyleZ sit under DesignZ AND
@@ -153,6 +154,13 @@ const TOOLZ_MENU = {
         { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
         { key: 'breathz', label: 'BreathZ', color: 'cyan', desc: 'Free breath training — box, long exhale, bar breathing' },
         { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
+      ]
+    },
+    {
+      group: 'Editors',
+      apps: [
+        { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
+        { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multi-track video editor', soon: true },
       ]
     },
     {
