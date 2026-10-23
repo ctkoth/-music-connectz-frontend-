@@ -81,6 +81,7 @@ function CardEditor({ card, columns, canEdit, onClose, onSaved }) {
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
   async function drop() {
+    if (!window.confirm(`Delete the card “${card.title}”? It can't be undone.`)) return;
     setBusy(true); setErr("");
     try { await api(`${BASE}cards/${card.id}/`, { method: "DELETE" }); onSaved(); }
     catch (e) { setErr(e.message); setBusy(false); }
@@ -195,7 +196,7 @@ function Members({ board }) {
       </ul>
       <form className="flex flex-wrap items-center gap-1" onSubmit={invite}>
         <input className="neon-input !w-36 !py-1 text-xs" placeholder="@member" value={who} onChange={(e) => setWho(e.target.value)} />
-        <select data-nomemo="true" className="neon-input !w-auto !py-1 text-xs" value={role} onChange={(e) => setRole(e.target.value)}>
+        <select aria-label="Role" data-nomemo="true" className="neon-input !w-auto !py-1 text-xs" value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="editor">can edit</option>
           <option value="viewer">can view</option>
         </select>

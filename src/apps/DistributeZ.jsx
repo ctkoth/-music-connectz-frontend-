@@ -55,7 +55,8 @@ function ReleaseCard({ r, quota, onChanged }) {
   }
   const save = () => run("save", () => api(`${RELEASES}${r.id}/`, { method: "PATCH", body: f }));
   const send = () => run("send", () => api(`${RELEASES}${r.id}/submit/`, { method: "POST", body: {} }));
-  const drop = () => run("drop", () => api(`${RELEASES}${r.id}/`, { method: "DELETE" }));
+  const drop = () => window.confirm(`Delete the release “${r.title || "untitled"}”? The post stays up; this release paperwork can't be brought back.`)
+    && run("drop", () => api(`${RELEASES}${r.id}/`, { method: "DELETE" }));
   const field = (k, label, props = {}) => (
     <label className="text-[11px] text-white/50">
       {label}

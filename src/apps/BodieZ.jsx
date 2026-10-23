@@ -341,6 +341,7 @@ export default function BodieZ() {
   }
 
   async function removeCustomDay(id) {
+    if (!window.confirm("Delete this day? It can't be undone.")) return;
     try {
       await api(`/api/economy/bodiez/custom-days/${id}/`, { method: "DELETE" });
       load();

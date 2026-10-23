@@ -132,7 +132,7 @@ export default function LabelZ() {
         <div className="neon-frame space-y-3 p-4">
           <h3 className="font-semibold"><FileSignature size={16} className="inline" /> Offer a contract</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            <select className="neon-input" value={offer.label_id} onChange={(e) => setOffer({ ...offer, label_id: e.target.value })}>
+            <select aria-label="From label" className="neon-input" value={offer.label_id} onChange={(e) => setOffer({ ...offer, label_id: e.target.value })}>
               <option value="">From label…</option>
               {myLabels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>

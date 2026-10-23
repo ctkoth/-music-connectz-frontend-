@@ -288,7 +288,7 @@ function CoachVoicePlayer({ result }) {
         Hear it — {(voices.voices.find((v) => v.id === (chosen || voices.voice)) || {}).label || "Coach Corey"}
       </button>
       {voices.can_sample && (
-        <select className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
+        <select aria-label="Coach voice to hear" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
                 value={chosen} onChange={(e) => setChosen(e.target.value)}>
           <option value="">{voices.voices.find((v) => v.id === voices.voice)?.label} (yours)</option>
           {voices.voices.filter((v) => v.id !== voices.voice).map((v) => (

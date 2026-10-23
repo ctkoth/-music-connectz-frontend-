@@ -69,6 +69,7 @@ export default function VoiceZ() {
     setBusy(false);
   }
   async function remove(v) {
+    if (!window.confirm(`Delete the voice “${v.name || "this voice"}”? It can't be undone.`)) return;
     setMsg("");
     try { const r = await api(`/api/economy/voicez/voices/${v.id}/`, { method: "DELETE" }); setMsg(r.detail); await load(); }
     catch (e) { setMsg(e.message); }

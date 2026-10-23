@@ -746,7 +746,7 @@ export default function BattleZ() {
             <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="Rules, brief, what you want back"
                       value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid gap-2 sm:grid-cols-2">
-              <select data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
+              <select aria-label="Genre" data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
                       onChange={(e) => { remember("battlez.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
                 {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>

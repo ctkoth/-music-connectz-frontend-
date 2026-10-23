@@ -144,7 +144,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
       </ul>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <select className="neon-input !w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
+        <select aria-label="Which tracks" className="neon-input !w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
           <option value="">All</option>
           {VISIBILITIES.map((v) => <option key={v} value={v}>{LABEL[v]}</option>)}
         </select>

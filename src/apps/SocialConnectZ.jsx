@@ -90,7 +90,7 @@ export default function SocialConnectZ() {
                   title="Your standards — who shows up here" />
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
-          <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
+          <select aria-label="NationalitieZ" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
             <option value="">🌐 All NationalitieZ</option>
             {NATIONALITIES.map(([flag, name]) => (
               <option key={name} value={name}>{flag} {name}</option>

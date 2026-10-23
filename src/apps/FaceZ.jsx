@@ -46,6 +46,7 @@ export default function FaceZ() {
   }
 
   async function remove(id) {
+    if (!window.confirm("Delete this face? It can't be undone.")) return;
     try { await api(`/api/economy/facez/${id}/`, { method: "DELETE" }); load(); } catch (x) { setErr(x.message); }
   }
 

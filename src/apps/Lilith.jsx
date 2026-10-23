@@ -293,7 +293,7 @@ export default function Lilith() {
         <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                placeholder="Something to do" maxLength={140}
                className="min-w-[12rem] flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-        <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
+        <select aria-label="Kind" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
                 className="rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-sm">
           {kinds.filter((k) => k.key !== "auto").map((k) => (
             <option key={k.key} value={k.key}>{k.label} · +{k.xp} {XP}</option>
@@ -456,7 +456,7 @@ export default function Lilith() {
                   type="text" placeholder="Target (e.g., 'post:123' or 'user:abc')" value={tagDraft.to_target}
                   onChange={(e) => setTagDraft({ ...tagDraft, to_target: e.target.value })}
                   className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
-                <select value={tagDraft.visibility}
+                <select aria-label="Who can see this tag" value={tagDraft.visibility}
                         onChange={(e) => setTagDraft({ ...tagDraft, visibility: e.target.value })}
                         className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px]">
                   <option value="private">Private (just me)</option>
