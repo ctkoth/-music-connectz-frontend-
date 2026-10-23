@@ -23,6 +23,8 @@
 export const APP_PURPOSE = {
   onboardz:    { does: "Set your profile up",            words: "start setup welcome begin first steps getting started" },
   postz:       { does: "Share a track or video",         words: "post upload share feed publish release song" },
+  characterz:  { does: "Make characters with a voice",   words: "characters cast persona face voice personality oc" },
+  mangaz:      { does: "Make manga pages with AI",       words: "manga comic page panels draw story characters ai" },
   sentencez:   { does: "Write, and get it coached",      words: "text editor lyrics writing coach score rhyme punchline verse write notes" },
   filez:       { does: "Every file you've uploaded",      words: "files uploads gallery images storage avatar picture" },
   playlistz:   { does: "Collect tracks into a playlist", words: "playlist collection album mixtape queue" },
