@@ -19,7 +19,7 @@ export const deviceTimezone = () => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
 };
 
-export function ProfileFieldsEditor({ value, onChange }) {
+export function ProfileFieldsEditor({ value, onChange, wallpaperAllowed = true, wallpaperNote = "" }) {
   const v = value || {};
   const set = (k, x) => onChange({ ...v, [k]: x });
   const [drafts, setDrafts] = useState({});
@@ -74,14 +74,17 @@ export function ProfileFieldsEditor({ value, onChange }) {
                  onChange={(e) => set("pinned_post_id", e.target.value.replace(/\D/g, "") || null)} />
         </label>
       </div>
-      <div className="text-xs text-white/50">Cover image
+      <div className="text-xs text-white/50">Wallpaper <span className="text-white/30">(Premium or StatZ)</span>
         {v.cover_url && <img src={v.cover_url} alt="" className="mt-1 h-20 w-full rounded-lg object-cover" />}
+        {!wallpaperAllowed && !v.cover_url && (
+          <p className="mt-1 text-amber-200">{wallpaperNote || "A wallpaper is a Premium or StatZ perk. Your profile picture is free."}</p>
+        )}
         <div className="mt-1 flex items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-white/70">
+          {(wallpaperAllowed || v.cover_url) && <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-white/70">
             <Upload size={12} /> {coverBusy ? "Uploading…" : v.cover_url ? "Replace" : "Upload"}
             <input type="file" accept="image/*" className="hidden" disabled={coverBusy}
                    onChange={(e) => pickCover(e.target.files?.[0])} />
-          </label>
+          </label>}
           {v.cover_url && <button type="button" className="text-white/40 underline" onClick={() => set("cover_url", "")}>Remove</button>}
           <span className="text-white/30">Uses your FileZ storage.</span>
         </div>

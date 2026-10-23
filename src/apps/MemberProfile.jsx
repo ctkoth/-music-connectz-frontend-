@@ -19,6 +19,7 @@ import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
 import Gallery from "../components/Gallery.jsx";
+import ProfileShowcase from "../components/ProfileShowcase.jsx";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 
 // What a member can DO with somebody from their card. Every card in the app
@@ -314,6 +315,8 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                 <LinkList links={data.links} owner={data.mine ? "" : username} />
               </div>
             )}
+
+            <ProfileShowcase username={username} />
 
             <Gallery username={username} mine={!!data.mine} />
 

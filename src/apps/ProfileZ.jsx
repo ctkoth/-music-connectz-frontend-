@@ -32,6 +32,7 @@ import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
 import Gallery from "../components/Gallery.jsx";
+import ProfileShowcase from "../components/ProfileShowcase.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
@@ -504,6 +505,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // Popular-site fields (pronouns, headline, genres…), one object, one save.
   const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "label", "timezone", "pinned_post_id", "cover_url"];
   const [pf, setPf] = useState(null);
+  const [wall, setWall] = useState({ allowed: true, note: "" });
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
   const [ref, setRef] = useState(null);
@@ -610,6 +612,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       got.pinned_post_id = d?.pinned_post?.id ?? d?.pinned_post_id ?? null;
       if (!got.timezone) got.timezone = deviceTimezone();
       setPf(got);
+      setWall({ allowed: d?.wallpaper_allowed !== false, note: d?.wallpaper_note || "" });
     }).catch(() => {});
   }, []);
 
@@ -755,6 +758,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       )}
 
       <AvatarCard />
+
+      <div className="neon-frame space-y-2 p-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/45">How your profile looks to others</p>
+        <ProfileShowcase username={me.username} />
+      </div>
 
       <VoiceCard />
 
@@ -986,7 +994,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
           column. A personality field that only worked in the dating app
           would be the fourth copy of a profile filter within a year. */}
-      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} />}
+      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} wallpaperAllowed={wall.allowed} wallpaperNote={wall.note} />}
 
       <PersonalitieZ value={personality} onChange={setPersonality} />
 
