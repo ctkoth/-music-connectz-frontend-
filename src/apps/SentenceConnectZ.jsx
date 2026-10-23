@@ -163,6 +163,8 @@ export default function SentenceConnectZ() {
   // never kept the member's words, so they paste the ones they want fixed.
   useEffect(() => (IN_SHELL ? undefined : onHandoff("sentenceconnectz", (p) => {
     if (p.kind) setKind(String(p.kind));
+    // WriteZ has the member's own words, so they arrive in the brief.
+    if (p.text) setTopic(String(p.text));
     const g = p.style || p.genre;
     if (g) setGenre(String(g).slice(0, 60));
   })), []);

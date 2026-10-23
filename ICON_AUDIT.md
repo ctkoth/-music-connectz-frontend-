@@ -59,7 +59,7 @@ show committed dotted files the tree picked up from public/icons.
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
-## Adopted — committed under the registry key's own name (31)
+## Adopted — committed under the registry key's own name (33)
 The supplied list spells these differently, so they were never matched by
 name; the committed file is the artwork, and it is the default now.
 
@@ -96,6 +96,8 @@ name; the committed file is the artwork, and it is the default now.
 | `taskz.png` | `taskz.png` | /icons/taskz-neon.png |
 | `breathz.png` | `breathz.png` | /icons/breathz-neon.png |
 | `onboardz.jpg` | `onboardz.png` | /icons/onboardz-neon.svg |
+| `sentencez_editor.png` | `sentencez_editor.png` | /icons/toolz.sentencez.jpg |
+| `videoz.png` | `videoz.png` | /icons/toolz.videoz.png |
 
 ## Owed — has a place, file not committed (57)
 The tab keeps the artwork it had until the file is pushed. Rename with
@@ -161,7 +163,7 @@ The tab keeps the artwork it had until the file is pushed. Rename with
 | `toolz.tunerz.jpg` | `tunerz.jpg` |  |
 | `analyticsz.png` | `analytics.png` |  |
 
-## Committed backup art (15)
+## Committed backup art (17)
 Still what something draws today; custom art takes over where a default exists.
 
 | File | Registry key | Note |
@@ -181,6 +183,8 @@ Still what something draws today; custom art takes over where a default exists.
 | `bodiez.tricepz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `bodiez.upperlegz.svg` | — | the BodieZ muscle picker's current art, kept as the fallback |
 | `lilith.taskz.webp` | — | current art for registry key lilithz.png, kept as the fallback |
+| `toolz.sentencez.jpg` | — | current art for registry key sentencez_editor.png, kept as the fallback |
+| `toolz.videoz.png` | — | current art for registry key videoz.png, kept as the fallback |
 
 ## No place — no tab, app or registry key uses these (23)
 | File | Registry key | Note |
@@ -216,7 +220,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (34)
+## Tabs and apps that ask for an icon no supplied file covers (35)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -245,6 +249,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `ratez.png` → /icons/ratez.png
 - `royaltiez.png` → /icons/royaltiez-neon.svg
 - `saxz.png` → /icons/saxz-neon.png
+- `sentencez_editor.png` → /icons/toolz.sentencez.jpg
 - `sonday.png` → /icons/sonday.png
 - `soundcloudengagementz.png` → /icons/soundcloudengagementz.jpg
 - `soundz.png` → /icons/soundz.jpg

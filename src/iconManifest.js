@@ -90,7 +90,9 @@ export const ICON_DEFAULTS = {
   "journalz.jpg": "/icons/journalz.png",
   "taskz.png": "/icons/taskz.png",
   "breathz.png": "/icons/breathz.png",
-  "onboardz.jpg": "/icons/onboardz.png"
+  "onboardz.jpg": "/icons/onboardz.png",
+  "sentencez_editor.png": "/icons/sentencez_editor.png",
+  "videoz.png": "/icons/videoz.png"
 };
 
 // BodieZ muscle group -> supplied art, for the picker that reads it directly.
@@ -1509,6 +1511,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "sentencez",
+        "label": "SentenceZ",
+        "file": "toolz.sentencez.jpg",
+        "art": "/icons/toolz.sentencez.jpg",
+        "key": null,
+        "status": "fallback",
+        "note": "current art for registry key sentencez_editor.png, kept as the fallback",
+        "also": []
+      },
+      {
         "child": "tunerz",
         "label": "TunerZ",
         "file": "toolz.tunerz.jpg",
@@ -1516,6 +1528,16 @@ export const ICON_TREE = [
         "key": "tunerz.jpg",
         "status": "owed",
         "note": "",
+        "also": []
+      },
+      {
+        "child": "videoz",
+        "label": "VideoZ",
+        "file": "toolz.videoz.png",
+        "art": "/icons/toolz.videoz.png",
+        "key": null,
+        "status": "fallback",
+        "note": "current art for registry key videoz.png, kept as the fallback",
         "also": []
       }
     ]
@@ -1735,6 +1757,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "ratez.png",
   "royaltiez.png",
   "saxz.png",
+  "sentencez_editor.png",
   "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",

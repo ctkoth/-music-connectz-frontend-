@@ -114,6 +114,7 @@ const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
+const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
@@ -387,11 +388,11 @@ export const CUSTOM_ICONS = {
   "parcel.png": "/icons/parcel.png",
   "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
-  "sentencez_editor.png": "/icons/sentencez_editor.png",
+  "sentencez_editor.png": "/icons/toolz.sentencez.jpg",
   "tellz.png": "/icons/tellz.png",
   "tier_premium.png": "/icons/tier_premium.png",
   "tier_statz.png": "/icons/tier_statz.png",
-  "videoz.png": "/icons/videoz.png",
+  "videoz.png": "/icons/toolz.videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
   "reelz.png": "/icons/directz.reelz.jpg",
   "episodez.png": "/icons/directz.episodez.jpg",
@@ -561,6 +562,7 @@ const TABS = [
   // standalone IntelligenceZ app (standalone/intelligencez/).
   { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
+  { key: "sentencez", label: "SentenceZ", icon: "sentencez_editor.png", el: <SentenceZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
   { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
@@ -879,6 +881,7 @@ const TAB_ABOUT = {
   onboardz: "👋 OnboardZ — your guided first session. Set up your ProfileZ, drop your first PostZ, rate a few tracks, and refer a friend for 300 SpinaZ.",
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
+  sentencez: "✍️ SentenceZ, the text editor — write, and the writing coach scores your lyrics on rhyme, punchlines, story, imagery and freshness, with the reason and the fix — anything under 6 opens the writer for it.",
   filez: "🗂️ Every file you've uploaded. Post one to get likes, ratings, comments and shares on it, make an image your profile picture, or delete what you don't need to free storage.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
