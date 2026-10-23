@@ -1,3 +1,4 @@
+import AiEnergy from "./AiEnergy.jsx";
 import { goToSpot } from "../goto.js";
 import { MONEY, PROMPTZ, SPINAZ } from "../resources.js";
 import { money, priceView } from "../aiRun.js";
@@ -38,7 +39,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
   if (v.state === "free") {
     return (
       <span className="text-[11px] text-emerald-300">
-        Free today{" "}
+        Free today <AiEnergy />{" "}
         <span className="text-white/45">
           — uses 1 of your {v.left} free prompt{v.left === 1 ? "" : "s"} left{v.allowance ? ` (${v.allowance} a day)` : ""}
         </span>
@@ -54,7 +55,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
             {v.split.promptz > 0 && <>−{v.split.promptz} {PROMPTZ} </>}
             {v.split.cents > 0 && <>−{money(v.split.cents)} {MONEY}</>}
           </>
-        ) : <>−{v.cost} {PROMPTZ}</>}{" "}
+        ) : <>−{v.cost} {PROMPTZ}</>} <AiEnergy />{" "}
         <span className="text-white/35">
           — {v.freeLeft ? "a free prompt doesn't cover a run this size" : "no free prompts left today"}
           {v.split && v.split.cents > 0 ? `, so ${PROMPTZ} first, then your balance` : ""}

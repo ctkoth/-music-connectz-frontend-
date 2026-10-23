@@ -16,6 +16,7 @@
 // doesn't fit MovieZ, it fits ReelZ" — but only after the upload, which is the
 // right answer at the wrong moment when the thing uploaded is a three-hour film.
 // The same answer arrives here first.
+import AiEnergy from "../components/AiEnergy.jsx";
 import { Price } from "../components/Price.jsx";
 import { PROMPTZ } from "../resources.js";
 import { useEffect, useRef, useState } from "react";
@@ -265,7 +266,7 @@ export default function DirectZ() {
                       — uses 1 of the {spec.craft.daily_prompts_left} 🏷️ you have left
                     </span>
                   </span>
-                : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>}
+                : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>} <AiEnergy />
               <span className="block text-white/35">
                 {spec.craft.note}
                 {!spec.craft.affordable && " You're out of prompts and balance for today."}
