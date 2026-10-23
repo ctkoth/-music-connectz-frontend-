@@ -61,7 +61,8 @@ function PageEditor({ s, page, chars, onChange }) {
           ))}
           {q.image && <img src={q.image} alt={`Panel ${q.n}`} className="w-full rounded-lg" />}
           <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={!!busy} onClick={() => draw(q.n)}>
-            {busy === `d${q.n}` ? <Loader2 size={12} className="animate-spin" /> : <Brush size={12} />} {q.image ? "Redraw" : "Draw"} panel {q.n}
+            {busy === `d${q.n}` ? <Loader2 size={12} className="animate-spin" /> : <Brush size={12} />} {q.image ? "Redraw" : "Draw"} panel {q.n}{" "}
+            <Price amount={s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />
           </button>
         </div>
       ))}
