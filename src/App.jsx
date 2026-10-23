@@ -115,6 +115,8 @@ const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
 const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
+const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
+const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
@@ -563,6 +565,8 @@ const TABS = [
   { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
   { key: "sentencez", label: "SentenceZ", icon: "sentencez_editor.png", el: <SentenceZ /> },
+  { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
+  { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
   { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
@@ -881,6 +885,8 @@ const TAB_ABOUT = {
   onboardz: "👋 OnboardZ — your guided first session. Set up your ProfileZ, drop your first PostZ, rate a few tracks, and refer a friend for 300 SpinaZ.",
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
+  characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
+  mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
   sentencez: "✍️ SentenceZ, the text editor — write, and the writing coach scores your lyrics on rhyme, punchlines, story, imagery and freshness, with the reason and the fix — anything under 6 opens the writer for it.",
   filez: "🗂️ Every file you've uploaded. Post one to get likes, ratings, comments and shares on it, make an image your profile picture, or delete what you don't need to free storage.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",

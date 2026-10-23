@@ -49,7 +49,7 @@ const EMOJI = {
 // DirectZ (and VoiceZ StyleZ under MangaZ's group), because a character is
 // drawn in one place and directed in another. Same key, same app — listing it
 // twice is a second door, never a second copy.
-const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ', soon: true };
+const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ, and a voice' };
 const VOICEZ_STYLEZ = { key: 'voicezstylez', label: 'VoiceZ StyleZ', color: 'magenta', desc: 'Voices for your CharacterZ', soon: true };
 
 // Flatten apps from grouped structure
@@ -264,7 +264,7 @@ const TOOLZ_MENU = {
     {
       group: 'Draw & create',
       apps: [
-        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Comics and manga from your CharacterZ', soon: true },
+        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
       ]
