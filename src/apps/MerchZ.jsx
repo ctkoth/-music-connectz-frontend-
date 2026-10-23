@@ -83,7 +83,7 @@ export default function MerchZ() {
       </header>
       {money != null && <p className="text-xs text-white/50">Your balance: {usd(money)} {MONEY}</p>}
       {msg && <p className="text-sm text-emerald-300">{msg}</p>}
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
       <div className="flex flex-wrap gap-2">
         {CATS.map(([k, l]) => (
@@ -179,7 +179,7 @@ function MySales() {
   return (
     <div className="neon-frame space-y-2 p-4">
       <h3 className="font-semibold">Your sales</h3>
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
       <div className="space-y-2">
         {sales.map((s) => (
           <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">

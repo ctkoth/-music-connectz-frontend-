@@ -150,7 +150,7 @@ export default function ParcelPrimate() {
             <p className="text-white/40">Sending costs nothing.</p>
           </div>
 
-          {err && <p className="text-sm text-mcz-ember">{err}</p>}
+          {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
           <button className="neon-btn-primary !w-auto px-5 py-2 text-sm"
             disabled={busy || out || !subject.trim() || doors.length === 0} onClick={send}>
             {busy ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} className="inline" />} Send campaign

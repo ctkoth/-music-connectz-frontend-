@@ -552,7 +552,7 @@ export default function BodieZ() {
 
       <AccessPanel access={access} onChange={saveAccess} shown={usable.length} total={exercises.length} />
 
-      {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
+      {err && <p role="alert" className="re-card text-sm text-mcz-ember">{err}</p>}
 
       {busy && !exercises.length ? (
         <p className="flex items-center gap-2 text-white/50">
@@ -1445,7 +1445,7 @@ function WorkoutWrite({ sessionId, onClose }) {
         <p className="re-label">Write about this workout</p>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close"><X size={16} /></button>
       </div>
-      {loadErr && <p className="text-[11px] text-mcz-ember">{loadErr}</p>}
+      {loadErr && <p role="alert" className="text-[11px] text-mcz-ember">{loadErr}</p>}
       {!spec && !loadErr && <p className="text-[11px] text-white/40">Checking the price…</p>}
       {spec && (
         <>
@@ -1695,7 +1695,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
 
       <input aria-label="Note (optional)" className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
              value={notes} onChange={(e) => setNotes(e.target.value)} />
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
       <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
         {busy ? <Loader2 className="animate-spin" size={14} /> : `${editing ? "Save changes" : "Save workout"} (${sets.length} set${sets.length === 1 ? "" : "s"})`}
       </button>

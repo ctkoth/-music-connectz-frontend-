@@ -65,7 +65,7 @@ export default function BeatZ() {
         )}
       </div>
 
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
       {tab === "sell" ? <SellForm onListed={() => setTab("mine")} /> : (
         <>
@@ -174,7 +174,7 @@ function BeatCard({ beat, onChange }) {
         </div>
       )}
       {msg && <p className="text-xs text-emerald-300">{msg}</p>}
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -244,7 +244,7 @@ function SellForm({ onListed }) {
         Listing is free. When it sells you get the price minus the platform fee for your plan, in {MONEY}.
       </p>
       <button disabled={busy} className="rounded-lg bg-mcz-cyan/20 px-4 py-2 text-mcz-cyan">{busy ? "Listing…" : "List it"}</button>
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </form>
   );
 }

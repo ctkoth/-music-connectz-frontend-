@@ -435,7 +435,7 @@ export default function BodieZTrial() {
         <h2 className="font-display text-lg font-extrabold text-white">Try BodieZ — log one set</h2>
         <p className="text-xs text-white/45">Free, no account. Real arithmetic, not a guess.</p>
       </div>
-      {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
+      {err && <p role="alert" className="re-card text-sm text-mcz-ember">{err}</p>}
       <div className="re-card space-y-2">
         <div>
           <p className="mb-1 text-[11px] text-white/40">

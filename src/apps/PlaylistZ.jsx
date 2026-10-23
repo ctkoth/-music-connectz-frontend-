@@ -7,6 +7,7 @@
 // Nothing in a list is a dead end: a post row opens the post (and its /p/ link
 // works with no account), an outside row opens the distributor and tallies
 // through the same counter a ProfileZ link does.
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useState } from "react";
 import {
   ArrowDown, ArrowUp, Check, Copy, ExternalLink, Eye, EyeOff, Link2, Loader2,
@@ -266,13 +267,15 @@ function Detail({ id, onBack, onChanged }) {
   const [metaMsg, setMetaMsg] = useState("");
   const [metaBusy, setMetaBusy] = useState(false);
 
-  const load = () => api(`/api/economy/playlistz/${id}/`).then(setPl).catch(() => setPl(null));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(`/api/economy/playlistz/${id}/`).then((d) => { setPl(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "That playlist didn't load."));
   useEffect(() => { load(); }, [id]);
   // Before the loading return: a hook must run on every render. `moveTo` is read when
   // a drag ends, by which time the list has loaded.
   const dnd = useDragReorder("playlist", (from, to) => moveTo(from, to));
 
-  if (!pl) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!pl) return <LoadGate error={loadErr} what="the playlist" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const items = asList(pl.items);
 

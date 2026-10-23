@@ -45,7 +45,7 @@ export default function ScoreCard() {
         <Link to="/login" className="text-sm text-white/60 hover:text-white">Sign in</Link>
       </header>
 
-      {err && <p className="text-mcz-ember">{err} <Link to="/try" className="re-link">Get your own take scored</Link></p>}
+      {err && <p role="alert" className="text-mcz-ember">{err} <Link to="/try" className="re-link">Get your own take scored</Link></p>}
       {!d && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
       {d && (

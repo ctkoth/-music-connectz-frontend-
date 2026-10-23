@@ -235,7 +235,7 @@ function AddStudentModal({ onClose, onAdded }) {
           />
         </div>
 
-        {err && <p className="text-sm text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
         <div className="text-xs text-white/60 bg-white/5 p-3 rounded">
           💰 You'll earn +50 🍥 when a student joins your studio

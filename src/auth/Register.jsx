@@ -223,7 +223,7 @@ export default function Register() {
           </button>
         )}
 
-        {error && <p className="text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
 
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : null}

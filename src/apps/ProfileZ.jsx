@@ -1,3 +1,4 @@
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
@@ -577,6 +578,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       .catch(() => {});
   }, []);
 
+  const [loadErr, setLoadErr] = useState("");
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
       setMe(d); setBirthday(d.birthday || "");
@@ -586,7 +588,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                               : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
                                   bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
-    }).catch((e) => setMsg(e.message));
+    }).catch((e) => setLoadErr(e.message || "Your profile didn't load."));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
     api("/api/economy/profile/").then((d) => {
       // The badges you wear, and the title you picked — straight off the
@@ -678,7 +680,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
     } finally { setBusy(false); }
   }
 
-  if (!me) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!me) return <LoadGate error={loadErr} what="your profile" onRetry={() => window.location.reload()} />;
 
   return (
     <div className="space-y-6">

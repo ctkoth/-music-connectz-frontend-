@@ -105,7 +105,7 @@ export default function SoundCloudImport({ clientId }) {
         {busy ? "Opening SoundCloud…" : "Import my tracks"}
       </button>
 
-      {error && <p className="pt-2 text-sm text-mcz-pink">{error}</p>}
+      {error && <p role="alert" className="pt-2 text-sm text-mcz-ember">{error}</p>}
     </div>
   );
 }

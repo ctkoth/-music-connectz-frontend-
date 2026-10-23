@@ -324,7 +324,7 @@ export default function LookmaxZ() {
             {picked?.map((k) => <HowItsRated key={k} meta={meta[k]} />)}
           </section>
 
-          {err && <p className="text-sm text-mcz-ember">{err}</p>}
+          {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
           {res && (
             <div className="space-y-3">

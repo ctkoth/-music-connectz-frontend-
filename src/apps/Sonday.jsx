@@ -146,7 +146,7 @@ function CardEditor({ card, columns, canEdit, onClose, onSaved }) {
             ))}
           </ul>
         )}
-        {err && <p className="text-xs text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
         {canEdit && (
           <div className="flex justify-between gap-2">
             <button className="re-btn !w-auto px-3 py-1.5 text-xs text-mcz-ember" disabled={busy} onClick={drop}>
@@ -203,7 +203,7 @@ function Members({ board }) {
         <button className="re-btn !w-auto px-2 py-1 text-xs" disabled={!who.trim()} type="submit"><UserPlus size={12} className="inline" /> Add</button>
       </form>
       <p className="text-white/40">They get a notification. Editors move and edit cards; viewers only look.</p>
-      {err && <p className="text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -273,7 +273,7 @@ function Board({ id, onBack, onGone }) {
         </div>
       </div>
       {showMembers && owner && <Members board={b} />}
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2" data-tour="sonday-board">
         {cols.map((col, ci) => (
@@ -404,7 +404,7 @@ export default function Sonday() {
               </button>
             </form>
           </div>
-          {err && <p className="text-sm text-mcz-ember">{err}</p>}
+          {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
           {!boards && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
           {boards && (

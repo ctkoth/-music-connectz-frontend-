@@ -391,7 +391,7 @@ export default function JournalZ() {
         </button>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
       {toast && <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] text-mcz-cyan">{toast}</p>}
 
       {/* Days kept, entries kept, tags used. Counts of things that happened —

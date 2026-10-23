@@ -1523,7 +1523,7 @@ function BuyBar({ post, onChanged, onFlash }) {
           )}
         </div>
       )}
-      {err && <p className="mt-1 text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="mt-1 text-mcz-ember">{err}</p>}
     </div>
   );
 }

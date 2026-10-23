@@ -217,7 +217,7 @@ export default function ConnectionZ({ connections, onChange }) {
         </div>
       )}
 
-      {error && <p className="pt-2 text-sm text-mcz-pink">{error}</p>}
+      {error && <p role="alert" className="pt-2 text-sm text-mcz-ember">{error}</p>}
       {done && <p className="pt-2 text-sm text-emerald-300">{done}</p>}
     </div>
   );

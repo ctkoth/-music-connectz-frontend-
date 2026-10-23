@@ -9,6 +9,7 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
+import LoadGate from "../components/LoadGate.jsx";
 import { Price } from "../components/Price.jsx";
 import { celebrateBattles, celebratePartnerz } from "../milestones.js";
 import PartnerzMark from "../components/PartnerzMark.jsx";
@@ -200,7 +201,9 @@ function Detail({ id, onBack, onFlash, seed }) {
     api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
   }, [skills]);
 
-  const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(`/api/economy/battlez/${id}/`).then((d) => { setB(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "That battle didn't load."));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   // A post carried in from PostZ fills the entry. The URLs are already hosted,
@@ -216,7 +219,7 @@ function Detail({ id, onBack, onFlash, seed }) {
     setShowEntry(true);
   }, [seed]);
 
-  if (!b) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!b) return <LoadGate error={loadErr} what="the battle" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const entries = asList(b.entries);
 

@@ -240,7 +240,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             <Loader2 className="animate-spin" size={16} /> Loading profile…
           </p>
         )}
-        {error && <p className="py-4 text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="py-4 text-sm text-mcz-ember">{error}</p>}
 
         {data && (
           <div className="space-y-4">

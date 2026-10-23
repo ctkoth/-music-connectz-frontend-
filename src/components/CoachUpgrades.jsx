@@ -92,7 +92,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
           {!q.configured && <span className="text-[11px] text-white/40">Not switched on yet.</span>}
         </div>
       )}
-      {err && <p className="text-[11px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
 
       {res && (
         <div className="space-y-3">
