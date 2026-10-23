@@ -153,6 +153,7 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
         <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Award size={14} /> Badges
         </h3>
+        {badges.length === 0 && <p className="text-xs text-white/45">No badges here yet. The drills above are how they're earned.</p>}
         <div className="flex flex-wrap gap-2">
           {badges.map((b) => (
             <span

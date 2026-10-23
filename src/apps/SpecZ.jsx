@@ -246,7 +246,7 @@ export default function SpecZ() {
       <div>
         <p className="re-label mb-2">Your SpecZ · {specs.length}</p>
         {specs.length === 0 ? (
-          <p className="text-sm text-white/45">No SpecZ yet.</p>
+          <p className="text-sm text-white/45">No SpecZ yet. Make one above.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {specs.map((sp) => {

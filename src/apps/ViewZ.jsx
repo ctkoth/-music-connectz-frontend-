@@ -381,7 +381,8 @@ function MyLinks() {
         </Pill>
       </div>
       {!d.links.length ? (
-        <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">No share links yet. Open any past take and press <b>Share this score</b> or <b>Write a promo post</b> — its results come here.</p>
+        <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">No share links yet. Open any past take and press <b>Share this score</b> or <b>Write a promo post</b> — its results come here.{" "}
+          <button type="button" className="re-link" onClick={() => goToTab("toolz")}>Pick a coach →</button></p>
       ) : (
         <ul className="space-y-1.5">
           {d.links.map((l) => (

@@ -1,3 +1,5 @@
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { Clock, DollarSign, GraduationCap, Loader2, MapPin, Wifi, AlertCircle, Pencil, EyeOff, Eye } from "lucide-react";
 import { api } from "../api.js";
@@ -683,7 +685,11 @@ function Bookings() {
     <div>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">{title}</h3>
       <div className="neon-frame divide-y divide-white/5">
-        {rows.length === 0 && <p className="p-4 text-sm text-white/45">Nothing here yet.</p>}
+        {rows.length === 0 && (
+          <Empty className="p-4" text={teacher ? "Nobody has booked you yet." : "No bookings yet."}
+                 action={teacher ? "Offer a lesson" : "Find a lesson"}
+                 onAction={() => goToSpot("lessonz", teacher ? "lessonz-teach" : "")} />
+        )}
         {rows.map((b) => (
           <div key={b.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
             <div>
@@ -807,7 +813,7 @@ function Posts() {
             )}
           </div>
         ))}
-        {!loading && posts.length === 0 && <p className="text-sm text-white/45">No lesson posts visible to you yet.</p>}
+        {!loading && posts.length === 0 && <Empty text="No lesson posts visible to you yet." action="Post a recorded lesson" onAction={() => goToSpot("lessonz", "lessonz-teach")} />}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@
 // screen shows both halves in cents on every plan, before one is picked —
 // what it takes, and what lands. Picking the expensive plan should be a
 // decision, never a discovery.
+import Empty from "../components/Empty.jsx";
 import { celebrate } from "../celebrate.js";
 import { useEffect, useState } from "react";
 import { Loader2, Coins, ArrowRight, AlertTriangle } from "lucide-react";
@@ -174,7 +175,7 @@ export default function RoyaltieZ() {
       <div className="space-y-2">
         <p className="re-label">Ledger</p>
         {entries.length === 0 ? (
-          <p className="text-[12px] text-white/35">No royalty movements yet.</p>
+          <Empty className="text-[12px]" text="No royalty movements yet. They come from plays of your posts." action="Post a track" onAction={() => goToSpot("postz", "post-compose")} />
         ) : (
           <ul className="space-y-1.5">
             {entries.map((e, i) => (

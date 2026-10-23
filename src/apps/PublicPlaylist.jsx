@@ -71,6 +71,7 @@ export default function PublicPlaylist() {
             )}
           </div>
 
+          {items.length === 0 && <p className="text-sm text-white/50">Nothing in this set yet.</p>}
           <ol className="space-y-1.5">
             {items.map((it) => {
               const isPost = it.kind === "post";
