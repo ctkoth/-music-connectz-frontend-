@@ -1,3 +1,4 @@
+import { Price } from "./Price.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -13,9 +14,7 @@ import {
 // consent rule and sentence below is the server's; this screen decides nothing.
 // Nothing here has run against SoundCloud itself.
 
-const Cost = ({ cost }) => (cost && cost.amount > 0
-  ? <span className="text-mcz-ember">−{cost.amount} {ENERGY}</span>
-  : <span className="text-emerald-300">Free</span>);
+const Cost = ({ cost }) => <Price amount={cost?.amount || 0} emoji={ENERGY} />;
 
 export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [data, setData] = useState(null);

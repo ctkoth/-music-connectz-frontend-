@@ -22,6 +22,7 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import { Gain } from "../components/Price.jsx";
 import { useInViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { celebrate } from "../celebrate.js";
@@ -1224,6 +1225,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
       <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
         <div className="re-label">Comments · {comments.length}</div>
+        {/* The gain, visible: it lived only in each vote button's hover title, which a
+            phone never shows. */}
+        {comments.length > 0 && (
+          <p className="text-[11px] text-white/40">
+            Voting on someone else's comment pays <Gain amount={1} emoji={ENERGY} />, up or down — once per comment, up to a daily cap.
+          </p>
+        )}
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
             {editingComment?.id === c.id ? (
