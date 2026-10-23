@@ -596,7 +596,7 @@ export default function MixConnectZ() {
 
       <div className="space-y-2" data-tour="mixz-recent">
         <h3 className="text-sm font-semibold text-white/70">Your masters</h3>
-        {loadErr && <p className="text-xs text-mcz-ember">{loadErr}</p>}
+        {loadErr && <p role="alert" className="text-xs text-mcz-ember">{loadErr}</p>}
         {s && !s.masters?.length && <p className="text-xs text-white/45">Nothing saved yet. Masters you save land here, with the numbers they were made with.</p>}
         {s?.masters?.map((m) => (
           <div key={m.id} className="space-y-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">

@@ -141,7 +141,7 @@ function Timeline() {
         ))}
       </div>
       {d?.notice && <p className="text-[11px] text-white/40">{d.notice}</p>}
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
     </>
   );
 }

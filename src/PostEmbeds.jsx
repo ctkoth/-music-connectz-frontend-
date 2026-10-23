@@ -303,7 +303,7 @@ function AddEmbedForm({ postId, onAdded, onCancel }) {
         maxLength={200}
       />
 
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
 
       <div className="flex gap-2">
         <button

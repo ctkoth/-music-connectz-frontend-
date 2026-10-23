@@ -117,7 +117,7 @@ export function HoroscopeLayer() {
         )}
 
         {!d && !err && !locked && <p className="mt-4 flex items-center gap-2 text-sm text-white/60"><Loader2 className="animate-spin" size={14} /> Reading the stars…</p>}
-        {err && <p className="mt-4 text-sm text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="mt-4 text-sm text-mcz-ember">{err}</p>}
 
         {r && level === "advanced" && r.week && (
           <div className="mt-4 space-y-3">

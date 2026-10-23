@@ -74,7 +74,7 @@ export default function PostTake({ appKey, take, onClose }) {
         <span className="text-[11px] text-emerald-300">Free <span className="text-white/45">— counts as 1 of today's {s.cap} submissions ({s.used} used)</span></span>
         <button type="button" onClick={onClose} className="text-[11px] text-white/45 underline">Cancel</button>
       </div>
-      {err && <p className="text-[11px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
     </div>
   );
 }

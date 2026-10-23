@@ -139,7 +139,7 @@ export default function VisibilitieZ({ visibility, audiences, onChange }) {
         })}
       </ul>
 
-      {error && <p className="pt-2 text-sm text-mcz-pink">{error}</p>}
+      {error && <p role="alert" className="pt-2 text-sm text-mcz-ember">{error}</p>}
     </div>
   );
 }

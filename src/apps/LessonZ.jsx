@@ -1,3 +1,4 @@
+import LoadGate from "../components/LoadGate.jsx";
 import { goToSpot } from "../goto.js";
 import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
@@ -655,8 +656,10 @@ function Bookings() {
   const [data, setData] = useState(null);
   const [msg, setMsg] = useState("");
 
+  const [loadErr, setLoadErr] = useState("");
   const load = useCallback(() => {
-    api("/api/lessonz/bookings/").then(setData).catch((e) => setMsg(e.message));
+    api("/api/lessonz/bookings/").then((d) => { setData(d); setLoadErr(""); })
+      .catch((e) => setLoadErr(e.message || "Your bookings didn't load."));
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -679,7 +682,7 @@ function Bookings() {
     }
   }
 
-  if (!data) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!data) return <LoadGate error={loadErr} what="your bookings" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const Section = ({ title, rows, teacher }) => (
     <div>

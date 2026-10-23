@@ -212,7 +212,7 @@ export default function Lilith() {
         </div>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
 
       {/* Today's remaining coin, ABOVE the board. A cap met by hitting it is a
           bug; a cap met by reading it is a rule. */}

@@ -227,7 +227,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
         </div>
       )}
 
-      {error && <p className="text-sm text-mcz-ember">{error}</p>}
+      {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
       {outcome && (
         <div className="rounded-lg border border-white/10 p-3 text-sm space-y-1" role="status">
           <p className="text-white/85">{resultLine(outcome)}.{outcome.charged > 0 && <> Charged <span className="text-mcz-ember">−{outcome.charged} {ENERGY}</span>.</>}</p>

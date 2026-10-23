@@ -1,3 +1,4 @@
+import LoadGate from "../components/LoadGate.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { FileSignature, Loader2, Pencil, Plus } from "lucide-react";
 import { api } from "../api.js";
@@ -18,8 +19,12 @@ export default function LabelZ() {
   const [editingLabel, setEditingLabel] = useState(null);
   const [editDraft, setEditDraft] = useState({ name: "", bio: "" });
 
+  // Its own slot: `msg` also carries what an action said, so a load error kept there
+  // stayed on screen after a retry succeeded.
+  const [loadErr, setLoadErr] = useState("");
   const load = useCallback(() => {
-    api("/api/economy/labelz/").then(setData).catch((e) => setMsg(e.message));
+    api("/api/economy/labelz/").then((d) => { setData(d); setLoadErr(""); })
+      .catch((e) => setLoadErr(e.message || "LabelZ didn't load."));
     api("/api/economy/labelz/contracts/").then(setContracts).catch(() => setContracts({ as_artist: [], as_owner: [] }));
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -51,7 +56,7 @@ export default function LabelZ() {
     } catch (e) { setMsg(e.message); }
   }
 
-  if (!data) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!data) return <LoadGate error={loadErr} what="LabelZ" onRetry={() => { setLoadErr(""); load(); }} />;
   // Never index into a response shape. A 200 that omits a key is not an
   // exceptional case — it is what a partially-built endpoint returns, and it
   // should not take a whole tab into the error boundary.
