@@ -1,3 +1,4 @@
+import Empty from "../components/Empty.jsx";
 import { useState, useEffect } from "react";
 import { Flame, Zap, Trophy, Link as LinkIcon, TrendingUp, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
@@ -189,7 +190,7 @@ function LeaderboardCard({ title, icon, rows, metric, suffix }) {
       </div>
 
       {rows.length === 0 && (
-        <p className="text-xs text-white/40 text-center py-2">No entries yet</p>
+        <Empty className="py-2 text-center text-xs" text="Nobody on this board yet." action="Score a take" onAction={() => goToSpot("toolz", "")} />
       )}
     </div>
   );
@@ -241,7 +242,7 @@ export function InstrumentLeaderboardCard({ appKey, limit = 5 }) {
       </div>
 
       {leaders.length === 0 && (
-        <p className="text-xs text-white/40 text-center py-2">No XP earned yet</p>
+        <Empty className="py-2 text-center text-xs" text="No XP earned yet. Every scored take and drill earns it." action="Score a take" onAction={() => goToSpot("toolz", "")} />
       )}
     </div>
   );

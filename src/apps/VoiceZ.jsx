@@ -120,7 +120,7 @@ export default function VoiceZ() {
       <section className="neon-frame space-y-3 p-4">
         <h3 className="font-semibold">Your voices ({d.limits.used} / {d.limits.voices})</h3>
         {d.custom_paused && <p className="text-sm text-mcz-gold">Your {d.voices.length} voice{d.voices.length === 1 ? " is" : "s are"} paused, not deleted.</p>}
-        {!d.voices.length && <p className="text-xs text-white/50">None yet.</p>}
+        {!d.voices.length && <p className="text-xs text-white/50">None yet. Make one below.</p>}
         {d.voices.map((v) => (
           <div key={v.id} className="rounded-lg border border-white/10 p-3">
             <p className="font-semibold">{v.name} <span className="text-[11px] font-normal text-white/45">{v.summary}</span></p>

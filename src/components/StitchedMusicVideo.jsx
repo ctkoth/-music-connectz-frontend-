@@ -1,3 +1,5 @@
+import { goToSpot } from "../goto.js";
+import Empty from "./Empty.jsx";
 import { useEffect, useState } from "react";
 import { Clapperboard, Download, Loader2, Plus, X } from "lucide-react";
 import { api } from "../api.js";
@@ -120,7 +122,7 @@ export default function StitchedMusicVideo() {
             <span className="text-[11px] text-white/45">Pick the chorus: it plays for the length of the video (about {seconds || s.clip_seconds * s.min_shots}s).</span>
           </div>
         ) : (
-          <p className="text-xs text-white/55">No audio uploads yet. Upload your track in PostZ or DistributeZ and it appears here.</p>
+          <Empty className="text-xs" text="No audio uploads yet. A track you post appears here." action="Post a track" onAction={() => goToSpot("postz", "post-compose")} />
         )}
       </div>
 

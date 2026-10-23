@@ -1,3 +1,5 @@
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Send, Zap } from "lucide-react";
 import { api } from "../api.js";
@@ -158,7 +160,7 @@ function MsgList({ title, rows, who, editable }) {
     <div>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">{title}</h3>
       <div className="neon-frame divide-y divide-white/5">
-        {rows.length === 0 && <p className="p-4 text-sm text-white/45">Nothing yet.</p>}
+        {rows.length === 0 && <Empty className="p-4" text="Nothing yet." action="Write one" onAction={() => goToSpot("messagez", "messagez-compose")} />}
         {rows.map((m) => {
           const left = ed && m.mine ? editWindowLeft(m.at, ed.editWindow, ed.now) : null;
           const canEdit = left != null && left > 0;

@@ -28,6 +28,7 @@
 //      the room's own list. Both halves are stated on the control, and the
 //      quote comes from the server's own `quote_for` via /quote/ so what the
 //      button says is what the booking will do.
+import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRight, CalendarClock, Check, Handshake, Loader2, MapPin, Mic2, Plus,
@@ -946,7 +947,7 @@ export default function VenueZ() {
       {tab === "mine" && venues && (
         <div className="space-y-3">
           {mine.length === 0 ? (
-            <p className="text-sm text-white/45">You haven't put a room up yet.</p>
+            <Empty text="You haven't put a room up yet." action="Put one up" onAction={() => goToSpot("venuez", "venuez-host")} />
           ) : mine.map((v) => (
             <Venue key={v.id} v={v} onChanged={load} onFlash={flash} />
           ))}

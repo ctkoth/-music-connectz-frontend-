@@ -438,7 +438,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           <Trophy size={12} /> Leaderboard
         </p>
         {entries.length === 0 ? (
-          <p className="text-[12px] text-white/40">No entries yet.</p>
+          <p className="text-[12px] text-white/40">No entries yet{b.status === "open" && b.i_am_contestant ? " — enter yours below." : "."}</p>
         ) : (
           <ol className="space-y-2">
             {entries.map((e, i) => (
