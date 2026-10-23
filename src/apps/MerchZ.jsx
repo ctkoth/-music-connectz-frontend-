@@ -1,3 +1,4 @@
+import Doors from "../components/Doors.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
@@ -104,6 +105,7 @@ export default function MerchZ() {
             {it.description && <p className="text-xs text-white/60">{it.description}</p>}
             <p className="text-[11px] text-white/45">{CATS.find(([k]) => k === it.category)?.[1] || it.category} · {it.sold} sold</p>
             <MemberName username={it.seller} />
+            {it.mine && it.image_url && <Doors item={{ title: it.title, url: it.image_url, kind: "image", text: it.description || "" }} />}
             {it.mine ? (
               <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={() => unlist(it)}><Trash2 size={12} /> Take it down</button>
             ) : (
