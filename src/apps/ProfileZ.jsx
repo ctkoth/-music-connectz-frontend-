@@ -30,6 +30,7 @@ import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
+import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
@@ -905,6 +906,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             make one. */}
         <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
+        </div>
+        <div className="border-t border-white/10 pt-3">
+          <Gallery username={me?.username} mine />
         </div>
 
         {/* Sits with the sign-ins above it: importing a catalogue is the same
