@@ -1,3 +1,4 @@
+import Doors from "../components/Doors.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Download, Loader2 } from "lucide-react";
 import { useCharLimit } from "../limits.js";
@@ -283,6 +284,7 @@ export default function VideoConnectZ() {
               <video src={work.video_url} controls playsInline
                 className={`w-full rounded-xl bg-black ${work.aspect === "9:16" ? "mx-auto max-w-xs" : ""}`} />
               <a className="re-btn !w-auto px-4" href={work.video_url} download><Download size={14} /> Download</a>
+              <Doors item={{ title: work.title || "My video", url: work.video_url, kind: "video" }} />
               {pct != null && <UseIn source="video" sourceId={work.id} pct={pct} />}
             </>
           )}

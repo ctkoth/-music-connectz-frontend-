@@ -5,6 +5,7 @@
 // and on confirm the buyer's balance, the platform fee and the producer's
 // cut. A beat with no audio cannot be sold — nobody should pay for what they
 // could not hear — so the preview player sits above every Buy button.
+import Doors from "../components/Doors.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Music, Upload } from "lucide-react";
 import { api } from "../api.js";
@@ -135,7 +136,10 @@ function BeatCard({ beat, onChange }) {
       </p>
 
       {beat.audio_url ? (
-        <audio controls preload="none" src={beat.audio_url} className="w-full" />
+        <>
+          <audio controls preload="none" src={beat.audio_url} className="w-full" />
+          {beat.mine && <Doors item={{ title: beat.title, url: beat.audio_url, kind: "audio", text: beat.description || "" }} />}
+        </>
       ) : (
         <p className="flex items-center gap-1.5 text-xs text-white/45"><Music size={12} /> No preview yet.</p>
       )}

@@ -1,3 +1,4 @@
+import Doors from "../components/Doors.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Loader2, Lock, Pause, Play, Save, Trash2, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
@@ -613,6 +614,7 @@ export default function MixConnectZ() {
               {m.url && !m.missing && <a className="re-link" href={m.url} download>Download</a>}
               <button className="inline-flex items-center gap-1 text-white/50 hover:text-mcz-ember" onClick={() => remove(m)}><Trash2 size={12} /> Delete</button>
             </div>
+            {m.url && !m.missing && <Doors item={{ title: m.title, url: m.url, kind: "audio", text: `Mastered: ${fmt(m.after?.lufs, " LUFS")}` }} />}
           </div>
         ))}
       </div>
