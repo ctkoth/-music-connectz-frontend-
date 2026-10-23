@@ -33,7 +33,10 @@ function useCoaches(on) {
 export default function Doors({ item, className = "", noPost = false }) {
   const [coachOpen, setCoachOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const coachable = (item.kind === "audio" || item.kind === "video") && item.uploadId;
+  // Every stored file's address is /api/economy/media/<id>/<name>, so an app only has
+  // to pass the URL; the server still checks the file is the member's own.
+  const uploadId = item.uploadId || Number((String(item.url || "").match(/\/media\/(\d+)\//) || [])[1]) || null;
+  const coachable = (item.kind === "audio" || item.kind === "video") && uploadId;
   const coaches = useCoaches(coachOpen);
   const url = item.postId ? `${window.location.origin}/p/${item.postId}` : item.url || "";
   const media = item.url && item.kind !== "text" ? { [`${item.kind}_url`]: item.url } : {};
@@ -45,7 +48,7 @@ export default function Doors({ item, className = "", noPost = false }) {
   }
   function coach(app) {
     setCoachOpen(false);
-    handOff(app, "", { kind: "upload", upload_id: item.uploadId, title: item.title,
+    handOff(app, "", { kind: "upload", upload_id: uploadId, title: item.title,
                        coach_kind: item.kind, ...media });
   }
 
