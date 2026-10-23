@@ -4,6 +4,8 @@ import { api } from "../api.js";
 import { goToSpot, goToTab } from "../goto.js";
 import { RatingRow } from "../components/Rating.jsx";
 import { PROMPTZ } from "../resources.js";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
+import { moveItem } from "../dragReorder.js";
 
 // LookZMaxZ (key and API stay `lookmaxz`) — what you can change about how you present, by sector, and where to
 // shop for it. It decides nothing: sectors, factors, the wording, the price, who
@@ -158,6 +160,7 @@ function Markets({ info, onChange }) {
   useEffect(() => { setRows(info.markets.map((m) => ({ ...m }))); }, [info]);
 
   const swap = (i, j) => setRows((r) => { const n = [...r]; [n[i], n[j]] = [n[j], n[i]]; return n; });
+  const dnd = useDragReorder("markets", (from, to) => setRows((r) => moveItem(r, from, to)));
   async function save() {
     setBusy(true); setMsg("");
     try {
@@ -192,7 +195,8 @@ function Markets({ info, onChange }) {
       {statz && (
         <div className="space-y-1.5">
           {rows.map((m, i) => (
-            <div key={`${m.key}-${i}`} className="flex flex-wrap items-center gap-1.5">
+            <div key={`${m.key}-${i}`} {...dnd.row(i)} className={`flex flex-wrap items-center gap-1.5 rounded${dnd.rowClass(i)}`}>
+              <DragGrip label="Drag to reorder" size={13} {...dnd.grip(i)} />
               <input aria-label="Marketplace name" className="neon-input !w-32" value={m.name} maxLength={30}
                 onChange={(e) => setRows((r) => r.map((x, j) => (j === i ? { ...x, name: e.target.value, key: x.key || e.target.value } : x)))} />
               <input aria-label="Search address with {q}" className="neon-input min-w-0 flex-1" value={m.url} placeholder="https://shop.example.com/search?q={q}"

@@ -21,6 +21,8 @@ import { playlistEditPayload, titleKeptNote } from "../editing.js";
 import { onHandoff } from "../handoff.js";
 import { useWidgets } from "../WidgetBoard.jsx";
 import { IconImg } from "../App.jsx";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
+import { moveItem } from "../dragReorder.js";
 
 const PROVIDER_LABEL = {
   spotify: "Spotify", youtube: "YouTube", apple: "Apple Music",
@@ -37,7 +39,7 @@ const VISIBILITIES = [
   ["private", "Just me"],
 ];
 
-function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
+function Row({ item, onUp, onDown, onRemove, canReorder, shared, dragRow = {}, dragGrip = null, dragClass = "" }) {
   const isPost = item.kind === "post";
   // A running order is the one screen where leaving for each row is worst: the
   // list IS the thing, and a new tab per track is the order taken apart. Rows
@@ -50,7 +52,8 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
     openWidget(item.url, { label: item.title });
   };
   return (
-    <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+    <li {...dragRow} className={`flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2${dragClass}`}>
+      {canReorder && dragGrip && <DragGrip label="Drag to reorder" size={13} {...dragGrip} />}
       <span className="w-5 shrink-0 text-[11px] tabular-nums text-white/30">{item.position}</span>
       <div
         role="button"
@@ -263,6 +266,9 @@ function Detail({ id, onBack, onChanged }) {
 
   const load = () => api(`/api/economy/playlistz/${id}/`).then(setPl).catch(() => setPl(null));
   useEffect(() => { load(); }, [id]);
+  // Before the loading return: a hook must run on every render. `moveTo` is read when
+  // a drag ends, by which time the list has loaded.
+  const dnd = useDragReorder("playlist", (from, to) => moveTo(from, to));
 
   if (!pl) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
 
@@ -293,17 +299,21 @@ function Detail({ id, onBack, onChanged }) {
     } finally { setMetaBusy(false); }
   }
 
-  async function move(index, delta) {
-    const next = [...items];
-    const to = index + delta;
-    if (to < 0 || to >= next.length) return;
-    [next[index], next[to]] = [next[to], next[index]];
+  // One path for the arrows and the drag. A refused reorder says so: it used to be
+  // swallowed, and the reload quietly put the old order back.
+  async function moveTo(from, to) {
+    if (to < 0 || to >= items.length || from === to) return;
+    const next = moveItem(items, from, to);
     setPl({ ...pl, items: next.map((it, i) => ({ ...it, position: i + 1 })) });
-    await api(`/api/economy/playlistz/${id}/reorder/`, {
-      method: "POST", body: { order: next.map((i) => i.id) },
-    }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${id}/reorder/`, {
+        method: "POST", body: { order: next.map((i) => i.id) },
+      });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't save that order."); }
     load();
   }
+  const move = (index, delta) => moveTo(index, index + delta);
 
   async function remove(itemId) {
     await api(`/api/economy/playlistz/${id}/items/${itemId}/`, { method: "DELETE" }).catch(() => {});
@@ -391,6 +401,7 @@ function Detail({ id, onBack, onChanged }) {
         <ol className="space-y-1.5">
           {items.map((it, i) => (
             <Row key={it.id} item={it} canReorder={pl.can_reorder}
+                 dragRow={pl.can_reorder ? dnd.row(i) : {}} dragGrip={dnd.grip(i)} dragClass={dnd.rowClass(i)}
                  shared={pl.collaborators?.length > 0}
                  onUp={() => move(i, -1)} onDown={() => move(i, 1)} onRemove={() => remove(it.id)} />
           ))}
