@@ -56,6 +56,7 @@ import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, 
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import PromoPost from "../components/PromoPost.jsx";
+import SessionRating from "../components/SessionRating.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
 
@@ -796,6 +797,7 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
       {sm.records.length > 0 && sm.firsts.length > 0 && (
         <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
       )}
+      {sm.sets > 0 && <SessionRating rating={sm.coach_rating} />}
       <div className="space-y-1">
         {sm.exercises.map((e) => (
           <p key={e.exercise_id} className="text-[11px] text-white/55">
