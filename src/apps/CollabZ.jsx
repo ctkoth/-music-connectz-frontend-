@@ -333,6 +333,12 @@ export default function CollabZ() {
   // A member card's "Collab" lands here with the partner already filled in.
   useEffect(() => onHandoff("collabz", (p) => {
     if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
+    if (p.title) setForm((f) => ({ ...f, title: String(p.title).slice(0, 160) }));
+    // A file handed over by the Doors bar arrives already hosted: its address goes into
+    // the slot, so nothing is uploaded twice.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
   }), []);
   const [work, setWork] = useState({});
   const [storage, setStorage] = useState(null);

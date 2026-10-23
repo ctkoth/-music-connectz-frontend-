@@ -545,7 +545,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // JournalZ is a take like any other, and it is already stored, so it
       // rides as an id exactly like a post does.
       if (!((h?.kind === "post" && h.post_id)
-            || (h?.kind === "journal" && h.journal_id))) return;
+            || (h?.kind === "journal" && h.journal_id)
+            || (h?.kind === "upload" && h.upload_id))) return;
       setMode("take");     // a handed-over post is the member's own take
       setFromPost(h);
       setTakeGone(false);
@@ -964,7 +965,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       const body = fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
-              : { post_id: fromPost.post_id }),
+              : fromPost.kind === "upload"
+                ? { upload_id: fromPost.upload_id }
+                : { post_id: fromPost.post_id }),
             genre, range, difficulty, ...(style ? { style } : {}),
             // A take handed over from PostZ takes the toggle too. It was
             // missing here while the upload path had it, which is the quiet
@@ -1296,12 +1299,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {fromPost && !recording && !refMode && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
-            {fromPost.kind === "journal" ? "📔 From your journal" : "🎧 From PostZ"}
+            {fromPost.kind === "journal" ? "📔 From your journal" : fromPost.kind === "upload" ? "🗂️ From your FileZ" : "🎧 From PostZ"}
           </p>
           <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
           <p className="text-[11px] text-white/45">
-            {fromPost.kind === "journal"
-              ? fromPost.day
+            {fromPost.kind === "journal" || fromPost.kind === "upload"
+              ? (fromPost.day || "your file")
               : <>by <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button></>}
             {fromPost.genre ? ` · ${fromPost.genre}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
@@ -1342,12 +1345,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <div className="flex flex-wrap items-center gap-3">
               <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
                 {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-                {busy ? "Coaching this post…" : "Send this post to the coach"}
+                {busy ? "Coaching it…" : fromPost.kind === "post" ? "Send this post to the coach" : "Send it to the coach"}
               </button>
               <Cost price={price} trial={trial} />
               {/* The ⚡ half of the price, before the press. A post costs Energy on
                   top of the prompt; a freshly recorded take does not. */}
-              {!trial && price?.post_energy_cost > 0 && fromPost?.kind !== "journal" && (
+              {!trial && price?.post_energy_cost > 0 && fromPost?.kind === "post" && (
                 <span className="text-[11px] text-mcz-ember">
                   −{price.post_energy_cost} {ENERGY}{" "}
                   <span className="text-white/45">— coaching a post. Not run means not charged.</span>
