@@ -54,6 +54,7 @@ import { handOff } from "../handoff.js";
 import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
 import { applyBlockOrder, blockIds, reorderBlocks, reorderList } from "../reorder.js";
 import { useDragReorder } from "../useDragReorder.js";
+import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 
@@ -531,6 +532,7 @@ export default function BodieZ() {
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
+                          onImported={load}
                           onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session}
                           onRoutineFromSession={routineFromSession} onDeleteSession={deleteSession}
                           onSaveSession={saveSessionEdit} onSummary={setSummary} />
@@ -1774,7 +1776,7 @@ const HISTORY_PAGE = 10;
 function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary }) {
+                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary, onImported }) {
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
@@ -1798,6 +1800,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
 
   return (
     <div className="space-y-5">
+      <ImportWorkouts exercises={exercises} onImported={onImported} />
       <section className="space-y-2">
         <p className="re-label">Have the Coach build one</p>
         <p className="text-[11px] text-white/45">
