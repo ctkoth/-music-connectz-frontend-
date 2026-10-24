@@ -1098,9 +1098,12 @@ fails if `public/exercise-demos/` comes back.
   legs). It **decides nothing**: every exercise arrives flagged `accessible`,
   pickers get the filtered list, and names for old sessions use the full one.
   Never re-derive the rule client-side.
-- BodyMap shows the backend's `coach_rating` (progress against the member's own
-  earlier best) with its `coach_why`, the per-lift numbers and `rating_caveat`
-  on the same card. `null` renders "not rated yet", never a 0.
+- Every rating is the **Thorough** rating, 1-10 (Corey's word, literal and slang —
+  COREY_VOICE.txt PART 8b): BodyMap muscles, each lift under them, and each routine
+  card show `Thorough N/10` with the server's `coach_why`, and the muscle card carries
+  `rating_caveat`. Days, sets a week and up/held/down are the server's arithmetic;
+  never relabel it "Coach" or "good" and never compute one here. `null` renders
+  "Thorough: not rated yet", never a 0.
 
 ## SubstanceZ: pick how often for every substance, and read the list rather than retype it
 

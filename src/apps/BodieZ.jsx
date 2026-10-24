@@ -1800,7 +1800,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
 
   return (
     <div className="space-y-5">
-      <ImportWorkouts exercises={exercises} onImported={onImported} />
+      <ImportWorkouts exercises={exercises} onImported={onImported} muscles={MUSCLE_LABEL} equipment={EQUIPMENT_LABEL} />
       <section className="space-y-2">
         <p className="re-label">Have the Coach build one</p>
         <p className="text-[11px] text-white/45">
@@ -1872,6 +1872,17 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                     {items.length > 0 && <>: {items.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4).map((e) => nameOf(e.exercise_id)).join(", ")}{items.length > 4 ? "…" : ""}</>}
                   </p>
                   {r.description && <p className="text-[11px] text-white/40">{r.description}</p>}
+                  <p className="text-[11px]" title={bodymap?.rating_caveat}>
+                    {r.coach_rating != null
+                      ? <span className="font-semibold text-emerald-200">Thorough {r.coach_rating}/10</span>
+                      : <span className="text-white/35">Thorough: not rated yet</span>}
+                    {r.coach_why && <span className="text-white/40"> — {r.coach_why}</span>}
+                  </p>
+                  {asList(r.coach_exercises).length > 0 && (
+                    <p className="text-[10px] text-white/40">
+                      {asList(r.coach_exercises).map((e) => `${nameOf(e.exercise_id)} ${e.rating ?? "–"}`).join(" · ")}
+                    </p>
+                  )}
                   <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -1882,6 +1893,17 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                   <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
                           title="A new routine to change, keeping this one as it is" onClick={() => onCopy(r.id)}>
                     <Copy size={12} /> Copy
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          title="Get a code a friend can paste to add their own copy (30 days, free)"
+                          onClick={async () => {
+                            try {
+                              const out = await api(`/api/economy/bodiez/routines/${r.id}/share/`, { method: "POST" });
+                              try { await navigator.clipboard.writeText(out.code); } catch { /* blocked */ }
+                              window.prompt(`Code for “${out.title}” — good for ${out.expires_in_days} days. Copied if your browser allows:`, out.code);
+                            } catch (e) { window.alert(e.message || "Couldn't make a code."); }
+                          }}>
+                    <Share2 size={12} /> Share
                   </button>
                   <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
                           disabled={sessionOpen} title={sessionOpen ? "Finish your open session first" : "Start a session from this routine"}
@@ -2223,12 +2245,12 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                       {m.coach_rating != null ? (
                         <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/30"
                               title={m.coach_why}>
-                          Coach {m.coach_rating}/10
+                          Thorough {m.coach_rating}/10
                         </span>
                       ) : (
                         <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/35 ring-1 ring-white/10"
                               title={m.coach_why}>
-                          Coach: not rated yet
+                          Thorough: not rated yet
                         </span>
                       )}
                     </p>
@@ -2248,17 +2270,24 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <div className="space-y-1 rounded-lg bg-white/[0.03] p-2">
                     <p className="text-xs font-semibold text-white/70">
-                      Coach rating{m.coach_rating != null ? `: ${m.coach_rating}/10` : ": not rated yet"}
+                      Thorough{m.coach_rating != null ? `: ${m.coach_rating}/10` : ": not rated yet"}
                     </p>
                     <p className="text-[11px] text-white/50">{m.coach_why}</p>
                     {asList(m.coach_exercises).map((e) => (
-                      <p key={e.exercise_id} className="text-[11px] text-white/60">
-                        <span className={e.trend === "up" ? "text-emerald-300" : e.trend === "down" ? "text-mcz-ember" : "text-white/50"}>
-                          {e.trend === "up" ? "▲ up" : e.trend === "down" ? "▼ down" : "● held"}
-                        </span>{" "}
-                        {e.exercise_name}: {e.metric === "reps"
-                          ? `${e.earlier_best} → ${e.latest} reps (best set)`
-                          : `${fmtWeight(e.earlier_best, unit)} → ${fmtWeight(e.latest, unit)} (est. max)`}
+                      <p key={`${e.exercise_id}-${e.one_sided || ""}`} className="text-[11px] text-white/60">
+                        <span className="font-semibold text-emerald-200">Thorough {e.rating}/10</span>{" "}
+                        {e.exercise_name}: {e.days_trained} day{e.days_trained === 1 ? "" : "s"}, {e.sets_per_week} sets/wk
+                        {e.trend && (
+                          <>
+                            {" · "}
+                            <span className={e.trend === "up" ? "text-emerald-300" : e.trend === "down" ? "text-mcz-ember" : "text-white/50"}>
+                              {e.trend === "up" ? "▲ up" : e.trend === "down" ? "▼ down" : "● held"}
+                            </span>{" "}
+                            {e.metric === "reps"
+                              ? `${e.earlier_best} → ${e.latest} reps (best set)`
+                              : `${fmtWeight(e.earlier_best, unit)} → ${fmtWeight(e.latest, unit)} (est. max)`}
+                          </>
+                        )}
                       </p>
                     ))}
                     <p className="text-[10px] text-white/30">{bodymap.rating_caveat}</p>

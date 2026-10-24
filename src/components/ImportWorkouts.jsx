@@ -11,7 +11,7 @@ import { getUnit } from "../weightUnit.js";
 import { useStatzTrial } from "./StatzSample.jsx";
 import { FIELDS, parseWorkouts, resolveRows, toRoutines, toWorkouts } from "../workoutImport.js";
 
-export default function ImportWorkouts({ exercises, onImported }) {
+export default function ImportWorkouts({ exercises, onImported, muscles = {}, equipment = {} }) {
   const { s } = useStatzTrial();
   const canMap = !!(s?.is_statz || s?.active);
   const [open, setOpen] = useState(false);
@@ -20,6 +20,12 @@ export default function ImportWorkouts({ exercises, onImported }) {
   const [unit, setUnit] = useState(getUnit());
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [code, setCode] = useState("");
+  // Missing names the member chooses to keep as their OWN exercises: the server
+  // needs a muscle and equipment for each, and defaults the rest cautiously
+  // (standing, needs arms and legs), so a custom lift is hidden from a member
+  // it would not suit rather than offered to them.
+  const [mine, setMine] = useState({});
   const [err, setErr] = useState("");
 
   const parsed = useMemo(() => parseWorkouts(text, { mapping }), [text, mapping]);
@@ -31,6 +37,33 @@ export default function ImportWorkouts({ exercises, onImported }) {
     const f = e.target.files?.[0];
     if (!f) return;
     setMapping(null); setText(await f.text());
+  };
+
+  const addMine = async () => {
+    setBusy(true); setErr(""); setMsg("");
+    let made = 0; const failed = [];
+    for (const name of missing) {
+      const d = mine[name] || {};
+      if (!d.muscle_group || !d.equipment) { failed.push(`${name}: pick a muscle and equipment`); continue; }
+      try {
+        await api("/api/economy/bodiez/exercises/custom/", { method: "POST", body: { name, ...d, positions: ["standing"] } });
+        made += 1;
+      } catch (e) { failed.push(`${name}: ${e.message}`); }
+    }
+    setBusy(false);
+    setMsg(made ? `Added ${made} of your own exercise${made === 1 ? "" : "s"}. They're private to you.` : "");
+    if (failed.length) setErr(failed.join("; "));
+    if (made) onImported?.();
+  };
+
+  const redeem = async () => {
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const r = await api("/api/economy/bodiez/routines/redeem/", { method: "POST", body: { code: code.trim() } });
+      setMsg(`Added “${r.title}” to your routines.${r.left_out ? ` ${r.left_out} lift${r.left_out === 1 ? " was" : "s were"} left out — they're the sender's own exercises.` : ""}`);
+      setCode(""); onImported?.();
+    } catch (e) { setErr(e.message || "That code didn't work."); }
+    finally { setBusy(false); }
   };
 
   const run = async (kind) => {
@@ -115,6 +148,27 @@ export default function ImportWorkouts({ exercises, onImported }) {
             Understood {matched.length} line{matched.length === 1 ? "" : "s"}.
             {missing.length > 0 && <span className="text-mcz-ember"> Not in the library, left out: {missing.join(", ")}.</span>}
           </p>
+          {missing.length > 0 && (
+            <div className="space-y-1 rounded-lg bg-white/[0.03] p-2">
+              <p className="text-[11px] text-white/50">Keep them as your own exercises (private to you) — say what each works:</p>
+              {missing.map((n) => (
+                <div key={n} className="flex flex-wrap items-center gap-1.5 text-[11px] text-white/70">
+                  <span className="min-w-0 flex-1 truncate">{n}</span>
+                  <select aria-label={`${n} muscle`} className="rounded border border-white/10 bg-black/40 px-1 py-0.5 text-xs text-white"
+                          value={mine[n]?.muscle_group || ""} onChange={(e) => setMine({ ...mine, [n]: { ...mine[n], muscle_group: e.target.value } })}>
+                    <option value="">muscle…</option>
+                    {Object.entries(muscles).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                  <select aria-label={`${n} equipment`} className="rounded border border-white/10 bg-black/40 px-1 py-0.5 text-xs text-white"
+                          value={mine[n]?.equipment || ""} onChange={(e) => setMine({ ...mine, [n]: { ...mine[n], equipment: e.target.value } })}>
+                    <option value="">equipment…</option>
+                    {Object.entries(equipment).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              ))}
+              <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={busy} onClick={addMine}>Add as my exercises</button>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <button className="neon-btn-primary !w-auto px-3 py-2 text-xs" disabled={busy || !matched.length} onClick={() => run("routines")}>
               Save as routine{toRoutines(matched, effUnit).length === 1 ? "" : "s"} ({toRoutines(matched, effUnit).length})
@@ -126,6 +180,11 @@ export default function ImportWorkouts({ exercises, onImported }) {
           </div>
         </>
       )}
+      <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
+        <input className="neon-input !py-1.5 min-w-0 flex-1 text-xs" aria-label="Share code" placeholder="Got a routine code from a friend? Paste it"
+               value={code} onChange={(e) => setCode(e.target.value)} />
+        <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={busy || !code.trim()} onClick={redeem}>Add it</button>
+      </div>
       {msg && <p className="text-xs text-emerald-300">{msg}</p>}
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
     </div>
