@@ -111,7 +111,7 @@ export default function Login() {
             Or try {name} again — you'll come straight back here.
           </p>
           <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
-          {error && <p className="text-sm text-mcz-pink">{error}</p>}
+          {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
         </div>
       </AuthShell>
     );
@@ -143,7 +143,7 @@ export default function Login() {
         <div className="text-right">
           <Link to="/forgot" className="text-xs text-mcz-cyan hover:underline">Forgot password?</Link>
         </div>
-        {error && <p className="text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
 
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : null}

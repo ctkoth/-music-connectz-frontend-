@@ -20,6 +20,11 @@ const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#fff
 // The standalone BodieZ build is on another origin, and the providers' redirect
 // URIs are registered for musicconnectz.net only — a button there would open a
 // provider that then refuses to come back. Absent is honest; broken is not.
+// Sign in with Apple is hidden until Corey says to turn it back on. Flip this one
+// flag; nothing else about the Apple flow (startApple, the redirect, the backend)
+// was removed.
+const APPLE_ENABLED = false;
+
 export default function OAuthButtons(props) {
   return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
 }
@@ -247,8 +252,8 @@ function OAuthButtonsInner({ onSuccess, onError }) {
   const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
   const featured = grid.filter(isFeatured);
   const rest = grid.filter((p) => !isFeatured(p));
-  const hasApple = !!clientId("apple") && !oldApp && shell !== "inapp";
-  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || clientId("apple"));
+  const hasApple = APPLE_ENABLED && !!clientId("apple") && !oldApp && shell !== "inapp";
+  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || (APPLE_ENABLED && clientId("apple")));
 
   if (choice) {
     const go = choiceRoutes(choice, navigate, oauth);

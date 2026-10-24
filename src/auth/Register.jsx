@@ -4,7 +4,8 @@ import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-r
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
-import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { clearTrialToken, storedTrialApp, storedTrialToken } from "../trialToken.js";
+import { clearQuizResult, storedQuizResult } from "../quizResult.js";
 import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 
@@ -12,6 +13,9 @@ import HabitOnboarding from "../components/HabitOnboarding.jsx";
 // build time. It shares this screen with the main site and is not the music
 // platform, so the parts of signup that sell the music platform stay off it.
 const STANDALONE = !!import.meta.env.VITE_STANDALONE;
+// What each shell calls itself in the one line that says the account is shared.
+// It said "BodieZ" in every shell, which was wrong the day a second one shipped.
+const STANDALONE_NAME = { bodiez: "BodieZ", sentencez: "Sentence ConnectZ", intelligencez: "IntelligenceZ", skillz: "SkillZ" };
 import { track } from "../track.js";
 import { api } from "../api.js";
 import { recommendedBuild, alternateBuild } from "../downloadBuilds.js";
@@ -36,6 +40,8 @@ export default function Register() {
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
+  // Read before the token is cleared on success: where the new member lands next.
+  const [trialApp] = useState(() => (trialToken ? storedTrialApp() : ""));
   // A week built on the BodieZ trial door's split builder — free, no account,
   // computed client-side. It only survives as real routines if this
   // registration completes; see BodieZTrial.jsx's own comment on why.
@@ -117,8 +123,9 @@ export default function Register() {
     setBusy(true);
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken,
-                       trial_split: trialSplit || undefined });
+                       trial_split: trialSplit || undefined, personality: storedQuizResult() || undefined });
       clearTrialToken();
+      clearQuizResult();
       clearTrialSplit();
       track("register_success");
       // Show habit onboarding before going home — new users hook into daily returns.
@@ -138,23 +145,28 @@ export default function Register() {
     }
   }
 
+  // Somebody who joined to keep a scored take lands on that coach, where it is now the
+  // first row of their history — not on the home page, where nothing says it was kept.
+  // (BodieZ's claim is a routine, not a coach take, so it keeps the home page.)
   function completeOnboarding() {
     setShowHabitOnboarding(false);
-    navigate("/");
+    if (trialApp && trialApp !== "bodiez") {
+      navigate(`/${trialApp.endsWith("z") ? trialApp.slice(0, -1) : trialApp}?claimed=1`);
+    } else navigate("/");
   }
 
   return (
     <>
     <AuthShell title="Create your account"
                subtitle={STANDALONE
-                 ? "One account for BodieZ and Music ConnectZ — the same sign-in works in both."
+                 ? `One account for ${STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "this app"} and Music ConnectZ — the same sign-in works in both.`
                  : "Connect & elevate — post your work, find your people, get real feedback, and get paid for it."}>
       {ref && (
         <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-sm text-mcz-ember">
           <Gift size={15} /> Invited by <span className="font-semibold">{ref}</span>
           {join ? (
             <> — <span className="font-semibold">+{join.joinee_spinaz} 🍥</span> for you,
-              +{join.referrer_spinaz} 🍥 for them. Both sides, because both sides show up.</>
+              +{join.referrer_spinaz} 🍥 for them{join.referrer_monthly_cap ? ` (for their first ${join.referrer_monthly_cap} invites in any 30 days)` : ""}. Both sides, because both sides show up.</>
           ) : null}
         </div>
       )}
@@ -171,7 +183,8 @@ export default function Register() {
           changes nobody's behaviour. */}
       {join?.welcome_spinaz > 0 && !ref && !STANDALONE && (
         <p className="text-sm text-emerald-300">
-          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span> in your balance the moment you join.
+          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span>
+          {join.welcome_energy > 0 && <> <span className="font-semibold">+{join.welcome_energy} ⚡</span></>} in your balance the moment you join.
         </p>
       )}
 
@@ -210,7 +223,7 @@ export default function Register() {
           </button>
         )}
 
-        {error && <p className="text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
 
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : null}
@@ -300,7 +313,7 @@ export function AuthShell({ title, subtitle, children }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="mb-6 flex items-center gap-3">
-        <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-12 w-12 rounded-xl shadow-neon" />
+        <img src="/logo.png?v=2" alt={import.meta.env.VITE_STANDALONE ? (STANDALONE_NAME[import.meta.env.VITE_STANDALONE] || "") : "Music ConnectZ"} className="h-12 w-12 rounded-xl shadow-neon" />
         <div>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-white/55">{subtitle}</p>}

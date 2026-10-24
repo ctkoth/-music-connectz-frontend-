@@ -1,3 +1,4 @@
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
 import { trackListening } from "../listen.js";
 import { playTrack, useNowPlaying } from "../nowPlaying.js";
@@ -196,7 +197,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
           Skip for now
         </button>
       </div>
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -209,7 +210,9 @@ const loadSkipped = () => { try { return new Set(JSON.parse(sessionStorage.getIt
 function Queue() {
   const [q, setQ] = useState(null);
   const [err, setErr] = useState("");
-  const load = () => api(QUEUE).then(setQ).catch((e) => setErr(e.message));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(QUEUE).then((d) => { setQ(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "The rating queue didn't load."));
   useEffect(() => { load(); }, []);
 
   const [skipped, setSkipped] = useState(loadSkipped);
@@ -227,7 +230,7 @@ function Queue() {
   };
 
   if (err) return <p className="text-sm text-mcz-ember">{err}</p>;
-  if (!q) return <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={12} /> Finding work to rate…</p>;
+  if (!q) return <LoadGate small error={loadErr} what="work to rate" onRetry={() => { setLoadErr(""); load(); }} />;
   const r = q.reward;
   return (
     <div className="space-y-2">
@@ -287,7 +290,7 @@ export default function RateConnectZ() {
             {asked && <button type="button" className="re-link text-xs" onClick={() => { setWho(""); setAsked(""); }}>mine</button>}
           </form>
         </div>
-        {err && <p className="text-sm text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
         {!d && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
         {d && <Dashboard d={d} />}
       </section>

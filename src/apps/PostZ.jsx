@@ -22,6 +22,7 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import { Gain } from "../components/Price.jsx";
 import { useInViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { celebrate } from "../celebrate.js";
@@ -29,15 +30,18 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
   Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
+  Rocket,
 } from "lucide-react";
 import { api } from "../api.js";
 import { PushAsk } from "../components/PushSettings.jsx";
 import { playTrack, useNowPlaying } from "../nowPlaying.js";
 import { usePinned, setPinned } from "../pinned.js";
 import OfferPanel from "../OfferPanel.jsx";
+import SoundCloudLibrary from "../components/SoundCloudLibrary.jsx";
 import KarmaRewards from "../KarmaRewards.jsx";
 import { asList } from "../shape.js";
-import { useCharLimit } from "../limits.js";
+import { loadLimits, useCharLimit } from "../limits.js";
+import { canEditComment, editWindowLeft } from "../editing.js";
 import CharLimit, { TierCharTable } from "../CharLimit.jsx";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -54,14 +58,18 @@ import { labelForSkill } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import ShareSheet from "../components/ShareSheet.jsx";
+import CoachReadCard, { CoachReadSetting } from "../components/CoachReadCard.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 import LeaderboardZ from "./LeaderboardZ.jsx";
+import { useRemembered } from "../useRemembered.js";
+import { remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const SORTS = [["hot", "Hot"], ["new", "New"], ["top", "Top rated"]];
 
@@ -209,7 +217,7 @@ export default function PostZ() {
   const [loadErr, setLoadErr] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [genre, setGenre] = useState("Trap");
+  const [genre, setGenre] = useRemembered("postz.genre", "Trap");
   // 🆓 Freestyle rides ALONGSIDE the genre, never instead of it. A freestyle
   // Trap verse is still Trap — putting Freestyle in the genre list would have
   // forced a choice between the two and split the tag across every family.
@@ -240,6 +248,13 @@ export default function PostZ() {
     if (p.title) setTitle(String(p.title).slice(0, 160));
     const body = p.description ?? p.text;
     if (body) setDescription(String(body).slice(0, 4000));
+    // A file from FileZ arrives already hosted: its stable address goes straight into
+    // the slot, so posting it uploads nothing a second time.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) {
+      if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    }
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
   }), []);
 
   useEffect(() => {
@@ -356,6 +371,7 @@ export default function PostZ() {
           nobody got. It renders NOTHING when the server has nothing true to
           say, so on most visits this line costs a member zero pixels. */}
       <OfferPanel />
+      <SoundCloudLibrary />
       {/* What rating, voting and commenting pay, and how much of today's
           allowance is left — above the feed, because this is the screen where
           all three happen and a reward found out afterwards is a coincidence.
@@ -403,7 +419,7 @@ export default function PostZ() {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+          <select aria-label="Genre" data-memo="own" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
@@ -413,6 +429,7 @@ export default function PostZ() {
               </optgroup>
             ))}
           </select>
+<UsualHint field="postz.genre" value={genre} onUse={setGenre} />
           {/* Any genre can be freestyled, so this is a toggle next to the
               genre rather than an entry inside it. */}
           <button type="button" data-tour="post-freestyle"
@@ -598,7 +615,17 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
   const [commentDraft, setCommentDraft] = useState("");
+  // A comment of mine being edited in place: { id, draft }. `editWindow` is the
+  // server's edit_unlock_sec for this viewer's tier. Null until /limits/
+  // answers, and nothing is offered on a window nobody served.
+  const [editingComment, setEditingComment] = useState(null);
+  const [editWindow, setEditWindow] = useState(null);
+  useEffect(() => {
+    loadLimits().then((d) => setEditWindow(d?.edit_unlock_sec ?? null)).catch(() => {});
+  }, []);
   const [ratingVisibility, setRatingVisibility] = useState("restricted");
+  // Why, in the listener's own words — optional. The performer reads it next to the AI's reasons.
+  const [ratingReason, setRatingReason] = useState("");
   const draft = useRef("");
   const item = `post:${post.id}`;
 
@@ -744,7 +771,8 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   async function rate(score) {
     try {
       setSocial(await api("/api/economy/social/rate/",
-                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility } }));
+                          { method: "POST", body: { item, action: "rate", score, visibility: ratingVisibility, reason: ratingReason.trim() || undefined } }));
+      setRatingReason("");
       const bonuses = [];
       if (ratingVisibility === "public") bonuses.push("public +25%");
       if (post.contributors?.length > 1) bonuses.push(`team +${10 * (post.contributors.length - 1)}%`);
@@ -827,6 +855,28 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
     } finally { setOpening(""); }
   }
 
+  // Save an edit to my own comment. The server re-checks the owner and the
+  // window; its refusal reaches the screen as the server sent it.
+  async function saveCommentEdit() {
+    const ed = editingComment;
+    if (!ed) return;
+    const body = ed.draft.trim();
+    if (!body) return onFlash("A comment can't be empty. Nothing was saved.");
+    try {
+      setSocial(await api("/api/economy/social/comment/", {
+        method: "POST", body: { item, body, comment_id: ed.id },
+      }));
+      setEditingComment(null);
+      onFlash("Comment saved.");
+    } catch (e) {
+      const msg = e.message || "Couldn't save that comment.";
+      onFlash(msg);
+      // Window closed while it was open: the draft cannot be saved any more,
+      // so close the editor and show the comment as it now stands.
+      if (/edit_window_passed/.test(msg)) { setEditingComment(null); loadSocial(); }
+    }
+  }
+
   async function comment() {
     const body = commentDraft.trim();
     if (!body) return;
@@ -856,11 +906,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   return (
     <div ref={seenRef} className="re-card">
       <div className="mb-3 flex items-center gap-3">
-        <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
-                 className="h-10 w-10 rounded-lg object-cover" />
+        <button onClick={() => openMember(post.author)} title={`View ${post.author}'s profile`}>
+          <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
+                   className="h-10 w-10 rounded-lg object-cover" />
+        </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
+            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
@@ -934,6 +987,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               {editing ? <XIcon size={15} /> : <Pencil size={15} />}
             </button>
           )}
+          {post.boosted && (
+            <span className="rounded-full border border-mcz-ember/40 px-2 py-0.5 text-[10px] text-mcz-ember"
+                  title="Paid placement: a boosted post leads the feed. It does not change ratings or royalties.">
+              🚀 Boosted
+            </span>
+          )}
+          {post.mine && post.visibility === "public" && <BoostButton post={post} onChanged={onChanged} onFlash={onFlash} />}
           {post.mine && post.visibility === "public" && <PinButton id={post.id} />}
           {canEdit && (
             <button onClick={remove} disabled={busy}
@@ -1088,46 +1148,31 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <OpenIn post={post} busy={!!opening} onGo={openIn} />
       )}
 
-      {/* What the coach said, kept on the post that was coached. A score that
-          lived for one screenful and then vanished sent people back through
-          the same prompt to read it again. */}
-      {post.score?.verdict && (
-        <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
-          <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
-            👑 Coached in {(post.score.app_key || "singz").toUpperCase()} ·{" "}
-            <span className="text-white">{post.score.score}/10</span>
-          </p>
-          <p className="mt-1 text-[12px] leading-relaxed text-white/70">{post.score.verdict}</p>
-          {post.score.next_drill && (
-            <p className="mt-1 text-[11px] text-white/45">
-              Next drill · {post.score.next_drill}
-            </p>
-          )}
-          {/* This score lives in that instrument's own progress history too —
-              same rule ProgressPanel's "Recent takes" already follows for a
-              take opened the other direction, applied here for a post opened
-              first. */}
-          <button
-            onClick={() => goToSpot(post.score.app_key || "singz", `${post.score.app_key || "singz"}-progress`)}
-            className="mt-2 text-[11px] font-semibold text-mcz-cyan hover:underline"
-          >
-            Open in {(post.score.app_key || "singz").toUpperCase()} →
-          </button>
-        </div>
-      )}
+      {/* What the coach said, kept on the post that was coached — as much of it
+          as THIS viewer may see. `post.coach` is the server's answer for the
+          person looking (none / locked / shown); the card renders it and decides
+          nothing. Folded to a headline on the feed so a column of coached posts
+          is not a wall of text; the score's scope stays visible when folded.
+          It lives in that instrument's own progress history too, so a member
+          can open the coach that gave it. */}
+      <CoachReadCard coach={post.coach} compact signedIn author={post.author}
+                     onOpen={(app, target) => goToSpot(app, target)} />
+      {/* The author's half: who sees the read, with the result of each choice
+          written under it before it is pressed. */}
+      <CoachReadSetting post={post} onChanged={onChanged} onFlash={onFlash} />
 
       <div className="mt-3 border-t border-white/[0.06] pt-3">
         {canRate && !skipped ? (
           <div className="space-y-2">
             <div className="re-label">Rate this track</div>
             <p className="text-[11px] text-white/40">
-              Anonymous, and it curates the ChartZ.{" "}
+              It curates the ChartZ. The author is told who rated their post. Private (the default) pays the standard ⚡; Public pays +25% and counts toward the public leaderboards.{" "}
               {rewardLine() && <span className="text-emerald-300">{rewardLine()}</span>}
             </p>
             <div className="flex gap-1">
               {[
-                { value: "public", label: "Public", bonus: "+1.25x", tip: "Earn bonus & appear on leaderboards" },
-                { value: "restricted", label: "Private", bonus: "1x", tip: "Only recorded for you" },
+                { value: "public", label: "Public", bonus: "+25%", tip: "Your rating earns +25% ⚡ and counts toward the public leaderboards" },
+                { value: "restricted", label: "Private", bonus: "1x", tip: "Standard ⚡ and not on the leaderboards. This is the default." },
               ].map(({ value, label, bonus, tip }) => (
                 <button
                   key={value}
@@ -1150,6 +1195,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
                 Give it a listen first — {listenShort}s to go.
               </p>
             )}
+            <input className="neon-input w-full text-xs" maxLength={200} value={ratingReason}
+                   onChange={(e) => setRatingReason(e.target.value)} aria-label="Why? (optional)"
+                   placeholder="Why? One line, optional — only the performer sees it." />
             <div className="flex flex-wrap items-center gap-1">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} onClick={() => rate(n)} disabled={listenShort > 0}
@@ -1177,12 +1225,34 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
       <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
         <div className="re-label">Comments · {comments.length}</div>
+        {/* The gain, visible: it lived only in each vote button's hover title, which a
+            phone never shows. */}
+        {comments.length > 0 && (
+          <p className="text-[11px] text-white/40">
+            Voting on someone else's comment pays <Gain amount={1} emoji={ENERGY} />, up or down — once per comment, up to a daily cap.
+          </p>
+        )}
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
-            <div>
-              <MemberName username={c.user} bare />{" "}
-              <span className="text-white/80">{c.body}</span>
-            </div>
+            {editingComment?.id === c.id ? (
+              <div className="space-y-2">
+                <textarea rows={2} aria-label="Edit your comment"
+                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                  maxLength={charLimit ?? undefined} value={editingComment.draft}
+                  onChange={(e) => setEditingComment({ ...editingComment, draft: e.target.value })} />
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button className="re-btn !w-auto px-3 text-[12px]" onClick={saveCommentEdit}>Save changes</button>
+                  <button className="pill text-[11px]" onClick={() => setEditingComment(null)}>Cancel</button>
+                  <span className="text-emerald-300/70">Free</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <MemberName username={c.user} bare />{" "}
+                <span className="text-white/80">{c.body}</span>
+                {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
+              </div>
+            )}
             {/* Up and down on a comment. Both pay the voter the SAME +1 ⚡ —
                 stated on the control, before it is pressed — because paying
                 more for an upvote would be the app buying its own praise, and
@@ -1218,6 +1288,16 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               {c.karma_energy > 0 && (
                 <span className="text-emerald-300">earned +{c.karma_energy} {ENERGY}</span>
               )}
+              {/* Only on my own comment, and only while the server's window is
+                  open by this device's clock. Free: no cost to state. */}
+              {canEditComment(c, user?.username) && editingComment?.id !== c.id
+                && editWindowLeft(c.at, editWindow, now) > 0 && (
+                <button className="ml-auto text-white/40 hover:text-mcz-cyan"
+                        title={`Editable for ${editWindowLeft(c.at, editWindow, now)}s more`}
+                        onClick={() => setEditingComment({ id: c.id, draft: c.body })}>
+                  Edit · {editWindowLeft(c.at, editWindow, now)}s left
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -1237,6 +1317,18 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               />
               <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
             </div>
+            {social?.comment_cost_energy != null && (
+              <p className="mt-1 text-[11px]">
+                {social.comment_cost_energy > 0
+                  ? <><span className="text-mcz-ember">−{social.comment_cost_energy} {ENERGY}</span>{" "}
+                      <span className="text-white/45">per comment — your free ones today are used. Not posted means not charged.</span></>
+                  : <span className="text-emerald-300/80">
+                      {post.mine || post.author === user?.username
+                        ? "Free on your own post."
+                        : `Free · ${social.comment_free_left} of ${social.comment_free_per_day} free comments left today`}
+                    </span>}
+              </p>
+            )}
 
             {/* Show tier comparison when user is near comment character limit */}
             {commentCharState === "near" && charLimit && (
@@ -1259,6 +1351,57 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   );
 }
 
+
+// Boost: spend ⚡ for a labelled day near the top of the feed. The price is ON the
+// button; pressing it opens the server's own quote (what it buys, your balance) and
+// nothing is charged until the second press.
+function BoostButton({ post, onChanged, onFlash }) {
+  const [q, setQ] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const cost = post.boost_cost_energy;
+  if (!cost) return null;
+  const show = async () => {
+    setOpen(true);
+    try { setQ(await api(`/api/economy/postz/${post.id}/boost/`)); } catch (e) { onFlash(e.message || "Couldn't check the boost."); setOpen(false); }
+  };
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await api(`/api/economy/postz/${post.id}/boost/`, { method: "POST", body: {} });
+      onChanged(post.id, { ...post, boosted: true, boosted_until: r.boosted_until });
+      onFlash(`Boosted — −${cost} ${ENERGY}. It leads the feed until it ends.`);
+      setOpen(false);
+    } catch (e) { onFlash(e.message || "Couldn't boost that."); }
+    finally { setBusy(false); }
+  };
+  return (
+    <span className="relative">
+      <button onClick={open ? () => setOpen(false) : show} aria-expanded={open}
+              title={`Boost this post: −${cost} ${ENERGY} for a day near the top of the feed`}
+              className="flex items-center gap-1 rounded-lg p-1.5 text-[11px] text-white/45 hover:bg-white/[0.06] hover:text-mcz-ember">
+        <Rocket size={14} /> <span className="text-mcz-ember">−{cost} {ENERGY}</span>
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Boost this post"
+             className="absolute right-0 z-20 mt-1 w-64 space-y-2 rounded-xl border border-white/10 bg-black/90 p-3 text-xs text-white/70">
+          {!q ? <p>Checking…</p> : (
+            <>
+              <p>{q.what_you_get}</p>
+              <p>You hold {q.energy} {ENERGY}. Not boosted means not charged.</p>
+              {q.allowed ? (
+                <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={go} disabled={busy || q.energy < cost}>
+                  Boost for −{cost} {ENERGY}
+                </button>
+              ) : <p className="text-mcz-ember">{q.why_not}</p>}
+              {q.allowed && q.energy < cost && <p className="text-mcz-ember">You are {cost - q.energy} {ENERGY} short.</p>}
+            </>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
 
 // Pin to profile — X/Instagram's "pinned post": your best work first on your
 // card. Only on your own public posts, because that is all a profile shows.
@@ -1380,7 +1523,7 @@ function BuyBar({ post, onChanged, onFlash }) {
           )}
         </div>
       )}
-      {err && <p className="mt-1 text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="mt-1 text-mcz-ember">{err}</p>}
     </div>
   );
 }

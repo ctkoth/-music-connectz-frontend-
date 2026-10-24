@@ -9,6 +9,8 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
+import LoadGate from "../components/LoadGate.jsx";
+import { Price } from "../components/Price.jsx";
 import { celebrateBattles, celebratePartnerz } from "../milestones.js";
 import PartnerzMark from "../components/PartnerzMark.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -32,11 +34,25 @@ import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import { GENRE_GROUPS } from "../genres.js";
 import { onHandoff } from "../handoff.js";
+import { openMember } from "../goto.js";
 // Called on both entry paths and imported on neither — `hasBlobs` and
 // `uploadWork` threw ReferenceError the moment somebody entered a battle,
 // which is the same missing line that had the trial's Record button dead.
 import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
+import { recall, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
+
+// "@username" as a real link to their profile — every place BattleZ mentions
+// a contestant by name uses this instead of a bare "@{name}" string.
+function AtUser({ user }) {
+  if (!user) return null;
+  return (
+    <button className="hover:underline" onClick={(e) => { e.stopPropagation(); openMember(user); }}>
+      @{user}
+    </button>
+  );
+}
 
 // An entry's take counts its own listening (listen.js), because rating a
 // battle take requires hearing it first — the same rule posts follow, and the
@@ -106,7 +122,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
     <div className={`neon-frame space-y-2 p-3 ${isWinner ? "!border-mcz-gold/60" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="min-w-0 truncate text-[13px] font-semibold text-white/85">
-          {isWinner && <Crown size={12} className="mr-1 inline text-mcz-gold" />}@{s.username}
+          {isWinner && <Crown size={12} className="mr-1 inline text-mcz-gold" />}<AtUser user={s.username} />
         </span>
         <span className="shrink-0 text-[12px] font-bold text-mcz-ember">
           {s.median != null ? s.median : "—"}<span className="text-white/30">/10</span>
@@ -137,6 +153,28 @@ function Side({ side, board, battle, onRate, onSubmit }) {
   );
 }
 
+// The battle's public link (/b/<id>). Said before it is pressed what a stranger sees:
+// the page is anybody's to open, and an under-18 member's entry is not on it — the
+// server leaves those out of the public read entirely.
+function ShareBattle({ id, title }) {
+  const [said, setSaid] = useState("");
+  async function share() {
+    const url = `${window.location.origin}/b/${id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title, text: `${title} — think you'd beat them?`, url }); setSaid("Shared."); return; }
+      await navigator.clipboard.writeText(url); setSaid("Link copied.");
+    } catch (e) { if (e?.name !== "AbortError") setSaid(url); }
+  }
+  return (
+    <span className="flex flex-col items-end">
+      <button className="re-btn !w-auto px-3 text-xs" onClick={share} title="Anyone with the link can watch. Entries from members under 18 aren't shown there.">
+        Share
+      </button>
+      <span className="text-[10px] text-white/35">{said || "public link · under-18 entries hidden"}</span>
+    </span>
+  );
+}
+
 function Detail({ id, onBack, onFlash, seed }) {
   const talk = useSay();
   const [b, setB] = useState(null);
@@ -152,13 +190,20 @@ function Detail({ id, onBack, onFlash, seed }) {
   // guess that disagrees with the bill exactly when it matters.
   const [skills, setSkills] = useState([]);
   const [cost, setCost] = useState(null);
+  const [stake, setStake] = useState("");
+  const [spinazLeft, setSpinazLeft] = useState(null);
+  useEffect(() => {
+    api("/api/economy/wallet/").then((w) => setSpinazLeft(w?.wallet?.spinaz ?? null)).catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     const q = skills.length ? `?skills=${encodeURIComponent(skills.join(","))}` : "";
     api(`/api/economy/postz/cost/${q}`).then(setCost).catch(() => setCost(null));
   }, [skills]);
 
-  const load = () => api(`/api/economy/battlez/${id}/`).then(setB).catch(() => setB(null));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(`/api/economy/battlez/${id}/`).then((d) => { setB(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "That battle didn't load."));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
 
   // A post carried in from PostZ fills the entry. The URLs are already hosted,
@@ -174,7 +219,7 @@ function Detail({ id, onBack, onFlash, seed }) {
     setShowEntry(true);
   }, [seed]);
 
-  if (!b) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!b) return <LoadGate error={loadErr} what="the battle" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const entries = asList(b.entries);
 
@@ -232,13 +277,17 @@ function Detail({ id, onBack, onFlash, seed }) {
     } catch (e) { onFlash(e.message || "Couldn't answer that."); }
   }
 
+  // The stake is typed in beside the buttons, so each button can say what it takes
+  // before it is pressed. It used to be a browser prompt: the button said "Back @x" and
+  // the price turned up in a popup, with no balance beside it.
   async function wager(side) {
-    const raw = window.prompt(`How many SpinaZ on @${b.scoreboard?.[side]?.username}?`);
-    const amount = Number(raw);
-    if (!raw || !Number.isFinite(amount) || amount <= 0) return;
+    const amount = Math.round(Number(stake));
+    if (!Number.isFinite(amount) || amount <= 0) return;
     try {
       setB(await api(`/api/economy/battlez/${id}/wager/`,
-                     { method: "POST", body: { side, amount: Math.round(amount) } }));
+                     { method: "POST", body: { side, amount } }));
+      setStake("");
+      api("/api/economy/wallet/").then((w) => setSpinazLeft(w?.wallet?.spinaz ?? null)).catch(() => {});
       onFlash(talk(P.battle_staked(Math.round(amount))));
       // After the server takes it, never before: a refused wager stakes
       // nothing, and it must not sound like it did.
@@ -265,15 +314,18 @@ function Detail({ id, onBack, onFlash, seed }) {
             <h3 className="font-display text-lg font-extrabold">{b.title}</h3>
             <PartnerzMark pairs={b.partnered} />
             <p className="text-[11px] text-white/45">
-              hosted by @{b.host}
+              hosted by <AtUser user={b.host} />
               {b.genre && <> · {b.genre}</>}
               {" · "}{b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
             </p>
           </div>
-          {b.mine && b.status === "open" && (
-            <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
-          )}
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <ShareBattle id={b.id} title={b.title} />
+            {b.mine && b.status === "open" && (
+              <button className="re-btn !w-auto px-3 text-xs" onClick={close}>Close it</button>
+            )}
+          </div>
         </div>
         {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />
@@ -291,8 +343,8 @@ function Detail({ id, onBack, onFlash, seed }) {
             <div className="neon-frame flex flex-wrap items-center gap-2 p-3">
               <p className="flex-1 text-[12px] text-white/70">
                 {b.my_side === "opponent"
-                  ? `@${b.host} called you out.`
-                  : `Waiting on @${b.opponent} to answer.`}
+                  ? <><AtUser user={b.host} /> called you out.</>
+                  : <>Waiting on <AtUser user={b.opponent} /> to answer.</>}
               </p>
               {b.my_side === "opponent" && (
                 <>
@@ -314,7 +366,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           )}
           {b.status === "settled" && (
             <p className="flex items-center gap-1.5 text-[12px] text-mcz-gold">
-              <Crown size={13} /> {b.winner ? `@${b.winner} took it.` : "Draw — every wager was refunded."}
+              <Crown size={13} /> {b.winner ? <><AtUser user={b.winner} /> took it.</> : "Draw — every wager was refunded."}
             </p>
           )}
 
@@ -333,13 +385,13 @@ function Detail({ id, onBack, onFlash, seed }) {
             <div className="flex flex-wrap gap-2">
               {["host", "opponent"].map((side) => (
                 <span key={side} className="pill">
-                  @{b.scoreboard?.[side]?.username} · {b.pools?.[side] || 0} {SPINAZ}
+                  <AtUser user={b.scoreboard?.[side]?.username} /> · {b.pools?.[side] || 0} {SPINAZ}
                 </span>
               ))}
             </div>
             {b.my_wager ? (
               <p className="text-[11px] text-white/60">
-                You staked {b.my_wager.amount} {SPINAZ} on @{b.scoreboard?.[b.my_wager.side]?.username}.
+                You staked {b.my_wager.amount} {SPINAZ} on <AtUser user={b.scoreboard?.[b.my_wager.side]?.username} />.
                 {b.status === "settled" && (
                   <span className={b.my_wager.paid_out > b.my_wager.amount ? " text-emerald-300" : " text-mcz-ember"}>
                     {" "}Paid out {b.my_wager.paid_out} {SPINAZ}.
@@ -348,12 +400,22 @@ function Detail({ id, onBack, onFlash, seed }) {
               </p>
             ) : b.status === "open" && !b.i_am_contestant ? (
               <>
-                <div className="flex flex-wrap gap-2">
-                  {["host", "opponent"].map((side) => (
-                    <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}>
-                      Back @{b.scoreboard?.[side]?.username}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input className="neon-input !w-24 !py-1 text-xs" type="number" min="1" step="1" inputMode="numeric"
+                         aria-label={`SpinaZ to stake`} placeholder={`${SPINAZ} stake`}
+                         value={stake} onChange={(e) => setStake(e.target.value)} />
+                  {["host", "opponent"].map((side) => {
+                    const n = Math.round(Number(stake)) || 0;
+                    const short = spinazLeft != null && n > spinazLeft;
+                    return (
+                      <button key={side} className="re-btn !w-auto px-3 text-xs" onClick={() => wager(side)}
+                              disabled={n <= 0 || short}>
+                        Back @{b.scoreboard?.[side]?.username}
+                        {n > 0 && <span className="ml-1"><Price amount={n} emoji={SPINAZ} /></span>}
+                      </button>
+                    );
+                  })}
+                  {spinazLeft != null && <span className="text-[11px] text-white/45">You have {spinazLeft.toLocaleString()} {SPINAZ}</span>}
                 </div>
                 <p className="text-[10px] text-white/35">
                   Your stake leaves your wallet now and is held until the result. Winners split the
@@ -379,7 +441,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           <Trophy size={12} /> Leaderboard
         </p>
         {entries.length === 0 ? (
-          <p className="text-[12px] text-white/40">No entries yet.</p>
+          <p className="text-[12px] text-white/40">No entries yet{b.status === "open" && b.i_am_contestant ? " — enter yours below." : "."}</p>
         ) : (
           <ol className="space-y-2">
             {entries.map((e, i) => (
@@ -388,9 +450,9 @@ function Detail({ id, onBack, onFlash, seed }) {
                   <span className="min-w-0">
                     <span className="text-[11px] tabular-nums text-white/30">#{i + 1}</span>{" "}
                     <span className="text-[13px] font-semibold text-white/85">
-                      {e.title || `@${e.user}`}
+                      {e.title || <AtUser user={e.user} />}
                     </span>
-                    <span className="block text-[10px] text-white/35">@{e.user}</span>
+                    <span className="block text-[10px] text-white/35"><AtUser user={e.user} /></span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="text-[12px] font-bold text-mcz-ember">
@@ -522,10 +584,12 @@ function WeeklyOpen({ onOpen }) {
 
 export default function BattleZ() {
   const [list, setList] = useState(null);
+  const [calloutCost, setCalloutCost] = useState(null);
+  const [hostCost, setHostCost] = useState(null);
   const [open, setOpen] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", genre: "Trap", entry_spinaz: "" });
+  const [form, setForm] = useState({ title: "", description: "", genre: recall("battlez.genre") || "Trap", entry_spinaz: "" });
   const [work, setWork] = useState({});
   const [gates, setGates] = useState({});
   const [duel, setDuel] = useState({ opponent: "", kind: "1v1", title: "" });
@@ -536,7 +600,7 @@ export default function BattleZ() {
 
   const { user } = useAuth();
   const load = () => api("/api/economy/battlez/")
-    .then((d) => { const l = asList(d?.battles); setList(l); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
+    .then((d) => { const l = asList(d?.battles); setList(l); setCalloutCost(d?.challenge_cost_energy ?? null); setHostCost(d?.host_cost_energy ?? null); celebrateBattles(l, user?.username); celebratePartnerz(l, user?.username, "battle"); })
     .catch((e) => { setMsg(e.message || "Couldn't load BattleZ."); setList([]); });
   useEffect(() => { load(); }, []);
 
@@ -665,7 +729,7 @@ export default function BattleZ() {
             <div className="grid gap-2 sm:grid-cols-3">
               <input className="neon-input !py-2 text-xs" placeholder="Opponent username" data-tour="battlez-opponent"
                      value={duel.opponent} onChange={(e) => setDuel({ ...duel, opponent: e.target.value })} />
-              <select className="neon-input !py-2 text-xs" value={duel.kind}
+              <select aria-label="Battle type" className="neon-input !py-2 text-xs" value={duel.kind}
                       onChange={(e) => setDuel({ ...duel, kind: e.target.value })}>
                 <option value="1v1">1v1 ⚔️</option>
                 <option value="freestyle">Freestyle 🎤</option>
@@ -678,7 +742,18 @@ export default function BattleZ() {
             <button className="neon-btn-primary !w-auto px-5" onClick={challenge}
                     disabled={busy || !duel.opponent.trim()}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Challenge
+              {calloutCost > 0 && <span className="ml-2 text-mcz-ember">−{calloutCost} {ENERGY}</span>}
             </button>
+            {calloutCost > 0 && (
+              <p className="text-[10px] text-white/35">
+                Charged when it is sent, <span className="text-emerald-300">+{calloutCost} {ENERGY}</span> back if they decline.
+                A challenge that fails to send is not charged.
+              </p>
+            )}
+            <p className="text-[10px] text-white/35">
+              1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
+              and wagering whichever you pick, and the label is what the opponent sees.
+            </p>
             <p className="text-[10px] text-white/35">
               Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.
@@ -694,8 +769,8 @@ export default function BattleZ() {
             <textarea className="neon-input !py-2 text-xs" rows={2} placeholder="Rules, brief, what you want back"
                       value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div className="grid gap-2 sm:grid-cols-2">
-              <select className="neon-input !py-2 text-xs" value={form.genre}
-                      onChange={(e) => setForm({ ...form, genre: e.target.value })}>
+              <select aria-label="Genre" data-memo="own" className="neon-input !py-2 text-xs" value={form.genre}
+                      onChange={(e) => { remember("battlez.genre", e.target.value); setForm({ ...form, genre: e.target.value }); }}>
                 {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
                 {grp.genres.map(([name, emoji]) => (
@@ -704,6 +779,7 @@ export default function BattleZ() {
               </optgroup>
             ))}
               </select>
+<UsualHint field="battlez.genre" value={form.genre} onUse={(v) => { remember("battlez.genre", v); setForm({ ...form, genre: v }); }} />
               <input className="neon-input !py-2 text-xs" inputMode="numeric"
                      placeholder="Entry fee in SpinaZ (0 = free)"
                      value={form.entry_spinaz}
@@ -717,6 +793,7 @@ export default function BattleZ() {
               <button className="neon-btn-primary !w-auto px-5" onClick={create}
                       disabled={busy || !form.title.trim()}>
                 {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Host it
+                {hostCost > 0 && <span className="ml-2 text-mcz-ember">−{hostCost} {ENERGY}</span>}
               </button>
               {Number(form.entry_spinaz || 0) > 0 && (
                 <span className="text-sm text-emerald-300">+{Number(form.entry_spinaz)} {SPINAZ}/entry</span>

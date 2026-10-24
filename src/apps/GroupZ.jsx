@@ -18,6 +18,8 @@
 // So `derived` groups get their explanation printed and no Delete. FanZ gets
 // no add box at all: being a fan is somebody else's act, and a member who can
 // type their own fan list has a follower count that means nothing.
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Mail, Eye, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { api } from "../api.js";
@@ -124,7 +126,7 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                 )}
 
                 {list.length === 0 && kind !== "custom" && (
-                  <p className="text-xs text-white/40">Nothing here yet.</p>
+                  <Empty className="text-xs" text="Nobody here yet." action="Find people in VybeZ" onAction={() => goToSpot("vybez", "")} />
                 )}
 
                 {list.map((g) => (

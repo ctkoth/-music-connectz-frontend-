@@ -26,7 +26,7 @@ import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
@@ -39,6 +39,8 @@ import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 const STATUS_LABEL = {
@@ -83,12 +85,38 @@ function EscrowWindow({ deal }) {
   );
 }
 
-function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
+function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) {
   const cur = deal.currency;
   const me = deal.participants.find((p) => p.username === deal.__me) || {};
   const held = cur === "spinaz" ? deal.held_spinaz : deal.held_cents;
 
   const act = (verb) => onAction(deal.id, verb);
+
+  // Mirrors the server's own gate (collab.py: CollabDetailView.patch) so the
+  // button only ever appears when the request would actually succeed — the
+  // server still decides for real, this just keeps the member from pressing
+  // a door that's already closed.
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const othersResponded = deal.participants.some(
+    (p) => p.username !== deal.initiator && (p.accepted_at || p.funded));
+  const canEdit = deal.mine && deal.status === "draft" && !othersResponded;
+
+  function startEdit() {
+    setDraft({
+      title: deal.title, description: deal.description,
+      worths: Object.fromEntries(deal.participants.map((p) => [p.username, (p.worth_cents / 100).toString()])),
+    });
+    setEditing(true);
+  }
+  async function saveEdit() {
+    const cents = (v) => Math.max(0, Math.round(Number(v || 0) * 100));
+    const ok = await onPatch(deal.id, {
+      title: draft.title.trim(), description: draft.description.trim(),
+      worths: Object.fromEntries(Object.entries(draft.worths).map(([u, v]) => [u, cents(v)])),
+    });
+    if (ok) setEditing(false);
+  }
 
   return (
     <div className="neon-frame space-y-3 p-4">
@@ -97,15 +125,46 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
           <p className="truncate font-semibold">{deal.title || "Untitled deal"}</p>
           <PartnerzMark pairs={deal.partnered} />
           <p className="text-xs text-white/55">
-            by @{deal.initiator} · {STATUS_LABEL[deal.status] || deal.status}
+            by <button className="hover:underline" onClick={() => openMember(deal.initiator)}>@{deal.initiator}</button>
+            {" · "}{STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
-        {held > 0 && (
-          <span className="pill flex shrink-0 items-center gap-1 !text-emerald-300">
-            <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {held > 0 && (
+            <span className="pill flex items-center gap-1 !text-emerald-300">
+              <ShieldCheck size={11} /> <Amount cents={held} currency={cur} /> held
+            </span>
+          )}
+          {canEdit && !editing && (
+            <button className="text-white/40 hover:text-white" onClick={startEdit} title="Fix a typo in the title, brief or worth">
+              Edit
+            </button>
+          )}
+        </div>
       </div>
+
+      {editing && (
+        <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-black/30 p-3">
+          <input className="neon-input" placeholder="Title" value={draft.title}
+                 onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <textarea className="neon-input" rows={2} placeholder="Brief" value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          {deal.participants.map((p) => (
+            <label key={p.username} className="flex items-center justify-between gap-2 text-[11px] text-white/60">
+              @{p.username}'s contribution is worth
+              <input className="neon-input !w-28 !py-1" inputMode="decimal" value={draft.worths[p.username] ?? ""}
+                     onChange={(e) => setDraft({ ...draft, worths: { ...draft.worths, [p.username]: e.target.value } })} />
+            </label>
+          ))}
+          <div className="flex gap-2">
+            <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs" onClick={saveEdit} disabled={busy}>Save</button>
+            <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+          <p className="text-[10px] text-white/35">
+            This stays editable only until someone else accepts the deal or funds their share — once they have, the numbers are theirs too and this door closes.
+          </p>
+        </div>
+      )}
 
       {/* Back to where it came from. A deal that can't point at the post it
           grew out of is a dead end in the direction people travel. */}
@@ -171,6 +230,23 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
         </button>
       )}
 
+      {deal.i_am_participant && !deal.mine && ["draft", "funded", "delivered", "disputed"].includes(deal.status) && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
+          {me.accepted_at ? (
+            <>
+              You've accepted this collab, so you can message the others on it (and call, when you are both on StatZ).
+              <button className="ml-2 underline" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: false })}>Withdraw</button>
+            </>
+          ) : (
+            <>
+              @{deal.initiator} put you on this. Accepting lets everyone on it message you — including members in a different age group, which is
+              not allowed anywhere else — and you can withdraw at any time.
+              <button className="ml-2 rounded bg-mcz-cyan/20 px-2 py-0.5 text-mcz-cyan" disabled={busy} onClick={() => onAction(deal.id, "accept", { accept: true })}>Accept</button>
+            </>
+          )}
+        </div>
+      )}
+
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
@@ -222,6 +298,25 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, busy }) {
             <X size={13} /> Dispute
           </button>
         )}
+        {/* The /refund/ door existed on the server the whole time with
+            nothing here calling it — not even for a payer, who the copy on
+            the Start a deal form already promised could cancel. Shown to
+            whoever the server will actually let press it: a payer any time
+            before delivery, or the deal's own starter while it's still a
+            draft nobody has responded to (they may not be a payer at all —
+            they could be the one getting paid). */}
+        {deal.status === "draft" && (deal.mine || me.pays_cents > 0) && (
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+                  onClick={() => act("refund")} disabled={busy}>
+            <X size={13} /> Withdraw this deal
+          </button>
+        )}
+        {["funded", "disputed"].includes(deal.status) && me.pays_cents > 0 && (
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+                  onClick={() => act("refund")} disabled={busy}>
+            <X size={13} /> Cancel — refund what's held
+          </button>
+        )}
       </div>
     </div>
   );
@@ -233,11 +328,17 @@ export default function CollabZ() {
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: "", currency: "money", partner: "", mine: "", theirs: "",
-                                     description: "", split_mode: "rating" });
+  const [form, setForm] = useState(() => seed("collabz", { title: "", currency: "money", partner: "", mine: "", theirs: "",
+                                     description: "", split_mode: "rating" }, ["currency"]));
   // A member card's "Collab" lands here with the partner already filled in.
   useEffect(() => onHandoff("collabz", (p) => {
     if (p.partner) setForm((f) => ({ ...f, partner: String(p.partner) }));
+    if (p.title) setForm((f) => ({ ...f, title: String(p.title).slice(0, 160) }));
+    // A file handed over by the Doors bar arrives already hosted: its address goes into
+    // the slot, so nothing is uploaded twice.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
   }), []);
   const [work, setWork] = useState({});
   const [storage, setStorage] = useState(null);
@@ -299,12 +400,22 @@ export default function CollabZ() {
     } catch (e) { setMsg(e.message || "Couldn't start that release."); }
   }
 
-  async function action(id, verb) {
+  async function action(id, verb, body = {}) {
     setBusy(true); setMsg("");
     try {
-      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body: {} });
+      await api(`/api/economy/collab/${id}/${verb}/`, { method: "POST", body });
       await load();
     } catch (e) { setMsg(e.message || "That didn't go through."); }
+    finally { setBusy(false); }
+  }
+
+  async function patchDeal(id, body) {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/economy/collab/${id}/`, { method: "PATCH", body });
+      await load();
+      return true;
+    } catch (e) { setMsg(e.message || "Couldn't save that."); return false; }
     finally { setBusy(false); }
   }
 
@@ -378,7 +489,7 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           {deals.map((d) => (
             <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor}
-                  onDistribute={distribute} onFlash={setMsg} busy={busy} />
+                  onDistribute={distribute} onFlash={setMsg} onPatch={patchDeal} busy={busy} />
           ))}
         </div>
       )}
@@ -394,11 +505,18 @@ export default function CollabZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <input className="neon-input sm:col-span-2" placeholder="What are we making?"
                  value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <select className="neon-input" value={form.currency}
-                  onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+          <select data-memo="own" aria-label="Escrow currency" className="neon-input" value={form.currency}
+                  onChange={(e) => { remember("collabz.currency", e.target.value); setForm({ ...form, currency: e.target.value }); }}>
             <option value="money">Money {MONEY}</option>
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
+<UsualHint field="collabz.currency" value={form.currency} onUse={(v) => { remember("collabz.currency", v); setForm({ ...form, currency: v }); }} />
+          <p className="text-[11px] text-white/45 sm:col-span-2">
+            {form.currency === "spinaz"
+              ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash.`
+              : `Each payer's share is held in escrow in real cash ${MONEY} from their balance.`}
+            {" "}A payer can cancel for a refund of what they funded before the work is delivered, or while a dispute is open.
+          </p>
           <input className="neon-input" placeholder="Their username" data-tour="collabz-partner"
                  value={form.partner} onChange={(e) => setForm({ ...form, partner: e.target.value })} />
           <input className="neon-input" inputMode="decimal" placeholder="Your contribution is worth"

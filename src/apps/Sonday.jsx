@@ -6,6 +6,7 @@ import CharLimit from "../CharLimit.jsx";
 import { useCharLimit } from "../limits.js";
 import MemberName from "../MemberName.jsx";
 import { goToSpot } from "../goto.js";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
 
 // Sonday — boards for the work in flight. Columns, cards, and who may touch them.
 //
@@ -80,6 +81,7 @@ function CardEditor({ card, columns, canEdit, onClose, onSaved }) {
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
   async function drop() {
+    if (!window.confirm(`Delete the card “${card.title}”? It can't be undone.`)) return;
     setBusy(true); setErr("");
     try { await api(`${BASE}cards/${card.id}/`, { method: "DELETE" }); onSaved(); }
     catch (e) { setErr(e.message); setBusy(false); }
@@ -144,7 +146,7 @@ function CardEditor({ card, columns, canEdit, onClose, onSaved }) {
             ))}
           </ul>
         )}
-        {err && <p className="text-xs text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
         {canEdit && (
           <div className="flex justify-between gap-2">
             <button className="re-btn !w-auto px-3 py-1.5 text-xs text-mcz-ember" disabled={busy} onClick={drop}>
@@ -194,14 +196,14 @@ function Members({ board }) {
       </ul>
       <form className="flex flex-wrap items-center gap-1" onSubmit={invite}>
         <input className="neon-input !w-36 !py-1 text-xs" placeholder="@member" value={who} onChange={(e) => setWho(e.target.value)} />
-        <select className="neon-input !w-auto !py-1 text-xs" value={role} onChange={(e) => setRole(e.target.value)}>
+        <select aria-label="Role" data-nomemo="true" className="neon-input !w-auto !py-1 text-xs" value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="editor">can edit</option>
           <option value="viewer">can view</option>
         </select>
         <button className="re-btn !w-auto px-2 py-1 text-xs" disabled={!who.trim()} type="submit"><UserPlus size={12} className="inline" /> Add</button>
       </form>
       <p className="text-white/40">They get a notification. Editors move and edit cards; viewers only look.</p>
-      {err && <p className="text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -214,6 +216,13 @@ function Board({ id, onBack, onGone }) {
   const [newCol, setNewCol] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [drag, setDrag] = useState(null);
+  // A finger has no HTML5 drag-and-drop, so the card's ⋮⋮ grip carries it across columns
+  // with the same pointer drag every other list uses; a mouse can still drag the card.
+  const colDnd = useDragReorder("sonday-col", (from, to) => {
+    const card = drag; setDrag(null);
+    const col = [...(b?.columns || [])].sort((x, y) => x.position - y.position)[to];
+    if (card && col && card.column !== col.id) move(card, col);
+  });
 
   const load = () => api(`${BASE}${id}/`).then((d) => { setB(d); setErr(""); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, [id]);
@@ -264,11 +273,12 @@ function Board({ id, onBack, onGone }) {
         </div>
       </div>
       {showMembers && owner && <Members board={b} />}
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2" data-tour="sonday-board">
         {cols.map((col, ci) => (
-          <div key={col.id} className="neon-frame w-64 shrink-0 snap-start space-y-2 p-2"
+          <div key={col.id} data-drag={`sonday-col:${ci}`}
+            className={`neon-frame w-64 shrink-0 snap-start space-y-2 p-2${colDnd.drag && colDnd.drag.over === ci && colDnd.drag.from !== ci ? " ring-1 ring-mcz-cyan/70" : ""}`}
             onDragOver={(e) => canEdit && drag && e.preventDefault()}
             onDrop={() => { if (drag && drag.column !== col.id) move(drag, col); setDrag(null); }}>
             <div className="flex items-center justify-between gap-1">
@@ -285,6 +295,12 @@ function Board({ id, onBack, onGone }) {
                 className="cursor-pointer rounded-lg border border-white/10 bg-black/40 p-2 text-sm hover:border-mcz-cyan/50"
                 onClick={() => setOpen(card)}>
                 <div className="flex items-start gap-1.5">
+                  {canEdit && cols.length > 1 && (
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <DragGrip label="Drag to another column" size={13} {...colDnd.grip(ci)}
+                        onPointerDown={(e) => { setDrag(card); colDnd.grip(ci).onPointerDown(e); }} />
+                    </span>
+                  )}
                   {card.color && <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${SWATCH[card.color]}`} />}
                   <p className="min-w-0 flex-1 break-words">{card.title}</p>
                 </div>
@@ -388,7 +404,7 @@ export default function Sonday() {
               </button>
             </form>
           </div>
-          {err && <p className="text-sm text-mcz-ember">{err}</p>}
+          {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
           {!boards && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
           {boards && (

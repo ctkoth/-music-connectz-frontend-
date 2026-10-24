@@ -11,19 +11,20 @@
 // (`/journalz/cost/`), the character limit (`limits.js`), the QuestZ reward,
 // and every price on a destination row. Nothing here is retyped, which is the
 // rule that stopped "20 free prompts" drifting into nine places.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Calendar, Clock, Download, Loader2, Lock, MapPin, Plus, RefreshCw, Search,
+  Calendar, Clock, Download, Loader2, Lock, MapPin, Pencil, Plus, RefreshCw, Search,
   Send, Tag, Trash2, Users, X as XIcon,
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList, asDict } from "../shape.js";
+import { journalDraftFromEntry, journalEditItems } from "../editing.js";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
@@ -183,6 +184,10 @@ export default function JournalZ() {
   const [storage, setStorage] = useState(null);
   const [dropped, setDropped] = useState(null);
   const [saving, setSaving] = useState(false);
+  // The entry being edited, or null for a new one. The composer is the same
+  // form either way; `editing` only changes what Save sends and what it says.
+  const [editing, setEditing] = useState(null);
+  const composerRef = useRef(null);
 
   // Share, On This Day, export.
   const [quote, setQuote] = useState(null);         // {entry, ...server quote}
@@ -215,12 +220,42 @@ export default function JournalZ() {
     setBody([p.description, p.lyrics].filter(Boolean).join("\n\n"));
     if (p.author) setPeople((cur) => (cur.includes(p.author) ? cur : [...cur, p.author]));
     if (p.place) setPlaceName(p.place);
+    // A file handed over by the Doors bar arrives already hosted: its address goes into
+    // the slot, so nothing is uploaded twice.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
     flash(`"${p.title}" is in today's entry — it stays private until you share it.`);
   }), []);
 
+  function clearComposer() {
+    setTitle(""); setBody(""); setWork({}); setEntryMood(""); setWeather("");
+    setTags([]); setPeople([]); setPlaceName(""); setCoords(null); setPlaceExact(false);
+    setVisibility("private");
+  }
+
+  // Load an existing entry into the composer. Every field comes from what
+  // entry_dict served for the author; nothing is derived here.
+  function startEdit(e) {
+    const d = journalDraftFromEntry(e);
+    setEditing(e);
+    setDay(d.day); setTitle(d.title); setBody(d.body); setEntryMood(d.mood);
+    setWeather(d.weather); setTags(d.tags); setPeople(d.people); setPlaceName(d.placeName);
+    setCoords(d.coords); setPlaceExact(d.placeExact); setVisibility(d.visibility);
+    setWork({}); setDropped(null);
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    clearComposer();
+    setDay(today());
+  }
+
   async function save() {
     if (saving) return;
-    if (!title.trim() && !body.trim() && !Object.keys(work).length) {
+    const keepsAttachments = editing && asList(editing.items).length > 0;
+    if (!title.trim() && !body.trim() && !Object.keys(work).length && !keepsAttachments) {
       return flash("An entry needs something in it — a title, some words, or an attachment.");
     }
     setSaving(true);
@@ -228,22 +263,33 @@ export default function JournalZ() {
       if (hasBlobs(work)) flash("Uploading…");
       const { work: hosted, storage: st } = await uploadWork(work);
       if (st) setStorage(st);
+      const fresh = mediaItems(hosted, title.trim() || day);
       const d = await api("/api/economy/journalz/", {
         method: "POST",
+        // `entry_id` routes to the server's edit (JournalZ._edit), which
+        // replaces the fields sent — so `items` carries what the entry already
+        // holds, or a re-save would delete its attachments.
         body: {
+          ...(editing ? { entry_id: editing.id } : {}),
           day, title: title.trim(), body, mood: entryMood, weather, tags, people,
           place_name: placeName, place_exact: placeExact,
           place_lat: coords?.lat ?? null, place_lng: coords?.lng ?? null,
-          visibility, items: mediaItems(hosted, title.trim() || day),
+          visibility,
+          items: editing ? journalEditItems(editing.items, fresh) : fresh,
         },
       });
       setDropped(asDict(d.dropped));
-      setTitle(""); setBody(""); setWork({}); setEntryMood(""); setWeather("");
-      setTags([]); setPeople([]); setPlaceName(""); setCoords(null); setPlaceExact(false);
-      setVisibility("private");
-      flash(asList(d.notified).length
-        ? `Kept. ${asList(d.notified).map((n) => `@${n}`).join(", ")} told they're in it.`
-        : "Kept. Nobody was told — that's what private means.");
+      if (editing) {
+        setEditing(null);
+        flash(asList(d.notified).length
+          ? `Saved. ${asList(d.notified).map((n) => `@${n}`).join(", ")} told they're in it.`
+          : "Saved. Nobody new was told.");
+      } else {
+        flash(asList(d.notified).length
+          ? `Kept. ${asList(d.notified).map((n) => `@${n}`).join(", ")} told they're in it.`
+          : "Kept. Nobody was told — that's what private means.");
+      }
+      clearComposer();
       load();
       api(`/api/economy/journalz/cost/?day=${day}`).then(setCost).catch(() => {});
     } catch (e) {
@@ -267,6 +313,7 @@ export default function JournalZ() {
     if (!window.confirm(`Delete the entry for ${e.day}? This can't be undone.`)) return;
     try {
       const r = await api(`/api/economy/journalz/${e.id}/`, { method: "DELETE" });
+      if (editing?.id === e.id) cancelEdit();
       flash(r.note || "Entry deleted.");
       load();
     } catch (x) { flash(x.message); }
@@ -349,7 +396,7 @@ export default function JournalZ() {
         </button>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
       {toast && <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] text-mcz-cyan">{toast}</p>}
 
       {/* Days kept, entries kept, tags used. Counts of things that happened —
@@ -362,9 +409,27 @@ export default function JournalZ() {
       </div>
 
       {/* ---- the composer -------------------------------------------------- */}
-      <div className="re-card space-y-3" data-tour="journalz-composer">
+      <div ref={composerRef} className="re-card space-y-3" data-tour="journalz-composer">
+        {/* Said before Save, because Save is what changes a kept entry. Editing
+            has no time window on the server, costs nothing, and is never
+            refused for age; what it can touch elsewhere is said here. */}
+        {editing && (
+          <div className="space-y-1 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-2.5 text-[11px] leading-relaxed text-white/70">
+            <p className="font-semibold text-mcz-cyan">Editing the entry for {editing.day}</p>
+            <p>Saving changes it in place, for free. Anyone newly tagged on a shared entry is told once; nobody already tagged is told again.</p>
+            {asList(editing.items).length > 0 && (
+              <p>Its {asList(editing.items).length} attachment{asList(editing.items).length === 1 ? "" : "s"} stay{asList(editing.items).length === 1 ? "s" : ""} as they are.</p>
+            )}
+            {editing.shared_post_id && (
+              <p className="text-mcz-ember/90">
+                This entry was published to PostZ. Saving here does NOT change that post — its copy stays as it was. Edit the post in PostZ to change it there.
+              </p>
+            )}
+            <button type="button" onClick={cancelEdit} className="underline hover:text-white">Cancel edit</button>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="re-label">Keep the day</div>
+          <div className="re-label">{editing ? "Edit the day" : "Keep the day"}</div>
           {/* Free to write, and what it EARNS said before a word is typed —
               a free action that pays has to state the gain, same as a paid one
               states the price. */}
@@ -461,15 +526,22 @@ export default function JournalZ() {
         {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+          <select aria-label="Who can read this entry" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={visibility} onChange={(e) => setVisibility(e.target.value)}>
             <option value="private">🔒 Just me</option>
             <option value="restricted">👥 Members only</option>
             <option value="public">🌍 Public</option>
           </select>
+          <span className="basis-full text-[10px] leading-relaxed text-white/35 sm:basis-auto">
+            {visibility === "private"
+              ? "Just me: only you can read this entry."
+              : visibility === "restricted"
+                ? "Members only: the members you tagged are told and can open it. It is not posted to the feed unless you Share it."
+                : "Public: the members you tagged are told and can open it. It is not posted to the feed unless you Share it."}
+          </span>
           <button className="re-btn !w-auto px-6" onClick={save} disabled={saving}>
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-            {saving ? " Saving…" : " Keep it"}
+            {saving ? " Saving…" : editing ? " Save changes" : " Keep it"}
             <span className="ml-1 text-emerald-300">Free</span>
           </button>
         </div>
@@ -525,7 +597,7 @@ export default function JournalZ() {
                  value={q} onChange={(e) => setQ(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load()} />
         </span>
-        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
+        <select aria-label="Mood" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
                 value={mood} onChange={(e) => setMood(e.target.value)}>
           <option value="">Any mood</option>
           {moods.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
@@ -556,14 +628,22 @@ export default function JournalZ() {
           <article key={e.id} className="neon-frame space-y-2 p-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[12px] font-bold text-mcz-gold">{e.day}</span>
-              {!e.mine && <span className="pill !py-0 text-[10px]">@{e.author}</span>}
+              {!e.mine && (
+                <button className="pill !py-0 text-[10px]" onClick={() => openMember(e.author)}>@{e.author}</button>
+              )}
               <span className={`pill !py-0 text-[10px] ${e.private ? "!text-white/60" : "!text-mcz-cyan"}`}>
                 {e.private ? "🔒 Just me" : e.visibility === "public" ? "🌍 Public" : "👥 Members only"}
               </span>
               {e.mood_label && <span className="text-[11px] text-white/50">{e.mood_label}</span>}
               {e.weather && <span className="text-[11px] text-white/40">{e.weather}</span>}
               {e.mine && (
-                <button className="ml-auto text-white/30 hover:text-mcz-ember" title="Delete"
+                <button className="ml-auto flex items-center gap-1 text-[11px] text-white/40 hover:text-mcz-cyan"
+                        title="Edit this entry — free, and not on a timer" onClick={() => startEdit(e)}>
+                  <Pencil size={12} /> Edit
+                </button>
+              )}
+              {e.mine && (
+                <button className="text-white/30 hover:text-mcz-ember" title="Delete"
                         onClick={() => remove(e)}><Trash2 size={13} /></button>
               )}
             </div>
@@ -575,7 +655,7 @@ export default function JournalZ() {
                 <button key={t} onClick={() => setTag(t)} className="pill !py-0 text-[10px]">#{t}</button>
               ))}
               {asList(e.people).map((p) => (
-                <span key={p} className="pill !py-0 text-[10px] !text-mcz-cyan">@{p}</span>
+                <button key={p} className="pill !py-0 text-[10px] !text-mcz-cyan" onClick={() => openMember(p)}>@{p}</button>
               ))}
               {e.place?.name && (
                 <span className="pill !py-0 text-[10px]"><MapPin size={9} className="inline" /> {e.place.name}</span>

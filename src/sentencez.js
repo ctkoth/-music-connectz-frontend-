@@ -18,7 +18,10 @@ const NAME = { premium: "Premium", statz: "StatZ" };
  */
 export function visibleKinds(kinds, standalone) {
   const list = Array.isArray(kinds) ? kinds : [];
-  return standalone ? list.filter((k) => k.allowed !== false) : list;
+  // A fixer repairs a score the music coach gave (punchlines, hooks…); the
+  // writer-only standalone has no coach, so offering one there is a door to a
+  // screen that is not there.
+  return standalone ? list.filter((k) => k.allowed !== false && !k.fixer) : list;
 }
 
 /**
@@ -42,4 +45,24 @@ export function nextTierBrief(s) {
   if (!up || !Array.isArray(s?.brief_ladder)) return null;
   const row = s.brief_ladder.find((r) => r.tier === up);
   return row ? { tier: up, label: NAME[up] || up, chars: row.chars } : null;
+}
+
+/**
+ * A brief held to the tier's limit — and HOW MUCH was left off. `maxLength` on the
+ * textarea truncated a paste before any handler saw it, so a resume pasted over
+ * the limit lost its tail without a word; the field takes the whole paste now and
+ * this is where it is cut. The first characters are the ones kept, the same as a
+ * pasted list of links keeps its first.
+ */
+export function briefCut(full, limit) {
+  const text = String(full ?? "");
+  if (!Number.isFinite(limit) || limit == null || text.length <= limit) return { kept: text, cut: 0 };
+  return { kept: text.slice(0, limit), cut: text.length - limit };
+}
+
+/** The sentence for a cut brief, or "" when nothing was. */
+export function cutNote(cut, limit) {
+  if (!cut) return "";
+  const n = cut.toLocaleString();
+  return `${n} character${cut === 1 ? "" : "s"} didn't fit and ${cut === 1 ? "was" : "were"} left off the end — your brief holds ${Number(limit).toLocaleString()}.`;
 }

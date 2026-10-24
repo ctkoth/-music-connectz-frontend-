@@ -33,7 +33,7 @@ const HELPERS = [
   "src/limits.js", "src/rulez.js", "src/handoff.js", "src/openable.js",
   "src/voice.js", "src/listen.js", "src/uploadWork.js", "src/widgetz.js",
   "src/useScreenShape.js", "src/resources.js", "src/pageTitle.js",
-  "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js", "src/auth/returnTo.js", "src/supersets.js", "src/portfolio.js",
+  "src/standalone.js", "src/recorder.js", "src/oauthProviders.jsx", "src/connectOAuth.js", "src/auth/returnTo.js", "src/supersets.js", "src/portfolio.js", "src/soundcloudPlay.js", "src/uploadCompress.js", "src/editing.js",
   // Register.jsx reaches into both of these by bare name: the trial-claim
   // pair from TrialTake.jsx, and the trial-split pair from BodieZTrial.jsx —
   // the same "build a week for free, keep it on register" helpers this
@@ -44,6 +44,8 @@ const HELPERS = [
   // the multi-select equipment fix that replaced four separate single-selects
   // with one shared component.
   "src/apps/EquipmentPicker.jsx",
+  // The one drag-to-reorder pattern, used by every list that can be reordered.
+  "src/dragReorder.js", "src/useDragReorder.jsx",
 ];
 
 // `src/mcz2/` is the 2.2 reference app and is not mounted — see CLAUDE.md.

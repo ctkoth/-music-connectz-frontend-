@@ -1,3 +1,5 @@
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useState, useEffect } from "react";
 import { Users, Star, BarChart3, Plus, MessageSquare, Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -111,7 +113,7 @@ export default function CoachZ() {
           </h2>
 
           {studio.activity.recent_ratings.length === 0 ? (
-            <p className="text-white/50 text-sm">No ratings yet. Start reviewing student takes!</p>
+            <Empty text="No ratings yet. Students' takes reach you through your lessons." action="Offer a lesson" onAction={() => goToSpot("lessonz", "lessonz-teach")} />
           ) : (
             <div className="space-y-3">
               {studio.activity.recent_ratings.slice(0, 10).map((rating, i) => (
@@ -233,7 +235,7 @@ function AddStudentModal({ onClose, onAdded }) {
           />
         </div>
 
-        {err && <p className="text-sm text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
         <div className="text-xs text-white/60 bg-white/5 p-3 rounded">
           💰 You'll earn +50 🍥 when a student joins your studio

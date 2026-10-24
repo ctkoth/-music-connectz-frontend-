@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
@@ -19,8 +19,62 @@ import { goToTab } from "./goto.js";
 // through `widgetz.PLAYERS`), so a portfolio embed and a profile widget can
 // never disagree about what a link is again.
 import { EMBED_SANDBOX } from "./widgetz.js";
+import { IN_SHELL } from "./standalone.js";
+import { anonId } from "./track.js";
+import { playsLabel, scFollowLink, watchPlayer } from "./soundcloudPlay.js";
 
-function EmbedDisplay({ embed, onRemove, canRemove, busy }) {
+// SoundCloud's Widget API talks to the player by postMessage, and a frame
+// sandboxed WITHOUT allow-same-origin posts as origin "null", which the API
+// (rightly) ignores. So SoundCloud's player alone also gets allow-same-origin.
+// That is safe HERE and not for an arbitrary page: the pair only lets a frame
+// lift its own sandbox when it shares our origin, and w.soundcloud.com does
+// not. Every other provider keeps EMBED_SANDBOX unchanged.
+const SC_SANDBOX = `${EMBED_SANDBOX} allow-same-origin`;
+
+// Under an imported SoundCloud player: what a listen here counts for, where the
+// artist's own page is, and the count. Hidden entirely in a standalone shell
+// (no outward doors there).
+function SoundCloudExtras({ post, embed, index, frameRef }) {
+  const [plays, setPlays] = useState(post.mcz_plays || 0);
+  const link = scFollowLink(embed);
+  const mine = !!post.mine;
+
+  useEffect(() => {
+    if (mine || !frameRef.current) return undefined;
+    return watchPlayer(frameRef.current, async (seconds) => {
+      const r = await api(`/api/economy/postz/${post.id}/embed-play/`, {
+        method: "POST", body: { index, seconds, anon_id: anonId() },
+      });
+      // What the SERVER decided, never what we hoped.
+      if (typeof r?.plays === "number") setPlays(r.plays);
+      return !(r?.counted || r?.reason);
+    });
+  }, [post.id, index, mine, frameRef]);
+
+  const label = playsLabel(plays);
+  return (
+    <div className="space-y-1 text-xs">
+      {label && <div className="text-white/60">{label}</div>}
+      {!mine && (
+        <div className="text-[10px] text-white/35">
+          Listening here for 30 seconds counts as a play on Music ConnectZ. SoundCloud keeps its own count.
+        </div>
+      )}
+      {link && !IN_SHELL && (
+        <div>
+          <a href={link.href} target="_blank" rel="noopener noreferrer"
+             className="font-semibold text-mcz-cyan underline">
+            Listen / follow on SoundCloud
+          </a>
+          <span className="ml-2 text-[10px] text-white/35">opens {link.host} in a new tab</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmbedDisplay({ embed, onRemove, canRemove, busy, post, index }) {
+  const frameRef = useRef(null);
   const { url, title, aspect, height } = embed;
   if (!url) return null;
 
@@ -37,6 +91,7 @@ function EmbedDisplay({ embed, onRemove, canRemove, busy }) {
     <div className="space-y-2">
       <div className="w-full overflow-hidden rounded-lg bg-black" style={style}>
         <iframe
+          ref={frameRef}
           className="h-full w-full border-0"
           src={url}
           title={title || "Embedded player"}
@@ -44,11 +99,14 @@ function EmbedDisplay({ embed, onRemove, canRemove, busy }) {
           // allow-scripts + allow-same-origin together lets a frame lift its
           // own sandbox, so the pair is never granted. Same string the widget
           // board uses — one posture, not two.
-          sandbox={EMBED_SANDBOX}
+          sandbox={embed.type === "soundcloud" ? SC_SANDBOX : EMBED_SANDBOX}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
         />
       </div>
+      {embed.type === "soundcloud" && (
+        <SoundCloudExtras post={post} embed={embed} index={index} frameRef={frameRef} />
+      )}
       {canRemove && (
         <button
           onClick={onRemove}
@@ -121,6 +179,8 @@ export default function PostEmbeds({ post, canEdit }) {
           <EmbedDisplay
             key={i}
             embed={embed}
+            post={post}
+            index={i}
             canRemove={canEdit}
             onRemove={() => handleRemove(i)}
             busy={busy}
@@ -243,7 +303,7 @@ function AddEmbedForm({ postId, onAdded, onCancel }) {
         maxLength={200}
       />
 
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
 
       <div className="flex gap-2">
         <button

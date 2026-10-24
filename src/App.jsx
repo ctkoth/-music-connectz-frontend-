@@ -6,7 +6,7 @@ import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X }
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
-import { goToSpot } from "./goto.js";
+import { goToSpot, openMember } from "./goto.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
@@ -21,6 +21,7 @@ import { reportTimezone } from "./push.js";
 import SoundzPanel from "./components/SoundzPanel.jsx";
 import StorageWarning from "./components/StorageWarning.jsx";
 import ReturnBar from "./components/ReturnBar.jsx";
+import UpdateNotice from "./components/UpdateNotice.jsx";
 import EnergyRegenerationDisplay from "./components/EnergyRegenerationDisplay.jsx";
 import { SPINAZ } from "./resources.js";
 import { ICON_DEFAULTS } from "./iconManifest.js";
@@ -60,6 +61,7 @@ const LessonZ = lazy(lazyRoute(() => import("./apps/LessonZ.jsx")));
 const InstrumentZ = lazy(lazyRoute(() => import("./apps/InstrumentZ.jsx")));
 const MessageZ = lazy(lazyRoute(() => import("./apps/MessageZ.jsx")));
 const ProfileZ = lazy(lazyRoute(() => import("./apps/ProfileZ.jsx")));
+const VoiceZ = lazy(lazyRoute(() => import("./apps/VoiceZ.jsx")));
 const StatsZ = lazy(lazyRoute(() => import("./apps/StatsZ.jsx")));
 const OpportunitieZ = lazy(lazyRoute(() => import("./apps/OpportunitieZ.jsx")));
 const GroupZ = lazy(lazyRoute(() => import("./apps/GroupZ.jsx")));
@@ -73,10 +75,13 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
 const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
+const LookmaxZ = lazy(lazyRoute(() => import("./apps/LookmaxZ.jsx")));
 const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
 const DistributeZ = lazy(lazyRoute(() => import("./apps/DistributeZ.jsx")));
 const RateConnectZ = lazy(lazyRoute(() => import("./apps/RateConnectZ.jsx")));
@@ -98,6 +103,8 @@ const AdZ = lazy(lazyRoute(() => import("./apps/AdZ.jsx")));
 const OfferZ = lazy(lazyRoute(() => import("./apps/OfferZ.jsx")));
 const OnboardZ = lazy(lazyRoute(() => import("./apps/OnboardZ.jsx")));
 const PublicPost = lazy(lazyRoute(() => import("./apps/PublicPost.jsx")));
+const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
+const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
@@ -106,6 +113,10 @@ const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx"))
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
+const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
+const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
+const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
+const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
@@ -121,6 +132,7 @@ const JournalZ = lazy(lazyRoute(() => import("./apps/JournalZ.jsx")));
 const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
+const BreathZ = lazy(lazyRoute(() => import("./apps/BreathZ.jsx")));
 const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
 const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
@@ -153,8 +165,7 @@ function RouteFallback() {
 // carry information are worth writing down:
 //
 //   * postz.png   — kept deliberately. It is the one Corey asked for and liked.
-//   * funnelz.png — no artwork was ever drawn; FunnelZ is owner-only.
-//   * journalz.png, chordz.jpg, tunerz.jpg — the artwork exists on Corey's
+//   * journalz.png, chordz.jpg — the artwork exists on Corey's
 //                   machine and has never been committed. Pointing at a file
 //                   that is not in the repo does not error, it silently falls
 //                   back to the MCZ logo, so these hold the generated glyph
@@ -219,6 +230,10 @@ export const CUSTOM_ICONS = {
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
   "violinz.png": "/icons/violinz-neon.svg",
+  "flutez.png": "/icons/flutez-neon.png",
+  "saxz.png": "/icons/saxz-neon.png",
+  "clarinetz.png": "/icons/clarinetz-neon.png",
+  "trumpetz.png": "/icons/trumpetz-neon.png",
   "guitarz.png": "/icons/guitarz-neon.svg",
   "bassz.png": "/icons/bassz.png",
   "keyz.png": "/icons/keyz-neon.svg",
@@ -262,7 +277,7 @@ export const CUSTOM_ICONS = {
   "mimez.png": "/icons/mimez-neon.svg",
   "mixez.png": "/icons/mixez.png",
   "occ.png": "/icons/occ-neon.svg",
-  "opportunitiez.png": "/icons/opportunitiez-neon.svg",
+  "opportunitiez.png": "/icons/opportunitiez.jpg",   // Corey's art (Oct 22)
   "infernoz.png": "/icons/infernoz.svg",
   "offerz.png": "/icons/offerz-neon.svg",
   "adz.png": "/icons/adz-neon.svg",
@@ -313,12 +328,13 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
-  "beatz.png": "/icons/beatz-neon.svg",
+  "lookmaxz.png": "/icons/lookzmaxz.jpg",
+  "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
-  "statsz.png": "/icons/statsz-neon.svg",
+  "statsz.png": "/icons/statsz.jpg",        // Corey's art (Oct 22)
   "substancez.png": "/icons/substancez.png",
   "toolz_lilith.png": "/icons/toolz_lilith.png",
   "trump_toupee.png": "/icons/trump_toupee.png",
@@ -339,16 +355,13 @@ export const CUSTOM_ICONS = {
   "journalz.jpg": "/icons/journalz-neon.svg",
   "logz.png": "/icons/logz-neon.svg",
   "taskz.png": "/icons/taskz-neon.png",
-  // Real art for both is committed (metz.jpg, tunerz.jpg) but measured
-  // illegible at the 28-36px this app actually renders it — a busy neon-sign
-  // frame plus a two-line text banner eats the pixel budget a metronome or
-  // tuner silhouette needs, the exact CoachZ failure mode. The existing
-  // hand-drawn glyphs stay wired until a simplified illustration replaces
-  // them; verified in a live browser, not assumed.
-  "metz.jpg": "/icons/metz-neon.svg",
-  "tunerz.jpg": "/icons/tunerz-neon.svg",
+  // Corey's simplified art (Oct 22): one big metronome, one fork over a dial. The first
+  // versions were a busy sign plus a text banner and blurred at 28-36px; these were
+  // checked at those sizes before they replaced the generated glyphs.
+  "metz.jpg": "/icons/metz.jpg",
+  "tunerz.jpg": "/icons/tunerz.jpg",
   "chordz.jpg": "/icons/chordz-neon.svg",
-  "drumz.png": "/icons/drumz-neon.svg",
+  "breathz.png": "/icons/breathz-neon.png",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -356,16 +369,17 @@ export const CUSTOM_ICONS = {
   "builder.png": "/icons/builder.png",
   "filez.png": "/icons/filez.png",
   "gamez.png": "/icons/gamez.png",
-  // No artwork for SoundZ — it is a tab this session added, so it takes a
-  // generated neon icon like FunnelZ does until there is a drawing for it.
-  "soundz.png": "/icons/soundz-neon.svg",
-  "soundcloudengagementz.png": "/icons/soundcloudengagementz-neon.svg",
+  "soundz.png": "/icons/soundz.jpg",        // Corey's art (Oct 22)
+  "soundcloudengagementz.png": "/icons/soundcloudengagementz.jpg",   // Corey's art (Oct 22)
+  // DupeZ had borrowed PersonaZ's mark, so two tabs looked identical. Its own art (Oct 22).
+  "dupez.png": "/icons/dupez.jpg",
   "gitz.png": "/icons/gitz.png",
   "pathz.png": "/icons/pathz.png",
   "imageconnectz.png": "/icons/imageconnectz.png",
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "viewz.png": "/icons/viewz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "instrumentalconnectz.png": "/icons/instrumentalconnectz.png",
   "languagez.png": "/icons/languagez.png",
   "languagez_pt.png": "/icons/languagez_pt.png",
@@ -376,11 +390,11 @@ export const CUSTOM_ICONS = {
   "parcel.png": "/icons/parcel.png",
   "personaz_weightlifter.png": "/icons/personaz_weightlifter.png",
   "preferencez_partner.jpg": "/icons/preferencez_partner.jpg",
-  "sentencez_editor.png": "/icons/sentencez_editor.png",
+  "sentencez_editor.png": "/icons/toolz.sentencez.jpg",
   "tellz.png": "/icons/tellz.png",
   "tier_premium.png": "/icons/tier_premium.png",
   "tier_statz.png": "/icons/tier_statz.png",
-  "videoz.png": "/icons/videoz.png",
+  "videoz.png": "/icons/toolz.videoz.png",
   "zodiacz.png": "/icons/zodiacz.png",
   "reelz.png": "/icons/directz.reelz.jpg",
   "episodez.png": "/icons/directz.episodez.jpg",
@@ -401,9 +415,8 @@ export const CUSTOM_ICONS = {
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
   // files fall back to the tab's emoji, not to the logo (see IconImg).
-  // Owner-only tab — reserved ahead of the artwork, same as the rest above;
-  // falls back to the MCZ logo until a file lands at /public/icons/funnelz.png.
-  "funnelz.png": "/icons/funnelz-neon.svg",
+  // Owner-only tab. Corey's art (supplied Oct 22), replacing the generated glyph.
+  "funnelz.png": "/icons/funnelz.jpg",
 };
 
 // The sources an icon key may be drawn from, best first. Corey's own artwork
@@ -472,6 +485,7 @@ const TABS = [
   { key: "toolz", label: "Music ConnectZ", icon: "musicconnectz.png", el: <ToolZMenu /> },
   { key: "onboardz", label: "OnboardZ", icon: "onboardz.png", el: <OnboardZ /> },
   { key: "postz", label: "PostZ", icon: "postz.png", el: <PostZ /> },
+  { key: "filez", label: "FileZ", icon: "filez.png", el: <FileZ /> },
   { key: "playlistz", label: "PlaylistZ", icon: "playlistz.png", el: <PlaylistZ /> },
   { key: "social", label: "SocialiZeZ", icon: "social_connectz.png", el: <SocialConnectZ /> },
   // VybeZ gives /api/economy/members/ its first caller. That search — regions,
@@ -485,11 +499,13 @@ const TABS = [
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
   { key: "profilez", label: "ProfileZ", icon: "profilez.png", el: <ProfileZ /> },
+  { key: "voicez", label: "VoiceZ", icon: "voicez.png", el: <VoiceZ /> },
   { key: "personaz", label: "PersonaZ", icon: "personaz.png", el: <PersonaZ /> },
   { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
   { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
   { key: "facez", label: "FaceZ", icon: "facez.png", el: <FaceZ /> },
+  { key: "lookmaxz", label: "LookZMaxZ", icon: "lookmaxz.png", el: <LookmaxZ /> },
   { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
   { key: "ratez", label: "Rate ConnectZ", icon: "ratez.png", el: <RateConnectZ /> },
   { key: "sonday", label: "Sonday", icon: "sonday.png", el: <Sonday /> },
@@ -529,10 +545,30 @@ const TABS = [
   { key: "violinz", label: "ViolinZ", icon: "violinz.png",
     el: <InstrumentZ appKey="violinz" icon="violinz.png" title="ViolinZ" accent="#b45309"
         tagline="Strings training — intonation, tone, bowing, timing and vibrato scored on every take, Boss Mode included." /> },
+  { key: "flutez", label: "FluteZ", icon: "flutez.png",
+    el: <InstrumentZ appKey="flutez" icon="flutez.png" title="FluteZ" accent="#22d3ee"
+        tagline="Wind training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "saxz", label: "SaxZ", icon: "saxz.png",
+    el: <InstrumentZ appKey="saxz" icon="saxz.png" title="SaxZ" accent="#f59e0b"
+        tagline="Sax training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png",
+    el: <InstrumentZ appKey="clarinetz" icon="clarinetz.png" title="ClarinetZ" accent="#a78bfa"
+        tagline="Clarinet training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
+  { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png",
+    el: <InstrumentZ appKey="trumpetz" icon="trumpetz.png" title="TrumpetZ" accent="#f97316"
+        tagline="Brass training — intonation, tone, breath, articulation and timing scored on every take, Boss Mode included." /> },
   { key: "messagez", label: "MessageZ", icon: "messagez.png", el: <MessageZ /> },
   { key: "keyconnectz", label: "KeyConnectZ", icon: "keyconnectz.png", el: <KeyConnectZ /> },
+  // The hub: every IntelligenceZ app, what each costs before it is opened, and
+  // the newest thing the member made in any of them. It is also the Home of the
+  // standalone IntelligenceZ app (standalone/intelligencez/).
+  { key: "intelligencez", label: "IntelligenceZ", icon: "intelligencez.png", el: <IntelligenceZ /> },
   { key: "sentenceconnectz", label: "Sentence ConnectZ", icon: "sentencez.png", el: <SentenceConnectZ /> },
+  { key: "sentencez", label: "SentenceZ", icon: "sentencez_editor.png", el: <SentenceZ /> },
+  { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
+  { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
+  { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
@@ -544,6 +580,7 @@ const TABS = [
   { key: "metz", label: "MetZ", icon: "metz.jpg", el: <MetZ /> },
   { key: "tunerz", label: "TunerZ", icon: "tunerz.jpg", el: <TunerZ /> },
   { key: "chordz", label: "ChordZ", icon: "chordz.jpg", el: <ChordZ /> },
+  { key: "breathz", label: "BreathZ", icon: "breathz.png", el: <BreathZ /> },
   // The tab kept its name and its beat-sequencer practice pad (still `DrumZ`,
   // rendered inside InstrumentZ now rather than standing alone) and gained
   // the scored Boss Take coach the backend already had mounted at
@@ -570,7 +607,7 @@ const TABS = [
   // Not owner-only, unlike FunnelZ: a member needs to see their own
   // duplicates to say which one is theirs. The server decides what each
   // person is shown — the owner every group, a member only their own.
-  { key: "dupez", label: "DupeZ", icon: "personaz.png", el: <DupeZ /> },
+  { key: "dupez", label: "DupeZ", icon: "dupez.png", el: <DupeZ /> },
   // The icon folder as a tree: each parent icon with its children named by
   // filename (battlez.png -> battlez.cypher.png). Owner-only — it is the
   // audit of which art is committed, wired, owed or unplaced, and the members
@@ -686,7 +723,7 @@ function HeaderCounts() {
   );
 }
 
-function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
+function CommunityBar({ onOpenMembership, onOpenBirthday }) {
   const { openTransactions } = useTransactionModal();
   const [stats, setStats] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
@@ -786,7 +823,7 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
           {(stats.online_members || []).map((u) => (
             <button
               key={u}
-              onClick={() => onOpenMember?.(u)}
+              onClick={() => openMember(u)}
               title={`View ${u}'s profile`}
               className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:shadow-neon active:scale-95"
             >
@@ -822,7 +859,7 @@ function CommunityBar({ onOpenMember, onOpenMembership, onOpenBirthday }) {
                   >
                     <MemberName
                       username={username}
-                      onOpen={(u) => { onOpenMember?.(u); setShowMembers(false); }}
+                      onOpen={(u) => { openMember(u); setShowMembers(false); }}
                     />
                   </div>
                 ))}
@@ -848,9 +885,13 @@ const TAB_ABOUT = {
   onboardz: "👋 OnboardZ — your guided first session. Set up your ProfileZ, drop your first PostZ, rate a few tracks, and refer a friend for 300 SpinaZ.",
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
+  characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
+  mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
+  sentencez: "✍️ SentenceZ, the text editor — write, and the writing coach scores your lyrics on rhyme, punchlines, story, imagery and freshness, with the reason and the fix — anything under 6 opens the writer for it.",
+  filez: "🗂️ Every file you've uploaded. Post one to get likes, ratings, comments and shares on it, make an image your profile picture, or delete what you don't need to free storage.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
   specz: "⭐ User metadata & UGC you attach to any app. A StatZ perk: buy SpecZ with SpinaZ to tune how your apps read you.",
-  membershipz: "💳 MembershipZ — upgrade your tier to reach further. Lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Connect with more collaborators. Founding members lock in 50% off for life.",
+  membershipz: "💳 MembershipZ — upgrade your tier to reach further. Lower platform fees, more Energy per top-up, more daily AI prompts, and the StatZ-only SpecZ marketplace. Connect with more collaborators. Founding members lock in a discount for life.",
   adz: "📺 AdZ — watch a short rewarded ad and earn SpinaZ. Ads play in the mobile app via AdMob; your reward lands automatically when the ad finishes.",
   offerz: "🎁 OfferZ — complete offers (surveys, sign-ups, installs) on the offerwall and earn SpinaZ, credited automatically once the provider confirms.",
   mimez: "🤫 MimeZ — silent-performance training and practice drills.",
@@ -858,6 +899,7 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  breathz: "🫁 BreathZ — free breath training for your takes: box breathing, long exhales, support hisses and bar breathing at your tempo. It earns XP for turning up and never changes a score — your coach's Breath score is the measure.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",
   collabz: "🤝 CollabZ — collaborate and manage projects: OriginalZ, CoverZ, RemixeZ.",
@@ -868,6 +910,11 @@ const TAB_ABOUT = {
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
+  intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
+  sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
+  instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
+  occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
@@ -977,11 +1024,11 @@ function Home() {
     return () => window.removeEventListener("mcz-split", h);
   }, []);
 
-  // Cross-pollination: mentions open profiles
+  // Any screen anywhere can open a member's profile via openMember(username)
+  // (goto.js) or a mention (MentionParser's goToProfile) — both dispatch this
+  // same event, so there is one "open this member" wire, not two.
   useEffect(() => {
-    const h = (e) => {
-      setMemberKey(e.detail);
-    };
+    const h = (e) => setMemberKey(e.detail);
     window.addEventListener("mcz-goto-profile", h);
     return () => window.removeEventListener("mcz-goto-profile", h);
   }, []);
@@ -1035,6 +1082,7 @@ function Home() {
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-mcz-bg/80 backdrop-blur">
         <ReturnBar />
+        <UpdateNotice />
         <div
           className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-3"
           style={{ boxShadow: "0 1px 0 rgba(168,85,247,0.15)" }}
@@ -1118,7 +1166,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80">{user?.username}</span>
         </p>
-        <CommunityBar onOpenMember={setMemberKey} onOpenMembership={() => openTab("membershipz")}
+        <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
         {/* keyed by tab so switching apps clears a previous app's crash.
@@ -1362,7 +1410,10 @@ function Home() {
  * what an account would add, because a free tool with no next step is a
  * bounce with a metronome in it.
  */
-function PublicTool({ title, heading, blurb, el }) {
+// `pitch` and `cta` tie the tool to the coach: somebody using a free metronome is
+// practising timing, which is exactly a dimension the coach scores. A generic "get a take
+// scored" asked them to make that connection themselves.
+function PublicTool({ title, heading, blurb, el, pitch, cta }) {
   useEffect(() => { track("landing_view"); }, []);
   // Named for what people SEARCH ("free online metronome"), not only what we
   // call it — nobody types "MetZ" into Google. Real title + description,
@@ -1382,12 +1433,11 @@ function PublicTool({ title, heading, blurb, el }) {
       <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
       <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
         <p className="mb-3 text-sm text-white/80">
-          The tools are free forever. The coach is the reason people stay — one take,
-          scored, no account needed either.
+          {pitch || "The tools are free forever. The coach is the reason people stay — one take, scored, no account needed either."}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
+          <Link to="/try" className="re-btn !w-auto px-5">{cta || "Get a take scored"}</Link>
           <Link to="/test" className="re-btn re-btn-cyan !w-auto px-5">Two-minute PersonalitieZ test</Link>
-          <Link to="/try" className="re-btn !w-auto px-5">Get a take scored</Link>
         </div>
       </div>
     </div>
@@ -1406,6 +1456,8 @@ export default function App() {
       {/* Public — readable with no account. By link, never by browse: there is
           no anonymous feed and no anonymous member search. */}
       <Route path="/p/:id" element={<PublicPost />} />
+      <Route path="/b/:id" element={<PublicBattle />} />
+      <Route path="/l/:id" element={<PublicLesson />} />
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
@@ -1420,9 +1472,13 @@ export default function App() {
       <Route path="/test/:depth" element={<PersonalityTest />} />
       {/* The two tools that are pure client audio. No account, no server. */}
       <Route path="/tool/metz" element={<PublicTool title="MetZ" heading="Free online metronome — MetZ"
-             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />} />} />
+             blurb="Set any tempo and time signature, add subdivisions, and practise in your browser." el={<MetZ />}
+             pitch="Practising against a click? An AI coach scores your timing — and what else is working and what to fix — from one take. Free, no account."
+             cta="Get your timing scored" />} />
       <Route path="/tool/chordz" element={<PublicTool title="ChordZ" heading="Free chord finder & progression player — ChordZ"
-             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />} />} />
+             blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />}
+             pitch="Found a progression you like? Sing or play over it and an AI coach scores the take — what's working and what to fix. Free, no account."
+             cta="Get scored over these chords" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a

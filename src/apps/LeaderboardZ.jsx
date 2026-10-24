@@ -1,3 +1,4 @@
+import Empty from "../components/Empty.jsx";
 import { useState, useEffect } from "react";
 import { Flame, Zap, Trophy, Link as LinkIcon, TrendingUp, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
@@ -49,6 +50,8 @@ export default function LeaderboardZ({ period = "week" }) {
     return null;
   }
 
+  const anyEntries = ["spinaz_earners", "energy_earners", "raters", "referrers"]
+    .some((k) => leaderboards[k]?.length > 0);
   const periodLabel = { week: "This Week", month: "This Month", all: "All Time" }[selectedPeriod];
 
   return (
@@ -78,9 +81,46 @@ export default function LeaderboardZ({ period = "week" }) {
         </div>
       </div>
 
+      {/* Instrument-specific leaderboards shown in SkillZ, inside each
+          instrument's own tab — "SkillZ" is never one tab, so the honest
+          fix is a door per instrument rather than a single guessed
+          destination. `InstrumentLeaderboardCard` below could render one of
+          these live, but that's 7 more API calls on a screen that already
+          loads in one — a call this fix doesn't make for you. */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-white/40">
+          🏆 Coach XP — every instrument has its own board. Pick yours:
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries({
+            singz: "🎤 SingZ", rapz: "🎙️ RapZ", guitarz: "🎸 GuitarZ",
+            bassz: "🅱️ BassZ", keyz: "⌨️ KeyZ", drumz: "🥁 DrumZ", violinz: "🎻 ViolinZ",
+            flutez: "🪈 FluteZ", saxz: "🎷 SaxZ", clarinetz: "🎼 ClarinetZ", trumpetz: "🎺 TrumpetZ",
+          }).map(([key, label]) => (
+            <button key={key} onClick={() => goToSpot(key, `${key}-drills`)}
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan">
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* An empty board is an empty room, and four of them in a row tell a
+          newcomer nobody is here. Boards with entries render; the rest are
+          one sentence with the door that puts somebody on them. */}
+      {!anyEntries && (
+        <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60 space-y-2">
+          <p>Nobody is on the {periodLabel.toLowerCase()} boards yet — the first scored take puts you at #1.</p>
+          <button onClick={() => goToSpot("singz", "singz-drills")}
+                  className="rounded-lg border border-mcz-cyan/40 px-3 py-1 text-xs text-mcz-cyan transition hover:bg-mcz-cyan/10">
+            Send a take to the coach
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Top SpinaZ Earners */}
-        {leaderboards.spinaz_earners && (
+        {leaderboards.spinaz_earners?.length > 0 && (
           <LeaderboardCard
             title="Top Earners"
             icon={SPINAZ}
@@ -91,7 +131,7 @@ export default function LeaderboardZ({ period = "week" }) {
         )}
 
         {/* Top Energy Earners */}
-        {leaderboards.energy_earners && (
+        {leaderboards.energy_earners?.length > 0 && (
           <LeaderboardCard
             title="Energy Masters"
             icon={ENERGY}
@@ -102,7 +142,7 @@ export default function LeaderboardZ({ period = "week" }) {
         )}
 
         {/* Top Raters */}
-        {leaderboards.raters && (
+        {leaderboards.raters?.length > 0 && (
           <LeaderboardCard
             title="Community Raters"
             icon="⭐"
@@ -113,7 +153,7 @@ export default function LeaderboardZ({ period = "week" }) {
         )}
 
         {/* Top Referrers */}
-        {leaderboards.referrers && (
+        {leaderboards.referrers?.length > 0 && (
           <LeaderboardCard
             title="Network Growth"
             icon="🎯"
@@ -124,28 +164,6 @@ export default function LeaderboardZ({ period = "week" }) {
         )}
       </div>
 
-      {/* Instrument-specific leaderboards shown in SkillZ, inside each
-          instrument's own tab — "SkillZ" is never one tab, so the honest
-          fix is a door per instrument rather than a single guessed
-          destination. `InstrumentLeaderboardCard` below could render one of
-          these live, but that's 7 more API calls on a screen that already
-          loads in one — a call this fix doesn't make for you. */}
-      <div className="mt-6 space-y-1.5">
-        <p className="text-xs text-white/40">
-          💡 Each instrument has its own XP leaderboard — see your ranking:
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.entries({
-            singz: "🎤 SingZ", rapz: "🎙️ RapZ", guitarz: "🎸 GuitarZ",
-            bassz: "🅱️ BassZ", keyz: "⌨️ KeyZ", drumz: "🥁 DrumZ", violinz: "🎻 ViolinZ",
-          }).map(([key, label]) => (
-            <button key={key} onClick={() => goToSpot(key, `${key}-drills`)}
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/60 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan">
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -172,7 +190,7 @@ function LeaderboardCard({ title, icon, rows, metric, suffix }) {
       </div>
 
       {rows.length === 0 && (
-        <p className="text-xs text-white/40 text-center py-2">No entries yet</p>
+        <Empty className="py-2 text-center text-xs" text="Nobody on this board yet." action="Score a take" onAction={() => goToSpot("toolz", "")} />
       )}
     </div>
   );
@@ -224,7 +242,7 @@ export function InstrumentLeaderboardCard({ appKey, limit = 5 }) {
       </div>
 
       {leaders.length === 0 && (
-        <p className="text-xs text-white/40 text-center py-2">No XP earned yet</p>
+        <Empty className="py-2 text-center text-xs" text="No XP earned yet. Every scored take and drill earns it." action="Score a take" onAction={() => goToSpot("toolz", "")} />
       )}
     </div>
   );

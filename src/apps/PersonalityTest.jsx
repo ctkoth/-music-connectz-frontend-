@@ -17,6 +17,8 @@
 // personality and starts measuring how agreeable somebody is.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { keepQuizResult } from "../quizResult.js";
+import JoinLink from "../components/JoinLink.jsx";
 import { Loader2, RotateCcw } from "lucide-react";
 import { api } from "../api.js";
 import { track } from "../track.js";
@@ -53,6 +55,7 @@ export default function PersonalityTest() {
         method: "POST", auth: false, body: { depth, answers },
       });
       setResult(out);
+      if (!out?.saved) keepQuizResult(out);
       track("quiz_done", { depth, axes: Object.keys(out.axes || {}).length });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
@@ -129,6 +132,13 @@ export default function PersonalityTest() {
           </div>
 
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center">
+            {/* The server's count of members who declared the same four letters — never
+                names, and absent below its minimum, so a small number points at nobody. */}
+            {result.shared_by > 0 && (
+              <p className="mb-2 text-sm font-semibold text-white">
+                {result.shared_by} members here have said they're {result.code} too.
+              </p>
+            )}
             <p className="mb-3 text-sm text-white/85">
               {result.saved
                 ? "Saved to your profile — people can find you by these letters now."
@@ -136,7 +146,9 @@ export default function PersonalityTest() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {!result.saved && (
-                <Link to="/register" className="re-btn !w-auto px-5">Save this — free account</Link>
+                <JoinLink className="re-btn !w-auto px-5">
+                  {result.shared_by > 0 ? "Save this & find them — free account" : "Save this — free account"}
+                </JoinLink>
               )}
               <Link to="/try" className="re-btn re-btn-cyan !w-auto px-5">Now get a take scored</Link>
             </div>

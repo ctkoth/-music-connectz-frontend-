@@ -1,4 +1,6 @@
+import VersionBadge from "./VersionBadge.jsx";
 import React, { useState } from 'react';
+import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
 import { canMini, slugFor } from '../App.jsx';
@@ -15,37 +17,39 @@ import './ToolZMenu.css';
 const ICON_KEY = {
   singz: "singz.png", rapz: "rapz.png", guitarz: "guitarz.png", bassz: "bassz.png",
   keyz: "keyz.png", drumz: "drumz.png", violinz: "violinz.png",
+  flutez: "flutez.png", saxz: "saxz.png", clarinetz: "clarinetz.png", trumpetz: "trumpetz.png",
   battlez: "battlez.png", collabz: "collabz.png", infernoz: "infernoz.png",
   socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
   messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
-  onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png",
+  onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png", voicez: "voicez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
   merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
-  journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", viewz: "viewz.png",
-  mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
+  journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", breathz: "breathz.png", viewz: "viewz.png",
+  intelligencez: "intelligencez.png", mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png",
 };
 const EMOJI = {
-  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻",
+  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
-  profilez: "👤", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
+  profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
   funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
-  membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", viewz: "👁️",
-  mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
+  membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
+  intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
 };
 
 // One app, several doors: CharacterZ and VoiceZ StyleZ sit under DesignZ AND
 // DirectZ (and VoiceZ StyleZ under MangaZ's group), because a character is
 // drawn in one place and directed in another. Same key, same app — listing it
 // twice is a second door, never a second copy.
-const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ', soon: true };
+const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ, and a voice' };
 const VOICEZ_STYLEZ = { key: 'voicezstylez', label: 'VoiceZ StyleZ', color: 'magenta', desc: 'Voices for your CharacterZ', soon: true };
 
 // Flatten apps from grouped structure
@@ -61,6 +65,17 @@ const flattenApps = (categoryData) => {
     }
   });
   return result;
+};
+
+// "N ready · M coming soon" — what a group actually holds. An app listed twice
+// (one app, several doors) counts once, and only a built one counts as ready.
+const countLine = (apps, unit = false) => {
+  const seen = new Map();
+  apps.forEach((a) => { if (!seen.has(a.key) || !a.soon) seen.set(a.key, !!a.soon); });
+  const soon = [...seen.values()].filter(Boolean).length;
+  const ready = seen.size - soon;
+  const noun = unit ? (ready === 1 ? 'app' : 'apps') : '';
+  return `${ready}${noun ? ` ${noun}` : ''} ready${soon ? ` · ${soon} coming soon` : ''}`;
 };
 
 // App categories and configuration
@@ -81,6 +96,10 @@ const COACH_GROUPS = [
         { key: 'bassz', label: 'BassZ', color: 'green', desc: 'Bass coaching' },
         { key: 'keyz', label: 'KeyZ', color: 'cyan', desc: 'Keyboard coaching' },
         { key: 'violinz', label: 'ViolinZ', color: 'yellow', desc: 'String instrument coaching' },
+        { key: 'flutez', label: 'FluteZ', color: 'cyan', desc: 'Flute coaching — breath and tone scored' },
+        { key: 'saxz', label: 'SaxZ', color: 'orange', desc: 'Saxophone coaching — breath and tone scored' },
+        { key: 'clarinetz', label: 'ClarinetZ', color: 'purple', desc: 'Clarinet coaching — breath and tone scored' },
+        { key: 'trumpetz', label: 'TrumpetZ', color: 'orange', desc: 'Trumpet coaching — breath and tone scored' },
       ]
     },
     {
@@ -104,7 +123,7 @@ const TOOLZ_MENU = {
     {
       group: 'Quick Connect',
       apps: [
-        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating', soon: true },
+        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects, and dating for 18+', soon: true },
       ]
     },
     {
@@ -133,7 +152,15 @@ const TOOLZ_MENU = {
         { key: 'metz', label: 'MetZ', color: 'gold', desc: 'Metronome — tempo, time signature, subdivisions' },
         { key: 'tunerz', label: 'TunerZ', color: 'cyan', desc: 'Tune any instrument by ear' },
         { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
+        { key: 'breathz', label: 'BreathZ', color: 'cyan', desc: 'Free breath training — box, long exhale, bar breathing' },
         { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
+      ]
+    },
+    {
+      group: 'Editors',
+      apps: [
+        { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
+        { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multi-track video editor', soon: true },
       ]
     },
     {
@@ -183,22 +210,27 @@ const TOOLZ_MENU = {
   ],
   'IntelligenceZ': [
     {
-      // Not built yet: listed so the suite is visible, never as a door that
-      // opens onto nothing. `soon` replaces the Open buttons with a label.
+      // `soon` replaces the Open buttons with a label: an app is listed when it
+      // is not built so the suite is visible, never as a door that opens onto
+      // nothing. Mix ConnectZ was here as `soon` until its screen existed; it
+      // does now, so it is a door like the rest.
       group: 'AI Creation',
       apps: [
-        { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'AI mixing & mastering for your songs', soon: true },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
+        // The hub reads what each app costs, and whether it is switched on,
+        // from the server — so it comes first, where the question starts.
+        { key: 'intelligencez', label: 'IntelligenceZ', color: 'magenta', desc: 'Every IntelligenceZ app in one place — what each costs before you open it, and your newest pieces from all of them' },
+        { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Resumes, cover letters, lyrics, poems, bios, posts & essays' },
+        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI loops by genre, instruments, BPM & key — StatZ searches keys by mood' },
+        { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
-        { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI by genre, instruments, BPM & key — StatZ searches keys by mood' },
-        { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Lyrics, captions, posts, essays & agreements' },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
       ]
     },
     {
       group: 'AI Coaching',
       apps: [
-        { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — AI that builds with you' },
+        { key: 'occ', label: 'Ocular Code ConnectZ', color: 'magenta', desc: 'OCC — chat with Claude about what you are building; you pick the engine and see its price first' },
         { key: 'bosttake', tab: 'singz', label: 'BossTake', color: 'cyan', desc: 'Record & submit takes to a coach' },
       ]
     },
@@ -214,6 +246,7 @@ const TOOLZ_MENU = {
       group: 'Your Profile',
       apps: [
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
+        { key: 'voicez', label: 'VoiceZ', color: 'magenta', desc: 'Your voices — and which one the coach, the writer and OCC speak in' },
       ]
     },
     {
@@ -231,7 +264,7 @@ const TOOLZ_MENU = {
     {
       group: 'Draw & create',
       apps: [
-        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Comics and manga from your CharacterZ', soon: true },
+        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
       ]
@@ -278,9 +311,9 @@ const CATEGORIES = [
 // Labels for the focus tiles that no ToolZ category names (see focus.js).
 const FOCUS_LABEL = {
   singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', bassz: 'BassZ', keyz: 'KeyZ',
-  drumz: 'DrumZ', violinz: 'ViolinZ', postz: 'PostZ', profilez: 'ProfileZ',
+  drumz: 'DrumZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
-  chordz: 'ChordZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
+  chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
   bodiez: 'BodieZ',
 };
 
@@ -304,6 +337,15 @@ export default function ToolZMenu() {
   // Focus mode: the coach leads and the thirteen categories wait behind one
   // tap. They are all still here — see focus.js for why they are not offered.
   const [showMore, setShowMore] = useState(!FOCUS_MODE);
+  // Two ways into the same apps: by the instrument you play, or by what you need.
+  // The choice is a per-device convenience, so storage failing changes nothing.
+  const [lens, setLens] = useState(() => {
+    try { return localStorage.getItem('mcz-home-lens') === 'need' ? 'need' : 'instrument'; } catch { return 'instrument'; }
+  });
+  const pickLens = (v) => {
+    setLens(v);
+    try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
+  };
   const openFocus = (key) => goToSpot(key, `${key}:main`);
   const [hoveredApp, setHoveredApp] = useState(null);
 
@@ -351,8 +393,10 @@ export default function ToolZMenu() {
         </div>
 
         <div className="apps-detail-grid">
-          {apps.map((app) => (
-            <div key={app.key} className={`app-detail-card ${app.color}`}>
+          {/* Built apps first: a "coming soon" card above a working one is a
+              door that opens onto nothing getting the best seat in the house. */}
+          {[...apps.filter((a) => !a.soon), ...apps.filter((a) => a.soon)].map((app) => (
+            <div key={app.key} className={`app-detail-card ${app.color}${app.soon ? ' soon' : ''}`}>
               <div className="app-detail-header">
                 <div className="app-icon-small">
                   {ICON_KEY[app.key] ? (
@@ -410,15 +454,14 @@ export default function ToolZMenu() {
           ))}
         </div>
 
-        {/* Quick Stats */}
+        {/* Counts only what is built. "7 Tools" over a group with two doors
+            that open onto nothing is a number that flatters the group, and the
+            ⚡ that decorated "Ready to use" is the Energy resource — it is
+            not a lightning bolt. */}
         <div className="toolz-stats">
           <div className="stat-item">
             <span className="stat-icon">📱</span>
-            <span>{apps.length} Tools</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">⚡</span>
-            <span>Ready to use</span>
+            <span>{countLine(apps)}</span>
           </div>
         </div>
       </div>
@@ -436,6 +479,22 @@ export default function ToolZMenu() {
       </div>
 
       {FOCUS_MODE && (
+        <div role="tablist" aria-label="How to find an app" className="toolz-lens"
+             style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
+          {[['instrument', 'By instrument'], ['need', 'By what you need']].map(([k, text]) => (
+            <button key={k} role="tab" aria-selected={lens === k}
+              className={`category-card ${lens === k ? 'cyan' : ''}`}
+              style={{ padding: '6px 14px', opacity: lens === k ? 1 : 0.6 }}
+              onClick={() => pickLens(k)}>{text}</button>
+          ))}
+        </div>
+      )}
+
+      {FOCUS_MODE && lens === 'need' && (
+        <NeedsView onOpen={openFocus} />
+      )}
+
+      {FOCUS_MODE && lens === 'instrument' && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
           <div className="category-grid">
@@ -479,7 +538,7 @@ export default function ToolZMenu() {
         </div>
         <div className="stat-item">
           <span className="stat-icon">👥</span>
-          <span>{new Set(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c).map((a) => a.key))).size} Apps</span>
+          <span>{countLine(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c)), true)}</span>
         </div>
         <div className="stat-item">
           <span className="stat-icon">⭐</span>
@@ -487,6 +546,7 @@ export default function ToolZMenu() {
         </div>
       </div>
       )}
+      <p className="mt-6 pb-2 text-center"><VersionBadge /></p>
     </div>
   );
 }

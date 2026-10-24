@@ -41,8 +41,8 @@ const FEATURES = [
     body: "Not a form-completeness score. It hears the take and scores pitch, timing and delivery — the same rubric every time, so the number means something." },
   { Icon: Star, title: "Watch the number move",
     body: "Every take is kept. Send the same one again next week and see which part got better — that's the whole point of a coach." },
-  { Icon: Music4, title: "Seven instruments, one coach",
-    body: "Vocals, rap, guitar, bass, keys, drums and violin, each scored on what that instrument actually asks of you — a drummer isn't marked on breath." },
+  { Icon: Music4, title: "Every instrument on its own terms",
+    body: "Each coach scores what that instrument actually asks of you — a drummer isn't marked on breath. Pick yours above to see its scores." },
   { Icon: Users2, title: "Challenge a friend",
     body: "Share your score card and dare them to beat it. Same take, same rubric, no arguing about who's better." },
 ];
@@ -68,7 +68,8 @@ function TrialDoors({ coaches }) {
   // silently renders in the inherited colour — a build that "passes" and a
   // design that quietly doesn't.
   const Card = ({ to, Icon, title, blurb, floor, ring, tint }) => (
-    <Link to={to} className={`re-card block text-left transition ${ring}`}>
+    <Link to={to} className={`re-card block text-left transition ${ring}`}
+          onClick={to === "/try" ? () => track("landing_cta", { at: "doors" }) : undefined}>
       <div className="flex items-start gap-3">
         <Icon size={18} className={`mt-0.5 shrink-0 ${tint}`} />
         <div className="min-w-0">
@@ -104,6 +105,67 @@ function TrialDoors({ coaches }) {
               title="ChordZ — chords and progressions"
               blurb="Voicings and progressions you can hear. Also entirely in the browser."
               floor="Free forever · no account" />
+      </div>
+    </div>
+  );
+}
+
+/** What a musician already does, beside what this does that none of it can.
+ *
+ * Corey's read of the funnel: of 103 who landed, 90 left before trying anything — not
+ * because the trial was hard, but because nothing on the page named a use their
+ * routine (record on the phone, post it, ask a friend) does not already cover. So the
+ * comparison is the first thing under the headline, and its left column is the
+ * routine they have, in their words, not a straw man.
+ *
+ * Every right-hand claim is what the coach actually returns: a score with a reason per
+ * dimension, the fix and a drill, the same dimensions on every take. The dimensions
+ * are the server's (`/trialdoorz/`, per instrument), picked by tapping an instrument,
+ * so a drummer reads drum words. The button lands on that instrument's own door.
+ */
+function Compare({ coaches }) {
+  const [pick, setPick] = useState("");
+  const door = coaches.find((c) => c.app_key === pick) || coaches[0] || null;
+  const dims = (door?.scores || []).slice(0, 5);
+  const rows = [
+    ["Post it and hope someone says something useful",
+     <>A score out of 10 in about a minute{dims.length > 0 && <> — on <span className="text-white">{dims.join(", ")}</span></>}, each with the reason</>],
+    ["“Sounds fire 🔥” from friends",
+     "The one thing to fix next, and a drill for it"],
+    ["No way to tell if you're actually getting better",
+     "The same scores on every take, so you watch them move (a free account keeps them)"],
+    ["Book a lesson, pay for it, wait for the slot",
+     "Your first take is free, with no account"],
+  ];
+  return (
+    <div className="mt-6 text-left" data-tour="landing-compare">
+      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-white/45">
+        What you do now → what this does
+      </p>
+      {coaches.length > 1 && (
+        <div className="mb-3 flex flex-wrap justify-center gap-1.5" role="group" aria-label="Your instrument">
+          {coaches.map((c) => (
+            <button key={c.app_key} type="button" onClick={() => setPick(c.app_key)}
+                    aria-pressed={door?.app_key === c.app_key}
+                    className={`pill text-[11px] ${door?.app_key === c.app_key ? "!border-mcz-cyan !text-mcz-cyan" : ""}`}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="divide-y divide-white/[0.06] overflow-hidden rounded-xl border border-white/10">
+        {rows.map(([now, here], i) => (
+          <div key={i} className="grid gap-1 p-3 sm:grid-cols-2 sm:gap-4">
+            <p className="text-[13px] text-white/45"><span className="sm:hidden text-white/30">Now: </span>{now}</p>
+            <p className="text-[13px] text-emerald-200"><span className="sm:hidden text-emerald-300/70">Here: </span>{here}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 text-center">
+        <Link to={door ? `/try/${door.app_key}` : "/try"} onClick={() => track("landing_cta", { at: "compare" })}
+              className="neon-btn-primary !w-auto px-8 py-4 text-base">
+          🎤 Score my {door ? door.label : ""} take <span className="ml-1 text-emerald-300">Free · no account</span>
+        </Link>
       </div>
     </div>
   );
@@ -194,20 +256,22 @@ export default function Landing() {
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
           Get your take scored out of 10.<br className="hidden sm:block" /> Free, in about a minute.
         </h1>
-        <p className="mx-auto mt-2 text-lg font-semibold text-mcz-cyan">
-          Vocals, rap, guitar, bass, keys, drums, violin.
-        </p>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-white/60 sm:text-base">
-          Same AI coach real members use, same rubric, same score out of 10 — on pitch, timing and
-          delivery. Then send it again and watch the number move.
-        </p>
+        {/* No instrument line here: the comparison's instrument buttons are the
+            server's list and the choice at once. A typed line said seven for as long
+            as eleven coaches existed. */}
+        {/* The comparison carries what the old sub-paragraph said, per instrument. */}
+        {coaches.length > 0 && <Compare coaches={coaches} />}
 
+        {/* The comparison carries the main button (to the chosen instrument's door).
+            This plain one is only for when the instrument list failed to load. */}
+        {coaches.length === 0 && (
         <Link
-          to="/try"
+          to="/try" onClick={() => track("landing_cta", { at: "hero" })}
           className="neon-btn-primary mx-auto mt-6 !w-auto px-8 py-4 text-base"
         >
           🎤 Score my take — free, no account
         </Link>
+        )}
         <p className="mt-2 text-[11px] text-white/40">
           Upload a clip you already have, or record one. Sign up after and it saves to your account.
         </p>

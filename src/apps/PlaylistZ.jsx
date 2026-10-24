@@ -7,6 +7,7 @@
 // Nothing in a list is a dead end: a post row opens the post (and its /p/ link
 // works with no account), an outside row opens the distributor and tallies
 // through the same counter a ProfileZ link does.
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useState } from "react";
 import {
   ArrowDown, ArrowUp, Check, Copy, ExternalLink, Eye, EyeOff, Link2, Loader2,
@@ -14,10 +15,15 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
+import { useCharLimit } from "../limits.js";
+import CharLimit from "../CharLimit.jsx";
+import { playlistEditPayload, titleKeptNote } from "../editing.js";
 import { onHandoff } from "../handoff.js";
 import { useWidgets } from "../WidgetBoard.jsx";
 import { IconImg } from "../App.jsx";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
+import { moveItem } from "../dragReorder.js";
 
 const PROVIDER_LABEL = {
   spotify: "Spotify", youtube: "YouTube", apple: "Apple Music",
@@ -34,7 +40,7 @@ const VISIBILITIES = [
   ["private", "Just me"],
 ];
 
-function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
+function Row({ item, onUp, onDown, onRemove, canReorder, shared, dragRow = {}, dragGrip = null, dragClass = "" }) {
   const isPost = item.kind === "post";
   // A running order is the one screen where leaving for each row is worst: the
   // list IS the thing, and a new tab per track is the order taken apart. Rows
@@ -47,12 +53,15 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
     openWidget(item.url, { label: item.title });
   };
   return (
-    <li className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+    <li {...dragRow} className={`flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2${dragClass}`}>
+      {canReorder && dragGrip && <DragGrip label="Drag to reorder" size={13} {...dragGrip} />}
       <span className="w-5 shrink-0 text-[11px] tabular-nums text-white/30">{item.position}</span>
-      <button
-        className="min-w-0 flex-1 text-left disabled:opacity-50"
-        onClick={open}
-        disabled={!item.available}
+      <div
+        role="button"
+        tabIndex={0}
+        className={`min-w-0 flex-1 text-left ${item.available ? "cursor-pointer" : "cursor-default opacity-50"}`}
+        onClick={item.available ? open : undefined}
+        onKeyDown={(e) => { if (item.available && (e.key === "Enter" || e.key === " ")) open(); }}
         title={item.available ? "Open" : "This post was deleted"}
       >
         <span className="flex items-center gap-1.5">
@@ -73,10 +82,12 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared }) {
           {!isPost && item.clicks > 0 && <span>{item.clicks} clicks</span>}
           {item.rating != null && <span className="text-mcz-ember">{item.rating}/10</span>}
           {/* On a shared list, "who put this here" is the first question. */}
-          {shared && item.added_by && <span>added by @{item.added_by}</span>}
+          {shared && item.added_by && (
+            <span>added by <button className="hover:underline" onClick={(e) => { e.stopPropagation(); openMember(item.added_by); }}>@{item.added_by}</button></span>
+          )}
           {!item.available && <span className="text-mcz-ember">post deleted</span>}
         </span>
-      </button>
+      </div>
       {!isPost && (
         <a href={item.url} target="_blank" rel="noreferrer noopener"
            className="shrink-0 text-white/25 hover:text-mcz-gold" title="Open">
@@ -155,7 +166,7 @@ function AddTrack({ playlistId, onAdded }) {
           </p>
         </>
       ) : (
-        <select className="neon-input !py-2 text-xs" value={postId} onChange={(e) => setPostId(e.target.value)}>
+        <select aria-label="Post to add" className="neon-input !py-2 text-xs" value={postId} onChange={(e) => setPostId(e.target.value)}>
           <option value="">Pick a post…</option>
           {posts.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
         </select>
@@ -188,8 +199,10 @@ function Collaborators({ pl, onChanged }) {
   }
 
   async function remove(username) {
-    await api(`${path}${username ? `?username=${encodeURIComponent(username)}` : ""}`,
-              { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`${path}${username ? `?username=${encodeURIComponent(username)}` : ""}`, { method: "DELETE" });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't remove them."); }
     onChanged();
   }
 
@@ -199,7 +212,8 @@ function Collaborators({ pl, onChanged }) {
     if (!pl.can_add) return null;
     return (
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
-        <Users size={12} /> You're a collaborator here — add tracks, and @{pl.owner} sets the order.
+        <Users size={12} /> You're a collaborator here — add tracks, and{" "}
+        <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button> sets the order.
         <button className="pill !text-red-300" onClick={() => remove("")}>
           <LogOut size={11} className="inline" /> Leave
         </button>
@@ -220,7 +234,7 @@ function Collaborators({ pl, onChanged }) {
         <ul className="flex flex-wrap gap-1.5">
           {mates.map((u) => (
             <li key={u} className="pill flex items-center gap-1">
-              @{u}
+              <button className="hover:underline" onClick={() => openMember(u)}>@{u}</button>
               <button onClick={() => remove(u)} className="text-white/30 hover:text-red-300" title="Remove collaborator">
                 <X size={10} />
               </button>
@@ -244,33 +258,83 @@ function Collaborators({ pl, onChanged }) {
 function Detail({ id, onBack, onChanged }) {
   const [pl, setPl] = useState(null);
   const [copied, setCopied] = useState(false);
+  // Title and description, edited in place by the owner. The description cap is
+  // the server's (tier char limit via useCharLimit). The title has no limit the
+  // server serves, so none is typed here: what the server kept is reported.
+  const cl = useCharLimit();
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [metaDraft, setMetaDraft] = useState({ title: "", description: "" });
+  const [metaMsg, setMetaMsg] = useState("");
+  const [metaBusy, setMetaBusy] = useState(false);
 
-  const load = () => api(`/api/economy/playlistz/${id}/`).then(setPl).catch(() => setPl(null));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(`/api/economy/playlistz/${id}/`).then((d) => { setPl(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "That playlist didn't load."));
   useEffect(() => { load(); }, [id]);
+  // Before the loading return: a hook must run on every render. `moveTo` is read when
+  // a drag ends, by which time the list has loaded.
+  const dnd = useDragReorder("playlist", (from, to) => moveTo(from, to));
 
-  if (!pl) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!pl) return <LoadGate error={loadErr} what="the playlist" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const items = asList(pl.items);
 
-  async function move(index, delta) {
-    const next = [...items];
-    const to = index + delta;
-    if (to < 0 || to >= next.length) return;
-    [next[index], next[to]] = [next[to], next[index]];
-    setPl({ ...pl, items: next.map((it, i) => ({ ...it, position: i + 1 })) });
-    await api(`/api/economy/playlistz/${id}/reorder/`, {
-      method: "POST", body: { order: next.map((i) => i.id) },
-    }).catch(() => {});
-    load();
+  function startMetaEdit() {
+    setMetaDraft({ title: pl.title || "", description: pl.description || "" });
+    setMetaMsg("");
+    setEditingMeta(true);
   }
 
+  async function saveMeta() {
+    const r = playlistEditPayload(metaDraft, { title: pl.title, description: pl.description || "" });
+    if (r.error) return setMetaMsg(r.error);
+    if (!Object.keys(r.body).length) return setEditingMeta(false);
+    setMetaBusy(true); setMetaMsg("");
+    try {
+      const saved = await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: r.body });
+      // The server answers 200 with what it kept — a title it cut is reported
+      // from that, not from what was typed.
+      const note = titleKeptNote(metaDraft.title, saved?.title);
+      setEditingMeta(false);
+      if (note) setMetaMsg(note);
+      await load(); onChanged?.();
+    } catch (e) {
+      // The server's own sentence, unreworded (e.g. the description's char limit).
+      setMetaMsg(e.message || "Couldn't save those changes.");
+    } finally { setMetaBusy(false); }
+  }
+
+  // One path for the arrows and the drag. A refused reorder says so: it used to be
+  // swallowed, and the reload quietly put the old order back.
+  async function moveTo(from, to) {
+    if (to < 0 || to >= items.length || from === to) return;
+    const next = moveItem(items, from, to);
+    setPl({ ...pl, items: next.map((it, i) => ({ ...it, position: i + 1 })) });
+    try {
+      await api(`/api/economy/playlistz/${id}/reorder/`, {
+        method: "POST", body: { order: next.map((i) => i.id) },
+      });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't save that order."); }
+    load();
+  }
+  const move = (index, delta) => moveTo(index, index + delta);
+
+  // A refused write says why. These used to swallow the error and reload, so a
+  // failure looked like a press that did nothing.
   async function remove(itemId) {
-    await api(`/api/economy/playlistz/${id}/items/${itemId}/`, { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${id}/items/${itemId}/`, { method: "DELETE" });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't remove that track."); }
     load(); onChanged?.();
   }
 
   async function setVisibility(v) {
-    await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: { visibility: v } }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${id}/`, { method: "PATCH", body: { visibility: v } });
+      setMetaMsg("");
+    } catch (e) { setMetaMsg(e.message || "Couldn't change who can see it."); }
     load(); onChanged?.();
   }
 
@@ -286,22 +350,56 @@ function Detail({ id, onBack, onChanged }) {
     <div className="space-y-4">
       <button className="re-btn !w-auto px-3 text-xs" onClick={onBack}>← All playlists</button>
 
-      <div>
-        <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
-        <p className="text-[11px] text-white/40">
-          by @{pl.owner} · {pl.post_count} from Music ConnectZ · {pl.link_count} outside
-          {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
-          {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
-        </p>
-        {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
-      </div>
+      {pl.mine && editingMeta ? (
+        <div className="space-y-2 rounded-lg border border-white/[0.08] bg-black/20 p-3">
+          <input className="neon-input" aria-label="Playlist title" value={metaDraft.title}
+                 onChange={(e) => setMetaDraft({ ...metaDraft, title: e.target.value })} />
+          <textarea rows={3} aria-label="Playlist description"
+                    className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+                    maxLength={cl.unlimited ? undefined : cl.limit} value={metaDraft.description}
+                    onChange={(e) => setMetaDraft({ ...metaDraft, description: cl.clamp(e.target.value) })} />
+          <CharLimit cl={cl} value={metaDraft.description} />
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="re-btn !w-auto px-4 text-[12px]" onClick={saveMeta} disabled={metaBusy}>
+              {metaBusy ? <Loader2 className="animate-spin" size={13} /> : null} Save changes
+              <span className="ml-1 text-emerald-300">Free</span>
+            </button>
+            <button className="pill text-[11px]" onClick={() => { setEditingMeta(false); setMetaMsg(""); }}>Cancel</button>
+          </div>
+          {metaMsg && <p className="text-[11px] text-mcz-ember">{metaMsg}</p>}
+        </div>
+      ) : (
+        <div>
+          <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
+          <p className="text-[11px] text-white/40">
+            by <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button>
+            {" · "}{pl.post_count} from Music ConnectZ · {pl.link_count} outside
+            {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
+            {pl.rating != null && <> · <span className="text-mcz-ember">{pl.rating}/10</span></>}
+          </p>
+          {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
+          {pl.mine && (
+            <button className="mt-1 text-[11px] text-white/40 hover:text-mcz-cyan" onClick={startMetaEdit}>
+              Edit title &amp; description · Free
+            </button>
+          )}
+          {metaMsg && <p className="mt-1 text-[11px] text-mcz-cyan">{metaMsg}</p>}
+        </div>
+      )}
 
       {pl.mine && (
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
+          <select aria-label="Who can open this playlist" className="neon-input !w-auto !py-1.5 text-[11px]" value={pl.visibility}
                   onChange={(e) => setVisibility(e.target.value)}>
             {VISIBILITIES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
+          <span className="text-[11px] text-white/40">
+            {{
+              public: "Anyone with the link can open it.",
+              restricted: "Any signed-in member can open it.",
+              private: "Only you and the collaborators you invited can open it.",
+            }[pl.visibility] || ""}
+          </span>
           {pl.visibility === "public" && (
             <button className="re-btn !w-auto px-3 text-xs" onClick={share}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Link copied" : "Copy share link"}
@@ -316,6 +414,7 @@ function Detail({ id, onBack, onChanged }) {
         <ol className="space-y-1.5">
           {items.map((it, i) => (
             <Row key={it.id} item={it} canReorder={pl.can_reorder}
+                 dragRow={pl.can_reorder ? dnd.row(i) : {}} dragGrip={dnd.grip(i)} dragClass={dnd.rowClass(i)}
                  shared={pl.collaborators?.length > 0}
                  onUp={() => move(i, -1)} onDown={() => move(i, 1)} onRemove={() => remove(it.id)} />
           ))}
@@ -346,18 +445,24 @@ function Appearances({ onOpen }) {
     .catch(() => setRows([]));
   useEffect(() => { load(); }, []);
 
+  const [msg, setMsg] = useState("");
   async function pull(row) {
     setBusy(`i${row.item_id}`);
-    await api(`/api/economy/playlistz/${row.playlist_id}/items/${row.item_id}/`,
-              { method: "DELETE" }).catch(() => {});
+    try {
+      await api(`/api/economy/playlistz/${row.playlist_id}/items/${row.item_id}/`, { method: "DELETE" });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't take it out of that playlist."); }
     setBusy(""); load();
   }
 
   async function setAllowed(row, allowed) {
     setBusy(`p${row.post_id}`);
-    await api("/api/economy/postz/", {
-      method: "POST", body: { edit_id: row.post_id, allow_in_playlists: allowed },
-    }).catch(() => {});
+    try {
+      await api("/api/economy/postz/", {
+        method: "POST", body: { edit_id: row.post_id, allow_in_playlists: allowed },
+      });
+      setMsg("");
+    } catch (e) { setMsg(e.message || "Couldn't change that."); }
     setBusy(""); load();
   }
 
@@ -374,6 +479,8 @@ function Appearances({ onOpen }) {
   }
 
   return (
+    <>
+    {msg && <p className="text-[11px] text-mcz-ember">{msg}</p>}
     <ul className="space-y-1.5">
       {rows.map((r) => (
         <li key={r.item_id}
@@ -381,8 +488,10 @@ function Appearances({ onOpen }) {
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] text-white/85">{r.post}</span>
             <span className="block truncate text-[10px] text-white/35">
-              in “{r.playlist}” by @{r.owner}
-              {r.added_by && r.added_by !== r.owner && <> · added by @{r.added_by}</>}
+              in “{r.playlist}” by <button className="hover:underline" onClick={() => openMember(r.owner)}>@{r.owner}</button>
+              {r.added_by && r.added_by !== r.owner && (
+                <> · added by <button className="hover:underline" onClick={() => openMember(r.added_by)}>@{r.added_by}</button></>
+              )}
               {" · "}{r.visibility}
             </span>
           </span>
@@ -405,6 +514,7 @@ function Appearances({ onOpen }) {
         </li>
       ))}
     </ul>
+    </>
   );
 }
 
@@ -448,7 +558,8 @@ function PendingPost({ lists, onAdded, onDrop }) {
       <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">🎧 From PostZ</p>
       <p className="text-[13px] font-semibold text-white">{post.title}</p>
       <p className="text-[11px] text-white/45">
-        by @{post.author}{post.genre ? ` · ${post.genre}` : ""}
+        by <button className="hover:underline" onClick={() => openMember(post.author)}>@{post.author}</button>
+        {post.genre ? ` · ${post.genre}` : ""}
       </p>
       {mine.length === 0 ? (
         <p className="text-[12px] text-white/45">
@@ -456,7 +567,7 @@ function PendingPost({ lists, onAdded, onDrop }) {
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <select className="neon-input !w-auto !py-2 text-xs" value={pick}
+          <select aria-label="Playlist" className="neon-input !w-auto !py-2 text-xs" value={pick}
                   onChange={(e) => setPick(e.target.value)}>
             <option value="">Which set?</option>
             {mine.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}

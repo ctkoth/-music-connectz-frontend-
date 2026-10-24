@@ -56,6 +56,7 @@ export const ICON_DEFAULTS = {
   "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
   "personaz_designer.png": "/icons/personaz.designer.jpg",
   "substancez.png": "/icons/profilez.substancez.jpg",
+  "voicez.png": "/icons/profilez.voicez.jpg",
   "zodiacz.png": "/icons/profilez.zodiacz.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
@@ -65,6 +66,10 @@ export const ICON_DEFAULTS = {
   "callz_user.webp": "/icons/callz_user.png",
   "drumz.png": "/icons/drumz.png",
   "violinz.png": "/icons/violinz.png",
+  "flutez.png": "/icons/flutez.png",
+  "saxz.png": "/icons/saxz.png",
+  "clarinetz.png": "/icons/clarinetz.png",
+  "trumpetz.png": "/icons/trumpetz.png",
   "guitarz.png": "/icons/guitarz.png",
   "keyz.png": "/icons/keyz.png",
   "partnerz.jpg": "/icons/partnerz.jpg",
@@ -82,9 +87,12 @@ export const ICON_DEFAULTS = {
   "royaltiez.png": "/icons/royaltiez.png",
   "playlistz.png": "/icons/playlistz.png",
   "habitz.png": "/icons/habitz.png",
-  "metz.jpg": "/icons/metz.jpg",
-  "tunerz.jpg": "/icons/tunerz.jpg",
-  "onboardz.jpg": "/icons/onboardz.png"
+  "journalz.jpg": "/icons/journalz.png",
+  "taskz.png": "/icons/taskz.png",
+  "breathz.png": "/icons/breathz.png",
+  "onboardz.jpg": "/icons/onboardz.png",
+  "sentencez_editor.png": "/icons/sentencez_editor.png",
+  "videoz.png": "/icons/videoz.png"
 };
 
 // BodieZ muscle group -> supplied art, for the picker that reads it directly.
@@ -886,6 +894,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "ratez",
+        "label": "RateZ",
+        "file": "intelligence.ratez.jpg",
+        "art": "/icons/intelligence.ratez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "sentenceconz",
         "label": "Sentence ConnectZ",
         "file": "intelligence.sentenceconz.png",
@@ -1258,6 +1276,16 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "languagez",
+        "label": "LanguageZ",
+        "file": "profilez.languagez.jpg",
+        "art": "/icons/profilez.languagez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "preferencez",
         "label": "PreferenceZ",
         "file": "profilez.preferencez.png",
@@ -1283,6 +1311,16 @@ export const ICON_TREE = [
         "file": "profilez.substancez.jpg",
         "art": "/icons/profilez.substancez.jpg",
         "key": "substancez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "voicez",
+        "label": "VoiceZ",
+        "file": "profilez.voicez.jpg",
+        "art": "/icons/profilez.voicez.jpg",
+        "key": "voicez.png",
         "status": "live",
         "note": "",
         "also": []
@@ -1473,6 +1511,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "sentencez",
+        "label": "SentenceZ",
+        "file": "toolz.sentencez.jpg",
+        "art": "/icons/toolz.sentencez.jpg",
+        "key": null,
+        "status": "fallback",
+        "note": "current art for registry key sentencez_editor.png, kept as the fallback",
+        "also": []
+      },
+      {
         "child": "tunerz",
         "label": "TunerZ",
         "file": "toolz.tunerz.jpg",
@@ -1480,6 +1528,16 @@ export const ICON_TREE = [
         "key": "tunerz.jpg",
         "status": "owed",
         "note": "",
+        "also": []
+      },
+      {
+        "child": "videoz",
+        "label": "VideoZ",
+        "file": "toolz.videoz.png",
+        "art": "/icons/toolz.videoz.png",
+        "key": null,
+        "status": "fallback",
+        "note": "current art for registry key videoz.png, kept as the fallback",
         "also": []
       }
     ]
@@ -1491,8 +1549,8 @@ export const ICON_TREE = [
       "file": "tunerz.jpg",
       "art": "/icons/tunerz.jpg",
       "key": null,
-      "status": "unplaced",
-      "note": "the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as \"tunerz - Copy.jpg\" — a copy"
+      "status": "fallback",
+      "note": "current art for registry key tunerz.jpg, kept as the fallback; the older root art; the tunerz.jpg registry key now belongs to the ToolZ child toolz.tunerz.jpg; also on disk as \"tunerz - Copy.jpg\" — a copy"
     },
     "extra": [],
     "children": []
@@ -1560,7 +1618,58 @@ export const ICON_TREE = [
       "note": ""
     },
     "extra": [],
-    "children": []
+    "children": [
+      {
+        "child": "breathz",
+        "label": "BreathZ",
+        "file": "skillz.breathz.jpg",
+        "art": "/icons/skillz.breathz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "clarinetz",
+        "label": "ClarinetZ",
+        "file": "skillz.clarinetz.jpg",
+        "art": "/icons/skillz.clarinetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "flutez",
+        "label": "FluteZ",
+        "file": "skillz.flutez.jpg",
+        "art": "/icons/skillz.flutez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "saxz",
+        "label": "SaxZ",
+        "file": "skillz.saxz.jpg",
+        "art": "/icons/skillz.saxz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "trumpetz",
+        "label": "TrumpetZ",
+        "file": "skillz.trumpetz.jpg",
+        "art": "/icons/skillz.trumpetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
   },
   {
     "parent": "directz",
@@ -1623,8 +1732,12 @@ export const TAB_ICONS_WITHOUT_ART = [
   "adz.png",
   "bassz.png",
   "beatz.png",
+  "breathz.png",
   "callz.png",
+  "clarinetz.png",
+  "dupez.png",
   "facez.png",
+  "flutez.png",
   "funnelz.png",
   "guitarz.png",
   "habitz.png",
@@ -1632,6 +1745,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "keyz.png",
   "lessonz.png",
   "logo.png",
+  "lookmaxz.png",
   "merchz.png",
   "mimez.png",
   "money.png",
@@ -1642,9 +1756,12 @@ export const TAB_ICONS_WITHOUT_ART = [
   "postz.png",
   "ratez.png",
   "royaltiez.png",
+  "saxz.png",
+  "sentencez_editor.png",
   "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
+  "trumpetz.png",
   "violinz.png"
 ];

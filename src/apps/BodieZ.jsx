@@ -36,13 +36,14 @@
 // Deliberately not built yet: Nutrition, Community, and any XP/streak
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
   Activity, BellRing, CalendarDays, ChevronDown, ChevronUp, Copy, Dumbbell, Link2, Loader2, Moon, Pencil, PlayCircle, Plus, Play,
   MapPin, MessageSquare, Send, Share2, Sparkles, Square, Target, Trash2, Trophy, Unlink, Wand2, X,
-  GripVertical,
 } from "lucide-react";
+import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
+import { moveItem, moveRun, moveWithinRun } from "../dragReorder.js";
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { IconImg } from "../App.jsx";
@@ -51,12 +52,13 @@ import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import { handOff } from "../handoff.js";
-import { badge, blocks, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
-import { applyBlockOrder, blockIds, reorderBlocks, reorderList } from "../reorder.js";
-import { useDragReorder } from "../useDragReorder.js";
+import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
+import PromoPost from "../components/PromoPost.jsx";
+import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
+import { PROMPTZ } from "../resources.js";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -72,8 +74,10 @@ function Field({ label, className = "w-20", ...props }) {
   );
 }
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
+import { ExerciseSwap, SwapRow, useSwappedPicks } from "./ExerciseSwap.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { suggest } from "../exerciseSearch.js";
+import { useRemembered, useRememberedNumber } from "../useRemembered.js";
 
 // Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
 // migration 0145's docstring on the backend for why it stays: Burpee, Clean
@@ -143,6 +147,34 @@ export default function BodieZ() {
   // the control rather than dumping the member at the top of a new tab.
   const [prefillMuscle, setPrefillMuscle] = useState(null);
   const jumpToMuscleBuild = (muscle) => { setPrefillMuscle(muscle); setTab("routinez"); };
+  // Set by a routine card's "Log past session" button (pen-and-paper workouts
+  // logged after the fact) — jumps to Today, opens "Log a past workout" and
+  // fills in that routine, instead of leaving the member to find it again in
+  // a dropdown. Read once by PastWorkout, then cleared.
+  const [prefillPastRoutine, setPrefillPastRoutine] = useState(null);
+  const jumpToLogPast = (routineId) => { setPrefillPastRoutine(routineId); setTab("today"); };
+  // Set by a goal card's "Train this" button — a goal shows a target and a
+  // current value, with nothing to act on. Jumps to Today and, once a
+  // session is running (started here or already open), pre-selects the
+  // goal's exercise in "Add an unplanned exercise" so logging a set toward
+  // it is the very next thing, not a hunt through the picker. Read once.
+  const [prefillGoalExercise, setPrefillGoalExercise] = useState(null);
+  const jumpToTrainGoal = (exerciseId) => { setPrefillGoalExercise(exerciseId); setTab("today"); };
+  // Set by SessionSummary's "Edit this workout" — the card shown right after
+  // finishing had no way to fix a session's own numbers (a dangling session
+  // left open for hours shows 0 sets and a nonsense duration, with nothing
+  // to do about it but hunt for it in RoutineZ's history list). Jumps there
+  // and opens the editor on this exact session. Read once.
+  const [prefillEditSession, setPrefillEditSession] = useState(null);
+  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("routinez"); };
+  // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
+  // not a child of this one) — read once and cleared, so it lands on the builder and only once.
+  useEffect(() => {
+    try {
+      const m = sessionStorage.getItem("bodiez.prefillMuscle");
+      if (m) { sessionStorage.removeItem("bodiez.prefillMuscle"); jumpToMuscleBuild(m); }
+    } catch { /* blocked */ }
+  }, []);
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
   // Finished workouts, newest first — RoutineZ lists them so a logged one can
@@ -285,6 +317,22 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // Dragging a logged set: a display order only — rest, time and weight are untouched.
+  // The server's answer replaces the session, so a failed drag snaps back.
+  async function reorderSets(ids) {
+    if (!session) return;
+    const was = session;
+    setSession((cur) => {
+      if (!cur) return cur;
+      const byId = Object.fromEntries(cur.sets.map((x) => [x.id, x]));
+      return { ...cur, sets: ids.map((id, k) => ({ ...byId[id], position: k + 1 })) };
+    });
+    try {
+      const sess = await api(`/api/economy/bodiez/sessions/${was.id}/order/`, { method: "POST", body: { ids } });
+      setSession((cur) => (cur && cur.id === sess.id ? { ...cur, sets: sess.sets } : cur));
+    } catch (e) { setSession(was); setErr(e.message || "Couldn't move that set."); }
+  }
+
   async function addCustomDay(name) {
     try {
       await api("/api/economy/bodiez/custom-days/", { method: "POST", body: { name } });
@@ -294,6 +342,7 @@ export default function BodieZ() {
   }
 
   async function removeCustomDay(id) {
+    if (!window.confirm("Delete this day? It can't be undone.")) return;
     try {
       await api(`/api/economy/bodiez/custom-days/${id}/`, { method: "DELETE" });
       load();
@@ -504,7 +553,7 @@ export default function BodieZ() {
 
       <AccessPanel access={access} onChange={saveAccess} shown={usable.length} total={exercises.length} />
 
-      {err && <p className="re-card text-sm text-mcz-pink">{err}</p>}
+      {err && <p role="alert" className="re-card text-sm text-mcz-ember">{err}</p>}
 
       {busy && !exercises.length ? (
         <p className="flex items-center gap-2 text-white/50">
@@ -515,20 +564,27 @@ export default function BodieZ() {
           {tab === "today" && (
             <>
             <LbFix onFixed={load} />
-            {summary && <SessionSummary summary={summary} onClose={() => setSummary(null)} />}
+            {summary && (
+              <SessionSummary summary={summary} onClose={() => setSummary(null)}
+                             onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }} />
+            )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
-              onStart={startSession} onFinish={finishSession} onLogSet={logSet}
+              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets}
               goals={coach?.goals}
+              initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
             <PastWorkout exercises={exercises} pickable={usable} routines={routines}
-                         onSaved={(sm) => { setSummary(sm); load(); }} />
+                         onSaved={(sm) => { setSummary(sm); load(); }}
+                         initialRoutineId={prefillPastRoutine} onInitialRoutineConsumed={() => setPrefillPastRoutine(null)} />
             </>
           )}
           {tab === "routinez" && (
             <RoutineZView routines={routines} history={history} exercises={exercises} pickable={usable}
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
+                          onLogPast={jumpToLogPast}
+                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
@@ -554,7 +610,7 @@ export default function BodieZ() {
           )}
           {tab === "goals" && (
             <GoalsView goals={goals} exercises={exercises} weightLogs={weightLogs}
-                      onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} />
+                      onCreate={createGoal} onDelete={deleteGoal} onLogWeight={logWeight} onTrain={jumpToTrainGoal} />
           )}
           {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
@@ -687,7 +743,7 @@ function summaryText(sm, unit, brief = false) {
   return lines.join("\n");
 }
 
-function SessionSummary({ summary: sm, onClose }) {
+function SessionSummary({ summary: sm, onClose, onEdit }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
   const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
@@ -721,7 +777,12 @@ function SessionSummary({ summary: sm, onClose }) {
         <div><p className="text-2xl font-extrabold text-white">{sm.sets}</p><p className="re-label">sets</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.reps}</p><p className="re-label">reps</p></div>
       </div>
-      {sm.records.length > 0 ? (
+      {sm.sets === 0 ? (
+        // A session that sat open with nothing logged — the most likely story
+        // behind a 0-set, hours-long "workout" — has no record to report and
+        // nothing honest to share. Say so, and lead with the fix.
+        <p className="text-xs text-white/45">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
+      ) : sm.records.length > 0 ? (
         <div className="space-y-1">
           {sm.records.map((r, i) => (
             <p key={i} className="flex items-start gap-1.5 text-xs text-amber-200">
@@ -745,9 +806,18 @@ function SessionSummary({ summary: sm, onClose }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={share}>
-          <Share2 size={13} /> Share
+        {/* A session's own numbers are the member's to fix right here —
+            nothing logged, or a set typed in wrong, is as reachable as
+            sharing it. Primary when there is nothing honest to share yet. */}
+        <button className={`!w-auto px-3 py-2 text-xs inline-flex items-center gap-1 ${sm.sets === 0 ? "neon-btn-primary" : "neon-btn-ghost"}`}
+                onClick={onEdit}>
+          <Pencil size={13} /> Edit this workout
         </button>
+        {sm.sets > 0 && (
+          <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={share}>
+            <Share2 size={13} /> Share
+          </button>
+        )}
         {coaches.length > 0 ? coaches.map((c) => (
           <button key={c} className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(c)}>
             <MessageSquare size={13} /> Send to coach @{c}
@@ -816,7 +886,7 @@ function Elapsed({ since }) {
   return clock(secondsSince(since));
 }
 
-// ---- Rest alerts: StatZ's, or the free hour's -------------------------------
+// ---- Rest alerts: StatZ's, or the daily free sample's -------------------------------
 //
 // The in-page beep and vibration above are everybody's. What StatZ adds is the
 // part that reaches a member who has put the phone down: a notification when rest
@@ -1004,8 +1074,11 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
+function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
+                     grip = null, onReorder = null }) {
   const unit = useUnit();
+  const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
+  const [swapOpen, setSwapOpen] = useState(false);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
   // A unit flip re-expresses the planned target; a number the member typed is left as typed.
@@ -1028,7 +1101,8 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        {grip}
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
             {planned.name}
@@ -1042,12 +1116,22 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
             {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
         </div>
+        {onSwap && (
+          <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                  onClick={() => setSwapOpen(!swapOpen)}>
+            {swapOpen ? "Done" : "Change"}
+          </button>
+        )}
         <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
           done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
                               : "bg-white/5 text-white/50 ring-white/10"}`}>
           {done}/{targetSets} sets
         </span>
       </div>
+      {swapOpen && onSwap && (
+        <ExerciseSwap current={planned.exercise_id} all={allExercises} choices={swapFrom} onPick={onSwap}
+                      note={`Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under ${planned.name}.`} />
+      )}
       <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
       <div className="flex flex-wrap gap-2">
@@ -1075,8 +1159,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
       </div>
       {doneSets.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {doneSets.map((s) => (
-            <span key={s.id} className="rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60">
+          {doneSets.map((s, si) => (
+            <span key={s.id} {...(onReorder && doneSets.length > 1 ? dndSets.row(si) : {})}
+                  className={`inline-flex items-center rounded-full bg-white/5 px-2 py-1 text-[11px] text-white/60${dndSets.rowClass(si)}`}>
+              {onReorder && doneSets.length > 1 && <DragGrip label="Drag this set" size={11} {...dndSets.grip(si)} />}
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
@@ -1088,31 +1174,9 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false }) {
   );
 }
 
-// The plan as draggable blocks (a superset pair is one block). Its own component
-// because the drag hook has to run on every render, and TodayView returns early.
-function PlanBlocks({ planned, onMove, render }) {
-  const dnd = useDragReorder(onMove);
-  return blocks(planned).map((b, i) => (
-    <div key={(b.pair ? b.pair[0] : b.single).exercise_id} {...dnd.drag(i)}
-         className={`flex items-start gap-1 rounded-xl ${dnd.over === i && dnd.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
-      <GripVertical size={14} className="mt-3 shrink-0 cursor-grab text-white/25" aria-hidden="true" title="Drag to reorder" />
-      <div className="min-w-0 flex-1 space-y-2">{render(b)}</div>
-    </div>
-  ));
-}
-
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals }) {
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets,
+                      initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
-  // Today's order is the member's to change without touching the routine: a
-  // taken bench or a different mood is a today problem. Kept per session on this
-  // device only (it is a convenience, not a record), and dropped with the session.
-  const orderKey = session ? `bodiez.order.${session.id}` : null;
-  const [order, setOrder] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(orderKey) || "[]"); } catch { return []; }
-  });
-  useEffect(() => {
-    try { setOrder(JSON.parse(localStorage.getItem(orderKey) || "[]")); } catch { setOrder([]); }
-  }, [orderKey]);
   const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
@@ -1123,6 +1187,44 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // whenever there is no history yet, never an empty picker.
   const [unplannedSide, setUnplannedSide] = useSide(exerciseId);
   const unplannedLast = useHistory(exerciseId || null, unplannedSide);
+  // Today-only swaps: planned exercise id -> the lift actually being done.
+  const [swaps, setSwaps] = useState({});
+  // Today-only order of the plan (dragged), kept for this session on this device. The
+  // saved routine is not changed, the same as a swap.
+  const orderKey = session ? `mcz_bodiez_order_${session.id}` : "";
+  const [order, setOrderState] = useState([]);
+  useEffect(() => {
+    if (!orderKey) return;
+    try { setOrderState(JSON.parse(localStorage.getItem(orderKey) || "[]")); } catch { setOrderState([]); }
+  }, [orderKey]);
+  const setOrder = (ids) => {
+    setOrderState(ids);
+    try { localStorage.setItem(orderKey, JSON.stringify(ids)); } catch { /* blocked */ }
+  };
+  const planBlocksRef = useRef([]);
+  const dndPlan = useDragReorder("today-ex", (from, to) => {
+    const moved = moveItem(planBlocksRef.current, from, to);
+    setOrder(moved.flatMap((b) => (b.single ? [b.single.orig_id] : b.pair.map((x) => x.orig_id))));
+  });
+  // A logged set dragged inside its exercise: the exercise's sets take the same slots
+  // in the whole session's order, in their new order.
+  const reorderWithin = (exerciseId, from, to) => {
+    const all = asList(session?.sets);
+    const mine = all.filter((x) => x.exercise_id === exerciseId);
+    const moved = moveItem(mine, from, to);
+    let k = 0;
+    onReorderSets?.(all.map((x) => (x.exercise_id === exerciseId ? moved[k++].id : x.id)));
+  };
+  // A goal card's "Train this" hands the exercise over this way. The
+  // "unplanned exercise" picker only exists once a session is running, so
+  // this waits for one rather than consuming the handoff on arrival — a
+  // member who looks at Today without starting a session still gets it
+  // pre-selected the moment they do.
+  useEffect(() => {
+    if (!initialExerciseId || !session) return;
+    setExerciseId(String(initialExerciseId));
+    onInitialExerciseConsumed?.();
+  }, [initialExerciseId, session]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!session) {
     return (
       <div className="re-card space-y-3">
@@ -1148,20 +1250,23 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   }
 
   const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
-  const plannedInRoutineOrder = routine ? asList(routine.exercises)
+  const rank = (id) => { const k = order.indexOf(id); return k < 0 ? Infinity : k; };
+  const planned = routine ? asList(routine.exercises)
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .sort((a, b) => rank(a.exercise_id) - rank(b.exercise_id))
     .map((e) => {
-      const ex = exercises.find((x) => x.id === e.exercise_id);
-      return { ...e, name: ex?.name || `Exercise #${e.exercise_id}`,
+      const id = swaps[e.exercise_id] ?? e.exercise_id;
+      const ex = exercises.find((x) => x.id === id);
+      return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment };
     }) : [];
-  const planned = applyBlockOrder(plannedInRoutineOrder, order);
-  const moveBlock = (from, to) => {
-    const next = blockIds(reorderBlocks(planned, from, to));
-    setOrder(next);
-    try { localStorage.setItem(orderKey, JSON.stringify(next)); } catch { /* blocked */ }
-  };
+  // Swap one slot for another lift. Refused when that lift is already in the plan.
+  const swapProps = (p) => ({
+    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
+    allExercises: exercises,
+    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+  });
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
     (setsByExercise[s.exercise_id] ||= []).push(s);
@@ -1211,12 +1316,18 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
       {planned.length > 0 && (
         <div className="space-y-2">
-          <p className="re-label">Your plan <span className="normal-case text-white/30">· drag to change today's order</span></p>
-          <PlanBlocks planned={planned} onMove={moveBlock} render={(b) => {
+          <p className="re-label">Your plan <span className="font-normal normal-case text-white/35">— drag ⋮⋮ to change today's order</span></p>
+          {(planBlocksRef.current = blocks(planned)).map((b, bi) => {
+            const grip = <DragGrip label="Drag this exercise" {...dndPlan.grip(bi)} />;
             if (b.single) {
               const p = b.single;
-              return <LoggerRow key={p.exercise_id} planned={p} doneSets={setsByExercise[p.exercise_id] || []}
-                                onLogSet={onLogSet} />;
+              return (
+                <div key={p.exercise_id} {...dndPlan.row(bi)} className={`rounded-xl${dndPlan.rowClass(bi)}`}>
+                  <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
+                             onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
+                             onLogSet={onLogSet} {...swapProps(p)} />
+                </div>
+              );
             }
             const [x, y] = b.pair;
             const dx = (setsByExercise[x.exercise_id] || []).length;
@@ -1226,19 +1337,22 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
             // each say it, and a marker that is on three rows at once marks nothing.
             const started = dx + dy > 0;
             return (
-              <div key={`${x.exercise_id}-${y.exercise_id}`}
-                   className="space-y-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/[0.03] p-2">
-                <p className="px-1 text-[11px] text-fuchsia-200/80">
+              <div key={`${x.exercise_id}-${y.exercise_id}`} {...dndPlan.row(bi)}
+                   className={`space-y-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/[0.03] p-2${dndPlan.rowClass(bi)}`}>
+                <p className="flex items-center gap-1 px-1 text-[11px] text-fuchsia-200/80">
+                  {grip}
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
-                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet}
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
+                           onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
                            tag={`${b.group}1`} isNext={started && nxt === 0} />
-                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet}
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
+                           onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
                            tag={`${b.group}2`} isNext={started && nxt === 1} />
               </div>
             );
-          }} />
+          })}
         </div>
       )}
 
@@ -1248,7 +1362,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           <LoggerRow key={id}
                      planned={{ exercise_id: id, name: ex?.name || `Exercise #${id}`,
                                 muscle_group: ex?.muscle_group, equipment: ex?.equipment, sets: setsByExercise[id].length }}
-                     doneSets={setsByExercise[id]} onLogSet={onLogSet} />
+                     doneSets={setsByExercise[id]} onLogSet={onLogSet}
+                     onReorder={(f, t) => reorderWithin(id, f, t)} />
         );
       })}
 
@@ -1285,6 +1400,83 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   );
 }
 
+// "Write about this workout" — a finished session becomes a poem, lyric,
+// caption or post through Sentence ConnectZ's own writer. The brief is built
+// server-side from the session's own logged sets (apps/economy/bodiez.py's
+// `workout_topic`), never from anything typed here, the same way a coach
+// take's promo post is: a tangible, saveable, editable, shareable thing comes
+// out the other end of a PromptZ spend, per the cost/gain rule, not a number
+// with no reason behind it.
+function WorkoutWrite({ sessionId, onClose }) {
+  const [spec, setSpec] = useState(null);
+  const [loadErr, setLoadErr] = useState("");
+  const [kind, setKind] = useState("");
+  const [tags, setTags] = useRemembered("bodiez-write-hashtags", "");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [runErr, setRunErr] = useState("");
+
+  useEffect(() => {
+    let on = true;
+    api(`/api/economy/bodiez/sessions/${sessionId}/write/`)
+      .then((d) => { if (!on) return; setSpec(d); setKind(d.kinds?.[0]?.key || "poem"); })
+      .catch((e) => { if (on) setLoadErr(e.message || "Couldn't check the price."); });
+    return () => { on = false; };
+  }, [sessionId]);
+
+  async function write() {
+    setBusy(true); setRunErr("");
+    try {
+      setResult(await api(`/api/economy/bodiez/sessions/${sessionId}/write/`,
+        { method: "POST", body: { kind, ...hashtagBody(tags) } }));
+    } catch (e) { setRunErr(e.message || "Couldn't write that. Nothing was charged."); }
+    finally { setBusy(false); }
+  }
+
+  if (result) {
+    return (
+      <PromoPost promo={result} onClose={onClose}
+                 title={spec.kinds.find((k) => k.key === result.kind)?.label || "What it wrote"}
+                 note="Written from this workout's own logged sets only — nothing invented. It's saved in Sentence ConnectZ, so if you use it in a release, battle or deal, K-Oth's royalty applies to the part you keep." />
+    );
+  }
+
+  return (
+    <div className="re-card space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="re-label">Write about this workout</p>
+        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close"><X size={16} /></button>
+      </div>
+      {loadErr && <p role="alert" className="text-[11px] text-mcz-ember">{loadErr}</p>}
+      {!spec && !loadErr && <p className="text-[11px] text-white/40">Checking the price…</p>}
+      {spec && (
+        <>
+          <div className="flex flex-wrap gap-1.5">
+            {spec.kinds.map((k) => (
+              <button key={k.key} onClick={() => setKind(k.key)}
+                      className={`pill ${kind === k.key ? "!bg-white/15 !text-white" : ""}`}>
+                {k.emoji} {k.label}
+              </button>
+            ))}
+          </div>
+          {(kind === "caption" || kind === "post") && <HashtagCount value={tags} onChange={setTags} />}
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                    disabled={busy} onClick={write}>
+              {busy ? <Loader2 className="animate-spin" size={13} /> : <Sparkles size={13} />}
+              {busy ? "Writing…" : "Write it"}
+            </button>
+            {spec.cost.free_today
+              ? <span className="text-[11px] text-emerald-300">free today</span>
+              : <span className="text-[11px] text-mcz-ember">−{spec.cost.amount} {PROMPTZ}</span>}
+          </div>
+          {runErr && <p className="text-[11px] text-mcz-ember">{runErr}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Log a workout that already happened. Sent as one request (the server
 // validates every set or saves none), lands as a finished session on that
 // date, and answers with the same summary a live one does — so the records it
@@ -1296,7 +1488,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 // Its sets keep their ids, so a set that was logged live keeps the rest time
 // the server measured; the date is only editable on one typed in afterwards,
 // because a live one's time was measured, not chosen.
-function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel }) {
+function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel,
+                        initialRoutineId = null, onInitialRoutineConsumed }) {
   const unit = useUnit();
   const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const editDate = editing ? new Date(new Date(editing.started_at).getTime() - new Date(editing.started_at).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : null;
@@ -1304,7 +1497,10 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const setOpen = (v) => { setOpenState(v); if (!v && editing) onCancel?.(); };
   const [date, setDate] = useState(editDate || todayStr);
   const [notes, setNotes] = useState(editing?.notes || "");
-  const [sets, setSets] = useState(() => (editing ? asList(editing.sets).slice().sort((a, b) => a.id - b.id).map((st) => ({
+  // The member's order (`position`, set when a workout is typed in, edited or dragged),
+  // then the order things happened for a set logged live and never moved.
+  const [sets, setSets] = useState(() => (editing ? asList(editing.sets).slice()
+    .sort((a, b) => (a.position || 0) - (b.position || 0) || a.id - b.id).map((st) => ({
     id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
   const [exerciseId, setExerciseId] = useState("");
@@ -1313,6 +1509,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const [side, setSide] = useSide(exerciseId);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [swapping, setSwapping] = useState(null);   // index of the exercise group being edited
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const last = useHistory(exerciseId || null, side);
@@ -1337,6 +1534,15 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     setRoutineId(r.id);
     setSets(rows);
   };
+  // "Log past session" on a routine card hands the routine over this way —
+  // open the panel already filled in, rather than leaving the member to
+  // find the same routine again in the dropdown below.
+  useEffect(() => {
+    if (!initialRoutineId) return;
+    setOpenState(true);
+    pickRoutine(initialRoutineId);
+    onInitialRoutineConsumed?.();
+  }, [initialRoutineId]);
   const patchSet = (i, patch) => setSets(sets.map((st, k) => (k === i ? { ...st, ...patch } : st)));
 
   // Copy: bring a lift in the way it was last done (every set, same weights and
@@ -1372,6 +1578,19 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     finally { setBusy(false); }
   }
 
+  const grouped = [];
+  sets.forEach((st, i) => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.exercise_id === st.exercise_id) last.rows.push({ ...st, i });
+    else grouped.push({ exercise_id: st.exercise_id, rows: [{ ...st, i }] });
+  });
+  // Drag an exercise (all its sets go with it) or one set inside its exercise.
+  const exOf = (st) => st.exercise_id;
+  const groupOf = (i) => grouped.findIndex((g) => g.rows.some((r) => r.i === i));
+  const dndEx = useDragReorder("pw-ex", (from, to) => { setSets(moveRun(sets, exOf, from, to)); setSwapping(null); });
+  const dndSet = useDragReorder("pw-set", (from, to) => setSets(moveItem(sets, from, to)),
+                                (from, to) => groupOf(from) === groupOf(to));
+
   if (!open) {
     return (
       <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => setOpen(true)}>
@@ -1380,22 +1599,6 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     );
   }
 
-  // Dragging moves a whole lift (all its sets) to where another sits.
-  const moveLift = (from, to) => {
-    const lifts = [];
-    sets.forEach((st) => {
-      const l = lifts[lifts.length - 1];
-      if (l && l[0].exercise_id === st.exercise_id) l.push(st); else lifts.push([st]);
-    });
-    setSets(reorderList(lifts, from, to).flat());
-  };
-  const liftDnd = useDragReorder(moveLift);
-  const grouped = [];
-  sets.forEach((st, i) => {
-    const last = grouped[grouped.length - 1];
-    if (last && last.exercise_id === st.exercise_id) last.rows.push({ ...st, i });
-    else grouped.push({ exercise_id: st.exercise_id, rows: [{ ...st, i }] });
-  });
 
   return (
     <div className="re-card space-y-3">
@@ -1420,15 +1623,41 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       </div>
 
       {grouped.map((g, gi) => (
-        <div key={gi} {...liftDnd.drag(gi)}
-             className={`rounded-lg bg-white/5 px-3 py-2 ${liftDnd.over === gi && liftDnd.from !== gi ? "ring-1 ring-mcz-cyan/70" : ""}`}>
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-white">
-            <GripVertical size={13} className="cursor-grab text-white/25" aria-hidden="true" title="Drag to reorder" />
-            {nameOf(g.exercise_id)}
-          </p>
+        <div key={gi} {...dndEx.row(gi)} className={`rounded-lg bg-white/5 px-3 py-2${dndEx.rowClass(gi)}`}>
+          <div className="flex items-center justify-between gap-2">
+            <DragGrip label="Drag this exercise" {...dndEx.grip(gi)} />
+            <p className="min-w-0 flex-1 text-xs font-semibold text-white">
+              {nameOf(g.exercise_id)}
+              {exercises.find((e) => e.id === g.exercise_id)?.equipment && (
+                <span className="ml-1.5 font-normal text-white/40">
+                  · {EQUIPMENT_LABEL[exercises.find((e) => e.id === g.exercise_id).equipment] || exercises.find((e) => e.id === g.exercise_id).equipment}
+                </span>
+              )}
+            </p>
+            <button type="button" className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                    onClick={() => setSwapping(swapping === gi ? null : gi)}>
+              {swapping === gi ? "Done" : "Edit"}
+            </button>
+          </div>
+          {swapping === gi && (
+            <div className="mt-2 space-y-2">
+              <ExerciseSwap current={g.exercise_id} all={exercises} choices={list}
+                            note={`Change this exercise (all ${g.rows.length} set${g.rows.length === 1 ? "" : "s"}). Weights and reps stay as typed.`}
+                            onPick={(id) => {
+                              const idxs = new Set(g.rows.map((r) => r.i));
+                              setSets(sets.map((st, k) => (idxs.has(k) ? { ...st, exercise_id: id } : st)));
+                            }} />
+              <button type="button" className="text-[11px] text-mcz-ember hover:underline"
+                      onClick={() => { const idxs = new Set(g.rows.map((r) => r.i)); setSets(sets.filter((_, k) => !idxs.has(k))); setSwapping(null); }}>
+                Remove this exercise
+              </button>
+            </div>
+          )}
           {g.rows.map((r) => (
-            <div key={r.i} className="flex items-center justify-between gap-2 py-0.5 text-xs text-white/70">
+            <div key={r.i} {...dndSet.row(r.i)}
+                 className={`flex items-center justify-between gap-2 rounded py-0.5 text-xs text-white/70${dndSet.rowClass(r.i)}`}>
               <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                {g.rows.length > 1 && <DragGrip label="Drag this set" size={12} {...dndSet.grip(r.i)} />}
                 <input aria-label="Weight" type="number" min="0" step="0.5" inputMode="decimal" placeholder="bw"
                        className="w-20 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                        value={r.weight_kg != null ? String(fromKg(r.weight_kg, unit)) : ""}
@@ -1468,7 +1697,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
 
       <input aria-label="Note (optional)" className="neon-input !py-2 w-full text-sm" placeholder="Note (optional)" maxLength={2000}
              value={notes} onChange={(e) => setNotes(e.target.value)} />
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
       <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
         {busy ? <Loader2 className="animate-spin" size={14} /> : `${editing ? "Save changes" : "Save workout"} (${sets.length} set${sets.length === 1 ? "" : "s"})`}
       </button>
@@ -1561,6 +1790,8 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
   const [title, setTitle] = useState(routine.title || "");
   const [description, setDescription] = useState(routine.description || "");
   const [saving, setSaving] = useState(false);
+  const [swapIdx, setSwapIdx] = useState(null);   // row whose exercise is being changed
+  const [swapErr, setSwapErr] = useState("");
 
   // Type to narrow, pick a muscle to narrow again; the member's own lifts come first.
   const filtered = useMemo(() => suggest(
@@ -1588,14 +1819,32 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     setRows(normalize(next));
     setDirty(true);
   };
-  // Drag a row to where it should be; the arrows stay for touch screens, where
-  // drag events do not fire. `normalize` still decides what survives as a pair.
-  const dnd = useDragReorder((from, to) => { setRows(normalize(reorderList(rows, from, to))); setDirty(true); });
+  // Drag to reorder (the shared pattern in useDragReorder). Same `normalize` as the
+  // arrows, so a superset a drop pulls apart is dropped rather than left claiming a
+  // partner that is no longer beside it.
+  const dnd = useDragReorder("routine", (from, to) => {
+    setRows(normalize(moveItem(rows, from, to)));
+    setDirty(true);
+    setSwapIdx(null);
+  });
   const link = (i) => {
     const next = linkWithNext(rows, i);
     if (next) { setRows(next); setDirty(true); }
   };
   const apart = (i) => { setRows(unlink(rows, i)); setDirty(true); };
+  // Any two lifts, not only neighbours: the partner moves to directly below, and a pair
+  // either was already in comes apart first (`pairWith` says how).
+  const pairUp = (i, j) => {
+    const next = pairWith(rows, i, j);
+    if (next) { setRows(next); setDirty(true); setSwapIdx(null); }
+  };
+  // Same sets, reps and weight and the same place in any superset — only the lift changes.
+  const swapExercise = (i, id) => {
+    if (!id || Number(id) === rows[i].exercise_id) return;
+    if (rows.some((r, k) => k !== i && r.exercise_id === Number(id))) { setSwapErr("That exercise is already in this routine."); return; }
+    setSwapErr("");
+    patchRow(i, { exercise_id: Number(id), added: undefined });
+  };
   const patchRow = (i, patch) => {
     const next = rows.slice();
     next[i] = { ...next[i], ...patch };
@@ -1644,12 +1893,10 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
         const ex = exercises.find((x) => x.id === r.exercise_id);
         const tag = badge(rows, i);
         return (
-          <div key={r.exercise_id} {...dnd.drag(i)}
+          <div key={i} {...dnd.row(i)}
                className={`flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2 ${
-                 tag ? "border-l-2 border-fuchsia-400/60" : ""} ${
-                 dnd.over === i && dnd.from !== i ? "ring-1 ring-mcz-cyan/70" : ""}`}>
-            <GripVertical size={14} className="shrink-0 cursor-grab text-white/25" aria-hidden="true"
-                          title="Drag to reorder" />
+                 tag ? "border-l-2 border-fuchsia-400/60" : ""}${dnd.rowClass(i)}`}>
+            <DragGrip {...dnd.grip(i)} />
             <div className="flex flex-col">
               <button className="rounded p-0.5 text-white/30 hover:text-white disabled:opacity-20"
                       disabled={i === 0} onClick={() => moveRow(i, -1)}><ChevronUp size={13} /></button>
@@ -1680,6 +1927,16 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
             <input className="neon-input !py-1.5 w-16 text-xs" type="number" min="1" placeholder="reps"
                    aria-label="Reps" inputMode="numeric"
                    value={r.reps ?? ""} onChange={(e) => patchRow(i, { reps: e.target.value })} />
+            {rows.length > 1 && (
+              <select aria-label="Superset with" data-nomemo="true" value=""
+                      onChange={(e) => e.target.value !== "" && pairUp(i, Number(e.target.value))}
+                      className="max-w-[9rem] rounded-lg border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none">
+                <option value="">{r.group ? "Re-pair with…" : "Superset with…"}</option>
+                {rows.map((o, k) => (k === i || k === partnerOf(rows, i) ? null : (
+                  <option key={k} value={k}>{exercises.find((x) => x.id === o.exercise_id)?.name || `#${o.exercise_id}`}{o.group ? " (breaks its pair)" : ""}</option>
+                )))}
+              </select>
+            )}
             {r.group ? (
               <button className="rounded p-1.5 text-fuchsia-300/70 hover:bg-white/10 hover:text-fuchsia-300"
                       title="Take this superset apart" aria-label="Unlink superset" onClick={() => apart(i)}>
@@ -1692,8 +1949,20 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                 <Link2 size={13} />
               </button>
             )}
+            <button className="rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
+                    onClick={() => { setSwapErr(""); setSwapIdx(swapIdx === i ? null : i); }}>
+              {swapIdx === i ? "Done" : "Change"}
+            </button>
             <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                     onClick={() => removeExercise(r.exercise_id)}><Trash2 size={13} /></button>
+            {swapIdx === i && (
+              <div className="w-full space-y-2">
+                <ExerciseSwap current={r.exercise_id} all={exercises} choices={pickable || exercises}
+                              note="Swap this lift for another — sets, reps, weight and superset pairing stay."
+                              onPick={(id) => swapExercise(i, id)} />
+                {swapErr && <p className="text-[11px] text-mcz-ember">{swapErr}</p>}
+              </div>
+            )}
           </div>
         );
       })}
@@ -1774,21 +2043,30 @@ const SOURCE_TONE = {
 const HISTORY_PAGE = 10;
 
 function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
-                        prefillMuscle, onPrefillConsumed, onBuildRoutine, onBuildSplit, onCreate,
+                        prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary, onImported }) {
+                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary,
+                        prefillEditSession, onEditConsumed, onImported }) {
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
+  const [writingSession, setWritingSession] = useState(null);
   const [title, setTitle] = useState("");
   const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
   const [made, setMade] = useState("");
   const goals = coach?.goals;
+  // "Edit this workout" from SessionSummary hands the session over this way
+  // — open it in the editor directly, rather than leaving the member to find
+  // it again, newest-first, in the list below.
+  useEffect(() => {
+    if (prefillEditSession == null) return;
+    setEditingSession(prefillEditSession);
+    onEditConsumed?.();
+  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const sourceOf = (r) => r.source || "member";
   const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
   const shown = filter ? routines.filter((r) => sourceOf(r) === filter) : routines;
-  const editingRoutine = editing != null ? routines.find((r) => r.id === editing) : null;
   const sessionBeingEdited = editingSession != null ? history.find((h) => h.id === editingSession) : null;
 
   const makeRoutine = async (h) => {
@@ -1843,12 +2121,6 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                 </button>
               ))}
           </div>
-        )}
-        {editingRoutine && (
-          <RoutineDesigner key={editingRoutine.id} routine={editingRoutine} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
-                           onSave={(list, meta) => onSaveExercises(editingRoutine.id, list, meta)}
-                           onClose={() => setEditing(null)}
-                           restSeconds={goals?.[editingRoutine.goal]?.rest_seconds} />
         )}
         {shown.length === 0 && (
           <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
@@ -1910,12 +2182,29 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                           onClick={() => onStart(r.id)}>
                     <Play size={12} /> Start
                   </button>
+                  {/* Trained this with pen and paper? Log it after the fact —
+                      opens "Log a past workout" on Today, already filled in
+                      with this routine's exercises, sets and reps, rather
+                      than making the member find it again in a dropdown. */}
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          title="Logged this on paper? Record it here" onClick={() => onLogPast(r.id)}>
+                    <CalendarDays size={12} /> Log past session
+                  </button>
                   <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                           onClick={() => onDelete(r.id)} title="Delete permanently" aria-label="Delete routine">
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
+              {/* The designer opens UNDER the routine it edits. It used to open
+                  once, above the whole list, so Edit on a routine further down
+                  flipped to Close with nothing visible beside it. */}
+              {editing === r.id && (
+                <RoutineDesigner key={r.id} routine={r} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
+                                 onSave={(list, meta) => onSaveExercises(r.id, list, meta)}
+                                 onClose={() => setEditing(null)}
+                                 restSeconds={goals?.[r.goal]?.rest_seconds} />
+              )}
             </div>
           );
         })}
@@ -1964,12 +2253,25 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                           disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
                     <Plus size={12} /> Make a routine
                   </button>
+                  {/* A logged workout is settled data — exercises, sets, reps,
+                      any PR it beat — and nothing here ever did anything with
+                      it beyond showing it back. This is the same jump the
+                      coach's own take history offers ("write a promo post"),
+                      aimed at a workout instead of a take. */}
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          disabled={sets.length === 0}
+                          onClick={() => setWritingSession(writingSession === h.id ? null : h.id)}>
+                    <Sparkles size={12} /> {writingSession === h.id ? "Close" : "Write about this"}
+                  </button>
                   <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                           onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
+              {writingSession === h.id && (
+                <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingSession(null)} />
+              )}
             </div>
           );
         })}
@@ -2406,13 +2708,15 @@ function DemoLink({ url }) {
 // onto every pick. `goals` comes from the server (BodieZCoachView) — never
 // retyped here, or this becomes the second place "8-12 reps for hypertrophy"
 // lives, and the two drift the way a tier number always does.
-function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
+function BuildRoutine({ bodymap, exercises, pickable, goals, onBuildRoutine }) {
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [open, setOpen] = useState(false);
-  const [perMuscle, setPerMuscle] = useState(1);
-  const picks = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 1);
+  const generated = useMemo(() => buildBalancedRoutine(bodymap, exercises, equipment, perMuscle),
     [bodymap, exercises, equipment, perMuscle]);
+  const sw = useSwappedPicks(generated, exercises, pickable);
+  const picks = sw.picks;
   const goal = goalKey ? goals?.[goalKey] : null;
 
   return (
@@ -2456,11 +2760,10 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
             <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
           ) : (
             <div className="space-y-1">
-              {picks.map((ex) => (
-                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
-                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                  <DemoLink url={ex.demo_url} />
-                </div>
+              {picks.map((ex, i) => (
+                <SwapRow key={generated[i].id} className="text-xs text-white/60" exercises={exercises}
+                         label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                         current={ex.id} choices={sw.choicesFor(i)} swapped={sw.swapped(i)} onPick={(id) => sw.swapAt(i, id)} />
               ))}
             </div>
           )}
@@ -2496,20 +2799,26 @@ function BuildRoutine({ bodymap, exercises, goals, onBuildRoutine }) {
 // every day's label and muscles before anything saves, then writes one
 // real BodieZRoutine per day in one batch.
 function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
-  const [days, setDays] = useState("");
+  const [days, setDays] = useRememberedNumber("bodiez.days", "");
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [open, setOpen] = useState(false);
-  const [perMuscle, setPerMuscle] = useState(1);
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 1);
   const split = days ? splits?.[days] : null;
   const goal = goalKey ? goals?.[goalKey] : null;
 
-  const preview = useMemo(() => {
+  const generated = useMemo(() => {
     if (!split) return [];
     return split.days.map((day) => ({
       ...day, picks: pickForDay(day.muscles, bodymap, exercises, equipment, perMuscle),
     }));
   }, [split, bodymap, exercises, equipment, perMuscle]);
+  // Swaps are per day and per generated pick, so the same lift can be changed on one day only.
+  const [swaps, setSwaps] = useState({});
+  const preview = useMemo(() => generated.map((day) => ({
+    ...day, orig: day.picks,
+    picks: day.picks.map((p) => (swaps[`${day.label}:${p.id}`] && exercises.find((x) => x.id === swaps[`${day.label}:${p.id}`])) || p),
+  })), [generated, swaps, exercises]);
 
   const allPicked = preview.length > 0 && preview.every((d) => d.picks.length > 0);
 
@@ -2564,11 +2873,12 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                   {day.picks.length === 0 ? (
                     <p className="text-[11px] text-mcz-ember">No exercises match this equipment for this day.</p>
                   ) : (
-                    day.picks.map((ex) => (
-                      <div key={ex.id} className="flex items-center justify-between gap-2 text-[11px] text-white/55">
-                        <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                        <DemoLink url={ex.demo_url} />
-                      </div>
+                    day.picks.map((ex, i) => (
+                      <SwapRow key={day.orig[i].id} className="text-[11px] text-white/55" exercises={exercises}
+                               label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                               current={ex.id} swapped={ex.id !== day.orig[i].id}
+                               choices={exercises.filter((x) => x.id === ex.id || !day.picks.some((p) => p.id === x.id))}
+                               onPick={(id) => setSwaps((cur) => ({ ...cur, [`${day.label}:${day.orig[i].id}`]: id }))} />
                     ))
                   )}
                   <RoutineTime items={goalItems(day.picks, goal)} restSeconds={goal?.rest_seconds} className="mt-0.5" />
@@ -2618,18 +2928,18 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
 // Cardio and Full Body are left off the toggle row for the same reason
 // SplitBuilder never assigns either to a day — "cardio day" and "full body
 // day" aren't what picking muscles for a day means.
-function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onInitialMuscleConsumed, onBuildRoutine }) {
+function MuscleDayBuilder({ exercises, pickable, goals, dayTagLabels, initialMuscle, onInitialMuscleConsumed, onBuildRoutine }) {
   const MUSCLES = ["abs", "back", "biceps", "chest", "forearms", "glutes",
                     "shoulders", "triceps", "upper_legs", "lower_legs"];
   const [muscles, setMuscles] = useState([]);
   const [equipment, setEquipment] = useState([]);
-  const [goalKey, setGoalKey] = useState("");
+  const [goalKey, setGoalKey] = useRemembered("bodiez.goalKey", "");
   const [dayTag, setDayTag] = useState("");
-  const [perMuscle, setPerMuscle] = useState(2);
+  const [perMuscle, setPerMuscle] = useRememberedNumber("bodiez.perMuscle", 2);
   // Minutes the member has, or 0 for "no limit". Applied AFTER the muscles
   // are picked: lifts are dropped from the end until the estimate fits, and
   // the screen says how many went — never a silently shorter routine.
-  const [minutes, setMinutes] = useState(0);
+  const [minutes, setMinutes] = useRememberedNumber("bodiez.minutes", 0);
   const [open, setOpen] = useState(false);
   const goal = goalKey ? goals?.[goalKey] : null;
   const allPicked = MUSCLES.every((m) => muscles.includes(m));
@@ -2659,12 +2969,14 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
     for (let i = 0; i < perMuscle; i++) for (const pool of pools) if (pool[i]) out.push(pool[i]);
     return out;
   }, [muscles, exercises, equipment, perMuscle]);
-  const picks = useMemo(() => {
+  const trimmedPicks = useMemo(() => {
     if (!minutes) return allPicks;
     let n = allPicks.length;
     while (n > 1 && estimateRoutineSeconds(goalItems(allPicks.slice(0, n), goal), goal?.rest_seconds) > minutes * 60) n--;
     return allPicks.slice(0, n);
   }, [allPicks, minutes, goal]);
+  const sw = useSwappedPicks(trimmedPicks, exercises, pickable);
+  const picks = sw.picks;
   const trimmed = allPicks.length - picks.length;
 
   const dayLabel = dayTagLabels.find((d) => d.key === dayTag)?.label;
@@ -2751,11 +3063,10 @@ function MuscleDayBuilder({ exercises, goals, dayTagLabels, initialMuscle, onIni
             <p className="text-xs text-mcz-ember">No exercises match that equipment for these muscles.</p>
           ) : (
             <div className="space-y-1">
-              {picks.map((ex) => (
-                <div key={ex.id} className="flex items-center justify-between gap-2 text-xs text-white/60">
-                  <span>{MUSCLE_LABEL[ex.muscle_group]} — {ex.name}</span>
-                  <DemoLink url={ex.demo_url} />
-                </div>
+              {picks.map((ex, i) => (
+                <SwapRow key={trimmedPicks[i].id} className="text-xs text-white/60" exercises={exercises}
+                         label={`${MUSCLE_LABEL[ex.muscle_group]} — ${ex.name}`} extra={<DemoLink url={ex.demo_url} />}
+                         current={ex.id} choices={sw.choicesFor(i)} swapped={sw.swapped(i)} onPick={(id) => sw.swapAt(i, id)} />
               ))}
             </div>
           )}
@@ -2894,7 +3205,7 @@ function NewGoalForm({ kinds, exercises, onCreate }) {
   );
 }
 
-function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight }) {
+function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeight, onTrain }) {
   const unit = useUnit();
   const [weightInput, setWeightInput] = useState("");
   if (!goals) return null;
@@ -2949,6 +3260,17 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
                 <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
                   Achieved ✓
                 </span>
+              )}
+              {/* Only a strength goal names an exercise — a bodyweight goal is
+                  trained by weighing in, not by logging a set. Jumps to Today
+                  with this exercise ready in "Add an unplanned exercise" the
+                  moment a session is running, rather than leaving the member
+                  to go find it themselves. */}
+              {!g.achieved && g.exercise_id && (
+                <button className="neon-btn-ghost !w-auto px-2.5 py-1.5 text-[11px] inline-flex items-center gap-1"
+                        onClick={() => onTrain(g.exercise_id)}>
+                  <Dumbbell size={12} /> Train this
+                </button>
               )}
               <button className="rounded p-2 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
                       onClick={() => onDelete(g.id)}>

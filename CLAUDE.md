@@ -324,14 +324,11 @@ which is by design (`IconImg` falls back rather than showing a broken image)
 and is therefore the kind of thing nobody reports. If a tile looks like the
 logo, check `public/icons/` before assuming the registry is wrong.
 
-Its glyph is in `tools/make-neon-icons.mjs` like every other one — **edit the
-glyph there, never the generated SVG.** SoundCloud's own identity is a cloud
-made of waveform bars, so the bars trace the cloud silhouette rather than a
-cloud being drawn around them. Deliberately NOT a copy of their trademark:
-using a service's mark to say which service a tab talks to is ordinary
-nominative use, but a pixel-accurate logo implies a partnership we do not
-have. The accent is `C.ember` (#ff5500), which the palette already held and
-which happens to be SoundCloud's own orange.
+It now uses Corey's own art (`soundcloudengagementz.jpg`, Oct 22) rather than a
+generated glyph. The rule that shaped the glyph still holds for any redraw: a
+cloud of waveform bars says which service the tab talks to, which is ordinary
+nominative use, but a pixel-accurate copy of SoundCloud's logo would imply a
+partnership we do not have.
 
 
 ## A call to a helper nobody imported is a dead button, and nothing here caught it
@@ -1248,3 +1245,301 @@ five coaches nothing linked to: built, and invisible.
 - `portfolio.js` imports nothing that reads `import.meta.env` so it runs under plain node;
   the helper is named `moveRow` because `imports.test.mjs` matches by NAME and a plain
   `move` collided with a local one in `WidgetBoard.jsx`.
+
+## SoundCloud on a post card: a link back, and a play count that is a fact
+
+`PostEmbeds.jsx` shows, under an imported SoundCloud player, "Listen / follow on
+SoundCloud" (only from a public `permalink`; `soundcloudPlay.js scFollowLink`
+refuses private tracks, anything carrying a secret/token and non-soundcloud.com
+hosts; older imports with no permalink get nothing) with where it opens stated
+beside it, hidden in every standalone shell. "N plays on Music ConnectZ" shows
+only above 0. The client only reports wall-clock seconds while the widget plays
+and the tab is visible; the server decides. SoundCloud's player frame alone gets
+`allow-same-origin` (its Widget API's postMessage is ignored from an opaque
+"null" origin); api.js is loaded lazily from w.soundcloud.com. Unverified in a
+browser.
+
+## Remembered choices (Corey's rule — applies to every dropdown)
+
+**A field opens on what the member last picked there — unless one value is their
+habit.** If ONE value carries at least 65% of their uses (and there are at least 5)
+it opens instead of a one-off last choice: nine Drill takes and one Trap, Trap
+last, opens on Drill. Below that bar the last choice wins, and the "You usually
+pick X (70% of 20) — use it" button shows whenever the field is on something
+other than their habit. 3 of 5 is not a habit.
+
+It is a paradigm, so it is not wired per form: `autoMemo.js` runs at the document
+level (started in `main.jsx`) and covers every `<select>`. It deliberately
+does NOT touch:
+
+- a select with an empty-value option ("All skillz", "Pick a post…", "Any") —
+  that is a filter or an item picker; pre-filtering a list to last week's choice
+  hides things, and ids don't carry across lists;
+- who-can-see-this / privacy selects (defaulting to Public because the last post
+  was public is an accident);
+- selects that save or send on change — mark them `data-nomemo="true"` (settings,
+  report reasons: an autofill would fire the save);
+- selects a screen wires itself — `data-memo="own"` (BossTake, which also reads
+  the member's history from the server: `price.usual` and `price.usual_top`).
+
+**A new `<select>` is covered automatically. If its onChange writes anywhere,
+add `data-nomemo`.** `remember.js` holds the rule and is tested; keys are the
+field's label plus its option set, per device. Hand-wired fields use
+`useRemembered` / `seed` / `<UsualHint>`.
+
+## Credits buy outcomes, and a rating has one layout (Corey's rules)
+
+**Every credit spent buys something tangible, shareable, understandable, lucrative,
+braggable or learnable** — and says which. The server holds the list
+(`apps/economy/credit_outcomes.py`, served at `/api/economy/creditz/`) and a test
+fails if any module spends a resource without being on it, so a new way to spend
+cannot ship without saying what it buys and where the free way to the same thing
+is. On this side that means a spend is never a dead end: **LogZ rows open onto the
+rating, the report and the file** (`Transaction.ref`, `logz_outcomes.py`), and the
+file is shown when it was kept and said plainly ("scored, not kept") when it was
+not. Never a dead link, never a made-up one.
+
+**Every rating is drawn the same way: a LARGE number, its label, and the detail
+beside it** — `components/Rating.jsx`, with the colours and the one-decimal rule in
+`rating.js`. The coach result, LogZ, the history, the coaching board, a post's read
+card and the progress findings all use it, so a 6 is the same colour everywhere and
+no number ever stands alone. `rating.test.mjs` fails if a screen defines its own
+thresholds. A new screen that shows a score uses `RatingRow`/`RatingGrid`.
+
+## Growth intuition: what worked elsewhere, as rules for here
+
+Written down so it is a rule and not a mood. Each is an observation about a product
+that spread, and what it means for this one. They are from general knowledge of those
+products, not measurements of ours — ours are the funnel numbers in FunnelZ.
+
+- **Wordle** spread because the thing shared was a small, self-explanatory RESULT
+  that revealed no content, and everyone played the same puzzle so results were
+  comparable. → A shared score card shows the result and the reason, never the work;
+  and "beat my score" only means something when the challenge is the same. A weekly
+  shared prompt (same genre, same tempo) is what makes scores comparable.
+- **Strava** made effort a social object: real people, real effort, one-tap kudos,
+  segments to compare on. → A personal best (🏆) and a measured climb are the
+  shareable moments, not only a high score — a beginner can have both.
+- **Spotify Wrapped** is shared because it is about the person, built from their own
+  data, in a story-sized format. → The recap of a month of takes belongs in the
+  1080×1920 card the platform already draws.
+- **Duolingo** retains with a streak and loses people the day it breaks. → The streak
+  is a reason to come back and a card to share; never a guilt notification.
+- **Smule** builds the second person into the product: you sing WITH someone. → A
+  battle or collab link a non-member can answer at the free door is an invite that
+  does not feel like one.
+- **Genius** is "the reason behind it", written by people. → The AI's reasons carry
+  the score; human reasons from real listeners (rate with a reason) are what make it
+  trusted. Human credit is the differentiator: **the card says who made it, as THEY
+  declared it** (`DeclareHuman`) — a declaration, never a detection — and AI-generated
+  output is always labelled as such.
+- **Clubhouse** spiked on scarcity and invites and faded without retention. → Gating
+  something people already shared is a trap: keep the card public forever, make the
+  DEPTH (the full read) the members' side, and change defaults for NEW shares only —
+  never retroactively, never on a timer.
+- **Cara** (an artists' network) grew on being human-made while the big platforms
+  turned toward AI. → "Human-made, AI-scored" is a position; protect it by never
+  promoting AI-generated performances.
+
+The shape every shared thing here should have: self-explanatory without an account,
+flattering to the person who made it, about a result not a secret, comparable, and one
+tap from "get yours" for the person who opens it — with the sharer's handle as the
+referral code. A share that does not do all five is a poster.
+
+## Keep this take: opt-in, per take, and the shells never offer it
+
+A take recorded in the coach is scored and **not stored** unless the member ticks
+**Keep this take** (`BossTake`, member recorder only). Default off, remembered once
+chosen: what is kept is somebody's voice. Keeping sends the ORIGINAL (the smaller copy
+is for scoring only), counts against their storage, costs no credits, and the file then
+opens from the history and LogZ. A take that does not fit is still scored, and the
+screen says why it was not kept.
+
+**Every standalone shell hides it** (`IN_SHELL_COACH`), because the Play listing and
+`play/skillz/data-safety.md` say a take is never stored there and that is still true. The
+main-site privacy policy says "by default we do not store the recording" and names the
+option; **a privacy sentence is a claim about the code**, so if keep ever becomes a
+default, `privacy.html`, both Play documents, `ReportTake.jsx` and `LogZ` change together.
+
+Also here: the weekly challenge (`WeeklyChallenge.jsx`, the server derives it from the ISO
+week), "beat my score" at the free door (`challenge.js`), the monthly recap, and listener
+reasons (one line with a rating, shown only to the performer — never on a public card).
+Adults and under-18s do not find or contact each other: member search, DMs and calls are
+age-grouped on the server (`may_contact`), unknown ages count as adults.
+
+## Promo post from a past take
+
+`RecentTakes` offers **Write a promo post** second, right after Share (`e.kind === "promo"`). It
+asks the server for the share link (free), sends the "I made this myself" declaration, then
+runs the paid writer — the price (`Cost`) sits on the control before it is pressed — and shows
+the text in `PromoPost.jsx`: an editable box with Copy, the card link and the royalty line. The
+brief is built server-side; nothing the screen sends reaches it. A failed run says "Nothing was
+charged." and no standalone shell offers it. `SpinaZ` is worth 1¢ (Corey's valuation); a
+members-only join pays its author the server's `RESTRICTED_JOIN_REWARD_SPINAZ`, read from
+`/api/economy/earn/`, never typed here.
+
+## ViewZ results: DAW tracks for StatZ, numbers for everyone, and the sample says when it ends
+
+`ViewZ.jsx` has three tabs. **Timeline** is the existing every-viewer-a-track view. **My posts**
+lists the member's posts with views, stayed %, came-back % and who is here now, and opens one
+post (`/api/economy/views/post/<id>/`): the numbers, the views by day, what the people who
+visited DID (rated, commented, liked, messaged), and — for StatZ — every viewer as a track with
+each visit as a clip showing its date, time and length. **My links** is every share link with its
+opens. `DawLanes.jsx` is the one lane/clock component both the timeline and the post view draw
+with. Open pages re-ask every 15 s (the screen is "real time"; the past is the same data, kept),
+and a promo post's LogZ row shows its link's opens read now.
+
+- **Numbers are every tier's; names and tracks are StatZ's or the free sample's.** Without it the
+  tracks area is `StatzSample` (try free / upgrade) and the server's `viewers_locked` sentence.
+- **The words are defined on the screen** (`definitions` from the server): "stayed" and "came back"
+  are not video retention, and nothing blends them into one score. A percentage of nobody is `—`.
+- **Link opens are the public page's counter; who opened is not recorded**, so none is claimed, and
+  "joined from your invites" is not split by link for the same reason.
+- **The sample says how long is left**: the banner shows the end CLOCK time as well as the countdown,
+  and `statzWarn.js` fires a notification (only if already permitted) at the server's
+  `warn_at_seconds` (10 min, 1 min), once each per sample. The end-of-sample notice and the
+  "also in StatZ, and why the hour doesn't cover it" list (`also_in_statz`) are the server's too.
+
+## Recent takes: all of them, in any order, and out as files
+
+`RecentTakes` lists the newest ten, says how many older ones are not listed and loads the rest
+(`?takes=all`). **Sort** (date, overall score by its exact decimal, or any single dimension) and
+**filter** (personal bests, a genre) are in `takeSort.js`; anything but newest-first needs every take,
+so choosing one loads the rest first — the ten newest sorted by score are not the member's best ten.
+A take with no value for the sorted field sorts last in both directions, never as 0. Each take has a
+free **Download** door (text, JSON, and the recording when it was kept) and the list has **download
+all** (.csv with a BOM so Excel reads the emoji headers, or .json) — `download.js` makes the file from
+the server's text. **Write an Instagram caption** sits beside the promo post, and **See how its link is
+doing** opens ViewZ's links tab. A post's ViewZ page also shows where the visits came from (`sources`,
+`devices`) and **ActionZ**: who rated, commented, liked, shared, joined or messaged — by name for
+StatZ (sample or paid), counts for everybody.
+
+## The StatZ sample is a first hour, then fifteen minutes a day
+
+`statz_trial.state()` now says `minutes` (the window on offer: 60 the first time ever, then 15),
+`last_minutes` (the one just used, so "your free hour is used" never says fifteen), `first`,
+`daily_minutes`, and — once a window is spent — `next_at` / `seconds_until_next`. A new window opens
+24 hours after the last one STARTED (not at the server's midnight, which is evening in New York).
+When it runs out the control locks and says when more opens, with the upgrade as the primary button;
+`StatzTimerBanner` also shows a dismissible "Your free StatZ N minutes are up" banner with the
+upgrade, because a notification the member blocked is not a lock they were told about. The end
+notice and the 5-min / 1-min warnings are keyed on the window's end time, so each day's window says
+its own. **ViewZ has an ActionZ tab** (all posts, `views/mine/`): counts for everybody, the named log
+for StatZ, and where all the views came from; a row opens that post's own results.
+
+## Dating is 18+, collabs are open at any age (Corey's calls)
+
+VybeZ — the find-a-person screen — names itself with `?vybez=1` and the server refuses a minor (403,
+`adult_only`, its own sentence) which the screen shows as it came, with a button to CollabZ. Nothing in
+the client works out an age. The plain member search stays open to minors (age-grouped) because
+CollabZ, BattleZ and MessageZ pick people with it: choosing a collaborator your own age is not dating.
+InfernoZ ("projects & dating") is unbuilt; **when it is built its dating half must refuse minors the same
+way.** Collabs and battles stay open across ages, but a direct message or call between an adult and a
+minor does not (`may_contact`).
+
+## Collab consent and the ID check say what happened
+
+- `CollabZ.jsx`: a member put on a deal by someone else sees **Accept** (and **Withdraw** once
+  accepted) with the age-group consequence stated up front. The server's `NO_CROSS_AGE_MESSAGE` /
+  `NO_CROSS_AGE_CALL` are rendered unreworded wherever a DM or call is refused. Naming is not consent.
+- `Verify18Card` (ProfileZ) leads with **Success** or **Failure** and the server's reason, polls after
+  the Stripe return (`?verify=done`) until the check ends, disables the button once verified (no
+  re-scan) and states the daily limit. It decides nothing: `last`, `can_start` and
+  `attempts_left_today` are the server's.
+
+## Hashtags: the member picks how many, most relevant first
+
+`HashtagCount.jsx` is one number box on the promo-post / caption control (RecentTakes) and on
+Sentence ConnectZ's post and caption kinds (the server marks those with `hashtags: true`, and serves
+`hashtag_max`). **Blank is "writer's choice" and 0 is "none"** — kept apart on screen and on the wire
+(`hashtagBody` sends nothing when blank). The choice is remembered. If the writer miscounts, the screen
+says "you asked for N, it gave M" rather than showing a number the text does not have.
+
+## Ratings and royalties: said before the payout
+
+`RatingsRoyalty.jsx` (in RoyaltieZ) renders the server's rule, each of the member's posts with the share
+of the base per-play rate it earns ((median − 5) × 10%) and why ("5 outside ratings, median 3/10", or "2 of 5 so far — full
+rate until then"), and the **opt-in to let the AI coach count toward skill ratings**, with the server's
+note stating that it can lower a rating as well as raise it. Nothing is typed here: the rule, floor,
+factors and the toggle's wording come from `/royalty/ratings/` and `/skillz-coach/`. A failed fetch
+renders nothing.
+
+## Lilith: call-to-action routines, starters and suggestions
+
+`components/LilithCTA.jsx`. A routine or task marked `verified` is **never ticked here** — Lilith keeps it
+from the platform's own records, the row shows "✅ 2 of 3 this week" and "Lilith keeps it", and the old
+Keep/Done buttons are absent for it (the server would answer 409 anyway). Routines are grouped 🌅 Daily /
+📅 Weekly / 🗓️ Monthly, each with its streak in its own unit (`7d`, `4w`, `3mo`) and the next rung. "Lilith
+suggests" shows the server's ranked routines WITH THE REASON; nothing is added until tapped, and adding sends
+only `kind` + `key` (+ the coach for an instrument-aware one) — never a title or an action. "Build a
+call-to-action" picks from `board.actions`, the server's list of verifiable things. `board.swept` is what
+Lilith closed since the last look, announced with the server's sentence.
+
+`personaLabel(p)` (`socialData.js`) is the DISPLAY string for a persona — "Independent Artist · 🎤 Rapper,
+🎶 Singer" from the server's derived `roles` — used on the profile pill, the public profile, the member
+card and the member search text. Identity and filtering keep using `personaName(p)`, which never carries roles.
+
+## LookZMaxZ: for adults, factors explained before a photo, and a shop the model cannot write into
+
+`LookmaxZ.jsx` (key and API stay `lookmaxz`; the member-facing name is LookZMaxZ, as Corey's art spells it) is
+AttractivenessZ grown into sectors — face, skin, teeth, styling, and body. It decides nothing: the sectors, factors,
+the **what / why / how** for every factor, the rating scale, the price, the products and the marketplaces all come
+from `/api/economy/lookmaxz/`.
+
+- **Adults only, the whole screen.** Unverified members get the server's sentence and a button that lands on
+  `data-tour="verify-18"` in ProfileZ; no shop, no body card, no markets. A shop framed as looksmaxing is the same
+  push for a minor as the rating.
+- **Every factor is explained BEFORE the photo is sent** (`HowItsRated`, from `factor_info`), with the scale and the
+  server's one-sentence rule for the arithmetic. The prompt the model sees is built from the same `what` text.
+- **Price on the button, free parts named.** One price per reading however many sectors; unreadable is "Not charged."
+- **Body is BodieZ's measured progress, never a photo**, and sessions are shown but never scored.
+- **A factor the photo did not show is "Not visible in this photo — not guessed."**, never a number.
+- **Links are the marketplace's own search, new tab, `nofollow sponsored`, no affiliate tag** — the screen says we
+  earn nothing. StatZ edits their own list; everyone else sees Amazon, eBay, Walmart and a door to StatZ.
+- The tile is Corey's supplied LookZMaxZ art (`public/icons/lookzmaxz.jpg`, 512px). Note it draws a golden-ratio face
+  grid; the feature deliberately never scores proportions, so the art says more than the screen does.
+
+## Lilith: move any entry anywhere, Trash, and recommendations from profile and activity
+
+`MoveMenu` (⇄ Move) is on every task and routine row; it posts to `/api/economy/lilith/move/` and renders whatever the
+server says happened, including that a routine moved to another cadence restarts its run (`streak_reset`). Delete moves to
+Trash first; Trash restores, and "Empty the Trash now" is the only hard delete besides the server's 30-day purge.
+`Suggested` shows "Recommended for you" — tasks and routines, each with the server's `because` and `why` — and decides
+nothing about who is shown what.
+
+## Inclusive principles, exclusive standards — set by the member (Corey's principle)
+
+**Freedom of choice; discourage bureaucracy; the platform's principles are inclusive and the standards are the
+members' own.** In practice: nobody is refused by the platform for who they are, and every member may set the
+bar for who they see, work with and hear from — a range on skill rating, price, attractiveness, age or distance
+(`RangeGates`, one spec, `gatesQuery.js` for the search). VybeZ and Social ConnectZ now carry the same ranges
+every gated deal and door already had. Two things keep it a choice rather than a trap: a range says out loud that
+it is **exclusive** (no value, or a hidden value, is out), and a member can **hide their own community
+attractiveness number** — the server honours it everywhere (`attractiveness_shown_medians`), so the standard is the
+searcher's and the number is the rated member's to show. Do not add an approval step, a queue or a "pending
+review" in front of a thing a member can simply set for themselves. The hard lines that remain are about harm,
+not preference: 18+ for anything that rates or sells looks, self-only photos, nothing stored, never weight or body fat.
+
+## A take can be posted and heard, and FeelZ says what, why and how
+
+`PostTake.jsx` (the "Post it — score & feedback" door on every take row, hidden in the standalone shells) posts a take
+through `/api/<key>/take/<id>/post/`: the member ticks the score, the coach's feedback and the recording, and the
+server builds the post from what it stored. **A take is only playable by link if it was kept** — scored takes are not
+stored unless "Keep this take" was ticked — and the control says so before it is pressed rather than letting a post
+promise audio that is not there. Free, and counted against the day's submissions, with the real numbers shown.
+
+Each row also shows **HookZ 🪝 and FeelZ 💗** as labelled ratings with the coach's reason, the emotion heard, and whether
+each is inside the overall or beside it (`extras`, `extras_note`). **A low FeelZ comes with specific tips** (`FeelTips.jsx`:
+delivery, phrasing, dynamics, pacing, intention, mic & gear, room — each as what / why / how, a gear tip pointing at the
+priced gear advice) and **mix suggestions** when the vocal is hard to make out because of the mix. All of it is the
+server's: a high FeelZ carries no tips, and nothing is invented to fill the space.
+
+## A shared rating carries every metric the coach gave
+
+The public card (`ScoreCard.jsx`, `/s/<token>`), a post's coach read (`CoachReadCard.jsx`), the card picture and the share
+sentence all show **HookZ 🪝 and FeelZ 💗** beside the score — each with its reason, the emotion heard, whether it counts in the
+score above, and (for a low FeelZ) the coach's **what / why / how** and the mix suggestions (`FeelTips.jsx`, shared with the take
+rows). `extras` / `mix_tips` come from the server already cleaned; the screen filters nothing and invents nothing, and a metric the
+coach did not give is absent, never a 0. `shareText({extras})` adds "(HookZ 8 · FeelZ 6)" to the sentence only when they exist.
+The picture carries the numbers and the emotion only — the fixes stay on the page, because a card is a result and a fix is for the
+person who made it.

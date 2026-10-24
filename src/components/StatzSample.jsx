@@ -3,8 +3,9 @@ import { Crown, Timer } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { playSound } from "../sound.js";
+import { endsAtText, latestDue, untilText, warningText } from "../statzWarn.js";
 
-// The StatZ sample: one hour of StatZ-only features, once per member. The end
+// The StatZ sample: a first full hour, then fifteen minutes every 24 hours. The end
 // time is the server's, so the countdown here is a display of it, never the
 // thing that decides — reloading cannot buy more time, and when it reads 0:00
 // the server already agrees.
@@ -40,6 +41,12 @@ export function useStatzTrial() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [raw?.active]);
+  // The warnings before the end: ten minutes and one, said once each per sample.
+  useEffect(() => {
+    if (!raw?.active || over) return;
+    const t = latestDue(left, raw.warn_at_seconds, saidFor(raw.ends_at));
+    if (t != null) notifyLeft(raw, t);
+  }, [left, over, raw]);  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!over) return undefined;
     notifyEnded(raw);
@@ -64,14 +71,40 @@ export function useStatzTrial() {
 // yes). Once per sample, keyed on the server's end time, so a reload cannot repeat
 // it. What locks is the Coach CHOOSING; whatever it already built stays built.
 const told = new Set();
+// The sample ending is the one moment a member is deciding whether StatZ is worth it, so it
+// gets a banner that stays until dismissed, not only a notification they may have blocked.
+let endedBanner = null;
+const endedListeners = new Set();
+const publishEnded = (v) => { endedBanner = v; endedListeners.forEach((f) => f(v)); };
+function useEndedBanner() {
+  const [v, setV] = useState(endedBanner);
+  useEffect(() => { endedListeners.add(setV); return () => endedListeners.delete(setV); }, []);
+  return [v, () => publishEnded(null)];
+}
+const saidMap = new Map();
+const saidFor = (endsAt) => { if (!saidMap.has(endsAt)) saidMap.set(endsAt, new Set()); return saidMap.get(endsAt); };
+// Says every threshold the clock has already passed as said, so a tab that slept
+// through ten minutes does not then say both, and a later one does not say it again.
+function notifyLeft(s, threshold) {
+  const said = saidFor(s.ends_at);
+  (s.warn_at_seconds || []).forEach((t) => { if (t >= threshold) said.add(t); });
+  try {
+    playSound("message");
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      const { title, body } = warningText(threshold, s.features);
+      new Notification(title, { body, tag: `statz-sample-${threshold}` });
+    }
+  } catch { /* a notification is a nicety */ }
+}
 function notifyEnded(s) {
   if (!s?.ends_at || told.has(s.ends_at)) return;
   told.add(s.ends_at);
+  publishEnded(s.ends_at);
   try {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       const names = (s.features || []).map((f) => f.label.toLowerCase()).join(", ");
       new Notification("Your StatZ sample has ended", {
-        body: `${names ? `${names} are locked now. ` : ""}Anything you already built is still yours. Upgrade to keep using them.`,
+        body: `${names ? `${names} are locked now. ` : ""}Anything you already built is still yours. A new 15 minutes opens tomorrow, or upgrade to keep them.`,
         tag: "statz-sample-ended",
       });
     }
@@ -90,7 +123,7 @@ async function start() {
   }
 }
 
-/** At a StatZ-only control: the free hour if it's still yours, else the upgrade. */
+/** At a StatZ-only control: today's free minutes if they're still yours, else the lock and the upgrade. */
 export function StatzSample({ what }) {
   const { s, left } = useStatzTrial();
   if (!s || s.is_statz) return null;
@@ -107,11 +140,12 @@ export function StatzSample({ what }) {
       <span>{what} is a StatZ feature.</span>
       {s.available && (
         <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={start}>
-          <Crown size={12} /> Try StatZ free for {s.minutes} min
+          <Crown size={12} /> {s.first ? `Try StatZ free for ${s.minutes} minutes — then ${s.daily_minutes} every day` : `Try StatZ free for ${s.minutes} min — a new ${s.minutes} every day`}
         </button>
       )}
-      <button className="re-link" onClick={() => upgrade(s)}>
-        {s.used ? "Your sample's over — upgrade to StatZ" : "Upgrade to StatZ"}
+      {s.used && <span className="text-mcz-gold">Your free {s.last_minutes} minutes are used — locked. {s.daily_minutes} more open in {untilText(s.seconds_until_next)}.</span>}
+      <button className={s.used ? "neon-btn-primary !w-auto px-3 py-1 text-xs" : "re-link"} onClick={() => upgrade(s)}>
+        {s.used ? "Upgrade to StatZ to keep it" : "Upgrade to StatZ"}
       </button>
     </div>
   );
@@ -120,6 +154,17 @@ export function StatzSample({ what }) {
 /** App-wide, only while a sample runs: the time left and the way to keep it. */
 export function StatzTimerBanner() {
   const { s, left } = useStatzTrial();
+  const [ended, dismiss] = useEndedBanner();
+  if (!s?.active && ended && s && !s.is_statz && !s.available) {
+    return (
+      <div className="sticky top-0 z-40 mx-auto mb-3 flex max-w-3xl flex-wrap items-center justify-center gap-3 rounded-xl border border-mcz-ember/50 bg-mcz-ember/10 px-3 py-2 text-sm backdrop-blur" data-statz-ended>
+        <span className="font-semibold text-mcz-ember"><Timer size={14} className="mr-1 inline" />Your free StatZ {s.last_minutes} minutes are up</span>
+        <span className="text-white/65">{s.features.map((f) => f.label.toLowerCase()).join(", ")} are locked. {s.daily_minutes} more minutes open in {untilText(s.seconds_until_next)}.</span>
+        <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={() => { dismiss(); upgrade(s); }}>Upgrade to StatZ</button>
+        <button className="text-xs text-white/50 underline" onClick={dismiss}>Dismiss</button>
+      </div>
+    );
+  }
   if (!s?.active) return null;
   const urgent = left < 5 * 60;
   return (
@@ -127,7 +172,7 @@ export function StatzTimerBanner() {
       ? "border-mcz-ember/60 bg-mcz-ember/15 animate-pulse" : "border-mcz-gold/40 bg-mcz-gold/10"}`}>
       <span className="font-semibold text-mcz-gold"><Timer size={14} className="mr-1 inline" />StatZ sample</span>
       <span className="font-mono tabular-nums text-white">{clock(left)}</span>
-      <span className="text-white/60">left — {s.features.map((f) => f.label.toLowerCase()).join(", ")}</span>
+      <span className="text-white/60">left ({endsAtText(s.ends_at)}) — {s.features.map((f) => f.label.toLowerCase()).join(", ")}</span>
       <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={() => upgrade(s)}>Upgrade to keep it</button>
     </div>
   );
@@ -138,11 +183,11 @@ export function StatzSampleOffer() {
   const { s, left } = useStatzTrial();
   if (!s || s.is_statz) return null;
   if (s.active) return <p className="text-xs text-mcz-gold">Your StatZ sample has {clock(left)} left.</p>;
-  if (!s.available) return null;
+  if (!s.available) return s.used ? <p className="text-xs text-white/55">Your free StatZ minutes are used — {s.daily_minutes} more in {untilText(s.seconds_until_next)}.</p> : null;
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/10 p-3 text-sm">
-      <span>Not sure yet? Try StatZ's {s.features.map((f) => f.label.toLowerCase()).join(" and ")} free for {s.minutes} minutes — once, no card.</span>
-      <button className="re-btn !w-auto px-3 py-1" onClick={start}><Crown size={14} /> Start my free hour</button>
+      <span>Not sure yet? Try StatZ's {s.features.map((f) => f.label.toLowerCase()).join(", ")} free for {s.minutes} minutes{s.first ? ` — then ${s.daily_minutes} every day` : " — a new window every day"}, no card.</span>
+      <button className="re-btn !w-auto px-3 py-1" onClick={start}><Crown size={14} /> {s.first ? `Start my free ${s.minutes} minutes` : `Start today's ${s.minutes} minutes`}</button>
     </div>
   );
 }

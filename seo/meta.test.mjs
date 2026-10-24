@@ -164,3 +164,68 @@ test("a score card previews the coach's score and its own image", () => {
   assert.match(m.description, /Flow is locked/);
   assert.equal(metaFor("score", { score: null }), null);
 });
+
+// ---- the coach's read on a post: public reads sell the link, nothing else does ----
+
+const READ = { score: 9, verdict: "Quartz-bright hook that lands. Breath runs out on the last bar.",
+               strengths: ["Zinnia-clean entry"], fixes: ["Mulberry breath marks"], next_drill: "Saffron drill" };
+const POST = { title: "Night Drive", author: "kay", media_type: "audio", description: "A first take." };
+const publicRead = { state: "shown", public: true, read: READ,
+                     card_image: "/api/economy/postz/7/coach-card.png" };
+
+test("a public read puts the score in the title, the verdict's first sentence in the description, and its card in the image", () => {
+  const m = metaFor("post", { ...POST, coach: publicRead }, { path: "/p/7" });
+  assert.equal(m.title, "Night Drive — 9/10 from the Music ConnectZ coach");
+  assert.equal(m.description, "Quartz-bright hook that lands.");
+  assert.equal(m.image, "https://musicconnectz.net/api/economy/postz/7/coach-card.png");
+  const html = injectMeta(SHELL, m);
+  assert.ok(html.includes('og:title" content="Night Drive — 9/10 from the Music ConnectZ coach"'));
+  assert.ok(html.includes('twitter:image" content="https://musicconnectz.net/api/economy/postz/7/coach-card.png"'));
+});
+
+test("a long title is cut, never the score", () => {
+  const m = metaFor("post", { ...POST, title: "x".repeat(300), coach: publicRead }, { path: "/p/7" });
+  assert.ok(m.title.endsWith(" — 9/10 from the Music ConnectZ coach"));
+  assert.ok(m.title.length <= 100);
+});
+
+test("a read kept for members, a locked card and a private read put NOTHING about the score in any tag", () => {
+  const cases = {
+    // The server answered as a stranger: a members-only read is a locked card.
+    locked: { state: "locked", reason: "The coach's read on this song is for members. It's free to join.", label: "SingZ" },
+    none: { state: "none" },
+    // And if this function were ever handed a member's copy, `public:false`
+    // still keeps it out of the tags.
+    memberCopy: { state: "shown", public: false, read: READ },
+    memberCopyWithImage: { state: "shown", public: false, read: READ, card_image: "/api/economy/postz/7/coach-card.png" },
+  };
+  for (const [name, coach] of Object.entries(cases)) {
+    const m = metaFor("post", { ...POST, coach, score: READ }, { path: "/p/7" });
+    const html = injectMeta(SHELL, m);
+    for (const secret of ["9/10", "Quartz-bright", "Zinnia", "Mulberry", "Saffron", "coach-card", "from the Music ConnectZ coach"]) {
+      assert.ok(!html.includes(secret), `${name}: ${secret} leaked into the preview`);
+    }
+    assert.equal(m.title, "Night Drive by kay — Music ConnectZ", name);
+    assert.equal(m.image, "https://musicconnectz.net/og-card.png", name);
+  }
+});
+
+test("the JSON-LD never carries read content either way", () => {
+  for (const coach of [publicRead, { state: "locked" }, { state: "none" }]) {
+    const m = metaFor("post", { ...POST, coach }, { path: "/p/7" });
+    const ld = JSON.stringify(m.jsonLd);
+    for (const secret of ["Zinnia", "Mulberry", "Saffron", "reviewRating"]) assert.ok(!ld.includes(secret), secret);
+  }
+});
+
+test("a read with a hostile verdict is escaped like any other member-visible text", () => {
+  const nasty = { ...publicRead, read: { ...READ, verdict: `"><script>alert(1)</script>. Second.` } };
+  const html = injectMeta(SHELL, metaFor("post", { ...POST, coach: nasty }, { path: "/p/7" }));
+  assert.ok(!html.includes("<script>alert(1)"));
+});
+
+test("a post with no coach key at all is exactly what it was before reads existed", () => {
+  const m = metaFor("post", { title: "T", author: "a", description: "my own words" }, { path: "/p/1" });
+  assert.equal(m.description, "my own words");
+  assert.equal(m.title, "T by a — Music ConnectZ");
+});

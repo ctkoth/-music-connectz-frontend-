@@ -5,11 +5,15 @@
 // and on confirm the buyer's balance, the platform fee and the producer's
 // cut. A beat with no audio cannot be sold — nobody should pay for what they
 // could not hear — so the preview player sits above every Buy button.
+import Doors from "../components/Doors.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Music, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { MONEY } from "../resources.js";
 import MemberName from "../MemberName.jsx";
+import { seed, remember } from "../remember.js";
+import UsualHint from "../components/UsualHint.jsx";
+import { IconImg } from "../App.jsx";
 
 const usd = (c) => `$${((c || 0) / 100).toFixed(2)}`;
 const LICENSE = {
@@ -44,7 +48,7 @@ export default function BeatZ() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <header className="flex items-center gap-3">
-        <img src="/icons/beatz-neon.svg" alt="" className="h-10 w-10" />
+        <IconImg icon="beatz.png" alt="" className="h-10 w-10 rounded-lg" />
         <div>
           <h2 className="font-display text-2xl font-extrabold">BeatZ</h2>
           <p className="text-sm text-white/55">License beats from producers here, or sell your own. Paid in {MONEY}, straight to the producer.</p>
@@ -62,7 +66,7 @@ export default function BeatZ() {
         )}
       </div>
 
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
       {tab === "sell" ? <SellForm onListed={() => setTab("mine")} /> : (
         <>
@@ -132,7 +136,10 @@ function BeatCard({ beat, onChange }) {
       </p>
 
       {beat.audio_url ? (
-        <audio controls preload="none" src={beat.audio_url} className="w-full" />
+        <>
+          <audio controls preload="none" src={beat.audio_url} className="w-full" />
+          {beat.mine && <Doors item={{ title: beat.title, url: beat.audio_url, kind: "audio", text: beat.description || "" }} />}
+        </>
       ) : (
         <p className="flex items-center gap-1.5 text-xs text-white/45"><Music size={12} /> No preview yet.</p>
       )}
@@ -171,7 +178,7 @@ function BeatCard({ beat, onChange }) {
         </div>
       )}
       {msg && <p className="text-xs text-emerald-300">{msg}</p>}
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -189,11 +196,14 @@ function Earnings() {
 }
 
 function SellForm({ onListed }) {
-  const [f, setF] = useState({ title: "", genre: "", tempo_bpm: "", price: "", license_type: "nonexclusive", description: "" });
+  const [f, setF] = useState(() => seed("beatz", { title: "", genre: "", tempo_bpm: "", price: "", license_type: "nonexclusive", description: "" }, ["genre", "license_type", "price"]));
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => {
+    if (["genre", "license_type", "price"].includes(k)) remember(`beatz.${k}`, e.target.value);
+    setF({ ...f, [k]: e.target.value });
+  };
 
   const submit = async (ev) => {
     ev.preventDefault();
@@ -219,10 +229,16 @@ function SellForm({ onListed }) {
         <input className={input} placeholder="Price in $ (1–500)" inputMode="decimal" required value={f.price}
                onChange={(e) => setF({ ...f, price: e.target.value.replace(/[^0-9.]/g, "") })} />
       </div>
-      <select className={input} value={f.license_type} onChange={set("license_type")}>
+      <select data-memo="own" aria-label="License type" className={input} value={f.license_type} onChange={set("license_type")}>
         <option value="nonexclusive">{LICENSE.nonexclusive}</option>
         <option value="exclusive">{LICENSE.exclusive}</option>
       </select>
+<UsualHint field="beatz.license_type" value={f.license_type} onUse={(v) => { remember("beatz.license_type", v); setF({ ...f, license_type: v }); }} />
+      <p className="text-xs text-white/45">
+        {f.license_type === "exclusive"
+          ? "After one artist buys it, nobody else can: further purchases are refused. The beat stays on your page, marked as sold."
+          : "Any number of artists can each buy a license, once each."}
+      </p>
       <textarea className={input} rows={2} placeholder="What's it for? (optional)" value={f.description} onChange={set("description")} />
       <label className="block text-xs text-white/55">The beat itself — buyers hear this before they pay
         <input type="file" accept="audio/*" className="mt-1 block text-white/70" onChange={(e) => setFile(e.target.files?.[0] || null)} />
@@ -232,7 +248,7 @@ function SellForm({ onListed }) {
         Listing is free. When it sells you get the price minus the platform fee for your plan, in {MONEY}.
       </p>
       <button disabled={busy} className="rounded-lg bg-mcz-cyan/20 px-4 py-2 text-mcz-cyan">{busy ? "Listing…" : "List it"}</button>
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </form>
   );
 }

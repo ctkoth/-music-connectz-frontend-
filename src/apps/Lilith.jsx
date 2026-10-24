@@ -29,6 +29,7 @@ import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
+import { BuildCTA, MoveMenu, RoutineList, Starters, Suggested, TrashedRoutines } from "../components/LilithCTA.jsx";
 
 // All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
 // here, so those two tabs drew nothing while their neighbours had art.
@@ -107,7 +108,12 @@ export default function Lilith() {
   }
 
   async function remove(task) {
-    if (!window.confirm(`Delete "${task.title}"?`)) return;
+    if (task.bucket !== "trash") {            // first press: to the Trash, restorable
+      const out = await call("/api/economy/lilith/move/", { method: "POST", body: { kind: "task", id: task.id, to: "trash" } });
+      if (out) load();
+      return;
+    }
+    if (!window.confirm(`Delete "${task.title}" for good?`)) return;
     const gone = await call(`/api/economy/lilith/tasks/${task.id}/`, { method: "DELETE" });
     if (gone !== null) load();
   }
@@ -129,6 +135,39 @@ export default function Lilith() {
   async function keep(r) {
     const out = await call(`/api/economy/lilith/routines/${r.id}/`, { method: "POST" });
     if (out) { if (out.milestone) setPaid(out.milestone); load(); }
+  }
+
+  // Starters and suggestions: the server copies its own content onto the board, so what is sent is
+  // only WHICH one (and, for an instrument-aware one, which coach, and for a routine how often: daily, weekly or monthly) — never a title or an action.
+  const [addingKey, setAddingKey] = useState("");
+  async function addStarter(kind, key, app_key, cadence) {
+    setAddingKey(key);
+    const made = await call("/api/economy/lilith/starters/", {
+      method: "POST", body: { kind, key, ...(app_key ? { app_key } : {}), ...(cadence ? { cadence } : {}) },
+    });
+    setAddingKey("");
+    if (made) load();
+  }
+  // Move any entry anywhere: a bucket, a routine (a cadence), a task, or the Trash. The server owns
+  // the rules (no moving finished tasks, ceilings, a changed cadence restarting the run) and says so.
+  async function moveEntry(body) {
+    if (body.kind === "routine" && body.to === "task" &&
+        !window.confirm("Turn this routine into a task? Its streak is lost.")) return;
+    if (body.kind === "routine" && ["daily", "weekly", "monthly"].includes(body.to) &&
+        !window.confirm("Change how often this is kept? Its run restarts.")) return;
+    const out = await call("/api/economy/lilith/move/", { method: "POST", body });
+    if (out) load();
+  }
+  async function emptyTrash() {
+    if (!window.confirm("Empty the Trash for good? This can't be undone.")) return;
+    const out = await call("/api/economy/lilith/trash/", { method: "DELETE" });
+    if (out) load();
+  }
+  async function makeCTA(f) {
+    const made = await call("/api/economy/lilith/routines/", {
+      method: "POST", body: { title: f.title, action: f.action, cadence: f.cadence, goal: f.goal },
+    });
+    if (made) load();
   }
 
   async function loadTags(task) {
@@ -173,7 +212,7 @@ export default function Lilith() {
         </div>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
 
       {/* Today's remaining coin, ABOVE the board. A cap met by hitting it is a
           bug; a cap met by reading it is a rule. */}
@@ -254,7 +293,7 @@ export default function Lilith() {
         <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                placeholder="Something to do" maxLength={140}
                className="min-w-[12rem] flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
-        <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
+        <select aria-label="Kind" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
                 className="rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-sm">
           {kinds.filter((k) => k.key !== "auto").map((k) => (
             <option key={k.key} value={k.key}>{k.label} · +{k.xp} {XP}</option>
@@ -300,6 +339,12 @@ export default function Lilith() {
         </div>
       )}
 
+      {bucket === "trash" && rows.length > 0 && (
+        <p className="flex items-center gap-2 text-[11px] text-white/45">
+          🗑️ Emptied for good after {board?.trash_days || 30} days.
+          <button onClick={emptyTrash} className="ml-auto text-mcz-ember hover:underline">Empty the Trash now</button>
+        </p>
+      )}
       <ul className="space-y-1.5">
         {rows.length === 0 && (
           <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/40">
@@ -310,7 +355,13 @@ export default function Lilith() {
           <li key={t.id}
               className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => { setExpandedTask(t); loadTags(t); }}>
-            {!t.done_at && (
+            {!t.done_at && t.verified && (
+              <span className={`shrink-0 text-[11px] ${t.progress?.met ? "text-emerald-300" : "text-white/50"}`}
+                    title="Lilith ticks this one herself when your real activity shows it">
+                ✨ {t.progress ? `${t.progress.done}/${t.progress.goal}` : ""}
+              </span>
+            )}
+            {!t.done_at && !t.verified && (
               <button onClick={(e) => { e.stopPropagation(); tick(t); }} title="Done"
                       className="shrink-0 rounded-md border border-emerald-400/40 p-1 text-emerald-300 hover:bg-emerald-400/10">
                 <Check size={14} />
@@ -337,10 +388,7 @@ export default function Lilith() {
                 Do it <ArrowRight size={12} />
               </button>
             )}
-            {!t.done_at && bucket !== "today" && (
-              <button onClick={(e) => { e.stopPropagation(); move(t, "today"); }}
-                      className="shrink-0 text-[11px] text-white/40 hover:text-white/70">Today</button>
-            )}
+            {!t.done_at && <MoveMenu entry={t} kind="task" buckets={labels} move={moveEntry} />}
             <button onClick={(e) => { e.stopPropagation(); remove(t); }} title="Delete"
                     className="shrink-0 text-white/25 hover:text-mcz-ember"><Trash2 size={14} /></button>
           </li>
@@ -408,7 +456,7 @@ export default function Lilith() {
                   type="text" placeholder="Target (e.g., 'post:123' or 'user:abc')" value={tagDraft.to_target}
                   onChange={(e) => setTagDraft({ ...tagDraft, to_target: e.target.value })}
                   className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
-                <select value={tagDraft.visibility}
+                <select aria-label="Who can see this tag" value={tagDraft.visibility}
                         onChange={(e) => setTagDraft({ ...tagDraft, visibility: e.target.value })}
                         className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px]">
                   <option value="private">Private (just me)</option>
@@ -424,6 +472,21 @@ export default function Lilith() {
         </>
       )}
 
+      {/* What Lilith closed for you since you last looked — from the platform's records, not a tick. */}
+      {asList(board?.swept).length > 0 && (
+        <div className="space-y-1 rounded-xl border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-[12px]">
+          {asList(board.swept).map((w, i) => (
+            <p key={i} className="text-white/75">
+              ✨ <b>{w.title}</b> — {w.said}
+              {w.milestone && <span className="text-emerald-300"> {w.milestone.said} <Gain spinaz={w.milestone.spinaz} energy={w.milestone.energy} /></span>}
+              {w.xp ? <> <Gain xp={w.xp} /></> : null}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <Suggested items={asList(board?.suggested)} add={addStarter} busyKey={addingKey} />
+
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <h3 className="flex items-center gap-2 font-display text-sm font-bold">
           <Flame size={15} className="text-mcz-ember" /> Routines
@@ -432,22 +495,9 @@ export default function Lilith() {
           Keeping one is the only thing here nobody can fake by typing, which is why
           it pays the most — at milestones, once for life.
         </p>
-        {routines.map((r) => (
-          <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-            <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>
-            <span className="text-[12px] text-mcz-ember">{r.streak}d</span>
-            {r.next_milestone && (
-              <span className="text-[11px] text-white/45">
-                {r.next_milestone.away} more →{" "}
-                <Gain spinaz={r.next_milestone.spinaz} energy={r.next_milestone.energy} />
-              </span>
-            )}
-            <button onClick={() => keep(r)} disabled={r.done_today}
-                    className="rounded-md border border-emerald-400/40 px-2 py-1 text-[11px] text-emerald-300 disabled:border-white/10 disabled:text-white/30">
-              {r.done_today ? "Kept today" : "Keep it"}
-            </button>
-          </div>
-        ))}
+        <RoutineList routines={routines} keep={keep} buckets={labels} move={moveEntry} />
+        <TrashedRoutines items={asList(board?.trash_routines)} days={board?.trash_days || 30}
+                         restore={(r) => moveEntry({ kind: "routine", id: r.id, to: r.cadence || "daily" })} />
         {!board?.at_routine_limit ? (
           <form onSubmit={addRoutine} className="flex gap-2">
             <input value={routineTitle} onChange={(e) => setRoutineTitle(e.target.value)}
@@ -463,6 +513,9 @@ export default function Lilith() {
           </p>
         )}
       </section>
+
+      <Starters starters={board?.starters} add={addStarter} busyKey={addingKey} />
+      <BuildCTA actions={asList(board?.actions)} onMake={makeCTA} />
 
       {/* What the tiers buy here is AUTOMATION, never access — said plainly,
           because a free member has a working task manager and should be told

@@ -1,6 +1,7 @@
 import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
 import { AlertCircle, Loader2, Zap } from "lucide-react";
 import { api } from "../api.js";
 import MentionText from "../MentionParser.jsx";
@@ -25,9 +26,10 @@ export default function PublicOffer() {
           <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
-        <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-          Join free
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
+          <JoinLink owner={offer?.from_username} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
+        </div>
       </header>
 
       {err && (
@@ -86,7 +88,7 @@ export default function PublicOffer() {
           )}
 
           <div className="text-xs text-white/40 text-center pt-2">
-            <Link to="/register" className="text-mcz-cyan hover:underline">Join Music ConnectZ</Link> to respond to offers
+            <JoinLink owner={offer?.from_username} className="text-mcz-cyan hover:underline">Join Music ConnectZ</JoinLink> to respond to offers
           </div>
         </article>
       )}

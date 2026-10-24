@@ -140,13 +140,13 @@ export default function MembershipZ() {
           just opening the bare tab. */}
       <div className="re-card space-y-3 border-mcz-ember/40" data-tour="membershipz-founding">
         <div className="flex items-center justify-between">
-          <span className="re-label flex items-center gap-2"><Crown size={14} className="text-mcz-ember" /> Founding StatZ · 50% off, forever</span>
+          <span className="re-label flex items-center gap-2"><Crown size={14} className="text-mcz-ember" /> Founding StatZ{founding?.discount_pct ? ` · ${founding.discount_pct}% off, forever` : ""}</span>
           {seatsLeft != null && !soldOut && (
             <span className="text-xs font-bold text-mcz-ember">{seatsLeft} of {founding.limit} seats left</span>
           )}
         </div>
         <p className="text-xs text-white/60">
-          The first {founding?.limit ?? 50} members lock in half price for life. Cancel any time within 10 days for a full refund.
+          The first {founding?.limit ?? 50} members lock in {founding?.discount_pct ? `${founding.discount_pct}% off` : "the founding price"} for life. Cancel any time within 10 days for a full refund.
         </p>
         {soldOut ? (
           <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-white/60">The founding offer is sold out — full StatZ pricing is coming soon.</p>

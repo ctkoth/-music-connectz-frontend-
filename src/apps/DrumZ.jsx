@@ -60,6 +60,20 @@ function DrumZ() {
     };
   }, []);
 
+  // In the SkillZ app every coach stays mounted when the member moves to another one
+  // (standalone/skillz/Shell.jsx), so the pad would keep looping its beat under a
+  // screen nobody can hear it belongs to. The shell says which screen it left.
+  useEffect(() => {
+    const leave = (e) => {
+      if (e.detail !== "drumz") return;
+      if (timerIDRef.current) { clearInterval(timerIDRef.current); timerIDRef.current = null; }
+      setIsPlaying(false);
+      setCurrentStep(-1);
+    };
+    window.addEventListener("mcz-shell-leave", leave);
+    return () => window.removeEventListener("mcz-shell-leave", leave);
+  }, []);
+
   const initAudioContext = () => {
     if (audioContextRef.current) return;
     audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -175,8 +189,9 @@ function DrumZ() {
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {/* Kit Selection */}
           <div className="rounded-lg bg-slate-800/50 p-4 backdrop-blur">
-            <label className="block text-sm font-semibold text-slate-300 mb-2">Drum Kit</label>
+            <label htmlFor="drumz-kit" className="block text-sm font-semibold text-slate-300 mb-2">Drum Kit</label>
             <select
+              id="drumz-kit"
               value={kitName}
               onChange={(e) => setKitName(e.target.value)}
               disabled={isPlaying}
@@ -188,6 +203,7 @@ function DrumZ() {
                 </option>
               ))}
             </select>
+            {isPlaying && <p className="mt-1 text-xs text-slate-400">Stop to change.</p>}
           </div>
 
           {/* BPM Control */}

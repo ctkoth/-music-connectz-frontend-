@@ -1,3 +1,4 @@
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Loader, Lock, MessageSquare, Palette, X, Heart, Search, Upload, Image as ImageIcon, Eye, Mail } from "lucide-react";
@@ -17,7 +18,7 @@ import CharLimit from "../CharLimit.jsx";
 import CopyLink from "../CopyLink.jsx";
 import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
-import { SPINAZ } from "../resources.js";
+import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear } from "../BadgeWear.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
@@ -30,6 +31,7 @@ import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
+import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
@@ -41,44 +43,69 @@ function Verify18Card() {
   const [st, setSt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [waiting, setWaiting] = useState(false);
+
+  const load = () => api("/api/economy/identity/").then((r) => { setSt(r); return r; })
+    .catch(() => { setSt((p) => p || { verified_18plus: false, stripe_enabled: false }); return null; });
 
   useEffect(() => {
-    // A verify return (?verify=done) — refetch status and acknowledge.
-    if (new URLSearchParams(window.location.search).get("verify") === "done") {
-      setMsg("Thanks! If your ID cleared, your 18+ badge appears within a minute.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    api("/api/economy/identity/").then(setSt).catch(() => setSt({ verified_18plus: false, stripe_enabled: false }));
+    // A verify return (?verify=done): the server asks Stripe how it ended, so ask until it says.
+    const back = new URLSearchParams(window.location.search).get("verify") === "done";
+    if (back) window.history.replaceState({}, "", window.location.pathname);
+    let tries = 0, timer;
+    const go = async () => {
+      const r = await load();
+      if (back && r?.last?.result === "pending" && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
+      else setWaiting(false);
+    };
+    go();
+    return () => clearTimeout(timer);
   }, []);
 
   async function start() {
     setBusy(true); setMsg("");
     try {
       const r = await api("/api/economy/identity/", { method: "POST", body: {} });
-      if (r?.already || r?.verified_18plus) { setSt({ ...st, verified_18plus: true }); setBusy(false); return; }
+      if (r?.already || r?.verified_18plus) { await load(); setBusy(false); return; }
+      if (r?.pending) { setMsg(r.detail || "Still checking."); await load(); setBusy(false); return; }
       if (r?.url) { window.location.href = r.url; return; }
       setMsg("Couldn't start verification — try again.");
     } catch (e) {
-      setMsg(/503|not configured/i.test(e?.message || "") ? "ID verification isn't switched on yet." : "Couldn't start verification — try again.");
+      const m = e?.message || "";
+      setMsg(/503|not configured/i.test(m) ? "ID verification isn't switched on yet."
+        : (m && !/^HTTP|failed to fetch/i.test(m) ? m : "Couldn't start verification — try again."));
+      load();
     }
     setBusy(false);
   }
 
   if (!st) return null;
   const verified = !!st.verified_18plus;
+  const last = st.last;
   return (
-    <div className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
+    <div data-tour="verify-18" className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
         <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
       </p>
       {verified ? (
-        <p className="flex items-center gap-2 text-sm text-emerald-300"><Check size={15} /> You're verified 18+ — money betting &amp; adult features are unlocked.</p>
+        <>
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. VybeZ, LookZMaxZ and other adult features are unlocked.</p>
+          <p className="text-[11px] text-white/45">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
+        </>
       ) : (
         <>
-          <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock money betting in BattleZ and adult content. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled}>
-            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : "Verify I'm 18+"}
+          {last?.result === "failure" && (
+            <p className="text-sm text-mcz-ember"><span className="font-semibold">Failure — your last check did not pass.</span> {last.detail}</p>
+          )}
+          {last?.result === "pending" && (
+            <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
+          )}
+          <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock VybeZ (finding a date), LookZMaxZ and other adult features. We never store your ID — Stripe handles it.</p>
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>
+          {st.can_start === false && last?.result !== "pending" && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
+          {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/40">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
           {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
         </>
       )}
@@ -426,6 +453,12 @@ function AvatarCard() {
             <button className="re-btn !w-auto px-4" onClick={() => input.current?.click()} disabled={busy}>
               <Upload size={14} /> {shown ? "Change" : "Choose"}
             </button>
+            {!preview && (
+              <button className="re-btn !w-auto px-3" onClick={() => goToSpot("filez", "filez-list")} disabled={busy}
+                      title="Pick an image you've already uploaded">
+                From FileZ
+              </button>
+            )}
             {preview && (
               <>
                 <button className="neon-btn-primary !w-auto px-4" onClick={save} disabled={busy}>
@@ -523,6 +556,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   async function deleteAccount() {
     if (!window.confirm(
       "Permanently delete your account and ALL your data? This cannot be undone.\n\n" +
+      `Your posts, uploads and journal entries are deleted, and so is everything in your wallet: ` +
+      `${SPINAZ} SpinaZ, ${ENERGY} Energy, ${PROMPTZ} PromptZ, ${XP} XP and any ${MONEY} cash balance. ` +
+      `Money is not paid out or refunded when the account is deleted, so withdraw it first.\n\n` +
       "Any Premium, StatZ or auto top-up billing is cancelled at Stripe first, with no refund of the " +
       "paid period. If that can't be done, nothing is deleted.")) return;
     setDeleting(true);
@@ -542,6 +578,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       .catch(() => {});
   }, []);
 
+  const [loadErr, setLoadErr] = useState("");
   useEffect(() => {
     api("/api/auth/me/").then((d) => {
       setMe(d); setBirthday(d.birthday || "");
@@ -551,7 +588,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                               : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
                                   bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
-    }).catch((e) => setMsg(e.message));
+    }).catch((e) => setLoadErr(e.message || "Your profile didn't load."));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
     api("/api/economy/profile/").then((d) => {
       // The badges you wear, and the title you picked — straight off the
@@ -616,7 +653,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         // string, and React refuses to render an object as a child — the
         // whole tab died with "Objects are not valid as a React child".
         user: me?.username, persona: sel[0]?.name || sel[0]?.key || "Creator",
-        icon: "personaz.png", nationalities: nats, looking: "collab",
+        icon: "personaz.png", nationalities: nats,
       },
     });
     try {
@@ -643,7 +680,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
     } finally { setBusy(false); }
   }
 
-  if (!me) return <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>;
+  if (!me) return <LoadGate error={loadErr} what="your profile" onRetry={() => window.location.reload()} />;
 
   return (
     <div className="space-y-6">
@@ -869,8 +906,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         {/* The portfolio: the links that say who you are. They have been shown on
             the profile and the widget board all along, and nothing mounted could
             make one. */}
-        <div className="border-t border-white/10 pt-3">
+        <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
+        </div>
+        <div className="border-t border-white/10 pt-3">
+          <Gallery username={me?.username} mine />
         </div>
 
         {/* Sits with the sign-ins above it: importing a catalogue is the same

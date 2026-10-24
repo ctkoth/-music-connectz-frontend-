@@ -21,19 +21,18 @@ import { AlertTriangle, ArrowRight, Loader2, TrendingDown, TrendingUp } from "lu
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { IN_SHELL, shellHas } from "../standalone.js";
+import RecentTakes from "../components/RecentTakes.jsx";
+import CoachingBoard from "../components/CoachingBoard.jsx";
+import WhyCard from "../components/WhyCard.jsx";
+import { RatingRow } from "../components/Rating.jsx";
 
 /** A finding that may legitimately have no number.
  *  `—` and the server's sentence, never a 0 standing in for "not measured". */
 function Finding({ label, score, why, suffix = "/ 10" }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-white/40">{label}</p>
-      <p className="text-lg font-bold">
-        {score == null ? <span className="text-white/30">—</span> : <>{score}<span className="text-[12px] font-normal text-white/40"> {suffix}</span></>}
-      </p>
-      {why && <p className="mt-0.5 text-[11px] text-white/45">{why}</p>}
-    </div>
-  );
+  // The house layout for a rating: the number large, its label and its reason
+  // beside it. A finding with no number shows "—" and the server's `why`.
+  return <RatingRow value={score} label={label} detail={why || (score != null && suffix === "/ 10" ? "out of 10" : "")} size="lg" />;
 }
 
 const STRAIN_STYLE = {
@@ -47,11 +46,15 @@ export default function ProgressPanel({ appKey }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
+  // The first page is the newest ten. "Show all" asks the server for the rest; it is
+  // remembered across reloads of the panel (goal saves, declares) so the list does not
+  // snap shut under somebody who is reading it.
+  const [all, setAll] = useState(false);
 
-  const load = () => api(`/api/${appKey}/progress/`)
+  const load = () => api(`/api/${appKey}/progress/${all ? "?takes=all" : ""}`)
     .then((d) => { setData(d); setErr(""); })
     .catch((e) => setErr(e.message || "Couldn't load your progress."));
-  useEffect(() => { load(); }, [appKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [appKey, all]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function declare(patch) {
     setSaving(true);
@@ -81,6 +84,8 @@ export default function ProgressPanel({ appKey }) {
 
   return (
     <section className="space-y-4" data-tour={`${appKey}-progress`}>
+      <WhyCard />
+      <CoachingBoard appKey={appKey} coaching={data.coaching} recap={data.recap} />
       <header className="flex items-baseline gap-2">
         <h3 className="font-display text-lg font-bold">Your history</h3>
         <span className="text-[12px] text-white/40">
@@ -105,7 +110,7 @@ export default function ProgressPanel({ appKey }) {
       {/* The only one of the three with a door: no goal set is fixable from
           here, and a score that says "—" without saying how to fill it is the
           read-only surface the cross-pollination rule calls unfinished. */}
-      {hist.goal_match?.open_in?.tab && (
+      {hist.goal_match?.open_in?.tab && shellHas(hist.goal_match.open_in.tab) && (
         <button onClick={() => goToSpot(hist.goal_match.open_in.tab, hist.goal_match.open_in.target)}
                 className="text-[12px] text-mcz-cyan hover:underline">
           Set a goal range →
@@ -151,22 +156,39 @@ export default function ProgressPanel({ appKey }) {
         </div>
       )}
 
-      {/* Fatigue sensitivity moves the strain threshold and NOTHING else. Said
-          out loud, because a control next to a score usually moves the score,
-          and how quickly somebody tires is not how good they are. */}
-      {strain.level !== "unmeasured" && (
-        <label className="block text-[11px] text-white/45">
-          How quickly you feel it — this only changes when the app eases you off the hard
-          settings. It never moves a score.
-          <select value={declared.fatigue_sensitivity || ""} disabled={saving}
-                  onChange={(e) => declare({ fatigue_sensitivity: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white sm:w-72">
-            {asList(data.sensitivities).map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
-            ))}
-          </select>
-        </label>
-      )}
+      {/* Fatigue sensitivity moves the strain threshold and NOTHING else — and
+          says so as a RESULT. It used to say "this only changes when the app
+          eases you off the hard settings", which names the mechanism and leaves
+          the member to guess what picking each option costs them. The sentences
+          come from the server (takescorez.strain_rule), built from the rule's own
+          numbers, so what is promised here is what the rule does. */}
+      {strain.level !== "unmeasured" && (() => {
+        const rule = data.strain_rule || {};
+        const options = asList(data.sensitivities);
+        const current = options.find((o) => o.key === (declared.fatigue_sensitivity || "normal"));
+        return (
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-white/80" htmlFor="fatigue-sens">
+              How quickly you feel it
+            </label>
+            <p className="text-[11px] leading-relaxed text-white/55">
+              {rule.summary || "This only changes when the app eases you off the hard settings. It never moves a score."}
+            </p>
+            <select id="fatigue-sens" data-nomemo="true" value={declared.fatigue_sensitivity || ""} disabled={saving}
+                    onChange={(e) => declare({ fatigue_sensitivity: e.target.value })}
+                    className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-white sm:w-80">
+              {options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.lows_needed ? `${o.label} — holds back after ${o.lows_needed}` : o.label}
+                </option>
+              ))}
+            </select>
+            {current?.result && <p className="text-[12px] leading-relaxed text-white/75">{current.result}</p>}
+            {strain.why && <p className="text-[11px] leading-relaxed text-white/60"><b className="text-white/75">Right now:</b> {strain.why}</p>}
+            {rule.never && <p className="text-[11px] leading-relaxed text-white/40">{rule.never}</p>}
+          </div>
+        );
+      })()}
 
       {/* The weak spot, and the way to work on it. Two weeks of takes, not one
           — one take's worst score is a bad day. */}
@@ -178,10 +200,10 @@ export default function ProgressPanel({ appKey }) {
               <b>{weakest.label}</b>
               <span className="text-white/45"> · {weakest.average} / 10 across {weakest.takes} takes</span>
             </p>
-            <button onClick={() => goToSpot(appKey, `${appKey}-drills`)}
+            {!IN_SHELL && <button onClick={() => goToSpot(appKey, `${appKey}-drills`)}
                     className="flex items-center gap-1 rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
               Drill it <ArrowRight size={12} />
-            </button>
+            </button>}
           </div>
         ) : <p className="text-[12px] text-white/45">{weakest.why}</p>}
       </div>
@@ -207,27 +229,8 @@ export default function ProgressPanel({ appKey }) {
         ) : <p className="text-[12px] text-white/45">{trend.why}</p>}
       </div>
 
-      {takes.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Recent takes</p>
-          <ul className="space-y-1">
-            {takes.map((t) => (
-              <li key={t.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
-                <span className="font-bold">{t.overall ?? "—"}<span className="text-white/35">/10</span></span>
-                <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
-                {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
-                {t.range_class && <span className="text-white/35">{t.range_class}</span>}
-                {/* A score is never a dead end either — it opens the thing it
-                    scored. */}
-                {t.open_in?.tab && (
-                  <button onClick={() => goToSpot(t.open_in.tab, t.open_in.target)}
-                          className="ml-auto text-mcz-cyan hover:underline">open</button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <RecentTakes takes={takes} dimensions={asList(data.dimensions)} appKey={appKey}
+                   total={data.total_takes} showingAll={all} onShowAll={() => setAll(true)} />
     </section>
   );
 }

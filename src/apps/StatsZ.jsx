@@ -1,3 +1,5 @@
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useState, useEffect } from "react";
 import { Loader2, BarChart3 } from "lucide-react";
 import { api } from "../api.js";
@@ -20,6 +22,10 @@ export default function StatsZ() {
     ["keyz", "⌨️ KeyZ", "keyboards"],
     ["drumz", "🥁 DrumZ", "drums"],
     ["violinz", "🎻 ViolinZ", "violin"],
+    ["flutez", "🪈 FluteZ", "flute"],
+    ["saxz", "🎷 SaxZ", "saxophone"],
+    ["clarinetz", "🎼 ClarinetZ", "clarinet"],
+    ["trumpetz", "🎺 TrumpetZ", "trumpet"],
   ];
 
   useEffect(() => {
@@ -95,7 +101,7 @@ export default function StatsZ() {
       {!hasData ? (
         <div className="neon-frame space-y-3 p-6 text-center">
           <BarChart3 size={24} className="mx-auto text-white/40" />
-          <p className="text-white/60">No takes yet. Post a take in any instrument to see stats here.</p>
+          <Empty text="No takes yet. Score one with any coach and its stats land here." action="Pick a coach" onAction={() => goToSpot("toolz", "")} />
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
@@ -107,6 +113,10 @@ export default function StatsZ() {
             ["keyz", "⌨️ KeyZ", "keyboards"],
             ["drumz", "🥁 DrumZ", "drums"],
             ["violinz", "🎻 ViolinZ", "violin"],
+            ["flutez", "🪈 FluteZ", "flute"],
+            ["saxz", "🎷 SaxZ", "saxophone"],
+            ["clarinetz", "🎼 ClarinetZ", "clarinet"],
+            ["trumpetz", "🎺 TrumpetZ", "trumpet"],
           ].map(([key, label, description]) => {
             const stats = instruments[key];
             if (!stats) return null;

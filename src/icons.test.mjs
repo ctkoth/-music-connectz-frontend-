@@ -64,14 +64,12 @@ const OWED = {
 // the permanent answer.
 //
 // NOT exhaustive, deliberately: other keys sit on a `-neon.svg` because that
-// glyph IS the icon (postz, funnelz, soundcloudengagementz), and calling
+// glyph IS the icon, and calling
 // those a debt would invent one. `node tools/icon-audit.mjs` prints every key
 // on an SVG; this lists the ones somebody is waiting on art for.
 const PLACEHOLDER = {
   "chordz.jpg": "have: chordz.jpg on Corey's machine — commit it and point the path back",
   "journalz.jpg": "have: journalz.jpg on Corey's machine — commit it and point the path back",
-  "metz.jpg": "metz.jpg is committed but measured illegible at 28-36px (busy neon-sign frame + text banner) — a simplified illustration is owed",
-  "tunerz.jpg": "tunerz.jpg is committed but measured illegible at 28-36px (busy neon-sign frame + text banner) — a simplified illustration is owed",
 };
 
 const fileFor = (url) => join(ROOT, "public", url.replace(/^\//, ""));

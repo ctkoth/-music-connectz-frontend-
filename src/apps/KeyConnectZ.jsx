@@ -151,7 +151,7 @@ export default function KeyConnectZ() {
             <select> sizes to its widest option, so "Português (Brasil)"
             alone can be wider than the screen. */}
         <div className="flex flex-wrap items-center gap-2 rounded-xl p-2" style={keyStyle}>
-          <select className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={source}
+          <select aria-label="Translate from" data-nomemo="true" className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={source}
                   onChange={(e) => { setSource(e.target.value); patch({ source_lang: e.target.value }); }}>
             {langs.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
           </select>
@@ -160,7 +160,7 @@ export default function KeyConnectZ() {
                   title={source === "auto" ? "Pick a source language to swap" : "Swap"}>
             <ArrowLeftRight size={14} />
           </button>
-          <select className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={target}
+          <select aria-label="Translate to" data-nomemo="true" className="neon-input !w-auto min-w-0 max-w-full !py-1.5 text-[11px]" value={target}
                   onChange={(e) => { setTarget(e.target.value); patch({ target_lang: e.target.value }); }}>
             {langs.filter((l) => l.key !== "auto").map((l) => (
               <option key={l.key} value={l.key}>{l.label}</option>
@@ -251,7 +251,7 @@ export default function KeyConnectZ() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-[11px] text-white/50">
             Key colour
-            <select className="neon-input !py-2 text-xs" value={skin.dark_keys ? "dark" : "light"}
+            <select data-nomemo="true" className="neon-input !py-2 text-xs" value={skin.dark_keys ? "dark" : "light"}
                     onChange={(e) => patch({ dark_keys: e.target.value === "dark" })}>
               <option value="dark">Dark keys</option>
               <option value="light">Light keys</option>

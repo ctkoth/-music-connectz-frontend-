@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { XP } from "../resources.js";
 import MemberName from "../MemberName.jsx";
+import { IN_SHELL } from "../standalone.js";
 
 export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
   const [profile, setProfile] = useState(null);
@@ -79,6 +80,13 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
     );
   }
 
+  // A tree with nothing in it to train is a level, an XP bar and a leaderboard for
+  // something nobody can do. In a shell — where this panel is among the first things a
+  // store reviewer scrolls to — it is not drawn until the server has drills for it.
+  // (`seed_skillz` seeds mimez, directz and lessonz only: no instrument coach has a
+  // drill yet, and nothing deploys the seed. See play/skillz/README.md.)
+  if (IN_SHELL && drills.length === 0) return null;
+
   const pct = profile
     ? Math.round((profile.xp_into_level / (profile.xp_into_level + profile.xp_to_next_level)) * 100)
     : 0;
@@ -145,6 +153,7 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
         <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
           <Award size={14} /> Badges
         </h3>
+        {badges.length === 0 && <p className="text-xs text-white/45">No badges here yet. The drills above are how they're earned.</p>}
         <div className="flex flex-wrap gap-2">
           {badges.map((b) => (
             <span
@@ -174,7 +183,8 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
             <div key={row.username + i} className="flex items-center justify-between px-4 py-2 text-sm">
               <span className="flex items-center gap-3">
                 <span className="w-5 text-white/40">{i + 1}</span>
-                <MemberName username={row.username} bare />
+                {/* A name opens a profile and a message form, and the SkillZ app has neither. */}
+                {IN_SHELL ? <span className="font-semibold text-white/80">@{row.username}</span> : <MemberName username={row.username} bare />}
               </span>
               <span className="flex items-center gap-3 text-white/55">
                 <span>Lv {row.level}</span>

@@ -192,7 +192,7 @@ export default function SoundZ() {
                         onClick={() => playSoundNow(k, overrides[k])}>
                   {k}
                 </button>
-                <select
+                <select aria-label={`Sound for ${k}`} data-nomemo="true"
                   className="shrink-0 rounded border border-white/10 bg-black/40 px-2 py-1 text-[11px] text-white outline-none"
                   value={overrides[k] || ""}
                   disabled={busy}

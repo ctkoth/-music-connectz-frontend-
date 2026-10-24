@@ -40,6 +40,7 @@ const ROOT = new URL("..", import.meta.url).pathname;
 
 /** apps/economy/models.py FUNNEL_KINDS, mirrored. Keep sorted. */
 const SERVER_KINDS = new Set([
+  "landing_cta",
   "landing_view",
   "login_success",
   "oauth_link_fail",

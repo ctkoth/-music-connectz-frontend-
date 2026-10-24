@@ -400,7 +400,7 @@ function TunerZ() {
           <>
             <div className="mb-8 rounded-xl bg-slate-800/50 p-6 backdrop-blur">
               <label className="block text-sm font-semibold text-slate-300 mb-2">Instrument</label>
-              <select
+              <select aria-label="Instrument"
                 value={instrument}
                 onChange={(e) => {
                   setInstrument(e.target.value);
