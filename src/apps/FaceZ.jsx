@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Term from "../components/Term.jsx";
 import { Loader2, Lock, Trash2, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
@@ -141,7 +142,7 @@ export default function FaceZ() {
                           className={`h-6 w-6 rounded text-[11px] ${mine === i + 1 ? "bg-mcz-cyan text-black" : "bg-white/5 text-white/70 hover:bg-white/15"}`}>{i + 1}</button>
                       ))}
                     </div>
-                    {rated[f.id] && <p className="text-[10px] text-white/50">Median {rated[f.id].median ?? "–"}{rated[f.id].earned ? <span className="text-emerald-300"> · +{rated[f.id].earned} ⚡</span> : ""}</p>}
+                    {rated[f.id] && <p className="text-[10px] text-white/50"><Term k="median">Median</Term> {rated[f.id].median ?? "–"}{rated[f.id].earned ? <span className="text-emerald-300"> · +{rated[f.id].earned} ⚡</span> : ""}</p>}
                   </div>
                 );
               })}

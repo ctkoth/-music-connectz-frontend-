@@ -75,6 +75,7 @@ const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
+const ImageConnectZ = lazy(lazyRoute(() => import("./apps/ImageConnectZ.jsx")));
 const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
 const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
@@ -569,6 +570,7 @@ const TABS = [
   { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
   { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
+  { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", el: <ImageConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },

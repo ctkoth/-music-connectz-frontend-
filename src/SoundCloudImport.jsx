@@ -42,14 +42,22 @@ export async function finishImport(code, verifier) {
 
 export const importPending = () => sessionStorage.getItem(MARK) === "1";
 
-export default function SoundCloudImport({ clientId }) {
+export default function SoundCloudImport({ clientId: given = "", compact = false }) {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // The PUBLIC client id, read from the same open endpoint as the login buttons
+  // when the screen did not pass one — so the import works wherever it is
+  // mounted (PostZ as well as ProfileZ), never from a build-time copy.
+  const [fetched, setFetched] = useState("");
+  const clientId = given || fetched;
 
   useEffect(() => {
     api("/api/economy/soundcloud/import/").then(setInfo).catch(() => {});
-  }, []);
+    if (!given) {
+      api("/api/auth/oauth-config/", { auth: false }).then((c) => setFetched(c?.soundcloud || "")).catch(() => {});
+    }
+  }, [given]);
 
   // A failed fetch renders nothing rather than a broken panel — the member did
   // not ask for this, so telling them it failed is an interruption about an
@@ -92,7 +100,7 @@ export default function SoundCloudImport({ clientId }) {
         on {info.tier === "statz" ? "StatZ" : info.tier}.{" "}
         <span className="text-emerald-300">Free</span> — importing costs nothing.
       </p>
-      <ul className="list-disc space-y-0.5 pl-5 pt-1.5 text-[11px] leading-relaxed text-white/50">
+      <ul className={`list-disc space-y-0.5 pl-5 pt-1.5 text-[11px] leading-relaxed text-white/50 ${compact ? "hidden" : ""}`}>
         <li>SoundCloud asks you to allow this once. It reads your track list one time and we do not keep the permission.</li>
         <li>Every track is added as a private draft that only you can see. Nothing is shown to anyone.</li>
         <li>Afterwards, in PostZ under “Your SoundCloud tracks”, you choose public, restricted or private, one by one or in batches.</li>

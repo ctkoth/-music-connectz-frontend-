@@ -872,7 +872,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         )}
       </div>
 
-      <WhatINeed />
+      <div data-tour="what-i-need"><WhatINeed /></div>
 
       <StatsZSummary />
 

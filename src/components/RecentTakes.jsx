@@ -6,7 +6,7 @@ import { goToSpot } from "../goto.js";
 import { openDoor } from "../doors.js";
 import { api } from "../api.js";
 import { shareLink, shareText } from "../shareText.js";
-import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
+import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
 import PostTake from "./PostTake.jsx";
@@ -50,6 +50,9 @@ function Row({ t, labels, appKey }) {
   const [tags, setTags] = useRemembered("promo-hashtags", "");
   const [posting, setPosting] = useState(false);
   const read = t.read || {};
+  // Only a take whose recording was kept can play on its card.
+  const canPlay = !!(t.file?.kept && t.file.url);
+  const [play, setPlay] = useState(false);
   // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
   // that writer in its listing or its data-safety answers — so no shell offers it.
   const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"))
@@ -64,6 +67,10 @@ function Row({ t, labels, appKey }) {
       const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(r.share_url);
       try { await declareHuman(r.share_url, human); } catch { /* shared without the claim */ }
+      if (canPlay) {
+        try { await playOnCard(r.share_url, play); }
+        catch (e) { setShareMsg(e.message || "The card will show the score without the recording."); }
+      }
       const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb, extras: t.extras }), url: r.share_url });
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
@@ -160,6 +167,7 @@ function Row({ t, labels, appKey }) {
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   {(e.kind === "share" || e.kind === "promo") && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
+                  {e.kind === "share" && canPlay && <div className="basis-full"><PlayOnCard checked={play} onChange={setPlay} /></div>}
                   <button onClick={() => go(e)} data-door={e.key} disabled={(e.kind === "promo" && promoBusy)}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                     {e.label}

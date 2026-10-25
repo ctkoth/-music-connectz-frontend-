@@ -18,18 +18,21 @@ import { EmailMe, ExampleCard, JoinWall, PracticeBeat } from "../components/Tria
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
-import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
+import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
+import CoachVoice from "../components/CoachVoice.jsx";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
+import Inspiration from "../components/Inspiration.jsx";
+import ExtraScores, { extraFields } from "../components/ExtraScores.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
 import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 import SpeakingIn from "../components/SpeakingIn.jsx";
@@ -245,83 +248,13 @@ function BeatItTomorrow({ appKey, result, price }) {
  * nowhere near 2000 characters for any take this coach has ever produced).
  */
 function CoachVoicePlayer({ result }) {
-  const [voices, setVoices] = useState(null);
-  const [chosen, setChosen] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const audioRef = useRef(null);
-
-  useEffect(() => {
-    api("/api/economy/coachvoice/").then(setVoices).catch(() => {});
-  }, []);
-
   const text = [
     result.verdict,
     result.now && `Where you're at: ${result.now}`,
     result.goal && `What you're aiming at: ${result.goal}`,
     ...(result.fixes || []).slice(0, 2),
   ].filter(Boolean).join(" ");
-
-  async function play(voiceId) {
-    setBusy(true); setErr("");
-    try {
-      const d = await api("/api/economy/coachvoice/speak/", {
-        method: "POST", body: voiceId ? { text, voice: voiceId } : { text },
-      });
-      const audio = new Audio(`data:${d.mime};base64,${d.audio_b64}`);
-      audioRef.current = audio;
-      audio.play();
-      setVoices((v) => v && { ...v, speak_used_today: d.speak_used_today, speak_remaining: d.speak_remaining });
-    } catch (e) {
-      setErr(e.message || "Couldn't play that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveDefault() {
-    if (!chosen) return;
-    try {
-      const d = await api("/api/economy/coachvoice/", { method: "PATCH", body: { voice: chosen } });
-      setVoices(d);
-      setChosen("");
-    } catch (e) {
-      setErr(e.message || "Couldn't save that.");
-    }
-  }
-
-  if (!voices || !text) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[11px]">
-      <button onClick={() => play(chosen || undefined)} disabled={busy}
-              className="neon-btn-ghost !w-auto inline-flex items-center gap-1 px-3 py-1.5 text-xs">
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-        Hear it — {(voices.voices.find((v) => v.id === (chosen || voices.voice)) || {}).label || "Coach Corey"}
-      </button>
-      {voices.can_sample && (
-        <select aria-label="Coach voice to hear" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
-                value={chosen} onChange={(e) => setChosen(e.target.value)}>
-          <option value="">{voices.voices.find((v) => v.id === voices.voice)?.label} (yours)</option>
-          {voices.voices.filter((v) => v.id !== voices.voice).map((v) => (
-            <option key={v.id} value={v.id}>{v.label} — sample</option>
-          ))}
-        </select>
-      )}
-      {!voices.can_sample && (
-        <span className="text-white/35">
-          Premium can sample other voices; StatZ can save one —{" "}
-          <button className="re-link" onClick={() => goToSpot("membershipz")}>upgrade</button>
-        </span>
-      )}
-      {voices.can_choose && chosen && chosen !== voices.voice && (
-        <button className="re-link text-[10px]" onClick={saveDefault}>
-          save as my coach's voice
-        </button>
-      )}
-      {err && <span className="text-mcz-ember">{err}</span>}
-    </div>
-  );
+  return text ? <CoachVoice text={text} /> : null;
 }
 
 // `trial` swaps the member coach for the no-account door. Same recorder, same
@@ -371,6 +304,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // a drum take has no words, and a toggle a screen cannot honour is the
   // switch that changes nothing.
   const [rateLyrics, setRateLyrics] = useState(false);
+  const [extra, setExtra] = useState({});
   // Have the coach judge the RECORDING as well as the playing. Off by default
   // for the same reason as lyrics, and one more: most takes here are a phone in
   // a bedroom, so a coach that scored production by default would be marking
@@ -994,7 +928,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // half of a feature: the control renders on both screens and only
             // one of them honours it.
             ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
-            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
+            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
+            ...extraFields(extra, price?.wit_scores) }
         : (() => {
             const f = new FormData();
             f.append("take", sendBlob, sendName);
@@ -1008,6 +943,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores))) f.append(k, v);
             if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
             // private window, which the server reads as "unknown" rather than
@@ -1200,6 +1136,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </label>
       )}
 
+      {price?.rates_wit && !refMode && !trial && (
+        <ExtraScores scores={price.wit_scores} value={extra} onChange={setExtra} disabled={busy} />
+      )}
+
       {/* The other half of "score the performance, not the mix". The coach is
           told to ignore production unless this is on, so this is the only way
           to hear about it — and it stays off by default because a phone
@@ -1248,7 +1188,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             a beat to perform over, or options for a take, would read as controls that work. */}
         {trial && !result && !busy && !blocked && (
           <div className="mt-2 space-y-2">
-            <ExampleCard example={price?.example} />
+            {/* Open by default before a take exists: the first thing a stranger should
+                be able to do is hear a real take and see what it scored, with no mic
+                prompt and no upload. */}
+            <ExampleCard example={price?.example} open={!blob} />
             {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
           </div>
         )}
@@ -1264,6 +1207,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </button>
             ))}
           </div>
+        )}
+        {!trial && !IN_SHELL_COACH && !refMode && price?.reference?.available && (
+          <Inspiration appKey={appKey} genre={genre} hostBlob={blob} hostName={takeName} />
         )}
         {refMode && (
           <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
@@ -1842,6 +1788,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             ...(price?.scores || {}),
             ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
             ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+            ...Object.fromEntries((result.rated_extras || []).map((k) => [k,
+              `${price?.wit_scores?.[k] || k}${(result.counted_extras || []).includes(k) ? " · in overall" : " · beside overall"}`])),
             ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
             ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
           }).map(([k, label]) => ({
@@ -1851,11 +1799,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // member may have switched it since, and a row that followed a checkbox
             // would relabel a score that was never given.
             // Every scored skill's own reason and tip, when the coach gave them; otherwise
-            // the strongest moment it filed under that skill, as before.
+            // main's fallback (the strongest moment filed under that skill, or the wit note).
             detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why
               : result.score_notes?.[k]
                 ? <>{result.score_notes[k].why}{result.score_notes[k].tip && <span className="block text-mcz-cyan/80">→ {result.score_notes[k].tip}</span>}</>
-                : heardFor(result.heard, k),
+                : (heardFor(result.heard, k) || (result.rated_extras || []).includes(k) ? (heardFor(result.heard, k) || result.wit_note) : undefined),
           }))} />
 
           {result.strengths?.length > 0 && (
@@ -1938,7 +1886,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && (
             <SocialBar item={`score:${result.share_url.replace(/^\/s\//, "")}`} canRate={false} compact />
           )}
-          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} kept={!!result.kept} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
           {!trial && !IN_SHELL_COACH && <BeatItTomorrow appKey={appKey} result={result} price={price} />}
           {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
@@ -2136,7 +2084,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
 /** Share the score card. Counts nothing on a cancel — a share sheet somebody
  *  backed out of is not a share. */
-function ShareScore({ url, score, exact, extras }) {
+function ShareScore({ url, score, exact, extras, kept = false }) {
   const [msg, setMsg] = useState("");
   const [per, setPer] = useState(null);     // referral reward, the server's number
   useEffect(() => {
@@ -2144,10 +2092,15 @@ function ShareScore({ url, score, exact, extras }) {
   }, []);
   const shown = exact != null ? Number(exact).toFixed(1) : score;
   const [human, setHuman] = useState(false);
+  const [play, setPlay] = useState(false);
   const go = async () => {
     // The declaration goes first, so the card the follower opens already says it
     // (or, unticked, makes no claim about who made it).
     try { await declareHuman(url, human); } catch { /* the share still goes out, without the claim */ }
+    if (kept) {
+      try { await playOnCard(url, play); }
+      catch (e) { setMsg(e.message || "The card will show the score without the recording."); }
+    }
     const how = await shareLink({ text: shareText({ score, exact, extras }), url });
     if (how === "shared") setMsg("Shared.");
     else if (how === "copied") setMsg("Copied — paste it anywhere.");
@@ -2155,6 +2108,7 @@ function ShareScore({ url, score, exact, extras }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>
+      {kept && <div className="basis-full"><PlayOnCard checked={play} onChange={setPlay} /></div>}
       <button type="button" onClick={go}
               className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
         <Share2 size={13} /> Share your {shown}/10
