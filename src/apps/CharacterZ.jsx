@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
+import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
 import LoadGate from "../components/LoadGate.jsx";
 import Empty from "../components/Empty.jsx";
@@ -107,7 +108,9 @@ export default function CharacterZ() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="re-card space-y-1">
-        <h2 className="font-display text-xl font-extrabold">CharacterZ</h2>
+        <h2 className="flex items-center gap-3 font-display text-xl font-extrabold">
+          <IconImg icon="characterz.png" alt="" className="h-11 w-11 rounded-xl" /> CharacterZ
+        </h2>
         <p className="text-sm text-white/60">A face, a personality and a voice. MangaZ draws them and writes their lines in that voice.</p>
         <p className="text-[11px] text-white/40">{d.characters.length} / {d.limit} on your plan
           {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}</p>
