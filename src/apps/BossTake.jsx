@@ -23,6 +23,7 @@ import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
+import CoachVoice from "../components/CoachVoice.jsx";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
@@ -243,83 +244,13 @@ function BeatItTomorrow({ appKey, result, price }) {
  * nowhere near 2000 characters for any take this coach has ever produced).
  */
 function CoachVoicePlayer({ result }) {
-  const [voices, setVoices] = useState(null);
-  const [chosen, setChosen] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const audioRef = useRef(null);
-
-  useEffect(() => {
-    api("/api/economy/coachvoice/").then(setVoices).catch(() => {});
-  }, []);
-
   const text = [
     result.verdict,
     result.now && `Where you're at: ${result.now}`,
     result.goal && `What you're aiming at: ${result.goal}`,
     ...(result.fixes || []).slice(0, 2),
   ].filter(Boolean).join(" ");
-
-  async function play(voiceId) {
-    setBusy(true); setErr("");
-    try {
-      const d = await api("/api/economy/coachvoice/speak/", {
-        method: "POST", body: voiceId ? { text, voice: voiceId } : { text },
-      });
-      const audio = new Audio(`data:${d.mime};base64,${d.audio_b64}`);
-      audioRef.current = audio;
-      audio.play();
-      setVoices((v) => v && { ...v, speak_used_today: d.speak_used_today, speak_remaining: d.speak_remaining });
-    } catch (e) {
-      setErr(e.message || "Couldn't play that.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveDefault() {
-    if (!chosen) return;
-    try {
-      const d = await api("/api/economy/coachvoice/", { method: "PATCH", body: { voice: chosen } });
-      setVoices(d);
-      setChosen("");
-    } catch (e) {
-      setErr(e.message || "Couldn't save that.");
-    }
-  }
-
-  if (!voices || !text) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[11px]">
-      <button onClick={() => play(chosen || undefined)} disabled={busy}
-              className="neon-btn-ghost !w-auto inline-flex items-center gap-1 px-3 py-1.5 text-xs">
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-        Hear it — {(voices.voices.find((v) => v.id === (chosen || voices.voice)) || {}).label || "Coach Corey"}
-      </button>
-      {voices.can_sample && (
-        <select aria-label="Coach voice to hear" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white/70"
-                value={chosen} onChange={(e) => setChosen(e.target.value)}>
-          <option value="">{voices.voices.find((v) => v.id === voices.voice)?.label} (yours)</option>
-          {voices.voices.filter((v) => v.id !== voices.voice).map((v) => (
-            <option key={v.id} value={v.id}>{v.label} — sample</option>
-          ))}
-        </select>
-      )}
-      {!voices.can_sample && (
-        <span className="text-white/35">
-          Premium can sample other voices; StatZ can save one —{" "}
-          <button className="re-link" onClick={() => goToSpot("membershipz")}>upgrade</button>
-        </span>
-      )}
-      {voices.can_choose && chosen && chosen !== voices.voice && (
-        <button className="re-link text-[10px]" onClick={saveDefault}>
-          save as my coach's voice
-        </button>
-      )}
-      {err && <span className="text-mcz-ember">{err}</span>}
-    </div>
-  );
+  return text ? <CoachVoice text={text} /> : null;
 }
 
 // `trial` swaps the member coach for the no-account door. Same recorder, same

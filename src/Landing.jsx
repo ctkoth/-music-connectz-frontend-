@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { GLOSSARY } from "./glossary.js";
 import { Link } from "react-router-dom";
 import { Compass, Download, Mic2, Music4, Sparkles, Star, Timer, Users2 } from "lucide-react";
 import { api } from "./api.js";
@@ -286,6 +287,21 @@ export default function Landing() {
       <TrialDoors coaches={coaches} />
 
       <UpgradeCTAs tiers={tiers} />
+
+      {/* Words a newcomer will not know, defined where they first arrive — escrow first, because
+          "escrowed, so a stranger can take the first deal" is the sentence that sells CollabZ and
+          means nothing to someone who has never heard the word. The list is glossary.js. */}
+      <section aria-labelledby="words-we-use" className="mt-8 re-card">
+        <h2 id="words-we-use" className="font-display text-lg font-extrabold text-white">Words we use</h2>
+        <dl className="mt-3 space-y-3">
+          {GLOSSARY.map((g) => (
+            <div key={g.key}>
+              <dt className="text-sm font-bold text-white">{g.word}</dt>
+              <dd className="mt-0.5 text-[12px] leading-relaxed text-white/60">{g.means}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {FEATURES.map(({ Icon, title, body }) => (

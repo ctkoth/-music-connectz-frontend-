@@ -60,7 +60,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
       setResult(out);
       onApply(normalize(out.exercises));
     } catch (e) {
-      setErr(e.message || "The Coach couldn't pair that.");
+      setErr(e.message || "The Planner couldn't pair that.");
     }
     setBusy(false);
   }
@@ -69,7 +69,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/[0.04] p-3" data-tour="bodiez-pairing">
-      <p className="re-label flex items-center gap-1.5"><Link2 size={13} /> Pair with the Coach</p>
+      <p className="re-label flex items-center gap-1.5"><Link2 size={13} /> Pair with the Planner</p>
       <div className="space-y-1">
         {offer.modes.map((m) => (
           <label key={m.key} className="flex cursor-pointer items-start gap-2 text-xs text-white/70">
@@ -82,7 +82,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
       </div>
       <label className="flex cursor-pointer items-center gap-2 text-xs text-white/60">
         <input type="checkbox" checked={add} onChange={(e) => setAdd(e.target.checked)} />
-        Add a partner when a lift has none (it is marked as the Coach's, and you can remove it)
+        Add a partner when a lift has none (it is marked as the Planner's, and you can remove it)
       </label>
 
       {allowed ? (
@@ -99,7 +99,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
         </div>
       ) : (
         <div className="space-y-1">
-          <StatzSample what="Coach supersets" />
+          <StatzSample what="Planner supersets" />
           <p className="text-[11px] text-white/45">{offer.manual} Use the link button on a lift's row.</p>
         </div>
       )}
