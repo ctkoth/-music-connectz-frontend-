@@ -10,6 +10,7 @@
 // results are all /api/economy/bodiez/ai/. The price sits beside every control that
 // spends it, before it is pressed, and a read that can't be done says it wasn't
 // charged. Every paid read is kept, so it reopens and downloads from the list.
+import Term from "./Term.jsx";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Bot, Download, Loader2, Trash2, Video } from "lucide-react";
 import { api } from "../api.js";
@@ -277,7 +278,7 @@ export function AICoachView({ exercises }) {
   return (
     <div className="space-y-4">
       <div className="re-card space-y-1">
-        <p className="font-semibold">AI coach</p>
+        <p className="font-semibold"><Term k="ai_coach">AI coach</Term></p>
         <p className="text-sm text-white/60">Two different reads, each priced before you press it:</p>
         <ul className="list-disc space-y-1 pl-5 text-sm text-white/65">
           <li><span className="text-white/85">AI read</span> — {state?.read_note || "reads what you logged."} It's on every workout and routine in RoutineZ and every muscle in BodyMap.</li>

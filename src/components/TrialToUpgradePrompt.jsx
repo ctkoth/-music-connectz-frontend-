@@ -1,3 +1,4 @@
+import Term from "./Term.jsx";
 import { Zap, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -25,7 +26,7 @@ export default function TrialToUpgradePrompt({ score = 7 }) {
           </li>
           <li className="flex items-center gap-2 text-white/60">
             <Check size={14} className="text-emerald-300 shrink-0" />
-            <span>Earn <span className="text-emerald-300">⚡ Energy</span> + <span className="text-mcz-gold">⭐ XP</span> on habits</span>
+            <span>Earn <span className="text-emerald-300">⚡ <Term k="energy">Energy</Term></span> + <span className="text-mcz-gold">⭐ XP</span> on habits</span>
           </li>
           <li className="flex items-center gap-2 text-white/60">
             <Check size={14} className="text-emerald-300 shrink-0" />

@@ -55,7 +55,7 @@ export default function RatingsRoyalty() {
       )}
       {coach && (
         <div className="space-y-1.5 border-t border-white/[0.06] pt-2">
-          <p className="re-label">Let the AI coach count toward my skill ratings</p>
+          <p className="re-label">Let the <Term k="ai_coach">AI coach</Term> count toward my skill ratings</p>
           <p className="text-[12px] text-white/60">{coach.note}</p>
           <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-white/45">
             {coach.coaches.filter((c) => c.takes > 0).map((c) => (

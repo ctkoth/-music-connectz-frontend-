@@ -7,6 +7,7 @@
 // The take is not a dead end. The score comes back with a claim token, kept
 // here and handed to /register, so the thing they made at the door opens
 // inside SingZ once they join.
+import Term from "../components/Term.jsx";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { usePageTitle } from "../pageTitle.js";
@@ -202,7 +203,7 @@ export default function TrialTake() {
         </h1>
         <p className="mt-1 text-sm text-white/55">
           Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
-          feedback from the same AI coach our {label} members use. One free daily take. Join after
+          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. One free daily take. Join after
           to keep your takes and track progress.
         </p>
         {/* Every door, not the two that were linked. A drummer who lands on
