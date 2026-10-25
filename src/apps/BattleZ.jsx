@@ -9,6 +9,7 @@
 //     CollabZ and VenueZ use — one spec, so what the listing advertises and
 //     what the door enforces cannot diverge;
 //   * judging rides the shared RateZ item space, not a second rating system.
+import Term from "../components/Term.jsx";
 import LoadGate from "../components/LoadGate.jsx";
 import { Price } from "../components/Price.jsx";
 import { celebrateBattles, celebratePartnerz } from "../milestones.js";
@@ -129,7 +130,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
         </span>
       </div>
       <p className="text-[10px] text-white/35">
-        {s.count}/{battle.min_ratings} ratings
+        {s.count}/{battle.min_ratings} ratings · score is the <Term k="median">median</Term>
         {!s.qualified && <span className="text-mcz-ember"> · not enough to qualify yet</span>}
       </p>
       {s.coach && (

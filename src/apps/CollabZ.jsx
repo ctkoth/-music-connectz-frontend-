@@ -75,10 +75,10 @@ function EscrowWindow({ deal }) {
     <p className="text-[11px] text-white/50">
       <Clock size={11} className="mr-1 inline align-[-1px]" />
       Releases itself {days} day{days === 1 ? "" : "s"} after it's funded unless
-      somebody disputes it.
+      somebody <Term k="dispute">disputes</Term> it. <Term k="escrow">What is escrow?</Term>
       {deal.auto_release_partnerz && base > days && (
         <span className="text-emerald-300">
-          {" "}PartnerZ — {base - days} days sooner than usual, because you've
+          {" "}<Term k="partnerz">PartnerZ</Term> — {base - days} days sooner than usual, because you've
           finished work together before.
         </span>
       )}
