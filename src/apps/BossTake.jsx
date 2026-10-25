@@ -26,6 +26,7 @@ import { goToSpot, openMember, spotlight } from "../goto.js";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
+import StreamLink from "../components/StreamLink.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
@@ -1105,6 +1106,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
   const settings = (
     <>
+      {!trial && !refMode && !IN_SHELL_COACH && <StreamLink />}
       {!refMode && price?.challenge && (
         <WeeklyChallenge appKey={appKey} challenge={price.challenge}
           onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
