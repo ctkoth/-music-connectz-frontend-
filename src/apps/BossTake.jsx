@@ -22,7 +22,7 @@ import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
-import { onHandoff } from "../handoff.js";
+import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
 import { playSound } from "../sound.js";
 import { track, anonId } from "../track.js";
@@ -1905,6 +1905,17 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
+          {!trial && !IN_SHELL_COACH && !result.reference && (
+            <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                    title="Your take with the coach's read over it, 9:16 — made free in the browser"
+                    onClick={() => handOff("videoconnectz", "coach-promo", { coach_review: {
+                      score: result.score, exact: result.score_exact, label: price?.label || "Coach",
+                      verdict: result.verdict, strengths: result.strengths || [], fixes: result.fixes || [],
+                      media_url: result.kept_url || result.post_media_url || (blob ? URL.createObjectURL(blob) : ""),
+                      media_kind: isVideo ? "video" : "audio" } })}>
+              🎬 Coach Review Promo Video <span className="text-white/40">· free</span>
+            </button>
+          )}
           {!trial && !IN_SHELL_COACH && !result.reference && (
             <SendTo from={appKey} kind="take" label="Send this take to any app"
                     item={{

@@ -14,6 +14,8 @@ import { money, runTimeoutMs, splitCost, unknownOutcome, unknownOutcomeNote } fr
 import { firstPollDelay, newestPending, pollIsHopeless } from "../videoz.js";
 import { FACE_FEED_NOTE } from "../facez.js";
 import StitchedMusicVideo from "../components/StitchedMusicVideo.jsx";
+import CoachPromoVideo from "../components/CoachPromoVideo.jsx";
+import { onHandoff } from "../handoff.js";
 
 // Video ConnectZ — music, bio and promo videos, optionally starting from the
 // member's own FaceZ photo. Price, kinds and faces come from
@@ -68,6 +70,9 @@ export default function VideoConnectZ() {
   const [face, setFace] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
+  // A coach's read handed over from a scored take (BossTake's "Coach Review Promo Video").
+  const [promo, setPromo] = useState(null);
+  useEffect(() => onHandoff("videoconnectz", (p) => { if (p?.coach_review) setPromo(p.coach_review); }), []);
   const [elapsed, setElapsed] = useState(0);
   const resumed = useRef(false);
 
@@ -172,6 +177,7 @@ export default function VideoConnectZ() {
           <p className="text-sm text-white/60">Music, bio and promo videos — starring your FaceZ if you want.</p>
         </div>
       </header>
+      {promo && <div data-tour="coach-promo"><CoachPromoVideo review={promo} onClose={() => setPromo(null)} /></div>}
 
       <StitchedMusicVideo />
 
