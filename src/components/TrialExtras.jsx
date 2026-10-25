@@ -26,12 +26,17 @@ export function ExampleCard({ example, open: startOpen = false, title }) {
     <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left">
       <button type="button" className="flex w-full items-center justify-between gap-2 text-[12px] text-white/70"
               onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span>{title || "👀 See a real scored take first"}</span>
+        <span>{title || (example.audio ? "🎧 Hear a real take and what it scored" : "👀 See a real scored take first")}</span>
         <span className="text-[11px] text-mcz-cyan">{open ? "Hide" : "Show"}</span>
       </button>
       {open && (
         <div className="mt-2 space-y-1.5">
           <p className="text-[11px] text-white/45">{who} own take, scored by this same coach. Yours gets the same read.</p>
+          {/* The real recording that earned the number, when it was kept — hear it, then
+              read what the coach said about it. Never a stand-in: no recording, no player. */}
+          {example.audio && (example.audio_kind === "video"
+            ? <video src={example.audio} controls playsInline preload="metadata" className="w-full max-h-56 rounded" />
+            : <audio src={example.audio} controls preload="metadata" className="w-full" />)}
           <div className="flex items-baseline gap-3">
             <span className="font-display text-3xl font-extrabold text-mcz-cyan">{shown}<span className="text-sm text-white/30">/10</span></span>
             <p className="flex-1 text-[12px] text-white/75">{example.verdict}</p>
