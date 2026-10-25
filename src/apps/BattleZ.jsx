@@ -132,6 +132,12 @@ function Side({ side, board, battle, onRate, onSubmit }) {
         {s.count}/{battle.min_ratings} ratings
         {!s.qualified && <span className="text-mcz-ember"> · not enough to qualify yet</span>}
       </p>
+      {s.coach && (
+        <p className="text-[10px] text-mcz-cyan/80">
+          Includes the AI coach's reading of {s.coach.takes} {s.coach.takes === 1 ? "take" : "takes"} ({s.coach.median}/10) —
+          this member opted in; the judges still decide who qualifies.
+        </p>
+      )}
       {entry ? <Work item={entry} /> : (
         <p className="text-[11px] text-white/35">
           {mine ? "You haven't put your take up yet." : "No take yet."}

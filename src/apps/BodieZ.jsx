@@ -56,6 +56,7 @@ import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, 
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import PromoPost from "../components/PromoPost.jsx";
+import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
 
@@ -127,7 +128,7 @@ const TABS = [
   { key: "routinez", label: "RoutineZ" },
   { key: "scheduler", label: "Scheduler" },
   { key: "bodymap", label: "BodyMap" },
-  { key: "coach", label: "Coach" },
+  { key: "coach", label: "Insights" },
   { key: "goals", label: "Goals" },
   { key: "recovery", label: "Recovery" },
   { key: "progress", label: "Progress" },
@@ -741,6 +742,55 @@ function summaryText(sm, unit, brief = false) {
   return lines.join("\n");
 }
 
+// The AI coach's read of a finished workout. "Coach" means the AI coach everywhere in this app,
+// so this is BodieZ's door to it: the price sits beside the button before it is pressed, a
+// failed run is not charged, and the words can be read aloud in the member's chosen voice
+// (Premium samples any voice, StatZ saves one; CoachVoice and the server own that rule).
+function AICoachRead({ sessionId }) {
+  const [spec, setSpec] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [text, setText] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let on = true;
+    api(`/api/economy/bodiez/sessions/${sessionId}/ai-coach/`).then((d) => { if (on) setSpec(d); }).catch(() => {});
+    return () => { on = false; };
+  }, [sessionId]);
+
+  async function ask() {
+    setBusy(true); setErr("");
+    try {
+      const d = await api(`/api/economy/bodiez/sessions/${sessionId}/ai-coach/`, { method: "POST", body: {} });
+      setText(d.text || "");
+    } catch (e) { setErr(e.message || "The AI coach couldn't read that. Nothing was charged."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" disabled={busy} onClick={ask}>
+          {busy ? <Loader2 className="animate-spin" size={13} /> : <Sparkles size={13} />}
+          {busy ? "Reading your sets…" : text ? "Ask the AI coach again" : "Send to AI coach"}
+        </button>
+        {spec && (spec.cost.free_today
+          ? <span className="text-[11px] text-emerald-300">free today</span>
+          : <span className="text-[11px] text-mcz-ember">−{spec.cost.amount} {PROMPTZ}</span>)}
+        <span className="text-[11px] text-white/40">A failed read is not charged.</span>
+      </div>
+      {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
+      {text && (
+        <div className="rounded-lg border border-white/10 bg-black/30 p-3 space-y-2">
+          <p className="re-label">AI coach</p>
+          <p className="whitespace-pre-wrap text-sm text-white/85">{text}</p>
+          <CoachVoice text={text} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SessionSummary({ summary: sm, onClose, onEdit }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
@@ -818,11 +868,11 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         )}
         {coaches.length > 0 ? coaches.map((c) => (
           <button key={c} className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(c)}>
-            <MessageSquare size={13} /> Send to coach @{c}
+            <MessageSquare size={13} /> Message @{c} (a person)
           </button>
         )) : (
           <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => toCoach(null)}>
-            <MessageSquare size={13} /> Send to a coach
+            <MessageSquare size={13} /> Message someone
           </button>
         )}
         <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
@@ -834,9 +884,11 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
           <MapPin size={13} /> Train in person · VenueZ
         </button>
       </div>
+      {sm.sets > 0 && <AICoachRead sessionId={sm.session_id} />}
       <p className="text-[11px] text-white/35">
-        PostZ shows what posting costs before you post; sending a DM is free.
-        {coaches.length === 0 && " You have no coach linked in CoachZ yet, so pick who to send it to."}
+        PostZ shows what posting costs before you post; sending a DM is free. “Coach” always means the AI coach —
+        a person you message is named as a person.
+        {coaches.length === 0 && " You have no one linked in CoachZ yet, so pick who to message."}
       </p>
       {note && <p className="text-[11px] text-mcz-cyan">{note}</p>}
     </div>
@@ -1906,7 +1958,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                 {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300"
                               title="Superset: done back to back, rest after the pair">{tag}</span>}
                 {ex?.name || `#${r.exercise_id}`}
-                {r.added && <span className="ml-1.5 text-[10px] font-normal text-mcz-cyan/80">added by the Coach</span>}
+                {r.added && <span className="ml-1.5 text-[10px] font-normal text-mcz-cyan/80">added by the Planner</span>}
               </p>
               <p className="text-[11px] text-white/40">
                 {MUSCLE_LABEL[ex?.muscle_group] || ex?.muscle_group}
@@ -2077,7 +2129,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
   return (
     <div className="space-y-5">
       <section className="space-y-2">
-        <p className="re-label">Have the Coach build one</p>
+        <p className="re-label">Have the Planner build one</p>
         <p className="text-[11px] text-white/45">
           Pick the criteria — muscles (or the whole body), equipment, goal, how many exercises per muscle, how long you
           have — and it builds from the library and your own BodyMap. Free: no 🏷️, no AI, just your data. What it
@@ -2093,7 +2145,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                           onBuildSplit={onBuildSplit} />
           </>
         ) : (
-          <p className="text-xs text-white/40">The Coach needs the exercise library to load first.</p>
+          <p className="text-xs text-white/40">The Planner needs the exercise library to load first.</p>
         )}
       </section>
 
@@ -2121,7 +2173,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
         )}
         {shown.length === 0 && (
           <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
-            No routines yet — have the Coach build one above, make your own, or turn a logged workout below into one.
+            No routines yet — have the Planner build one above, make your own, or turn a logged workout below into one.
           </p>
         )}
         {shown.map((r) => {
@@ -2522,7 +2574,7 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                       {m.coach_rating != null ? (
                         <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-200 ring-1 ring-emerald-400/30"
                               title={m.coach_why}>
-                          Coach {m.coach_rating}/10
+                          Progress {m.coach_rating}/10
                         </span>
                       ) : (
                         <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/35 ring-1 ring-white/10"
@@ -2547,7 +2599,7 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <div className="space-y-1 rounded-lg bg-white/[0.03] p-2">
                     <p className="text-xs font-semibold text-white/70">
-                      Coach rating{m.coach_rating != null ? `: ${m.coach_rating}/10` : ": not rated yet"}
+                      Progress rating{m.coach_rating != null ? `: ${m.coach_rating}/10` : ": not rated yet"}
                     </p>
                     <p className="text-[11px] text-white/50">{m.coach_why}</p>
                     {asList(m.coach_exercises).map((e) => (
@@ -2738,7 +2790,7 @@ function BuildRoutine({ bodymap, exercises, pickable, goals, onBuildRoutine }) {
           <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40"
                   disabled={picks.length === 0}
                   onClick={() => onBuildRoutine(
-                    `Coach routine — ${goal ? goal.label : "General"} — ${new Date().toLocaleDateString()}`,
+                    `Planner routine — ${goal ? goal.label : "General"} — ${new Date().toLocaleDateString()}`,
                     picks.map((ex, i) => ({
                       exercise_id: ex.id, order: i,
                       sets: goal ? goal.sets : 3,
@@ -3077,12 +3129,12 @@ function CoachView({ coach, onOpenRoutineZ }) {
       {/* The routine builders live in RoutineZ, beside the routines they make,
           so a built routine is edited on the screen it lands on. */}
       <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={onOpenRoutineZ}>
-        <Wand2 size={13} /> Have the Coach build a routine — in RoutineZ
+        <Wand2 size={13} /> Have the Planner build a routine — in RoutineZ
       </button>
 
       {rows.length === 0 && (
         <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
-          Log a couple of sessions and Coach will have something to say.
+          Log a couple of sessions and Insights will have something to say.
         </p>
       )}
       {rows.map((row) => (
