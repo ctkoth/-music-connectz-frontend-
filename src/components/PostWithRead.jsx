@@ -129,6 +129,14 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
   const [lim, setLim] = useState(null);           // upload_mb, storage_mb, storage_used_mb
   const [price, setPrice] = useState(null);       // PostZ's own quote, in ⚡
   const [subs, setSubs] = useState(null);         // scored posts left today
+  const [buyBusy, setBuyBusy] = useState(false);
+  const [buyMsg, setBuyMsg] = useState("");
+  async function buyMore() {
+    setBuyBusy(true); setBuyMsg("");
+    try { const d = await api("/api/economy/submissions/", { method: "POST", body: {} }); setSubs(d); }
+    catch (e) { setBuyMsg(e.message || "Couldn't add more. Nothing was charged."); }
+    finally { setBuyBusy(false); }
+  }
   const [busy, setBusy] = useState("");           // "" | "upload" | "post"
   const [up, setUp] = useState(null);
   const [err, setErr] = useState("");
@@ -313,9 +321,19 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
         {storageBlocks && <p className="text-mcz-ember">{store.refusal}</p>}
         {slotsOut && (
           <p className="text-mcz-ember">
-            You've used today's {subs.cap} posts with media. It renews tomorrow.
+            You've used today's {subs.cap} posts with media. It renews tomorrow
+            {subs.buy?.packs_left > 0 ? ", or add more for today:" : "."}
           </p>
         )}
+        {/* More for today, bought with ⚡. The price is on the button; it adds to TODAY only. */}
+        {subs?.buy?.packs_left > 0 && (slotsOut || subs.remaining <= 2) && (
+          <button type="button" className="re-btn !w-auto px-3 py-1 text-xs" disabled={buyBusy || subs.buy.energy < subs.buy.cost_energy}
+                  onClick={buyMore}>
+            +{subs.buy.pack} posts today <span className="text-mcz-ember">−{subs.buy.cost_energy} {ENERGY}</span>
+            <span className="ml-1 text-white/45">(you hold {subs.buy.energy})</span>
+          </button>
+        )}
+        {buyMsg && <p className="text-[11px] text-white/55">{buyMsg}</p>}
       </div>
 
       {busy === "upload" && (

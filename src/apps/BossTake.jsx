@@ -1497,6 +1497,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 : refMode ? "Listen to this track" : "Send it to the coach"}
             </button>
             <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
+            {/* The ⚡ half for a freshly recorded take: small, and it takes what you
+                hold rather than refusing, so the coach is never gated by Energy. */}
+            {!trial && !refMode && price?.take_energy_cost > 0 && (
+              <span className="text-[11px] text-mcz-ember">
+                −{price.take_energy_cost} {ENERGY}{" "}
+                <span className="text-white/45">— or whatever you hold, if less. Never blocks a take.</span>
+              </span>
+            )}
             {!trial && !IN_SHELL_COACH && <SpeakingIn surface="coach" />}
           </div>
           {/* The cost of keeping, said before the press: storage, not credits. */}
