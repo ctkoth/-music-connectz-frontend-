@@ -460,7 +460,7 @@ export default function MixConnectZ() {
           </div>
 
           <details className="space-y-3 rounded-lg border border-white/10 p-3">
-            <summary className="cursor-pointer text-sm text-white/70">Fine-tune: EQ, width, mono bass, reference</summary>
+            <summary className="cursor-pointer text-sm text-white/70">Fine-tune: EQ, width, mono bass, Inspiration</summary>
             <label className="flex items-center gap-2 text-sm text-white/70">
               <input type="checkbox" checked={settings.eq} onChange={(e) => set("eq", e.target.checked)} />
               Corrective EQ — even out what sticks out of your mix's own balance
@@ -480,13 +480,13 @@ export default function MixConnectZ() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button className="re-btn !w-auto px-3" disabled={!!busy} onClick={() => refInput.current?.click()}>
-                {ref ? "Change reference" : "Add a reference track"}
+                {ref ? "Change Inspiration" : "✨ Inspiration: add a song to sound like"}
               </button>
               <input ref={refInput} type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.ogg" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) openReference(f); }} />
               {ref
                 ? <span className="text-xs text-white/60">{ref.name} · {fmt(ref.analysis.lufs, " LUFS")} <button className="re-link" onClick={() => { setRef(null); if (settings.target === "reference") set("target", "streaming"); }}>Remove</button></span>
-                : <span className="text-[11px] text-white/40">A finished song you want yours to sound like. Its tonal balance and loudness become the target. It never leaves your device.</span>}
+                : <span className="text-[11px] text-white/40">Inspiration: a finished song you want yours to sound like. Its tonal balance and loudness become the target. It never leaves your device.</span>}
             </div>
           </details>
 

@@ -29,6 +29,8 @@ import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
+import Inspiration from "../components/Inspiration.jsx";
+import ExtraScores, { extraFields } from "../components/ExtraScores.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
 import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 import SpeakingIn from "../components/SpeakingIn.jsx";
@@ -300,6 +302,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // a drum take has no words, and a toggle a screen cannot honour is the
   // switch that changes nothing.
   const [rateLyrics, setRateLyrics] = useState(false);
+  const [extra, setExtra] = useState({});
   // Have the coach judge the RECORDING as well as the playing. Off by default
   // for the same reason as lyrics, and one more: most takes here are a phone in
   // a bedroom, so a coach that scored production by default would be marking
@@ -915,7 +918,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // half of a feature: the control renders on both screens and only
             // one of them honours it.
             ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
-            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
+            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
+            ...extraFields(extra, price?.wit_scores) }
         : (() => {
             const f = new FormData();
             f.append("take", sendBlob, sendName);
@@ -929,6 +933,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores))) f.append(k, v);
             if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
             // private window, which the server reads as "unknown" rather than
@@ -1121,6 +1126,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </label>
       )}
 
+      {price?.rates_wit && !refMode && !trial && (
+        <ExtraScores scores={price.wit_scores} value={extra} onChange={setExtra} disabled={busy} />
+      )}
+
       {/* The other half of "score the performance, not the mix". The coach is
           told to ignore production unless this is on, so this is the only way
           to hear about it — and it stays off by default because a phone
@@ -1188,6 +1197,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </button>
             ))}
           </div>
+        )}
+        {!trial && !IN_SHELL_COACH && !refMode && price?.reference?.available && (
+          <Inspiration appKey={appKey} genre={genre} hostBlob={blob} hostName={takeName} />
         )}
         {refMode && (
           <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
@@ -1749,6 +1761,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             ...(price?.scores || {}),
             ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
             ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
+            ...Object.fromEntries((result.rated_extras || []).map((k) => [k,
+              `${price?.wit_scores?.[k] || k}${(result.counted_extras || []).includes(k) ? " · in overall" : " · beside overall"}`])),
             ...(result.hook_counted && result.hook_score != null ? { hookz: "HookZ 🪝" } : {}),
             ...(result.feelz_counted && result.feelz_score != null ? { feelz: "FeelZ 💗" } : {}),
           }).map(([k, label]) => ({
@@ -1757,7 +1771,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // The take's OWN dimensions (`rated_lyrics`, not the toggle's state now): the
             // member may have switched it since, and a row that followed a checkbox
             // would relabel a score that was never given.
-            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why : heardFor(result.heard, k),
+            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why : (heardFor(result.heard, k) || (result.rated_extras || []).includes(k) ? (heardFor(result.heard, k) || result.wit_note) : undefined),
           }))} />
 
           {result.strengths?.length > 0 && (

@@ -6,6 +6,7 @@ import CharLimit from "../CharLimit.jsx";
 import { api, apiBlob } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
+import InstrumentalInspiration from "../components/InstrumentalInspiration.jsx";
 import UseIn from "../components/UseIn.jsx";
 import RunPrice from "../components/RunPrice.jsx";
 import RunClock from "../components/RunClock.jsx";
@@ -203,6 +204,13 @@ export default function InstrumentalConnectZ() {
       {s && !s.configured && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">The composer isn't switched on yet.</p>}
 
       <div className="neon-frame space-y-4 p-4">
+        <InstrumentalInspiration info={s} onApply={(d) => {
+          if (d.genre) setGenre(d.genre);
+          setBpm(d.bpm);
+          if (d.key) setKey(d.key);
+          if (d.instruments?.length) setPicked(d.instruments);
+          if (d.brief) setBrief(cl.clamp(d.brief));
+        }} />
         <input className="neon-input w-full" maxLength={60} placeholder="Genre (boom bap, drill, R&B, lo-fi…)"
           aria-label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} />
 

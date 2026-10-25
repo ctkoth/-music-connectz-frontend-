@@ -30,7 +30,7 @@ const FALLBACK = [
   { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", built: true, in_app: true },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", built: true, in_app: false },
   { key: "facez", label: "FaceZ", icon: "facez.png", built: true, in_app: false },
-  { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", built: false, in_app: false },
+  { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", built: true, in_app: true },
 ];
 
 // What "your piece count" counts, per app — said in the app's own word.

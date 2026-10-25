@@ -224,7 +224,7 @@ const TOOLZ_MENU = {
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
       ]
     },
     {
