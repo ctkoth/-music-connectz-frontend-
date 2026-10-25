@@ -28,6 +28,7 @@
 //      the room's own list. Both halves are stated on the control, and the
 //      quote comes from the server's own `quote_for` via /quote/ so what the
 //      button says is what the booking will do.
+import Term from "../components/Term.jsx";
 import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -153,6 +154,7 @@ function Quote({ q, mine, host }) {
         {iPay
           ? "Held in CollabZ escrow, not paid outright — refunded if declined or cancelled before it starts, released after the room has run."
           : "Held in CollabZ escrow and paid to you after the room has run, unless it's disputed."}
+        {" "}<Term k="escrow">What is escrow?</Term>
       </p>
 
       {/* Per hour multiplies; an agreed total is the total however long it
@@ -328,6 +330,7 @@ function EscrowLine({ b }) {
     <p className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/45">
       {MONEY} {money(b.quoted_cents)} {ESCROW_SAID[e.status] || e.status}
       {waiting && e.auto_release_at && ` — pays out ${new Date(e.auto_release_at).toLocaleDateString()} unless disputed`}
+      <Term k="escrow">What is escrow?</Term>
       <button className="text-mcz-cyan underline" onClick={() => goToSpot("collabz", "collabz-deals")}>
         Open in CollabZ
       </button>

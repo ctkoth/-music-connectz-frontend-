@@ -1,3 +1,4 @@
+import Term from "../components/Term.jsx";
 import { useEffect, useState } from "react";
 import { StatzSampleOffer } from "../components/StatzSample.jsx";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
@@ -167,6 +168,7 @@ export default function MembershipZ() {
           </div>
         )}
         {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
+        <p className="text-[11px] text-white/45"><Term k="statz">What is StatZ?</Term></p>
         {mine === "statz" && <p className="text-[11px] text-emerald-300">You're already on StatZ — thank you! 🎉</p>}
       </div>
 
