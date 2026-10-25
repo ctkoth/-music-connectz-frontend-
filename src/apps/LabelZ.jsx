@@ -129,7 +129,7 @@ export default function LabelZ() {
               )}
             </div>
           ))}
-          {labels.length === 0 && <p className="text-sm text-white/45">No labels yet — found the first one.</p>}
+          {labels.length === 0 && <p className="text-sm text-white/45">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
         </div>
       </div>
 
@@ -154,6 +154,7 @@ export default function LabelZ() {
       {contracts && (
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">My contracts</h3>
+          {asArtist.length + asOwner.length === 0 && <p className="text-sm text-white/45">None yet — a contract a label offers you, or one your label offers, lands here to read and sign.</p>}
           {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
               <div className="flex items-start justify-between">

@@ -10,6 +10,7 @@ import { Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { IconImg } from "../App.jsx";
+import { goToSpot } from "../goto.js";
 import OfferCatalog from "./OfferCatalog.jsx";
 import { anonId } from "../track.js";
 
@@ -345,9 +346,12 @@ export default function FunnelZ() {
 
   if (!isOwner) {
     return (
-      <div className="neon-frame flex items-center gap-3 p-5 text-sm text-white/60">
-        <Lock size={18} className="shrink-0 text-white/40" />
-        Only the platform owner sees FunnelZ.
+      <div className="neon-frame space-y-3 p-5 text-sm text-white/65">
+        <p className="flex items-center gap-2 font-semibold text-white/80">
+          <Lock size={16} className="shrink-0 text-white/40" /> FunnelZ is the platform's own sign-up numbers
+        </p>
+        <p>It counts how many visitors try the free coach and how many join — it is the owner's screen, and none of it is about you. Your own numbers — who viewed your posts and links, and what they did — are in ViewZ.</p>
+        <button className="neon-btn-primary !w-auto px-5" onClick={() => goToSpot("viewz", "")}>Open my numbers in ViewZ →</button>
       </div>
     );
   }

@@ -57,6 +57,10 @@ export default function ScoreCard() {
               {d.username ? <>@{d.username}'s</> : "A"} {d.recap ? `${d.label} month` : d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
             </p>
             {d.verdict && <p className="text-white/85">“{d.verdict}”</p>}
+            {/* The performance itself, when its maker chose to let it play here. */}
+            {d.audio && (d.audio_kind === "video"
+              ? <video src={d.audio} controls playsInline preload="metadata" className="mx-auto w-full max-h-72 rounded-lg" />
+              : <audio src={d.audio} controls preload="metadata" className="mx-auto w-full" />)}
             {/* Credit to the person, and the reason behind the robot: who made it (as
                 THEY declared), what the AI scored it, and the two reasons it gave — the
                 same sentences the performer got. */}

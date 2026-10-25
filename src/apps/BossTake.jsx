@@ -16,7 +16,7 @@ import { EmailMe, ExampleCard, JoinWall, PracticeBeat } from "../components/Tria
 import { GENRE_GROUPS, GENRES } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
-import DeclareHuman, { declareHuman } from "../components/DeclareHuman.jsx";
+import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
 import { RatingGrid } from "./../components/Rating.jsx";
@@ -1169,7 +1169,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             a beat to perform over, or options for a take, would read as controls that work. */}
         {trial && !result && !busy && !blocked && (
           <div className="mt-2 space-y-2">
-            <ExampleCard example={price?.example} />
+            {/* Open by default before a take exists: the first thing a stranger should
+                be able to do is hear a real take and see what it scored, with no mic
+                prompt and no upload. */}
+            <ExampleCard example={price?.example} open={!blob} />
             {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
           </div>
         )}
@@ -1810,7 +1813,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {/* The member's score card: the coach's own score and words, minted
               by the server, with their handle as the referral code. (The
               trial page has its own share row under the result.) */}
-          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} kept={!!result.kept} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
           {!trial && !IN_SHELL_COACH && <BeatItTomorrow appKey={appKey} result={result} price={price} />}
           {!IN_SHELL_COACH && !result.reference && <PostWithRead result={result} blob={blob} appKey={appKey} trial={trial} isVideo={isVideo} takeName={takeName} genre={genre} />}
 
@@ -2008,7 +2011,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
 
 /** Share the score card. Counts nothing on a cancel — a share sheet somebody
  *  backed out of is not a share. */
-function ShareScore({ url, score, exact, extras }) {
+function ShareScore({ url, score, exact, extras, kept = false }) {
   const [msg, setMsg] = useState("");
   const [per, setPer] = useState(null);     // referral reward, the server's number
   useEffect(() => {
@@ -2016,10 +2019,15 @@ function ShareScore({ url, score, exact, extras }) {
   }, []);
   const shown = exact != null ? Number(exact).toFixed(1) : score;
   const [human, setHuman] = useState(false);
+  const [play, setPlay] = useState(false);
   const go = async () => {
     // The declaration goes first, so the card the follower opens already says it
     // (or, unticked, makes no claim about who made it).
     try { await declareHuman(url, human); } catch { /* the share still goes out, without the claim */ }
+    if (kept) {
+      try { await playOnCard(url, play); }
+      catch (e) { setMsg(e.message || "The card will show the score without the recording."); }
+    }
     const how = await shareLink({ text: shareText({ score, exact, extras }), url });
     if (how === "shared") setMsg("Shared.");
     else if (how === "copied") setMsg("Copied — paste it anywhere.");
@@ -2027,6 +2035,7 @@ function ShareScore({ url, score, exact, extras }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>
+      {kept && <div className="basis-full"><PlayOnCard checked={play} onChange={setPlay} /></div>}
       <button type="button" onClick={go}
               className="inline-flex items-center gap-1.5 rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-xs text-mcz-cyan hover:bg-mcz-cyan/10">
         <Share2 size={13} /> Share your {shown}/10

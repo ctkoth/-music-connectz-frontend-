@@ -77,7 +77,7 @@ export default function LessonZ() {
       </div>
 
       {view === "posts" && <Posts />}
-      {view === "browse" && <Browse />}
+      {view === "browse" && <Browse setView={setView} />}
       {view === "teach" && (<div className="space-y-5"><MyListings /><Teach /><PostForm /></div>)}
       {view === "bookings" && <Bookings />}
       {view === "train" && <SkillZPanel basePath="/api/lessonz" accent="#ffcf3f" />}
@@ -86,12 +86,13 @@ export default function LessonZ() {
 }
 
 /* ---------------------------------------------------------------- Browse */
-function Browse() {
+function Browse({ setView }) {
   const [filters, setFilters] = useState({ skill: "", max_price: "", max_km: "", remote: false });
   const [coords, setCoords] = useState(null);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [gated, setGated] = useState(false);
   const [hours, setHours] = useState({});
   const [methods, setMethods] = useState({});
   const [showMap, setShowMap] = useState(false);
@@ -114,6 +115,7 @@ function Browse() {
       }
       setOffers(asList(await api(`/api/lessonz/offers/?${p.toString()}`)));
     } catch (e) {
+      if (e.status === 403) setGated(true);
       setMsg(e.message);
     } finally {
       setLoading(false);
@@ -215,6 +217,9 @@ function Browse() {
       </div>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
+      {gated && (
+        <button className="neon-btn-primary !w-auto px-5" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ →</button>
+      )}
       {wallet && (
         <div className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">
           Your balance: <span className="text-emerald-300">💵 ${(wallet.money_cents / 100).toFixed(2)}</span>
@@ -274,8 +279,8 @@ function Browse() {
             </div>
           </div>
         ))}
-        {!loading && offers.length === 0 && (
-          <p className="text-sm text-white/45">No lessons match — widen the filters or be the first to teach.</p>
+        {!loading && !gated && offers.length === 0 && (
+          <Empty text="No lessons match — widen the filters, or be the first to teach one." action="Teach a lesson" onAction={() => setView?.("teach")} />
         )}
       </div>
     </div>

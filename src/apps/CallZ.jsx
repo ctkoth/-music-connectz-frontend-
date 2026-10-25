@@ -21,6 +21,7 @@ import { onHandoff } from "../handoff.js";
 import { Loader2, Phone, PhoneOff, PhoneIncoming, Mic, MicOff, AlertTriangle } from "lucide-react";
 
 import { api } from "../api.js";
+import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { playSound } from "../sound.js";
@@ -229,6 +230,13 @@ export default function CallZ() {
   return (
     <div className="space-y-4">
       <audio ref={remoteAudio} autoPlay />
+      <header className="flex items-center gap-3">
+        <IconImg icon="callz.png" alt="CallZ" className="h-11 w-11 rounded-xl" />
+        <div>
+          <h2 className="font-display text-xl font-extrabold">CallZ</h2>
+          <p className="text-sm text-white/60">A live 1:1 voice call with another member. Their per-minute rate, your balance and the minutes it buys are shown before anything rings.</p>
+        </div>
+      </header>
 
       {err && (
         <p className="re-card flex items-start gap-2 text-sm text-mcz-ember">

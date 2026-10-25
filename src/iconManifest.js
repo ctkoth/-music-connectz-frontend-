@@ -1582,6 +1582,34 @@ export const ICON_TREE = [
     "children": []
   },
   {
+    "parent": "what",
+    "label": "What",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "i.do",
+        "label": "I.do",
+        "file": "what.i.do.jpg",
+        "art": "/icons/what.i.do.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "i.need",
+        "label": "I.need",
+        "file": "what.i.need.jpg",
+        "art": "/icons/what.i.need.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
+  },
+  {
     "parent": "whatineedz",
     "label": "WhatineedZ",
     "root": {
