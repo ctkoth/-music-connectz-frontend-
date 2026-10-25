@@ -28,6 +28,7 @@ import { track, anonId } from "../track.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import PostWithRead from "../components/PostWithRead.jsx";
 import HeardList from "../components/HeardList.jsx";
+import Inspiration from "../components/Inspiration.jsx";
 import CoachUpgrades from "../components/CoachUpgrades.jsx";
 import { FeelzTips, MixTips } from "../components/FeelTips.jsx";
 import SpeakingIn from "../components/SpeakingIn.jsx";
@@ -1254,6 +1255,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </button>
             ))}
           </div>
+        )}
+        {!trial && !IN_SHELL_COACH && !refMode && price?.reference?.available && (
+          <Inspiration appKey={appKey} genre={genre} hostBlob={blob} hostName={takeName} />
         )}
         {refMode && (
           <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
