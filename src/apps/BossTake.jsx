@@ -4,6 +4,7 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import SocialBar from "../components/SocialBar.jsx";
 import SendTo from "../components/SendTo.jsx";
 import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
 import { ENERGY } from "../resources.js";
@@ -1933,6 +1934,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                       ...(result.kept_upload_id ? { upload_id: result.kept_upload_id } : {}),
                       ...(result.kept_url ? { [isVideo ? "video_url" : "audio_url"]: result.kept_url, url: result.kept_url } : {}),
                     }} />
+          )}
+          {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && (
+            <SocialBar item={`score:${result.share_url.replace(/^\/s\//, "")}`} canRate={false} compact />
           )}
           {!trial && !IN_SHELL_COACH && !result.reference && result.share_url && <ShareScore url={result.share_url} score={result.score} exact={result.score_exact} extras={[result.hook_score != null && { label: "HookZ", value: result.hook_score }, result.feelz_score != null && { label: "FeelZ", value: result.feelz_score }].filter(Boolean)} />}
           {!trial && !IN_SHELL_COACH && <BeatItTomorrow appKey={appKey} result={result} price={price} />}

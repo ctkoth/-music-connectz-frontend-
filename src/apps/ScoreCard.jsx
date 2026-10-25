@@ -2,6 +2,7 @@
 // where their followers land. It shows exactly what the coach said (the
 // server's record, never a number from a URL) and offers the same thing free,
 // with the sharer's handle carried as the referral code.
+import SocialBar from "../components/SocialBar.jsx";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -57,6 +58,8 @@ export default function ScoreCard() {
               {d.username ? <>@{d.username}'s</> : "A"} {d.recap ? `${d.label} month` : d.progress ? `${d.label} glow-up` : `${d.label} take`}{d.genre ? ` · ${d.genre}` : ""}, {d.progress ? "measured" : "scored"} by the AI coach
             </p>
             {d.verdict && <p className="text-white/85">“{d.verdict}”</p>}
+            {/* Members can like, rate and comment on somebody's take, from its card. */}
+            {member && <div className="pt-2 text-left"><SocialBar item={`score:${token}`} canRate={d.username !== user?.username} compact /></div>}
             {/* Credit to the person, and the reason behind the robot: who made it (as
                 THEY declared), what the AI scored it, and the two reasons it gave — the
                 same sentences the performer got. */}

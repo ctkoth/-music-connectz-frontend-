@@ -1,3 +1,4 @@
+import SocialBar from "./SocialBar.jsx";
 import { Price } from "./Price.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -174,6 +175,9 @@ function Row({ t, labels, appKey }) {
                     </span>
                   )}
                   {e.kind === "share" && shareMsg && <span className="text-[11px] text-emerald-300">{shareMsg}</span>}
+                  {e.kind === "share" && shareUrl && (
+                    <div className="basis-full pt-1"><SocialBar item={`score:${shareUrl.replace(/^\/s\//, "")}`} canRate={false} compact /></div>
+                  )}
                   {e.kind === "promo" && promoBusy && promoFor === e.promo_kind && <span className="text-[11px] text-white/50">Writing…</span>}
                   {e.kind === "promo" && promoMsg && promoFor === e.promo_kind && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
                   {e.kind === "promo" && promo && e.promo_kind === promoFor && <PromoPost key={`${promo.id}-${promoFor}`} promo={promo} onClose={() => setPromo(null)} />}
