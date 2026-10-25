@@ -59,6 +59,8 @@ import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import PromoPost from "../components/PromoPost.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
+import { IN_SHELL } from "../standalone.js";
+import { AICoachView, AskAI, BodieZAIProvider } from "../components/BodieZAI.jsx";
 
 const UnitCtx = createContext("kg");
 const useUnit = () => useContext(UnitCtx);
@@ -133,7 +135,14 @@ const TABS = [
   { key: "recovery", label: "Recovery" },
   { key: "progress", label: "Progress" },
   { key: "stepz", label: "StepZ" },
+  // The AI coach sends workout logs and videos to Google for the read, which the
+  // standalone BodieZ app's Play listing and data-safety answers do not cover, so
+  // the shell never offers it (nothing mounts the provider there, and every AskAI
+  // renders nothing without it).
+  ...(IN_SHELL ? [] : [{ key: "ai", label: "AI coach" }]),
 ];
+
+const MaybeAI = ({ children }) => (IN_SHELL ? children : <BodieZAIProvider>{children}</BodieZAIProvider>);
 
 export default function BodieZ() {
   const [tab, setTab] = useState("today");
@@ -525,6 +534,7 @@ export default function BodieZ() {
   return (
     <UnitCtx.Provider value={unit}>
     <ExerciseCtx.Provider value={{ create: createExercise }}>
+    <MaybeAI>
     <div className="space-y-5">
       <header className="flex items-center gap-3">
         <IconImg icon="bodiez.png" alt="BodieZ" className="h-11 w-11 rounded-xl" />
@@ -615,9 +625,11 @@ export default function BodieZ() {
           {tab === "recovery" && <RecoveryView recovery={recovery} onLog={logRecovery} />}
           {tab === "progress" && <ProgressView progress={progress} />}
           {tab === "stepz" && <StepZView steps={steps} stepCoach={stepCoach} bodymap={bodymap} onLogSteps={logSteps} />}
+          {tab === "ai" && !IN_SHELL && <AICoachView exercises={exercises} />}
         </>
       )}
     </div>
+    </MaybeAI>
     </ExerciseCtx.Provider>
     </UnitCtx.Provider>
   );
@@ -2156,6 +2168,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                     </p>
                   )}
                   <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
+                  <AskAI scope="routine" id={r.id} disabled={items.length === 0} />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
@@ -2272,6 +2285,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
               {writingSession === h.id && (
                 <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingSession(null)} />
               )}
+              <AskAI scope="session" id={h.id} disabled={sets.length === 0} />
             </div>
           );
         })}
@@ -2593,6 +2607,7 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                       </p>
                     ))}
                     <p className="text-[10px] text-white/30">{bodymap.rating_caveat}</p>
+                    {m.coach_rating != null && <AskAI scope="muscle" id={m.muscle_group} />}
                   </div>
                   <p className="text-[11px] text-white/35">
                     Score = {m.sets_last_7d} set{m.sets_last_7d === 1 ? "" : "s"} logged this week ÷{" "}
