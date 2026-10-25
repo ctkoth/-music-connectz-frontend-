@@ -81,6 +81,9 @@ export default function TrialTake() {
   const [shared, setShared] = useState("");
   // The take's claim token and the server's email offer, for RetakeRemind.
   const [remind, setRemind] = useState(null);
+  // The server's own sentence for how long a trial take waits to be claimed
+  // ("Sign up within N days…") — the join card used to type "30 days" itself.
+  const [claimHint, setClaimHint] = useState("");
   const [bossTakeReady, setBossTakeReady] = useState(false);
   const [stats, setStats] = useState(null);
   const [tiers, setTiers] = useState(null);
@@ -126,6 +129,8 @@ export default function TrialTake() {
   // the door it actually opened rather than as one that does not exist.
   useEffect(() => { if (doorsLoaded) track("try_view", { app_key: app }); }, [app, doorsLoaded]);
 
+  const freeDaily = Number(tiers?.find?.((t) => t.key === "free")?.daily_prompts) || 0;
+
   function keep(result) {
     if (!result) return;
     // The token and the score are separate things. Gating on the token meant
@@ -140,6 +145,7 @@ export default function TrialTake() {
       }
     }
     if (result.score != null) setScore(result.score);
+    if (result.claim_hint) setClaimHint(result.claim_hint);
     if (typeof result.score_exact === "number") setExact(result.score_exact);
     if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
     if (result.remind && result.claim_token) setRemind({ ...result.remind, token: result.claim_token });
@@ -261,8 +267,12 @@ export default function TrialTake() {
       {scored && (
         <>
           <div className="mt-4 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
-            <p className="mb-3 text-white/85">
-              Save this score and get your personalized drill. Create your free account in the next 30 days to keep your takes and track progress.
+            {/* The reason to join, right where the score is: this take kept, and the
+                daily number of scored takes an account gives — both the server's. */}
+            <p className="mb-1 font-display text-base font-bold text-white">Keep this score — the account is free.</p>
+            <p className="mb-3 text-white/80">
+              {claimHint || "Join and this take is saved to your account."}
+              {freeDaily > 0 && <> You also get <span className="font-semibold text-emerald-300">{freeDaily} scored takes every day</span> from the same coach, and your drill and progress.</>}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Link to="/register" className="re-btn !w-auto px-5">

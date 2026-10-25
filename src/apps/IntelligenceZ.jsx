@@ -223,8 +223,13 @@ export default function IntelligenceZ() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {apps.map((a) => <AppCard key={a.key} app={a} daily={daily} priced={!!served} />)}
+        {apps.filter((a) => a.built !== false).map((a) => <AppCard key={a.key} app={a} daily={daily} priced={!!served} />)}
       </div>
+      {apps.some((a) => a.built === false) && (
+        <p className="text-xs text-white/45">
+          Still being built, so not offered yet: {apps.filter((a) => a.built === false).map((a) => a.label || a.key).join(", ")}.
+        </p>
+      )}
 
       {recent.length > 0 && (
         <section className="space-y-2" aria-labelledby="iz-recent" data-tour="iz-recent">

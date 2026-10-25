@@ -481,11 +481,15 @@ export default function ToolZMenu() {
       {FOCUS_MODE && (
         <div role="tablist" aria-label="How to find an app" className="toolz-lens"
              style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
-          {[['instrument', 'By instrument'], ['need', 'By what you need']].map(([k, text]) => (
-            <button key={k} role="tab" aria-selected={lens === k}
+          {/* Corey's art carries the words, so the alt text says them too. */}
+          {[['instrument', 'By what I do', '/icons/what.i.do.jpg'],
+            ['need', 'By what I need', '/icons/what.i.need.jpg']].map(([k, text, art]) => (
+            <button key={k} role="tab" aria-selected={lens === k} aria-label={text} title={text}
               className={`category-card ${lens === k ? 'cyan' : ''}`}
-              style={{ padding: '6px 14px', opacity: lens === k ? 1 : 0.6 }}
-              onClick={() => pickLens(k)}>{text}</button>
+              style={{ padding: 4, opacity: lens === k ? 1 : 0.55, width: 'min(42vw, 190px)' }}
+              onClick={() => pickLens(k)}>
+              <img src={art} alt={text} style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 10, display: 'block' }} />
+            </button>
           ))}
         </div>
       )}

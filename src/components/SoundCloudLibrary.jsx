@@ -2,7 +2,7 @@ import { Price } from "./Price.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
-import { LAST } from "../SoundCloudImport.jsx";
+import SoundCloudImport, { LAST } from "../SoundCloudImport.jsx";
 import { ENERGY } from "../resources.js";
 import {
   LABEL, VISIBILITIES, alreadyAt, canApply, chunk, countsLine, mergeResults, orderedIds,
@@ -82,10 +82,9 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const c = data.counts;
   if (!c.total) {
     return (
-      <>{card}<p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-white/45">
-        No SoundCloud tracks imported yet. Importing (from your profile) adds each track as a private
-        draft only you can see; you choose here which ones go public, restricted or stay private.
-      </p></>
+      // The import itself, right here: this said "Importing (from your profile)" with
+      // no button, so the one screen a member looks for it on was a dead end.
+      <>{card}<SoundCloudImport /></>
     );
   }
 
@@ -137,6 +136,10 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Your SoundCloud tracks</p>
       <p className="text-sm text-white/70">{countsLine(c)}{c.private_on_sc ? ` · ${c.private_on_sc} private on SoundCloud` : ""}</p>
+      <details className="text-[11px] text-white/55">
+        <summary className="cursor-pointer text-mcz-cyan">Import more from SoundCloud</summary>
+        <div className="pt-2"><SoundCloudImport compact /></div>
+      </details>
 
       <ul className="space-y-1 text-[11px] leading-relaxed text-white/50">
         {VISIBILITIES.map((v) => <li key={v}><strong className="text-white/70">{LABEL[v]}</strong>: {data.explain[v]}</li>)}
