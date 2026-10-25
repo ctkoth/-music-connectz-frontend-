@@ -1,3 +1,4 @@
+import Term from "./Term.jsx";
 import { useEffect, useState } from "react";
 import { Zap, Music, X, Loader2, Bell, Globe, Volume2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -87,7 +88,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           </div>
 
           <div className="space-y-3 text-sm text-white/75">
-            <p>Practice daily → earn <span className="text-emerald-300">⚡ Energy</span> + <span className="text-mcz-gold">⭐ XP</span></p>
+            <p>Practice daily → earn <span className="text-emerald-300">⚡ <Term k="energy">Energy</Term></span> + <span className="text-mcz-gold">⭐ XP</span></p>
             <p>Set your habit now, and you're ready to track progress from day one.</p>
           </div>
 
