@@ -1849,7 +1849,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // The take's OWN dimensions (`rated_lyrics`, not the toggle's state now): the
             // member may have switched it since, and a row that followed a checkbox
             // would relabel a score that was never given.
-            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why : heardFor(result.heard, k),
+            // Every scored skill's own reason and tip, when the coach gave them; otherwise
+            // the strongest moment it filed under that skill, as before.
+            detail: k === "hookz" ? result.hook_why : k === "feelz" ? result.feelz_why
+              : result.score_notes?.[k]
+                ? <>{result.score_notes[k].why}{result.score_notes[k].tip && <span className="block text-mcz-cyan/80">→ {result.score_notes[k].tip}</span>}</>
+                : heardFor(result.heard, k),
           }))} />
 
           {result.strengths?.length > 0 && (
