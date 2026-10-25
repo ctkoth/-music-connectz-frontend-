@@ -22,6 +22,7 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import SendTo from "../components/SendTo.jsx";
 import { Gain } from "../components/Price.jsx";
 import { useInViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
@@ -1146,6 +1147,12 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
       {showOpen && (
         <OpenIn post={post} busy={!!opening} onGo={openIn} />
+      )}
+      {showOpen && (
+        <SendTo from="postz" kind="post" label="Any app…"
+                item={{ kind: "post", post_id: post.id, title: post.title, text: post.description || "",
+                        description: post.description || "",
+                        ...(post.media_url ? { url: post.media_url } : {}) }} />
       )}
 
       {/* What the coach said, kept on the post that was coached — as much of it

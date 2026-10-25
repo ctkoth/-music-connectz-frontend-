@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Handshake, Link2, MessageSquare, Mic2, Pencil, Send, Check } from "lucide-react";
 import { api } from "../api.js";
 import { handOff } from "../handoff.js";
+import SendTo from "./SendTo.jsx";
 
 let doorsCache = null;
 function useCoaches(on) {
@@ -82,6 +83,13 @@ export default function Doors({ item, className = "", noPost = false }) {
       {item.onEdit && (
         <button type="button" className={btn} onClick={item.onEdit}><Pencil size={12} /> Edit</button>
       )}
+      {/* Every other app, in the member's order (best fit, A-Z, last or most used). */}
+      <div className="basis-full pt-1">
+        <SendTo kind={item.kind} label="Any app…" from={item.from || ""}
+                item={{ ...carry, text: [item.text, url].filter(Boolean).join("\n\n"), url: item.url || "",
+                        ...(uploadId ? { upload_id: uploadId, kind: "upload" } : {}),
+                        ...(item.postId ? { post_id: item.postId, kind: "post" } : {}) }} />
+      </div>
       {coachOpen && (
         <div className="basis-full space-y-1 pt-1">
           <p className="text-[11px] text-white/50">Which coach? The price is on the coach's own Send button.</p>

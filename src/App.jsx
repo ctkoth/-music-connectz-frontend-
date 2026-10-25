@@ -615,6 +615,11 @@ const TABS = [
   { key: "iconz", label: "IconZ", icon: "logo.png", el: <IconZ /> },
 ];
 
+// Key, label and icon of every tab, for screens that list apps (SendTo) without
+// needing the elements. Derived, so it can never miss a tab.
+export const tabIndex = () => TABS.map(({ key, label, icon }) => ({ key, label, icon }));
+
+
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
