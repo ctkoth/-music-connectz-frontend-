@@ -8,6 +8,7 @@ import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
 import SpeakingIn from "../components/SpeakingIn.jsx";
+import SentenceInspiration from "../components/SentenceInspiration.jsx";
 import UseIn from "../components/UseIn.jsx";
 import RunPrice from "../components/RunPrice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
@@ -306,6 +307,10 @@ export default function SentenceConnectZ() {
           <>
             <VoiceNote kind={current} />
             {!IN_SHELL && current?.takes_voice && <SpeakingIn surface="writer" />}
+            {!IN_SHELL && (current?.fixer || ["lyrics", "poem"].includes(kind)) && (
+              <SentenceInspiration info={s} kind={kind} label={current?.label || kind}
+                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)} />
+            )}
             <textarea
               className="neon-input min-h-28 w-full"
               aria-label="What to write about"
