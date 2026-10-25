@@ -196,6 +196,7 @@ export const PERSONA_SKILLS = {
     "Design Skills": {
       any_design_skill: "Any Design Skill 🎨",
       graphic_design: "Graphic Design 🖌️",
+      cover_art_design: "Cover Art Design 💿",
       composition: "Composition & Layout 📐",
       color_theory: "Color Theory 🌈",
       typography: "Typography 🔤",
