@@ -135,7 +135,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
       </p>
       {s.coach && (
         <p className="text-[10px] text-mcz-cyan/80">
-          Includes the AI coach's reading of {s.coach.takes} {s.coach.takes === 1 ? "take" : "takes"} ({s.coach.median}/10) —
+          Includes the <Term k="ai_coach">AI coach</Term>'s reading of {s.coach.takes} {s.coach.takes === 1 ? "take" : "takes"} ({s.coach.median}/10) —
           this member opted in; the judges still decide who qualifies.
         </p>
       )}

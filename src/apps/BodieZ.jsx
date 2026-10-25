@@ -36,6 +36,7 @@
 // Deliberately not built yet: Nutrition, Community, and any XP/streak
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
+import Term from "../components/Term.jsx";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
@@ -796,7 +797,7 @@ function AICoachRead({ sessionId }) {
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
       {text && (
         <div className="rounded-lg border border-white/10 bg-black/30 p-3 space-y-2">
-          <p className="re-label">AI coach</p>
+          <p className="re-label"><Term k="ai_coach">AI coach</Term></p>
           <p className="whitespace-pre-wrap text-sm text-white/85">{text}</p>
           <CoachVoice text={text} />
         </div>
