@@ -388,6 +388,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // file is gone, and the send button must not be the thing that discovers it.
   const [takeGone, setTakeGone] = useState(false);
   const [blob, setBlob] = useState(null);
+  // A pasted link: YouTube (the model reads it by URL) or a direct file. Streaming
+  // services are refused by the server with its own sentence, shown as it came.
+  const [linkUrl, setLinkUrl] = useState("");
   // Video takes are scored on delivery and breath as well as sound, so the
   // preview has to be a <video> or the member can't check what they sent.
   const [isVideo, setIsVideo] = useState(false);
@@ -943,7 +946,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   }
 
   async function submit() {
-    if (!blob && !(fromPost && !refMode)) return;
+    const byLink = !blob && !fromPost && !refMode && !trial && linkUrl.trim();
+    if (!blob && !(fromPost && !refMode) && !byLink) return;
     // An empty file is a round trip that can only fail, and on the trial door
     // it costs the visitor the one free take they came for. The recorder
     // refuses to attach a 0-byte take now; this catches the same shape
@@ -972,7 +976,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // the same file a second time to have it coached is the dead end this
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
-      const body = fromPost && !refMode
+      const body = byLink
+        ? { media_url: linkUrl.trim(), genre, range, difficulty, ...(style ? { style } : {}),
+            ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
+            ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}) }
+        : fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
               : fromPost.kind === "upload"
@@ -1452,6 +1460,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         )}
       </div>
+      {!trial && !refMode && !IN_SHELL_COACH && !blob && !fromPost && !recording && !blocked && (
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <input className="neon-input !py-2 min-w-0 flex-1 text-xs" type="url" inputMode="url"
+                   aria-label="Link to a take" placeholder="…or paste a link (YouTube, or a direct audio/video file)"
+                   value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+            <button className="neon-btn-primary !w-auto px-4" onClick={submit} disabled={busy || !linkUrl.trim()}>
+              {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />} Score this link
+            </button>
+            <Cost price={price} trial={trial} />
+          </div>
+          <p className="text-[11px] text-white/40">
+            Spotify, Apple Music and SoundCloud don't give apps the audio, so those links can't be scored.
+            A link is scored, never kept. A run that fails isn't charged.
+          </p>
+        </div>
+      )}
       {trial && !blocked && !blob && !recording && (
         <p className="text-[11px] text-white/40">
           Eight seconds is enough to score. A voice note you already have works —
