@@ -1,3 +1,4 @@
+import Term from "../components/Term.jsx";
 import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
 import { trackListening } from "../listen.js";
@@ -51,6 +52,8 @@ function Dashboard({ d }) {
   const kinds = Object.fromEntries((d.kinds || []).map((k) => [k.key, k]));
   const a = d.attractiveness || {};
   return (
+    <>
+    <p className="mb-2 text-[11px] text-white/45">Every number here is a <Term k="median">median</Term>.</p>
     <div className="grid gap-3 md:grid-cols-2">
       <KindCard kind={kinds.post} value={fmt(d.post.median)} count={null}>
         <p className="text-[11px] text-white/45">{d.post.rated} of {d.post.total} posts rated</p>
@@ -98,6 +101,7 @@ function Dashboard({ d }) {
           : a.note && <p className="text-[11px] text-white/45">{a.note}</p>}
       </KindCard>
     </div>
+    </>
   );
 }
 

@@ -12,6 +12,7 @@
 // screen shows both halves in cents on every plan, before one is picked —
 // what it takes, and what lands. Picking the expensive plan should be a
 // decision, never a discovery.
+import Term from "../components/Term.jsx";
 import Empty from "../components/Empty.jsx";
 import { celebrate } from "../celebrate.js";
 import { useEffect, useState } from "react";
@@ -104,7 +105,7 @@ export default function RoyaltieZ() {
   return (
     <div className="space-y-4">
       <div className="re-card space-y-1">
-        <p className="re-label">Royalty balance</p>
+        <p className="re-label"><Term k="royalty">Royalty</Term> balance</p>
         <p className="font-display text-3xl font-extrabold text-emerald-300">
           {usd(gross)} <span className="text-2xl">{MONEY}</span>
         </p>

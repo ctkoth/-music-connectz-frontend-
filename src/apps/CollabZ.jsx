@@ -13,6 +13,7 @@
 //
 // Every money figure is stated BEFORE the button that moves it, per the
 // cost/gain rule — a price you discover by paying it is a bill.
+import Term from "../components/Term.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import PartnerzMark from "../components/PartnerzMark.jsx";
 import { celebratePartnerz } from "../milestones.js";
@@ -74,10 +75,10 @@ function EscrowWindow({ deal }) {
     <p className="text-[11px] text-white/50">
       <Clock size={11} className="mr-1 inline align-[-1px]" />
       Releases itself {days} day{days === 1 ? "" : "s"} after it's funded unless
-      somebody disputes it.
+      somebody <Term k="dispute">disputes</Term> it. <Term k="escrow">What is escrow?</Term>
       {deal.auto_release_partnerz && base > days && (
         <span className="text-emerald-300">
-          {" "}PartnerZ — {base - days} days sooner than usual, because you've
+          {" "}<Term k="partnerz">PartnerZ</Term> — {base - days} days sooner than usual, because you've
           finished work together before.
         </span>
       )}
@@ -471,7 +472,7 @@ export default function CollabZ() {
         <div>
           <h2 className="font-display text-3xl font-extrabold" style={{ color: "#facc15" }}>CollabZ</h2>
           <p className="text-sm text-white/60">
-            PostZ is for show. This is where it becomes work — escrowed, so a stranger can take the first deal.
+            PostZ is for show. This is where it becomes work — <Term k="escrow">escrowed</Term>, so a stranger can take the first deal.
           </p>
         </div>
       </header>
@@ -513,7 +514,7 @@ export default function CollabZ() {
 <UsualHint field="collabz.currency" value={form.currency} onUse={(v) => { remember("collabz.currency", v); setForm({ ...form, currency: v }); }} />
           <p className="text-[11px] text-white/45 sm:col-span-2">
             {form.currency === "spinaz"
-              ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash.`
+              ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash. (Escrow: money held by the platform until the work is delivered and released.)`
               : `Each payer's share is held in escrow in real cash ${MONEY} from their balance.`}
             {" "}A payer can cancel for a refund of what they funded before the work is delivered, or while a dispute is open.
           </p>
