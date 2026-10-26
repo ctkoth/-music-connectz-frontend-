@@ -562,3 +562,20 @@ export function skillDuration(skill) {
   const y = Math.floor(months / 12), m = months % 12;
   return m ? `${n(y, "year")} ${n(m, "month")}` : n(y, "year");
 }
+
+// What a skill's price is PER. The server stores "hour" (the default, never written) or "work".
+// Studio time is hourly — producing, recording, mixing, mastering, engineering — and that is
+// what CollabZ-style work is bought by; a finished piece (a verse, a cover, a hook) is per work.
+// This only SUGGESTS the unit when a price is first set: the member's choice is what is stored,
+// and a price that already exists keeps the unit it has (no unit means hourly).
+const HOURLY_PERSONAS = new Set(["producer", "mixengineer"]);
+const HOURLY_SKILL = /mix|master|record|engineer|produc/i;
+export function suggestedRateUnit(personaKey, skillKey) {
+  return HOURLY_PERSONAS.has(personaKey) || HOURLY_SKILL.test(String(skillKey || "")) ? "hour" : "work";
+}
+export const rateUnitOf = (skill) => (skill && skill.rate_unit === "work" ? "work" : "hour");
+export const rateUnitWord = (unit) => (unit === "work" ? "per work" : "per hour");
+// "Mixing 50 · per hour": the unit beside a quoted skill price, never assumed.
+export function skillQuoteLine(l, label) {
+  return `${label} ${l.cents}${l.unit ? ` (${rateUnitWord(l.unit)})` : ""}`;
+}

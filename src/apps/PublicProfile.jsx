@@ -107,7 +107,7 @@ export default function PublicProfile() {
                   <span key={j} className="pill">
                     {s.name}
                     {s.rate_cents ? (
-                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/hr</span>
+                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/{s.rate_unit === "work" ? "work" : "hr"}</span>
                     ) : null}
                   </span>
                 ))}
