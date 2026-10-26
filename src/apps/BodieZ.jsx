@@ -1010,10 +1010,10 @@ function fireRestNotification(next) {
   } catch { /* a notification is a nicety */ }
 }
 
-function RestAlertsControl({ prefs }) {
+function RestAlertsControl({ prefs, bare = false }) {
   const wakeOk = typeof navigator !== "undefined" && "wakeLock" in navigator;
   return (
-    <div className="re-card space-y-1.5" data-tour="bodiez-rest-alerts">
+    <div className={bare ? "space-y-1.5" : "re-card space-y-1.5"} data-tour="bodiez-rest-alerts">
       <p className="re-label flex items-center gap-1.5"><BellRing size={13} /> Rest alerts</p>
       {prefs.allowed ? (
         <>
@@ -1073,6 +1073,7 @@ function RestTimer({ sets, goals, routineGoal, plan = null, hold = "", nextName 
   const target = planOn && plan ? plan.seconds : goal?.rest_seconds || custom;
   const [alerted, setAlerted] = useState(null);
   const [beepOn, setBeepOn] = useState(restSoundOn);
+  const [open, setOpen] = useState(false);   // goal / preset / beep / alerts live behind one "Change"
   // "played" | "locked" | "off" | "unsupported" — what the last beep actually did,
   // so a phone that has not been tapped yet says so instead of failing silently.
   const [beep, setBeep] = useState("");
@@ -1104,6 +1105,9 @@ function RestTimer({ sets, goals, routineGoal, plan = null, hold = "", nextName 
   const pct = last ? Math.min(100, (elapsed / target) * 100) : 0;
   const toggleSound = (on) => { setBeepOn(on); setRestSoundOn(on); if (!on) setBeep("off"); };
   const testBeep = () => { unlockAudio(); setTimeout(() => setBeep(playNewSetBeep()), 60); };
+  // What the recommendation is FOR, in the member's words: a routine's goal by name
+  // ("Muscle gain"), otherwise the intensity its reps imply ("heavy work").
+  const recFor = plan ? (plan.basis === "goal" ? plan.label : `${plan.label.toLowerCase()} work`) : "";
 
   return (
     <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`} data-tour="bodiez-rest-timer">
@@ -1121,56 +1125,65 @@ function RestTimer({ sets, goals, routineGoal, plan = null, hold = "", nextName 
           Rested — start your next set{nextName ? `: ${nextName}` : ""}.
         </p>
       )}
-      {(plan || goalList.length > 0) && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-white/40">
-            {plan ? "Set by your plan:" : routineGoal && goalKey === routineGoal ? "This routine's goal:" : "Recommended for:"}
-          </span>
-          {plan && (
-            <button onClick={() => setPlanOn(true)}
-                    className={`pill !py-1 text-[11px] ${planOn ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
-              {plan.label} · {clock(plan.seconds)}
+      <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-white/50">
+        {plan && planOn && <span>Recommended for <span className="text-fuchsia-300">{recFor}</span>: {clock(plan.seconds)}</span>}
+        {plan && !planOn && (
+          <>
+            <span>Using your {clock(target)}.</span>
+            <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setPlanOn(true)}>
+              Back to the recommended {clock(plan.seconds)}
             </button>
-          )}
-          {goalList.map(([k, g]) => (
-            <button key={k} onClick={() => pickGoal(k)}
-                    className={`pill !py-1 text-[11px] ${!planOn && k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
-              {g.label} · {clock(g.rest_seconds)}
-            </button>
-          ))}
-        </div>
-      )}
-      {planOn && plan && <p className="text-[11px] text-white/45">{plan.why} It is a target you can change below.</p>}
-      {goal && (
-        <p className="text-[11px] text-white/45">
-          {goal.label}: {goal.sets} sets of {goal.reps_low}-{goal.reps_high}, {clock(goal.rest_seconds)} rest. {goal.why}
+          </>
+        )}
+        {!plan && <span>Rest target {clock(target)} — no plan to recommend from.</span>}
+        <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setOpen(!open)}>
+          {open ? "Done" : "Change"}
+        </button>
+      </p>
+      {beepOn && beep === "locked" && (
+        <p className="text-[11px] text-mcz-ember">
+          Your phone is holding the beep back — tap anywhere on this screen once, then use Test the beep.
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-white/40">Or:</span>
-        {REST_PRESETS.map((t) => (
-          <button key={t} onClick={() => pick(t)}
-                  className={`pill !py-1 text-[11px] ${!planOn && !goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
-            {clock(t)}
-          </button>
-        ))}
-        <span className="text-[11px] text-white/40">
-          {done ? "" : last ? "Logging your next set saves this rest." : "Log a set and this starts counting."}
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 border-t border-white/5 pt-2">
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
-          <input type="checkbox" checked={beepOn} onChange={(e) => toggleSound(e.target.checked)} />
-          Beep when it's time for the next set
-        </label>
-        {beepOn && (
-          <button onClick={testBeep} className="pill !py-1 text-[11px]">Test the beep</button>
-        )}
-        {beepOn && beep === "locked" && (
-          <span className="text-[11px] text-mcz-ember">Your phone is holding the sound back — tap anywhere on this screen once, then use Test the beep.</span>
-        )}
-        {beep === "unsupported" && <span className="text-[11px] text-white/45">This browser can't play sounds; the card turns green instead.</span>}
-      </div>
+      {open && (
+        <div className="space-y-2 border-t border-white/5 pt-2">
+          {planOn && plan && <p className="text-[11px] text-white/45">{plan.why} It is a target, not a rule.</p>}
+          {goal && (
+            <p className="text-[11px] text-white/45">
+              {goal.label}: {goal.sets} sets of {goal.reps_low}-{goal.reps_high}, {clock(goal.rest_seconds)} rest. {goal.why}
+            </p>
+          )}
+          {goalList.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-white/40">By goal:</span>
+              {goalList.map(([k, g]) => (
+                <button key={k} onClick={() => pickGoal(k)}
+                        className={`pill !py-1 text-[11px] ${!planOn && k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
+                  {g.label} · {clock(g.rest_seconds)}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-white/40">Or:</span>
+            {REST_PRESETS.map((t) => (
+              <button key={t} onClick={() => pick(t)}
+                      className={`pill !py-1 text-[11px] ${!planOn && !goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
+                {clock(t)}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+              <input type="checkbox" checked={beepOn} onChange={(e) => toggleSound(e.target.checked)} />
+              Beep for the next set
+            </label>
+            {beepOn && <button onClick={testBeep} className="pill !py-1 text-[11px]">Test the beep</button>}
+            {beep === "unsupported" && <span className="text-[11px] text-white/45">This browser can't play sounds; the card turns green instead.</span>}
+          </div>
+          {alerts && <RestAlertsControl prefs={alerts} bare />}
+        </div>
+      )}
     </div>
   );
 }
@@ -1290,6 +1303,9 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const unplannedLast = useHistory(exerciseId || null, unplannedSide);
   // Today-only swaps: planned exercise id -> the lift actually being done.
   const [swaps, setSwaps] = useState({});
+  // Planned lifts whose target weight was cleared by "Different equipment today?": a barbell
+  // load is not a dumbbell load. Same scope as `swaps` — this session, this device.
+  const [noWeight, setNoWeight] = useState({});
   // Today-only order of the plan (dragged), kept for this session on this device. The
   // saved routine is not changed, the same as a swap.
   const orderKey = session ? `mcz_bodiez_order_${session.id}` : "";
@@ -1369,7 +1385,8 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
       return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
-               muscle_group: ex?.muscle_group, equipment: ex?.equipment };
+               muscle_group: ex?.muscle_group, equipment: ex?.equipment,
+               ...(noWeight[e.exercise_id] ? { weight_kg: null } : {}) };
     }) : [];
   // Swap one slot for another lift. Refused when that lift is already in the plan.
   const swapProps = (p) => ({
@@ -1400,6 +1417,24 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   })();
   const extraExerciseIds = [...loggedExerciseIds].filter(
     (id) => !planned.some((p) => p.exercise_id === id));
+  // "Different equipment today?" turns what it changed into today's swaps, so it is exactly the
+  // per-row Change: this session only, the routine is never touched. A lift already started is
+  // locked (its logged sets would be orphaned), and everything else is the one shared rule.
+  const lockedNow = new Set(planned.filter((p) => (setsByExercise[p.exercise_id] || []).length > 0)
+    .map((p) => p.exercise_id));
+  const applyEquipment = (next, kind) => {
+    const moved = next.map((r, i) => [planned[i], r]).filter(([p, r]) => p && r.exercise_id !== p.exercise_id);
+    setSwaps((cur) => {
+      const n = { ...cur };
+      for (const [p, r] of moved) { if (r.exercise_id === p.orig_id) delete n[p.orig_id]; else n[p.orig_id] = r.exercise_id; }
+      return n;
+    });
+    setNoWeight((cur) => {
+      const n = { ...cur };
+      for (const [p, r] of moved) { if (r.exercise_id === p.orig_id) delete n[p.orig_id]; else if (kind === "apply") n[p.orig_id] = true; }
+      return n;
+    });
+  };
 
   return (
     <div className="space-y-3">
@@ -1422,7 +1457,12 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal} plan={session.rest || null}
                  hold={holdFor(planned, setsByExercise, lastLogged?.exercise_id)?.name || ""}
                  nextName={upNext} alerts={restPrefs} />
-      <RestAlertsControl prefs={restPrefs} />
+
+      {planned.length > 0 && (
+        <EquipmentSwitch collapsible rows={planned} exercises={exercises} pool={pickable || exercises}
+                         locked={lockedNow} onApply={applyEquipment}
+                         scopeNote="Free. This session only — your routine isn't changed." />
+      )}
 
       {planned.length > 0 && (
         <div className="space-y-2">

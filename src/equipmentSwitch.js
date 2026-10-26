@@ -41,17 +41,20 @@ export function equivalentsFor(ex, equipment, pool, taken) {
 }
 
 /** What switching `rows` to `equipment` would do, without doing it.
+ *  `locked` is a Set of exercise ids that must not change (a lift already started in a live
+ *  session): they are counted, never offered a replacement, and still count as taken.
  *  `changes`: a lift that does not fit and has options (`pick` is the top one).
  *  `stuck`:   a lift that does not fit and has none, so it is kept and the member told why.
  *  `fits`:    how many already use the chosen equipment.
  *  `unknown`: rows whose lift is not in the library list (left alone, never guessed at). */
-export function planEquipmentSwitch(rows, exercises, pool, equipment) {
-  const out = { changes: [], stuck: [], fits: 0, unknown: 0 };
+export function planEquipmentSwitch(rows, exercises, pool, equipment, locked = new Set()) {
+  const out = { changes: [], stuck: [], fits: 0, unknown: 0, locked: 0 };
   if (!equipment || equipment.length === 0) return out;
   const byId = new Map(exercises.map((e) => [e.id, e]));
   // Greedy and in routine order: an id given to an earlier row is not offered to a later one.
   const taken = new Set(rows.map((r) => r.exercise_id));
   rows.forEach((r, index) => {
+    if (locked.has(r.exercise_id)) { out.locked += 1; return; }
     const ex = byId.get(r.exercise_id);
     if (!ex) { out.unknown += 1; return; }
     if (equipment.includes(ex.equipment)) { out.fits += 1; return; }
@@ -77,4 +80,10 @@ export function applyEquipmentSwitch(rows, changes, picks = {}) {
     };
   }
   return next;
+}
+
+/** True when two row lists hold the same lifts in the same order. The live screen rebuilds its
+ *  rows every render, so "still exactly what the swap made" has to compare content, not identity. */
+export function sameLifts(a, b) {
+  return !!a && !!b && a.length === b.length && a.every((r, i) => r.exercise_id === b[i].exercise_id);
 }

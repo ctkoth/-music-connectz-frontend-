@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { movementWords, equivalentsFor, planEquipmentSwitch, applyEquipmentSwitch } from "./equipmentSwitch.js";
+import { movementWords, equivalentsFor, planEquipmentSwitch, applyEquipmentSwitch, sameLifts } from "./equipmentSwitch.js";
 
 const ex = (id, name, muscle_group, equipment, extra = {}) => ({ id, name, muscle_group, equipment, ...extra });
 const LIB = [
@@ -61,7 +61,7 @@ test("no equivalent is said, not guessed", () => {
 
 test("choosing nothing plans nothing", () => {
   const plan = planEquipmentSwitch([row(1)], LIB, LIB, []);
-  assert.deepEqual(plan, { changes: [], stuck: [], fits: 0, unknown: 0 });
+  assert.deepEqual(plan, { changes: [], stuck: [], fits: 0, unknown: 0, locked: 0 });
 });
 
 test("a lift the library does not know is left alone", () => {
@@ -91,4 +91,20 @@ test("applying keeps sets, reps, order and superset label, and clears the weight
 test("a member's own pick overrides the top option", () => {
   const plan = planEquipmentSwitch([row(1)], LIB, LIB, ["dumbbell"]);
   assert.equal(applyEquipmentSwitch([row(1)], plan.changes, { 0: 3 })[0].exercise_id, 3);
+});
+
+test("a lift already started is locked: never offered a change, and its id stays taken", () => {
+  const rows = [row(1), row(2)];                       // bench started; dumbbell bench already in
+  const plan = planEquipmentSwitch(rows, LIB, LIB, ["dumbbell"], new Set([1]));
+  assert.equal(plan.locked, 1);
+  assert.equal(plan.changes.length, 0);
+  const free = planEquipmentSwitch([row(5), row(1)], LIB, LIB, ["dumbbell"], new Set([1]));
+  assert.deepEqual(free.changes.map((c) => [c.index, c.pick]), [[0, 6]]);
+});
+
+test("sameLifts compares what is lifted, not the array it came in", () => {
+  assert.equal(sameLifts([row(1), row(2)], [row(1, { sets: 9 }), row(2)]), true);
+  assert.equal(sameLifts([row(1)], [row(2)]), false);
+  assert.equal(sameLifts([row(1)], [row(1), row(2)]), false);
+  assert.equal(sameLifts(null, [row(1)]), false);
 });

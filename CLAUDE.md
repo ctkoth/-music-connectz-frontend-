@@ -1180,10 +1180,16 @@ sometimes does not lock.
 
 ## BodieZ rest timer: set by the plan, and a beep that actually sounds on a phone
 
-`RestTimer` is on screen from the moment a session starts ("Rest between sets 2:00"),
+`RestTimer` is on screen from the moment a session starts ("Rest between sets 1:15"),
 not only after the first set. Its target is the server's `session.rest` — the plan's
 intensity, with the reason — until the member picks a goal or a preset, which is theirs
-for that session. Nothing is computed here.
+for that session. Nothing is computed here. A routine's goal sets it, so Strength rests 3:00,
+Muscle gain 1:15 and Slimming (fat loss, "cutting") 0:30: shorter rest keeps the heart rate up,
+longer rest is what heavy work needs. **The live card is deliberately small**: the clock, the bar,
+and ONE line saying what the recommendation is for ("Recommended for Muscle gain: 1:15", or "Using
+your 2:00. Back to the recommended 1:15"). Goal pills, presets, the beep switch and the StatZ rest
+alerts sit behind one **Change**; only the "your phone is holding the beep back" warning is
+outside it, because that is the failure a member must see.
 
 The end-of-rest beep used to build a NEW `AudioContext` inside a `useEffect`, i.e. not in
 a user gesture. Phone browsers start a context made like that suspended, so it never
@@ -1216,7 +1222,13 @@ the member sees the options and chooses.
   that change. A 100 kg barbell target carried onto a dumbbell lift is a wrong number the
   member has to notice, which is the substance rule in a text box.
 - It is free and moves no resource, so there is no price to state. Not saved until Save routine.
-- Possible next step, not built: the same control on Today for "this session only".
+- **On Today it is the same control, for this session only** (`collapsible`, one line
+  "Different equipment today?"). It turns what it changed into the screen's existing `swaps`, so
+  the routine is never touched and it behaves exactly like the per-row Change. A lift already
+  started is `locked` (its logged sets would be orphaned) and still counts as taken. The cleared
+  target weight is kept in `noWeight`, same scope. Undo is offered while the lifts are still what
+  the swap made (`sameLifts`: the live screen rebuilds its rows every render, so identity is no
+  test).
 
 ## RoutineZ: every routine is editable, and so is every logged workout
 
