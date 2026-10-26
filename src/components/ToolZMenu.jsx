@@ -473,7 +473,7 @@ export default function ToolZMenu() {
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <h1>MusicConnectZ.Net</h1>
-        <p className="toolz-subtitle">🎶 AI Coaching & Gamified👾 way to make professional portfolio📑 of your music related work</p>
+        <p className="toolz-subtitle">✨ AI Coaching & Gamified👾 way to make professional portfolio📑 of your music🎶 related work❓</p>
         <p className="toolz-subtitle">
           {FOCUS_MODE ? '🎤 Score a take. Send it again. Watch the number move.' : '🧰 Every app, one place'}
         </p>
