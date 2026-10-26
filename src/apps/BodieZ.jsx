@@ -79,6 +79,7 @@ function Field({ label, className = "w-20", ...props }) {
 }
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 import { ExerciseSwap, SwapRow, useSwappedPicks } from "./ExerciseSwap.jsx";
+import EquipmentSwitch from "./EquipmentSwitch.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { suggest } from "../exerciseSearch.js";
 import { useRemembered, useRememberedNumber } from "../useRemembered.js";
@@ -2075,6 +2076,11 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
           </div>
         );
       })}
+
+      {rows.length > 0 && (
+        <EquipmentSwitch rows={rows} exercises={exercises} pool={pickable || exercises}
+                         onApply={(next) => { setRows(next); setDirty(true); setSwapIdx(null); }} />
+      )}
 
       {rows.length > 0 && (
         <PairWithCoach rows={rows} equipment={equipment}

@@ -1196,6 +1196,28 @@ and is never the only signal (the card turns green and says "start your next set
 phone vibrates where it can). A locked phone still pauses a page; that limit is stated in
 the rest-alerts card and has not changed. Not verified in a real phone browser from CI.
 
+## RoutineZ: change a whole routine to the equipment you have
+
+`EquipmentSwitch.jsx` (in the routine designer, above the Coach pairing) is "I only have
+dumbbells today": pick equipment, see what each lift that does not fit would become, change
+any of them, then Swap. The per-row Change button already narrowed the library by equipment
+one lift at a time across every muscle; this is the whole routine at once. The rule is
+`equipmentSwitch.js` and it invents nothing: a replacement is a lift with the SAME muscle
+group on the chosen equipment, from the list the server says the member can do (`pickable`,
+so an access restriction is never undone by a swap), not already in the routine, and never
+proposed twice. Only the ORDER is a judgement (shared movement words first, ignoring gear
+words, so Barbell Bench Press offers Dumbbell Bench Press before Dumbbell Fly), which is why
+the member sees the options and chooses.
+
+- **Nothing is replaced without a preview**, and a lift with no equivalent is kept with the
+  reason, never swapped for something unrelated. Undo works only while the rows are still
+  exactly what the swap made, so it cannot discard later edits.
+- **Sets, reps, order and superset labels stay; the target weight is cleared** for the lifts
+  that change. A 100 kg barbell target carried onto a dumbbell lift is a wrong number the
+  member has to notice, which is the substance rule in a text box.
+- It is free and moves no resource, so there is no price to state. Not saved until Save routine.
+- Possible next step, not built: the same control on Today for "this session only".
+
 ## RoutineZ: every routine is editable, and so is every logged workout
 
 The RoutineZ tab in `BodieZ.jsx` holds the Coach builders (moved out of the
