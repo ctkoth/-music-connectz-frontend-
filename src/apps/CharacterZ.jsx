@@ -10,8 +10,9 @@ import { goToSpot } from "../goto.js";
 import LoadGate from "../components/LoadGate.jsx";
 import Empty from "../components/Empty.jsx";
 import PersonalitieZ from "../PersonalitieZ.jsx";
+import InterestPicker from "../components/InterestPicker.jsx";
 
-const blank = { name: "", looks: "", bio: "", personality: "", spec: {}, sample: "", upload_id: null, look_attested: false };
+const blank = { name: "", looks: "", bio: "", personality: "", hobbies: [], spec: {}, sample: "", upload_id: null, look_attested: false };
 
 function Editor({ d, start, onSaved, onCancel }) {
   const [f, setF] = useState(start || blank);
@@ -26,7 +27,7 @@ function Editor({ d, start, onSaved, onCancel }) {
   async function save() {
     setBusy(true); setErr("");
     try {
-      const body = { name: f.name, looks: f.looks, bio: f.bio, personality: f.personality, spec: f.spec, sample: f.sample,
+      const body = { name: f.name, looks: f.looks, bio: f.bio, personality: f.personality, hobbies: f.hobbies || [], spec: f.spec, sample: f.sample,
                      upload_id: f.upload_id || null, look_attested: f.look_attested };
       const r = start?.id ? await api(`/api/economy/characterz/${start.id}/`, { method: "PATCH", body })
                           : await api("/api/economy/characterz/", { method: "POST", body });
@@ -61,6 +62,22 @@ function Editor({ d, start, onSaved, onCancel }) {
       <div className="space-y-1">
         <p className="re-label">Personality</p>
         <PersonalitieZ value={f.personality} onChange={(v) => set("personality", v)} />
+      </div>
+      <div className="space-y-2">
+        <p className="re-label">Hobbies</p>
+        <p className="text-[11px] text-white/45">What they like doing. Their lines in MangaZ can lean on it. It is flavour — nothing here is scored.</p>
+        <input className="neon-input !py-2 text-sm" placeholder="street racing, pottery, night markets" maxLength={400}
+               value={(f.hobbies || []).join(", ")}
+               onChange={(e) => set("hobbies", e.target.value.split(",").map((s) => s.trimStart()).filter((s, i, a) => s !== "" || i === a.length - 1))}
+               aria-label="Hobbies" />
+        <InterestPicker
+          persona={{ key: "", name: f.name, skills: [] }}
+          title="🎙️ Say what they're into"
+          placeholder="She's always sketching on the train and collecting synth pedals…"
+          kept="Nothing you say is stored. Only the hobbies you pick are kept."
+          interests={f.hobbies || []}
+          setInterests={(list) => set("hobbies", list)}
+        />
       </div>
       <div className="space-y-2">
         <p className="re-label">Voice</p>
@@ -133,6 +150,7 @@ export default function CharacterZ() {
               <p className="font-semibold">{c.name} {c.personality && <span className="text-[11px] text-white/40">{c.personality.replace(/-/g, "·")}</span>}</p>
               <p className="text-[12px] text-white/55">{c.voice_summary}</p>
               {c.bio && <p className="line-clamp-2 text-[12px] text-white/45">{c.bio}</p>}
+              {c.hobbies?.length > 0 && <p className="line-clamp-1 text-[11px] text-white/45">🎯 {c.hobbies.join(", ")}</p>}
               <div className="flex gap-3 text-xs">
                 <button className="re-link" onClick={() => setEdit(c)}>Edit</button>
                 <button className="text-white/40 hover:text-mcz-ember" onClick={() => remove(c)} aria-label={`Delete ${c.name}`}><Trash2 size={12} /></button>
