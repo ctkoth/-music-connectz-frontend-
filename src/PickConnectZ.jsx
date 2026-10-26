@@ -18,7 +18,7 @@
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
 import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
-import { IconImg, slugFor } from "./App.jsx";
+import { IconImg, pathFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
@@ -125,7 +125,7 @@ function WaitingCount({ appKey }) {
 function DockButton({ app, active, badge, onClick }) {
   return (
     <a
-      {...openable(`/${slugFor(app.key)}`, onClick)}
+      {...openable(pathFor(app.key), onClick)}
       title={`${app.label} — ctrl/cmd-click for a new tab`}
       className={`relative shrink-0 rounded-xl border p-1.5 transition ${
         active
@@ -278,7 +278,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               return (
                 <div key={a.key} className="relative">
                   <a
-                    {...openable(`/${slugFor(a.key)}`, () => { onOpen(a.key); setDrawer(false); })}
+                    {...openable(pathFor(a.key), () => { onOpen(a.key); setDrawer(false); })}
                     // The purpose is in the tooltip AND printed below, because
                     // a tooltip does not exist on a phone and this grid is
                     // mostly read on one.
@@ -390,7 +390,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
 
       <div className="neon-frame flex items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur">
         <a
-          {...openable(`/${slugFor(apps[0]?.key || "postz")}`, () => onOpen(apps[0]?.key))}
+          {...openable(pathFor(apps[0]?.key || "postz"), () => onOpen(apps[0]?.key))}
           title="PickConnectZ — home · ctrl/cmd-click for a new tab"
           className="flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-white/70 hover:bg-white/10 hover:text-white"
         >
