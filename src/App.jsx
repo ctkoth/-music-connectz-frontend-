@@ -479,6 +479,17 @@ const MAX_MINIS = 3;
 
 export const slugFor = (key) =>
   key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
+// The address a tab lives at. ToolZ is the HOME screen — "Music ConnectZ" — so
+// its address is the bare domain, not /tool: a home page that says musicconnectz.net/tool
+// reads as one tool among many, and it is the one address everybody types or
+// shares. /tool still opens it (old links, bookmarks) and rewrites itself to "/".
+export const pathFor = (key) => (key === "toolz" ? "/" : `/${slugFor(key)}`);
+// "/" is also the address of the default landing, which is OnboardZ for a member
+// who hasn't finished it — so going HOME has to say so. The router remounts the
+// shell when the route changes, and without this the logo would drop a
+// not-yet-onboarded member on OnboardZ instead of the home screen they pressed.
+export const goTo = (navigate, key, opts = {}) =>
+  navigate(pathFor(key), key === "toolz" ? { ...opts, state: { tab: "toolz" } } : opts);
 export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
@@ -929,7 +940,8 @@ function Home() {
   // Read the slug off the path rather than from useParams: the tab routes are
   // listed explicitly (so an unknown address still redirects) and an explicit
   // path has no params to read.
-  const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
+  const here = useLocation();
+  const slug = here.pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
   useViewTracker(tab ? `tab:${tab}` : null);
   const [infoKey, setInfoKey] = useState(null);
@@ -983,7 +995,7 @@ function Home() {
   const openTab = (key) => {
     setTab(key);
     setSplitKey(null);
-    navigate(`/${slugFor(key)}`, { replace: false });
+    goTo(navigate, key, { replace: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1010,7 +1022,7 @@ function Home() {
     const h = (e) => {
       if (TABS.some((t) => t.key === e.detail)) {
         setTab(e.detail);
-        navigate(`/${slugFor(e.detail)}`);
+        goTo(navigate, e.detail);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
@@ -1046,6 +1058,9 @@ function Home() {
   useEffect(() => {
     const t = tabForSlug(slug);
     if (t && t.key !== tab) setTab(t.key);
+    // The home screen's address is the bare domain; an old /tool link lands
+    // here and tidies itself.
+    if (slug === "tool") goTo(navigate, "toolz", { replace: true });
   }, [slug]);
 
   // New users land on OnboardZ until they've completed it (it pays a bonus);
@@ -1055,6 +1070,11 @@ function Home() {
     // An address wins over the default landing — someone opening /battle asked
     // for BattleZ, not for wherever we would have sent them.
     if (tabForSlug(slug)) return;
+    // Sent here from another tab on purpose (the logo, the arrows): honour it.
+    if (TABS.some((t) => t.key === here.state?.tab)) {
+      setTab(here.state.tab);
+      return;
+    }
     if (new URLSearchParams(window.location.search).has("checkout")) {
       setTab("membershipz");
       return;
@@ -1093,17 +1113,17 @@ function Home() {
               nav, and these two cost the tab title its last 60px — it measured
               12px wide at 390, then 0 once the member counters went in. */}
           <div className="hidden items-center gap-1 sm:flex">
-            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+            <a {...openable(pathFor(TABS[(idx - 1 + TABS.length) % TABS.length].key), () => go(-1))}
                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
             </a>
-            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+            <a {...openable(pathFor(TABS[(idx + 1) % TABS.length].key), () => go(1))}
                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
             </a>
           </div>
 
-          <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
+          <a {...openable("/", () => openTab("toolz"))} className="flex items-center gap-2"
              title="Music ConnectZ — every app">
             <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-mark.png"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
@@ -1271,7 +1291,7 @@ function Home() {
             {/* Its address. The whole point of LogicZ — this is the thing you
                 paste to somebody. */}
             <p className="mt-3 font-mono text-[11px] text-mcz-cyan">
-              musicconnectz.net/{slugFor(infoTab.key)}
+              musicconnectz.net{pathFor(infoTab.key)}
             </p>
 
             {/* What lives in this tab, and honestly whether it exists yet. A

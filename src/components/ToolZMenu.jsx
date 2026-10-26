@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
-import { canMini, slugFor } from '../App.jsx';
+import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg } from '../App.jsx';
 import { FOCUS_MODE, FOCUS_COACHES, FOCUS_SUPPORT } from '../focus.js';
@@ -364,7 +364,7 @@ export default function ToolZMenu() {
     if (openType === 'window') {
       // `//rapz` is a protocol-relative URL — it opened a HOST called rapz.
       if (app.preset) presetDirectzFormat(app.preset);
-      window.open(`/${slugFor(tabOf(app))}`, '_blank', 'noopener');
+      window.open(pathFor(tabOf(app)), '_blank', 'noopener');
     } else if (openType === 'split') {
       if (app.preset) presetDirectzFormat(app.preset);
       window.dispatchEvent(new CustomEvent('mcz-split', { detail: tabOf(app) }));
@@ -472,9 +472,10 @@ export default function ToolZMenu() {
     <div className="toolz-menu-container">
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
-        <h1>Music ConnectZ</h1>
+        <h1>MusicConnectZ.Net</h1>
+        <p className="toolz-subtitle">✨ AI Coaching & Gamified👾 way to make professional portfolio📑 of your music🎶 related work❓</p>
         <p className="toolz-subtitle">
-          {FOCUS_MODE ? 'Score a take. Send it again. Watch the number move.' : 'Every app, one place'}
+          {FOCUS_MODE ? '🎤 Score a take. Send it again. Watch the number move.' : '🧰 Every app, one place'}
         </p>
       </div>
 
