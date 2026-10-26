@@ -82,6 +82,7 @@ export default function ImageConnectZ() {
   const [refMode, setRefMode] = useState("");        // "" | "inspiration" | "me"
   const [ref, setRef] = useState(null);
   const [confirmSelf, setConfirmSelf] = useState(false);
+  const [faceId, setFaceId] = useState(null);       // a saved FaceZ photo, instead of an upload
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [made, setMade] = useState(null);
@@ -101,14 +102,17 @@ export default function ImageConnectZ() {
     setErr(""); setRef(f);
   };
 
-  const ready = (prompt.trim() || kind) && (!refMode || ref) && (refMode !== "me" || confirmSelf);
+  const hasRef = refMode === "me" ? !!(ref || faceId) : !!ref;
+  const ready = (prompt.trim() || kind) && (!refMode || hasRef) && (refMode !== "me" || confirmSelf);
 
   const make = async () => {
     if (!ready || busy) return;
     setBusy(true); setErr(""); setMade(null);
     try {
       const body = { prompt, kind, style, mood, colours, text };
-      if (refMode && ref) {
+      if (refMode === "me" && faceId && !ref) {
+        body.reference_mode = "me"; body.confirm_self = true; body.face_id = faceId;
+      } else if (refMode && ref) {
         body.reference = await toDataUrl(ref);
         if (refMode === "inspiration") body.inspiration = true;
         if (refMode === "me") { body.reference_mode = "me"; body.confirm_self = true; }
@@ -182,10 +186,21 @@ export default function ImageConnectZ() {
           </div>
           {refMode === "inspiration" && <p>{info?.inspiration_note}</p>}
           {refMode === "me" && <p>{info?.likeness_note}</p>}
+          {refMode === "me" && (info?.faces || []).length > 0 && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Your FaceZ photos">
+              {info.faces.map((f) => (
+                <button key={f.id} type="button" onClick={() => { setFaceId(faceId === f.id ? null : f.id); setRef(null); }}
+                        className={`h-14 w-14 overflow-hidden rounded-lg ring-2 ${faceId === f.id ? "ring-mcz-cyan" : "ring-transparent"}`}
+                        title={f.name || "FaceZ photo"}>
+                  <img src={f.url} alt={f.name || "Your FaceZ photo"} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
           {refMode && (
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/15 px-3 py-2">
-              <Upload size={14} /><span className="min-w-0 flex-1 truncate">{ref ? ref.name : refMode === "me" ? "Pick a photo of you" : "Pick a picture for style"}</span>
-              <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => pick(e.target.files?.[0] || null)} />
+              <Upload size={14} /><span className="min-w-0 flex-1 truncate">{ref ? ref.name : refMode === "me" ? (faceId ? "Using your FaceZ photo — or upload another" : "Upload a photo of you") : "Pick a picture for style"}</span>
+              <input type="file" accept="image/*" className="hidden" disabled={busy} onChange={(e) => { pick(e.target.files?.[0] || null); setFaceId(null); }} />
             </label>
           )}
           {refMode === "me" && (
