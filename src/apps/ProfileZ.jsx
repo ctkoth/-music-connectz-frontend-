@@ -35,6 +35,7 @@ import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
+import InterestPicker from "../components/InterestPicker.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -303,12 +304,16 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
   const [bio, setBio] = useState(persona.bio || "");
   const [interests, setInterests] = useState((persona.interests || []).join(", "));
   const [petPeeves, setPetPeeves] = useState((persona.pet_peeves || []).join(", "));
+  const [brands, setBrands] = useState(persona.declared_brands || []);
+  const [strengths, setStrengths] = useState(persona.declared_strengths || []);
 
   function save() {
     onChange({
       bio: bio.trim(),
       interests: interests.split(",").map((s) => s.trim()).filter(Boolean),
       pet_peeves: petPeeves.split(",").map((s) => s.trim()).filter(Boolean),
+      declared_brands: brands,
+      declared_strengths: strengths,
     });
     onClose();
   }
@@ -326,7 +331,7 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
         </div>
         <p className="mb-4 text-[11px] text-white/45">
           What you say about THIS role — separate from your account bio above.
-          Nothing here is scored or inferred; it's what you type.
+          Nothing here is scored. A suggestion is only kept if you accept it.
         </p>
 
         <label className="mb-3 block">
@@ -343,6 +348,13 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
                  onChange={(e) => setInterests(e.target.value)}
                  placeholder="vinyl, analog synths, late-night sessions" />
         </label>
+        <InterestPicker
+          persona={{ key: personaKey, name: personaLabel, skills: persona.skills || [] }}
+          interests={interests.split(",").map((s) => s.trim()).filter(Boolean)}
+          setInterests={(list) => setInterests(list.join(", "))}
+          brands={brands} setBrands={setBrands}
+          strengths={strengths} setStrengths={setStrengths}
+        />
         <label className="mb-4 block">
           <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
             Pet peeves <span className="normal-case text-white/30">(comma-separated)</span>
@@ -586,7 +598,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setSel((d.personas || []).map((x) =>
         typeof x === "string" ? { key: x, name: x, skills: [] }
                               : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
-                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
+                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [],
+                                  declared_brands: x.declared_brands || [], declared_strengths: x.declared_strengths || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setLoadErr(e.message || "Your profile didn't load."));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
