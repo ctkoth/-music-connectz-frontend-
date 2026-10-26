@@ -16,7 +16,11 @@ const has = (list, label) => list.some((x) => x.trim().toLowerCase() === label.t
  *  The mic is the keyboard's own voice-clip door: free at every tier, metered in
  *  clips a day, and the count is on the button before it is pressed. Typing does
  *  the same job, which is why a spent allowance never blocks this. */
-export default function InterestPicker({ persona, interests, setInterests, brands, setBrands, strengths, setStrengths }) {
+export default function InterestPicker({ persona, interests, setInterests, brands = [], setBrands, strengths = [], setStrengths,
+  title = "🎙️ Say what you're into", placeholder, kept }) {
+  // Without the two setters this is the interests-only form (a character's hobbies):
+  // brands and strengths are about a real member's own work, not a character's.
+  const compact = !setBrands || !setStrengths;
   const [cat, setCat] = useState(null);
   const [voice, setVoice] = useState(null);
   const [text, setText] = useState("");
@@ -98,14 +102,15 @@ export default function InterestPicker({ persona, interests, setInterests, brand
 
   return (
     <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-      <p className="text-[11px] font-semibold text-white">🎙️ Say what you're into</p>
+      <p className="text-[11px] font-semibold text-white">{title}</p>
       <p className="mt-0.5 text-[11px] text-white/50">
-        Talk about your work or type it. We find the interests and tools you mention, and you pick which are yours. {cat.kept}
+        {compact ? "Say it or type it. We find the hobbies on our list, and you pick which are theirs."
+          : "Talk about your work or type it. We find the interests and tools you mention, and you pick which are yours."} {kept || cat.kept}
       </p>
 
       <textarea className="neon-input mt-2 min-h-[64px] w-full text-sm" maxLength={6000} value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="I design album covers, draw on my iPad in Procreate, and tinker with my Fender…" />
+                placeholder={placeholder || "I design album covers, draw on my iPad in Procreate, and tinker with my Fender…"} />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {busy === "recording" ? (
@@ -127,7 +132,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
 
       {found && (
         <div className="mt-3 space-y-3">
-          {found.interests.length === 0 && found.brands.length === 0 && (
+          {found.interests.length === 0 && (compact || found.brands.length === 0) && (
             <p className="text-[11px] text-white/50">Nothing on our list in that. Add your own in Interests above.</p>
           )}
           {found.interests.length > 0 && (
@@ -144,7 +149,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
               </div>
             </div>
           )}
-          {found.brands.length > 0 && (
+          {!compact && found.brands.length > 0 && (
             <div>
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">Tools and brands you mentioned</p>
               <div className="flex flex-wrap gap-1.5">
@@ -158,7 +163,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
               </div>
             </div>
           )}
-          {offered.length > 0 && (
+          {!compact && offered.length > 0 && (
             <div>
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">Strengths this might go with — a suggestion, not a score</p>
               <div className="space-y-2">
@@ -185,7 +190,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
         </div>
       )}
 
-      {(strengths.length > 0 || brands.length > 0) && (
+      {!compact && (strengths.length > 0 || brands.length > 0) && (
         <div className="mt-3">
           <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">What you've said about this role</p>
           <div className="flex flex-wrap gap-1.5">
@@ -204,7 +209,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
           </div>
         </div>
       )}
-      <p className="mt-3 text-[10px] leading-relaxed text-white/40">{cat.rule}</p>
+      {!compact && <p className="mt-3 text-[10px] leading-relaxed text-white/40">{cat.rule}</p>}
     </div>
   );
 }
