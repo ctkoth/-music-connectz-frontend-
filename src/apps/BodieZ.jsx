@@ -82,6 +82,7 @@ import { ExerciseSwap, SwapRow, useSwappedPicks } from "./ExerciseSwap.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { suggest } from "../exerciseSearch.js";
 import { useRemembered, useRememberedNumber } from "../useRemembered.js";
+import { restSoundOn, setRestSoundOn, unlockAudio, playNewSetBeep } from "../restBeep.js";
 
 // Jefit's own eleven groups, plus Full Body (which Jefit doesn't have — see
 // migration 0145's docstring on the backend for why it stays: Burpee, Clean
@@ -284,6 +285,7 @@ export default function BodieZ() {
   const routines = bucketLabels.filter((b) => b.key !== "trash").flatMap((b) => asList(buckets[b.key]));
 
   async function startSession(routineId) {
+    unlockAudio(); // this tap is the one that lets the end-of-rest beep sound on a phone
     setErr("");
     try {
       const sess = await api("/api/economy/bodiez/sessions/", {
@@ -1049,40 +1051,44 @@ const REST_GOAL_KEY = "bodiez.restGoal";
 // server stores as rest_seconds on the next set. The target is only a nudge.
 // The recommended rest per training goal is the server's (GOALS in
 // bodiez.py, each with its citation) — never retyped here.
-function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts = null }) {
+function RestTimer({ sets, goals, routineGoal, plan = null, hold = "", nextName = "", alerts = null }) {
   useTick();
   const goalList = Object.entries(asDict(goals)).filter(([, g]) => g?.rest_seconds);
-  // A routine built for a goal starts on that goal's rest; the member's last
-  // pick only fills in for a routine (or ad-hoc session) that has none.
+  // The plan's own intensity decides the rest until the member says otherwise: a
+  // routine of heavy triples starts on a long rest, a light high-rep one on a short
+  // one (`plan` is the server's, with the reason). Picking anything below switches
+  // it off for this session. With no plan (an ad-hoc session) the member's last
+  // pick fills in, as before.
+  const [planOn, setPlanOn] = useState(!!plan);
   const [goalKey, setGoalKey] = useState(() => {
+    if (plan) return "";
     if (routineGoal) return routineGoal;
     try { return localStorage.getItem(REST_GOAL_KEY) || ""; } catch { return ""; }
   });
   const [custom, setCustom] = useState(() => {
     try { return Number(localStorage.getItem(REST_KEY)) || 90; } catch { return 90; }
   });
-  const goal = goalKey ? asDict(goals)[goalKey] : null;
-  const target = goal?.rest_seconds || custom;
+  const goal = !planOn && goalKey ? asDict(goals)[goalKey] : null;
+  const target = planOn && plan ? plan.seconds : goal?.rest_seconds || custom;
   const [alerted, setAlerted] = useState(null);
+  const [beepOn, setBeepOn] = useState(restSoundOn);
+  // "played" | "locked" | "off" | "unsupported" — what the last beep actually did,
+  // so a phone that has not been tapped yet says so instead of failing silently.
+  const [beep, setBeep] = useState("");
   const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
   const elapsed = last ? secondsSince(last.created_at) : 0;
-  const done = last && elapsed >= target;
+  const done = !!last && elapsed >= target;
 
   useEffect(() => {
     // Halfway through a superset nobody is resting, so nothing should say they are.
     if (hold || !done || alerted === last.id) return;
     setAlerted(last.id);
     try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime + 0.25);
-    } catch { /* no audio */ }
+    setBeep(playNewSetBeep());
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!last) return null;
-  if (hold) {
+  if (hold && last) {
     return (
       <div className="re-card border-fuchsia-400/30">
         <p className="text-sm text-fuchsia-200">
@@ -1092,34 +1098,48 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     );
   }
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
-  const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
+  const pickGoal = (k) => { setPlanOn(false); setGoalKey(k); save(REST_GOAL_KEY, k); };
   const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
-  const pct = Math.min(100, (elapsed / target) * 100);
+  const pct = last ? Math.min(100, (elapsed / target) * 100) : 0;
+  const toggleSound = (on) => { setBeepOn(on); setRestSoundOn(on); if (!on) setBeep("off"); };
+  const testBeep = () => { unlockAudio(); setTimeout(() => setBeep(playNewSetBeep()), 60); };
 
   return (
-    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`} data-tour="bodiez-rest-timer">
       <div className="flex items-baseline justify-between">
-        <p className="re-label">Rest since {last.exercise_name || "last set"}</p>
+        <p className="re-label">{last ? `Rest since ${last.exercise_name || "last set"}` : "Rest between sets"}</p>
         <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}>
-          {clock(elapsed)} <span className="text-sm text-white/40">/ {clock(target)}</span>
+          {last ? <>{clock(elapsed)} <span className="text-sm text-white/40">/ {clock(target)}</span></> : clock(target)}
         </p>
       </div>
       <div className="h-1.5 rounded-full bg-white/10">
         <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
       </div>
-      {goalList.length > 0 && (
+      {done && (
+        <p className="text-sm font-semibold text-emerald-300">
+          Rested — start your next set{nextName ? `: ${nextName}` : ""}.
+        </p>
+      )}
+      {(plan || goalList.length > 0) && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-white/40">
-            {routineGoal && goalKey === routineGoal ? "This routine's goal:" : "Recommended for:"}
+            {plan ? "Set by your plan:" : routineGoal && goalKey === routineGoal ? "This routine's goal:" : "Recommended for:"}
           </span>
+          {plan && (
+            <button onClick={() => setPlanOn(true)}
+                    className={`pill !py-1 text-[11px] ${planOn ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
+              {plan.label} · {clock(plan.seconds)}
+            </button>
+          )}
           {goalList.map(([k, g]) => (
             <button key={k} onClick={() => pickGoal(k)}
-                    className={`pill !py-1 text-[11px] ${k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
+                    className={`pill !py-1 text-[11px] ${!planOn && k === goalKey ? "ring-1 ring-fuchsia-400 text-fuchsia-300" : ""}`}>
               {g.label} · {clock(g.rest_seconds)}
             </button>
           ))}
         </div>
       )}
+      {planOn && plan && <p className="text-[11px] text-white/45">{plan.why} It is a target you can change below.</p>}
       {goal && (
         <p className="text-[11px] text-white/45">
           {goal.label}: {goal.sets} sets of {goal.reps_low}-{goal.reps_high}, {clock(goal.rest_seconds)} rest. {goal.why}
@@ -1129,11 +1149,26 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         <span className="text-[11px] text-white/40">Or:</span>
         {REST_PRESETS.map((t) => (
           <button key={t} onClick={() => pick(t)}
-                  className={`pill !py-1 text-[11px] ${!goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
+                  className={`pill !py-1 text-[11px] ${!planOn && !goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
             {clock(t)}
           </button>
         ))}
-        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Logging your next set saves this rest."}</span>
+        <span className="text-[11px] text-white/40">
+          {done ? "" : last ? "Logging your next set saves this rest." : "Log a set and this starts counting."}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 border-t border-white/5 pt-2">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+          <input type="checkbox" checked={beepOn} onChange={(e) => toggleSound(e.target.checked)} />
+          Beep when it's time for the next set
+        </label>
+        {beepOn && (
+          <button onClick={testBeep} className="pill !py-1 text-[11px]">Test the beep</button>
+        )}
+        {beepOn && beep === "locked" && (
+          <span className="text-[11px] text-mcz-ember">Your phone is holding the sound back — tap anywhere on this screen once, then use Test the beep.</span>
+        )}
+        {beep === "unsupported" && <span className="text-[11px] text-white/45">This browser can't play sounds; the card turns green instead.</span>}
       </div>
     </div>
   );
@@ -1290,6 +1325,15 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
     setExerciseId(String(initialExerciseId));
     onInitialExerciseConsumed?.();
   }, [initialExerciseId, session]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A phone keeps audio locked until a real tap. The Start button is that tap, but the
+  // rest card does not exist yet when it lands, so this listens from the moment Today
+  // opens and the beep is ready by the time the first rest ends.
+  useEffect(() => {
+    const unlock = () => { unlockAudio(); };
+    const evs = ["pointerdown", "touchend", "keydown"];
+    evs.forEach((e) => document.addEventListener(e, unlock, { passive: true }));
+    return () => evs.forEach((e) => document.removeEventListener(e, unlock));
+  }, []);
   if (!session) {
     return (
       <div className="re-card space-y-3">
@@ -1374,7 +1418,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
         </button>
       </div>
 
-      <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal}
+      <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal} plan={session.rest || null}
                  hold={holdFor(planned, setsByExercise, lastLogged?.exercise_id)?.name || ""}
                  nextName={upNext} alerts={restPrefs} />
       <RestAlertsControl prefs={restPrefs} />

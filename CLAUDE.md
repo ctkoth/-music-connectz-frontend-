@@ -1178,6 +1178,24 @@ and asks again (a few times, two seconds apart) if its clock has not caught up. 
 lock that depends on a response arriving at the right millisecond is a lock that
 sometimes does not lock.
 
+## BodieZ rest timer: set by the plan, and a beep that actually sounds on a phone
+
+`RestTimer` is on screen from the moment a session starts ("Rest between sets 2:00"),
+not only after the first set. Its target is the server's `session.rest` — the plan's
+intensity, with the reason — until the member picks a goal or a preset, which is theirs
+for that session. Nothing is computed here.
+
+The end-of-rest beep used to build a NEW `AudioContext` inside a `useEffect`, i.e. not in
+a user gesture. Phone browsers start a context made like that suspended, so it never
+sounded and nothing said so. `src/restBeep.js` holds one shared context that is resumed
+from real taps (the Start button and any tap while Today is open) and `playNewSetBeep()`
+returns what happened (`played` / `locked` / `off` / `unsupported`) so the card says "tap
+anywhere once" instead of failing quietly. It is **not** SoundZ (`sound.js`, off until
+asked for): a workout timer's beep is on by default with its own switch on the rest card,
+and is never the only signal (the card turns green and says "start your next set", and the
+phone vibrates where it can). A locked phone still pauses a page; that limit is stated in
+the rest-alerts card and has not changed. Not verified in a real phone browser from CI.
+
 ## RoutineZ: every routine is editable, and so is every logged workout
 
 The RoutineZ tab in `BodieZ.jsx` holds the Coach builders (moved out of the
