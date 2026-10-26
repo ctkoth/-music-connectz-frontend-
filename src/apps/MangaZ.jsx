@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, PenLine, Brush } from "lucide-react";
 import { api } from "../api.js";
+import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
@@ -115,7 +116,9 @@ export default function MangaZ() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="re-card space-y-1">
-        <h2 className="font-display text-xl font-extrabold">MangaZ</h2>
+        <h2 className="flex items-center gap-3 font-display text-xl font-extrabold">
+          <IconImg icon="mangaz.png" alt="" className="h-11 w-11 rounded-xl" /> MangaZ
+        </h2>
         <p className="text-sm text-white/60">Your characters and your idea, made into a manga page. You edit the script before anything is drawn.</p>
         <p className="text-[11px] text-mcz-gold">{s.ai_label}</p>
       </div>
