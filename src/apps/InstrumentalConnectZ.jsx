@@ -1,3 +1,4 @@
+import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
@@ -111,6 +112,7 @@ export default function InstrumentalConnectZ() {
   const [bpm, setBpm] = useState(90);
   const [key, setKey] = useRemembered("instrumentalz.key", "A minor");
   const [bars, setBars] = useState(4);
+  const [prio, setPrio] = useState({});
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
   // The POST response for the piece just composed: the only place the server says
@@ -149,7 +151,7 @@ export default function InstrumentalConnectZ() {
       // takes up to 90s, and the server goes on to charge and save a loop the
       // browser has already given up on.
       w = await api("/api/economy/instrumentalz/", { method: "POST",
-        body: { genre, brief, instruments: picked, bpm, key, bars },
+        body: { genre, brief, instruments: picked, bpm, key, bars, ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("build_fail");
@@ -299,6 +301,8 @@ export default function InstrumentalConnectZ() {
             </p>
           )
         ) : <CharLimit cl={cl} value={brief} />}
+
+        <PriorityDials medium="instrumental" value={prio} onChange={setPrio} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and the run can be paid for: with

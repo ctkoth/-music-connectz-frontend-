@@ -1,3 +1,4 @@
+import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useState } from "react";
 import { Download, Loader2, UserRound, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
@@ -75,6 +76,7 @@ export default function ImageConnectZ() {
   const [info, setInfo] = useState(null);
   const [kind, setKind] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [prio, setPrio] = useState({});
   const [style, setStyle] = useState("");
   const [mood, setMood] = useState("");
   const [colours, setColours] = useState("");
@@ -110,6 +112,7 @@ export default function ImageConnectZ() {
     setBusy(true); setErr(""); setMade(null);
     try {
       const body = { prompt, kind, style, mood, colours, text };
+      if (Object.keys(prio).length) body.priorities = prio;
       if (refMode === "me" && faceId && !ref) {
         body.reference_mode = "me"; body.confirm_self = true; body.face_id = faceId;
       } else if (refMode && ref) {
@@ -209,6 +212,8 @@ export default function ImageConnectZ() {
             </label>
           )}
         </div>
+
+        <PriorityDials medium="image" value={prio} onChange={setPrio} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <button type="button" className="neon-btn-primary !w-auto px-5 inline-flex items-center gap-1.5"
