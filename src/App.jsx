@@ -416,6 +416,26 @@ export const CUSTOM_ICONS = {
   "badge_polyglot.png": "/icons/badge_polyglot.png",
   "badge_patron.png": "/icons/badge_patron.png",
   "badgez.png": "/icons/badgez.png",
+  // Neon medals (tools/make-neon-badges.mjs) for the badges on Corey's emoji. His
+  // `badgez.<name>.jpg`, once committed, wins over these through ICON_DEFAULTS.
+  "badge_high_notez.png": "/icons/badge_high_notez-neon.svg",
+  "badge_hot_barz.png": "/icons/badge_hot_barz-neon.svg",
+  "badge_six_stringz.png": "/icons/badge_six_stringz-neon.svg",
+  "badge_low_endz.png": "/icons/badge_low_endz-neon.svg",
+  "badge_ivory_keyz.png": "/icons/badge_ivory_keyz-neon.svg",
+  "badge_deep_pocketz.png": "/icons/badge_deep_pocketz-neon.svg",
+  "badge_golden_bowz.png": "/icons/badge_golden_bowz-neon.svg",
+  "badge_silver_flutez.png": "/icons/badge_silver_flutez-neon.svg",
+  "badge_smooth_saxz.png": "/icons/badge_smooth_saxz-neon.svg",
+  "badge_reed_tonez.png": "/icons/badge_reed_tonez-neon.svg",
+  "badge_brass_blastz.png": "/icons/badge_brass_blastz-neon.svg",
+  "badge_royal_ratingz.png": "/icons/badge_royal_ratingz-neon.svg",
+  "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
+  "badge_thorough.png": "/icons/badge_thorough-neon.svg",
+  "badge_decent.png": "/icons/badge_decent-neon.svg",
+  "badge_legendary.png": "/icons/badge_legendary-neon.svg",
+  "badge_supreme.png": "/icons/badge_supreme-neon.svg",
+  "badge_perfect.png": "/icons/badge_perfect-neon.svg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing

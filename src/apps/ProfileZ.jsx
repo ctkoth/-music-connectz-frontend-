@@ -20,7 +20,7 @@ import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
-import { BadgeWear } from "../BadgeWear.jsx";
+import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
@@ -756,6 +756,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                      onOpen={() => spotlight("badgez")} />
         </div>
       </header>
+      {/* What each worn badge DOES, on the page — no hover, no tap needed (Corey).
+          Tapping a row shows everybody else wearing it. */}
+      <BadgeWearList badges={worn.badges} mine />
 
       {/* BadgeZ — the medal, and the effect it actually carries. It reports
           what you wear back up, so the header medals follow the switches

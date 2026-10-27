@@ -83,7 +83,7 @@ export default function PublicProfile() {
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9" holders={false}
                        className="pt-1.5" />
           </div>
 
@@ -119,7 +119,7 @@ export default function PublicProfile() {
             </div>
           ))}
 
-          <BadgeWearList badges={p.badges} />
+          <BadgeWearList badges={p.badges} holders={false} />
 
           {p.links?.length > 0 && (
             <div className="flex flex-wrap gap-2">

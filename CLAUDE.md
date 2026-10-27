@@ -1772,3 +1772,13 @@ pieces are the existing `inventory` profile field — edited in profile fields (
 +N ⚡ rater reward stated before the press, each piece's median and count, and a Total that stays "not rated yet" until the
 server's minimum. It decides nothing; `RATING_NOTE` (taste, not a measure of you) is shown as served. A failed fetch renders
 nothing — the pieces still show in the profile fields.
+
+## BadgeZ on the page: title, how it's earned, what it does — and a tap shows who else wears it
+
+Corey: a badge shows its effect without a click, and tapping it shows the others with the same badge. `BadgeWearList`
+(member profile, public profile and now your own ProfileZ) renders every worn badge as title, description, **Earned:**
+and **Does:**; the BadgeZ catalogue labels the same and marks a penalty so "Not yours yet" never reads as one to chase.
+Any medal opens `BadgeHolders.jsx` (who wears it, from `/badgez/holders/`), except on the logged-out public profile
+(`holders={false}`). Badge art: `tools/make-neon-badges.mjs` draws a neon hexagon around Corey's emoji
+(`public/icons/badge_<key>-neon.svg`, registered in App.jsx); his `badgez.<name>.jpg`, once committed and the manifest
+rebuilt, replaces it (`build-icon-manifest.mjs` KEYS). Edit a medal in the generator, never the SVG.

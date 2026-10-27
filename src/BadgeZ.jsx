@@ -94,8 +94,9 @@ export default function BadgeZ({ username, onWear }) {
                   )}
                 </p>
                 <p className="text-[11px] leading-relaxed text-white/45">{b.desc}</p>
-                {/* The effect, said as plainly as the artwork shows the title. */}
-                <p className="mt-1 text-[11px] text-emerald-300">{b.effect_note}</p>
+                {/* How it was earned and what it does, labelled, on the page. */}
+                {b.how && <p className="mt-1 text-[11px] text-white/55"><b className="text-white/70">Earned:</b> {b.how}</p>}
+                <p className="mt-0.5 text-[11px] text-emerald-300"><b>Does:</b> {b.effect_note}</p>
               </div>
               {data.mine && (
                 <button className="shrink-0 text-white/30 hover:text-white" disabled={busy}
@@ -141,8 +142,11 @@ export default function BadgeZ({ username, onWear }) {
                 <span className="min-w-0">
                   <span className="text-white/70">{c.name}</span>
                   {c.gifted && <span className="ml-1 text-[10px] text-white/35">gifted</span>}
-                  <span className="block leading-relaxed text-white/40">{c.how}</span>
-                  <span className="block text-emerald-300/70">{c.effect_note}</span>
+                  {/* A penalty is listed so its rule is public, not as something to chase. */}
+                  {c.penalty && <span className="ml-1 text-[10px] text-mcz-ember">penalty</span>}
+                  {c.desc && <span className="block leading-relaxed text-white/45">{c.desc}</span>}
+                  <span className="block leading-relaxed text-white/40"><b className="text-white/55">{c.penalty ? "Applies when:" : "Earned:"}</b> {c.how}</span>
+                  <span className={`block ${c.penalty ? "text-mcz-ember/80" : "text-emerald-300/70"}`}><b>Does:</b> {c.effect_note}</span>
                 </span>
               </li>
             ))}
