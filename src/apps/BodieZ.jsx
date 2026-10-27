@@ -52,6 +52,7 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { changeText, againstWhat, liftChange, repsChangeText, direction } from "../sessionChange.js";
 import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
@@ -134,6 +135,8 @@ const BODYMAP_STATUS = {
 
 const TABS = [
   { key: "today", label: "Today" },
+  // Every past session, editable — the place to find a log from last spring and fix it.
+  { key: "sessionz", label: "SessionZ" },
   { key: "routinez", label: "RoutineZ" },
   { key: "scheduler", label: "Scheduler" },
   { key: "bodymap", label: "BodyMap" },
@@ -179,10 +182,10 @@ export default function BodieZ() {
   // Set by SessionSummary's "Edit this workout" — the card shown right after
   // finishing had no way to fix a session's own numbers (a dangling session
   // left open for hours shows 0 sets and a nonsense duration, with nothing
-  // to do about it but hunt for it in RoutineZ's history list). Jumps there
+  // to do about it but hunt for it in a history list). Jumps to SessionZ
   // and opens the editor on this exact session. Read once.
   const [prefillEditSession, setPrefillEditSession] = useState(null);
-  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("routinez"); };
+  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("sessionz"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -596,19 +599,22 @@ export default function BodieZ() {
                          initialRoutineId={prefillPastRoutine} onInitialRoutineConsumed={() => setPrefillPastRoutine(null)} />
             </>
           )}
+          {tab === "sessionz" && (
+            <SessionZView exercises={exercises} pickable={usable} refreshKey={history}
+                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
+                          onSaveSession={saveSessionEdit} onRoutineFromSession={routineFromSession}
+                          onDeleteSession={deleteSession} onLogPast={() => jumpToLogPast(null)} />
+          )}
           {tab === "routinez" && (
-            <RoutineZView routines={routines} history={history} exercises={exercises} pickable={usable}
+            <RoutineZView routines={routines} exercises={exercises} pickable={usable}
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
-                          onLogPast={jumpToLogPast}
-                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
+                          onLogPast={jumpToLogPast} onOpenSessionZ={() => setTab("sessionz")}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
                           onImported={load}
-                          onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session}
-                          onRoutineFromSession={routineFromSession} onDeleteSession={deleteSession}
-                          onSaveSession={saveSessionEdit} onSummary={setSummary} />
+                          onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session} />
           )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
@@ -2193,41 +2199,19 @@ const SOURCE_TONE = {
   session: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30",
   trial: "bg-mcz-cyan/15 text-mcz-cyan ring-mcz-cyan/30",
 };
-const HISTORY_PAGE = 10;
 
-function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
+function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary,
-                        prefillEditSession, onEditConsumed, onImported }) {
+                        onOpenSessionZ, onImported }) {
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
-  const [editingSession, setEditingSession] = useState(null);
-  const [writingSession, setWritingSession] = useState(null);
   const [title, setTitle] = useState("");
-  const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
-  const [made, setMade] = useState("");
   const goals = coach?.goals;
-  // "Edit this workout" from SessionSummary hands the session over this way
-  // — open it in the editor directly, rather than leaving the member to find
-  // it again, newest-first, in the list below.
-  useEffect(() => {
-    if (prefillEditSession == null) return;
-    setEditingSession(prefillEditSession);
-    onEditConsumed?.();
-  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const sourceOf = (r) => r.source || "member";
   const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
   const shown = filter ? routines.filter((r) => sourceOf(r) === filter) : routines;
-  const sessionBeingEdited = editingSession != null ? history.find((h) => h.id === editingSession) : null;
-
-  const makeRoutine = async (h) => {
-    const day = new Date(h.started_at).toLocaleDateString();
-    const name = window.prompt("Name the new routine:", `${h.routine_title || "Workout"} — ${day}`);
-    if (name == null) return;
-    if (await onRoutineFromSession(h.id, name.trim())) setMade(`Saved “${name.trim() || h.routine_title || "Workout"}” to your routines.`);
-  };
 
   return (
     <div className="space-y-5">
@@ -2367,75 +2351,215 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
       <section className="space-y-2">
         <p className="re-label">Logged workouts</p>
         <p className="text-[11px] text-white/45">
-          Fix a set you got wrong, or make any workout you did into a routine to run again (each lift's top set
-          becomes the target). The workout itself stays as logged.
+          Every workout you have logged — to fix a set, make it a routine, or delete it — lives in SessionZ.
         </p>
-        {made && <p className="text-xs text-emerald-300">{made}</p>}
-        {sessionBeingEdited && (
-          <PastWorkout key={sessionBeingEdited.id} editing={sessionBeingEdited} exercises={exercises} pickable={pickable}
-                       onSaveEdit={onSaveSession} onCancel={() => setEditingSession(null)}
-                       onSaved={(sm) => { setEditingSession(null); if (sm) onSummary(sm); }} />
-        )}
-        {history.length === 0 && (
-          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
-            Nothing logged yet. Finish a session on Today, or log a past one there.
-          </p>
-        )}
-        {history.slice(0, historyCount).map((h) => {
-          const sets = asList(h.sets);
-          const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
-          return (
-            <div key={h.id} className="re-card space-y-1">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">
-                    {h.routine_title || "Workout"}{" "}
-                    <span className="text-xs font-normal text-white/45">{new Date(h.started_at).toLocaleDateString()}</span>
-                    {h.backfilled && <span className="ml-1.5 text-[10px] text-white/35">logged afterwards</span>}
-                  </p>
-                  <p className="text-xs text-white/45">
-                    {sets.length} set{sets.length === 1 ? "" : "s"}
-                    {names.length > 0 && <>: {names.slice(0, 4).join(", ")}{names.length > 4 ? "…" : ""}</>}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          onClick={() => setEditingSession(editingSession === h.id ? null : h.id)}>
-                    <Pencil size={12} /> {editingSession === h.id ? "Close" : "Edit"}
-                  </button>
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
-                    <Plus size={12} /> Make a routine
-                  </button>
-                  {/* A logged workout is settled data — exercises, sets, reps,
-                      any PR it beat — and nothing here ever did anything with
-                      it beyond showing it back. This is the same jump the
-                      coach's own take history offers ("write a promo post"),
-                      aimed at a workout instead of a take. */}
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          disabled={sets.length === 0}
-                          onClick={() => setWritingSession(writingSession === h.id ? null : h.id)}>
-                    <Sparkles size={12} /> {writingSession === h.id ? "Close" : "Write about this"}
-                  </button>
-                  <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
-                          onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-              {writingSession === h.id && (
-                <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingSession(null)} />
-              )}
-              <AskAI scope="session" id={h.id} disabled={sets.length === 0} />
-            </div>
-          );
-        })}
-        {history.length > historyCount && (
-          <button className="text-xs text-mcz-cyan hover:underline" onClick={() => setHistoryCount(historyCount + HISTORY_PAGE)}>
-            Show {Math.min(HISTORY_PAGE, history.length - historyCount)} more
-          </button>
-        )}
+        <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1" onClick={onOpenSessionZ}>
+          <Pencil size={12} /> Open SessionZ
+        </button>
       </section>
+    </div>
+  );
+}
+
+// SessionZ — every past session, editable. RoutineZ used to keep the newest few of these at the bottom
+// of its page; this is where a member goes to find a log from last spring and fix it. The server pages,
+// searches and bounds by date (`sessions/log/`) and says which sessions deserve a second look and why —
+// nothing is guessed here, and nothing is "corrected" for the member: a session left open for nine hours
+// is shown as a question and the sets stay theirs to fix.
+function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onEditConsumed, onSaveSession,
+                        onRoutineFromSession, onDeleteSession, onLogPast }) {
+  const unit = useUnit();
+  const fmt = (kg) => `${Math.round(fromKg(kg, unit)).toLocaleString()} ${unit}`;
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({ total: 0, has_more: false, totals: null });
+  const [loading, setLoading] = useState(true);
+  const [more, setMore] = useState(false);
+  const [err, setErr] = useState("");
+  const [q, setQ] = useState("");
+  const [dq, setDq] = useState("");
+  const [since, setSince] = useState("");
+  const [until, setUntil] = useState("");
+  const [check, setCheck] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [writingId, setWritingId] = useState(null);
+  const [details, setDetails] = useState({});
+  const [made, setMade] = useState("");
+  const loaded = useRef(0);
+  const lastFilter = useRef("");
+  const ticket = useRef(0);
+
+  // Typing is debounced, once, for every filter alike (the VybeZ lesson): one request per pause, not one per key.
+  useEffect(() => { const t = setTimeout(() => setDq(q), 300); return () => clearTimeout(t); }, [q]);
+  const filters = { q: dq, since, until, check };
+  const fKey = filterKey(filters);
+
+  // One effect for "the list changed": a filter moved (back to page one) or the parent reloaded after an
+  // edit/delete (re-ask for as many rows as the member had paged to, so they are not thrown back to the top).
+  useEffect(() => {
+    const mine = ++ticket.current;                       // a slower, older answer must never overwrite a newer one
+    const sameFilter = lastFilter.current === fKey;
+    lastFilter.current = fKey;
+    setLoading(true);
+    api(`/api/economy/bodiez/sessions/log/${logQuery({ ...filters, limit: sameFilter ? refreshLimit(loaded.current) : LOG_PAGE })}`)
+      .then((d) => {
+        if (mine !== ticket.current) return;
+        setRows(asList(d.sessions)); loaded.current = asList(d.sessions).length;
+        setMeta({ total: d.total, has_more: d.has_more, totals: d.totals });
+        setDetails({}); setErr("");
+      })
+      .catch((e) => { if (mine === ticket.current) setErr(e.message || "Couldn't load your sessions."); })
+      .finally(() => { if (mine === ticket.current) setLoading(false); });
+  }, [fKey, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadMore = async () => {
+    setMore(true);
+    try {
+      const d = await api(`/api/economy/bodiez/sessions/log/${logQuery({ ...filters, offset: rows.length })}`);
+      setRows((cur) => { const next = mergeRows(cur, asList(d.sessions)); loaded.current = next.length; return next; });
+      setMeta((m) => ({ ...m, total: d.total, has_more: d.has_more, totals: d.totals }));
+    } catch (e) { setErr(e.message || "Couldn't load more."); }
+    finally { setMore(false); }
+  };
+
+  // "Edit this workout" from a just-finished session's card hands the id over. It is the newest, so it is
+  // usually on the page already — but not always, so it is fetched by id and put at the top if it is not.
+  useEffect(() => {
+    if (prefillEditSession == null) return undefined;
+    let on = true;
+    api(`/api/economy/bodiez/sessions/log/${logQuery({ id: prefillEditSession, limit: 1 })}`)
+      .then((d) => {
+        if (!on) return;
+        const row = asList(d.sessions)[0];
+        if (row) { setRows((cur) => (cur.some((r) => r.id === row.id) ? cur : [row, ...cur])); setEditingId(row.id); }
+      })
+      .catch((e) => on && setErr(e.message || "Couldn't open that session."))
+      .finally(() => on && onEditConsumed?.());
+    return () => { on = false; };
+  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleDetails = async (h) => {
+    if (openId === h.id) { setOpenId(null); return; }
+    setOpenId(h.id);
+    if (details[h.id]) return;
+    try { setDetails((d) => ({ ...d, [h.id]: null })); const sm = await api(`/api/economy/bodiez/sessions/${h.id}/summary/`); setDetails((d) => ({ ...d, [h.id]: sm })); }
+    catch (e) { setErr(e.message || "Couldn't read that session."); setOpenId(null); }
+  };
+
+  const makeRoutine = async (h) => {
+    const name = window.prompt("Name the new routine:", `${h.routine_title || "Workout"} — ${new Date(h.started_at).toLocaleDateString()}`);
+    if (name == null) return;
+    if (await onRoutineFromSession(h.id, name.trim())) setMade(`Saved “${name.trim() || h.routine_title || "Workout"}” to your routines.`);
+  };
+
+  const narrowed = filtersActive(filters);
+  const clear = () => { setQ(""); setDq(""); setSince(""); setUntil(""); setCheck(false); };
+  const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
+
+  return (
+    <div className="space-y-3">
+      <section className="re-card space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="re-label">SessionZ — every workout you've logged</p>
+          {meta.totals && <p className="text-[11px] text-white/45">{totalsLine(meta.totals, fmt)}, all time</p>}
+        </div>
+        <p className="text-[11px] text-white/45">
+          Open one to see what it added up to, fix any set, change its date or note, turn it into a routine, or
+          delete it. Fixing a log recounts your records, BodyMap and goals.
+        </p>
+        <Field label="Search" className="w-full" placeholder="a lift or a routine" value={q}
+               onChange={(e) => setQ(e.target.value)} />
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="From" className="min-w-0" type="date" value={since} max={until || undefined} onChange={(e) => setSince(e.target.value)} />
+          <Field label="To" className="min-w-0" type="date" value={until} min={since || undefined} onChange={(e) => setUntil(e.target.value)} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <label className="flex cursor-pointer items-center gap-1.5 text-white/70">
+            <input type="checkbox" checked={check} onChange={(e) => setCheck(e.target.checked)} />
+            Only ones that need a look (empty, or left open for hours)
+          </label>
+          {narrowed && <button className="text-mcz-cyan hover:underline" onClick={clear}>Clear filters</button>}
+          <button className="ml-auto text-mcz-cyan hover:underline" onClick={onLogPast}>+ Log a past workout</button>
+        </div>
+        {made && <p className="text-xs text-emerald-300">{made}</p>}
+        {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
+      </section>
+
+      {loading && rows.length === 0 && (
+        <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={14} /> Loading your sessions…</p>
+      )}
+      {!loading && rows.length === 0 && !err && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          {narrowed ? "No sessions match that." : "Nothing logged yet. Finish a session on Today, or log a past one."}
+        </p>
+      )}
+
+      {rows.map((h) => {
+        const sets = asList(h.sets);
+        const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
+        const when = new Date(h.started_at);
+        const sm = details[h.id];
+        return (
+          <div key={h.id} className={`re-card space-y-1.5 ${h.check?.length ? "border-amber-400/30" : ""}`}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">
+                  {h.routine_title || "Workout"}{" "}
+                  <span className="text-xs font-normal text-white/45">
+                    {when.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                  </span>
+                  {h.backfilled && <span className="ml-1.5 text-[10px] text-white/35">logged afterwards</span>}
+                </p>
+                <p className="text-xs text-white/55">
+                  {[durationText(h.duration_seconds, clock), `${sets.length} set${sets.length === 1 ? "" : "s"}`,
+                    h.reps ? `${h.reps} reps` : "", h.volume_kg ? `${fmt(h.volume_kg)} lifted` : ""].filter(Boolean).join(" · ")}
+                </p>
+                {names.length > 0 && <p className="text-[11px] text-white/40">{names.slice(0, 5).join(", ")}{names.length > 5 ? ` +${names.length - 5}` : ""}</p>}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                        onClick={() => setEditingId(editingId === h.id ? null : h.id)}>
+                  <Pencil size={12} /> {editingId === h.id ? "Close" : "Edit"}
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={sets.length === 0} onClick={() => toggleDetails(h)}>
+                  {openId === h.id ? "Hide details" : "Details"}
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                        disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
+                  <Plus size={12} /> Routine
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                        disabled={sets.length === 0} onClick={() => setWritingId(writingId === h.id ? null : h.id)}>
+                  <Sparkles size={12} /> {writingId === h.id ? "Close" : "Write about it"}
+                </button>
+                <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                        onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+            {asList(h.check).map((note, i) => <p key={i} className="text-[11px] text-amber-200">⚠ {note}</p>)}
+            {editingId === h.id && (
+              <PastWorkout key={h.id} editing={h} exercises={exercises} pickable={pickable} onSaveEdit={onSaveSession}
+                           onCancel={() => setEditingId(null)}
+                           onSaved={(summary) => { setEditingId(null); if (summary) { setDetails((d) => ({ ...d, [h.id]: summary })); setOpenId(h.id); } }} />
+            )}
+            {openId === h.id && (sm
+              ? <SessionSummary summary={sm} onClose={() => setOpenId(null)} onEdit={() => setEditingId(h.id)} />
+              : <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={13} /> Reading it…</p>)}
+            {writingId === h.id && <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingId(null)} />}
+            <AskAI scope="session" id={h.id} disabled={sets.length === 0} />
+          </div>
+        );
+      })}
+
+      {meta.has_more && (
+        <button className="neon-btn-ghost !w-auto px-4 py-2 text-xs inline-flex items-center gap-1" disabled={more} onClick={loadMore}>
+          {more ? <Loader2 className="animate-spin" size={13} /> : null}
+          Show {Math.min(LOG_PAGE, meta.total - rows.length)} more <span className="text-white/40">({rows.length} of {meta.total})</span>
+        </button>
+      )}
+      {!meta.has_more && rows.length > 0 && <p className="text-center text-[11px] text-white/30">That's all {meta.total} {narrowed ? "that match" : "of them"}.</p>}
     </div>
   );
 }

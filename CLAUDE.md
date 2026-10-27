@@ -1665,3 +1665,22 @@ using the server's own sentences (`link_sources`, `link_note`) and a host-only g
 labelling-only rule as `widgetz.js`): YouTube → "works, reads the first 4:00 or from ?t=", **Spotify / SoundCloud →
 the server's reason (a player, never the audio), and Use stays disabled**. The server still decides on press.
 A link costs no ⚡; the result names it ("a YouTube video from 1:15").
+
+## SessionZ: see and fix every past log
+
+BodieZ has a **SessionZ** tab (after Today) listing every finished session, not the newest few: `SessionZView`, fed by
+`sessions/log/` (the server pages, searches, bounds by date, totals and flags; `sessionLog.js` builds the query and keeps
+the list straight). RoutineZ's "Logged workouts" list moved here — one list, and RoutineZ keeps a door to it. A session
+finished on Today still jumps to SessionZ's editor via "Edit this workout" (fetched by id if it is not on the page).
+
+- **Each row** is date, routine, length (blank, never 0:00, when it was typed in afterwards), sets, reps and weight lifted,
+  and its lifts. **Edit** opens the same `PastWorkout` editor, inline under the row; **Details** opens the session summary
+  with the change vs last time and records; **Routine**, **Write about it** and delete are the ones RoutineZ had.
+- **"Only ones that need a look"** is the server's `check`: an empty session, or one left open for hours, each with its
+  reason in amber. A drop in weight is never flagged — only facts about the row are.
+- **One debounced request per pause** for every filter (search, from, to), and a ticket so a slow old answer cannot
+  overwrite a newer one. A reload after an edit re-asks for as many rows as the member had paged to (up to the server's 100)
+  instead of throwing them back to the top.
+- Driven in a real browser against the local stack (62 sessions): paging 25 → 50, search, the filter finding exactly the
+  two broken sessions, an edit moving a row's total by the expected amount, and a delete dropping the count and the flagged
+  list. The skill's chromium path was stale (`chrome-linux64` now, not `chrome-linux`).
