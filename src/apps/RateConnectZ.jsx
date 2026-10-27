@@ -1,3 +1,4 @@
+import { genreLabel } from "../genres.js";
 import Term from "../components/Term.jsx";
 import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -152,7 +153,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
           <a className="re-link block truncate font-semibold" href={p.url}>{p.title || "Untitled"}</a>
           <p className="text-[11px] text-white/50">
             by <MemberName username={p.author} bare />
-            {p.genre ? ` · ${p.genre}` : p.media_type ? ` · ${p.media_type}` : ""}
+            {p.genre ? ` · ${genreLabel(p.genre)}` : p.media_type ? ` · ${p.media_type}` : ""}
             {p.count ? ` · ${fmt(p.rating)} from ${p.count}` : " · not rated yet"}
           </p>
         </div>
