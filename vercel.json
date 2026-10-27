@@ -3,7 +3,6 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "redirects": [
-    { "source": "/(.*)", "has": [{ "type": "host", "value": "www.musicconnectz.net" }], "destination": "https://musicconnectz.net/$1", "permanent": false },
     { "source": "/exercise-demos/:file", "destination": "https://ctkoth.github.io/mcz-media/exercise-demos/:file", "permanent": false }
   ],
   "rewrites": [
