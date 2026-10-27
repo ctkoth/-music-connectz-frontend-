@@ -57,6 +57,7 @@ export const APP_PURPOSE = {
   battlez:     { does: "Compete head to head",           words: "battle compete versus contest challenge fight cypher" },
   labelz:      { does: "Label contracts and rosters",    words: "label contract roster sign artist deal advance" },
   groupz:      { does: "Manage who sees what",           words: "groups friends fans blocked circles privacy visibility" },
+  friendz:     { does: "Everyone who follows you back",  words: "friends friendz mutual follow followers following follow back partner partnerz" },
   bugz:        { does: "Report a bug and get paid",      words: "bug report broken problem issue fix error feedback" },
   funnelz:     { does: "Owner: join funnel numbers",     words: "funnel analytics conversion stats owner numbers growth" },
   royaltiez:   { does: "Your royalty balance and cashout", words: "royalties money earnings payout cashout withdraw paid revenue" },

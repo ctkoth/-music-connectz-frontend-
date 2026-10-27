@@ -23,7 +23,7 @@ const ICON_KEY = {
   messagez: "messagez.png", skillz: "skillz.png", occ: "occ.png", bosttake: "coachz.jpg",
   onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png", voicez: "voicez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
-  directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
+  directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png", friendz: "groupz_friendz.png",
   budgetz: "budgetz.jpg", merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", breathz: "breathz.png", viewz: "viewz.png",
   intelligencez: "intelligencez.png", mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
@@ -38,7 +38,7 @@ const EMOJI = {
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
-  budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
+  budgetz: "💰", funnelz: "📉", groupz: "👫", friendz: "🧑‍🤝‍🧑", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
@@ -143,6 +143,7 @@ const TOOLZ_MENU = {
   ],
   'GroupZ': [
     { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Belong & grow together' },
+    { key: 'friendz', label: 'FriendZ', color: 'cyan', desc: 'Everyone who follows you back' },
   ],
   'ToolZ': [
     ...COACH_GROUPS,

@@ -117,6 +117,7 @@ const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
 const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
+const FriendZ = lazy(lazyRoute(() => import("./apps/FriendZ.jsx")));
 const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
 const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
 const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
@@ -617,6 +618,7 @@ const TABS = [
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
   { key: "labelz", label: "LabelZ", icon: "labelz.png", el: <LabelZ /> },
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
+  { key: "friendz", label: "FriendZ", icon: "groupz_friendz.png", el: <FriendZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
   { key: "dawz", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
@@ -927,6 +929,7 @@ const TAB_ABOUT = {
   battlez: "🪖 BattleZ — one post versus another. Verified 18+ can bet on themselves; others bet SpinaZ.",
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
+  friendz: "🤝 FriendZ — everyone you follow who follows you back, with who has become a PartnerZ and how far along the rest are. Message, collab or battle from the row.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
