@@ -2,19 +2,19 @@
 // that decided it. NOT the Thorough rating (that comes from sessions trained, and the caveat the server sends says so).
 // When it is under 10 and the Planner can fix what failed, it offers the fix and SHOWS it first: the score before and
 // after, which check moved, and which lift moved it. Nothing is saved until Apply.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { RatingRow } from "../components/Rating.jsx";
 import { canFix, checkMoves, mark, moveText, planDetail, stillYours } from "../planRating.js";
 
-export default function PlanRating({ routine, caveat, onApply }) {
+export default function PlanRating({ routine, caveat, onApply, autoOpen = false }) {
   const plan = routine.plan;
   const [busy, setBusy] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [done, setDone] = useState("");
   const [err, setErr] = useState("");
-  if (!plan) return null;
+  const [open, setOpen] = useState(!!autoOpen);
 
   const propose = async () => {
     setBusy(true); setErr(""); setDone("");
@@ -35,6 +35,11 @@ export default function PlanRating({ routine, caveat, onApply }) {
     finally { setBusy(false); }
   };
 
+  // Landed on from "Improve this routine": the checks are open and, when the Planner can fix something, its proposal is
+  // already on screen (the member sees every change before Apply — nothing is saved by arriving).
+  useEffect(() => { if (autoOpen && plan && canFix(plan)) propose(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!plan) return null;
+
   const p = proposal?.polished;
   return (
     <div className="space-y-1.5" data-testid="plan-rating">
@@ -42,7 +47,7 @@ export default function PlanRating({ routine, caveat, onApply }) {
         ? <RatingRow value={Math.round(plan.score)} exact={plan.score} label="Plan" detail={planDetail(plan)} outOf size="sm" />
         : <p className="text-[11px] text-white/40">Plan: {planDetail(plan)}</p>}
       {(plan.checks || []).length > 0 && (
-        <details className="text-[11px] text-white/55">
+        <details className="text-[11px] text-white/55" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
           <summary className="cursor-pointer text-mcz-cyan/80">What the Plan checks</summary>
           <ul className="mt-1 space-y-0.5">
             {plan.checks.map((c) => (

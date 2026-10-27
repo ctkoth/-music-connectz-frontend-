@@ -56,6 +56,7 @@ import EquipmentFit from "./EquipmentFit.jsx";
 import PlanRating from "./PlanRating.jsx";
 import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
+import { improveCta } from "../planRating.js";
 import { changeText, againstWhat, liftChange, repsChangeText, direction } from "../sessionChange.js";
 import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
@@ -189,6 +190,10 @@ export default function BodieZ() {
   // and opens the editor on this exact session. Read once.
   const [prefillEditSession, setPrefillEditSession] = useState(null);
   const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("sessionz"); };
+  // "Improve this routine" on an ended session: lands in RoutineZ ON that routine's card with its Plan open (and the
+  // Planner's proposal showing when there is one), not at the top of a tab. Read once.
+  const [improveRoutine, setImproveRoutine] = useState(null);
+  const jumpToImprove = (routineId) => { setImproveRoutine(routineId); setTab("routinez"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -440,10 +445,10 @@ export default function BodieZ() {
   // as the target; the workout itself is untouched).
   async function routineFromSession(id, title) {
     try {
-      await api(`/api/economy/bodiez/sessions/${id}/routine/`, { method: "POST", body: title ? { title } : {} });
+      const made = await api(`/api/economy/bodiez/sessions/${id}/routine/`, { method: "POST", body: title ? { title } : {} });
       setErr("");
       load();
-      return true;
+      return made || true;          // the new routine (so a caller can land on it); always truthy on success
     } catch (e) { setErr(e.message); return false; }
   }
 
@@ -602,7 +607,8 @@ export default function BodieZ() {
               <SessionSummary summary={summary} onClose={() => setSummary(null)}
                              onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }}
                              onSaveRoutine={(name) => routineFromSession(summary.session_id, name)}
-                             onOpenRoutineZ={() => { setTab("routinez"); }} />
+                             onOpenRoutineZ={() => { setTab("routinez"); }}
+                             routinePlan={routines.find((r) => r.id === summary.routine_id)?.plan} onImprove={jumpToImprove} />
             )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
@@ -619,7 +625,7 @@ export default function BodieZ() {
             <SessionZView exercises={exercises} pickable={usable} refreshKey={history} routines={routines}
                           sessionOpen={!!session} onStart={(id) => { startSession(id); setTab("today"); }}
                           onOpenToday={() => setTab("today")} onSaveExercises={saveRoutineExercises} onSaveNew={saveNewRoutine}
-                          onOpenRoutineZ={() => setTab("routinez")}
+                          onOpenRoutineZ={() => setTab("routinez")} onImprove={jumpToImprove}
                           prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
                           onSaveSession={saveSessionEdit} onRoutineFromSession={routineFromSession}
                           onDeleteSession={deleteSession} onLogPast={() => jumpToLogPast(null)} />
@@ -630,6 +636,7 @@ export default function BodieZ() {
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                           onLogPast={jumpToLogPast} onOpenSessionZ={() => setTab("sessionz")} onSaveNew={saveNewRoutine}
                           planCaveat={board?.plan_caveat}
+                          focusRoutine={improveRoutine} onFocusConsumed={() => setImproveRoutine(null)}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
@@ -838,19 +845,23 @@ function AICoachRead({ sessionId }) {
   );
 }
 
-function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRoutineZ }) {
+function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRoutineZ, routinePlan, onImprove }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
   // A custom session has no routine behind it. Ending it is the moment to keep it: the server turns each lift into a
   // row (sets = how many were done, target = the TOP set, never an average), and the session itself stays as logged.
   const [routineName, setRoutineName] = useState(`Custom workout — ${new Date(sm.started_at).toLocaleDateString()}`);
   const [savedAs, setSavedAs] = useState("");
+  const [savedId, setSavedId] = useState(null);
   const [saving, setSaving] = useState(false);
   const canSaveRoutine = !!onSaveRoutine && sm.sets > 0 && !sm.routine_title;
   const saveRoutine = async () => {
     setSaving(true);
-    try { const name = routineName.trim().slice(0, 80) || "Custom workout"; if (await onSaveRoutine(name)) setSavedAs(name); }
-    finally { setSaving(false); }
+    try {
+      const name = routineName.trim().slice(0, 80) || "Custom workout";
+      const made = await onSaveRoutine(name);
+      if (made) { setSavedAs(name); setSavedId(typeof made === "object" ? made.id : null); }
+    } finally { setSaving(false); }
   };
   const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
   const text = summaryText(sm, unit);
@@ -937,12 +948,28 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
       {sm.records.length > 0 && sm.firsts.length > 0 && (
         <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
       )}
+      {sm.routine_id != null && sm.sets > 0 && onImprove && improveCta(routinePlan) && (
+        <div className="space-y-1.5 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2.5 text-xs" data-testid="improve-routine">
+          <p className="text-white/70">
+            <b className="text-white">{sm.routine_title}</b> — {improveCta(routinePlan).line}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={`!w-auto px-3 py-1.5 text-xs ${improveCta(routinePlan).fixable ? "neon-btn-primary" : "neon-btn-ghost"}`}
+                    onClick={() => onImprove(sm.routine_id)}>
+              {improveCta(routinePlan).label}
+            </button>
+            <span className="text-white/40">Free · you see every change before anything is saved.</span>
+          </div>
+        </div>
+      )}
       {canSaveRoutine && (
         <div className="space-y-1.5 rounded-lg bg-white/5 p-2.5 text-xs" data-testid="save-routine">
           {savedAs ? (
             <p className="flex flex-wrap items-center gap-2 text-emerald-300">
               Saved “{savedAs}” to RoutineZ.
-              {onOpenRoutineZ && <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={onOpenRoutineZ}>Open RoutineZ</button>}
+              {(onImprove && savedId != null)
+                ? <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={() => onImprove(savedId)}>Open it in RoutineZ</button>
+                : onOpenRoutineZ && <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={onOpenRoutineZ}>Open RoutineZ</button>}
             </p>
           ) : (
             <>
@@ -2264,8 +2291,23 @@ const SOURCE_TONE = {
 function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onOpenSessionZ, onSaveNew, planCaveat, onImported }) {
+                        onOpenSessionZ, onSaveNew, planCaveat, focusRoutine = null, onFocusConsumed, onImported }) {
   const [filter, setFilter] = useState("");
+  // Landed on from an ended session's "Improve this routine": clear any filter that would hide it, bring the card into view
+  // and mark it, while its Plan opens itself (PlanRating `autoOpen`). The focus is consumed once it has been scrolled to.
+  // Initialised from the focus, not set in an effect: PlanRating reads `autoOpen` once, at mount, and the cards first render
+  // before any effect runs.
+  const [landed, setLanded] = useState(focusRoutine);
+  useEffect(() => {
+    if (focusRoutine == null) return undefined;
+    setFilter(""); setLanded(focusRoutine);
+    const scroll = setTimeout(() => {
+      try { document.getElementById(`routine-${focusRoutine}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch { /* old browser */ }
+      onFocusConsumed?.();
+    }, 250);
+    const fade = setTimeout(() => setLanded(null), 4000);      // the mark is a pointer, not furniture
+    return () => { clearTimeout(scroll); clearTimeout(fade); };
+  }, [focusRoutine]); // eslint-disable-line react-hooks/exhaustive-deps
   const [editing, setEditing] = useState(null);
   const [fitting, setFitting] = useState(null);
   const [title, setTitle] = useState("");
@@ -2329,7 +2371,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
         {shown.map((r) => {
           const items = asList(r.exercises);
           return (
-            <div key={r.id} className="re-card space-y-1.5">
+            <div key={r.id} id={`routine-${r.id}`} className={`re-card space-y-1.5 ${landed === r.id ? "ring-1 ring-mcz-cyan/60" : ""}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -2354,7 +2396,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
                       {asList(r.coach_exercises).map((e) => `${nameOf(e.exercise_id)} ${e.rating ?? "–"}`).join(" · ")}
                     </p>
                   )}
-                  <PlanRating key={`${r.id}:${r.updated_at}`} routine={r} caveat={planCaveat}
+                  <PlanRating key={`${r.id}:${r.updated_at}`} routine={r} caveat={planCaveat} autoOpen={landed === r.id}
                               onApply={(list) => onSaveExercises(r.id, list)} />
                   <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
                   <AskAI scope="routine" id={r.id} disabled={items.length === 0} />
@@ -2443,7 +2485,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
 // is shown as a question and the sets stay theirs to fix.
 function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onEditConsumed, onSaveSession,
                         onRoutineFromSession, onDeleteSession, onLogPast, routines = [], sessionOpen = false, onStart,
-                        onOpenToday, onSaveExercises, onSaveNew, onOpenRoutineZ }) {
+                        onOpenToday, onSaveExercises, onSaveNew, onOpenRoutineZ, onImprove }) {
   const unit = useUnit();
   const [fitId, setFitId] = useState(null);
   const [allRoutines, setAllRoutines] = useState(false);
@@ -2693,7 +2735,8 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
             )}
             {openId === h.id && (sm
               ? <SessionSummary summary={sm} onClose={() => setOpenId(null)} onEdit={() => setEditingId(h.id)}
-                                onSaveRoutine={(name) => onRoutineFromSession(h.id, name)} onOpenRoutineZ={onOpenRoutineZ} />
+                                onSaveRoutine={(name) => onRoutineFromSession(h.id, name)} onOpenRoutineZ={onOpenRoutineZ}
+                                routinePlan={routines.find((r) => r.id === sm.routine_id)?.plan} onImprove={onImprove} />
               : <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={13} /> Reading it…</p>)}
             {writingId === h.id && <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingId(null)} />}
             <AskAI scope="session" id={h.id} disabled={sets.length === 0} />

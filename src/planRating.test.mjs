@@ -53,3 +53,32 @@ test("the Planner's fix is shown before it is saved — the score move, the chan
 test("Fit to equipment previews how the Plan moves and why, and saves the Planner's list", () => {
   for (const needle of ["fit-plan", "routines/plan/", "polish: true", "compare_to", "toSave", "ticket"]) assert.ok(fitUi.includes(needle), needle);
 });
+
+import { improveCta } from "./planRating.js";
+
+test("the Improve CTA says where the routine stands and what pressing does, before it is pressed", () => {
+  const fix = improveCta({ score: 7.5, passed: 3, applicable: 4, checks: [{ key: "reps", ok: false }, { key: "order", ok: false }, { key: "access", ok: true }] });
+  assert.equal(fix.label, "Improve this routine");
+  assert.equal(fix.line, "Plan 7.5/10 — 2 checks the Planner can fix.");
+  const one = improveCta({ score: 9, checks: [{ key: "sets", ok: false }] });
+  assert.equal(one.line, "Plan 9/10 — 1 check the Planner can fix.");
+});
+
+test("nothing for the Planner to fix reads as an invitation to open, not an 'improve' that would do nothing", () => {
+  const ten = improveCta({ score: 10, checks: [{ key: "reps", ok: true }] });
+  assert.equal(ten.label, "Open this routine");
+  assert.match(ten.line, /nothing for the Planner to fix/);
+  // only the member's own checks failing (access, repeats) is not something the Planner can fix either
+  assert.equal(improveCta({ score: 8, checks: [{ key: "repeats", ok: false }] }).label, "Open this routine");
+  assert.equal(improveCta({ score: null }).label, "Open this routine");
+  assert.equal(improveCta(null), null);
+});
+
+test("an ended session offers it for a routine session and lands on that routine's card with its Plan open", () => {
+  const card = bodiez.slice(bodiez.indexOf("function SessionSummary"), bodiez.indexOf("function SessionSummary") + 18000);
+  for (const needle of ["improve-routine", "improveCta(routinePlan)", "onImprove(sm.routine_id)", "Free · you see every change"]) assert.ok(card.includes(needle), needle);
+  assert.ok(bodiez.includes("jumpToImprove"));
+  assert.ok(bodiez.includes("routine-${r.id}") && bodiez.includes("scrollIntoView"));
+  assert.ok(bodiez.includes("autoOpen={landed === r.id}"));
+  assert.ok(planUi.includes("autoOpen"));
+});

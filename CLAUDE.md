@@ -1727,3 +1727,15 @@ anything the coach makes or edits; that would be a number nothing measured, so w
 - Fixed with it: the Thorough line on routine cards had always read "not rated yet" (the board feeding the cards never carried it).
 - Driven in a real browser: a routine failing three checks reads 4/10 with each reason, the fix previews 4 → 10 and applies to 10/10, a trained
   routine shows Thorough and Plan side by side, and Fit to equipment shows the Plan before saving.
+
+### "Improve this routine": the ended-session card lands on the routine's coach controls
+
+When a session started from a routine ends, the card (Today, and a past session's Details in SessionZ) says where that routine stands BEFORE
+anything is pressed — "Push day — Plan 4/10 — 3 checks the Planner can fix." (`improveCta`, from the board's `plan`) — with the price beside
+the button ("Free · you see every change before anything is saved"). **Improve this routine** jumps to RoutineZ and LANDS on that routine's card
+(`jumpToImprove` → `focusRoutine`: filter cleared, card scrolled into view and marked for a few seconds), with its Plan checks already open and,
+when the Planner can fix something, its proposal already on screen (`PlanRating autoOpen`). Arriving saves nothing; Apply does.
+- A routine already at 10 (or with only member-owned checks failing) reads **Open this routine**, not "Improve": a button that promises to
+  improve and has nothing to do is the dead-end this repo keeps relearning. A routine deleted since offers no CTA at all.
+- A custom session saved to RoutineZ from the same card lands on the NEW routine ("Open it in RoutineZ").
+- `autoOpen` is read once at mount, so `landed` is initialised from the focus rather than set in an effect after the cards first render.

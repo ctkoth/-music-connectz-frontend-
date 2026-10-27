@@ -37,3 +37,16 @@ export function checkMoves(cmp) {
     why: c.why,
   }));
 }
+
+/** What the "Improve this routine" call-to-action says BEFORE it is pressed: where the routine stands and what pressing does. */
+export function improveCta(plan) {
+  if (!plan) return null;
+  const fix = failing(plan).filter((c) => FIXABLE.has(c.key));
+  if (plan.score == null) return { label: "Open this routine", line: "This routine has no lifts to check yet.", fixable: 0 };
+  if (fix.length) {
+    return { label: "Improve this routine",
+             line: `Plan ${Number.isInteger(plan.score) ? plan.score : plan.score.toFixed(1)}/10 — ${fix.length} check${fix.length === 1 ? "" : "s"} the Planner can fix.`,
+             fixable: fix.length };
+  }
+  return { label: "Open this routine", line: `Plan ${Number.isInteger(plan.score) ? plan.score : plan.score.toFixed(1)}/10 — nothing for the Planner to fix.`, fixable: 0 };
+}
