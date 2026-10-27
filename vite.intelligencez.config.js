@@ -41,6 +41,8 @@ export default defineConfig({
   publicDir: path.resolve("public"),
   envDir: path.resolve("."),
   plugins: [react(), overlayInDev(), versionPlugin(VERSION)],
+  // Module workers: the mastering worker loads its MP3 encoder on first use.
+  worker: { format: "es" },
   // Tells the shared screens they are not on the main site: no OAuth buttons
   // (its redirect URIs are registered for musicconnectz.net only), no "download
   // the Music ConnectZ app" box, no door to a screen this shell does not have,

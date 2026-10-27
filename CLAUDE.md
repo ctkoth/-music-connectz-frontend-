@@ -1543,3 +1543,26 @@ rows). `extras` / `mix_tips` come from the server already cleaned; the screen fi
 coach did not give is absent, never a 0. `shareText({extras})` adds "(HookZ 8 · FeelZ 6)" to the sentence only when they exist.
 The picture carries the numbers and the emotion only — the fixes stay on the page, because a card is a result and a fix is for the
 person who made it.
+
+## Mix ConnectZ: DynamicZ, a loudness you set, and delivery as WAV or MP3
+
+The eMastered comparison, done: Mix ConnectZ already had reference matching (Inspiration), level-matched A/B,
+styles, intensity, width and EQ trims. What it lacked is in now, all on the member's device and free at every tier.
+
+- **DynamicZ** is the section for how hits and loud moments behave. **Punch** (`applyPunch`, −50..+50%) is a
+  transient shaper: a 1 ms and a 25 ms envelope differ only while a hit starts, so only the attack moves; under 1 dB
+  apart is a sustained note breathing and is ignored (without that deadband a 200 Hz tone moved 1.7 dB).
+  **Multiband** splits at 120 Hz and 4 kHz with LR4 crossovers and compresses each band on its own; the low band gets
+  the upper split's phase turn too, so at rest the bands sum flat (a test holds five frequencies within 0.6 dB). Every
+  move still states its `why`, and the result lists the most each band took off.
+- **Custom loudness** (`target: "custom"`, −20..−7 LUFS) beside the presets, with the "services turn this down" line
+  when it is louder than −14.
+- **Export** (`export.js`): WAV or MP3, at the mix's own rate or converted to 44.1 / 48 kHz. Converting
+  (`resample.js`, Kaiser-windowed sinc, ~90 dB stopband) re-measures the true peak afterwards and trims any excess,
+  and says so. MP3 is LAME via `@breezystack/lamejs` (LGPL-3.0), loaded unmodified as its own chunk on first use,
+  never bundled into app code; `public/licenses/lamejs.txt` carries the licence and the screen links it. Workers build
+  as ES modules (`worker: { format: "es" }` in every vite config) because the worker imports it dynamically.
+- **Revise**: a saved master's settings go back on the controls (`reviseFrom`). The server keeps `lufs`, `punch`,
+  `multiband`, `format`, `kbps` and `exportRate` for that (`mixz.clean_settings`); the Inspiration track itself is never
+  kept, and the screen says to add it again.
+- Not done: album mastering (several songs to one loudness and tone). It is the next eMastered/LANDR parity item.

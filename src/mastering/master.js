@@ -9,7 +9,8 @@
 // The chain, in order — the order a mastering engineer works in:
 //   1. rumble filter (20 Hz), then corrective + style EQ, then the member's trims
 //   2. stereo: width on the side channel, low end folded to mono when it is wide
-//   3. glue compression, only when the track is not already dense
+//   3. DynamicZ: punch (a transient shaper) and glue compression — one band
+//      or three — the glue only when the track is not already dense
 //   4. gain to the loudness target through a true-peak lookahead limiter,
 //      re-measured until it lands, and stopped short — and said so — rather
 //      than crushing the peaks past the intensity's ceiling.
@@ -54,7 +55,18 @@ export const DEFAULTS = {
   eq: true,               // corrective + style EQ; trims still apply when off
   trims: { low: 0, mid: 0, high: 0 },
   glueDb: null,           // compression amount in dB of reduction; null = the intensity's
+  lufs: -14,              // the loudness when target is "custom"
+  multiband: false,       // DynamicZ: compress lows, mids and highs separately
+  punch: 0,               // DynamicZ: −50..+50, softens or sharpens the start of each hit
 };
+
+// The loudness a member may set by hand. Quieter than −20 is not a master; past
+// −7 every service turns it down and nothing of the music survives the limiter.
+export const CUSTOM_LUFS = { min: -20, max: -7 };
+export const PUNCH_MAX = 50;
+// Where multiband glue splits the track: under the kick and bass, and above
+// the body of the vocal and guitars, where the cymbals and the air live.
+export const BANDS_SPLIT = [120, 4000];
 
 export const GLUE_DB_MAX = 8;
 
@@ -66,7 +78,12 @@ export function cleanSettings(raw = {}) {
   const s = { ...DEFAULTS, ...(raw || {}) };
   if (!STYLES[s.style]) s.style = DEFAULTS.style;
   if (!INTENSITY[s.intensity]) s.intensity = DEFAULTS.intensity;
-  if (!TARGETS[s.target] && s.target !== "reference") s.target = DEFAULTS.target;
+  if (!TARGETS[s.target] && s.target !== "reference" && s.target !== "custom") s.target = DEFAULTS.target;
+  const lu = Number(s.lufs);
+  s.lufs = Number.isFinite(lu) ? Math.min(CUSTOM_LUFS.max, Math.max(CUSTOM_LUFS.min, Math.round(lu * 2) / 2)) : DEFAULTS.lufs;
+  s.multiband = s.multiband === true;
+  const pu = Number(s.punch);
+  s.punch = Number.isFinite(pu) ? Math.min(PUNCH_MAX, Math.max(-PUNCH_MAX, Math.round(pu))) : 0;
   const w = Number(s.width);
   s.width = s.width == null || !Number.isFinite(w) ? null : Math.min(150, Math.max(50, w));
   if (!["auto", "on", "off"].includes(s.monoBass)) s.monoBass = "auto";
@@ -239,17 +256,38 @@ export function plan(analysis, rawSettings, reference = null) {
     // in on purpose gets it, with the density stated, not second-guessed.
     glueWhy = `No glue compression: your track is already dense (peak-to-loudness ${r1(analysis.plr)} dB). More would only flatten it.`;
   } else {
-    glue = { ratio: it.ratio, grTarget, attackMs: it.attackMs, releaseMs: 200, kneeDb: 6 };
+    glue = { ratio: it.ratio, grTarget, attackMs: it.attackMs, releaseMs: 200, kneeDb: 6, multiband: settings.multiband };
     const attack = it.attackMs >= 30 ? "slow attack, so the transients still hit" : it.attackMs >= 20 ? "a medium attack that rounds the sharpest transients" : "a fast attack that flattens transients — the heaviest sound on offer";
     glueWhy = `Glue compression at ${it.ratio}:1, set to take about ${r1(grTarget)} dB off your loudest moments${chosen != null ? " (your setting)" : ""} — ${attack}.`;
+    if (settings.multiband) {
+      glueWhy += ` Multiband: lows (under ${BANDS_SPLIT[0]} Hz), mids and highs (over ${BANDS_SPLIT[1] / 1000} kHz) are each compressed on their own, so a loud kick no longer pulls the vocal and cymbals down with it.`;
+    }
     if (chosen != null && analysis.plr < 8) {
       warnings.push(`Your track is already dense (peak-to-loudness ${r1(analysis.plr)} dB) and you asked for ${r1(chosen)} dB more compression. It will sound flatter; that may be what you want.`);
     }
   }
 
+  // ---- Punch
+  let punch = null;
+  let punchWhy = "Punch left as you mixed it.";
+  if (settings.punch) {
+    const amt = settings.punch / 100;
+    punch = { amount: amt, maxDb: 6 };
+    punchWhy = settings.punch > 0
+      ? `Punch +${settings.punch}%: the first few milliseconds of each hit are raised (up to ${punch.maxDb} dB) and the ring after it is left alone, so drums and plucks cut through.`
+      : `Punch ${settings.punch}%: the first few milliseconds of each hit are softened (up to ${punch.maxDb} dB), which rounds harsh attacks and lets the limiter work less.`;
+    if (settings.punch > 0 && analysis.plr < 8) {
+      warnings.push(`Your track is dense (peak-to-loudness ${r1(analysis.plr)} dB), so the peaks you add with Punch will mostly be taken back off by the limiter.`);
+    }
+  }
+
   // ---- Loudness
   let lufs; let ceiling; let loudWhy;
-  if (settings.target === "reference" && reference && Number.isFinite(reference.lufs)) {
+  if (settings.target === "custom") {
+    lufs = settings.lufs;
+    ceiling = -1;
+    loudWhy = `Your loudness: ${lufs} LUFS integrated, true peaks held under ${ceiling} dBTP.${lufs > -14 ? " Streaming services play back near −14 LUFS and will turn this down to that." : ""}`;
+  } else if (settings.target === "reference" && reference && Number.isFinite(reference.lufs)) {
     lufs = Math.max(-20, Math.min(-7, reference.lufs));
     ceiling = -1;
     loudWhy = `Loudness matched to your reference: ${r1(lufs)} LUFS, peaks held under ${ceiling} dBTP.`;
@@ -270,6 +308,7 @@ export function plan(analysis, rawSettings, reference = null) {
     eqBasis: eqTargetInfo ? eqTargetInfo.basis : null,
     width: { side, monoBelow, why: widthWhy, monoWhy },
     glue, glueWhy,
+    punch, punchWhy,
     loudness: { lufs, ceiling, maxLimitGr: it.maxLimitGr, why: loudWhy },
     warnings,
   };
@@ -319,6 +358,66 @@ export function glueThreshold(channels, fs, glue) {
   const live = levels.filter((v) => v > top - 40).sort((a, b) => a - b);
   const l90 = live[Math.floor((live.length - 1) * 0.9)];
   return l90 - glue.grTarget / (1 - 1 / glue.ratio);
+}
+
+// Transient shaper. Two envelopes follow the track: one opens in a millisecond,
+// the other in 25. They differ only while a hit is starting, so the gain moves
+// only there — the attack is raised or softened and the sustain is untouched.
+export function applyPunch(channels, fs, punch) {
+  const fastA = Math.exp(-1 / (0.001 * fs));
+  const slowA = Math.exp(-1 / (0.025 * fs));
+  // A long release holds both envelopes at the waveform's own peaks through a
+  // sustained note, so a low tone's cycles never read as hits.
+  const rel = Math.exp(-1 / (0.3 * fs));
+  const n = channels[0].length;
+  let fast = 0, slow = 0, maxDb = 0;
+  for (let i = 0; i < n; i++) {
+    let p = 0;
+    for (const x of channels) { const v = Math.abs(x[i]); if (v > p) p = v; }
+    fast = p > fast ? fastA * fast + (1 - fastA) * p : rel * fast + (1 - rel) * p;
+    slow = p > slow ? slowA * slow + (1 - slowA) * p : rel * slow + (1 - rel) * p;
+    const diff = fast > 1e-6 && slow > 1e-6 ? 20 * Math.log10(fast / slow) : 0;
+    // Under 1 dB apart is the envelopes breathing with a sustained note, not a hit.
+    let gdb = diff > 1 ? punch.amount * 2 * (diff - 1) : 0;
+    if (gdb > punch.maxDb) gdb = punch.maxDb; else if (gdb < -punch.maxDb) gdb = -punch.maxDb;
+    if (Math.abs(gdb) > Math.abs(maxDb)) maxDb = gdb;
+    if (gdb) { const g = dbToGain(gdb); for (const x of channels) x[i] *= g; }
+  }
+  return { maxDb };
+}
+
+// Linkwitz-Riley split: two Butterworths in cascade. Low and high halves of an
+// LR4 pair add back to the input with only a phase turn, so with the
+// compressors at rest the three bands sum to the track as it was.
+function lr4(x, fs, f, high) {
+  const co = high ? highPass(fs, f) : lowPass(fs, f);
+  biquadInPlace(x, co); biquadInPlace(x, co);
+}
+
+function applyMultiband(channels, fs, glue) {
+  const [f1, f2] = BANDS_SPLIT;
+  const rest = channels.map((x) => { const y = Float32Array.from(x); lr4(y, fs, f1, true); return y; });
+  // Lows, given the same phase turn the upper split gives the other two bands.
+  for (const x of channels) {
+    lr4(x, fs, f1, false);
+    const a = Float32Array.from(x);
+    lr4(a, fs, f2, false); lr4(x, fs, f2, true);
+    for (let i = 0; i < x.length; i++) x[i] += a[i];
+  }
+  const low = applyGlue(channels, fs, { ...glue, releaseMs: 300 });
+  const high = rest.map((x) => { const y = Float32Array.from(x); lr4(y, fs, f2, true); return y; });
+  for (const x of rest) lr4(x, fs, f2, false);
+  const mid = applyGlue(rest, fs, glue);
+  const top = applyGlue(high, fs, { ...glue, releaseMs: 120 });
+  for (let c = 0; c < channels.length; c++) {
+    const x = channels[c], m = rest[c], h = high[c];
+    for (let i = 0; i < x.length; i++) x[i] += m[i] + h[i];
+  }
+  const bands = [["low", low], ["mid", mid], ["high", top]].map(([band, r]) => ({ band, ...r }));
+  return {
+    multiband: true, bands,
+    avgGrDb: Math.max(...bands.map((b) => b.avgGrDb)), maxGrDb: Math.max(...bands.map((b) => b.maxGrDb)),
+  };
 }
 
 function applyGlue(channels, fs, glue) {
@@ -472,8 +571,11 @@ export function render(input, fs, thePlan, onProgress) {
   applyEq(channels, fs, thePlan.eq);
   onProgress && onProgress(0.25, "Stereo");
   applyStereo(channels, fs, thePlan.width);
-  onProgress && onProgress(0.35, "Glue");
-  const glue = thePlan.glue ? applyGlue(channels, fs, thePlan.glue) : null;
+  onProgress && onProgress(0.3, "Punch");
+  const punch = thePlan.punch ? applyPunch(channels, fs, thePlan.punch) : null;
+  onProgress && onProgress(0.35, thePlan.glue && thePlan.glue.multiband ? "Multiband glue" : "Glue");
+  const glue = !thePlan.glue ? null
+    : thePlan.glue.multiband ? applyMultiband(channels, fs, thePlan.glue) : applyGlue(channels, fs, thePlan.glue);
   onProgress && onProgress(0.5, "Measuring");
   const loud = loudnessStage(channels, fs, thePlan.loudness, onProgress);
   // Final safety: measure the actual true peak of what will be exported and,
@@ -497,6 +599,7 @@ export function render(input, fs, thePlan, onProgress) {
       limiterAvgGrDb: loud.stats.avgGrDb,
       limiterShare: loud.stats.share,
       glue,
+      punch,
       safetyDb,
       truePeakDb: gainToDb(tp),
       truePeakLin: tp,
