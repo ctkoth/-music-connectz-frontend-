@@ -6,7 +6,7 @@ import { goToSpot } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
-import { STYLES, INTENSITY, TARGETS, DEFAULTS, GLUE_DB_MAX, CUSTOM_LUFS, PUNCH_MAX, BANDS_SPLIT, cleanSettings } from "../mastering/master.js";
+import { STYLES, INTENSITY, TARGETS, DEFAULTS, GLUE_DB_MAX, CUSTOM_LUFS, PUNCH_MAX, BANDS_SPLIT, VOCAL_LIFT_MAX, VOCAL_LEVEL_MAX, VOCAL_AUTO_MAX, cleanSettings } from "../mastering/master.js";
 import { EXPORT_RATES } from "../mastering/resample.js";
 import { MP3_KBPS, MP3_DEFAULT_KBPS, mp3Mb } from "../mastering/mp3.js";
 import { dbToGain } from "../mastering/dsp.js";
@@ -197,6 +197,7 @@ export default function MixConnectZ() {
   const [song, setSong] = useState(null);    // { name, channels, sampleRate, seconds, resampled }
   const [before, setBefore] = useState(null);
   const [ref, setRef] = useState(null);      // reference: { name, analysis }
+  const [vocalFile, setVocalFile] = useState(null); // a separate vocal: { name, channels, sampleRate }
   const [settings, setSettings] = useState({ ...DEFAULTS, trims: { ...DEFAULTS.trims } });
   const [autoGlue, setAutoGlue] = useState(true);
   const [busy, setBusy] = useState("");      // stage text while working
@@ -215,6 +216,7 @@ export default function MixConnectZ() {
   const [saved, setSaved] = useState("");
   const fileInput = useRef(null);
   const refInput = useRef(null);
+  const vocalInput = useRef(null);
 
   const load = () => api("/api/economy/mixz/").then((d) => { setS(d); setLoadErr(""); })
     .catch((e) => setLoadErr(e.message || "Your saved masters couldn't be loaded."));
@@ -280,6 +282,17 @@ export default function MixConnectZ() {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }
 
+  // The vocal as its own file. It stays on this device, like everything here, and
+  // is mixed onto the beat at the member's level before the master runs.
+  async function openVocal(file) {
+    setErr("");
+    try {
+      setBusy("Reading the vocal");
+      const d = await decodeFile(file);
+      setVocalFile({ name: file.name, channels: d.channels, sampleRate: d.sampleRate });
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  }
+
   async function doMaster() {
     if (!song) return;
     setErr(""); setSaved(""); setProgress(0); setBusy("Starting");
@@ -296,8 +309,9 @@ export default function MixConnectZ() {
         sampleRate: song.sampleRate,
         settings: payload,
         reference: ref ? { bands: ref.analysis.bands, lufs: ref.analysis.lufs } : null,
+        vocal: vocalFile ? { channels: vocalFile.channels.map((c) => c.slice()), sampleRate: vocalFile.sampleRate } : null,
       }, { onProgress: (p, stage) => { setProgress(p); setBusy(stage); } });
-      setResult({ ...out, settings: payload });
+      setResult({ ...out, settings: { ...payload, vocalFile: !!vocalFile } });
     } catch (e) { setErr(e.message); } finally { setBusy(""); setProgress(0); }
   }
 
@@ -374,7 +388,7 @@ export default function MixConnectZ() {
     if (st.format === "mp3" || st.format === "wav") setFormat(st.format);
     if (MP3_KBPS.includes(st.kbps)) setKbps(st.kbps);
     if ([16, 24].includes(st.bitDepth)) setBitDepth(st.bitDepth);
-    setReuse(`"${m.title}"'s settings are on the controls${st.reference ? " (its Inspiration track isn't kept, so add it again to match it)" : ""}. ${song ? "Press Master it to make a new version." : "Pick a song to master with them."}`);
+    setReuse(`"${m.title}"'s settings are on the controls${st.reference ? " (its Inspiration track isn't kept, so add it again to match it)" : ""}${st.vocalFile ? " (its separate vocal file isn't kept either — add it again and the same level applies)" : ""}. ${song ? "Press Master it to make a new version." : "Pick a song to master with them."}`);
     window.scrollTo?.({ top: 0, behavior: "smooth" });
   }
 
@@ -477,6 +491,49 @@ export default function MixConnectZ() {
                 Heaviest — the hardest compression and the most limiting — comes with {heaviest.label || TIER_NAME[heaviest.tier]}.{" "}
                 <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>
               </p>
+            )}
+          </div>
+
+          {/* VocalZ: a vocal that sits too low. Two honest ways, stated as what they are:
+              the lift works on the finished track but cannot tell the voice from
+              anything else in the centre; the separate file is a real mix. */}
+          <div className="space-y-3 rounded-lg border border-white/10 p-3" data-tour="mixz-vocalz">
+            <div>
+              <h3 className="text-sm font-semibold text-white/80">VocalZ — vocal too low?</h3>
+              <p className="text-[11px] text-white/45">Free, on your device, like the rest of the master.</p>
+            </div>
+            <label className="flex items-start gap-2 text-sm text-white/70">
+              <input type="checkbox" className="mt-1" checked={settings.vocal === "auto"}
+                onChange={(e) => set("vocal", e.target.checked ? "auto" : 0)} />
+              <span>
+                Auto — the master measures the centre of your mix where a voice sits (1–4 kHz) against your mix's own balance
+                {ref ? " or your Inspiration track" : ""}, and lifts it, up to +{VOCAL_AUTO_MAX} dB, only when it measures low.
+                <span className="block text-[11px] text-white/40">
+                  It measures the centre, not the voice itself — a beat that fills the same range reads as full. The result says what it measured either way.
+                </span>
+              </span>
+            </label>
+            {settings.vocal !== "auto" && (
+              <Slider label="Vocal lift" value={Number(settings.vocal) || 0} min={0} max={VOCAL_LIFT_MAX} step={0.5} suffix=" dB"
+                onChange={(v) => set("vocal", v)}
+                note={vocalFile
+                  ? "With the vocal as its own file, set its level below instead — the lift would raise the beat's centre too."
+                  : "Raises the centre of the mix around 900 Hz–4.5 kHz, where a lead vocal sits, and leaves the sides alone. It can't pull the voice out of a finished track: a snare or lead in the centre rises with it."} />
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="re-btn !w-auto px-3" disabled={!!busy} onClick={() => vocalInput.current?.click()}>
+                {vocalFile ? "Change the vocal file" : "🎤 Have the vocal on its own? Add it"}
+              </button>
+              <input ref={vocalInput} type="file" accept="audio/*,.wav,.flac,.mp3,.m4a,.ogg" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) openVocal(f); }} />
+              {vocalFile
+                ? <span className="text-xs text-white/60">{vocalFile.name} <button className="re-link" onClick={() => setVocalFile(null)}>Remove</button></span>
+                : <span className="text-[11px] text-white/40">Then the song you picked is the beat, and the vocal is laid on it at the level you set — a real mix, then the master. The vocal file never leaves your device.</span>}
+            </div>
+            {vocalFile && (
+              <Slider label="Vocal level against the beat" value={settings.vocalLevel} min={-VOCAL_LEVEL_MAX} max={VOCAL_LEVEL_MAX} step={0.5} suffix=" dB"
+                onChange={(v) => set("vocalLevel", v)}
+                note="0 dB is the two files as they are. Master it, listen, and move it — the master re-measures every time." />
             )}
           </div>
 
@@ -606,7 +663,9 @@ export default function MixConnectZ() {
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-white/80">What the master did, and why</h3>
             <ul className="space-y-1 text-xs text-white/70">
+              {result.plan.vocalMix && <li>• {result.plan.vocalMix.why}</li>}
               {result.plan.eq.map((m) => <li key={`${m.type}${m.f}${m.why}`}>• {m.why}</li>)}
+              {result.plan.vocal && <li>• {result.plan.vocal.why}</li>}
               <li>• {result.plan.width.why}</li>
               {result.plan.width.monoWhy && <li>• {result.plan.width.monoWhy}</li>}
               <li>• {result.plan.punchWhy}{result.report.punch ? ` It moved the attacks by up to ${fmt(result.report.punch.maxDb, " dB")}.` : ""}</li>

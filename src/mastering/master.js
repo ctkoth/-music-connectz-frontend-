@@ -7,7 +7,10 @@
 // exactly why their low end came down 1.8 dB, and turn it off.
 //
 // The chain, in order — the order a mastering engineer works in:
-//   1. rumble filter (20 Hz), then corrective + style EQ, then the member's trims
+//   0. a separate vocal file, when one is given, is mixed onto the beat at the
+//      member's level FIRST — that is a mix, and a master goes over a mix
+//   1. rumble filter (20 Hz), then corrective + style EQ, then the member's trims,
+//      then the vocal lift (the centre of the mix in the voice range)
 //   2. stereo: width on the side channel, low end folded to mono when it is wide
 //   3. DynamicZ: punch (a transient shaper) and glue compression — one band
 //      or three — the glue only when the track is not already dense
@@ -19,6 +22,7 @@ import {
   truePeakEnvelope, truePeak,
 } from "./dsp.js";
 import { analyse, integratedLoudness, BANDS } from "./meter.js";
+import { resample } from "./resample.js";
 
 export const STYLES = {
   warm: { label: "Warm", slope: -0.4, side: 1.0, desc: "Rounder lows, softer top. Tilts the balance down around 1 kHz." },
@@ -58,7 +62,33 @@ export const DEFAULTS = {
   lufs: -14,              // the loudness when target is "custom"
   multiband: false,       // DynamicZ: compress lows, mids and highs separately
   punch: 0,               // DynamicZ: −50..+50, softens or sharpens the start of each hit
+  vocal: "auto",          // vocal lift: "auto" (measured) or dB on the CENTRE of the mix, 0..VOCAL_LIFT_MAX
+  vocalLevel: 0,          // a separate vocal file's level against the beat, ±VOCAL_LEVEL_MAX dB
 };
+
+// Vocal lift. A finished stereo mix cannot be un-mixed here — there is no stem
+// separation on the device — so the honest move is the one an engineer reaches
+// for on a bounced track: the lead vocal almost always sits dead centre, so
+// lift the MID channel where a voice lives and leave the sides alone. It raises
+// whatever else is centred in that range too (a snare, a centred lead), and the
+// screen says so. With the vocal as its own file, `vocalLevel` is the real fix.
+export const VOCAL_LIFT_MAX = 6;
+export const VOCAL_LIFT_HZ = 2000;   // centre of a wide bell, about 900 Hz to 4.5 kHz
+export const VOCAL_LIFT_Q = 0.7;
+export const VOCAL_LEVEL_MAX = 12;
+
+// AUTO: the master measures whether the centre of the mix is thin where a voice
+// lives, and lifts it only when it is. What is measured is the centre (mid)
+// spectrum across these bands against the same target the EQ uses — the mix's
+// own tonal trend, or the Inspiration track — AFTER the EQ's own moves, so the
+// two never boost the same dip twice. It acts past VOCAL_AUTO_MIN dB, lifts
+// VOCAL_AUTO_SHARE of what is missing, and stops at VOCAL_AUTO_MAX: a master
+// nudges, it does not remix. It cannot hear "the voice" in a finished track — a
+// beat that fills the same range reads as a full centre — and the screen says so.
+export const VOCAL_BANDS = [1000, 1250, 1600, 2000, 2500, 3150, 4000];
+export const VOCAL_AUTO_MIN = 1;
+export const VOCAL_AUTO_SHARE = 0.75;
+export const VOCAL_AUTO_MAX = 4;
 
 // The loudness a member may set by hand. Quieter than −20 is not a master; past
 // −7 every service turns it down and nothing of the music survives the limiter.
@@ -94,6 +124,12 @@ export function cleanSettings(raw = {}) {
     mid: Math.min(4, Math.max(-4, Number(t.mid) || 0)),
     high: Math.min(4, Math.max(-4, Number(t.high) || 0)),
   };
+  if (s.vocal !== "auto") {
+    const vl = Number(s.vocal);
+    s.vocal = Number.isFinite(vl) ? Math.min(VOCAL_LIFT_MAX, Math.max(0, Math.round(vl * 2) / 2)) : 0;
+  }
+  const vv = Number(s.vocalLevel);
+  s.vocalLevel = Number.isFinite(vv) ? Math.min(VOCAL_LEVEL_MAX, Math.max(-VOCAL_LEVEL_MAX, Math.round(vv * 2) / 2)) : 0;
   const gd = Number(s.glueDb);
   s.glueDb = s.glueDb == null || s.glueDb === "" || !Number.isFinite(gd)
     ? null : Math.min(GLUE_DB_MAX, Math.max(0, gd));
@@ -301,10 +337,34 @@ export function plan(analysis, rawSettings, reference = null) {
     warnings.push(`${analysis.clippedSamples} samples in your file are already at full scale (clipped). Mastering cannot un-clip them; a version from before the clipping will master cleaner.`);
   }
 
+  let vocal = null;
+  if (settings.vocal === "auto") {
+    const info = eqTargetInfo || eqTarget(analysis, settings, reference);
+    const cascade = moves.map((m) => coefficients(m, fs));
+    const left = VOCAL_BANDS.map((f) => {
+      const d = info.deviation.find((x) => x.f === f);
+      return d ? d.v - responseDb(cascade, fs, f) : null;
+    }).filter((v) => v != null);
+    const missing = left.length ? left.reduce((a, v) => a + v, 0) / left.length : 0;
+    const against = info.basis === "reference" ? "your Inspiration track" : "your mix's own balance";
+    if (missing >= VOCAL_AUTO_MIN) {
+      const db = Math.min(VOCAL_AUTO_MAX, Math.round(missing * VOCAL_AUTO_SHARE * 2) / 2);
+      vocal = { db, auto: true, measuredDb: r1(-missing),
+        why: `Auto vocal lift: the centre of your mix measured ${fmtDb(-missing)} against ${against} around 1–4 kHz, where a lead vocal sits, after the EQ → +${r1(db)} dB on the centre only, sides untouched. It measures the centre, not the voice itself: if the vocal still sounds low, raise the lift by hand or add the vocal as its own file.` };
+    } else {
+      vocal = { db: 0, auto: true, measuredDb: r1(-missing),
+        why: `Auto vocal lift: the centre of your mix around 1–4 kHz measured ${fmtDb(-missing)} against ${against} after the EQ — not low enough to lift. If the vocal still sounds buried, the beat may be filling the same range: raise the lift by hand or add the vocal as its own file.` };
+    }
+  } else if (settings.vocal > 0) {
+    vocal = { db: settings.vocal, auto: false,
+      why: `Vocal lift: +${r1(settings.vocal)} dB on the centre of the mix around ${fmtHz(VOCAL_LIFT_HZ)} (about 900 Hz to 4.5 kHz), sides untouched — where a lead vocal sits. Anything else centred in that range rises with it; a separate vocal file is the clean fix.` };
+  }
+
   return {
     settings,
     sampleRate: fs,
     eq: moves,
+    vocal,
     eqBasis: eqTargetInfo ? eqTargetInfo.basis : null,
     width: { side, monoBelow, why: widthWhy, monoWhy },
     glue, glueWhy,
@@ -565,10 +625,49 @@ function loudnessStage(channels, fs, loud, onProgress) {
   return { channels: out, gainDb: final.gDb, lufs: final.lufs, stats: final.stats, reached: !stopped, stopped };
 }
 
+// Raise the mid (L+R) channel with a wide bell and rebuild left and right from
+// mid and side, so only what is common to both speakers moves.
+export function applyVocalLift(channels, fs, db) {
+  if (!(db > 0) || channels.length < 2) return;
+  const [L, R] = channels;
+  const mid = new Float32Array(L.length);
+  for (let i = 0; i < L.length; i++) mid[i] = (L[i] + R[i]) / 2;
+  const lifted = Float32Array.from(mid);
+  biquadInPlace(lifted, peaking(fs, VOCAL_LIFT_HZ, db, VOCAL_LIFT_Q));
+  for (let i = 0; i < L.length; i++) {
+    const d = lifted[i] - mid[i];
+    L[i] += d;
+    R[i] += d;
+  }
+}
+
+// A vocal file laid onto the beat at `gainDb`, matched to the beat's rate and
+// made stereo. The result is as long as the longer of the two, so a vocal that
+// runs past the beat's end is not cut off.
+export function mixVocal(beat, fs, vocal, vocalFs, gainDb) {
+  let v = toStereo(vocal);
+  const resampled = vocalFs !== fs;
+  if (resampled) v = resample(v, vocalFs, fs);
+  const b = toStereo(beat);
+  const n = Math.max(b[0].length, v[0].length);
+  const g = dbToGain(gainDb);
+  const out = [new Float32Array(n), new Float32Array(n)];
+  for (let c = 0; c < 2; c++) {
+    out[c].set(b[c]);
+    const x = v[c];
+    for (let i = 0; i < x.length; i++) out[c][i] += g * x[i];
+  }
+  return { channels: out, resampled };
+}
+
 export function render(input, fs, thePlan, onProgress) {
   const channels = input.map((x) => Float32Array.from(x));
   onProgress && onProgress(0.1, "EQ");
   applyEq(channels, fs, thePlan.eq);
+  if (thePlan.vocal && thePlan.vocal.db > 0) {
+    onProgress && onProgress(0.2, "Vocal lift");
+    applyVocalLift(channels, fs, thePlan.vocal.db);
+  }
   onProgress && onProgress(0.25, "Stereo");
   applyStereo(channels, fs, thePlan.width);
   onProgress && onProgress(0.3, "Punch");
@@ -616,8 +715,17 @@ export function toStereo(channels) {
   return [channels[0], Float32Array.from(channels[0])];
 }
 
-export function master(inputChannels, fs, settings, reference = null, onProgress) {
-  const input = toStereo(inputChannels);
+export function master(inputChannels, fs, settings, reference = null, onProgress, vocal = null) {
+  let input = toStereo(inputChannels);
+  let vocalMix = null;
+  if (vocal && vocal.channels && vocal.channels.length) {
+    onProgress && onProgress(0.01, "Mixing in the vocal");
+    const level = cleanSettings(settings).vocalLevel;
+    const m = mixVocal(input, fs, vocal.channels, vocal.sampleRate || fs, level);
+    input = m.channels;
+    vocalMix = { levelDb: level, resampled: m.resampled,
+      why: `Vocal file mixed onto the beat at ${fmtDb(level)}${m.resampled ? `, converted from ${r1((vocal.sampleRate || fs) / 1000)} kHz to match the beat` : ""}, before anything else.` };
+  }
   onProgress && onProgress(0.02, "Measuring your mix");
   const before = analyse(input, fs);
   const thePlan = plan(before, settings, reference);
@@ -633,7 +741,7 @@ export function master(inputChannels, fs, settings, reference = null, onProgress
   if (report.safetyDb < -0.01) {
     outcome.push(`A final ${fmtDb(report.safetyDb)} trim kept the true peak under ${thePlan.loudness.ceiling} dBTP.`);
   }
-  return { plan: thePlan, before, after, report, outcome, channels };
+  return { plan: { ...thePlan, vocalMix }, before, after, report, outcome, channels };
 }
 
 // Band levels before and after, normalised to the same 1 kHz reference, for

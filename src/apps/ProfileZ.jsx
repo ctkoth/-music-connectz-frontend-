@@ -32,6 +32,7 @@ import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
 import InventoryZ from "../components/InventoryZ.jsx";
+import SuperfanZ from "../components/SuperfanZ.jsx";
 import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
@@ -929,6 +930,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         {/* What they play, wear and work with — rated by members piece by piece and in total. */}
         <div className="border-t border-white/10 pt-3">
           <InventoryZ />
+        </div>
+        {/* Who keeps coming back to your work. */}
+        <div className="border-t border-white/10 pt-3">
+          <SuperfanZ />
         </div>
         <div className="border-t border-white/10 pt-3">
           <Gallery username={me?.username} mine />

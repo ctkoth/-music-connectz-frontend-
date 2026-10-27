@@ -1275,7 +1275,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
               </div>
             ) : (
               <div>
-                <MemberName username={c.user} bare />{" "}
+                <MemberName username={c.user} bare />
+                {/* SuperfanZ: one of this artist's top fans — the server pins them first. */}
+                {c.superfan && <span className="ml-1 text-[11px]" title={`One of @${post.author}'s SuperfanZ — counted from plays, ratings, comments and shares`}>🫶</span>}{" "}
                 <span className="text-white/80">{c.body}</span>
                 {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
               </div>

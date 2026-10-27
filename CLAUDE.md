@@ -1782,3 +1782,30 @@ Any medal opens `BadgeHolders.jsx` (who wears it, from `/badgez/holders/`), exce
 (`holders={false}`). Badge art: `tools/make-neon-badges.mjs` draws a neon hexagon around Corey's emoji
 (`public/icons/badge_<key>-neon.svg`, registered in App.jsx); his `badgez.<name>.jpg`, once committed and the manifest
 rebuilt, replaces it (`build-icon-manifest.mjs` KEYS). Edit a medal in the generator, never the SVG.
+
+## SuperfanZ 🫶 on the profile, and their comments first
+
+`components/SuperfanZ.jsx` sits in ProfileZ and the member profile: the artist's top three with what earned it (plays,
+ratings, comments, shares — a count of acts, never a rating of a person), the rule, and on somebody else's profile where
+you stand and how many points to go. Comments from an artist's superfans arrive first (the server orders them) and carry
+🫶 beside the name in PostZ. Whether you appear on lists is the "On artists' SuperfanZ 🫶 lists" row in VisibilitieZ.
+Decides nothing; a failed fetch renders nothing.
+
+## VocalZ: Mix ConnectZ raises a vocal that sits too low
+
+A finished stereo mix cannot be un-mixed on the device (no stem separation), so the master offers two honest moves, both
+in `src/mastering/master.js`, both stated on screen as what they are:
+
+- **Vocal lift, Auto by default.** The lead vocal almost always sits dead centre, so the lift raises the MID channel with a
+  wide bell at 2 kHz (about 900 Hz–4.5 kHz) and leaves the sides alone (`applyVocalLift`). **Auto** measures the centre
+  spectrum across 1–4 kHz (`VOCAL_BANDS`) against the same target the EQ uses — the mix's own trend, or the Inspiration
+  track — AFTER the EQ's own moves, so the two never boost one dip twice; past `VOCAL_AUTO_MIN` (1 dB) it lifts
+  `VOCAL_AUTO_SHARE` (75%) of the gap up to `VOCAL_AUTO_MAX` (+4 dB). Every master states what Auto measured, including
+  when it left the centre alone. Limit, said on screen: it measures the centre, not the voice, so a beat that fills the
+  same range reads as full. Manual: 0 to +6 dB.
+- **The vocal as its own file** — the real fix for members who recorded over a beat. `mixVocal` lays it on the beat at
+  `vocalLevel` (±12 dB), resampled to the beat's rate, as long as the longer of the two, BEFORE the chain — a mix, then
+  the master. It never leaves the device and a saved master remembers only that one was used.
+- `src/mastering/vocal.test.mjs` pins the centre moving by what was asked, the sides and the low end staying put, Auto
+  lifting a scooped centre and leaving a full one alone, and Auto measuring after the EQ. Driven in a browser on a track
+  scooped 10 dB at 2 kHz: the EQ took part, Auto measured −2.6 dB left and lifted +2 dB.

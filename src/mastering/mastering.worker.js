@@ -19,8 +19,8 @@ self.onmessage = (e) => {
       const result = analyse(toStereo(channels), sampleRate);
       self.postMessage({ id, ok: true, result });
     } else if (op === "master") {
-      const { channels, sampleRate, settings, reference } = e.data;
-      const out = master(channels, sampleRate, settings, reference, progress);
+      const { channels, sampleRate, settings, reference, vocal } = e.data;
+      const out = master(channels, sampleRate, settings, reference, progress, vocal || null);
       const result = {
         plan: out.plan, before: out.before, after: out.after, report: out.report,
         outcome: out.outcome, chart: balanceChart(out.before, out.after),

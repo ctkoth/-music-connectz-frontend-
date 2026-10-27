@@ -4,6 +4,7 @@
 // same payload Social ConnectZ uses, so whatever a member fills in on ProfileZ
 // shows up here.
 import InventoryZ from "../components/InventoryZ.jsx";
+import SuperfanZ from "../components/SuperfanZ.jsx";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
@@ -318,6 +319,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             <Gallery username={username} mine={!!data.mine} />
             <InventoryZ username={username} />
+            <SuperfanZ username={username} />
 
             {data.mine && (
               <p className="text-[11px] text-white/35">This is you — edit any of it in ProfileZ.</p>
