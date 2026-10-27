@@ -1,3 +1,4 @@
+import { genreLabel } from "../genres.js";
 import { useEffect, useState } from "react";
 import { Check, ExternalLink, Loader2, Send, Trash2 } from "lucide-react";
 import { api } from "../api.js";
@@ -73,7 +74,7 @@ function ReleaseCard({ r, quota, onChanged }) {
           : <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-mcz-ember/50 text-[10px] text-mcz-ember">no cover</div>}
         <div className="min-w-0 flex-1">
           <p className="truncate font-bold">{r.title || "Untitled"}</p>
-          <p className="truncate text-xs text-white/55">{r.artist_name}{r.genre ? ` · ${r.genre}` : ""}</p>
+          <p className="truncate text-xs text-white/55">{r.artist_name}{r.genre ? ` · ${genreLabel(r.genre)}` : ""}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={`rounded-full border px-2 py-0.5 ${STATUS[r.status]?.[1]}`}>{STATUS[r.status]?.[0] || r.status}</span>
             {r.submitted_at && <span className="text-white/40">sent {new Date(r.submitted_at).toLocaleDateString()}</span>}

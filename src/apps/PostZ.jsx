@@ -223,6 +223,9 @@ export default function PostZ() {
   // forced a choice between the two and split the tag across every family.
   const [freestyle, setFreestyle] = useState(false);
   const [skillsUsed, setSkillsUsed] = useState([]);
+  // CoverZ / RemixeZ: the post this one is made from. The server checks it (public, someone else's)
+  // and stores the credit; nothing is paid to the original yet, and the banner says so.
+  const [derived, setDerived] = useState(null);
   const [visibility, setVisibility] = useState("public");
   const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
@@ -338,6 +341,7 @@ export default function PostZ() {
           title: t, description: description.trim(), genre, freestyle, visibility,
           gates: visibility === "restricted" ? gates : {},
           skills_used: skillsUsed,
+          ...(derived ? { derived: { id: derived.id, kind: derived.kind } } : {}),
           // One of each: audio, video, image and script all ride together.
           // The primary slot is what the feed plays inline; `items` carries
           // every attachment, one per kind, and the server refuses a second of
@@ -349,7 +353,7 @@ export default function PostZ() {
 
       playSound("post");
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
+      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({}); setDerived(null);
       flash("Posted. Rating opens in 30s, comments in 60s.");
       setJustPosted(true);
     } catch (e) {
@@ -439,6 +443,13 @@ export default function PostZ() {
                   className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
             🆓 Freestyle
           </button>
+          {derived && (
+            <div className="w-full rounded-lg border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
+              {derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{derived.title}" — credited to the original on your post.
+              Nothing is paid to the original author yet.{" "}
+              <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setDerived(null)}>Post as new work instead</button>
+            </div>
+          )}
           <div className="flex gap-1">
             {[
               { value: "public", label: "Public", bonus: "+25%", tip: "People who rate it earn +25% ⚡, so it draws more ratings — and it shows on leaderboards" },
@@ -582,6 +593,7 @@ export default function PostZ() {
       <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
           <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash}
+            onDerive={(d) => { setDerived(d); setTitle((t) => t || `${d.kind === "cover" ? "Cover" : "Remix"}: ${d.title}`.slice(0, 160)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                     isOwner={isOwner} onChanged={replacePost} />
         ))}
       </div>
@@ -595,7 +607,7 @@ export default function PostZ() {
   );
 }
 
-function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
+function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive }) {
   const talk = useSay();
   const { user } = useAuth();
   const seenRef = useInViewTracker(`post:${post.id}`);
@@ -1057,6 +1069,19 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       ) : (
         <>
           <p className="text-sm font-semibold text-white">{post.title}</p>
+          {post.derived && (
+            <p className="text-[11px] text-white/50">
+              {post.derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{post.derived.title}" by @{post.derived.author}
+            </p>
+          )}
+          {onDerive && !post.mine && post.visibility !== "private" && post.visibility !== "restricted" && (
+            <p className="mt-1 flex gap-3 text-[11px]">
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "cover", title: post.title })}>🫴🏼 Cover this</button>
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "remix", title: post.title })}>🔄 Remix this</button>
+            </p>
+          )}
           {post.description && (
             <p className="mt-1 whitespace-pre-wrap text-sm text-white/80"><MentionText text={post.description} /></p>
           )}
