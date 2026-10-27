@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { addSide, asFile, asPost, asUpload, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "./inspirationSources.js";
+import { addSide, asFile, asLink, asPost, asUpload, linkProvider, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "./inspirationSources.js";
 
 class FakeForm { constructor() { this.rows = []; } append(k, v, name) { this.rows.push([k, name ? `${v.name}` : v]); } }
 const file = { name: "r.wav" };
@@ -63,6 +63,49 @@ test("a chosen side reads as what it is", () => {
 test("the screen states the ⚡ price beside the button and shows what was compared", () => {
   const src = readFileSync(new URL("./components/Inspiration.jsx", import.meta.url), "utf8");
   for (const needle of ["for using a post", "post_energy_cost", "res.sources", "same post on both sides", "ENERGY"]) {
+    assert.ok(src.includes(needle), needle);
+  }
+});
+
+const SOURCES = [
+  { provider: "youtube", ok: true, note: "A YouTube link works." },
+  { provider: "spotify", ok: false, why: "Spotify gives out a player, never the audio." },
+  { provider: "soundcloud", ok: false, why: "SoundCloud gives out a player, never the audio." },
+];
+
+test("a link is sent as the side's _url and costs no ⚡", () => {
+  const f = new FakeForm();
+  addSide(f, "reference", asLink("  https://youtu.be/dQw4w9WgXcQ?t=80  "));
+  assert.deepEqual(f.rows, [["reference_url", "https://youtu.be/dQw4w9WgXcQ?t=80"]]);
+  assert.equal(usesPost(asLink("https://youtu.be/x"), asFile(file)), false);
+});
+
+test("the control says what a pasted link will do before it is pressed — the server's words, not ours", () => {
+  assert.deepEqual(linkVerdict("https://youtu.be/dQw4w9WgXcQ", SOURCES), { state: "ok", text: "A YouTube link works." });
+  const sp = linkVerdict("https://open.spotify.com/track/abc", SOURCES);
+  assert.equal(sp.state, "no");
+  assert.equal(sp.text, SOURCES[1].why);
+  assert.equal(linkVerdict("https://soundcloud.com/a/b", SOURCES).text, SOURCES[2].why);
+  assert.equal(linkVerdict("", SOURCES).state, "empty");
+  assert.equal(linkVerdict("https://example.com/song", SOURCES).state, "no");
+  assert.equal(linkVerdict("not a link", SOURCES).state, "no");
+});
+
+test("providers are told apart by host and lookalikes are not YouTube", () => {
+  assert.equal(linkProvider("https://music.youtube.com/watch?v=x"), "youtube");
+  assert.equal(linkProvider("youtu.be/abc"), "youtube");
+  assert.equal(linkProvider("https://youtube.com.evil.example/x"), "other");
+  assert.equal(linkProvider("https://notyoutube.com/x"), "other");
+  assert.equal(linkProvider("hello"), "");
+});
+
+test("a link reads as what it is on the control", () => {
+  assert.match(sideLabel(asLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")), /^YouTube link: youtube\.com\/watch/);
+});
+
+test("the screen offers a link door and states the window beside it", () => {
+  const src = readFileSync(new URL("./components/Inspiration.jsx", import.meta.url), "utf8");
+  for (const needle of ["A link", "Paste a YouTube link", "link_sources", "linkVerdict", "From my apps"]) {
     assert.ok(src.includes(needle), needle);
   }
 });

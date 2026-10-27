@@ -3,7 +3,7 @@ import { Loader2, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { handOff } from "../handoff.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
-import { addSide, asFile, asPost, asUpload, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
+import { addSide, asFile, asLink, asPost, asUpload, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
 
 // Inspiration — your take, heard against a song you want to sound like. It
 // decides nothing: the price, the EQ regions, the notices and every word of the
@@ -11,13 +11,15 @@ import { addSide, asFile, asPost, asUpload, listenable, matches, samePost, sideL
 // The lyric half hands a DIRECTION to Sentence ConnectZ; the reference's words
 // are never shown or carried.
 // The server names what each side was; a post is called by its title and artist.
-const sideLabelOf = (x) => (x?.kind === "post" ? `"${x.title}" by @${x.author}` : x?.title ? `"${x.title}"` : "your file");
+const sideLabelOf = (x) => (x?.kind === "link" ? `a YouTube video${x.start_seconds ? ` from ${Math.floor(x.start_seconds / 60)}:${String(x.start_seconds % 60).padStart(2, "0")}` : ""}` : x?.kind === "post" ? `"${x.title}" by @${x.author}` : x?.title ? `"${x.title}"` : "your file");
 const DIR = { more: "needs more", less: "needs less", close: "already close" };
 
 // One side of the comparison: a file from the device, or something already on the platform. Choosing
 // a post here is the same thing PostZ's "Coach it" door does for a take — nothing is uploaded twice.
-function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUploads }) {
-  const [open, setOpen] = useState(null);       // null | "posts" | "files"
+function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUploads, linkSources }) {
+  const [open, setOpen] = useState(null);       // null | "posts" | "files" | "link"
+  const [url, setUrl] = useState("");
+  const verdict = linkVerdict(url, linkSources);
   const [q, setQ] = useState("");
   const [scope, setScope] = useState(mine ? "mine" : "all");
   const list = withRecording(scope === "mine" ? posts.mine : posts.all).filter((p) => matches(p, q)).slice(0, 40);
@@ -39,13 +41,38 @@ function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUplo
           A post
         </button>
         {allowUploads && (
-          <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "files" ? null : "files")}>
-            My files
+          <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "files" ? null : "files")}
+                  title="Anything your other apps made — Mix, Instrumental, Video — lives in FileZ">
+            From my apps
           </button>
         )}
+        <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "link" ? null : "link")}>
+          A link
+        </button>
         {side && <button type="button" className={btn} disabled={disabled} onClick={() => onSide(null)} aria-label={`Clear ${label}`}>✕</button>}
       </div>
-      {open && (
+      {open === "link" && (
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <input className="neon-input !py-1.5 w-full text-xs" inputMode="url" autoComplete="off" spellCheck={false}
+                   aria-label={`${label} — link`} placeholder="Paste a YouTube link"
+                   value={url} onChange={(e) => setUrl(e.target.value)} />
+            <button type="button" className={btn} disabled={disabled || verdict.state !== "ok"}
+                    onClick={() => { onSide(asLink(url)); setOpen(null); setUrl(""); }}>Use</button>
+          </div>
+          {/* Said as they type, before anything is pressed: a YouTube link can be heard; Spotify and
+              SoundCloud serve a player and never the audio, and the server's own sentence says so. */}
+          {verdict.state === "ok" && <p className="text-emerald-300/80">{verdict.text}</p>}
+          {verdict.state === "no" && <p role="alert" className="text-amber-200">{verdict.text}</p>}
+          {verdict.state === "empty" && (
+            <p className="text-white/45">
+              {(linkSources || []).find((x) => x.provider === "youtube")?.note
+                || "Paste a link to a YouTube video."}
+            </p>
+          )}
+        </div>
+      )}
+      {(open === "posts" || open === "files") && (
         <div className="space-y-1.5">
           <input className="neon-input !py-1.5 w-full text-xs" placeholder={open === "posts" ? "Search title, @artist or genre" : "Search your files"}
                  value={q} onChange={(e) => setQ(e.target.value)} />
@@ -136,10 +163,10 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
       <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
       <p>Pick a song you want to sound like and your own take. The coach tells you what separates them — in the score, the EQ and the how-to — and can send a lyric direction to Sentence ConnectZ.</p>
       <p className="text-white/50">{info.notice}</p>
-      <Source label="Your take — a file, or one of your posts (like a RapZ submission)" side={mine} onSide={setTake} disabled={busy}
-              posts={posts} mine allowUploads uploads={uploads} />
-      <Source label="Reference — a file, or any post you can see (a famous example)" side={ref} onSide={setRef} disabled={busy}
-              posts={posts} uploads={uploads} allowUploads />
+      <Source label="Your take — a file, a post of yours (like a RapZ submission), or your own YouTube link" side={mine} onSide={setTake} disabled={busy}
+              posts={posts} mine allowUploads uploads={uploads} linkSources={info.link_sources} />
+      <Source label="Reference — a file, any post you can see, or a YouTube link (a famous example)" side={ref} onSide={setRef} disabled={busy}
+              posts={posts} uploads={uploads} allowUploads linkSources={info.link_sources} />
       {same && <p className="text-amber-200">That's the same post on both sides — pick a different reference.</p>}
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={run} disabled={busy || !mine || !ref || same || !info.configured}

@@ -1656,3 +1656,12 @@ that category. Lilith joined BodieZ in the list (Corey uses it).
 
 FileZ's tile showed a music note and the raw key `filez`: it had art in App.jsx's registry and no entry in
 ToolZMenu's own `ICON_KEY` / `EMOJI` / `FOCUS_LABEL`. `focus.test.mjs` now fails when any focus tile lacks all three.
+
+### Inspiration: paste a link, and be told before pressing whether it can be heard
+
+Each side has **A link** beside File / A post / From my apps ("My files" is FileZ, which is where Mix,
+Instrumental and Video ConnectZ put what they make). As the link is typed the control says what will happen,
+using the server's own sentences (`link_sources`, `link_note`) and a host-only guess (`linkProvider`, the same
+labelling-only rule as `widgetz.js`): YouTube → "works, reads the first 4:00 or from ?t=", **Spotify / SoundCloud →
+the server's reason (a player, never the audio), and Use stays disabled**. The server still decides on press.
+A link costs no ⚡; the result names it ("a YouTube video from 1:15").
