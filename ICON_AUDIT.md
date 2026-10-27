@@ -222,7 +222,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (35)
+## Tabs and apps that ask for an icon no supplied file covers (36)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -233,6 +233,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `facez.png` → /icons/facez.png
 - `flutez.png` → /icons/flutez-neon.png
 - `funnelz.png` → /icons/funnelz.jpg
+- `genrez.jpg` → /icons/genrez.jpg
 - `guitarz.png` → /icons/guitarz-neon.svg
 - `habitz.png` → /icons/habitz-neon.svg
 - `keyconnectz.png` → /icons/keyconnectz-neon.svg
@@ -259,5 +260,5 @@ Still what something draws today; custom art takes over where a default exists.
 - `trumpetz.png` → /icons/trumpetz-neon.png
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 94 of 189 (most are the
+Registry keys with no supplied file: 95 of 190 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).
