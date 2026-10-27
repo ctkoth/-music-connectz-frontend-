@@ -41,6 +41,9 @@ import { useRemembered } from "../useRemembered.js";
 import { remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
 
+// The server sends tier keys; these are the names a member reads.
+const TIER_NAME = { free: "Free", premium: "Premium", statz: "StatZ" };
+
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
   done: "!text-emerald-300", failed: "!text-mcz-ember",
@@ -886,6 +889,35 @@ export default function OCC() {
         </div>
       )}
 
+      {/* Game levels — the tier buys how much of a game OCC builds, never whether.
+          Every level is listed, the locked ones marked, so the next one is visible. */}
+      {!IN_SHELL && spec && asList(spec.game_levels).length > 0 && (
+        <div className="re-card space-y-2">
+          <div className="re-label">🎮 Games OCC builds for you</div>
+          {asList(spec.game_levels).map((lv) => (
+            <div key={lv.key}
+                 className={`rounded-lg border p-2 ${lv.key === spec.game_level
+                   ? "border-mcz-cyan/50 bg-mcz-cyan/5" : "border-white/10"} ${lv.allowed ? "" : "opacity-60"}`}>
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-white/85">
+                {!lv.allowed && <Lock size={10} />}
+                {lv.label}
+                {lv.key === spec.game_level && <span className="pill !text-[9px]">yours</span>}
+                {!lv.allowed && (
+                  <span className="text-[10px] font-normal text-white/45">
+                    needs {TIER_NAME[lv.needs] || lv.needs}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/60">{lv.scope}</p>
+              <p className="text-[10px] text-white/40">e.g. {lv.examples} · {lv.languages}</p>
+            </div>
+          ))}
+          <p className="text-[10px] text-white/35">
+            Ask for more than your level and OCC builds your level's version and says what the next adds.
+          </p>
+        </div>
+      )}
+
       {/* Languages — the C++ / Unreal reservation, stated rather than hidden. */}
       {!IN_SHELL && spec && (
         <div className="re-card space-y-2">
@@ -898,7 +930,7 @@ export default function OCC() {
               </span>
             ))}
             {asList(spec.languages_locked).map((l) => (
-              <span key={l.key} className="pill !text-[10px] !text-white/30" title={`Needs ${l.needs}`}>
+              <span key={l.key} className="pill !text-[10px] !text-white/30" title={`Needs ${TIER_NAME[l.needs] || l.needs}`}>
                 <Lock size={9} className="mr-0.5 inline" />{l.name}
               </span>
             ))}
