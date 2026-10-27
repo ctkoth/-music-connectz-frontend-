@@ -1,3 +1,4 @@
+import PriorityDials from "../components/PriorityDials.jsx";
 import Doors from "../components/Doors.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Download, Loader2 } from "lucide-react";
@@ -64,6 +65,7 @@ export default function VideoConnectZ() {
   const [failReason, setFailReason] = useState("");
   const [kind, setKind] = useState("music");
   const [prompt, setPrompt] = useState("");
+  const [prio, setPrio] = useState({});
   const [aspect, setAspect] = useState("16:9");
   const [face, setFace] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -140,7 +142,7 @@ export default function VideoConnectZ() {
     let w;
     try {
       w = await api("/api/economy/videoz/", { method: "POST",
-        body: { kind, prompt, aspect, face_id: face || undefined },
+        body: { kind, prompt, aspect, face_id: face || undefined, ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("error");
@@ -227,6 +229,8 @@ export default function VideoConnectZ() {
             {uploading ? <Loader2 className="animate-spin" size={12} /> : "+"} Add a FaceZ photo
           </label>
         </div>
+
+        <PriorityDials medium="video" value={prio} onChange={setPrio} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and affordable: with no answer

@@ -919,7 +919,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // one of them honours it.
             ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
             ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
-            ...extraFields(extra, price?.wit_scores) }
+            ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }
         : (() => {
             const f = new FormData();
             f.append("take", sendBlob, sendName);
@@ -933,7 +933,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
-            for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores))) f.append(k, v);
+            for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores, price?.wit_never_counted))) f.append(k, v);
             if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
             // private window, which the server reads as "unknown" rather than
@@ -1126,8 +1126,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         </label>
       )}
 
-      {price?.rates_wit && !refMode && !trial && (
-        <ExtraScores scores={price.wit_scores} value={extra} onChange={setExtra} disabled={busy} />
+      {Object.keys(price?.wit_scores || {}).length > 0 && !refMode && !trial && (
+        <ExtraScores scores={price.wit_scores} neverCounted={price.wit_never_counted || []}
+                     value={extra} onChange={setExtra} disabled={busy} />
       )}
 
       {/* The other half of "score the performance, not the mix". The coach is
