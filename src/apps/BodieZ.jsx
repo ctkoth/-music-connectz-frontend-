@@ -53,6 +53,7 @@ import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import EquipmentFit from "./EquipmentFit.jsx";
+import PlanRating from "./PlanRating.jsx";
 import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { changeText, againstWhat, liftChange, repsChangeText, direction } from "../sessionChange.js";
@@ -628,6 +629,7 @@ export default function BodieZ() {
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                           onLogPast={jumpToLogPast} onOpenSessionZ={() => setTab("sessionz")} onSaveNew={saveNewRoutine}
+                          planCaveat={board?.plan_caveat}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
@@ -2262,7 +2264,7 @@ const SOURCE_TONE = {
 function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onOpenSessionZ, onSaveNew, onImported }) {
+                        onOpenSessionZ, onSaveNew, planCaveat, onImported }) {
   const [filter, setFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [fitting, setFitting] = useState(null);
@@ -2352,6 +2354,8 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
                       {asList(r.coach_exercises).map((e) => `${nameOf(e.exercise_id)} ${e.rating ?? "–"}`).join(" · ")}
                     </p>
                   )}
+                  <PlanRating key={`${r.id}:${r.updated_at}`} routine={r} caveat={planCaveat}
+                              onApply={(list) => onSaveExercises(r.id, list)} />
                   <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
                   <AskAI scope="routine" id={r.id} disabled={items.length === 0} />
                 </div>

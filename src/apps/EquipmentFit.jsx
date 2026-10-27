@@ -2,10 +2,12 @@
 // swaps each lift that needs other gear for one in the same muscle group that uses only what was picked,
 // and the member sees every swap, with its reason, before anything is saved. The rules live in
 // equipmentFit.js; this only draws them and asks for the member's call where the Planner cannot make one.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../api.js";
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 import { MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { applyFit, fitRoutine, showByEquipment, stillOff } from "../equipmentFit.js";
+import { checkMoves, moveText, stillYours } from "../planRating.js";
 
 const KEY = "bodiez.fitEquipment";
 const read = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || "[]"); return Array.isArray(v) ? v.filter((k) => k in EQUIPMENT_LABEL) : []; } catch { return []; } };
@@ -26,6 +28,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
   const plan = useMemo(() => fitRoutine({ rows, exercises, pickable, equipment }), [rows, exercises, pickable, equipment]);
   const result = useMemo(() => applyFit(plan, choices), [plan, choices]);
   const off = stillOff({ plan, choices, exercises, equipment });
+  const ticket = useRef(0);
   const label = equipment.map((k) => EQUIPMENT_LABEL[k]).join(" + ");
   // A row counts as changed when the result differs from what was in the routine — an explicit "keep" is not a swap.
   const changed = plan.filter((p) => {
@@ -39,15 +42,38 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
   const lib = Object.fromEntries(exercises.map((e) => [e.id, e]));
   const shown = showByEquipment({ pickable, equipment });
 
+  // The Plan, before anything is saved: the server judges the swapped list, applies the Planner's own fix (big lifts
+  // first, reps and sets inside the goal's range) and says how the routine's score moves and which check moved it. A slower
+  // old answer must never overwrite a newer one, hence the ticket.
+  const [preview, setPreview] = useState(null);
+  const [previewErr, setPreviewErr] = useState("");
+  const resultKey = JSON.stringify(result.map((r) => [r.exercise_id, r.sets, r.reps, r.group || ""]));
+  useEffect(() => {
+    if (equipment.length === 0 || changed === 0) { setPreview(null); setPreviewErr(""); return undefined; }
+    const mine = ++ticket.current;
+    const t = setTimeout(() => {
+      api("/api/economy/bodiez/routines/plan/", {
+        method: "POST", body: { exercises: result, goal: routine.goal || "", polish: true, compare_to: routine.id } })
+        .then((d) => { if (mine === ticket.current) { setPreview(d); setPreviewErr(""); } })
+        .catch(() => { if (mine === ticket.current) { setPreview(null); setPreviewErr("Couldn't check the Plan, so only your swaps will be saved."); } });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [resultKey, routine.id, routine.goal, equipment.length, changed]); // eslint-disable-line react-hooks/exhaustive-deps
+  // What is saved is the Planner's list when it could be made (the member just saw every change in it), else the swaps alone.
+  const toSave = preview?.polished?.exercises || result;
+
   const run = async (fn) => {
     setBusy(true); setErr(""); setDone("");
     try { return await fn(); } catch (e) { setErr(e?.message || "Couldn't save that. Nothing was changed."); return false; }
     finally { setBusy(false); }
   };
-  const apply = async () => { if (await run(() => onApply(result))) setDone("Updated this routine."); };
+  const apply = async () => {
+    const moved = preview?.polished?.compare;
+    if (await run(() => onApply(toSave))) setDone(`Updated this routine.${moved ? ` Plan ${moveText(moved)}.` : ""}`);
+  };
   const saveNew = async () => {
     const name = (title || `${routine.title} — ${label}`).trim().slice(0, 80);
-    if (await run(() => onSaveNew(name, result))) setDone(`Saved “${name}” as a new routine.`);
+    if (await run(() => onSaveNew(name, toSave))) setDone(`Saved “${name}” as a new routine.`);
   };
 
   return (
@@ -111,6 +137,28 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
             {changed} swapped · {plan.filter((p) => !p.ok).length - changed} kept{off.length ? ` · ${off.length} still need other gear` : ""}.
             {" "}A swapped lift's weight is cleared — a barbell number isn't a dumbbell number — and your last weight for the new lift fills in when you log it.
           </p>
+
+          {preview?.polished && (
+            <div className="space-y-1 rounded bg-white/5 p-2" data-testid="fit-plan">
+              <p className="font-semibold text-white">
+                Plan {moveText(preview.polished.compare)}
+                <span className="font-normal text-white/45"> — {preview.polished.plan.passed} of {preview.polished.plan.applicable} checks after the swaps</span>
+              </p>
+              {preview.polished.changes.length > 0 && (
+                <ul className="list-disc space-y-0.5 pl-4 text-white/65">
+                  {preview.polished.changes.map((c, i) => <li key={i}>{c.what}</li>)}
+                </ul>
+              )}
+              {checkMoves(preview.polished.compare).map((m) => (
+                <p key={m.key} className="text-white/45">{m.text}{m.why ? ` — ${m.why}` : ""}</p>
+              ))}
+              {stillYours(preview.polished.plan).length > 0 && (
+                <p className="text-amber-200">Still yours to fix: {stillYours(preview.polished.plan).map((c) => c.detail).join(" ")}</p>
+              )}
+              <p className="text-white/35">{preview.caveat}</p>
+            </div>
+          )}
+          {previewErr && <p className="text-amber-200">{previewErr}</p>}
 
           <details>
             <summary className="cursor-pointer text-mcz-cyan">Just show me everything I can do with {label}</summary>

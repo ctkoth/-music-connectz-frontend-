@@ -1710,3 +1710,20 @@ every RoutineZ card.
 - Superset pairs survive a swap (the label stays on the row); removing half a pair drops the label (`normalize`).
 - Driven in a real browser (barbell routine → Dumbbell → edited; custom session → logged → ended → saved → in RoutineZ) and the
   saved rows read back from the database. Verified there that weights cleared and the top set became the target.
+
+## The Plan rating on routine cards: a coach-made routine is built to its checks, and an edit says why the score moved
+
+Every routine card shows **Plan N/10** (`PlanRating.jsx`, drawn with `RatingRow`) beside the Thorough line, with "What the Plan
+checks" (each check ✓/✗/– and the lift that decided it) and the server's caveat that it is NOT Thorough. Corey asked for a flat 10 on
+anything the coach makes or edits; that would be a number nothing measured, so what the Planner makes is **built to the checks**
+(which is why it reads 10) and an edit shows the move. The backend CLAUDE.md has the reasoning and the five checks.
+
+- **"Let the Planner fix this"** appears when a fixable check fails (order, reps, sets — `planRating.js` `FIXABLE`). It asks
+  `routines/plan/` with `polish: true` and SHOWS the proposal first: "Plan 4 → 10 if the Planner fixes it", each change in plain words
+  ("Moved Barbell Row from 2 to 1 — big lifts first."), and "Still yours to fix" for access and repeats. Nothing saves until Apply.
+- **Fit to equipment previews the Plan** under the swaps ("Plan stays 10 — 4 of 4 checks after the swaps", or "7.5 → 10" with which check moved
+  and which lift moved it) and saves the Planner's list, so what was previewed is what is saved. A failed preview says so and saves only the swaps.
+- The client decides nothing: scores, checks, wording of reasons and the fix are the server's. `planRating.js` only words them.
+- Fixed with it: the Thorough line on routine cards had always read "not rated yet" (the board feeding the cards never carried it).
+- Driven in a real browser: a routine failing three checks reads 4/10 with each reason, the fix previews 4 → 10 and applies to 10/10, a trained
+  routine shows Thorough and Plan side by side, and Fit to equipment shows the Plan before saving.
