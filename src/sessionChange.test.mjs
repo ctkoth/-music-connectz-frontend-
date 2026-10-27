@@ -50,3 +50,39 @@ test("the summary card says the session ended, shows the total and the compariso
     assert.ok(card.includes(needle), needle);
   }
 });
+
+import { doneLine, doneVsLast, editedNote, restLine } from "./sessionChange.js";
+const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+test("Done says how much of the plan was done, and what was extra", () => {
+  assert.equal(doneLine({ completion_pct: 75, sets_completed: 6, sets_planned: 8, lifts_done: 2, lifts_planned: 2, extra_sets: 1, sets_done: 7 }),
+    "Done 75% of the plan — 6 of 8 sets · 2 of 2 lifts · +1 extra set");
+  assert.equal(doneLine({ completion_pct: 100, sets_completed: 8, sets_planned: 8, lifts_done: 2, lifts_planned: 2, extra_sets: 0, sets_done: 8 }),
+    "Done 100% of the plan — 8 of 8 sets · 2 of 2 lifts");
+});
+
+test("a custom session has no plan to complete — it says so, not '0%'", () => {
+  assert.equal(doneLine({ completion_pct: null, sets_done: 3 }), "Custom session — no plan to complete. 3 sets logged.");
+  assert.equal(doneLine(null), "");
+});
+
+test("against last time: the points moved, or just last time's figure when it cannot be compared", () => {
+  assert.equal(doneVsLast({ report: { completion_pct: 50 }, completion_delta: 25 }), "last time 50% (+25 points)");
+  assert.equal(doneVsLast({ report: { completion_pct: 80 }, completion_delta: -10 }), "last time 80% (−10 points)");
+  assert.equal(doneVsLast({ report: { completion_pct: 60 }, completion_delta: 0 }), "last time 60% (same)");
+  assert.equal(doneVsLast({ report: { completion_pct: 60 }, completion_delta: null }), "last time 60%");
+  assert.equal(doneVsLast({ report: { completion_pct: null } }), "");
+  assert.equal(doneVsLast(null), "");
+});
+
+test("rest is the measured average against the goal's own target, and absent when nothing was measured", () => {
+  assert.equal(restLine({ avg_rest_seconds: 80, rest_sets: 2, rest_target_seconds: 75 }, mmss), "Average rest 1:20 over 2 sets — the goal's target is 1:15");
+  assert.equal(restLine({ avg_rest_seconds: 90, rest_sets: 1, rest_target_seconds: null }, mmss), "Average rest 1:30 over 1 set");
+  assert.equal(restLine({ avg_rest_seconds: null }, mmss), "");
+});
+
+test("an edited routine is said to be edited", () => {
+  assert.match(editedNote({ routine_changed: true }), /edited since last time/);
+  assert.equal(editedNote({ routine_changed: false }), "");
+  assert.equal(editedNote(null), "");
+});

@@ -8,6 +8,7 @@ import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPi
 import { MUSCLE_LABEL } from "./ExercisePicker.jsx";
 import { applyFit, fitRoutine, showByEquipment, stillOff } from "../equipmentFit.js";
 import { checkMoves, moveText, stillYours } from "../planRating.js";
+import PairMode from "../components/PairMode.jsx";
 
 const KEY = "bodiez.fitEquipment";
 const read = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || "[]"); return Array.isArray(v) ? v.filter((k) => k in EQUIPMENT_LABEL) : []; } catch { return []; } };
@@ -45,6 +46,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
   // The Plan, before anything is saved: the server judges the swapped list, applies the Planner's own fix (big lifts
   // first, reps and sets inside the goal's range) and says how the routine's score moves and which check moved it. A slower
   // old answer must never overwrite a newer one, hence the ticket.
+  const [pairMode, setPairMode] = useState("");
   const [preview, setPreview] = useState(null);
   const [previewErr, setPreviewErr] = useState("");
   const resultKey = JSON.stringify(result.map((r) => [r.exercise_id, r.sets, r.reps, r.group || ""]));
@@ -53,12 +55,13 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
     const mine = ++ticket.current;
     const t = setTimeout(() => {
       api("/api/economy/bodiez/routines/plan/", {
-        method: "POST", body: { exercises: result, goal: routine.goal || "", polish: true, compare_to: routine.id } })
+        method: "POST", body: { exercises: result, goal: routine.goal || "", polish: true, compare_to: routine.id, equipment,
+                                ...(pairMode ? { pair_mode: pairMode } : {}) } })
         .then((d) => { if (mine === ticket.current) { setPreview(d); setPreviewErr(""); } })
         .catch(() => { if (mine === ticket.current) { setPreview(null); setPreviewErr("Couldn't check the Plan, so only your swaps will be saved."); } });
     }, 250);
     return () => clearTimeout(t);
-  }, [resultKey, routine.id, routine.goal, equipment.length, changed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resultKey, routine.id, routine.goal, equipment.length, changed, pairMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // What is saved is the Planner's list when it could be made (the member just saw every change in it), else the swaps alone.
   const toSave = preview?.polished?.exercises || result;
 
@@ -138,6 +141,8 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
             {" "}A swapped lift's weight is cleared — a barbell number isn't a dumbbell number — and your last weight for the new lift fills in when you log it.
           </p>
 
+          <PairMode value={pairMode} onChange={setPairMode} disabled={busy} />
+          {preview?.polished?.pair?.blocked && <p className="text-amber-200">{preview.polished.pair.detail}</p>}
           {preview?.polished && (
             <div className="space-y-1 rounded bg-white/5 p-2" data-testid="fit-plan">
               <p className="font-semibold text-white">

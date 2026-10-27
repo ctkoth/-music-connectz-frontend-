@@ -30,6 +30,7 @@
 //      button says is what the booking will do.
 import Term from "../components/Term.jsx";
 import Empty from "../components/Empty.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRight, CalendarClock, Check, Handshake, Loader2, MapPin, Mic2, Plus,
@@ -485,7 +486,7 @@ function Venue({ v, onChanged, onFlash }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{v.title}</p>
           <p className="text-xs text-white/55">
-            by @{v.host} · <KindIcon size={11} className="inline" /> {kind.label}
+            by @{v.host}<ThoroughMark mark={v.host_mark} compact /> · <KindIcon size={11} className="inline" /> {kind.label}
             {v.category === "fitness" && <span className="ml-1 text-emerald-300">· {CATEGORY.fitness}</span>}
             {v.status === "cancelled" && (
               <span className="ml-1 text-mcz-ember">· called off</span>

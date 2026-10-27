@@ -47,7 +47,7 @@ test("every routine card shows the Plan, and the caveat says it is not the Thoro
 });
 
 test("the Planner's fix is shown before it is saved — the score move, the changes, and what is still the member's", () => {
-  for (const needle of ["if the Planner fixes it", "moveText(p.compare)", "stillYours", "Apply", "Not now"]) assert.ok(planUi.includes(needle), needle);
+  for (const needle of ["if the Planner {mode ? \"pairs and fixes\" : \"fixes\"} it", "moveText(p.compare)", "stillYours", "Apply", "Not now"]) assert.ok(planUi.includes(needle), needle);
 });
 
 test("Fit to equipment previews how the Plan moves and why, and saves the Planner's list", () => {

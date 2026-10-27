@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { RatingRow } from "../components/Rating.jsx";
+import PairMode from "../components/PairMode.jsx";
 import { canFix, checkMoves, mark, moveText, planDetail, stillYours } from "../planRating.js";
 
 export default function PlanRating({ routine, caveat, onApply, autoOpen = false }) {
@@ -16,11 +17,13 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
   const [err, setErr] = useState("");
   const [open, setOpen] = useState(!!autoOpen);
 
-  const propose = async () => {
+  const [mode, setMode] = useState("");
+  const propose = async (pairMode = mode) => {
     setBusy(true); setErr(""); setDone("");
     try {
       setProposal(await api("/api/economy/bodiez/routines/plan/", {
-        method: "POST", body: { exercises: routine.exercises, goal: routine.goal || "", polish: true, compare_to: routine.id } }));
+        method: "POST", body: { exercises: routine.exercises, goal: routine.goal || "", polish: true, compare_to: routine.id,
+                                ...(pairMode ? { pair_mode: pairMode } : {}) } }));
     } catch (e) { setErr(e.message || "Couldn't check that. Nothing was changed."); }
     finally { setBusy(false); }
   };
@@ -61,13 +64,26 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
         </details>
       )}
       {canFix(plan) && !proposal && (
-        <button type="button" className="neon-btn-ghost !w-auto px-3 py-1 text-[11px] inline-flex items-center gap-1" disabled={busy} onClick={propose}>
+        <button type="button" className="neon-btn-ghost !w-auto px-3 py-1 text-[11px] inline-flex items-center gap-1" disabled={busy} onClick={() => propose()}>
           {busy ? <Loader2 size={11} className="animate-spin" /> : null} Let the Planner fix this
         </button>
       )}
+      {(plan.checks || []).length > 0 && !proposal && (
+        <details className="text-[11px] text-white/55">
+          <summary className="cursor-pointer text-mcz-cyan/80">Add supersets with the Planner</summary>
+          <div className="mt-1.5 space-y-1.5">
+            <PairMode value={mode} onChange={setMode} disabled={busy} />
+            <button type="button" className="neon-btn-ghost !w-auto px-3 py-1 text-[11px]" disabled={busy || !mode} onClick={() => propose(mode)}>
+              Preview the supersets
+            </button>
+          </div>
+        </details>
+      )}
       {p && (
         <div className="space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2 text-[11px] text-white/70" data-testid="plan-proposal">
-          <p className="font-semibold text-white">Plan {moveText(p.compare)} if the Planner fixes it</p>
+          <p className="font-semibold text-white">Plan {moveText(p.compare)} if the Planner {mode ? "pairs and fixes" : "fixes"} it</p>
+          <PairMode value={mode} onChange={(m) => { setMode(m); propose(m); }} disabled={busy} />
+          {p.pair?.blocked && <p className="text-amber-200">{p.pair.detail}</p>}
           <ul className="list-disc space-y-0.5 pl-4">
             {p.changes.map((c, i) => <li key={i}>{c.what}</li>)}
           </ul>

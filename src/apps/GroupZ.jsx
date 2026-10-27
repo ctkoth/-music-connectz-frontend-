@@ -25,6 +25,7 @@ import { Loader2, Mail, Eye, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
+import ThoroughGroup from "../components/ThoroughGroup.jsx";
 
 // The art that is actually in the repo. Pointing FriendZ and FanZ at Corey's
 // uncommitted friendz.jpg / fanz.jpg REGRESSED them — both had real art under
@@ -96,6 +97,9 @@ export default function GroupZ({ onViewProfile, onMessage }) {
       </header>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/80">{msg}</p>}
+
+      {/* The one platform group: derived from the Thorough badge, not a list you keep. */}
+      <ThoroughGroup />
 
       {!groups ? (
         <p className="flex items-center gap-2 text-white/50">

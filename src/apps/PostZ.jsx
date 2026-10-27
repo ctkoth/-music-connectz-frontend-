@@ -50,6 +50,7 @@ import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
@@ -925,6 +926,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
+            <ThoroughMark mark={post.author_mark} />
             {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">

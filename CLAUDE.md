@@ -1739,3 +1739,36 @@ when the Planner can fix something, its proposal already on screen (`PlanRating 
   improve and has nothing to do is the dead-end this repo keeps relearning. A routine deleted since offers no CTA at all.
 - A custom session saved to RoutineZ from the same card lands on the NEW routine ("Open it in RoutineZ").
 - `autoOpen` is read once at mount, so `landed` is initialised from the focus rather than set in an effect after the cards first render.
+
+## Supersets while logging, a report at the end, and pairing as an option
+
+- **Link any two lifts, in a session as in a routine.** The past-workout editor (SessionZ → Edit) and the live logger both have **Superset with…** on every lift
+  (`SupersetPick`): any other lift of the workout, planned or added on the day. A live pair is saved on the session as it is made (optimistic; a refusal puts the
+  old pairs back and says why) and is drawn as the same Superset block a routine's pair is — the rest clock says "go straight to…" — even when the two lifts were not
+  neighbours (`applySessionPairs`; a pair already side by side is grouped in place so dragging never flips it). Saving the session to RoutineZ carries the pairs.
+- **The ended-session card**: "✓ Session ended" → totals → the **report** ("Done 38% of the plan — 3 of 8 sets · 1 of 2 lifts", rest against the goal's target, "last
+  time 50% (+25 points)", and "this routine was edited since last time" when it was) → vs last time → records → the **coach block**: Improve / Open this routine,
+  **Update the routine from this session** (what it does is said before it is pressed; the answer says how the Plan moved), Save to RoutineZ for a custom session, and
+  the AI coach's read — all above the exercise list, not at the foot of the card. The report says it is effort, not a rating.
+- **Supersets are an OPTION where routines are made and improved** (`PairMode`, modes read from `bodiez/pair/`, never retyped): one shared control above the Planner's
+  builders, in the Plan's "Add supersets with the Planner" and its proposal, and in Fit to equipment. Without StatZ (or the free hour) it says so, offers the sample and
+  names the free way ("link two lifts by hand"); the routine is still built.
+- Driven in a real browser as a StatZ member: a live pair of non-adjacent lifts, the report, saving to RoutineZ (read back: Bench + Curl adjacent as group A, the Row single),
+  updating a routine (skipped lift kept), re-pairing in the SessionZ editor, and the Planner's push + pull preview and Apply.
+
+## Thorough 💯: the mark beside a name, and the group at the top of GroupZ
+
+`ThoroughMark.jsx` renders the server's mark (💯 Thorough 6, 🥈 Decent 7, 🥇 Legendary 8, 🌟 Supreme 9, 💎 Perfect 10 — Corey's
+placeholder emoji) beside the author on a PostZ card, the starter and each participant of a CollabZ deal, and a VenueZ host;
+the member card already shows it as a worn badge. Its tooltip says what it is (how completely they train, not strength, pays
+nothing) and a tap lands on the group. `ThoroughGroup.jsx` is the first section of GroupZ (`data-tour="thorough"`): posts on
+top, then members by rung, and the member's own rating, rung and next rung. Both decide nothing; a hidden badge has no mark.
+
+## InventoryZ: rate a member's gear and clothes, piece by piece and in total
+
+`components/InventoryZ.jsx` (🎒 placeholder icon) sits in ProfileZ under the portfolio and in the member profile modal. The
+pieces are the existing `inventory` profile field — edited in profile fields (`data-tour="profile-fields"`), which gained
+👕 Clothes and a 📷 photo per piece. This component only shows them with their ratings: 1-10 buttons for other members, the
++N ⚡ rater reward stated before the press, each piece's median and count, and a Total that stays "not rated yet" until the
+server's minimum. It decides nothing; `RATING_NOTE` (taste, not a measure of you) is shown as served. A failed fetch renders
+nothing — the pieces still show in the profile fields.

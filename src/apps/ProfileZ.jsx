@@ -31,6 +31,7 @@ import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
+import InventoryZ from "../components/InventoryZ.jsx";
 import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
@@ -922,6 +923,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
         </div>
+        {/* What they play, wear and work with — rated by members piece by piece and in total. */}
+        <div className="border-t border-white/10 pt-3">
+          <InventoryZ />
+        </div>
         <div className="border-t border-white/10 pt-3">
           <Gallery username={me?.username} mine />
         </div>
@@ -999,7 +1004,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
           column. A personality field that only worked in the dating app
           would be the fourth copy of a profile filter within a year. */}
-      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} />}
+      {pf && <div data-tour="profile-fields"><ProfileFieldsEditor value={pf} onChange={setPf} /></div>}
 
       <PersonalitieZ value={personality} onChange={setPersonality} />
 

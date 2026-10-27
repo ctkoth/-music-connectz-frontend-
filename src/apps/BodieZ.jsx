@@ -53,15 +53,16 @@ import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
 import EquipmentFit from "./EquipmentFit.jsx";
+import PairMode from "../components/PairMode.jsx";
 import PlanRating from "./PlanRating.jsx";
 import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
-import { improveCta } from "../planRating.js";
-import { changeText, againstWhat, liftChange, repsChangeText, direction } from "../sessionChange.js";
+import { improveCta, moveText } from "../planRating.js";
+import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
 import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
-import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
+import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
@@ -309,6 +310,20 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // Supersets of the live session. Optimistic (a control that lags reads as broken); a refusal puts the old pairs back
+  // and says why. The server prunes a pair whose lift was never logged when the session ends.
+  async function saveSessionPairs(pairs) {
+    if (!session) return;
+    const before = session.superset_pairs || [];
+    setSession((cur) => (cur ? { ...cur, superset_pairs: pairs } : cur));
+    try {
+      await api(`/api/economy/bodiez/sessions/${session.id}/`, { method: "PATCH", body: { superset_pairs: pairs } });
+    } catch (e) {
+      setSession((cur) => (cur ? { ...cur, superset_pairs: before } : cur));
+      setErr(e.message || "Couldn't save that superset.");
+    }
+  }
+
   async function finishSession() {
     if (!session) return;
     if (!window.confirm(`End this session? You've been going ${clock(secondsSince(session.started_at))}.`)) return;
@@ -452,6 +467,13 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); return false; }
   }
 
+  // Update the routine a session was started from, from what was done. Throws on a refusal (the card shows the sentence).
+  async function updateRoutineFromSession(sessionId, routineId) {
+    const d = await api(`/api/economy/bodiez/sessions/${sessionId}/routine/`, { method: "POST", body: { update: routineId } });
+    load();
+    return d;
+  }
+
   async function deleteSession(id) {
     if (!window.confirm("Delete this workout and every set in it? Records, BodyMap and goals will no longer count it. This can't be undone.")) return;
     try {
@@ -462,9 +484,11 @@ export default function BodieZ() {
 
   // Sets first, then the note/date: a refused set changes nothing, and the
   // error says which set — the server checks the whole list before writing.
-  async function saveSessionEdit(id, { sets, notes, date }) {
+  async function saveSessionEdit(id, { sets, notes, date, superset_pairs }) {
     const done = await api(`/api/economy/bodiez/sessions/${id}/sets/`, { method: "PUT", body: { sets } });
-    await api(`/api/economy/bodiez/sessions/${id}/`, { method: "PATCH", body: date ? { notes, date } : { notes } });
+    // After the sets: the server prunes pairs to the lifts that survived the edit, then these are the member's own.
+    await api(`/api/economy/bodiez/sessions/${id}/`, { method: "PATCH", body: {
+      notes, ...(date ? { date } : {}), ...(superset_pairs ? { superset_pairs } : {}) } });
     load();
     return done?.summary || null;
   }
@@ -473,11 +497,23 @@ export default function BodieZ() {
   // status (undertrained/untrained muscles first), never a model's guess.
   // It lands in RoutineZ (and the Scheduler's Inbox) like a hand-built routine, so
   // it goes through the same designer to be tweaked or started.
+  // The Planner's builders share one Supersets option (`buildPairMode`): compound + isolation or push + pull, applied by the server
+  // at creation (StatZ's or the free hour's; without it the routine is still built and says why it was not paired).
+  const [buildPairMode, setBuildPairMode] = useState("");
+  const [buildNote, setBuildNote] = useState("");
+  const noteBuilt = (made) => {
+    const bits = [`Built “${made.title}”`, made.plan?.score != null ? `Plan ${made.plan.score}/10` : null,
+                  ...asList(made.polished).filter((c) => c.kind === "superset" || c.kind === "added").map((c) => c.what),
+                  made.pair?.blocked ? made.pair.detail : null].filter(Boolean);
+    setBuildNote(bits.join(" · "));
+  };
   async function createRoutineFromExercises(title, exerciseList, dayTag, goal) {
     try {
-      await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "", source: "coach" },
+      const made = await api("/api/economy/bodiez/routines/", {
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "", source: "coach",
+                                ...(buildPairMode ? { pair_mode: buildPairMode } : {}) },
       });
+      noteBuilt(made);
       setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
@@ -490,11 +526,14 @@ export default function BodieZ() {
   // 6-day split; this does the same POSTs without either.
   async function createSplitRoutines(days) {
     try {
+      let last = null;
       for (const day of days) {
-        await api("/api/economy/bodiez/routines/", {
-          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "", source: "coach" },
+        last = await api("/api/economy/bodiez/routines/", {
+          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "", source: "coach",
+                                  ...(buildPairMode ? { pair_mode: buildPairMode } : {}) },
         });
       }
+      if (last) noteBuilt({ ...last, title: days.length > 1 ? `${days.length} days` : last.title });
       setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
@@ -608,11 +647,12 @@ export default function BodieZ() {
                              onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }}
                              onSaveRoutine={(name) => routineFromSession(summary.session_id, name)}
                              onOpenRoutineZ={() => { setTab("routinez"); }}
-                             routinePlan={routines.find((r) => r.id === summary.routine_id)?.plan} onImprove={jumpToImprove} />
+                             routinePlan={routines.find((r) => r.id === summary.routine_id)?.plan} onImprove={jumpToImprove}
+                             onUpdateRoutine={(rid) => updateRoutineFromSession(summary.session_id, rid)} />
             )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
-              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets}
+              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -626,6 +666,7 @@ export default function BodieZ() {
                           sessionOpen={!!session} onStart={(id) => { startSession(id); setTab("today"); }}
                           onOpenToday={() => setTab("today")} onSaveExercises={saveRoutineExercises} onSaveNew={saveNewRoutine}
                           onOpenRoutineZ={() => setTab("routinez")} onImprove={jumpToImprove}
+                          onUpdateRoutine={updateRoutineFromSession}
                           prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
                           onSaveSession={saveSessionEdit} onRoutineFromSession={routineFromSession}
                           onDeleteSession={deleteSession} onLogPast={() => jumpToLogPast(null)} />
@@ -635,6 +676,7 @@ export default function BodieZ() {
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
                           onLogPast={jumpToLogPast} onOpenSessionZ={() => setTab("sessionz")} onSaveNew={saveNewRoutine}
+                          buildPairMode={buildPairMode} onBuildPairMode={setBuildPairMode} buildNote={buildNote}
                           planCaveat={board?.plan_caveat}
                           focusRoutine={improveRoutine} onFocusConsumed={() => setImproveRoutine(null)}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
@@ -845,7 +887,7 @@ function AICoachRead({ sessionId }) {
   );
 }
 
-function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRoutineZ, routinePlan, onImprove }) {
+function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRoutineZ, routinePlan, onImprove, onUpdateRoutine }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
   // A custom session has no routine behind it. Ending it is the moment to keep it: the server turns each lift into a
@@ -854,6 +896,17 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
   const [savedAs, setSavedAs] = useState("");
   const [savedId, setSavedId] = useState(null);
   const [saving, setSaving] = useState(false);
+  // "Update this routine from the session": the routine takes what was done (sets, reps, top-set weight for the lifts done,
+  // the supersets made on the day); lifts that were skipped stay as they were. The answer says how its Plan moved.
+  const [updated, setUpdated] = useState(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateErr, setUpdateErr] = useState("");
+  const updateRoutine = async () => {
+    setUpdating(true); setUpdateErr("");
+    try { setUpdated(await onUpdateRoutine(sm.routine_id)); }
+    catch (e) { setUpdateErr(e?.message || "Couldn't update that routine. Nothing was changed."); }
+    finally { setUpdating(false); }
+  };
   const canSaveRoutine = !!onSaveRoutine && sm.sets > 0 && !sm.routine_title;
   const saveRoutine = async () => {
     setSaving(true);
@@ -926,6 +979,22 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           )}
         </div>
       )}
+      {sm.sets > 0 && sm.report && (
+        <div className="space-y-0.5 rounded-lg bg-white/5 p-2.5 text-xs" data-testid="session-report">
+          <p className="text-white/80">
+            <span className="font-semibold text-white">{doneLine(sm.report)}</span>
+            {doneVsLast(sm.vs_last) && <span className="text-white/50"> · {doneVsLast(sm.vs_last)}</span>}
+          </p>
+          {restLine(sm.report, clock) && <p className="text-[11px] text-white/55">{restLine(sm.report, clock)}.</p>}
+          {editedNote(sm.vs_last) && <p className="text-[11px] text-amber-200">{editedNote(sm.vs_last)}</p>}
+          {asList(sm.superset_pairs).length > 0 && (
+            <p className="text-[11px] text-fuchsia-200/80">
+              {asList(sm.superset_pairs).length} superset{asList(sm.superset_pairs).length === 1 ? "" : "s"} — kept if you save this to RoutineZ.
+            </p>
+          )}
+          <p className="text-[11px] text-white/30">Effort, not a rating: sets done against the plan, and rest against the goal's own.</p>
+        </div>
+      )}
       {sm.sets === 0 ? (
         // A session that sat open with nothing logged — the most likely story
         // behind a 0-set, hours-long "workout" — has no record to report and
@@ -958,8 +1027,26 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
                     onClick={() => onImprove(sm.routine_id)}>
               {improveCta(routinePlan).label}
             </button>
+            {onUpdateRoutine && !updated && (
+              <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={updating} onClick={updateRoutine}
+                      title="The lifts you did take today's sets, reps and top-set weight; lifts you skipped stay as they were">
+                Update the routine from this session
+              </button>
+            )}
             <span className="text-white/40">Free · you see every change before anything is saved.</span>
           </div>
+          {onUpdateRoutine && !updated && (
+            <p className="text-[11px] text-white/40">
+              Updating: the lifts you did take today's sets, reps and top-set weight{asList(sm.superset_pairs).length ? " and today's supersets" : ""}; lifts you skipped stay as they were.
+            </p>
+          )}
+          {updated && (
+            <p className="flex flex-wrap items-center gap-2 text-emerald-300">
+              Updated “{updated.title}”{updated.plan_change ? ` — Plan ${moveText(updated.plan_change)}` : ""}.
+              <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={() => onImprove(sm.routine_id)}>See it</button>
+            </p>
+          )}
+          {updateErr && <p role="alert" className="text-mcz-ember">{updateErr}</p>}
         </div>
       )}
       {canSaveRoutine && (
@@ -986,6 +1073,8 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           )}
         </div>
       )}
+      {/* The coach, where the result is: the AI coach's read sits with the routine CTAs, not at the foot of the card. */}
+      {sm.sets > 0 && <AICoachRead sessionId={sm.session_id} />}
       <div className="space-y-1">
         {sm.exercises.map((e) => (
           <p key={e.exercise_id} className="text-[11px] text-white/55">
@@ -1025,7 +1114,6 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           <MapPin size={13} /> Train in person · VenueZ
         </button>
       </div>
-      {sm.sets > 0 && <AICoachRead sessionId={sm.session_id} />}
       <p className="text-[11px] text-white/35">
         PostZ shows what posting costs before you post; sending a DM is free. “Coach” always means the AI coach —
         a person you message is named as a person.
@@ -1293,7 +1381,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
 }
 
 function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
-                     grip = null, onReorder = null }) {
+                     grip = null, onReorder = null, pair = null }) {
   const unit = useUnit();
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
@@ -1356,6 +1444,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
       )}
       <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
+      {pair && <SupersetPick id={planned.exercise_id} pairs={pair.pairs} lifts={pair.lifts} nameOf={pair.nameOf} onChange={pair.onChange} />}
       <div className="flex flex-wrap gap-2">
         {lastDone && (
           <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={repeatLast}>
@@ -1396,7 +1485,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets,
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets, onPairs,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1476,7 +1565,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
   const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
   const rank = (id) => { const k = order.indexOf(id); return k < 0 ? Infinity : k; };
-  const planned = routine ? asList(routine.exercises)
+  const routinePlanned = routine ? asList(routine.exercises)
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .sort((a, b) => rank(a.exercise_id) - rank(b.exercise_id))
@@ -1486,17 +1575,35 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment };
     }) : [];
-  // Swap one slot for another lift. Refused when that lift is already in the plan.
-  const swapProps = (p) => ({
-    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
-    allExercises: exercises,
-    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
-  });
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
     (setsByExercise[s.exercise_id] ||= []).push(s);
   }
   const loggedExerciseIds = new Set(asList(session.sets).map((s) => s.exercise_id));
+  // Supersets made while logging: ANY two lifts on screen — a planned one and a lift added on the day, or two added ones. The
+  // pairs are the session's (saved on it, so they survive a reload and ride into a routine made from it); drawing them is
+  // `applySessionPairs`. A lift that is in a pair is shown inside the plan blocks even when the routine did not have it; one
+  // that is not stays where unplanned lifts always were.
+  const pairs = asList(session.superset_pairs);
+  const inPair = new Set(pairs.flat());
+  const extraRows = [...loggedExerciseIds].filter((id) => !routinePlanned.some((p) => p.exercise_id === id)).map((id) => {
+    const ex = exercises.find((x) => x.id === id);
+    return { exercise_id: id, orig_id: id, name: ex?.name || `Exercise #${id}`, muscle_group: ex?.muscle_group,
+             equipment: ex?.equipment, sets: setsByExercise[id].length, extra: true };
+  });
+  const planned = applySessionPairs([...routinePlanned, ...extraRows], pairs).filter((r) => !r.extra || inPair.has(r.exercise_id));
+  const trailingExtras = extraRows.filter((r) => !inPair.has(r.exercise_id));
+  const liftsOnScreen = [...planned, ...trailingExtras].map((r) => r.exercise_id);
+  const pairFor = (id) => (onPairs ? {
+    pairs, lifts: liftsOnScreen, nameOf: (x) => exercises.find((e) => e.id === x)?.name || `Exercise #${x}`,
+    onChange: (partner) => onPairs(partner == null ? unsetPair(pairs, id) : setPair(pairs, id, partner)),
+  } : null);
+  // Swap one slot for another lift. Refused when that lift is already in the plan.
+  const swapProps = (p) => (p.extra ? {} : {
+    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
+    allExercises: exercises,
+    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+  });
   // The most recent set, and the lift a rest alert should point at when it fires.
   const lastLogged = asList(session.sets).reduce(
     (a, x) => (x.created_at && (!a || x.created_at > a.created_at) ? x : a), null);
@@ -1513,8 +1620,6 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
     }
     return "";
   })();
-  const extraExerciseIds = [...loggedExerciseIds].filter(
-    (id) => !planned.some((p) => p.exercise_id === id));
   // The unplanned box opens on the last weight entered for the picked lift, done this
   // way: today's latest set of it, else its last finished session.
   const unplannedDone = exerciseId ? (setsByExercise[Number(exerciseId)] || []) : [];
@@ -1558,7 +1663,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                 <div key={p.exercise_id} {...dndPlan.row(bi)} className={`rounded-xl${dndPlan.rowClass(bi)}`}>
                   <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
                              onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
-                             onLogSet={onLogSet} {...swapProps(p)} />
+                             onLogSet={onLogSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
                 </div>
               );
             }
@@ -1579,26 +1684,21 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                 </p>
                 <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
                            onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
-                           tag={`${b.group}1`} isNext={started && nxt === 0} />
+                           tag={`${b.group}1`} isNext={started && nxt === 0} pair={pairFor(x.exercise_id)} />
                 <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
                            onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
-                           tag={`${b.group}2`} isNext={started && nxt === 1} />
+                           tag={`${b.group}2`} isNext={started && nxt === 1} pair={pairFor(y.exercise_id)} />
               </div>
             );
           })}
         </div>
       )}
 
-      {extraExerciseIds.map((id) => {
-        const ex = exercises.find((x) => x.id === id);
-        return (
-          <LoggerRow key={id}
-                     planned={{ exercise_id: id, name: ex?.name || `Exercise #${id}`,
-                                muscle_group: ex?.muscle_group, equipment: ex?.equipment, sets: setsByExercise[id].length }}
-                     doneSets={setsByExercise[id]} onLogSet={onLogSet}
-                     onReorder={(f, t) => reorderWithin(id, f, t)} />
-        );
-      })}
+      {trailingExtras.map((r) => (
+        <LoggerRow key={r.exercise_id} planned={r}
+                   doneSets={setsByExercise[r.exercise_id]} onLogSet={onLogSet}
+                   onReorder={(f, t) => reorderWithin(r.exercise_id, f, t)} pair={pairFor(r.exercise_id)} />
+      ))}
 
       <div className="re-card space-y-2">
         <p className="re-label">{routine ? "Add an unplanned exercise" : "Pick a lift to log"}</p>
@@ -1726,6 +1826,24 @@ function WorkoutWrite({ sessionId, onClose }) {
 // Its sets keep their ids, so a set that was logged live keeps the rest time
 // the server measured; the date is only editable on one typed in afterwards,
 // because a live one's time was measured, not chosen.
+// "Superset with…" — any other lift in this workout. A badge when it is paired, so a pair made here reads as one.
+function SupersetPick({ id, pairs, lifts, nameOf, onChange }) {
+  const others = lifts.filter((x) => x !== id);
+  if (others.length === 0) return null;
+  const partner = pairOf(pairs, id);
+  return (
+    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/45">
+      <span className={partner != null ? "font-semibold text-fuchsia-200" : ""}>{partner != null ? "⇄ Superset with" : "Superset with"}</span>
+      <select data-nomemo="true" aria-label={`Superset ${nameOf(id)} with`} value={partner ?? ""}
+              className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none"
+              onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
+        <option value="">— not in a superset —</option>
+        {others.map((x) => <option key={x} value={x}>{nameOf(x)}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel,
                         initialRoutineId = null, onInitialRoutineConsumed }) {
   const unit = useUnit();
@@ -1741,6 +1859,9 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     .sort((a, b) => (a.position || 0) - (b.position || 0) || a.id - b.id).map((st) => ({
     id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
+  // Supersets: ANY two lifts of this workout (a logged workout has no neighbours to link, so they are pairs of lift ids).
+  // Saved with the workout, and carried into a routine made from it.
+  const [pairs, setPairs] = useState(() => asList(editing?.superset_pairs).map((p) => [...p]));
   const [exerciseId, setExerciseId] = useState("");
   const [typedWeight, setTypedWeight] = useState(null);
   const [reps, setReps] = useState("");
@@ -1811,15 +1932,17 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     setBusy(true); setErr("");
     if (editing) {
       try {
-        const sm = await onSaveEdit(editing.id, { sets, notes, date: editing.backfilled && date !== editDate ? date : undefined });
+        const sm = await onSaveEdit(editing.id, { sets, notes, date: editing.backfilled && date !== editDate ? date : undefined,
+                                                   superset_pairs: prunePairs(pairs, sets.map((x) => x.exercise_id)) });
         onSaved(sm);
       } catch (e) { setErr(e.message || "Couldn't save that. Nothing was changed."); }
       finally { setBusy(false); }
       return;
     }
     try {
-      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets, routine_id: routineId || undefined } });
-      setSets([]); setNotes(""); setRoutineId(""); setOpen(false);
+      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: {
+        date, notes, sets, routine_id: routineId || undefined, superset_pairs: prunePairs(pairs, sets.map((x) => x.exercise_id)) } });
+      setSets([]); setNotes(""); setRoutineId(""); setPairs([]); setOpen(false);
       onSaved(done.summary);
     } catch (e) { setErr(e.message || "Couldn't save that workout. Nothing was saved."); }
     finally { setBusy(false); }
@@ -1886,6 +2009,8 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
               {swapping === gi ? "Done" : "Edit"}
             </button>
           </div>
+          <SupersetPick id={g.exercise_id} pairs={pairs} lifts={[...new Set(sets.map((x) => x.exercise_id))]} nameOf={nameOf}
+                        onChange={(partner) => setPairs(partner == null ? unsetPair(pairs, g.exercise_id) : setPair(pairs, g.exercise_id, partner))} />
           {swapping === gi && (
             <div className="mt-2 space-y-2">
               <ExerciseSwap current={g.exercise_id} all={exercises} choices={list}
@@ -2291,7 +2416,7 @@ const SOURCE_TONE = {
 function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onOpenSessionZ, onSaveNew, planCaveat, focusRoutine = null, onFocusConsumed, onImported }) {
+                        onOpenSessionZ, onSaveNew, planCaveat, buildPairMode = "", onBuildPairMode, buildNote = "", focusRoutine = null, onFocusConsumed, onImported }) {
   const [filter, setFilter] = useState("");
   // Landed on from an ended session's "Improve this routine": clear any filter that would hide it, bring the card into view
   // and mark it, while its Plan opens itself (PlanRating `autoOpen`). The focus is consumed once it has been scrolled to.
@@ -2327,6 +2452,8 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
           have — and it builds from the library and your own BodyMap. Free: no 🏷️, no AI, just your data. What it
           saves is yours to edit like any other routine.
         </p>
+        {onBuildPairMode && <PairMode value={buildPairMode} onChange={onBuildPairMode} />}
+        {buildNote && <p className="text-[11px] text-emerald-300" data-testid="build-note">{buildNote}</p>}
         {coach && bodymap && pickable.length > 0 ? (
           <>
             <MuscleDayBuilder exercises={pickable} goals={goals} dayTagLabels={dayTagLabels || []}
@@ -2485,7 +2612,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
 // is shown as a question and the sets stay theirs to fix.
 function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onEditConsumed, onSaveSession,
                         onRoutineFromSession, onDeleteSession, onLogPast, routines = [], sessionOpen = false, onStart,
-                        onOpenToday, onSaveExercises, onSaveNew, onOpenRoutineZ, onImprove }) {
+                        onOpenToday, onSaveExercises, onSaveNew, onOpenRoutineZ, onImprove, onUpdateRoutine }) {
   const unit = useUnit();
   const [fitId, setFitId] = useState(null);
   const [allRoutines, setAllRoutines] = useState(false);
@@ -2736,7 +2863,8 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
             {openId === h.id && (sm
               ? <SessionSummary summary={sm} onClose={() => setOpenId(null)} onEdit={() => setEditingId(h.id)}
                                 onSaveRoutine={(name) => onRoutineFromSession(h.id, name)} onOpenRoutineZ={onOpenRoutineZ}
-                                routinePlan={routines.find((r) => r.id === sm.routine_id)?.plan} onImprove={onImprove} />
+                                routinePlan={routines.find((r) => r.id === sm.routine_id)?.plan} onImprove={onImprove}
+                                onUpdateRoutine={(rid) => onUpdateRoutine(h.id, rid)} />
               : <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={13} /> Reading it…</p>)}
             {writingId === h.id && <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingId(null)} />}
             <AskAI scope="session" id={h.id} disabled={sets.length === 0} />

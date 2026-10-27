@@ -13,9 +13,12 @@ const LISTS = [
 ];
 
 const KINDS = [["instrument", "🎸 Instrument"], ["microphone", "🎙️ Microphone"], ["interface", "🔌 Interface"],
-  ["monitors", "🔊 Monitors"], ["outboard", "🎛️ Outboard"], ["software", "💻 Software"], ["controller", "🎹 Controller"], ["other", "📦 Other"]];
+  ["monitors", "🔊 Monitors"], ["outboard", "🎛️ Outboard"], ["software", "💻 Software"], ["controller", "🎹 Controller"],
+  ["clothing", "👕 Clothes"], ["other", "📦 Other"]];
 const WHERE = [["home", "Home"], ["studio", "Studio"], ["stage", "Stage"]];
 const kindLabel = Object.fromEntries(KINDS);
+/** The emoji alone for a kind — InventoryZ's placeholder when a piece has no photo. */
+export const KIND_EMOJI = Object.fromEntries(KINDS.map(([k, l]) => [k, l.split(" ")[0]]));
 
 const toList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
@@ -28,6 +31,18 @@ export function ProfileFieldsEditor({ value, onChange }) {
   const v = value || {};
   const set = (k, x) => onChange({ ...v, [k]: x });
   const [drafts, setDrafts] = useState({});
+  const [photoMsg, setPhotoMsg] = useState("");
+  // A piece's photo is uploaded like any other file (it counts against storage)
+  // and the server keeps only an address it hosts or an https one.
+  async function addPhoto(i, file) {
+    if (!file) return;
+    setPhotoMsg("Uploading…");
+    try {
+      const url = (await uploadWork({ image_blob: file })).work.image_url;
+      set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, photo: url } : x)));
+      setPhotoMsg("Photo added — save your profile to keep it.");
+    } catch (e) { setPhotoMsg(e.message || "Couldn't upload that photo."); }
+  }
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverErr, setCoverErr] = useState("");
 
@@ -69,7 +84,7 @@ export function ProfileFieldsEditor({ value, onChange }) {
         </label>
       ))}
       <div className="space-y-1.5">
-        <p className="text-xs text-white/50">Inventory <span className="text-white/30">— what you or your studio actually use; members can search by it</span></p>
+        <p className="text-xs text-white/50">Inventory <span className="text-white/30">— instruments, equipment and clothes you actually use; members can search and rate it</span></p>
         {(v.inventory || []).map((it, i) => (
           <div key={i} className="flex flex-wrap gap-1.5">
             <input className={`${input} !w-auto flex-1`} maxLength={80} placeholder="Neumann U87"
@@ -82,14 +97,22 @@ export function ProfileFieldsEditor({ value, onChange }) {
                     onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, where: e.target.value } : x)))}>
               {WHERE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
+            <label className="cursor-pointer text-xs text-white/50 hover:text-white" title={it.photo ? "Change photo" : "Add a photo"}>
+              {it.photo ? <img src={it.photo} alt="" className="inline h-6 w-6 rounded object-cover" /> : "📷"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => addPhoto(i, e.target.files?.[0])} />
+            </label>
             <button type="button" className="text-white/40" aria-label="Remove"
                     onClick={() => set("inventory", v.inventory.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
         <button type="button" className="text-xs text-mcz-cyan hover:underline"
                 onClick={() => set("inventory", [...(v.inventory || []), { name: "", kind: "microphone", where: "home", note: "" }])}>
-          + Add gear
+          + Add gear or clothes
         </button>
+        <p className="text-[11px] text-white/35">
+          Members can rate each piece and your inventory in total (free; it never moves a skill or a price). Renaming a piece starts its ratings again.
+        </p>
+        {photoMsg && <p className="text-[11px] text-white/60">{photoMsg}</p>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs text-white/50">Timezone <span className="text-white/30">(from your device)</span>
