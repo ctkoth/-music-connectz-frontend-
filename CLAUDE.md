@@ -1566,3 +1566,22 @@ styles, intensity, width and EQ trims. What it lacked is in now, all on the memb
   `multiband`, `format`, `kbps` and `exportRate` for that (`mixz.clean_settings`); the Inspiration track itself is never
   kept, and the screen says to add it again.
 - Not done: album mastering (several songs to one loudness and tone). It is the next eMastered/LANDR parity item.
+
+## The weight box opens on the last weight entered
+
+All three BodieZ weight boxes (a planned lift in the live logger, "add an unplanned exercise",
+and "log a past session") start on the weight the member last entered for THAT lift done THAT
+way — `lastWeight.js`, in this order: the latest set of it in the session being logged, else the
+last set of the last finished session (`/exercises/<id>/history/`), else the routine's target,
+else blank. It is a default, not a suggestion: every figure is a row they logged or a target they
+set, and a lift with no history opens empty (the substance rule — nothing invented). The box
+says where the number came from ("last set" / "last time" / "target").
+
+- **Side is part of the match.** A one-arm set never fills the two-arm box.
+- **The latest set decides, even with no weight** — a bodyweight set after a loaded one stays
+  bodyweight rather than silently logging the loaded number again.
+- **No effect, no stale copy.** The value is derived each render; a typed number is keyed to
+  (lift, side, sets logged), so logging a set hands the box back to the auto-fill. A unit flip
+  re-expresses it for the same reason. This replaced a `useEffect` that only re-expressed the plan.
+- **A routine target now loses to what the member actually lifted.** Reversible in `lastWeightKg`
+  by swapping the order of the first and last fallbacks.

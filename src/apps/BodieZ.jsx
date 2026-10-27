@@ -52,6 +52,7 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
@@ -69,10 +70,12 @@ const useUnit = () => useContext(UnitCtx);
 
 // A labelled input, because a placeholder disappears the moment a number is
 // typed and "12" next to "35" doesn't say which one is the weight.
-function Field({ label, className = "w-20", ...props }) {
+function Field({ label, className = "w-20", hint = "", ...props }) {
   return (
     <label className={`flex flex-col gap-0.5 ${className}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+        {label}{hint && <span className="ml-1 font-normal normal-case tracking-normal text-mcz-cyan/70">{hint}</span>}
+      </span>
       <input className="neon-input !py-2 w-full text-sm" {...props} />
     </label>
   );
@@ -1145,16 +1148,20 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
-  const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
-  // A unit flip re-expresses the planned target; a number the member typed is left as typed.
-  useEffect(() => {
-    if (planned?.weight_kg != null) setWeight(String(fromKg(planned.weight_kg, unit)));
-  }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
   const [side, setSide] = useSide(planned.exercise_id);
   const last = useHistory(planned.exercise_id, side);
   const lastDone = doneSets[doneSets.length - 1];
+  // The weight box opens on the last weight entered for this lift, done this way: the
+  // latest set of it today, else the last finished session, else the routine's target.
+  // Derived each render, so a unit flip re-expresses it and logging a set (which changes
+  // `done`) hands a typed number back to the auto-fill — which is that set's weight.
+  const lw = { sets: byEntered(doneSets), side, last, plannedKg: planned?.weight_kg ?? null };
+  const [typed, setTyped] = useState(null);
+  const box = boxValue(typed, typedKey(planned.exercise_id, side, done), lastWeightKg(lw), fromKg, unit);
+  const weight = box.value;
+  const weightHint = box.auto ? ({ set: "last set", history: "last time", plan: "target" })[lastWeightSource(lw)] : "";
   // Repeat / copy re-log EXISTING numbers as new sets, in the unit the member
   // sees; the server stamps the real time, so rest between them is true.
   const shown = (kg) => (kg != null ? fromKg(kg, unit) : "");
@@ -1212,8 +1219,8 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
         )}
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+               value={weight} onChange={(e) => setTyped({ key: typedKey(planned.exercise_id, side, done), v: e.target.value })} />
         <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
@@ -1245,7 +1252,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
-  const [weight, setWeight] = useState("");
+  const [typedWeight, setTypedWeight] = useState(null);
   // "Done before" is the member's own history (times_done/last_done come off
   // the server, finished sessions only) so a lift they run every week is two
   // taps rather than a hunt through the library. Falls back to the full list
@@ -1355,6 +1362,14 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   })();
   const extraExerciseIds = [...loggedExerciseIds].filter(
     (id) => !planned.some((p) => p.exercise_id === id));
+  // The unplanned box opens on the last weight entered for the picked lift, done this
+  // way: today's latest set of it, else its last finished session.
+  const unplannedDone = exerciseId ? (setsByExercise[Number(exerciseId)] || []) : [];
+  const ulw = { sets: byEntered(unplannedDone), side: unplannedSide, last: unplannedLast };
+  const unplannedKey = typedKey(exerciseId, unplannedSide, unplannedDone.length);
+  const ubox = boxValue(typedWeight, unplannedKey, exerciseId ? lastWeightKg(ulw) : null, fromKg, unit);
+  const weight = ubox.value;
+  const weightHint = ubox.auto ? ({ set: "last set", history: "last time" })[lastWeightSource(ulw)] : "";
 
   return (
     <div className="space-y-3">
@@ -1447,15 +1462,15 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           </button>
         )}
         <div className="flex flex-wrap items-end gap-2">
-          <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-                 value={weight} onChange={(e) => setWeight(e.target.value)} />
+          <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+                 value={weight} onChange={(e) => setTypedWeight({ key: unplannedKey, v: e.target.value })} />
           <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                  value={reps} onChange={(e) => setReps(e.target.value)} />
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
                   onClick={() => {
                     onLogSet(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight), unplannedSide);
-                    setReps(""); setWeight("");
+                    setReps("");  // the weight stays: logging the set makes it the last one entered
                   }}>
             <Plus size={13} /> Log
           </button>
@@ -1569,7 +1584,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
   const [exerciseId, setExerciseId] = useState("");
-  const [weight, setWeight] = useState("");
+  const [typedWeight, setTypedWeight] = useState(null);
   const [reps, setReps] = useState("");
   const [side, setSide] = useSide(exerciseId);
   const [busy, setBusy] = useState(false);
@@ -1578,6 +1593,15 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const last = useHistory(exerciseId || null, side);
+  // The weight box opens on the last weight entered for this lift, done this way: the latest
+  // set of it already in THIS workout, else its last finished session. Adding a set changes
+  // the count in the key, which hands a typed number back to the auto-fill.
+  const mineHere = exerciseId ? sets.filter((st) => st.exercise_id === Number(exerciseId)) : [];
+  const lwHere = { sets: mineHere, side, last };
+  const boxKey = typedKey(exerciseId, side, mineHere.length);
+  const wbox = boxValue(typedWeight, boxKey, exerciseId ? lastWeightKg(lwHere) : null, fromKg, unit);
+  const weight = wbox.value;
+  const weightHint = wbox.auto ? ({ set: "last set", history: "last time" })[lastWeightSource(lwHere)] : "";
 
   // A routine fills in the whole workout — every exercise, its planned sets,
   // reps and weight, and the way the member usually does each one (one arm,
@@ -1622,7 +1646,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const addSet = () => {
     if (!exerciseId || !reps) return;
     setSets([...sets, { exercise_id: Number(exerciseId), reps: Number(reps), weight_kg: weight === "" ? null : toKg(Number(weight), unit), one_sided: side }]);
-    setReps("");  // exercise and weight stay: the next set is usually the same lift
+    setReps("");  // exercise stays, and so does the weight: the added set is now the last one entered
   };
 
   async function save() {
@@ -1745,8 +1769,8 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       {exerciseId && <SidePick value={side} onChange={setSide} />}
       <div className="flex flex-wrap items-end gap-2">
         <ExercisePicker exercises={list} all={exercises} value={exerciseId} onChange={setExerciseId} />
-        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+               value={weight} onChange={(e) => setTypedWeight({ key: boxKey, v: e.target.value })} />
         <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && addSet()} />
