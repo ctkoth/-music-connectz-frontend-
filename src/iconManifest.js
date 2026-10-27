@@ -25,6 +25,7 @@ export const ICON_DEFAULTS = {
   "collabz.png": "/icons/collabz.png",
   "collabz.remixez.png": "/icons/collabz.remixez.png",
   "distributez.png": "/icons/distributez.png",
+  "filez.png": "/icons/filez.jpg",
   "gamez.png": "/icons/gamez.png",
   "gitz.png": "/icons/gitz.png",
   "groupz.png": "/icons/groupz.png",
@@ -704,9 +705,9 @@ export const ICON_TREE = [
     "label": "FileZ",
     "root": {
       "file": "filez.jpg",
-      "art": null,
+      "art": "/icons/filez.jpg",
       "key": "filez.png",
-      "status": "owed",
+      "status": "live",
       "note": ""
     },
     "extra": [],
