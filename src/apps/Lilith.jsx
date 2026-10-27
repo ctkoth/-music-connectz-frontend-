@@ -64,6 +64,7 @@ export default function Lilith() {
   const [paid, setPaid] = useState(null);
   const [draft, setDraft] = useState({ title: "", kind: "standard", app_key: "", target: "" });
   const [routineTitle, setRoutineTitle] = useState("");
+  const [note, setNote] = useState("");
   // Task/routine tagging
   const [expandedTask, setExpandedTask] = useState(null);
   const [tags, setTags] = useState([]);
@@ -116,6 +117,20 @@ export default function Lilith() {
     if (!window.confirm(`Delete "${task.title}" for good?`)) return;
     const gone = await call(`/api/economy/lilith/tasks/${task.id}/`, { method: "DELETE" });
     if (gone !== null) load();
+  }
+
+  // BudgetZ's go-ahead: the server reads the budget and moves the task to Today only on a yes.
+  // A no says why and moves nothing; asking spends and reserves nothing.
+  async function askBudget(task) {
+    try {
+      await api(`/api/economy/lilith/tasks/${task.id}/goahead/`, { method: "POST", body: {} });
+      setNote("BudgetZ says go ahead — it's in Today. Nothing was spent.");
+      load();
+    } catch (e) { setNote(e.message || "BudgetZ said no."); }
+  }
+  async function saveCost(task, cost, category) {
+    const out = await call(`/api/economy/lilith/tasks/${task.id}/`, { method: "PATCH", body: { cost, budget_category: category } });
+    if (out) { setExpandedTask(out); load(); }
   }
 
   async function move(task, to) {
@@ -213,6 +228,7 @@ export default function Lilith() {
       </header>
 
       {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {note && <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[12px] text-white/70">{note}</p>}
 
       {/* Today's remaining coin, ABOVE the board. A cap met by hitting it is a
           bug; a cap met by reading it is a rule. */}
@@ -378,8 +394,16 @@ export default function Lilith() {
                     one average price would be a price nobody can check. */}
                 {!t.done_at && <Gain {...asDict(t.pays)} />}
                 {t.source === "platform" && <span className="text-white/30">pays where you do it</span>}
+                {!t.done_at && t.cost_cents > 0 && <span className="text-mcz-ember">−${(t.cost_cents / 100).toFixed(2)}</span>}
               </div>
             </div>
+            {!t.done_at && t.cost_cents > 0 && t.bucket !== "today" && t.bucket !== "trash" && (
+              <button onClick={(e) => { e.stopPropagation(); askBudget(t); }}
+                      title="BudgetZ checks this month's money and your category limit. Free; nothing is spent."
+                      className="shrink-0 rounded-md bg-emerald-400/10 px-2 py-1 text-[11px] text-emerald-300 hover:bg-emerald-400/20">
+                💰 Can I?
+              </button>
+            )}
             {/* Nothing is a dead end: a task that names an app opens the
                 control that completes it, not the tab it lives on. */}
             {t.open_in?.tab && (
@@ -420,6 +444,17 @@ export default function Lilith() {
                   )}
                 </div>
                 {!expandedTask.done_at && <Gain {...asDict(expandedTask.pays)} />}
+                {!expandedTask.done_at && (
+                  <form className="flex flex-wrap items-center gap-2 pt-1"
+                        onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.target); saveCost(expandedTask, f.get("cost"), f.get("cat")); }}>
+                    <span className="text-white/60">Costs $</span>
+                    <input name="cost" inputMode="decimal" defaultValue={expandedTask.cost_cents ? (expandedTask.cost_cents / 100).toFixed(2) : ""}
+                           placeholder="0" className="neon-input !w-24" />
+                    <input name="cat" defaultValue={expandedTask.budget_category || "Gear"} maxLength={40} className="neon-input !w-28" />
+                    <button className="pill !text-[11px]">Save</button>
+                    <span className="text-[11px] text-white/40">BudgetZ can say yes and bring it to Today when it fits.</span>
+                  </form>
+                )}
               </div>
 
               {/* Tagged with section */}
