@@ -91,6 +91,7 @@ const ParcelPrimate = lazy(lazyRoute(() => import("./apps/ParcelPrimate.jsx")));
 const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const BudgetZ = lazy(lazyRoute(() => import("./apps/BudgetZ.jsx")));
 const GenreZ = lazy(lazyRoute(() => import("./apps/GenreZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
 const BeatZ = lazy(lazyRoute(() => import("./apps/BeatZ.jsx")));
@@ -331,6 +332,7 @@ export const CUSTOM_ICONS = {
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
   "genrez.jpg": "/icons/genrez.jpg",
+  "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
@@ -510,6 +512,7 @@ const TABS = [
   // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
   // LOOKING, so the glyph is a lens with a heart in it.
   // GenreZ: the member search with one filter in front — find talent by scene.
+  { key: "budgetz", label: "BudgetZ", icon: "budgetz.jpg", el: <BudgetZ /> },
   { key: "genrez", label: "GenreZ", icon: "genrez.jpg", el: <GenreZ /> },
   { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },

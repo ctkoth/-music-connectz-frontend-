@@ -70,6 +70,7 @@ export const APP_PURPOSE = {
   // map only worked if you already knew the invented name. Same gap as the
   // five trial coaches nothing once linked to: built, and invisible, this
   // time from the SEARCH rather than the nav.
+  budgetz:     { does: "Plan your money",              words: "budget money finance expenses income spending savings bank limit planner" },
   genrez:      { does: "Find talent by genre",           words: "genre hip hop metal country scene talent find filter sound style" },
   vybez:       { does: "Find members by filters",        words: "dating match filter search browse region zodiac sober distance personality vibe" },
   bodiez:      { does: "Log workouts and build routines", words: "workout exercise gym lift squat routine fitness strength train bodybuilding weights" },
