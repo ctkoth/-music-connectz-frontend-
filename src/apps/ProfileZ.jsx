@@ -514,7 +514,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // SubstanceZ already holds for "what, and how often".
   const [languages, setLanguages] = useState({});
   // Popular-site fields (pronouns, headline, genres…), one object, one save.
-  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "label", "timezone", "pinned_post_id", "cover_url"];
+  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "inventory", "label", "timezone", "pinned_post_id", "cover_url"];
   const [pf, setPf] = useState(null);
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
@@ -619,7 +619,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setReligion(d?.religion || "");
       setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
-      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear"].includes(k) ? [] : "")]));
+      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear", "inventory"].includes(k) ? [] : "")]));
       got.pinned_post_id = d?.pinned_post?.id ?? d?.pinned_post_id ?? null;
       if (!got.timezone) got.timezone = deviceTimezone();
       setPf(got);
