@@ -9,6 +9,7 @@
 // login, because those exist for matching inside the app and are nobody's
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
+import { genreLabel } from "../genres.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
@@ -106,6 +107,9 @@ export default function PublicProfile() {
                 {(persona.skills || []).map((s, j) => (
                   <span key={j} className="pill">
                     {s.name}
+                    {(s.genres || []).length > 0 && (
+                      <span className="ml-1 text-white/55">in {s.genres.map(genreLabel).join(", ")}</span>
+                    )}
                     {s.rate_cents ? (
                       <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/{s.rate_unit === "work" ? "work" : "hr"}</span>
                     ) : null}

@@ -33,7 +33,7 @@ import { labelForSkill, skillQuoteLine } from "../personaSkills.js";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
-import { GENRE_GROUPS } from "../genres.js";
+import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import { onHandoff } from "../handoff.js";
 import { openMember } from "../goto.js";
 // Called on both entry paths and imported on neither — `hasBlobs` and
@@ -322,7 +322,7 @@ function Detail({ id, onBack, onFlash, seed }) {
             <PartnerzMark pairs={b.partnered} />
             <p className="text-[11px] text-white/45">
               hosted by <AtUser user={b.host} />
-              {b.genre && <> · {b.genre}</>}
+              {b.genre && <> · {genreLabel(b.genre)}</>}
               {" · "}{b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
             </p>
@@ -710,7 +710,7 @@ export default function BattleZ() {
                         {b.mode === "1v1"
                           ? <>@{b.host} vs @{b.opponent}{b.pool_total > 0 && <> · {b.pool_total} {SPINAZ} pot</>}</>
                           : <>@{b.host} · {b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}</>}
-                        {b.genre && <> · {b.genre}</>}
+                        {b.genre && <> · {genreLabel(b.genre)}</>}
                         {b.mode !== "1v1" && b.entry_spinaz > 0 && <> · {b.entry_spinaz} {SPINAZ} to enter</>}
                         {Object.keys(b.gates || {}).length > 0 && <> · gated</>}
                       </span>

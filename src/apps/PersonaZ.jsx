@@ -5,6 +5,7 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import VoiceCard from "../components/VoiceCard.jsx";
 import { PERSONAS, PERSONA_READ } from "../personaVoice.js";
+import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDuration, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
 import { say, useVoice } from "../voice.js";
 
@@ -24,7 +25,7 @@ import { say, useVoice } from "../voice.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-function Skill({ k, have, onToggle, onDate, onPrice, personaKey }) {
+function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
   const start = have ? periodsOf(have)[0]?.start || "" : "";
   const dur = have ? skillDuration(have) : null;
   return (
@@ -52,6 +53,29 @@ function Skill({ k, have, onToggle, onDate, onPrice, personaKey }) {
               <option value="hour">per hour</option>
               <option value="work">per work</option>
             </select>
+          </span>
+          {/* The same emoji genres every picker offers: Singing in Gospel, Rapping in Trap. */}
+          <span className="flex w-full flex-wrap items-center gap-1.5 text-[11px] text-white/60">
+            {(have.genres || []).map((g) => (
+              <span key={g} className="pill !py-0.5">
+                {genreLabel(g)}
+                <button type="button" className="ml-1 text-white/40 hover:text-white" aria-label={`Remove ${g}`}
+                        onClick={() => onGenres((have.genres || []).filter((x) => x !== g))}>✕</button>
+              </span>
+            ))}
+            {(have.genres || []).length < 8 && (
+              <select data-nomemo="true" value="" aria-label={`Add a genre to ${labelForSkill(k)}`}
+                      className="neon-input !w-auto !py-0.5 text-[11px]"
+                      onChange={(e) => e.target.value && !(have.genres || []).includes(e.target.value)
+                        && onGenres([...(have.genres || []), e.target.value])}>
+                <option value="">+ genre</option>
+                {GENRE_GROUPS.map((grp) => (
+                  <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                    {grp.genres.map(([name, emoji]) => <option key={name} value={name}>{name} {emoji}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            )}
           </span>
         </>
       )}
@@ -96,6 +120,14 @@ export default function PersonaZ() {
       // { name, periods } silently erased them.
       const { start: _legacy, ...keep } = s;
       return { ...keep, periods: date ? [{ ...(periods[0] || {}), start: date }, ...rest] : rest };
+    }),
+  })));
+  const setGenres = (key, sk, genres) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
+    ...p, skills: p.skills.map((s) => {
+      if (s.name !== sk) return s;
+      const next = { ...s };
+      if (genres.length) next.genres = genres; else delete next.genres;
+      return next;
     }),
   })));
   const setPrice = (key, sk, { dollars, unit }) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
@@ -196,7 +228,7 @@ export default function PersonaZ() {
                             mine ? (
                               <Skill key={sk} k={sk} have={mine.skills.find((s) => s.name === sk)}
                                 onToggle={() => toggleSkill(key, sk)} onDate={(d) => setStart(key, sk, d)}
-                                onPrice={(v) => setPrice(key, sk, v)} personaKey={key} />
+                                onPrice={(v) => setPrice(key, sk, v)} onGenres={(g) => setGenres(key, sk, g)} personaKey={key} />
                             ) : (
                               <span key={sk} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-white/60">{labelForSkill(sk)}</span>
                             )

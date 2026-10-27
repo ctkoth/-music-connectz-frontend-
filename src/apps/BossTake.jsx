@@ -13,7 +13,7 @@ import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Vide
 import { api } from "../api.js";
 import { beatVerdict } from "../challenge.js";
 import { EmailMe, ExampleCard, JoinWall, PracticeBeat } from "../components/TrialExtras.jsx";
-import { GENRE_GROUPS, GENRES } from "../genres.js";
+import { GENRE_GROUPS, GENRES, genreLabel } from "../genres.js";
 import { useRemembered } from "../useRemembered.js";
 import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
@@ -1263,7 +1263,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             {fromPost.kind === "journal" || fromPost.kind === "upload"
               ? (fromPost.day || "your file")
               : <>by <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button></>}
-            {fromPost.genre ? ` · ${fromPost.genre}` : ""}
+            {fromPost.genre ? ` · ${genreLabel(fromPost.genre)}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
           {fromPost.kind === "journal" && (

@@ -12,6 +12,11 @@ const LISTS = [
   ["gear", "Gear", "Mic, DAW, interface, instrument…"],
 ];
 
+const KINDS = [["instrument", "🎸 Instrument"], ["microphone", "🎙️ Microphone"], ["interface", "🔌 Interface"],
+  ["monitors", "🔊 Monitors"], ["outboard", "🎛️ Outboard"], ["software", "💻 Software"], ["controller", "🎹 Controller"], ["other", "📦 Other"]];
+const WHERE = [["home", "Home"], ["studio", "Studio"], ["stage", "Stage"]];
+const kindLabel = Object.fromEntries(KINDS);
+
 const toList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
 /** The device's own timezone — what a member almost always means. */
@@ -63,6 +68,29 @@ export function ProfileFieldsEditor({ value, onChange }) {
                  onBlur={(e) => { set(k, toList(e.target.value)); setDrafts({ ...drafts, [k]: undefined }); }} />
         </label>
       ))}
+      <div className="space-y-1.5">
+        <p className="text-xs text-white/50">Inventory <span className="text-white/30">— what you or your studio actually use; members can search by it</span></p>
+        {(v.inventory || []).map((it, i) => (
+          <div key={i} className="flex flex-wrap gap-1.5">
+            <input className={`${input} !w-auto flex-1`} maxLength={80} placeholder="Neumann U87"
+                   value={it.name} onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+            <select className={`${input} !w-auto`} data-nomemo="true" value={it.kind}
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, kind: e.target.value } : x)))}>
+              {KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <select className={`${input} !w-auto`} data-nomemo="true" value={it.where}
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, where: e.target.value } : x)))}>
+              {WHERE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <button type="button" className="text-white/40" aria-label="Remove"
+                    onClick={() => set("inventory", v.inventory.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+        <button type="button" className="text-xs text-mcz-cyan hover:underline"
+                onClick={() => set("inventory", [...(v.inventory || []), { name: "", kind: "microphone", where: "home", note: "" }])}>
+          + Add gear
+        </button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs text-white/50">Timezone <span className="text-white/30">(from your device)</span>
           <input className={input} maxLength={48} placeholder="America/Denver"
@@ -117,6 +145,19 @@ export function ProfileFields({ p, linkPost }) {
       {pills("Genres", p.genres)}
       {pills("Influences", p.influences)}
       {pills("Gear", p.gear)}
+      {(p.inventory || []).length > 0 && (
+        <div className="space-y-1">
+          <span className="text-[11px] uppercase tracking-wide text-white/35">Inventory</span>
+          <div className="flex flex-wrap gap-1.5">
+            {p.inventory.map((it) => (
+              <span key={it.name} title={`${it.where}${it.note ? ` · ${it.note}` : ""}`}
+                    className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/75">
+                {(kindLabel[it.kind] || "📦").split(" ")[0]} {it.name}{it.where === "studio" ? " · studio" : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {(p.label || time) && (
         <p className="flex flex-wrap items-center gap-3 text-xs text-white/50">
           {p.label && <span>Label: {p.label}</span>}

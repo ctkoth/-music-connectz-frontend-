@@ -4,6 +4,7 @@
 // every age inside the app; this page only decides what the open internet is shown.
 // Read-only: rating and entering live inside, and the page says so rather than offering
 // a control that cannot work logged out.
+import { genreLabel } from "../genres.js";
 import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
@@ -65,7 +66,7 @@ export default function PublicBattle() {
         <div className="neon-frame space-y-4 p-5">
           <div>
             <p className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-white/50">
-              <Swords size={13} /> {KIND[b.kind] || "Battle"}{b.genre ? ` · ${b.genre}` : ""}
+              <Swords size={13} /> {KIND[b.kind] || "Battle"}{b.genre ? ` · ${genreLabel(b.genre)}` : ""}
             </p>
             <h1 className="mt-1 font-display text-2xl font-extrabold text-white">{b.title}</h1>
             {b.host && (
