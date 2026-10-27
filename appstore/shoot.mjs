@@ -13,6 +13,7 @@ import pw from "/opt/node22/lib/node_modules/playwright/index.js";
 
 const DEVICES = {
   iphone: { w: 440,  h: 956,  dpr: 3, dir: "iphone-6.9", touch: true  },   // 1320x2868
+  iphone65: { w: 428, h: 926, dpr: 3, dir: "iphone-6.5", touch: true },   // 1284x2778
   ipad:   { w: 1032, h: 1376, dpr: 2, dir: "ipad-13",    touch: true  },   // 2064x2752
 };
 const D = DEVICES[process.argv[2] || "iphone"];
