@@ -52,6 +52,7 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import { changeText, againstWhat, liftChange, repsChangeText, direction } from "../sessionChange.js";
 import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
@@ -755,6 +756,7 @@ function summaryText(sm, unit, brief = false) {
   const lines = [
     `💪 ${sm.routine_title || "Workout"}${sm.duration_seconds != null ? ` — ${clock(sm.duration_seconds)}` : ""}`,
     `${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted · ${sm.sets} sets · ${sm.reps} reps`,
+    ...(sm.vs_last ? [`${changeText(sm.vs_last.volume_delta_kg, sm.vs_last.volume_delta_pct, (kg) => fmtWeight(kg, unit)) || repsChangeText(sm.vs_last)} vs ${againstWhat(sm.vs_last)}`] : []),
     ...sm.records.map((r) => `🏆 ${recordLine(r, unit)}`),
     ...(brief ? [] : sm.exercises.map((e) => `• ${e.name}: ${e.sets}×, ${e.reps} reps${e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}`)),
   ];
@@ -816,6 +818,12 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
   const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
   const text = summaryText(sm, unit);
   const coaches = asList(sm.coaches);
+  const fmt = (kg) => fmtWeight(kg, unit);
+  const vs = sm.vs_last;
+  // Ending a session happens at the bottom of a long screen, and this card is at the top:
+  // bring it into view and announce it, or "did that work?" is the member's next thought.
+  const cardRef = useRef(null);
+  useEffect(() => { try { cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch { /* old browser */ } }, [sm.session_id]);
 
   async function share() {
     try {
@@ -829,10 +837,10 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
   const toCoach = (who) => handOff("messagez", "messagez-compose", { people: who ? [who] : [], title, description: text });
 
   return (
-    <div className="re-card space-y-3 border-emerald-400/40">
+    <div ref={cardRef} role="status" aria-live="polite" className="re-card space-y-3 border-emerald-400/40">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="re-label">Session done</p>
+          <p className="re-label text-emerald-300">✓ Session ended</p>
           <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"}{sm.duration_seconds != null ? ` · ${clock(sm.duration_seconds)}` : " · logged afterwards"}</p>
         </div>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
@@ -840,10 +848,36 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         </button>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div><p className="text-2xl font-extrabold text-white">{Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()}</p><p className="re-label">{unit} lifted</p></div>
+        <div><p className="text-2xl font-extrabold text-white">{Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()}</p><p className="re-label">total {unit} lifted</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.sets}</p><p className="re-label">sets</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.reps}</p><p className="re-label">reps</p></div>
       </div>
+      {sm.sets > 0 && (
+        <div className="rounded-lg bg-white/5 p-2.5 text-xs space-y-0.5" data-testid="vs-last">
+          {vs ? (
+            <>
+              <p className="text-white/80">
+                <span className={`font-semibold ${direction(vs.volume_delta_kg) === "up" ? "text-emerald-300" : "text-white"}`}>
+                  {changeText(vs.volume_delta_kg, vs.volume_delta_pct, fmt) || repsChangeText(vs) || "= same as last time"}
+                </span>{" "}
+                vs {againstWhat(vs)}
+              </p>
+              <p className="text-[11px] text-white/45">
+                Then: {Math.round(fromKg(vs.volume_kg, unit)).toLocaleString()} {unit} · {vs.sets} sets · {vs.reps} reps.
+                {vs.sets_delta !== 0 ? ` ${vs.sets_delta > 0 ? "+" : "−"}${Math.abs(vs.sets_delta)} sets` : ""}
+                {vs.duration_delta_seconds != null && Math.abs(vs.duration_delta_seconds) >= 60
+                  ? ` · ${clock(Math.abs(vs.duration_delta_seconds))} ${vs.duration_delta_seconds > 0 ? "longer" : "shorter"}` : ""}
+                {vs.volume_delta_kg < 0 ? " A lighter session isn't a worse one — deloads and short days look like this." : ""}
+              </p>
+              {asList(vs.not_repeated).length > 0 && (
+                <p className="text-[11px] text-white/45">Not done this time: {vs.not_repeated.join(", ")}.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-white/55">First session logged — nothing to compare it to yet. This is your starting mark.</p>
+          )}
+        </div>
+      )}
       {sm.sets === 0 ? (
         // A session that sat open with nothing logged — the most likely story
         // behind a 0-set, hours-long "workout" — has no record to report and
@@ -851,6 +885,7 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         <p className="text-xs text-white/45">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
       ) : sm.records.length > 0 ? (
         <div className="space-y-1">
+          <p className="re-label text-amber-200">🏆 {sm.records.length} new record{sm.records.length === 1 ? "" : "s"}</p>
           {sm.records.map((r, i) => (
             <p key={i} className="flex items-start gap-1.5 text-xs text-amber-200">
               <Trophy size={13} className="mt-0.5 shrink-0" /> {recordLine(r, unit)}
@@ -869,6 +904,7 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         {sm.exercises.map((e) => (
           <p key={e.exercise_id} className="text-[11px] text-white/55">
             {e.name}: {e.sets} {e.sets === 1 ? "set" : "sets"}, {e.reps} reps{e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}
+            {liftChange(e, fmt) && <span className={liftChange(e, fmt).includes("▲") ? " text-emerald-300/80" : " text-white/45"}> · {liftChange(e, fmt)}</span>}
           </p>
         ))}
       </div>

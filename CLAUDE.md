@@ -1616,3 +1616,43 @@ can be checked before the first set rather than discovered after. It is a differ
   browser can't play the beep") instead of failing quietly, and a hidden tab's title becomes "Rest over —
   go" until it is shown again. Vibration is Android/Firefox only; iPhones get neither buzz nor, in a
   locked state, the beep.
+
+## A finished session says it ended, how much was lifted, and what changed
+
+`SessionSummary` leads with **✓ Session ended**, scrolls itself into view (ending happens at the bottom
+of a long screen and the card is at the top, so "did that work?" was the next thought) and announces
+itself (`role="status"`). Under the totals it states the change since last time, from the server's `vs_last`:
+`▲ +100 kg (+25%) vs last Push day (date)`, then what that session was, any lifts not repeated, and per
+exercise a `top ▲ +5 kg` or `volume …`. `sessionChange.js` only words and orients what the server computed.
+
+- **It says what it compared against** (`againstWhat`): last Push day when it was a routine, "your last
+  session" when it was not — never an implied like-for-like it did not have.
+- **A drop is not coloured as a failure** and carries "a lighter session isn't a worse one". Only records get
+  the 🏆, with their own count ("3 new records").
+- No earlier session reads "First session logged — this is your starting mark", not a 0% or a blank.
+- The share/post text carries the same change line.
+
+## Inspiration can use a post, a FileZ file or a famous example
+
+`Inspiration.jsx` has two `Source` controls: **File**, **A post** (searchable; "My posts" / "Everyone's" —
+the reference defaults to everyone's, the take to yours) and **My files** (FileZ audio/video). A post
+is sent by id (`take_post_id` / `reference_post_id`), never by address, and what is pickable is only a
+filter for the picker (`inspirationSources.js`: has a recording, not known gone); whether the member may
+use it is the server's answer, shown unreworded.
+
+- **The ⚡ price is beside the button before it is pressed** ("−N ⚡ for using a post", once however many
+  sides are posts) with the server's `post_note`; files and FileZ cost none. The result names what was
+  compared ("Compared "My verse" against "Famous" by @artist") and what it cost.
+- The same post on both sides is caught before the press. A failed fetch of the lists leaves only the file
+  door, and says nothing.
+- Not offered: a journal entry (the server accepts it as a take; it was left off the picker).
+
+## The home screen's parents
+
+"Around the coach" now starts with the ToolZ and IntelligenceZ PARENTS (`FOCUS_PARENTS`, the same category
+cards "More apps" draws, lifted to the front — one tap opens everything under them) and SkillZ ends the coach
+grid (`FOCUS_COACH_PARENTS`). There is **no `skillz` tab**: SkillZ exists only as a category, so its tile opens
+that category. Lilith joined BodieZ in the list (Corey uses it).
+
+FileZ's tile showed a music note and the raw key `filez`: it had art in App.jsx's registry and no entry in
+ToolZMenu's own `ICON_KEY` / `EMOJI` / `FOCUS_LABEL`. `focus.test.mjs` now fails when any focus tile lacks all three.
