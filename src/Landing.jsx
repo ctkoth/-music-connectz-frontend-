@@ -257,7 +257,7 @@ export default function Landing() {
         <span className="font-display text-lg font-extrabold tracking-tight">MusicConnectZ.Net</span>
         <Link to="/login" className="ml-auto text-sm text-white/60 hover:text-white">Log in</Link>
       </header>
-      <p className="-mt-4 mb-6 text-sm text-white/70">✨ AI Coaching & Gamified👾 way to make professional portfolio📑 of your music🎶 related work❓</p>
+      <p className="-mt-4 mb-6 text-sm text-white/70">✨ AI Coaching & Gamified👾 way to make professional💲 portfolio📑 of your music🎶 related work❓</p>
 
       <div className="neon-frame p-6 text-center sm:p-10">
         {/* No member count here. Corey's call: visitors are never shown it —
