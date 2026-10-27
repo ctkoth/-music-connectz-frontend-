@@ -52,6 +52,7 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import { primeRestBeep, restBeep, restClock, shouldBeep } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
@@ -1069,18 +1070,25 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   const [alerted, setAlerted] = useState(null);
   const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
   const elapsed = last ? secondsSince(last.created_at) : 0;
-  const done = last && elapsed >= target;
+  const { left, over, done } = restClock(elapsed, target);
+
+  // Unlock the beep on the member's own taps. A browser starts audio suspended unless a
+  // gesture made or resumed it, and by the time rest ends there is no gesture to lean on.
+  useEffect(() => {
+    const prime = () => primeRestBeep();
+    document.addEventListener("pointerdown", prime);
+    document.addEventListener("keydown", prime);
+    return () => { document.removeEventListener("pointerdown", prime); document.removeEventListener("keydown", prime); };
+  }, []);
 
   useEffect(() => {
     // Halfway through a superset nobody is resting, so nothing should say they are.
-    if (hold || !done || alerted === last.id) return;
+    if (hold || !last || !done || alerted === last.id) return;
     setAlerted(last.id);
+    // A reload long after the set is a finished rest, not one that just ended: mark it, stay quiet.
+    if (!shouldBeep({ done, over, alreadyAlerted: false })) return;
     try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime + 0.25);
-    } catch { /* no audio */ }
+    restBeep();
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1102,9 +1110,10 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   return (
     <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
       <div className="flex items-baseline justify-between">
-        <p className="re-label">Rest since {last.exercise_name || "last set"}</p>
-        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}>
-          {clock(elapsed)} <span className="text-sm text-white/40">/ {clock(target)}</span>
+        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
+        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
+           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
+          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
         </p>
       </div>
       <div className="h-1.5 rounded-full bg-white/10">
@@ -1136,7 +1145,8 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
             {clock(t)}
           </button>
         ))}
-        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Logging your next set saves this rest."}</span>
+        <button type="button" className="pill !py-1 text-[11px]" onClick={() => { primeRestBeep(); restBeep(); }}>Test beep</button>
+        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took."}</span>
       </div>
     </div>
   );

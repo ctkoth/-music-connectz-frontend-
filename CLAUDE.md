@@ -1585,3 +1585,22 @@ says where the number came from ("last set" / "last time" / "target").
   re-expresses it for the same reason. This replaced a `useEffect` that only re-expressed the plan.
 - **A routine target now loses to what the member actually lifted.** Reversible in `lastWeightKg`
   by swapping the order of the first and last fallbacks.
+
+## The rest timer counts DOWN, and the beep has to be unlocked before it is needed
+
+`RestTimer` shows the time LEFT (`1:12 left of 1:30`), then `rest over` / `over by 0:08`; the bar
+still fills. It used to count up toward a target, which left the member subtracting.
+
+The beep was silent on most phones and nothing said so: it made its `AudioContext` at the moment rest
+ended, with no tap behind it, and browsers start such a context suspended. `restBeep.js` makes and
+resumes one context on the member's own taps while the timer is on screen (`primeRestBeep`), plays
+three ramped beeps into it (one blip is lost under music), and has a **Test beep** pill so the volume
+can be checked before the first set rather than discovered after. It is a different file from
+`sound.js` on purpose — that one is decoration and starts off; this is the timer's one job.
+
+- **It beeps only when rest ends while the member is here** (`shouldBeep`, 15 s of grace). A page loaded
+  long after the last set is a finished rest, not one that just ended, and a beep on every reload is how
+  a feature gets muted. The set is still marked alerted, so it cannot fire later.
+- **Superset hold is unchanged**: no alert while the first half of a pair is waiting for the second.
+- **A locked phone still pauses the page** and no audio unlocks that; the screen-on and notification
+  options beside the timer are the answer, and the copy there says so.
