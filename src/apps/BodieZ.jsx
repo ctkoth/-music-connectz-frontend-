@@ -52,7 +52,7 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
-import { primeRestBeep, restBeep, restClock, shouldBeep } from "../restBeep.js";
+import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
@@ -1076,10 +1076,22 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   // gesture made or resumed it, and by the time rest ends there is no gesture to lean on.
   useEffect(() => {
     const prime = () => primeRestBeep();
-    document.addEventListener("pointerdown", prime);
-    document.addEventListener("keydown", prime);
-    return () => { document.removeEventListener("pointerdown", prime); document.removeEventListener("keydown", prime); };
+    for (const ev of UNLOCK_EVENTS) document.addEventListener(ev, prime, { passive: true, capture: true });
+    return () => { for (const ev of UNLOCK_EVENTS) document.removeEventListener(ev, prime, { capture: true }); };
   }, []);
+
+  // A phone in a pocket or folded shut has no screen to watch; the tab title is the one cue
+  // every browser lets a hidden page change, and it is put back the moment they return.
+  const titleRef = useRef(null);
+  useEffect(() => {
+    const restore = () => { if (titleRef.current != null) { document.title = titleRef.current; titleRef.current = null; } };
+    if (done && !hold && document.visibilityState === "hidden") {
+      if (titleRef.current == null) titleRef.current = document.title;
+      document.title = "Rest over — go";
+    } else restore();
+    document.addEventListener("visibilitychange", restore);
+    return () => document.removeEventListener("visibilitychange", restore);
+  }, [done, hold]);
 
   useEffect(() => {
     // Halfway through a superset nobody is resting, so nothing should say they are.
@@ -1087,7 +1099,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     setAlerted(last.id);
     // A reload long after the set is a finished rest, not one that just ended: mark it, stay quiet.
     if (!shouldBeep({ done, over, alreadyAlerted: false })) return;
-    try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
+    try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported, e.g. iPhone */ }
     restBeep();
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1145,8 +1157,14 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
             {clock(t)}
           </button>
         ))}
-        <button type="button" className="pill !py-1 text-[11px]" onClick={() => { primeRestBeep(); restBeep(); }}>Test beep</button>
+        <button type="button" className="pill !py-1 text-[11px]"
+                onClick={() => { primeRestBeep(); restBeep(); try { navigator.vibrate?.(80); } catch { /* unsupported */ } }}>Test beep</button>
         <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took."}</span>
+        {beepState() === "ready"
+          ? <span className="text-[11px] text-emerald-300/80">Sound on</span>
+          : beepState() === "unsupported"
+            ? <span className="text-[11px] text-white/45">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
+            : <span className="text-[11px] text-amber-300/90">Sound is off until you tap once — press Test beep (and check your phone isn't on silent).</span>}
       </div>
     </div>
   );

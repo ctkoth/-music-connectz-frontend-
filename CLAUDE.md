@@ -1604,3 +1604,15 @@ can be checked before the first set rather than discovered after. It is a differ
 - **Superset hold is unchanged**: no alert while the first half of a pair is waiting for the second.
 - **A locked phone still pauses the page** and no audio unlocks that; the screen-on and notification
   options beside the timer are the answer, and the copy there says so.
+
+- **Cross-browser, as far as a web page can go.** The unlock listens on `pointerup`, `touchend`, `click`
+  and `keydown` (`UNLOCK_EVENTS`) — activation differs by browser (Chrome counts a touch on release, Safari
+  wants touchend/click), and the first one accepted wins. iOS also needs a silent buffer played inside the
+  gesture and treats `interrupted` like `suspended`; both are handled. Checked in headless Chromium with
+  touch emulation and `--autoplay-policy=document-user-activation-required`: locked until a tap, ready
+  after. **Not checked on a real phone, Safari or Firefox** (no device here) — iOS's silent-mode switch
+  mutes Web Audio and nothing in a page can override it.
+- **The screen says what state the sound is in** ("Sound on" / "Sound is off until you tap once" / "This
+  browser can't play the beep") instead of failing quietly, and a hidden tab's title becomes "Rest over —
+  go" until it is shown again. Vibration is Android/Firefox only; iPhones get neither buzz nor, in a
+  locked state, the beep.

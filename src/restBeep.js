@@ -19,12 +19,37 @@ function context() {
   return ctx;
 }
 
-/** Call from a gesture. Safe to call on every tap: it only does work while suspended. */
+/** Is sound actually going to come out? "unknown" until something has tried. */
+export function beepState() {
+  if (!ctx) return typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext) ? "locked" : "unsupported";
+  return ctx.state === "running" ? "ready" : "locked";
+}
+
+// The taps that count as a gesture are NOT the same in every browser. Chrome (Android and
+// desktop) only treats a touch as activation on RELEASE — pointerup / touchend / click — and
+// not on pointerdown, which counts for a mouse only; Safari wants touchend or click; keydown
+// counts everywhere. Listening to all of them is the point: the first one the browser accepts
+// unlocks it, and the rest are free (this only works while suspended).
+export const UNLOCK_EVENTS = ["pointerup", "touchend", "click", "keydown"];
+
+/** Call from a gesture. Safe to call on every tap: it only does work while not running. */
 export function primeRestBeep() {
   const c = context();
-  if (c && c.state === "suspended") { try { c.resume(); } catch { /* refused; the next tap tries again */ } }
-  return !!c && c.state !== "closed";
+  if (!c || c.state === "closed") return false;
+  // "interrupted" is iOS Safari after a call, an alarm or the page being backgrounded; it needs
+  // a resume from a tap exactly as "suspended" does.
+  if (c.state !== "running") { try { c.resume(); } catch { /* refused; the next tap tries again */ } }
+  // iOS only counts audio as unlocked once something has been played inside the gesture.
+  if (!unlocked) {
+    try {
+      const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource();
+      src.buffer = b; src.connect(c.destination); src.start(0);
+      unlocked = true;
+    } catch { /* older engines; the beep itself still tries */ }
+  }
+  return true;
 }
+let unlocked = false;
 
 // Three short beeps, the last one longer — one blip is easy to miss over music.
 // Each has a ramped envelope, because a hard start or stop on a raw oscillator
@@ -35,8 +60,8 @@ const BEEPS = [{ at: 0, dur: 0.16, hz: 880 }, { at: 0.24, dur: 0.16, hz: 880 }, 
 export function restBeep(gain = 0.35) {
   const c = context();
   if (!c) return false;
-  if (c.state === "suspended") { try { c.resume(); } catch { /* see primeRestBeep */ } }
-  if (c.state !== "running" && c.state !== "suspended") return false;
+  if (c.state !== "running") { try { c.resume(); } catch { /* see primeRestBeep */ } }
+  if (c.state === "closed") return false;
   const t0 = c.currentTime + 0.02;
   for (const b of BEEPS) {
     try {

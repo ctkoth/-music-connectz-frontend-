@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 // A fake audio stack: records what was scheduled, and starts SUSPENDED like a real browser.
-function fakeAudio({ startsSuspended = true } = {}) {
-  const made = { ctxs: 0, osc: 0, resumes: 0 };
+function fakeAudio({ state = "suspended" } = {}) {
+  const made = { ctxs: 0, osc: 0, resumes: 0, silent: 0 };
   class Ctx {
-    constructor() { made.ctxs++; this.state = startsSuspended ? "suspended" : "running"; this.currentTime = 0; this.destination = {}; }
+    constructor() { made.ctxs++; this.state = state; this.currentTime = 0; this.destination = {}; }
+    createBuffer() { return {}; }
+    createBufferSource() { return { connect: (n) => n, start() { made.silent++; } }; }
     resume() { made.resumes++; this.state = "running"; return Promise.resolve(); }
     createOscillator() { made.osc++; return { frequency: {}, connect: (n) => n, start() {}, stop() {} }; }
     createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect: (n) => n }; }
@@ -32,6 +34,29 @@ test("priming on a tap makes one context and unlocks it; later taps do not make 
   assert.equal(made.resumes, 1);          // only while suspended
   assert.equal(restBeep(), true);
   assert.equal(made.resumes, 1);
+});
+
+test("the unlock listens for the taps Chrome and Safari actually accept, not just pointerdown", async () => {
+  const { UNLOCK_EVENTS } = await import("./restBeep.js?f");
+  // Chrome counts a touch as activation on release only; pointerdown is a mouse-only trigger.
+  for (const ev of ["pointerup", "touchend", "click", "keydown"]) assert.ok(UNLOCK_EVENTS.includes(ev), ev);
+  assert.ok(!UNLOCK_EVENTS.includes("pointerdown"));
+});
+
+test("iOS: a silent buffer is played once inside the gesture, and 'interrupted' is resumed like 'suspended'", async () => {
+  const made = fakeAudio({ state: "interrupted" });
+  const { primeRestBeep, beepState } = await import("./restBeep.js?g");
+  assert.equal(beepState(), "locked");
+  primeRestBeep(); primeRestBeep();
+  assert.equal(made.silent, 1);
+  assert.equal(made.resumes, 1);          // second tap: already running, nothing to do
+  assert.equal(beepState(), "ready");
+});
+
+test("beepState says unsupported when there is no audio at all", async () => {
+  globalThis.window = {};
+  const { beepState } = await import("./restBeep.js?h");
+  assert.equal(beepState(), "unsupported");
 });
 
 test("no audio support is a quiet false, never a throw", async () => {
