@@ -1684,3 +1684,29 @@ finished on Today still jumps to SessionZ's editor via "Edit this workout" (fetc
 - Driven in a real browser against the local stack (62 sessions): paging 25 → 50, search, the filter finding exactly the
   two broken sessions, an edit moving a row's total by the expected amount, and a delete dropping the count and the flagged
   list. The skill's chromium path was stale (`chrome-linux64` now, not `chrome-linux`).
+
+## Starting from SessionZ, saving a custom session, and fitting a routine to your equipment
+
+**SessionZ opens with "Start a session".** A session already open shows "Continue it" (the server allows one at a
+time). Otherwise: **Start a custom session** (an ad-hoc one — log lift by lift on Today) or a routine from the list
+(title, how many lifts, and the equipment they use), each with **Start** and **Fit to equipment**. The same fit is on
+every RoutineZ card.
+
+- **Save to RoutineZ when a custom session ends.** The ended-session card (and a past session's Details) offers it for a
+  session with sets and no routine behind it: a name box, "Save to RoutineZ", then "Open RoutineZ". It is the server's
+  `routine_from_session` — one row per lift, sets = how many were done, target = the TOP set, never an average — and the
+  workout stays as logged. Free.
+- **The equipment fit is the Planner's, not the AI's** (`equipmentFit.js`, `EquipmentFit.jsx`): free, no 🏷️, and nothing is
+  saved until a button is pressed. The member picks equipment (any of several; none means "any" and nothing changes). Each
+  lift that needs other gear gets same-muscle candidates that use only what was picked, ranked by how much of the
+  movement's NAME they share once the gear words are dropped ("Bench Press" → "Dumbbell Bench Press" before "Dumbbell Fly"),
+  then by the library's curated order. Every swap shows its reason and a dropdown to change it, keep the lift or remove it.
+  "Just show me everything I can do with…" lists the equipment's lifts by muscle. Then **Edit this routine** (in place) or
+  **Save as a new routine** (the original is kept).
+- **A swap clears the weight.** 60 kg on a barbell is not 60 kg in a dumbbell; sets, reps and order are kept and the logger
+  fills in the member's own last weight for the NEW lift. A lift with no same-muscle option in that equipment is said to be
+  kept and is never replaced with an invention; removing it is the member's call. A lift already in the routine is not offered
+  twice, and candidates come from `pickable`, so a movement setting that rules a lift out still does.
+- Superset pairs survive a swap (the label stays on the row); removing half a pair drops the label (`normalize`).
+- Driven in a real browser (barbell routine → Dumbbell → edited; custom session → logged → ended → saved → in RoutineZ) and the
+  saved rows read back from the database. Verified there that weights cleared and the top set became the target.
