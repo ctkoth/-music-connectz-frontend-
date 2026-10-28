@@ -142,6 +142,7 @@ const KEYS = {
   "profilez.substancez.jpg": "substancez.png",
   "profilez.zodiacz.jpg": "zodiacz.png",
   "profilez.voicez.jpg": "voicez.png",
+  "profilez.lookzmaxz.jpg": "lookmaxz.png",
   "tellz.png": "tellz.png",
   "toolz.cleanconz.png": "cleanconnectz.png",
   "toolz.journalz.jpg": "journalz.jpg",

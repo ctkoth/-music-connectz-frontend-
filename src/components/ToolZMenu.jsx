@@ -252,6 +252,10 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
         { key: 'voicez', label: 'VoiceZ', color: 'magenta', desc: 'Your voices — and which one the coach, the writer and OCC speak in' },
+        // LookZMaxZ had a route and no door — reachable only by typing its address. Corey's
+        // art files it under ProfileZ (profilez.lookzmaxz.jpg). Adults only: the screen
+        // refuses an unverified member with the server's sentence.
+        { key: 'lookmaxz', label: 'LookZMaxZ', color: 'magenta', desc: '18+: hair, skin, teeth and styling rated 1-10 from a photo, with what to do about each' },
       ]
     },
     {
@@ -286,10 +290,6 @@ const TOOLZ_MENU = {
   ],
   'BodieZ': [
     { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
-    // LookZMaxZ had a route and no door: reachable only by typing its address. It sits
-    // here because its body sector IS BodieZ's measured progress. Adults only — the
-    // screen itself refuses an unverified member with the server's sentence.
-    { key: 'lookmaxz', label: 'LookZMaxZ', color: 'magenta', desc: '18+: hair, skin, teeth and styling rated 1-10 from a photo, with what to do about each' },
   ],
 };
 

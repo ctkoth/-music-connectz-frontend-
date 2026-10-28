@@ -1496,8 +1496,9 @@ from `/api/economy/lookmaxz/`.
 - **A factor the photo did not show is "Not visible in this photo — not guessed."**, never a number.
 - **Links are the marketplace's own search, new tab, `nofollow sponsored`, no affiliate tag** — the screen says we
   earn nothing. StatZ edits their own list; everyone else sees Amazon, eBay, Walmart and a door to StatZ.
-- The tile is Corey's supplied LookZMaxZ art (`public/icons/lookzmaxz.jpg`, 512px). Note it draws a golden-ratio face
-  grid; the feature deliberately never scores proportions, so the art says more than the screen does.
+- The tile is Corey's LookZMaxZ art, filed under ProfileZ: `public/icons/profilez.lookzmaxz.jpg` (512px, Oct 28), mapped to
+  `lookmaxz.png` by `tools/build-icon-manifest.mjs`; the older `lookzmaxz.jpg` stays only as the registry fallback. The
+  menu lists it in ProfileZ → Your Profile — before that it had a route and no door.
 
 ## Lilith: move any entry anywhere, Trash, and recommendations from profile and activity
 

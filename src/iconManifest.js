@@ -67,6 +67,7 @@ export const ICON_DEFAULTS = {
   "personaz_manager.png": "/icons/personaz.manager.png",
   "personaz_videographer.png": "/icons/personaz.videographer.png",
   "profilez.png": "/icons/profilez.png",
+  "lookmaxz.png": "/icons/profilez.lookzmaxz.jpg",
   "preferencez.png": "/icons/profilez.preferencez.png",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
@@ -1434,6 +1435,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "lookzmaxz",
+        "label": "LookzmaxZ",
+        "file": "profilez.lookzmaxz.jpg",
+        "art": "/icons/profilez.lookzmaxz.jpg",
+        "key": "lookmaxz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "preferencez",
         "label": "PreferenceZ",
         "file": "profilez.preferencez.png",
@@ -2001,7 +2012,6 @@ export const TAB_ICONS_WITHOUT_ART = [
   "keyz.png",
   "lessonz.png",
   "logo.png",
-  "lookmaxz.png",
   "merchz.png",
   "mimez.png",
   "money.png",
