@@ -1315,32 +1315,15 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!last) return null;
-  if (hold) {
-    return (
-      <div className="re-card border-fuchsia-400/30">
-        <p className="text-sm text-fuchsia-200">
-          Superset — go straight to <span className="font-semibold">{hold}</span>. Rest starts after it.
-        </p>
-      </div>
-    );
-  }
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
   const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
   const pct = Math.min(100, (elapsed / target) * 100);
 
-  return (
-    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
-      <div className="flex items-baseline justify-between">
-        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
-        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
-           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
-          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
-        </p>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/10">
-        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
-      </div>
+  // The rest length is chosen the same way whether the clock is running or a superset is waiting on its
+  // second lift, so the choices (and the sound check) are one block shown in both.
+  const choices = (note) => (
+    <>
       {goalList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-white/40">
@@ -1369,13 +1352,52 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         ))}
         <button type="button" className="pill !py-1 text-[11px]"
                 onClick={() => { primeRestBeep(); restBeep(); try { navigator.vibrate?.(80); } catch { /* unsupported */ } }}>Test beep</button>
-        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took."}</span>
+        <span className="text-[11px] text-white/40">{note}</span>
         {beepState() === "ready"
           ? <span className="text-[11px] text-emerald-300/80">Sound on</span>
           : beepState() === "unsupported"
             ? <span className="text-[11px] text-white/45">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
             : <span className="text-[11px] text-amber-300/90">Sound is off until you tap once — press Test beep (and check your phone isn't on silent).</span>}
       </div>
+    </>
+  );
+
+  // Halfway through a superset nobody is resting, so there is no countdown yet — but the member still
+  // gets both clocks up front: how long since the last set (the gap before the second lift) and the
+  // rest that starts the moment they log it, with how it will tell them. Never a bare "rest starts later".
+  if (hold) {
+    return (
+      <div className="re-card space-y-2 border-fuchsia-400/30">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <p className="text-sm text-fuchsia-200">
+            Superset — go straight to <span className="font-semibold">{hold}</span>.
+          </p>
+          <p className="font-mono text-2xl font-bold text-white" aria-label={`${clock(elapsed)} since your last set`}>
+            {clock(elapsed)} <span className="text-sm font-normal text-white/40">since your last set</span>
+          </p>
+        </div>
+        <p className="text-xs text-white/60">
+          Rest starts when you log it: <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span>, with a beep
+          at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}.
+        </p>
+        {choices("Change it here — it's the rest after the pair.")}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+      <div className="flex items-baseline justify-between">
+        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
+        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
+           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
+          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
+        </p>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
+      </div>
+      {choices(done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took.")}
     </div>
   );
 }
