@@ -1880,3 +1880,13 @@ reel**, price beside it; **Instagram, Facebook, TikTok, Snapchat, Threads** cann
 says to save your own reel from the app and attach the file, which the coach already watches. In My take a link is
 declared yours like an attached file; somebody else's video goes through "Listen to someone else's track" (a reference
 listen). A private or removed video answers "it has to be public", and is not charged.
+
+## LookZMaxZ: a photo by its image address, and Look Inspiration for anybody's photo
+
+`PhotoPick` in `LookmaxZ.jsx` takes a file OR a pasted image address. The server fetches only the social apps' own
+IMAGE hosts (`imagelinks.py` — fbcdn, cdninstagram, twimg, tiktokcdn, sc-cdn, licdn, pinimg, googleusercontent),
+https, no redirects, size-capped, kept nowhere. A post or profile PAGE link (`instagram.com/p/…`) is said BEFORE the press
+(`page_hosts`, served) with how to copy the image address instead. The reading stays **self-only** — Corey asked for others'
+photos too, and scoring a stranger's face is the harm line the feature was built on, so it is not built. **Look Inspiration**
+(`/lookmaxz/inspire/`) is the answer for anybody's photo: it describes the cut, facial hair, brows and styling and how to get
+them — no number, nothing about the person, no names — priced like a reading, not charged when there is no look to describe.

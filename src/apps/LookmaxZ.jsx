@@ -221,6 +221,85 @@ function Markets({ info, onChange }) {
   );
 }
 
+// A photo by its image address (imagelinks.py on the server decides). This only says, before the
+// press, that a post or profile PAGE link isn't the photo itself — the server's own list of page hosts.
+function pageLink(url, pageHosts) {
+  try {
+    const host = new URL(String(url).trim()).hostname.toLowerCase();
+    return (pageHosts || []).some((h) => host === h || host.endsWith(`.${h}`));
+  } catch { return false; }
+}
+
+function PhotoPick({ d, file, setFile, url, setUrl, label }) {
+  const page = url.trim() && pageLink(url, d.page_hosts);
+  return (
+    <div className="space-y-1.5">
+      <input aria-label={label} type="file" accept="image/*" onChange={(e) => { setFile(e.target.files?.[0] || null); setUrl(""); }} className="text-[12px] text-white/70" />
+      <input className="neon-input w-full text-[12px]" inputMode="url" value={url} disabled={!!file}
+        onChange={(e) => setUrl(e.target.value)} aria-label={`${label} — or its image address`}
+        placeholder="…or paste the photo's image address (Instagram, Facebook, X, TikTok…)" />
+      <p className={`text-[11px] ${page ? "text-mcz-gold" : "text-white/40"}`}>
+        {page ? "That's a link to a post or page, not the photo. Open the photo, copy its IMAGE address (long-press or right-click → Copy image address), or save it and attach it."
+          : d.link_note}
+      </p>
+    </div>
+  );
+}
+
+function photoBody(file, url) {
+  const body = new FormData();
+  if (file) body.append("photo", file); else body.append("photo_url", url.trim());
+  return body;
+}
+
+function Inspiration({ d, openShelf }) {
+  const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [look, setLook] = useState(null);
+  const ready = (file || (url.trim() && !pageLink(url, d.page_hosts))) && d.affordable && d.configured;
+  async function run() {
+    setBusy(true); setErr(""); setLook(null);
+    try {
+      const r = await api("/api/economy/lookmaxz/inspire/", { method: "POST", body: photoBody(file, url) });
+      setLook(r);
+      if (r.charged) window.dispatchEvent(new Event("mcz-stats-refresh"));
+    } catch (x) { setErr(x.message); } finally { setBusy(false); }
+  }
+  return (
+    <section className="neon-frame space-y-3 p-4" data-tour="lookmax-inspire">
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">✨ Look Inspiration — anyone's photo</p>
+      <p className="text-[12px] leading-snug text-white/70">{d.inspire?.what}</p>
+      <p className="text-[11px] leading-snug text-white/45">{d.inspire?.rule}</p>
+      <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of a look you want" />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="re-btn !w-auto px-4" disabled={busy || !ready} onClick={run}>
+          {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Describe this look"}
+        </button>
+        <Price s={d} /> <span className="text-[11px] text-white/45">— not charged if there's no look to describe.</span>
+      </div>
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
+      {look && (look.parts?.length ? (
+        <div className="space-y-2">
+          {look.summary && <p className="text-[12px] text-white/80">{look.summary}</p>}
+          {look.parts.map((p) => (
+            <div key={p.key} className="rounded-lg border border-white/10 p-2.5">
+              <p className="text-[12px] font-semibold text-white">{p.label}: <span className="font-normal text-white/80">{p.what}</span></p>
+              {p.how?.length > 0 && <ul className="mt-1 list-disc pl-4 text-[11px] text-white/65">{p.how.map((h) => <li key={h}>{h}</li>)}</ul>}
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            {(look.shop?.sectors || []).map((k) => (
+              <button key={k} type="button" className="re-link text-[12px]" onClick={() => openShelf(k)}>Browse the {d.sectors[k]?.label.toLowerCase()} shelf — free</button>
+            ))}
+          </div>
+        </div>
+      ) : <p className="text-[12px] text-white/60">{look.unreadable} Nothing was charged.</p>)}
+    </section>
+  );
+}
+
 export default function LookmaxZ() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
@@ -230,6 +309,7 @@ export default function LookmaxZ() {
   // not, in the server's words, and is refused by the server without its tick.
   const [acks, setAcks] = useState({});
   const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [shelf, setShelf] = useState(null);
@@ -238,17 +318,17 @@ export default function LookmaxZ() {
   useEffect(() => { load(); }, []);
 
   async function read() {
-    if (!file || !self) return;
+    if ((!file && !url.trim()) || !self) return;
     setBusy(true); setErr(""); setRes(null);
     try {
-      const body = new FormData();
-      body.append("photo", file); body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
+      const body = photoBody(file, url);
+      body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
       picked.filter((k) => d.opt_in_sectors?.includes(k)).forEach((k) => body.append(`${k}_ack`, "true"));
       const r = await api("/api/economy/lookmaxz/", { method: "POST", body });
       setRes(r);
       if (r.charged) window.dispatchEvent(new Event("mcz-stats-refresh"));
       load();
-    } catch (x) { setErr(x.message); } finally { setBusy(false); setFile(null); }
+    } catch (x) { setErr(x.message); } finally { setBusy(false); setFile(null); setUrl(""); }
   }
   async function openShelf(sector) {
     try { setShelf(await api(`/api/economy/lookmaxz/shop/?sector=${sector}`)); } catch (x) { setErr(x.message); }
@@ -305,9 +385,9 @@ export default function LookmaxZ() {
               <input type="checkbox" checked={self} onChange={(e) => setSelf(e.target.checked)} className="mt-0.5" />
               This is a photo of me. I'm not uploading anyone else's.
             </label>
-            <input aria-label="Photo of yourself" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-[12px] text-white/70" />
+            <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of yourself" />
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !file || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
+              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !(file || (url.trim() && !pageLink(url, d.page_hosts))) || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
                 {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Read my photo"}
               </button>
               <Price s={d} /> <AiEnergy className="text-[11px]" />
@@ -326,6 +406,8 @@ export default function LookmaxZ() {
           </section>
 
           {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
+
+          <Inspiration d={d} openShelf={openShelf} />
 
           {res && (
             <div className="space-y-3">
