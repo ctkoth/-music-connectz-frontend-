@@ -24,7 +24,7 @@ const ICON_KEY = {
   onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png", voicez: "voicez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
-  budgetz: "budgetz.jpg", merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
+  budgetz: "budgetz.jpg", merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png", lookmaxz: "lookmaxz.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", breathz: "breathz.png", viewz: "viewz.png",
   intelligencez: "intelligencez.png", mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
@@ -41,7 +41,7 @@ const EMOJI = {
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
-  budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
+  budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", lookmaxz: "✨", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
@@ -286,6 +286,10 @@ const TOOLZ_MENU = {
   ],
   'BodieZ': [
     { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
+    // LookZMaxZ had a route and no door: reachable only by typing its address. It sits
+    // here because its body sector IS BodieZ's measured progress. Adults only — the
+    // screen itself refuses an unverified member with the server's sentence.
+    { key: 'lookmaxz', label: 'LookZMaxZ', color: 'magenta', desc: '18+: hair, skin, teeth and styling rated 1-10 from a photo, with what to do about each' },
   ],
 };
 
