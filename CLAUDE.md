@@ -1565,6 +1565,9 @@ styles, intensity, width and EQ trims. What it lacked is in now, all on the memb
 - **Revise**: a saved master's settings go back on the controls (`reviseFrom`). The server keeps `lufs`, `punch`,
   `multiband`, `format`, `kbps` and `exportRate` for that (`mixz.clean_settings`); the Inspiration track itself is never
   kept, and the screen says to add it again.
+- **The WAV ladder** (Corey's call): StatZ exports 24-bit WAV, Premium 16-bit, Free MP3. It is `wav_bits` on
+  `catalog.MASTERING`, served in `allowed` / `ladder`; the screen clamps what it exports (`fmt`, `depth`) to it and
+  locks the rest with the tier that has it. No ladder (a failed fetch) offers MP3 only, never a guess upward.
 - Not done: album mastering (several songs to one loudness and tone). It is the next eMastered/LANDR parity item.
 
 ## The weight box opens on the last weight entered
@@ -1844,3 +1847,17 @@ the VisibilitieZ "What my InVenTorieZ is worth" field (members by default; the s
 screen). Members rate pieces as before; the owner can also run an **AI rating** from the photos — piece by
 piece and the kit together — with the price on the button, nothing charged when no photo is read, and each
 reading hidden until they press Show. A piece with no photo is never AI-rated.
+
+## Video ConnectZ Develop & Direct: each shot planned to the song (StatZ)
+
+`components/ShotDirector.jsx` sits inside "Music video with your track" (`StitchedMusicVideo`). The coach LISTENS to the
+member's own track and, for each shot's slot of it, says what it hears and offers three shots tied to the lyric, the mood or
+the beat, each with why — `/api/economy/videoz/develop/`. **Develop**: the member picks each shot. **Direct** (Corey's name):
+the coach's own pick for every shot, marked "🎬 Coach's pick" with its reason. One paid plan serves both; picks land in the
+ordinary shot fields and stay editable, and the render is the stitch's, priced per shot as before.
+
+- The slot times are the server's (the stitch's own clock: track start + 8 s per shot), never the model's.
+- StatZ or the daily sample (`statz_trial` feature `video_develop`); locked shows the server's sentence and `StatzSample`.
+  Writing shots by hand is open to everyone.
+- Price beside the button before it is pressed, "not charged if it fails"; `unplannable` (silence, not music) says so free.
+- The privacy policy names it: the track, lyrics and mood go to Google for the plan, and the plan is not stored.

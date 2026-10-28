@@ -250,6 +250,15 @@ export default function MixConnectZ() {
   const manualGlue = !!allowed?.manual_glue;
   const nextGlue = !manualGlue && (s?.ladder || []).find((t) => t.manual_glue);
   const heaviest = (s?.ladder || []).find((t) => t.intensities.includes("max"));
+  // How deep a WAV this tier exports (Corey: StatZ 24-bit, Premium 16-bit); 0 is
+  // MP3 only. Read from the server's ladder, never typed. Without the ladder the
+  // screen does not guess upward: it offers MP3, which every tier has.
+  const wavBits = allowed?.wav_bits ?? 0;
+  const tierFor = (bits) => (s?.ladder || []).find((t) => (t.wav_bits || 0) >= bits);
+  const tierName = (row) => (row ? row.label || TIER_NAME[row.tier] : "");
+  // What is actually exported: the member's choice, held to what the tier reaches.
+  const fmt = wavBits >= 16 ? format : "mp3";
+  const depth = Math.min(bitDepth, wavBits >= 24 ? 24 : 16);
 
   const set = (k, v) => setSettings((cur) => ({ ...cur, [k]: v }));
   const setTrim = (k, v) => setSettings((cur) => ({ ...cur, trims: { ...cur.trims, [k]: v } }));
@@ -317,22 +326,22 @@ export default function MixConnectZ() {
 
   // The rate the export will be at: the file's own unless the member picked one.
   // An MP3 can only be 44.1 or 48 kHz, so a 96 kHz master goes out at 48.
-  const outRate = song ? (rate || (format === "mp3" && ![32000, 44100, 48000].includes(song.sampleRate) ? 48000 : song.sampleRate)) : 0;
-  const mime = format === "mp3" ? "audio/mpeg" : "audio/wav";
+  const outRate = song ? (rate || (fmt === "mp3" && ![32000, 44100, 48000].includes(song.sampleRate) ? 48000 : song.sampleRate)) : 0;
+  const mime = fmt === "mp3" ? "audio/mpeg" : "audio/wav";
   async function encode() {
     setExportNote("");
-    setBusy(outRate !== song.sampleRate ? `Converting to ${outRate / 1000} kHz` : format === "mp3" ? "Encoding MP3" : "Writing WAV");
+    setBusy(outRate !== song.sampleRate ? `Converting to ${outRate / 1000} kHz` : fmt === "mp3" ? "Encoding MP3" : "Writing WAV");
     try {
       const out = await run("export", {
         channels: result.channels.map((c) => c.slice()),
         sampleRate: song.sampleRate,
-        options: { format, bitDepth, dither: bitDepth === 16 && dither, kbps, rate: outRate },
+        options: { format: fmt, bitDepth: depth, dither: depth === 16 && dither, kbps, rate: outRate },
       }, { onProgress: (p, stage) => { setProgress(p); setBusy(stage); } });
       if (out.trimDb < -0.01) setExportNote(`Converting the rate raised a peak a hair, so the file was trimmed ${r1(out.trimDb)} dB to stay under −1 dBTP.`);
       return out.bytes;
     } finally { setBusy(""); setProgress(0); }
   }
-  const fileName = () => `${slug(title)}-master-${format === "mp3" ? `${kbps}k.mp3` : `${bitDepth}bit${outRate !== song?.sampleRate ? `-${outRate / 1000}k` : ""}.wav`}`;
+  const fileName = () => `${slug(title)}-master-${fmt === "mp3" ? `${kbps}k.mp3` : `${depth}bit${outRate !== song?.sampleRate ? `-${outRate / 1000}k` : ""}.wav`}`;
 
   async function download() {
     setErr("");
@@ -341,8 +350,8 @@ export default function MixConnectZ() {
   }
 
   const outSeconds = result ? result.channels[0].length / song.sampleRate : 0;
-  const sizeMb = !result ? 0 : format === "mp3" ? mp3Mb(outSeconds, kbps)
-    : (outSeconds * outRate * result.channels.length * (bitDepth / 8)) / (1024 * 1024);
+  const sizeMb = !result ? 0 : fmt === "mp3" ? mp3Mb(outSeconds, kbps)
+    : (outSeconds * outRate * result.channels.length * (depth / 8)) / (1024 * 1024);
   const tooBig = s?.storage && sizeMb > s.storage.upload_mb;
   const noRoom = s?.storage && sizeMb > s.storage.free_mb;
 
@@ -364,8 +373,8 @@ export default function MixConnectZ() {
       });
       await api("/api/economy/mixz/", { method: "POST", body: {
         title, upload_id: uploadId,
-        settings: { ...result.settings, bitDepth, dither: bitDepth === 16 && dither, reference: !!ref,
-          format, kbps: format === "mp3" ? kbps : undefined, exportRate: outRate },
+        settings: { ...result.settings, bitDepth: depth, dither: depth === 16 && dither, reference: !!ref,
+          format: fmt, kbps: fmt === "mp3" ? kbps : undefined, exportRate: outRate },
         before: pick(result.before), after: pick(result.after),
       } });
       setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage.`);
@@ -676,9 +685,19 @@ export default function MixConnectZ() {
 
           <div className="space-y-3 rounded-lg border border-white/10 p-3">
             <h3 className="text-sm font-semibold text-white/80">Export</h3>
-            <Choice label="Format" value={format} onChange={setFormat}
-              options={[{ key: "wav", label: "WAV" }, { key: "mp3", label: "MP3" }]} />
-            {format === "mp3" && (
+            <Choice label="Format" value={fmt} onChange={setFormat}
+              options={[{ key: "wav", label: "WAV" }, { key: "mp3", label: "MP3" }]}
+              locked={wavBits >= 16 ? {} : { wav: tierName(tierFor(16)) || "Not on your plan" }} />
+            {wavBits < 24 && (
+              <p className="text-[11px] text-white/45">
+                {wavBits >= 16 ? "Your plan exports MP3 and 16-bit WAV." : "Your plan exports MP3."}
+                {!IN_SHELL && tierFor(16) && tierFor(24) && <>
+                  {" "}WAV comes in 16-bit with {tierName(tierFor(16))} and 24-bit (what distributors ask for) with {tierName(tierFor(24))}.{" "}
+                  <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>
+                </>}
+              </p>
+            )}
+            {fmt === "mp3" && (
               <div className="space-y-1">
                 <Choice label="MP3 bitrate" value={String(kbps)} onChange={(v) => setKbps(Number(v))}
                   options={MP3_KBPS.map((k) => ({ key: String(k), label: `${k} kbps` }))} />
@@ -699,17 +718,18 @@ export default function MixConnectZ() {
                     : "Your master stays at the rate your mix was made at — nothing is converted."}
               </p>
             </div>
-            {format === "wav" && <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-              <Choice label="Bit depth" value={String(bitDepth)} onChange={(v) => setBitDepth(Number(v))}
-                options={[{ key: "24", label: "24-bit WAV" }, { key: "16", label: "16-bit WAV" }]} />
-              {bitDepth === 16 && (
+            {fmt === "wav" && <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+              <Choice label="Bit depth" value={String(depth)} onChange={(v) => setBitDepth(Number(v))}
+                options={[{ key: "24", label: "24-bit WAV" }, { key: "16", label: "16-bit WAV" }]}
+                locked={wavBits >= 24 ? {} : { 24: tierName(tierFor(24)) || "Not on your plan" }} />
+              {depth === 16 && (
                 <label className="flex items-center gap-2 text-xs">
                   <input type="checkbox" checked={dither} onChange={(e) => setDither(e.target.checked)} /> TPDF dither
                 </label>
               )}
             </div>}
-            {format === "wav" && <p className="text-[11px] text-white/45">
-              {bitDepth === 24
+            {fmt === "wav" && <p className="text-[11px] text-white/45">
+              {depth === 24
                 ? "24-bit is what distributors ask for. Its rounding sits around −144 dB, below any playback system, so no dither is added."
                 : dither
                   ? "16-bit rounds every sample to one of 65,536 steps; dither turns the gritty distortion that causes on fades into a steady hiss about 96 dB down. Leave it on unless you know why not."
@@ -717,7 +737,7 @@ export default function MixConnectZ() {
             </p>}
             <input className="neon-input w-full" maxLength={120} aria-label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="flex flex-wrap items-center gap-3">
-              <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download {format === "mp3" ? "MP3" : "WAV"} · {r1(sizeMb)} MB</button>
+              <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download {fmt === "mp3" ? "MP3" : "WAV"} · {r1(sizeMb)} MB</button>
               {s?.storage && (
                 <button className="re-btn !w-auto px-4" disabled={!!saving || tooBig || noRoom} onClick={save}>
                   {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Save to Your masters

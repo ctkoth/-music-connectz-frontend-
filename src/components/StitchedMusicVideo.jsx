@@ -6,6 +6,7 @@ import { api } from "../api.js";
 import { MONEY, PROMPTZ } from "../resources.js";
 import { playSound } from "../sound.js";
 import { money, splitCost } from "../aiRun.js";
+import ShotDirector from "./ShotDirector.jsx";
 
 // A music video made of several shots with the member's OWN track under them.
 // The server decides everything that matters — the prices (shots x clip price),
@@ -129,6 +130,9 @@ export default function StitchedMusicVideo() {
       <input className="neon-input w-full text-sm" maxLength={300} aria-label="The look of the whole video"
         placeholder="The look, applied to every shot — e.g. neon rain, 35mm film grain, moody"
         value={look} onChange={(e) => setLook(e.target.value)} />
+
+      <ShotDirector trackId={trackId} startAt={startAt} count={Math.max(s.min_shots, Math.min(s.max_shots, shots.length))}
+        look={look} onShots={setShots} onLook={setLook} />
 
       <div className="space-y-2">
         <p className="text-sm text-white/70">Shots <span className="text-white/40">({s.min_shots}–{s.max_shots}, each about {s.clip_seconds}s, joined in order)</span></p>
