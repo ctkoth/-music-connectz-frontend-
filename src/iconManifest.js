@@ -49,6 +49,7 @@ export const ICON_DEFAULTS = {
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
   "viewz.png": "/icons/viewz.png",
+  "inventoriez.png": "/icons/inventoriez.jpg",
   "characterz.png": "/icons/designz.characterz.jpg",
   "mangaz.png": "/icons/designz.mangaz.jpg",
   "episodez.png": "/icons/directz.episodez.jpg",
@@ -925,6 +926,19 @@ export const ICON_TREE = [
         "also": []
       }
     ]
+  },
+  {
+    "parent": "inventoriez",
+    "label": "InventorieZ",
+    "root": {
+      "file": "inventoriez.jpg",
+      "art": "/icons/inventoriez.jpg",
+      "key": "inventoriez.png",
+      "status": "live",
+      "note": ""
+    },
+    "extra": [],
+    "children": []
   },
   {
     "parent": "karmaz",

@@ -1012,7 +1012,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           CollabZ, BattleZ, VenueZ, MessageZ and VybeZ all read the same
           column. A personality field that only worked in the dating app
           would be the fourth copy of a profile filter within a year. */}
-      {pf && <div data-tour="profile-fields"><ProfileFieldsEditor value={pf} onChange={setPf} /></div>}
+      {pf && <ProfileFieldsEditor value={pf} onChange={setPf} />}
 
       <PersonalitieZ value={personality} onChange={setPersonality} />
 

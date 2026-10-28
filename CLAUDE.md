@@ -1833,3 +1833,14 @@ in `src/mastering/master.js`, both stated on screen as what they are:
 - Video ConnectZ points at VideoZ for editing what exists, and a finished render's Edit door hands the
   file over (`handOff("videoz", …)`).
 - **Driven in a browser** with generated clips (see the commit). Not checked on a phone or in Safari.
+
+## InVenTorieZ: what a member's gear and wardrobe are worth, and how it rates
+
+`components/InventoryZ.jsx` (Corey's name and art, `public/icons/inventoriez.jpg`; the key and API stay
+`inventoryz`). The pieces are still the `inventory` profile field. Each piece's WORTH is an exact price or
+a 1-10 $ level (1 the member's least expensive thing, 10 the most); `inventoriez.js` words it and never
+turns a level into dollars, so the total adds prices and counts levels beside them. Who sees the worth is
+the VisibilitieZ "What my InVenTorieZ is worth" field (members by default; the server strips it, never this
+screen). Members rate pieces as before; the owner can also run an **AI rating** from the photos — piece by
+piece and the kit together — with the price on the button, nothing charged when no photo is read, and each
+reading hidden until they press Show. A piece with no photo is never AI-rated.

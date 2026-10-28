@@ -2,6 +2,7 @@
 // one-line headline, genres, influences, gear, label, timezone, a pinned
 // post and a cover. The server cleans them (economy/social.py
 // clean_profile_field); this file only edits and renders what it sends.
+import { LEVELS, modeOf, signs, withMode } from "../inventoriez.js";
 import { useState } from "react";
 import { Clock, Pin, Upload } from "lucide-react";
 import { uploadWork } from "../uploadWork.js";
@@ -17,6 +18,9 @@ const KINDS = [["instrument", "🎸 Instrument"], ["microphone", "🎙️ Microp
   ["clothing", "👕 Clothes"], ["other", "📦 Other"]];
 const WHERE = [["home", "Home"], ["studio", "Studio"], ["stage", "Stage"]];
 const kindLabel = Object.fromEntries(KINDS);
+// A price being typed is "exact" before the server has turned it into cents.
+const editMode = (it) => (it.price !== undefined ? "exact" : modeOf(it));
+
 /** The emoji alone for a kind — InventoryZ's placeholder when a piece has no photo. */
 export const KIND_EMOJI = Object.fromEntries(KINDS.map(([k, l]) => [k, l.split(" ")[0]]));
 
@@ -97,6 +101,27 @@ export function ProfileFieldsEditor({ value, onChange }) {
                     onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, where: e.target.value } : x)))}>
               {WHERE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
+            {/* What it is worth, the member's way: an exact price or a 1-10 $ level. */}
+            <select className={`${input} !w-auto`} data-nomemo="true" value={editMode(it)} aria-label="How to show what it's worth"
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? withMode(x, e.target.value) : x)))}>
+              <option value="none">Worth: —</option>
+              <option value="exact">Exact price</option>
+              <option value="level">$ to $$$$$$$$$$</option>
+            </select>
+            {editMode(it) === "exact" ? (
+              <input className={`${input} !w-24`} inputMode="decimal" placeholder="$ price" aria-label="Price"
+                     value={it.price ?? (it.price_cents ? String(it.price_cents / 100) : "")}
+                     onChange={(e) => set("inventory", v.inventory.map((x, j) => {
+                       if (j !== i) return x;
+                       const { price_cents: _c, ...rest } = x;
+                       return { ...rest, price: e.target.value };
+                     }))} />
+            ) : editMode(it) === "level" ? (
+              <select className={`${input} !w-auto`} data-nomemo="true" value={it.price_level} aria-label="How expensive, 1 to 10"
+                      onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, price_level: Number(e.target.value) } : x)))}>
+                {Array.from({ length: LEVELS }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{signs(n)} ({n})</option>)}
+              </select>
+            ) : null}
             <label className="cursor-pointer text-xs text-white/50 hover:text-white" title={it.photo ? "Change photo" : "Add a photo"}>
               {it.photo ? <img src={it.photo} alt="" className="inline h-6 w-6 rounded object-cover" /> : "📷"}
               <input type="file" accept="image/*" className="hidden" onChange={(e) => addPhoto(i, e.target.files?.[0])} />
@@ -111,6 +136,8 @@ export function ProfileFieldsEditor({ value, onChange }) {
         </button>
         <p className="text-[11px] text-white/35">
           Members can rate each piece and your inventory in total (free; it never moves a skill or a price). Renaming a piece starts its ratings again.
+          Worth is an exact price or $ to $$$$$$$$$$ (1 your least expensive thing, 10 your most) — members see it unless you change
+          "What my InVenTorieZ is worth" in VisibilitieZ; the logged-out page never does by default.
         </p>
         {photoMsg && <p className="text-[11px] text-white/60">{photoMsg}</p>}
       </div>

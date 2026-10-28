@@ -32,6 +32,7 @@ const NAMES = {
   attracted_to: "Attracted to", age: "Age", birthday: "Birthday",
   location: "Location", substances: "SubstanceZ",
   superfan: "On artists' SuperfanZ 🫶 lists",
+  inventory_value: "What my InVenTorieZ is worth",
 };
 const nameOf = (f) => NAMES[f] || f.replace(/_/g, " ");
 const same = (a, b) => a.length === b.length && [...a].sort().join() === [...b].sort().join();

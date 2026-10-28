@@ -335,6 +335,7 @@ export const CUSTOM_ICONS = {
   "genrez.jpg": "/icons/genrez.jpg",
   "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",
+  "inventoriez.png": "/icons/inventoriez.jpg",   // Corey's art (Oct 28)
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
