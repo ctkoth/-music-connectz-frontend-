@@ -1414,6 +1414,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   const unit = useUnit();
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
@@ -1441,6 +1442,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between gap-2">
         {grip}
+        {muscleIcon(planned.muscle_group) && (
+          <img src={muscleIcon(planned.muscle_group)} alt={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
+               title={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group} className="h-9 w-9 shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
@@ -1454,6 +1459,12 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
             {planned.reps ? ` x${planned.reps}` : ""}
             {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
+          {planned.demo_url && (
+            <button type="button" className="mt-1 inline-flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline"
+                    aria-expanded={demoOpen} onClick={() => setDemoOpen(!demoOpen)}>
+              <PlayCircle size={13} /> {demoOpen ? "Hide demo" : "Watch demo"}
+            </button>
+          )}
         </div>
         {onSwap && (
           <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
@@ -1467,6 +1478,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
           {done}/{targetSets} sets
         </span>
       </div>
+      {demoOpen && planned.demo_url && (
+        <video src={demoSrc(planned.demo_url)} controls autoPlay loop muted playsInline preload="metadata"
+               className="max-h-64 w-full rounded-lg bg-black" aria-label={`${planned.name} demonstration`} />
+      )}
       {swapOpen && onSwap && (
         <ExerciseSwap current={planned.exercise_id} all={allExercises} choices={swapFrom} onPick={onSwap}
                       note={`Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under ${planned.name}.`} />
@@ -1602,7 +1617,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
       return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
-               muscle_group: ex?.muscle_group, equipment: ex?.equipment };
+               muscle_group: ex?.muscle_group, equipment: ex?.equipment, demo_url: ex?.demo_url };
     }) : [];
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
@@ -1618,7 +1633,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const extraRows = [...loggedExerciseIds].filter((id) => !routinePlanned.some((p) => p.exercise_id === id)).map((id) => {
     const ex = exercises.find((x) => x.id === id);
     return { exercise_id: id, orig_id: id, name: ex?.name || `Exercise #${id}`, muscle_group: ex?.muscle_group,
-             equipment: ex?.equipment, sets: setsByExercise[id].length, extra: true };
+             equipment: ex?.equipment, demo_url: ex?.demo_url, sets: setsByExercise[id].length, extra: true };
   });
   const planned = applySessionPairs([...routinePlanned, ...extraRows], pairs).filter((r) => !r.extra || inPair.has(r.exercise_id));
   const trailingExtras = extraRows.filter((r) => !inPair.has(r.exercise_id));
