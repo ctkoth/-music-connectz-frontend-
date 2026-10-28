@@ -13,38 +13,72 @@
 export const ICON_DEFAULTS = {
   "battlez.1v1.png": "/icons/battlez.1v1.png",
   "battlez.cypher.jpg": "/icons/battlez.cypher.jpg",
+  "battlez.cypher.png": "/icons/battlez.cypher.png",
   "battlez.freestyle.png": "/icons/battlez.freestyle.png",
   "battlez.png": "/icons/battlez.png",
   "bodiez.png": "/icons/bodiez.png",
   "bugz.png": "/icons/bugz.png",
   "builder.png": "/icons/builder.png",
+  "callz_ai.png": "/icons/callz.ai.png",
+  "callz_user.png": "/icons/callz.user.png",
   "chordz.jpg": "/icons/chordz.jpg",
   "coachz.jpg": "/icons/coachz.jpg",
   "collabz.coverz.png": "/icons/collabz.coverz.png",
   "collabz.originalz.png": "/icons/collabz.originalz.png",
   "collabz.png": "/icons/collabz.png",
   "collabz.remixez.png": "/icons/collabz.remixez.png",
+  "arsenal.png": "/icons/dawz.arsenal.jpg",
+  "azrael.png": "/icons/dawz.azrael.png",
+  "fruity_mobius.png": "/icons/dawz.fruity.png",
+  "intuition.png": "/icons/dawz.intuitionz.jpg",
+  "trump_toupee.png": "/icons/dawz.trump.png",
+  "witchcraft.png": "/icons/dawz.witch.png",
   "distributez.png": "/icons/distributez.png",
   "filez.png": "/icons/filez.jpg",
   "gamez.png": "/icons/gamez.png",
   "gitz.png": "/icons/gitz.png",
+  "groupz_fanz.png": "/icons/groupz.fanz.jpg",
+  "groupz_blocked.png": "/icons/groupz.blocked.png",
+  "groupz_custom.png": "/icons/groupz.custom.png",
+  "groupz_friendz.png": "/icons/groupz.friendz.jpg",
+  "partnerz.jpg": "/icons/groupz.partnerz.jpg",
   "groupz.png": "/icons/groupz.png",
+  "homez.png": "/icons/home.jpg",
   "tellz.png": "/icons/tellz.png",
+  "imageconnectz.png": "/icons/intelligence.imageconz.png",
+  "instrumentalconnectz.png": "/icons/intelligence.instconz.jpg",
+  "occ.png": "/icons/intelligence.ocular.png",
   "sentencez.png": "/icons/intelligence.sentenceconz.png",
   "intelligencez.png": "/icons/intelligencez.png",
   "labelz.png": "/icons/labelz.png",
   "lilithz.png": "/icons/lilith.png",
+  "lilith_someday.png": "/icons/lilith.someday.png",
+  "taskz.png": "/icons/lilith.taskz.jpg",
+  "lilith_today.png": "/icons/lilith.today.png",
   "logz.png": "/icons/logz.png",
+  "messagez_outbox.png": "/icons/messagez.outbox.jpg",
+  "parcel.png": "/icons/messagez.parcel.png",
   "messagez.png": "/icons/messagez.png",
   "nationalitiez.png": "/icons/nationalitiez.png",
+  "opportunitiez.png": "/icons/opportunitiez.png",
+  "personaz_coach.jpg": "/icons/personaz.coach.jpg",
+  "personaz_developer.png": "/icons/personaz.developer.png",
   "personaz.png": "/icons/personaz.jpg",
+  "personaz_manager.png": "/icons/personaz.manager.png",
+  "personaz_videographer.png": "/icons/personaz.videographer.png",
   "profilez.png": "/icons/profilez.png",
+  "preferencez.png": "/icons/profilez.preferencez.png",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
   "infernoz.png": "/icons/socializez.infernoz.jpg",
   "social_connectz.png": "/icons/socializez.jpg",
   "vybez.png": "/icons/socializez.vybez.jpg",
+  "statsz.png": "/icons/statsz.png",
   "toolz.png": "/icons/toolz.png",
+  "cleanconnectz.png": "/icons/toolz.cleanconz.png",
+  "journalz.jpg": "/icons/toolz.journalz.jpg",
+  "metz.jpg": "/icons/toolz.metz.jpg",
+  "tunerz.jpg": "/icons/toolz.tunerz.jpg",
   "venuez.png": "/icons/venuez.png",
   "videoconnectz.png": "/icons/intelligence.videoconz.png",
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
@@ -62,7 +96,6 @@ export const ICON_DEFAULTS = {
   "zodiacz.png": "/icons/profilez.zodiacz.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
-  "battlez.cypher.png": "/icons/battlez.cypher.jpg",
   "callz.png": "/icons/callz.png",
   "callz_ai.webp": "/icons/callz_ai.png",
   "callz_user.webp": "/icons/callz_user.png",
@@ -74,11 +107,10 @@ export const ICON_DEFAULTS = {
   "trumpetz.png": "/icons/trumpetz.png",
   "guitarz.png": "/icons/guitarz.png",
   "keyz.png": "/icons/keyz.png",
-  "partnerz.jpg": "/icons/partnerz.jpg",
   "keyconnectz.png": "/icons/keyconnectz.png",
   "lessonz.png": "/icons/lessonz.png",
+  "logo.png": "/icons/logo.jpg",
   "mimez.png": "/icons/mimez.png",
-  "occ.png": "/icons/occ.png",
   "offerz.png": "/icons/offerz.png",
   "adz.png": "/icons/adz.png",
   "money.png": "/icons/money.png",
@@ -89,8 +121,6 @@ export const ICON_DEFAULTS = {
   "royaltiez.png": "/icons/royaltiez.png",
   "playlistz.png": "/icons/playlistz.png",
   "habitz.png": "/icons/habitz.png",
-  "journalz.jpg": "/icons/journalz.png",
-  "taskz.png": "/icons/taskz.png",
   "breathz.png": "/icons/breathz.png",
   "onboardz.jpg": "/icons/onboardz.png",
   "sentencez_editor.png": "/icons/sentencez_editor.png",
@@ -98,7 +128,18 @@ export const ICON_DEFAULTS = {
 };
 
 // BodieZ muscle group -> supplied art, for the picker that reads it directly.
-export const MUSCLE_ART = {};
+export const MUSCLE_ART = {
+  "back": "/icons/bodiez.backz.jpg",
+  "biceps": "/icons/bodiez.bicepz.jpg",
+  "chest": "/icons/bodiez.chestz.jpg",
+  "forearms": "/icons/bodiez.forearmz.jpg",
+  "glutes": "/icons/bodiez.glutez.jpg",
+  "lower_legs": "/icons/bodiez.lowerlegz.jpg",
+  "shoulders": "/icons/bodiez.shoulderz.jpg",
+  "full_body": "/icons/bodiez.totalbody.jpg",
+  "triceps": "/icons/bodiez.tricepz.jpg",
+  "upper_legs": "/icons/bodiez.upperlegz.jpg"
+};
 
 // Parents and their children, by filename: `battlez.png` is a parent and
 // `battlez.cypher.png` its child. `art` is null while the file is not committed.
@@ -115,6 +156,24 @@ export const ICON_TREE = [
     },
     "extra": [],
     "children": []
+  },
+  {
+    "parent": "badgez",
+    "label": "BadgeZ",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "founding",
+        "label": "Founding",
+        "file": "badgez.founding.png",
+        "art": "/icons/badgez.founding.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
   },
   {
     "parent": "battlez",
@@ -141,16 +200,16 @@ export const ICON_TREE = [
       {
         "child": "cypher",
         "label": "Cypher",
-        "file": "battlez.cypher.jpg",
-        "art": "/icons/battlez.cypher.jpg",
-        "key": "battlez.cypher.jpg",
+        "file": "battlez.cypher.png",
+        "art": "/icons/battlez.cypher.png",
+        "key": "battlez.cypher.png",
         "status": "live",
-        "note": "on disk as \"Battlez.cypher.jpg\"; commit it as battlez.cypher.jpg; replaces the generated glyph /icons/battlez.cypher-neon.svg",
+        "note": "the registry keys both battlez.cypher.png and .jpg; only the .jpg is committed; replaces the generated glyph /icons/battlez.cypher-neon.svg",
         "also": [
           {
-            "file": "battlez.cypher.png",
-            "status": "owed",
-            "note": "the registry keys both battlez.cypher.png and .jpg; only the .jpg is committed"
+            "file": "battlez.cypher.jpg",
+            "status": "live",
+            "note": "on disk as \"Battlez.cypher.jpg\"; commit it as battlez.cypher.jpg; replaces the generated glyph /icons/battlez.cypher-neon.svg"
           }
         ]
       },
@@ -194,12 +253,18 @@ export const ICON_TREE = [
       {
         "child": "absz",
         "label": "AbsZ",
-        "file": "bodiez.absz.svg",
-        "art": "/icons/bodiez.absz.svg",
+        "file": "bodiez.absz.jpg",
+        "art": "/icons/bodiez.absz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
-        "also": []
+        "status": "unplaced",
+        "note": "",
+        "also": [
+          {
+            "file": "bodiez.absz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
+          }
+        ]
       },
       {
         "child": "abz",
@@ -214,32 +279,32 @@ export const ICON_TREE = [
       {
         "child": "backz",
         "label": "BackZ",
-        "file": "bodiez.backz.svg",
-        "art": "/icons/bodiez.backz.svg",
+        "file": "bodiez.backz.jpg",
+        "art": "/icons/bodiez.backz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.backz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.backz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
       {
         "child": "bicepz",
         "label": "BicepZ",
-        "file": "bodiez.bicepz.svg",
-        "art": "/icons/bodiez.bicepz.svg",
+        "file": "bodiez.bicepz.jpg",
+        "art": "/icons/bodiez.bicepz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.bicepz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.bicepz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
@@ -256,32 +321,32 @@ export const ICON_TREE = [
       {
         "child": "chestz",
         "label": "ChestZ",
-        "file": "bodiez.chestz.svg",
-        "art": "/icons/bodiez.chestz.svg",
+        "file": "bodiez.chestz.jpg",
+        "art": "/icons/bodiez.chestz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.chestz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.chestz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
       {
         "child": "forearmz",
         "label": "ForearmZ",
-        "file": "bodiez.forearmz.svg",
-        "art": "/icons/bodiez.forearmz.svg",
+        "file": "bodiez.forearmz.jpg",
+        "art": "/icons/bodiez.forearmz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.forearmz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.forearmz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
@@ -298,32 +363,32 @@ export const ICON_TREE = [
       {
         "child": "glutez",
         "label": "GluteZ",
-        "file": "bodiez.glutez.svg",
-        "art": "/icons/bodiez.glutez.svg",
+        "file": "bodiez.glutez.jpg",
+        "art": "/icons/bodiez.glutez.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.glutez.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.glutez.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
       {
         "child": "lowerlegz",
         "label": "LowerlegZ",
-        "file": "bodiez.lowerlegz.svg",
-        "art": "/icons/bodiez.lowerlegz.svg",
+        "file": "bodiez.lowerlegz.jpg",
+        "art": "/icons/bodiez.lowerlegz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.lowerlegz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.lowerlegz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
@@ -331,7 +396,7 @@ export const ICON_TREE = [
         "child": "old",
         "label": "Old",
         "file": "bodiez-old.jpg",
-        "art": null,
+        "art": "/icons/bodiez-old.jpg",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -340,16 +405,16 @@ export const ICON_TREE = [
       {
         "child": "shoulderz",
         "label": "ShoulderZ",
-        "file": "bodiez.shoulderz.svg",
-        "art": "/icons/bodiez.shoulderz.svg",
+        "file": "bodiez.shoulderz.jpg",
+        "art": "/icons/bodiez.shoulderz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.shoulderz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.shoulderz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
@@ -357,41 +422,41 @@ export const ICON_TREE = [
         "child": "totalbody",
         "label": "Total Body",
         "file": "bodiez.totalbody.jpg",
-        "art": null,
+        "art": "/icons/bodiez.totalbody.jpg",
         "key": null,
-        "status": "owed",
+        "status": "live",
         "note": "BodieZ muscle picker",
         "also": []
       },
       {
         "child": "tricepz",
         "label": "TricepZ",
-        "file": "bodiez.tricepz.svg",
-        "art": "/icons/bodiez.tricepz.svg",
+        "file": "bodiez.tricepz.jpg",
+        "art": "/icons/bodiez.tricepz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.tricepz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.tricepz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
       {
         "child": "upperlegz",
         "label": "UpperlegZ",
-        "file": "bodiez.upperlegz.svg",
-        "art": "/icons/bodiez.upperlegz.svg",
+        "file": "bodiez.upperlegz.jpg",
+        "art": "/icons/bodiez.upperlegz.jpg",
         "key": null,
-        "status": "fallback",
-        "note": "the BodieZ muscle picker's current art, kept as the fallback",
+        "status": "live",
+        "note": "BodieZ muscle picker",
         "also": [
           {
-            "file": "bodiez.upperlegz.jpg",
-            "status": "owed",
-            "note": "BodieZ muscle picker"
+            "file": "bodiez.upperlegz.svg",
+            "status": "fallback",
+            "note": "the BodieZ muscle picker's current art, kept as the fallback"
           }
         ]
       },
@@ -399,7 +464,7 @@ export const ICON_TREE = [
         "child": "uppper-legz",
         "label": "Uppper-legZ",
         "file": "bodiez.uppper-legz.jpg",
-        "art": null,
+        "art": "/icons/bodiez.uppper-legz.jpg",
         "key": null,
         "status": "duplicate",
         "note": "same icon as bodiez.upperlegz.jpg (typo: three p's)",
@@ -449,9 +514,9 @@ export const ICON_TREE = [
         "child": "ai",
         "label": "AI",
         "file": "callz.ai.png",
-        "art": null,
+        "art": "/icons/callz.ai.png",
         "key": "callz_ai.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -459,9 +524,9 @@ export const ICON_TREE = [
         "child": "user",
         "label": "User",
         "file": "callz.user.png",
-        "art": null,
+        "art": "/icons/callz.user.png",
         "key": "callz_user.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       }
@@ -566,9 +631,9 @@ export const ICON_TREE = [
         "child": "arsenal",
         "label": "Arsenal",
         "file": "dawz.arsenal.jpg",
-        "art": null,
+        "art": "/icons/dawz.arsenal.jpg",
         "key": "arsenal.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -576,9 +641,9 @@ export const ICON_TREE = [
         "child": "azrael",
         "label": "Azrael",
         "file": "dawz.azrael.png",
-        "art": null,
+        "art": "/icons/dawz.azrael.png",
         "key": "azrael.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -596,9 +661,9 @@ export const ICON_TREE = [
         "child": "fruity",
         "label": "Fruity Möbius",
         "file": "dawz.fruity.png",
-        "art": null,
+        "art": "/icons/dawz.fruity.png",
         "key": "fruity_mobius.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -606,9 +671,9 @@ export const ICON_TREE = [
         "child": "intuitionz",
         "label": "IntuitionZ",
         "file": "dawz.intuitionz.jpg",
-        "art": null,
+        "art": "/icons/dawz.intuitionz.jpg",
         "key": "intuition.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -616,9 +681,9 @@ export const ICON_TREE = [
         "child": "trump",
         "label": "Trump Toupee",
         "file": "dawz.trump.png",
-        "art": null,
+        "art": "/icons/dawz.trump.png",
         "key": "trump_toupee.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -626,9 +691,9 @@ export const ICON_TREE = [
         "child": "witch",
         "label": "Witchcraft",
         "file": "dawz.witch.png",
-        "art": null,
+        "art": "/icons/dawz.witch.png",
         "key": "witchcraft.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       }
@@ -693,7 +758,7 @@ export const ICON_TREE = [
     "label": "FanZ",
     "root": {
       "file": "fanz.jpg",
-      "art": null,
+      "art": "/icons/fanz.jpg",
       "key": null,
       "status": "unplaced",
       "note": "no key or tab; the GroupZ Fanz child is groupz.fanz.jpg — likely the same art"
@@ -782,9 +847,9 @@ export const ICON_TREE = [
         "child": "blocked",
         "label": "Blocked",
         "file": "groupz.blocked.png",
-        "art": null,
+        "art": "/icons/groupz.blocked.png",
         "key": "groupz_blocked.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -792,9 +857,9 @@ export const ICON_TREE = [
         "child": "custom",
         "label": "Custom",
         "file": "groupz.custom.png",
-        "art": null,
+        "art": "/icons/groupz.custom.png",
         "key": "groupz_custom.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -802,19 +867,19 @@ export const ICON_TREE = [
         "child": "fanz",
         "label": "FanZ",
         "file": "groupz.fanz.jpg",
-        "art": null,
+        "art": "/icons/groupz.fanz.jpg",
         "key": "groupz_fanz.png",
-        "status": "owed",
-        "note": "on disk as \"groupz..fanz.jpg\"; commit it as groupz.fanz.jpg",
+        "status": "live",
+        "note": "also on disk as \"groupz..fanz.jpg\" — a copy; on disk as \"groupz..fanz.jpg\"; commit it as groupz.fanz.jpg",
         "also": []
       },
       {
         "child": "friendz",
         "label": "FriendZ",
         "file": "groupz.friendz.jpg",
-        "art": null,
+        "art": "/icons/groupz.friendz.jpg",
         "key": "groupz_friendz.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -822,10 +887,10 @@ export const ICON_TREE = [
         "child": "partnerz",
         "label": "PartnerZ",
         "file": "groupz.partnerz.jpg",
-        "art": null,
+        "art": "/icons/groupz.partnerz.jpg",
         "key": "partnerz.jpg",
-        "status": "owed",
-        "note": "",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/partnerz-neon.svg",
         "also": []
       }
     ]
@@ -835,9 +900,9 @@ export const ICON_TREE = [
     "label": "Home",
     "root": {
       "file": "home.jpg",
-      "art": null,
+      "art": "/icons/home.jpg",
       "key": "homez.png",
-      "status": "owed",
+      "status": "live",
       "note": ""
     },
     "extra": [],
@@ -859,9 +924,9 @@ export const ICON_TREE = [
         "child": "imageconz",
         "label": "Image ConnectZ",
         "file": "intelligence.imageconz.png",
-        "art": null,
+        "art": "/icons/intelligence.imageconz.png",
         "key": "imageconnectz.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -869,11 +934,17 @@ export const ICON_TREE = [
         "child": "instconz",
         "label": "Instrumental ConnectZ",
         "file": "intelligence.instconz.jpg",
-        "art": null,
+        "art": "/icons/intelligence.instconz.jpg",
         "key": "instrumentalconnectz.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "intelligence.instconz.png",
+            "status": "unplaced",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "mixconz",
@@ -889,10 +960,10 @@ export const ICON_TREE = [
         "child": "ocular",
         "label": "Ocular Code ConnectZ",
         "file": "intelligence.ocular.png",
-        "art": null,
+        "art": "/icons/intelligence.ocular.png",
         "key": "occ.png",
-        "status": "owed",
-        "note": "",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/occ-neon.svg",
         "also": []
       },
       {
@@ -945,7 +1016,7 @@ export const ICON_TREE = [
     "label": "KarmaZ",
     "root": {
       "file": "karmaz.jpg",
-      "art": null,
+      "art": "/icons/karmaz.jpg",
       "key": null,
       "status": "unplaced",
       "note": "no KarmaZ tab, app or registry key exists yet; also on disk as \"karmaz (2).jpg\" — a copy"
@@ -992,10 +1063,20 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "anytime",
+        "label": "Anytime",
+        "file": "lilith.anytime.png",
+        "art": "/icons/lilith.anytime.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "routinez",
         "label": "RoutineZ",
         "file": "lilith.routinez.jpg",
-        "art": null,
+        "art": "/icons/lilith.routinez.jpg",
         "key": null,
         "status": "unplaced",
         "note": "no Lilith Routines tab or key; HabitZ (habitz.png) is the nearest surface",
@@ -1005,25 +1086,25 @@ export const ICON_TREE = [
         "child": "someday",
         "label": "Someday",
         "file": "lilith.someday.png",
-        "art": null,
+        "art": "/icons/lilith.someday.png",
         "key": "lilith_someday.png",
-        "status": "owed",
-        "note": "",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/lilith_someday-neon.svg",
         "also": []
       },
       {
         "child": "taskz",
         "label": "TaskZ",
-        "file": "lilith.taskz.webp",
-        "art": "/icons/lilith.taskz.webp",
-        "key": null,
-        "status": "fallback",
-        "note": "current art for registry key lilithz.png, kept as the fallback",
+        "file": "lilith.taskz.jpg",
+        "art": "/icons/lilith.taskz.jpg",
+        "key": "taskz.png",
+        "status": "live",
+        "note": "",
         "also": [
           {
-            "file": "lilith.taskz.jpg",
-            "status": "owed",
-            "note": ""
+            "file": "lilith.taskz.webp",
+            "status": "fallback",
+            "note": "current art for registry key lilithz.png, kept as the fallback"
           }
         ]
       },
@@ -1031,9 +1112,9 @@ export const ICON_TREE = [
         "child": "today",
         "label": "Today",
         "file": "lilith.today.png",
-        "art": null,
+        "art": "/icons/lilith.today.png",
         "key": "lilith_today.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1054,7 +1135,7 @@ export const ICON_TREE = [
     "label": "Logo",
     "root": {
       "file": "logo.jpg",
-      "art": null,
+      "art": "/icons/logo.jpg",
       "key": null,
       "status": "unplaced",
       "note": "the logo is registered as logo.png -> /mcz-logo-v5.jpg at the site root"
@@ -1080,10 +1161,10 @@ export const ICON_TREE = [
     "label": "Mcz-logo-v5",
     "root": {
       "file": "mcz-logo-v5.jpg",
-      "art": null,
+      "art": "/icons/mcz-logo-v5.jpg",
       "key": null,
-      "status": "unplaced",
-      "note": "the same logo is already served from the site root (/mcz-logo-v5.jpg)"
+      "status": "fallback",
+      "note": "current art for registry key logo.png, kept as the fallback; the same logo is already served from the site root (/mcz-logo-v5.jpg)"
     },
     "extra": [],
     "children": []
@@ -1114,9 +1195,9 @@ export const ICON_TREE = [
         "child": "outbox",
         "label": "Outbox",
         "file": "messagez.outbox.jpg",
-        "art": null,
+        "art": "/icons/messagez.outbox.jpg",
         "key": "messagez_outbox.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1124,9 +1205,9 @@ export const ICON_TREE = [
         "child": "parcel",
         "label": "Parcel",
         "file": "messagez.parcel.png",
-        "art": null,
+        "art": "/icons/messagez.parcel.png",
         "key": "parcel.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       }
@@ -1150,9 +1231,9 @@ export const ICON_TREE = [
     "label": "OpportunitieZ",
     "root": {
       "file": "opportunitiez.png",
-      "art": null,
+      "art": "/icons/opportunitiez.png",
       "key": "opportunitiez.png",
-      "status": "owed",
+      "status": "live",
       "note": ""
     },
     "extra": [],
@@ -1187,7 +1268,7 @@ export const ICON_TREE = [
         "child": "actor",
         "label": "Actor",
         "file": "personaz.actor.jpg",
-        "art": null,
+        "art": "/icons/personaz.actor.jpg",
         "key": null,
         "status": "unplaced",
         "note": "Actor is not one of the 11 PersonaZ in personas.py or the registry",
@@ -1197,7 +1278,7 @@ export const ICON_TREE = [
         "child": "actress",
         "label": "Actress",
         "file": "personaz.actress.jpg",
-        "art": null,
+        "art": "/icons/personaz.actress.jpg",
         "key": null,
         "status": "unplaced",
         "note": "Actress is not one of the 11 PersonaZ in personas.py or the registry",
@@ -1207,29 +1288,45 @@ export const ICON_TREE = [
         "child": "coach",
         "label": "Coach",
         "file": "personaz.coach.jpg",
-        "art": null,
+        "art": "/icons/personaz.coach.jpg",
         "key": "personaz_coach.jpg",
-        "status": "owed",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/personaz_coach-neon.svg",
+        "also": []
+      },
+      {
+        "child": "dancerz",
+        "label": "DancerZ",
+        "file": "personaz.dancerz.jpg",
+        "art": "/icons/personaz.dancerz.jpg",
+        "key": null,
+        "status": "unplaced",
         "note": "",
         "also": []
       },
       {
         "child": "designer",
         "label": "Designer",
-        "file": "personaz.designer.jpg",
-        "art": "/icons/personaz.designer.jpg",
-        "key": "personaz_designer.png",
-        "status": "live",
+        "file": "personaz.designer.png",
+        "art": "/icons/personaz.designer.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "personaz.designer.jpg",
+            "status": "live",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "developer",
         "label": "Developer",
         "file": "personaz.developer.png",
-        "art": null,
+        "art": "/icons/personaz.developer.png",
         "key": "personaz_developer.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1237,9 +1334,9 @@ export const ICON_TREE = [
         "child": "manager",
         "label": "Manager",
         "file": "personaz.manager.png",
-        "art": null,
+        "art": "/icons/personaz.manager.png",
         "key": "personaz_manager.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1254,12 +1351,32 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "producer",
+        "label": "Producer",
+        "file": "personaz.producer.png",
+        "art": "/icons/personaz.producer.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "videographer",
         "label": "Videographer",
         "file": "personaz.videographer.png",
-        "art": null,
+        "art": "/icons/personaz.videographer.png",
         "key": "personaz_videographer.png",
-        "status": "owed",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "weightlifter",
+        "label": "Weightlifter",
+        "file": "personaz.weightlifter.png",
+        "art": "/icons/personaz.weightlifter.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
         "also": []
       }
@@ -1291,6 +1408,22 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "filez",
+        "label": "FileZ",
+        "file": "profilez.filez.png",
+        "art": "/icons/profilez.filez.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": [
+          {
+            "file": "profilez.filez.jpg",
+            "status": "unplaced",
+            "note": ""
+          }
+        ]
+      },
+      {
         "child": "languagez",
         "label": "LanguageZ",
         "file": "profilez.languagez.jpg",
@@ -1304,9 +1437,9 @@ export const ICON_TREE = [
         "child": "preferencez",
         "label": "PreferenceZ",
         "file": "profilez.preferencez.png",
-        "art": null,
+        "art": "/icons/profilez.preferencez.png",
         "key": "preferencez.png",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1314,7 +1447,7 @@ export const ICON_TREE = [
         "child": "religionz",
         "label": "ReligionZ",
         "file": "profilez.religionz.jpg",
-        "art": null,
+        "art": "/icons/profilez.religionz.jpg",
         "key": null,
         "status": "unplaced",
         "note": "ProfileZ has a religion field but no icon slot for it",
@@ -1370,7 +1503,7 @@ export const ICON_TREE = [
     "label": "RecordingZ",
     "root": {
       "file": "recordingz.jpg",
-      "art": null,
+      "art": "/icons/recordingz.jpg",
       "key": null,
       "status": "unplaced",
       "note": "no RecordingZ tab, app or registry key exists yet"
@@ -1414,6 +1547,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "personalitiez",
+        "label": "PersonalitieZ",
+        "file": "socializez.personalitiez.png",
+        "art": "/icons/socializez.personalitiez.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "vybez",
         "label": "VybeZ",
         "file": "socializez.vybez.jpg",
@@ -1426,13 +1569,31 @@ export const ICON_TREE = [
     ]
   },
   {
+    "parent": "soundcloud",
+    "label": "Soundcloud",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "engagement",
+        "label": "Engagement",
+        "file": "soundcloud.engagement.jpg",
+        "art": "/icons/soundcloud.engagement.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
+  },
+  {
     "parent": "statsz",
     "label": "StatsZ",
     "root": {
       "file": "statsz.png",
-      "art": null,
+      "art": "/icons/statsz.png",
       "key": "statsz.png",
-      "status": "owed",
+      "status": "live",
       "note": "also on disk as \"statsz - Copy.png\" — a copy"
     },
     "extra": [],
@@ -1443,7 +1604,7 @@ export const ICON_TREE = [
     "label": "StepZ Good BodieZ",
     "root": {
       "file": "stepz-good-bodiez.png",
-      "art": null,
+      "art": "/icons/stepz-good-bodiez.png",
       "key": null,
       "status": "unplaced",
       "note": "StepZ is a BodieZ sub-tab that draws no icon; no key exists"
@@ -1496,12 +1657,32 @@ export const ICON_TREE = [
     ],
     "children": [
       {
+        "child": "chordz",
+        "label": "ChordZ",
+        "file": "toolz.chordz.jpg",
+        "art": "/icons/toolz.chordz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "cleanconz",
         "label": "Clean ConnectZ",
         "file": "toolz.cleanconz.png",
-        "art": null,
+        "art": "/icons/toolz.cleanconz.png",
         "key": "cleanconnectz.png",
-        "status": "owed",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "drumz",
+        "label": "DrumZ",
+        "file": "toolz.drumz.jpg",
+        "art": "/icons/toolz.drumz.jpg",
+        "key": null,
+        "status": "unplaced",
         "note": "",
         "also": []
       },
@@ -1509,19 +1690,19 @@ export const ICON_TREE = [
         "child": "journalz",
         "label": "JournalZ",
         "file": "toolz.journalz.jpg",
-        "art": null,
+        "art": "/icons/toolz.journalz.jpg",
         "key": "journalz.jpg",
-        "status": "owed",
-        "note": "",
+        "status": "live",
+        "note": "replaces the generated glyph /icons/journalz-neon.svg",
         "also": []
       },
       {
         "child": "metz",
         "label": "MetZ",
         "file": "toolz.metz.jpg",
-        "art": null,
+        "art": "/icons/toolz.metz.jpg",
         "key": "metz.jpg",
-        "status": "owed",
+        "status": "live",
         "note": "also on disk as \"toolz.metz - Copy.jpg\" — a copy",
         "also": []
       },
@@ -1539,9 +1720,9 @@ export const ICON_TREE = [
         "child": "tunerz",
         "label": "TunerZ",
         "file": "toolz.tunerz.jpg",
-        "art": null,
+        "art": "/icons/toolz.tunerz.jpg",
         "key": "tunerz.jpg",
-        "status": "owed",
+        "status": "live",
         "note": "",
         "also": []
       },
@@ -1597,6 +1778,24 @@ export const ICON_TREE = [
     "children": []
   },
   {
+    "parent": "visibility",
+    "label": "Visibility",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "partnerz",
+        "label": "PartnerZ",
+        "file": "visibility.partnerz.png",
+        "art": "/icons/visibility.partnerz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      }
+    ]
+  },
+  {
     "parent": "what",
     "label": "What",
     "root": null,
@@ -1629,7 +1828,7 @@ export const ICON_TREE = [
     "label": "WhatineedZ",
     "root": {
       "file": "whatineedz.png",
-      "art": null,
+      "art": "/icons/whatineedz.png",
       "key": null,
       "status": "unplaced",
       "note": "no tab or key — closest is PickConnectZ (pickconz.png), which already has art"
@@ -1642,7 +1841,7 @@ export const ICON_TREE = [
     "label": "Xp",
     "root": {
       "file": "xp.jpg",
-      "art": null,
+      "art": "/icons/xp.jpg",
       "key": null,
       "status": "unplaced",
       "note": "XP is an emoji resource (⭐ in src/resources.js); no screen draws an icon for it"
@@ -1729,22 +1928,34 @@ export const ICON_TREE = [
       {
         "child": "episodez",
         "label": "EpisodeZ",
-        "file": "directz.episodez.jpg",
-        "art": "/icons/directz.episodez.jpg",
-        "key": "episodez.png",
-        "status": "live",
+        "file": "directz.episodez.png",
+        "art": "/icons/directz.episodez.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "directz.episodez.jpg",
+            "status": "live",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "moviez",
         "label": "MovieZ",
-        "file": "directz.moviez.jpg",
-        "art": "/icons/directz.moviez.jpg",
-        "key": "moviez.png",
-        "status": "live",
+        "file": "directz.moviez.png",
+        "art": "/icons/directz.moviez.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "directz.moviez.jpg",
+            "status": "live",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "reelz",
