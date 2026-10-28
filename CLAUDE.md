@@ -1861,3 +1861,20 @@ ordinary shot fields and stay editable, and the render is the stitch's, priced p
   Writing shots by hand is open to everyone.
 - Price beside the button before it is pressed, "not charged if it fails"; `unplannable` (silence, not music) says so free.
 - The privacy policy names it: the track, lyrics and mood go to Google for the plan, and the plan is not stored.
+
+## Radar read: coaching somebody else's post
+
+A post that is not yours offers "📡 Radar read in X" (the server's `radar` door; `PostZ` carries `radar` in the
+handoff). BossTake says so before the press ("the coach's read of their work, for you … not counted as your take,
+earns no XP, nothing written on their post"), the button reads **Get the Radar read**, and the result is headed
+"📡 Radar read — what @them's track shows" with the reference-listen layout (no fixes, no share, no history).
+
+## Coaches score reels: a YouTube link, or the reel's own file
+
+BossTake has "Or paste your reel" under Attach (member recorder only; hidden in every standalone shell and on the trial).
+`coachLinks.js` labels the host before the press, with the server's sentences (`links` from GET `/api/<key>/coach/`):
+**YouTube videos and Shorts** are watched by the model at their address (`?t=` honoured, first 4 minutes) — **Score my
+reel**, price beside it; **Instagram, Facebook, TikTok, Snapchat, Threads** cannot be fetched by anyone else, so the line
+says to save your own reel from the app and attach the file, which the coach already watches. In My take a link is
+declared yours like an attached file; somebody else's video goes through "Listen to someone else's track" (a reference
+listen). A private or removed video answers "it has to be public", and is not charged.

@@ -860,7 +860,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
       // The destination states the price again ON the button that spends it —
       // the row here is the quote, the button there is the commitment.
       await handOff(d.app, d.target, {
-        kind: "post", action: d.action, coach_kind: d.coach_kind || "",
+        kind: "post", action: d.action, coach_kind: d.coach_kind || "", radar: !!d.radar,
         // The coach's ceiling travels with the post, so the destination can
         // hold the same line the row just held rather than letting the button
         // find it out.

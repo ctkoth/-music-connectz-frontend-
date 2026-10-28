@@ -40,6 +40,7 @@ import { listenersLine } from "../coachUpgrades.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { mediaError, bestMime, sizeLabel } from "../recorder.js";
 import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
+import { coachLinkVerdict } from "../coachLinks.js";
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -318,6 +319,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // already stored, so there is nothing to upload: the coach is given the
   // post's id and reads the file itself. Null the rest of the time.
   const [fromPost, setFromPost] = useState(null);
+  // A reel or video by its address (YouTube, Shorts included). Other reel apps are
+  // told before the press to attach the file instead — the server's sentences.
+  const [linkUrl, setLinkUrl] = useState("");
   // The handed-over recording failed to load. Not the same as "too big" — the
   // file is gone, and the send button must not be the thing that discovers it.
   const [takeGone, setTakeGone] = useState(false);
@@ -877,7 +881,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   }
 
   async function submit() {
-    if (!blob && !(fromPost && !refMode)) return;
+    const linkTake = !blob && !fromPost && coachLinkVerdict(linkUrl, price?.links).state === "ok";
+    if (!blob && !(fromPost && !refMode) && !linkTake) return;
     // An empty file is a round trip that can only fail, and on the trial door
     // it costs the visitor the one free take they came for. The recorder
     // refuses to attach a 0-byte take now; this catches the same shape
@@ -906,7 +911,14 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // the same file a second time to have it coached is the dead end this
       // handoff exists to remove — and it would spend the member's storage
       // quota on a duplicate of a track they already posted.
-      const body = fromPost && !refMode
+      const body = linkTake
+        ? { link: linkUrl.trim(), genre, ...(style ? { style } : {}),
+            ...(refMode ? { reference: "true" } : {
+              range, difficulty,
+              ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
+              ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
+              ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }) }
+        : fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
               ? { journal_id: fromPost.journal_id }
               : fromPost.kind === "upload"
@@ -1256,7 +1268,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {fromPost && !recording && !refMode && (
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
-            {fromPost.kind === "journal" ? "📔 From your journal" : fromPost.kind === "upload" ? "🗂️ From your FileZ" : "🎧 From PostZ"}
+            {fromPost.kind === "journal" ? "📔 From your journal" : fromPost.kind === "upload" ? "🗂️ From your FileZ"
+              : fromPost.radar ? "📡 Radar read — somebody else's post" : "🎧 From PostZ"}
           </p>
           <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
           <p className="text-[11px] text-white/45">
@@ -1266,6 +1279,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             {fromPost.genre ? ` · ${genreLabel(fromPost.genre)}` : ""}
             {fromPost.coach_kind ? ` · the ${fromPost.coach_kind} on it` : ""}
           </p>
+          {fromPost.radar && (
+            <p className="text-[11px] text-white/55">
+              The coach's read of their work, for you to see. It isn't counted as your take, earns no XP, and nothing is
+              written on their post.
+            </p>
+          )}
           {fromPost.kind === "journal" && (
             <p className="text-[11px] text-white/45">
               The entry stays private — sending a take to the coach publishes nothing.
@@ -1302,7 +1321,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <div className="flex flex-wrap items-center gap-3">
               <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
                 {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
-                {busy ? "Coaching it…" : fromPost.kind === "post" ? "Send this post to the coach" : "Send it to the coach"}
+                {busy ? "Coaching it…" : fromPost.radar ? "Get the Radar read" : fromPost.kind === "post" ? "Send this post to the coach" : "Send it to the coach"}
               </button>
               <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
               {/* The ⚡ half of the price, before the press. A post costs Energy on
@@ -1399,6 +1418,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         )}
       </div>
+      {!trial && !IN_SHELL_COACH && !blocked && !blob && !fromPost && !recording && price?.links && (() => {
+        const v = coachLinkVerdict(linkUrl, price.links);
+        return (
+          <div className="space-y-1" data-tour="bosstake-link">
+            <input className="neon-input w-full text-sm" inputMode="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)}
+              aria-label="A reel or video link"
+              placeholder={refMode ? "Or paste their YouTube video or Short" : "Or paste your reel — a YouTube video or Short"} />
+            {v.state === "empty" && <p className="text-[11px] text-white/40">{price.links.note}</p>}
+            {v.state !== "empty" && (
+              <p className={`text-[11px] ${v.state === "ok" ? "text-emerald-300" : "text-mcz-gold"}`}>{v.text}</p>
+            )}
+            {v.state === "ok" && (
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="neon-btn-primary !w-auto px-5" onClick={submit} disabled={busy}>
+                  {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
+                  {busy ? (refMode ? "Listening…" : "Coaching it…") : refMode ? "Listen to this video" : "Score my reel"}
+                </button>
+                <Cost price={price} trial={trial} />
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {trial && !blocked && !blob && !recording && (
         <p className="text-[11px] text-white/40">
           Eight seconds is enough to score. A voice note you already have works —
@@ -1711,7 +1753,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <div ref={resultRef} className="mcz-reveal space-y-3 border-t border-white/10 pt-3">
           {result.reference && (
             <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">
-              🎧 Reference listen — what this track shows
+              {result.radar ? `📡 Radar read — what @${result.post_author}'s track shows` : "🎧 Reference listen — what this track shows"}
             </p>
           )}
           <div className="flex items-baseline gap-3">
