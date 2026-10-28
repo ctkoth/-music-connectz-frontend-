@@ -227,6 +227,11 @@ export default function PostZ() {
   // CoverZ / RemixeZ: the post this one is made from. The server checks it (public, someone else's)
   // and stores the credit; nothing is paid to the original yet, and the banner says so.
   const [derived, setDerived] = useState(null);
+  // The original's cut, stated BEFORE posting (cost/gain rule) and read from the server, never typed here.
+  const [derivedTerms, setDerivedTerms] = useState(null);
+  useEffect(() => {
+    if (derived && !derivedTerms) api("/api/economy/derivedz/").then(setDerivedTerms).catch(() => {});
+  }, [derived, derivedTerms]);
   const [visibility, setVisibility] = useState("public");
   const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
@@ -447,7 +452,7 @@ export default function PostZ() {
           {derived && (
             <div className="w-full rounded-lg border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
               {derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{derived.title}" — credited to the original on your post.
-              Nothing is paid to the original author yet.{" "}
+              {derivedTerms?.text || ""}{" "}
               <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setDerived(null)}>Post as new work instead</button>
             </div>
           )}
