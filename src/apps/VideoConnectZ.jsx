@@ -1,3 +1,4 @@
+import InspirationRef from "../components/InspirationRef.jsx";
 import PriorityDials from "../components/PriorityDials.jsx";
 import Doors from "../components/Doors.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -67,6 +68,7 @@ export default function VideoConnectZ() {
   const [kind, setKind] = useState("music");
   const [prompt, setPrompt] = useState("");
   const [prio, setPrio] = useState({});
+  const [insp, setInsp] = useState(null);
   const [aspect, setAspect] = useState("16:9");
   const [face, setFace] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -143,7 +145,8 @@ export default function VideoConnectZ() {
     let w;
     try {
       w = await api("/api/economy/videoz/", { method: "POST",
-        body: { kind, prompt, aspect, face_id: face || undefined, ...(Object.keys(prio).length ? { priorities: prio } : {}) },
+        body: { kind, prompt, aspect, face_id: face || undefined, reference: insp?.url || undefined,
+          ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("error");
@@ -238,6 +241,7 @@ export default function VideoConnectZ() {
         </div>
 
         <PriorityDials medium="video" value={prio} onChange={setPrio} disabled={busy} />
+        <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and affordable: with no answer

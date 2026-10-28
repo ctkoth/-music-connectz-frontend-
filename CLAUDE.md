@@ -1850,12 +1850,13 @@ screen). Members rate pieces as before; the owner can also run an **AI rating** 
 piece and the kit together — with the price on the button, nothing charged when no photo is read, and each
 reading hidden until they press Show. A piece with no photo is never AI-rated.
 
-## Video ConnectZ Develop & Direct: each shot planned to the song (StatZ)
+## Video ConnectZ Direct: each shot planned to the song (StatZ)
 
 `components/ShotDirector.jsx` sits inside "Music video with your track" (`StitchedMusicVideo`). The coach LISTENS to the
 member's own track and, for each shot's slot of it, says what it hears and offers three shots tied to the lyric, the mood or
-the beat, each with why — `/api/economy/videoz/develop/`. **Develop**: the member picks each shot. **Direct** (Corey's name):
-the coach's own pick for every shot, marked "🎬 Coach's pick" with its reason. One paid plan serves both; picks land in the
+the beat, each with why — `/api/economy/videoz/develop/`. **Direct** is the feature's name (Corey renamed it from Develop; the
+endpoint and keys keep `develop` so nothing stored moves). Two ways to pick: **I pick** (`develop`) and **The coach picks**
+(`direct`), the coach's own pick for every shot, marked "🎬 Coach's pick" with its reason. One paid plan serves both; picks land in the
 ordinary shot fields and stay editable, and the render is the stitch's, priced per shot as before.
 
 - The slot times are the server's (the stitch's own clock: track start + 8 s per shot), never the model's.
@@ -1890,3 +1891,12 @@ https, no redirects, size-capped, kept nowhere. A post or profile PAGE link (`in
 photos too, and scoring a stranger's face is the harm line the feature was built on, so it is not built. **Look Inspiration**
 (`/lookmaxz/inspire/`) is the answer for anybody's photo: it describes the cut, facial hair, brows and styling and how to get
 them — no number, nothing about the person, no names — priced like a reading, not charged when there is no look to describe.
+
+## Inspiration on every maker: one picker, the server's rule
+
+`components/InspirationRef.jsx` is the one "start from a sound or a picture" control, on Sentence ConnectZ (the kinds in
+`reference.writer_kinds` — every kind but a legal draft), Instrumental, Video ConnectZ, the stitched music video (one file for
+the Direct plan and every shot) and MangaZ's script. The ceiling, the accepted types and the sentence beside it ("feel only,
+never kept, same price") are `/api/economy/priorities/` → `reference`; a failed fetch renders nothing and the maker still works.
+The file rides inside the one request as a data URL and nothing keeps it. A video render reads it into words server-side
+first (Veo would use a picture as the first frame and copy it). Image ConnectZ, the coaches and LookZMaxZ have their own.

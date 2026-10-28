@@ -4,16 +4,16 @@ import { api } from "../api.js";
 import { PROMPTZ } from "../resources.js";
 import { StatzSample, useStatzTrial } from "./StatzSample.jsx";
 
-// Video ConnectZ Develop & Direct (StatZ). The coach LISTENS to the part of the
+// Video ConnectZ Direct (StatZ; Corey renamed it from Develop). The coach LISTENS to the part of the
 // track the video plays and, for each shot's slot of it, says what it hears and
 // offers three shots tied to the lyric, the mood or the beat — each with why.
-//   Develop: the member picks each shot.
-//   Direct:  the coach picks every shot (its pick is marked, with its reason).
+//   I pick (key `develop`):            the member picks each shot.
+//   The coach picks (key `direct`):    every shot is the coach's (marked, with its reason).
 // Both come from one paid plan, and every pick stays editable in the shot fields.
 // The slots, the price, the gate and every word of the plan are the server's
 // (/api/economy/videoz/develop/); this decides nothing.
 
-export default function ShotDirector({ trackId, startAt, count, look, onShots, onLook }) {
+export default function ShotDirector({ trackId, startAt, count, look, reference, onShots, onLook }) {
   const { s: trial } = useStatzTrial();
   const [d, setD] = useState(null);
   const [lyrics, setLyrics] = useState("");
@@ -40,10 +40,10 @@ export default function ShotDirector({ trackId, startAt, count, look, onShots, o
     setErr(""); setBusy(true);
     try {
       const r = await api("/api/economy/videoz/develop/", { method: "POST", timeoutMs: 150_000,
-        body: { track_id: trackId, track_start: Number(startAt) || 0, shots: count, lyrics, mood, look } });
+        body: { track_id: trackId, track_start: Number(startAt) || 0, shots: count, lyrics, mood, look, reference } });
       if (r.unplannable) { setErr(`${r.unplannable} Nothing was charged.`); return; }
       setPlan(r);
-      // Direct is the coach's picks; Develop starts there too and the member moves them.
+      // Both start on the coach's picks; "I pick" lets the member move them.
       apply(r.slots.map((sl) => sl.pick ?? 0), r);
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
@@ -54,14 +54,14 @@ export default function ShotDirector({ trackId, startAt, count, look, onShots, o
   return (
     <div className="space-y-3 rounded-xl border border-mcz-gold/30 bg-mcz-gold/5 p-3" data-tour="video-develop">
       <div>
-        <h4 className="text-sm font-semibold text-mcz-gold">🎬 Develop &amp; Direct</h4>
+        <h4 className="text-sm font-semibold text-mcz-gold">🎬 Direct</h4>
         <p className="text-[11px] text-white/60">{d.what_it_does}</p>
       </div>
 
       {!d.allowed ? (
         <>
           <p className="text-xs text-white/60">{d.locked_reason}</p>
-          <StatzSample what="Develop & Direct" />
+          <StatzSample what="Direct" />
         </>
       ) : (
         <>
@@ -81,7 +81,7 @@ export default function ShotDirector({ trackId, startAt, count, look, onShots, o
             <span className="text-[11px] text-white/45">— not charged if it fails. Rendering is priced below, per shot.</span>
           </div>
           {!trackId && <p className="text-[11px] text-white/45">Pick your track first: the coach plans by listening to it.</p>}
-          <StatzSample what="Develop & Direct" />
+          <StatzSample what="Direct" />
         </>
       )}
       {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
@@ -94,7 +94,7 @@ export default function ShotDirector({ trackId, startAt, count, look, onShots, o
               <button key={k} aria-pressed={mode === k} title={label}
                 onClick={() => { setMode(k); if (k === "direct") apply(plan.slots.map((sl) => sl.pick ?? 0)); }}
                 className={`rounded-full border px-3 py-1 text-xs ${mode === k ? "border-mcz-gold bg-mcz-gold/15 text-white" : "border-white/15 text-white/60"}`}>
-                {k === "direct" ? <><Clapperboard size={11} className="mr-1 inline" />Direct — the coach picks</> : "Develop — I pick"}
+                {k === "direct" ? <><Clapperboard size={11} className="mr-1 inline" />The coach picks</> : "I pick"}
               </button>
             ))}
           </div>

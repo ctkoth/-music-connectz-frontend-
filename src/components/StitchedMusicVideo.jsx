@@ -1,3 +1,4 @@
+import InspirationRef from "./InspirationRef.jsx";
 import { goToSpot } from "../goto.js";
 import Empty from "./Empty.jsx";
 import { useEffect, useState } from "react";
@@ -41,6 +42,7 @@ export default function StitchedMusicVideo() {
   const [trackId, setTrackId] = useState(null);
   const [startAt, setStartAt] = useState(0);
   const [look, setLook] = useState("");
+  const [insp, setInsp] = useState(null);     // one inspiration for the plan and every shot
   const [shots, setShots] = useState(["", "", ""]);
   const [aspect, setAspect] = useState("9:16");
   const [face, setFace] = useState(null);
@@ -86,7 +88,8 @@ export default function StitchedMusicVideo() {
     setErr(""); setBusy(true);
     try {
       const v = await api("/api/economy/videoz/stitch/", { method: "POST",
-        body: { track_id: trackId, track_start: Number(startAt) || 0, look, shots: filled, aspect, face_id: face || undefined },
+        body: { track_id: trackId, track_start: Number(startAt) || 0, look, shots: filled, aspect, face_id: face || undefined,
+                reference: insp?.url || undefined },
         timeoutMs: 120_000 });
       setVideo(v); load(); playSound("build_start");
     } catch (e) { playSound("error"); setErr(e.message); load(); }
@@ -130,9 +133,10 @@ export default function StitchedMusicVideo() {
       <input className="neon-input w-full text-sm" maxLength={300} aria-label="The look of the whole video"
         placeholder="The look, applied to every shot — e.g. neon rain, 35mm film grain, moody"
         value={look} onChange={(e) => setLook(e.target.value)} />
+      <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
 
       <ShotDirector trackId={trackId} startAt={startAt} count={Math.max(s.min_shots, Math.min(s.max_shots, shots.length))}
-        look={look} onShots={setShots} onLook={setLook} />
+        look={look} reference={insp?.url} onShots={setShots} onLook={setLook} />
 
       <div className="space-y-2">
         <p className="text-sm text-white/70">Shots <span className="text-white/40">({s.min_shots}–{s.max_shots}, each about {s.clip_seconds}s, joined in order)</span></p>

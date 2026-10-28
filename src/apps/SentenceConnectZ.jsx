@@ -1,3 +1,4 @@
+import InspirationRef from "../components/InspirationRef.jsx";
 import PriorityDials, { usePriorityInfo } from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
@@ -209,11 +210,14 @@ export default function SentenceConnectZ() {
   const prioInfo = usePriorityInfo();
   const [prio, setPrio] = useState({});
   const dialsHere = !!prioInfo?.writing_kinds?.includes(kind);
+  const [insp, setInsp] = useState(null);
+  const inspHere = !!prioInfo?.reference?.writer_kinds?.includes(kind);
 
   async function write() {
     setErr(""); setBusy(true);
     const body = { kind, topic, genre };
     if (dialsHere && Object.keys(prio).length) body.priorities = prio;
+    if (inspHere && insp) body.reference = insp.url;
     if (kind === "lyrics") Object.assign(body, { majority, minority });
     if (current?.hashtags) Object.assign(body, hashtagBody(tags));
     let w;
@@ -346,6 +350,7 @@ export default function SentenceConnectZ() {
             )}
 
             {dialsHere && <PriorityDials medium="writing" value={prio} onChange={setPrio} disabled={busy} />}
+            {inspHere && <InspirationRef value={insp} onChange={setInsp} disabled={busy} />}
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Live only once the price is known and the run can be paid for: with

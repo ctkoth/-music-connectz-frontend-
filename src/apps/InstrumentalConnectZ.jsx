@@ -1,3 +1,4 @@
+import InspirationRef from "../components/InspirationRef.jsx";
 import { genreLabel, GENRES, GENRE_GROUPS } from "../genres.js";
 import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -114,6 +115,7 @@ export default function InstrumentalConnectZ() {
   const [key, setKey] = useRemembered("instrumentalz.key", "A minor");
   const [bars, setBars] = useState(4);
   const [prio, setPrio] = useState({});
+  const [insp, setInsp] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
   // The POST response for the piece just composed: the only place the server says
@@ -152,7 +154,8 @@ export default function InstrumentalConnectZ() {
       // takes up to 90s, and the server goes on to charge and save a loop the
       // browser has already given up on.
       w = await api("/api/economy/instrumentalz/", { method: "POST",
-        body: { genre, brief, instruments: picked, bpm, key, bars, ...(Object.keys(prio).length ? { priorities: prio } : {}) },
+        body: { genre, brief, instruments: picked, bpm, key, bars, reference: insp?.url || undefined,
+          ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("build_fail");
@@ -314,6 +317,7 @@ export default function InstrumentalConnectZ() {
         ) : <CharLimit cl={cl} value={brief} />}
 
         <PriorityDials medium="instrumental" value={prio} onChange={setPrio} disabled={busy} />
+        <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and the run can be paid for: with

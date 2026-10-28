@@ -1,3 +1,4 @@
+import InspirationRef from "../components/InspirationRef.jsx";
 // MangaZ — AI pages from your CharacterZ and your idea.
 //
 // Two steps, each priced on its button: the SCRIPT (panels, shots, each character's
@@ -95,6 +96,7 @@ export default function MangaZ() {
   const [panels, setPanels] = useState(4);
   const [style, setStyle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [insp, setInsp] = useState(null);
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(null);
   const load = () => Promise.all([api("/api/economy/mangaz/"), api("/api/economy/characterz/")])
@@ -106,7 +108,7 @@ export default function MangaZ() {
   async function write() {
     setBusy(true); setMsg("");
     try {
-      const page = await api("/api/economy/mangaz/", { method: "POST", body: { character_ids: picked, idea, panels, style } });
+      const page = await api("/api/economy/mangaz/", { method: "POST", body: { character_ids: picked, idea, panels, style, reference: insp?.url || undefined } });
       setOpen(page); load();
     } catch (e) { setMsg(e.message || "Couldn't write the page. Nothing was charged."); }
     finally { setBusy(false); }
@@ -137,6 +139,7 @@ export default function MangaZ() {
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens on this page?"
                     value={idea} onChange={(e) => setIdea(e.target.value)} aria-label="Idea" />
+          <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <label className="flex items-center gap-1">Panels
               <input type="number" min={s.panels_min} max={s.panels_max} className="neon-input !w-16 !py-1" value={panels}
