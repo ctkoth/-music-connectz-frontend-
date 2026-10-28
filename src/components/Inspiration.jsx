@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { api } from "../api.js";
+import { RatingNumber, RatingRow } from "./Rating.jsx";
 import { handOff } from "../handoff.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
 import { addSide, asFile, asLink, asPost, asUpload, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
@@ -106,6 +107,16 @@ function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUplo
   );
 }
 
+// The comparison in one sentence, from the server's arithmetic (who leads where, and by how much).
+function compareLine(c, label) {
+  const n = c.dimensions.length;
+  const parts = [`You lead in ${c.take_leads} of ${n}`];
+  if (c.even) parts.push(`${c.even} even`);
+  if (c.widest) parts.push(`the widest gap is ${label(c.widest)}`);
+  if (c.closest && c.closest !== c.widest) parts.push(`you're closest on ${label(c.closest)}`);
+  return parts.join(" · ") + ".";
+}
+
 export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   const [info, setInfo] = useState(null);
   const [take, setTake] = useState(null);
@@ -192,15 +203,32 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
           )}
           <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
           <p>{res.summary}</p>
-          {Object.keys(res.scores || {}).length > 0 && (
-            <ul className="grid gap-1 sm:grid-cols-2">
-              {Object.entries(res.scores).map(([k, v]) => (
-                <li key={k} className="flex justify-between rounded bg-white/5 px-2 py-1">
-                  <span>{info.scores?.[k] || k}</span>
-                  <span>you {v.take} · ref {v.reference}</span>
-                </li>
-              ))}
-            </ul>
+          {res.overall && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <RatingRow value={res.overall.take} outOf label="Your take" detail={res.overall.take_why} />
+              <RatingRow value={res.overall.reference} outOf label="The reference" detail={res.overall.reference_why} />
+            </div>
+          )}
+          {res.compare?.dimensions?.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-white/70">
+                {compareLine(res.compare, (k) => info.scores?.[k] || k)}
+              </p>
+              <ul className="grid gap-1 sm:grid-cols-2">
+                {res.compare.dimensions.map((r) => (
+                  <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-white/5 px-2 py-1">
+                    <span>{info.scores?.[r.key] || r.key}</span>
+                    <span className="tabular-nums">
+                      you <RatingNumber value={r.take} size="sm" /> · ref <RatingNumber value={r.reference} size="sm" />
+                      <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/40"}`}>
+                        {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `ref +${-r.gap}` : "even"}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-white/40">Both rated on one 1-10 scale so they compare. Nothing here is saved as your score.</p>
+            </div>
           )}
           {res.eq?.length > 0 && (
             <div>

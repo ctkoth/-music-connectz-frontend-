@@ -1900,3 +1900,10 @@ the Direct plan and every shot) and MangaZ's script. The ceiling, the accepted t
 never kept, same price") are `/api/economy/priorities/` → `reference`; a failed fetch renders nothing and the maker still works.
 The file rides inside the one request as a data URL and nothing keeps it. A video render reads it into words server-side
 first (Veo would use a picture as the first frame and copy it). Image ConnectZ, the coaches and LookZMaxZ have their own.
+
+### Inspiration rates and compares both takes (Corey's ask)
+
+The result leads with **two RatingRows** — your take and the reference, each with the coach's one-sentence reason — then
+every dimension as `you N · ref N` with who leads by how much, and one line from the server's `compare` ("You lead in 2
+of 5 · the widest gap is Breath"). Both are on one scale so they compare; the subtraction is the server's. Nothing here is
+saved as the member's score, and the screen says so.
