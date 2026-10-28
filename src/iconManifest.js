@@ -1794,5 +1794,6 @@ export const TAB_ICONS_WITHOUT_ART = [
   "soundz.png",
   "specz.png",
   "trumpetz.png",
+  "videoz.png",
   "violinz.png"
 ];

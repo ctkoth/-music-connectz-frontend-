@@ -222,7 +222,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (37)
+## Tabs and apps that ask for an icon no supplied file covers (38)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -259,6 +259,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `soundz.png` → /icons/soundz.jpg
 - `specz.png` → /icons/specz-neon.svg
 - `trumpetz.png` → /icons/trumpetz-neon.png
+- `videoz.png` → /icons/toolz.videoz.png
 - `violinz.png` → /icons/violinz-neon.svg
 
 Registry keys with no supplied file: 114 of 209 (most are the

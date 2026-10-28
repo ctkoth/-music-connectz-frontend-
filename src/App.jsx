@@ -77,6 +77,7 @@ const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.js
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
 const ImageConnectZ = lazy(lazyRoute(() => import("./apps/ImageConnectZ.jsx")));
 const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const VideoZ = lazy(lazyRoute(() => import("./apps/VideoZ.jsx")));
 const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
@@ -611,6 +612,7 @@ const TABS = [
   { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", el: <ImageConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
+  { key: "videoz", label: "VideoZ", icon: "videoz.png", el: <VideoZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
@@ -953,6 +955,7 @@ const TAB_ABOUT = {
   intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
   sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
   instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  videoz: "🎬 VideoZ — a multitrack video editor on your own device, like Sony Vegas. Put finished videos, photos, titles and audio on as many tracks as you need, in the order you want; trim, split, crossfade, filters and FX, picture-in-picture, and (StatZ) lip-sync a photo to a voice. Free — nothing is uploaded until you save.",
   mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
   occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",

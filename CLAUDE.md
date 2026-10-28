@@ -1809,3 +1809,27 @@ in `src/mastering/master.js`, both stated on screen as what they are:
 - `src/mastering/vocal.test.mjs` pins the centre moving by what was asked, the sides and the low end staying put, Auto
   lifting a scooped centre and leaving a full one alone, and Auto measuring after the EQ. Driven in a browser on a track
   scooped 10 dB at 2 kHz: the EQ took part, Auto measured −2.6 dB left and lifted +2 dB.
+
+## VideoZ: a multitrack editor on the member's device (Sony Vegas, the parts that matter)
+
+`src/apps/VideoZ.jsx` is wiring and words; `src/videoedit/project.js` is the model and every edit
+(pure, tested), `look.js` the filters and framing, `render.js` the engine, `lipsync.js` the voice.
+
+- **Tracks top to bottom; an upper video track plays OVER the lower ones** (picture-in-picture is a
+  smaller clip on an upper track, a title sits on the top one). Clips go anywhere; two that OVERLAP on
+  one track crossfade (the incoming rises over a solid outgoing, sound fades both ways). Mute and
+  solo are per kind, so soloing an audio track never blacks out the picture.
+- **Preview and export are one loop** (`createEngine().play`, recorder on or off) on the AudioContext
+  clock, so what was approved is what is written. Export is a canvas recording, so it runs at playback
+  speed and a hidden tab stutters — both said beside the button, and a hidden stretch is reported after.
+  MP4 where the browser records it, WebM otherwise, named before the press.
+- **Free, and said so up front**: nothing leaves the device until Save to FileZ, which states the MB it
+  uses. Library imports (FileZ, finished Video ConnectZ renders) are fetched into the tab, because a
+  canvas that draws a cross-origin file cannot be recorded.
+- **Lip-sync is StatZ (or the sample)**: a photo's mouth, boxed by the member, opens with the voice's
+  loudness and widens/rounds with its tone, following everything audible or one named clip. It follows
+  the SOUND, not the words, and `lipsync.NOTE` says that on the control. Real AI lip-matching would
+  need a provider and a price — not built.
+- Video ConnectZ points at VideoZ for editing what exists, and a finished render's Edit door hands the
+  file over (`handOff("videoz", …)`).
+- **Driven in a browser** with generated clips (see the commit). Not checked on a phone or in Safari.

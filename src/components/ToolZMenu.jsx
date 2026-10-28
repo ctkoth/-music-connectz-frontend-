@@ -165,7 +165,7 @@ const TOOLZ_MENU = {
       group: 'Editors',
       apps: [
         { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
-        { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multi-track video editor', soon: true },
+        { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
       ]
     },
     {
