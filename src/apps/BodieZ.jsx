@@ -59,7 +59,7 @@ import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { improveCta, moveText } from "../planRating.js";
 import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
-import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
+import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
@@ -1366,19 +1366,26 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   // gets both clocks up front: how long since the last set (the gap before the second lift) and the
   // rest that starts the moment they log it, with how it will tell them. Never a bare "rest starts later".
   if (hold) {
+    const gap = restClock(elapsed, SUPERSET_GAP_SECONDS);
     return (
       <div className="re-card space-y-2 border-fuchsia-400/30">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
           <p className="text-sm text-fuchsia-200">
             Superset — go straight to <span className="font-semibold">{hold}</span>.
           </p>
-          <p className="font-mono text-2xl font-bold text-white" aria-label={`${clock(elapsed)} since your last set`}>
-            {clock(elapsed)} <span className="text-sm font-normal text-white/40">since your last set</span>
+          <p className={`font-mono text-2xl font-bold ${gap.done ? "text-emerald-300" : "text-white"}`}
+             aria-label={gap.done ? "Time to start the second lift" : `${clock(gap.left)} left to start the second lift`}>
+            {clock(gap.left)} <span className="text-sm font-normal text-white/40">{gap.done ? (gap.over > 0 ? `go — over by ${clock(gap.over)}` : "go") : `left to start it`}</span>
           </p>
         </div>
+        <div className="h-1.5 rounded-full bg-white/10">
+          <div className={`h-full rounded-full ${gap.done ? "bg-emerald-400" : "bg-fuchsia-400"}`}
+               style={{ width: `${Math.min(100, (elapsed / SUPERSET_GAP_SECONDS) * 100)}%` }} />
+        </div>
         <p className="text-xs text-white/60">
-          Rest starts when you log it: <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span>, with a beep
-          at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}.
+          Then rest <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span> starts when you log it, counting down
+          with a beep at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}. This {clock(SUPERSET_GAP_SECONDS)} is only
+          the gap between the two lifts — no beep for it.
         </p>
         {choices("Change it here — it's the rest after the pair.")}
       </div>

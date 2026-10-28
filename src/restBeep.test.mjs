@@ -94,7 +94,7 @@ test("a superset waiting on its second lift still shows both clocks and the rest
   const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
   const timer = src.slice(src.indexOf("function RestTimer"), src.indexOf("function LoggerRow"));
   const held = timer.slice(timer.indexOf("if (hold) {"), timer.indexOf("Rest after {last.exercise_name"));
-  assert.ok(held.includes("clock(elapsed)"), "time since the last set is on screen while held");
+  assert.ok(held.includes("clock(gap.left)"), "the gap to the second lift counts DOWN while held");
   assert.ok(held.includes("clock(target)"), "the rest that follows is stated before it starts");
   assert.ok(held.includes("alerts?.notify"), "says whether a notification will come");
   assert.ok(held.includes("choices("), "the rest length can be changed without leaving the superset");
