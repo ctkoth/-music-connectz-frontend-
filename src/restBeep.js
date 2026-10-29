@@ -85,6 +85,11 @@ export function restClock(elapsed, target) {
   return { left: Math.max(0, target - elapsed), over: Math.max(0, elapsed - target), done: elapsed >= target };
 }
 
+/** The gap inside a superset: how long to take getting to the second lift before it reads as rest. Shown
+ *  as a countdown like every other rest here; it never beeps, because "rest is over" is the only thing the
+ *  beep means and the rest has not started. */
+export const SUPERSET_GAP_SECONDS = 20;
+
 /** Beep only when rest ends WHILE the member is here. A page loaded long after the last
  *  set is not "rest just ended", and a beep on every reload would teach them to mute it. */
 export const STALE_AFTER_SECONDS = 15;

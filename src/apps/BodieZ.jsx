@@ -59,7 +59,7 @@ import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { improveCta, moveText } from "../planRating.js";
 import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
-import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, UNLOCK_EVENTS } from "../restBeep.js";
+import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
@@ -1315,32 +1315,15 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!last) return null;
-  if (hold) {
-    return (
-      <div className="re-card border-fuchsia-400/30">
-        <p className="text-sm text-fuchsia-200">
-          Superset — go straight to <span className="font-semibold">{hold}</span>. Rest starts after it.
-        </p>
-      </div>
-    );
-  }
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
   const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
   const pct = Math.min(100, (elapsed / target) * 100);
 
-  return (
-    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
-      <div className="flex items-baseline justify-between">
-        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
-        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
-           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
-          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
-        </p>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/10">
-        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
-      </div>
+  // The rest length is chosen the same way whether the clock is running or a superset is waiting on its
+  // second lift, so the choices (and the sound check) are one block shown in both.
+  const choices = (note) => (
+    <>
       {goalList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-white/40">
@@ -1369,13 +1352,59 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         ))}
         <button type="button" className="pill !py-1 text-[11px]"
                 onClick={() => { primeRestBeep(); restBeep(); try { navigator.vibrate?.(80); } catch { /* unsupported */ } }}>Test beep</button>
-        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took."}</span>
+        <span className="text-[11px] text-white/40">{note}</span>
         {beepState() === "ready"
           ? <span className="text-[11px] text-emerald-300/80">Sound on</span>
           : beepState() === "unsupported"
             ? <span className="text-[11px] text-white/45">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
             : <span className="text-[11px] text-amber-300/90">Sound is off until you tap once — press Test beep (and check your phone isn't on silent).</span>}
       </div>
+    </>
+  );
+
+  // Halfway through a superset nobody is resting, so there is no countdown yet — but the member still
+  // gets both clocks up front: how long since the last set (the gap before the second lift) and the
+  // rest that starts the moment they log it, with how it will tell them. Never a bare "rest starts later".
+  if (hold) {
+    const gap = restClock(elapsed, SUPERSET_GAP_SECONDS);
+    return (
+      <div className="re-card space-y-2 border-fuchsia-400/30">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <p className="text-sm text-fuchsia-200">
+            Superset — go straight to <span className="font-semibold">{hold}</span>.
+          </p>
+          <p className={`font-mono text-2xl font-bold ${gap.done ? "text-emerald-300" : "text-white"}`}
+             aria-label={gap.done ? "Time to start the second lift" : `${clock(gap.left)} left to start the second lift`}>
+            {clock(gap.left)} <span className="text-sm font-normal text-white/40">{gap.done ? (gap.over > 0 ? `go — over by ${clock(gap.over)}` : "go") : `left to start it`}</span>
+          </p>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/10">
+          <div className={`h-full rounded-full ${gap.done ? "bg-emerald-400" : "bg-fuchsia-400"}`}
+               style={{ width: `${Math.min(100, (elapsed / SUPERSET_GAP_SECONDS) * 100)}%` }} />
+        </div>
+        <p className="text-xs text-white/60">
+          Then rest <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span> starts when you log it, counting down
+          with a beep at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}. This {clock(SUPERSET_GAP_SECONDS)} is only
+          the gap between the two lifts — no beep for it.
+        </p>
+        {choices("Change it here — it's the rest after the pair.")}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+      <div className="flex items-baseline justify-between">
+        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
+        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
+           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
+          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
+        </p>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
+      </div>
+      {choices(done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took.")}
     </div>
   );
 }
@@ -1385,6 +1414,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   const unit = useUnit();
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
@@ -1412,6 +1442,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between gap-2">
         {grip}
+        {muscleIcon(planned.muscle_group) && (
+          <img src={muscleIcon(planned.muscle_group)} alt={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
+               title={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group} className="h-9 w-9 shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
@@ -1425,6 +1459,12 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
             {planned.reps ? ` x${planned.reps}` : ""}
             {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
+          {planned.demo_url && (
+            <button type="button" className="mt-1 inline-flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline"
+                    aria-expanded={demoOpen} onClick={() => setDemoOpen(!demoOpen)}>
+              <PlayCircle size={13} /> {demoOpen ? "Hide demo" : "Watch demo"}
+            </button>
+          )}
         </div>
         {onSwap && (
           <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
@@ -1438,6 +1478,10 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
           {done}/{targetSets} sets
         </span>
       </div>
+      {demoOpen && planned.demo_url && (
+        <video src={demoSrc(planned.demo_url)} controls autoPlay loop muted playsInline preload="metadata"
+               className="max-h-64 w-full rounded-lg bg-black" aria-label={`${planned.name} demonstration`} />
+      )}
       {swapOpen && onSwap && (
         <ExerciseSwap current={planned.exercise_id} all={allExercises} choices={swapFrom} onPick={onSwap}
                       note={`Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under ${planned.name}.`} />
@@ -1573,7 +1617,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
       return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
-               muscle_group: ex?.muscle_group, equipment: ex?.equipment };
+               muscle_group: ex?.muscle_group, equipment: ex?.equipment, demo_url: ex?.demo_url };
     }) : [];
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
@@ -1589,7 +1633,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   const extraRows = [...loggedExerciseIds].filter((id) => !routinePlanned.some((p) => p.exercise_id === id)).map((id) => {
     const ex = exercises.find((x) => x.id === id);
     return { exercise_id: id, orig_id: id, name: ex?.name || `Exercise #${id}`, muscle_group: ex?.muscle_group,
-             equipment: ex?.equipment, sets: setsByExercise[id].length, extra: true };
+             equipment: ex?.equipment, demo_url: ex?.demo_url, sets: setsByExercise[id].length, extra: true };
   });
   const planned = applySessionPairs([...routinePlanned, ...extraRows], pairs).filter((r) => !r.extra || inPair.has(r.exercise_id));
   const trailingExtras = extraRows.filter((r) => !inPair.has(r.exercise_id));
