@@ -1,4 +1,5 @@
 import { clearLanding, peekLanding } from "./landing.js";
+import { needsDoorList, trialPathFor, TRIAL_DOOR_FALLBACK } from "./trialLinks.js";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
@@ -679,43 +680,35 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-// A tab address that is ALSO a trial door — musicconnectz.net/rap, /sing, /guitar — is a
-// link people put in bios, ads and DMs, and a stranger who taps it must land on the
-// free scored take, not a sign-in form. A member still gets the tab, as before.
-//
-// Which tabs have a door is the SERVER's list (`/trialdoorz/`, read off the mounted
-// routes), never typed here: a new instrument's coach becomes a working /<slug> link the
-// moment it is mounted. If the list can't be fetched the two doors that have always
-// existed still open, and anything else goes to /login exactly as it did.
-// `/try/bodiez` is not a scored instrument so it is not in that list; it is a known
-// trial route of its own and is named here for the same reason it is named in <Routes>.
-// The query string travels with the redirect: ?src= (channel), ?ref= (who sent them)
-// and ?beat= (a score card's dare) are all read by the trial screen.
-const TRIAL_DOOR_FALLBACK = ["singz", "rapz"];
+// A tab's own address — musicconnectz.net/rap, /sing, /guitar, /metz — is the link people put
+// in bios, ads and DMs. A stranger who taps one must land on that tab's FREE TRIAL, not a
+// sign-in form; a member still gets the tab. What counts as a trial, and which tabs have
+// one, is decided in trialLinks.js (the server's door list for scored coaches, a static map
+// for the client-only tools) so a test can pin it. Anything with no trial goes to /login
+// exactly as it did before.
 function TrialOrApp({ tabKey, children }) {
   const { user, loading } = useAuth();
   const here = useLocation();
   const [doors, setDoors] = useState(null); // null = not asked yet / in flight
+  const wantsDoors = needsDoorList(tabKey);
   useEffect(() => {
-    if (loading || user) return undefined;
+    if (loading || user || !wantsDoors) return undefined;
     let on = true;
     api("/api/economy/trialdoorz/", { auth: false })
       .then((d) => { if (on) setDoors(d?.doors?.length ? d.doors.map((x) => x.app_key) : TRIAL_DOOR_FALLBACK); })
       .catch(() => { if (on) setDoors(TRIAL_DOOR_FALLBACK); });
     return () => { on = false; };
-  }, [loading, user]);
+  }, [loading, user, wantsDoors]);
   if (user) return children;
-  if (loading || doors === null) {
+  if (loading || (wantsDoors && doors === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-white/50">
         <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
       </div>
     );
   }
-  if (doors.includes(tabKey) || tabKey === "bodiez") {
-    return <Navigate to={`/try/${tabKey}${here.search}${here.hash}`} replace />;
-  }
-  return <Navigate to="/login" replace />;
+  const to = trialPathFor(tabKey, doors, here.search, here.hash);
+  return <Navigate to={to || "/login"} replace />;
 }
 
 // "/" is the one URL that gets shared, indexed and clicked cold — the
@@ -1590,6 +1583,13 @@ export default function App() {
              blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />}
              pitch="Found a progression you like? Sing or play over it and an AI coach scores the take — what's working and what to fix. Free, no account."
              cta="Get scored over these chords" />} />
+      {/* TunerZ listens in the browser and sends nothing anywhere; its drill history is the one
+          server call, and it already renders an empty list when that call is refused, so it is
+          safe logged-out. Saving a drill only exists in drill mode, which a coach take opens. */}
+      <Route path="/tool/tunerz" element={<PublicTool title="TunerZ" heading="Free online instrument tuner — TunerZ"
+             blurb="Tune guitar, bass, violin and more from your mic, right in your browser." el={<TunerZ />}
+             pitch="In tune and ready? Play a take and an AI coach scores it — what's working and what to fix. Free, no account."
+             cta="Get your take scored" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
