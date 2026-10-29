@@ -1965,3 +1965,29 @@ The old card made three claims that were not true, and all three are gone:
 - "Advanced analytics". It was never built.
 
 Value shown to a visitor is only what the server actually gates. Somebody who joins on a false claim stops believing the true ones.
+
+## SessionZ is a list of finished workouts first (Jefit-simple)
+
+The top is one compact start bar: **Start a custom session**, then a routine select with **Start** and **Fit to equipment**. It used to be a tall card per routine, which pushed the history off the first screen. A routine with no lifts has Start disabled and says why.
+
+Each finished session is one row:
+- **Left:** the date.
+- **Middle:** title, time, sets and reps, and the lifts.
+- **Right:** the weight lifted, large.
+- **Score line:** "Done N% of the plan" (the server's `done_pct`; absent for a custom session, never 0) and "Routine Thorough N/10" drawn with `RatingNumber`, labelled as the routine's rating now.
+- **Buttons:** **Begin**, **Edit**, **More**. Details, Save as routine, Write about it, the AI read and Delete live under More.
+
+**Begin** runs the session's routine again. A custom session has no routine, so its button reads **Save & begin** and says beside it that it keeps the workout as a routine first. A button must never save something it does not say it saves.
+
+Filters: search stays visible; the date range and "needs a look" sit behind "Filter by date".
+
+**Adding a lift is by muscle AND equipment everywhere.** `ExercisePicker` now has equipment toggles (the shared `EquipmentPicker`, none = any) beside the muscle select. Because Today's "add an exercise", the past-workout editor and the swap control all use that picker, they gained it at once. The routine designer already had both filters.
+
+## The live logger says WHICH lift, and a wrong set is undone on the spot
+
+A member logged sets against the wrong exercise: every planned lift is its own card with its own Log button, and nothing said which one a tap would log. Three changes, all in `LoggerRow`:
+- **The button names the lift:** "Log set for Dumbbell Fly". The lift you are on carries a green ring and "next".
+- **What was logged is said back:** "✓ Logged Dumbbell Fly — 12 @ 20 lb", with **Wrong lift? Undo** beside it. Undo calls the server's single-set delete, so nothing stays half-removed.
+- **Every logged set chip has an ✕** (with a confirm that names the lift and the set), for a slip noticed later in the same session.
+
+A past session is still edited from SessionZ → Edit; the point is that the common slip no longer needs it.

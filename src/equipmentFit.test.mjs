@@ -120,9 +120,33 @@ const fitUi = readFileSync(new URL("./apps/EquipmentFit.jsx", import.meta.url), 
 
 test("SessionZ starts a session from a routine or a custom one, and a routine can be fitted before starting", () => {
   const sessionz = bodiez.slice(bodiez.indexOf("function SessionZView"), bodiez.indexOf("// Same scheduler shape"));
-  for (const needle of ["Start a custom session", "Or start from a routine", "Fit to equipment", "EquipmentFit", "Continue it"]) {
+  for (const needle of ["Start a custom session", "Routine to start", "Fit to equipment", "EquipmentFit", "Continue it"]) {
     assert.ok(sessionz.includes(needle), needle);
   }
+});
+
+test("SessionZ leads with the finished sessions: weight lifted, how much of the plan, and Begin / Edit on every row", () => {
+  const sessionz = bodiez.slice(bodiez.indexOf("function SessionZView"), bodiez.indexOf("// Same scheduler shape"));
+  for (const needle of ["lifted", "h.done_pct", "Routine Thorough", "RatingNumber", ">Edit<", "Save & begin", "Begin"]) {
+    assert.ok(sessionz.includes(needle) || sessionz.includes(needle.replace(">", "").replace("<", "")), needle);
+  }
+  // A custom session has no plan, so it must never show a made-up "done" figure.
+  assert.ok(sessionz.includes("h.done_pct != null"));
+});
+
+test("the exercise picker narrows by muscle AND equipment, so a session can add a lift the way a routine does", () => {
+  const picker = readFileSync(new URL("./apps/ExercisePicker.jsx", import.meta.url), "utf8");
+  for (const needle of ["Narrow by muscle", "By equipment", "EquipmentPicker", "toggleEquipment"]) {
+    assert.ok(picker.includes(needle), needle);
+  }
+});
+
+test("the live logger names the lift on the button, confirms what was logged, and lets a wrong set be taken back", () => {
+  const row = bodiez.slice(bodiez.indexOf("function LoggerRow"), bodiez.indexOf("function TodayView"));
+  for (const needle of ["Log set for {planned.name}", "Logged {planned.name}", "Wrong lift? Undo", "onUndoSet", "Remove this"]) {
+    assert.ok(row.includes(needle), needle);
+  }
+  assert.ok(bodiez.includes("async function undoSet"), "the screen must be able to drop a set from the open session");
 });
 
 test("a custom session can be saved to RoutineZ from the card shown when it ends", () => {
