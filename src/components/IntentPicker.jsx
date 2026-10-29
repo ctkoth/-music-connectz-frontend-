@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Compass } from "lucide-react";
 import { goToSpot } from "../goto.js";
+import { addSeeds } from "../yourApps.js";
 
 // "I'm here for ___" — a guided menu so a brand-new member picks the thing
 // they actually came to do instead of landing on the Dock and having to
@@ -148,6 +149,13 @@ export default function IntentPicker() {
   function pickRole(k) {
     setRoleKey(k);
     try { localStorage.setItem(LAST_ROLE_KEY, k); } catch { /* private mode — fine, just not remembered */ }
+    // What they said they are becomes their first apps: the scored take leads, then the rest of the role.
+    const r = ROLES.find((x) => x.key === k);
+    if (r) {
+      const tabs = [...r.predicates].sort((a, b) => (b.label === "Prove my SkillZ") - (a.label === "Prove my SkillZ"))
+        .map((p) => p.tab).filter((t) => t && t !== "toolz");
+      addSeeds([...new Set(tabs)]);
+    }
   }
 
   function go(p) {

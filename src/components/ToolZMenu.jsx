@@ -7,7 +7,7 @@ import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
-import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps } from '../yourApps.js';
+import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
 import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT } from '../focus.js';
 import './ToolZMenu.css';
 
@@ -347,7 +347,7 @@ function FocusTile({ appKey, onOpen, big }) {
 // "Your apps": the member's own, from what they pin and open (yourApps.js, kept on the device).
 function yourAppsNow() {
   const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [],
-                 exclude: ['toolz'], valid: tabKeys() };
+                 seeds: readSeeds(), exclude: ['toolz'], valid: tabKeys() };
   return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
 }
 

@@ -24,7 +24,7 @@ import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 import { FOCUS_MODE, inFocus } from "./focus.js";
 
-import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency } from "./yourApps.js";
+import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency, readSeeds } from "./yourApps.js";
 const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
 const FREE_PIN_LIMIT = 2;
@@ -182,7 +182,8 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   // Only relevant on the very first visit — the moment pins or real usage
   // exist, the dock is telling that member's OWN story instead of a generic
   // one, and this list gets out of the way for good.
-  const starterApps = STARTER_APPS.map((k) => byKey[k]).filter(Boolean);
+  // What they told us or came in through leads the starters (yourApps.js seeds), then the default loop.
+  const starterApps = [...new Set([...readSeeds(), ...STARTER_APPS])].map((k) => byKey[k]).filter(Boolean).slice(0, 4);
 
   // Escape closes it. ITS340's events chapter is blunt about this and so is
   // every keyboard user: an overlay you can only dismiss by finding and

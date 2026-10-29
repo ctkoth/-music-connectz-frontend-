@@ -7,6 +7,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { setLanding } from "../landing.js";
+import { addSeeds } from "../yourApps.js";
 import { REF_KEY } from "../referral.js";
 
 export default function RateInvite() {
@@ -22,6 +23,7 @@ export default function RateInvite() {
         // An explicit invite wins over any page-owner credit, the same as ?ref= on a join link.
         try { localStorage.setItem(REF_KEY, r.username); } catch { /* the ?ref on Join still carries it */ }
         setLanding(`/lookmaxz?for=${encodeURIComponent(r.username)}`);
+        addSeeds(["lookmaxz"]);
       })
       .catch(() => setGone(true));
   }, [handle]);

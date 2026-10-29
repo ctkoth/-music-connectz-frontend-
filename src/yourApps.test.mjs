@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { frecency, hasOwnApps, rankApps } from "./yourApps.js";
+import { SEED_MAX, frecency, hasOwnApps, rankApps, withSeeds } from "./yourApps.js";
 
 const now = Date.UTC(2026, 9, 29);
 const DAY = 86400000;
@@ -29,4 +29,15 @@ test("the home screen and anything excluded never appear, and only real tabs do"
 test("the home leads with your apps only once there are three of them", () => {
   assert.equal(hasOwnApps({ usage: { singz: 3, postz: 2 }, now }), false);
   assert.equal(hasOwnApps({ usage: { singz: 3, postz: 2, rapz: 2 }, now }), true);
+});
+
+test("a new member's seeds are their first apps, and real use pushes them down", () => {
+  assert.deepEqual(rankApps({ seeds: ["drumz", "battlez"], now }), ["drumz", "battlez"]);
+  assert.deepEqual(rankApps({ usage: { postz: 3 }, seeds: ["drumz"], now }), ["postz", "drumz"]);
+  assert.equal(hasOwnApps({ seeds: ["a", "b", "c"], now }), false);   // seeds are not use
+});
+
+test("seeding moves a repeat to the front and stays short", () => {
+  assert.deepEqual(withSeeds(["singz", "postz"], ["postz"]), ["postz", "singz"]);
+  assert.equal(withSeeds([], ["a", "b", "c", "d", "e", "f", "g"]).length, SEED_MAX);
 });

@@ -1,4 +1,4 @@
-import { peekLanding } from "./landing.js";
+import { clearLanding, peekLanding } from "./landing.js";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
@@ -686,6 +686,12 @@ function RequireAuth({ children }) {
 // (that redirect is still what every OTHER protected route does — a deep
 // link like /battle while logged out is someone who already knows what this
 // is, and /login is the right place to send them).
+// Use the landing slot once: a slot left set would keep turning the home screen into a redirect.
+function LandOnce({ to }) {
+  useEffect(() => { clearLanding(); }, []);
+  return <Navigate to={to} replace />;
+}
+
 function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) {
@@ -697,7 +703,7 @@ function RootRoute() {
   }
   // A link that went through /login or /register (an invite) says where it meant to land.
   const land = user ? peekLanding() : "";
-  if (land) return <Navigate to={land} replace />;
+  if (land) return <LandOnce to={land} />;
   return user ? <Home /> : <Landing />;
 }
 

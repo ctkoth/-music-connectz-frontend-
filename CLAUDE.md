@@ -1944,3 +1944,13 @@ existing count). On device only, never sent. The home screen (`ToolZMenu`) leads
 stop getting in the way. A new member, with no history, still sees the coaches first. The dock's AI picks use the same
 frecency, so the two agree. Nothing is hidden from search or routing, and a pin always wins. `yourApps.test.mjs` pins it.
 Not checked in a browser yet.
+
+### A new member's first apps are the ones they told us about, and joining lands them back where they came in
+
+`yourApps.js` **seeds** (`mcz_app_seed`, `addSeeds`, at most `SEED_MAX` 6) fill "Your apps" and the dock's starters until real
+use takes over: the coach a visitor tried (`TrialTake`), the role picked in OnboardZ's "I'm here for…" (`IntentPicker`: the scored
+take first, then the role's other doors), and LookZMaxZ for somebody who came through an invite. Seeds are never counted as use
+(`hasOwnApps` ignores them), so the coach grid still shows until a member has three apps of their own. A visitor who joins from a
+trial door lands back on that coach (`setLanding` → `RootRoute`'s `LandOnce`, which clears the slot as it is used — before this
+only LookZMaxZ cleared it, so a slot could keep redirecting home for its full 30 minutes), and the habit onboarding asks about
+the coach they came through instead of always SingZ.

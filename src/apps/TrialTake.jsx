@@ -15,6 +15,9 @@ import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
 import { api } from "../api.js";
 import { track } from "../track.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { setLanding } from "../landing.js";
+import { addSeeds } from "../yourApps.js";
 import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 import RetakeRemind from "../components/RetakeRemind.jsx";
 import { beatVerdict } from "../challenge.js";
@@ -129,6 +132,14 @@ export default function TrialTake() {
   // Fired once the door list is known, so an unknown /try/<key> is counted as
   // the door it actually opened rather than as one that does not exist.
   useEffect(() => { if (doorsLoaded) track("try_view", { app_key: app }); }, [app, doorsLoaded]);
+  // The coach somebody came in through is their first app: it leads "Your apps", and a visitor
+  // who joins from here lands back on it instead of the generic home screen (yourApps.js).
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!doorsLoaded) return;
+    addSeeds([app]);
+    if (!user && app !== "bodiez") setLanding(`/${app.endsWith("z") ? app.slice(0, -1) : app}`);
+  }, [app, doorsLoaded, user]);
 
   const freeDaily = Number(tiers?.find?.((t) => t.key === "free")?.daily_prompts) || 0;
 
