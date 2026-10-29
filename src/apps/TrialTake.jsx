@@ -13,6 +13,7 @@ import { Link, useParams } from "react-router-dom";
 import { usePageTitle } from "../pageTitle.js";
 import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
+import TrialInspiration from "../components/TrialInspiration.jsx";
 import { api } from "../api.js";
 import { track } from "../track.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -66,10 +67,13 @@ export default function TrialTake() {
   // count one visitor twice and, on a door the fallback doesn't know, count
   // them at the wrong door first.
   const [doorsLoaded, setDoorsLoaded] = useState(false);
-  const known = doors.some((d) => d.app_key === appKey);
+  // Until the server's list has answered, trust the address: the two-door fallback would flip
+  // /try/guitarz to SingZ for the moment before it loaded (and mount the wrong coach's recorder).
+  const known = !doorsLoaded || doors.some((d) => d.app_key === appKey);
   const app = known ? appKey : "singz";
   const label = doors.find((d) => d.app_key === app)?.label || "SingZ";
   const [scored, setScored] = useState(false);
+  const [heard, setHeard] = useState({ blob: null, name: "" });   // what is in the recorder, for Inspiration
   const [score, setScore] = useState(null);
   const [exact, setExact] = useState(null);
   // "Beat my score": a share card's link carries its token (?beat=). Somebody
@@ -264,8 +268,14 @@ export default function TrialTake() {
       )}
 
       <div id="trial-recorder" className={bossTakeReady ? "" : "hidden"}>
-        <BossTake key={round} appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
+        <BossTake key={round} appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)}
+                  onTake={(blob, name) => setHeard({ blob, name })} />
       </div>
+
+      {!scored && bossTakeReady && (
+        <TrialInspiration appKey={app} take={heard.blob} takeName={heard.name}
+                          onSpent={(d) => setTakesLeft(Number(d.takes_left) || 0)} />
+      )}
 
       {!scored && (
         <p className="mt-4 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 text-[13px] text-white/75">

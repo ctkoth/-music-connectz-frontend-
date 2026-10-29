@@ -259,7 +259,7 @@ function CoachVoicePlayer({ result }) {
 // `trial` swaps the member coach for the no-account door. Same recorder, same
 // rubric, same score chips — the only differences are the endpoint, the price
 // line, and what happens after the score.
-export default function BossTake({ appKey = "singz", trial = false, onResult, onReady }) {
+export default function BossTake({ appKey = "singz", trial = false, onResult, onReady, onTake }) {
   const { user } = useAuth();
   // "Beat this score" from a share card, for a signed-in member (a visitor gets the
   // trial door, which does the same). The number to beat is the server's record of
@@ -330,6 +330,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // preview has to be a <video> or the member can't check what they sent.
   const [isVideo, setIsVideo] = useState(false);
   const [takeName, setTakeName] = useState("take.webm");
+  // Lets a host screen (the free door's Inspiration) see the take that is in the recorder, as a file.
+  useEffect(() => { onTake?.(blob, takeName); }, [blob, takeName]); // eslint-disable-line react-hooks/exhaustive-deps
   const [url, setUrl] = useState("");
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);

@@ -14,7 +14,7 @@ import { addSide, asFile, asLink, asPost, asUpload, linkVerdict, listenable, mat
 // The server names what each side was; a post is called by its title and artist.
 // The material that was compared, shown with the result (Corey: every AI coach result can show
 // what it read). A file plays from the member's own device; a link opens where it lives.
-function SideMedia({ side, label }) {
+export function SideMedia({ side, label }) {
   const [src, setSrc] = useState("");
   useEffect(() => {
     if (side?.kind !== "file") return undefined;
@@ -38,13 +38,13 @@ const DIR = { more: "needs more", less: "needs less", close: "already close" };
 
 // One side of the comparison: a file from the device, or something already on the platform. Choosing
 // a post here is the same thing PostZ's "Coach it" door does for a take — nothing is uploaded twice.
-function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUploads, linkSources }) {
+export function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUploads, linkSources, noPosts }) {
   const [open, setOpen] = useState(null);       // null | "posts" | "files" | "link"
   const [url, setUrl] = useState("");
   const verdict = linkVerdict(url, linkSources);
   const [q, setQ] = useState("");
   const [scope, setScope] = useState(mine ? "mine" : "all");
-  const list = withRecording(scope === "mine" ? posts.mine : posts.all).filter((p) => matches(p, q)).slice(0, 40);
+  const list = withRecording(scope === "mine" ? posts?.mine : posts?.all).filter((p) => matches(p, q)).slice(0, 40);
   const files = listenable(uploads).filter((u) => matches({ title: u.name }, q)).slice(0, 40);
   const choose = (s) => { onSide(s); setOpen(null); setQ(""); };
   const btn = "rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/70 hover:text-white disabled:opacity-40";
@@ -59,9 +59,11 @@ function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUplo
           <input type="file" accept="audio/*,video/*" className="hidden" disabled={disabled}
                  onChange={(e) => { const f = e.target.files?.[0]; if (f) choose(asFile(f)); e.target.value = ""; }} />
         </label>
-        <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "posts" ? null : "posts")}>
-          A post
-        </button>
+        {!noPosts && (
+          <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "posts" ? null : "posts")}>
+            A post
+          </button>
+        )}
         {allowUploads && (
           <button type="button" className={btn} disabled={disabled} onClick={() => setOpen(open === "files" ? null : "files")}
                   title="Anything your other apps made — Mix, Instrumental, Video — lives in FileZ">
@@ -138,6 +140,88 @@ function compareLine(c, label) {
   return parts.join(" · ") + ".";
 }
 
+// The comparison's result, drawn once for the member's Inspiration and the free door's. `trial` only
+// drops what needs an account (the Sentence ConnectZ hand-off) and words the cost as the free take.
+export function InspirationResult({ res, scores, genre, trial = false }) {
+  const toLyrics = () => handOff("sentenceconnectz", "", {
+    kind: "lyrics", genre,
+    text: `Rewrite my lyrics with this direction (the reference's words are not used):\n${res.lyric_direction}\n\nMy lyrics:\n`,
+  });
+  return (
+    <div className="space-y-3">
+      {res.sources && (
+        <p className="text-white/50">
+          Compared {sideLabelOf(res.sources.take)} against {sideLabelOf(res.sources.reference)}.
+        </p>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <SideMedia side={res.took} label="Your take" />
+        <SideMedia side={res.against} label="The reference" />
+      </div>
+      <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
+      <p>{res.summary}</p>
+      {res.overall && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <RatingRow value={res.overall.take} outOf label="Your take" detail={res.overall.take_why} />
+          <RatingRow value={res.overall.reference} outOf label="The reference" detail={res.overall.reference_why} />
+        </div>
+      )}
+      {res.compare?.dimensions?.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-white/70">
+            {compareLine(res.compare, (k) => scores?.[k] || k)}
+          </p>
+          <ul className="grid gap-1 sm:grid-cols-2">
+            {res.compare.dimensions.map((r) => (
+              <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-white/5 px-2 py-1">
+                <span>{scores?.[r.key] || r.key}</span>
+                <span className="tabular-nums">
+                  you <RatingNumber value={r.take} size="sm" /> · ref <RatingNumber value={r.reference} size="sm" />
+                  <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/40"}`}>
+                    {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `ref +${-r.gap}` : "even"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-white/40">Both rated on one 1-10 scale so they compare. Nothing here is saved as your score.</p>
+        </div>
+      )}
+      {res.eq?.length > 0 && (
+        <div>
+          <p className="font-semibold text-white">EQ</p>
+          {res.eq.map((e) => (
+            <p key={e.region} className="mt-1"><b>{e.label} ({e.hz}) — {DIR[e.direction]}.</b> {e.what} {e.how && <span className="text-emerald-300">→ {e.how}</span>}</p>
+          ))}
+          <p className="mt-1 text-white/45">{res.eq_note}</p>
+        </div>
+      )}
+      {res.how_to?.map((h, i) => (
+        <div key={i}><p className="font-semibold text-white">{h.what}</p><p>{h.why}</p><p className="text-emerald-300">{h.how}</p></div>
+      ))}
+      {res.keep && <p><b>Keep:</b> {res.keep}</p>}
+      {res.lyric_direction && (
+        <div className="rounded border border-white/10 p-2">
+          <p className="font-semibold text-white">Lyrics</p>
+          <p>{res.lyric_direction}</p>
+          <p className="text-white/45">{res.lyric_note}</p>
+          {!trial && (
+            <button type="button" onClick={toLyrics} className="mt-1 rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
+              Rewrite my lyrics in Sentence ConnectZ
+            </button>
+          )}
+        </div>
+      )}
+      <p className="text-white/40">
+        {trial
+          ? "Not saved. This used one free take."
+          : <>Not saved. Cost {res.cost_cents ? `${res.cost_cents} ${PROMPTZ}` : "a free daily prompt"}
+            {res.energy_cost > 0 ? ` and ${res.energy_cost} ${ENERGY}` : ""}.</>}
+      </p>
+    </div>
+  );
+}
+
 export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   const [info, setInfo] = useState(null);
   const [take, setTake] = useState(null);
@@ -185,11 +269,6 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
     } finally { setBusy(false); }
   };
 
-  const toLyrics = () => handOff("sentenceconnectz", "", {
-    kind: "lyrics", genre,
-    text: `Rewrite my lyrics with this direction (the reference's words are not used):\n${res.lyric_direction}\n\nMy lyrics:\n`,
-  });
-
   return (
     <section className="mt-3 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
       <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
@@ -215,75 +294,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
       {needsEnergy && <p className="text-white/45">{info.post_note}</p>}
       {err && <p className="text-red-300">{err}</p>}
       {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}
-      {res && !res.unscorable && (
-        <div className="space-y-3">
-          {res.sources && (
-            <p className="text-white/50">
-              Compared {sideLabelOf(res.sources.take)} against {sideLabelOf(res.sources.reference)}.
-            </p>
-          )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <SideMedia side={res.took} label="Your take" />
-            <SideMedia side={res.against} label="The reference" />
-          </div>
-          <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
-          <p>{res.summary}</p>
-          {res.overall && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <RatingRow value={res.overall.take} outOf label="Your take" detail={res.overall.take_why} />
-              <RatingRow value={res.overall.reference} outOf label="The reference" detail={res.overall.reference_why} />
-            </div>
-          )}
-          {res.compare?.dimensions?.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-white/70">
-                {compareLine(res.compare, (k) => info.scores?.[k] || k)}
-              </p>
-              <ul className="grid gap-1 sm:grid-cols-2">
-                {res.compare.dimensions.map((r) => (
-                  <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-white/5 px-2 py-1">
-                    <span>{info.scores?.[r.key] || r.key}</span>
-                    <span className="tabular-nums">
-                      you <RatingNumber value={r.take} size="sm" /> · ref <RatingNumber value={r.reference} size="sm" />
-                      <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/40"}`}>
-                        {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `ref +${-r.gap}` : "even"}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-white/40">Both rated on one 1-10 scale so they compare. Nothing here is saved as your score.</p>
-            </div>
-          )}
-          {res.eq?.length > 0 && (
-            <div>
-              <p className="font-semibold text-white">EQ</p>
-              {res.eq.map((e) => (
-                <p key={e.region} className="mt-1"><b>{e.label} ({e.hz}) — {DIR[e.direction]}.</b> {e.what} {e.how && <span className="text-emerald-300">→ {e.how}</span>}</p>
-              ))}
-              <p className="mt-1 text-white/45">{res.eq_note}</p>
-            </div>
-          )}
-          {res.how_to?.map((h, i) => (
-            <div key={i}><p className="font-semibold text-white">{h.what}</p><p>{h.why}</p><p className="text-emerald-300">{h.how}</p></div>
-          ))}
-          {res.keep && <p><b>Keep:</b> {res.keep}</p>}
-          {res.lyric_direction && (
-            <div className="rounded border border-white/10 p-2">
-              <p className="font-semibold text-white">Lyrics</p>
-              <p>{res.lyric_direction}</p>
-              <p className="text-white/45">{res.lyric_note}</p>
-              <button type="button" onClick={toLyrics} className="mt-1 rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
-                Rewrite my lyrics in Sentence ConnectZ
-              </button>
-            </div>
-          )}
-          <p className="text-white/40">
-            Not saved. Cost {res.cost_cents ? `${res.cost_cents} ${PROMPTZ}` : "a free daily prompt"}
-            {res.energy_cost > 0 ? ` and ${res.energy_cost} ${ENERGY}` : ""}.
-          </p>
-        </div>
-      )}
+      {res && !res.unscorable && <InspirationResult res={res} scores={info.scores} genre={genre} />}
     </section>
   );
 }
