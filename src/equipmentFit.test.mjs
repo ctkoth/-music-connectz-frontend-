@@ -141,6 +141,14 @@ test("the exercise picker narrows by muscle AND equipment, so a session can add 
   }
 });
 
+test("the live logger names the lift on the button, confirms what was logged, and lets a wrong set be taken back", () => {
+  const row = bodiez.slice(bodiez.indexOf("function LoggerRow"), bodiez.indexOf("function TodayView"));
+  for (const needle of ["Log set for {planned.name}", "Logged {planned.name}", "Wrong lift? Undo", "onUndoSet", "Remove this"]) {
+    assert.ok(row.includes(needle), needle);
+  }
+  assert.ok(bodiez.includes("async function undoSet"), "the screen must be able to drop a set from the open session");
+});
+
 test("a custom session can be saved to RoutineZ from the card shown when it ends", () => {
   const card = bodiez.slice(bodiez.indexOf("function SessionSummary"), bodiez.indexOf("function SessionSummary") + 16000);
   for (const needle of ["Save to RoutineZ", "canSaveRoutine", "!sm.routine_title", "top set becomes the target"]) {

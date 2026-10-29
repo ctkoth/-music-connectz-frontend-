@@ -1982,3 +1982,12 @@ Each finished session is one row:
 Filters: search stays visible; the date range and "needs a look" sit behind "Filter by date".
 
 **Adding a lift is by muscle AND equipment everywhere.** `ExercisePicker` now has equipment toggles (the shared `EquipmentPicker`, none = any) beside the muscle select. Because Today's "add an exercise", the past-workout editor and the swap control all use that picker, they gained it at once. The routine designer already had both filters.
+
+## The live logger says WHICH lift, and a wrong set is undone on the spot
+
+A member logged sets against the wrong exercise: every planned lift is its own card with its own Log button, and nothing said which one a tap would log. Three changes, all in `LoggerRow`:
+- **The button names the lift:** "Log set for Dumbbell Fly". The lift you are on carries a green ring and "next".
+- **What was logged is said back:** "✓ Logged Dumbbell Fly — 12 @ 20 lb", with **Wrong lift? Undo** beside it. Undo calls the server's single-set delete, so nothing stays half-removed.
+- **Every logged set chip has an ✕** (with a confirm that names the lift and the set), for a slip noticed later in the same session.
+
+A past session is still edited from SessionZ → Edit; the point is that the common slip no longer needs it.

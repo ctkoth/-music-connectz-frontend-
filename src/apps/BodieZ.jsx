@@ -357,7 +357,20 @@ export default function BodieZ() {
       // Functional, because "copy last time" logs several sets back to back and
       // each would otherwise overwrite the last with a stale copy of the session.
       setSession((cur) => (cur ? { ...cur, sets: [...cur.sets, s] } : cur));
-    } catch (e) { setErr(e.message); }
+      return s;
+    } catch (e) { setErr(e.message); return null; }
+  }
+
+  // Take back ONE set of the session being logged — a set on the wrong lift is the commonest slip, and fixing it
+  // should not mean leaving the workout. Pessimistic: the set only leaves the screen once the server has dropped it.
+  async function undoSet(setId) {
+    if (!session) return false;
+    try {
+      await api(`/api/economy/bodiez/sessions/${session.id}/sets/${setId}/`, { method: "DELETE" });
+      setSession((cur) => (cur ? { ...cur, sets: cur.sets.filter((x) => x.id !== setId) } : cur));
+      setErr("");
+      return true;
+    } catch (e) { setErr(e.message || "Couldn't take that set back."); return false; }
   }
 
   // Dragging a logged set: a display order only — rest, time and weight are untouched.
@@ -653,7 +666,7 @@ export default function BodieZ() {
             )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
-              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
+              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onUndoSet={undoSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -1410,12 +1423,13 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
+function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
                      grip = null, onReorder = null, pair = null }) {
   const unit = useUnit();
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [justLogged, setJustLogged] = useState(null);   // the set this card just logged, so it can be named and taken back
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
@@ -1434,13 +1448,20 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   // Repeat / copy re-log EXISTING numbers as new sets, in the unit the member
   // sees; the server stamps the real time, so rest between them is true.
   const shown = (kg) => (kg != null ? fromKg(kg, unit) : "");
-  const repeatLast = () => onLogSet(planned.exercise_id, lastDone.reps, shown(lastDone.weight_kg), lastDone.one_sided || "");
+  const log = async (reps_, weight_, side_) => { const made = await onLogSet(planned.exercise_id, reps_, weight_, side_); if (made) setJustLogged(made); return made; };
+  const undo = async () => { if (justLogged && (await onUndoSet?.(justLogged.id))) setJustLogged(null); };
+  const removeSet = async (st) => {
+    if (!onUndoSet) return;
+    if (!window.confirm(`Remove ${planned.name}: ${st.reps}${st.weight_kg != null ? ` @ ${fmtWeight(st.weight_kg, unit)}` : ""}?`)) return;
+    if (await onUndoSet(st.id) && justLogged?.id === st.id) setJustLogged(null);
+  };
+  const repeatLast = () => log(lastDone.reps, shown(lastDone.weight_kg), lastDone.one_sided || "");
   const copyLastTime = async () => {
-    for (const st of last.sets) await onLogSet(planned.exercise_id, st.reps, shown(st.weight_kg), st.one_sided || "");
+    for (const st of last.sets) await log(st.reps, shown(st.weight_kg), st.one_sided || "");
   };
 
   return (
-    <div className="re-card space-y-2">
+    <div className={`re-card space-y-2 ${isNext ? "ring-1 ring-emerald-400/40" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         {grip}
         {muscleIcon(planned.muscle_group) && (
@@ -1509,10 +1530,16 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
                value={reps} onChange={(e) => setReps(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 disabled={!reps}
-                onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight), side)}>
-          <Plus size={13} /> Log set
+                onClick={() => log(Number(reps), weight === "" ? "" : Number(weight), side)}>
+          <Plus size={13} /> Log set for {planned.name}
         </button>
       </div>
+      {justLogged && (
+        <p role="status" className="flex flex-wrap items-center gap-x-2 text-xs text-emerald-300">
+          <span>✓ Logged {planned.name} — {justLogged.reps}{justLogged.weight_kg != null ? ` @ ${fmtWeight(justLogged.weight_kg, unit)}` : ""}</span>
+          {onUndoSet && <button type="button" className="font-semibold underline" onClick={undo}>Wrong lift? Undo</button>}
+        </p>
+      )}
       {doneSets.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {doneSets.map((s, si) => (
@@ -1522,6 +1549,12 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
+              {onUndoSet && (
+                <button type="button" className="ml-1 rounded p-0.5 text-white/30 hover:text-mcz-ember" aria-label={`Remove this ${planned.name} set`}
+                        title="Remove this set" onClick={() => removeSet(s)}>
+                  <X size={11} />
+                </button>
+              )}
             </span>
           ))}
         </div>
@@ -1530,7 +1563,7 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets, onPairs,
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1652,6 +1685,12 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
   // The most recent set, and the lift a rest alert should point at when it fires.
   const lastLogged = asList(session.sets).reduce(
     (a, x) => (x.created_at && (!a || x.created_at > a.created_at) ? x : a), null);
+  const upNextId = (() => {
+    for (const b of blocks(planned)) {
+      if (b.single && (setsByExercise[b.single.exercise_id] || []).length < (b.single.sets || 3)) return b.single.exercise_id;
+    }
+    return null;
+  })();
   const upNext = (() => {
     for (const b of blocks(planned)) {
       if (b.single) {
@@ -1707,8 +1746,9 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
               return (
                 <div key={p.exercise_id} {...dndPlan.row(bi)} className={`rounded-xl${dndPlan.rowClass(bi)}`}>
                   <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
+                             isNext={upNextId === p.exercise_id}
                              onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
-                             onLogSet={onLogSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
+                             onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
                 </div>
               );
             }
@@ -1727,10 +1767,10 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
-                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(x)}
                            onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
                            tag={`${b.group}1`} isNext={started && nxt === 0} pair={pairFor(x.exercise_id)} />
-                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(y)}
                            onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
                            tag={`${b.group}2`} isNext={started && nxt === 1} pair={pairFor(y.exercise_id)} />
               </div>
@@ -1741,7 +1781,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
       {trailingExtras.map((r) => (
         <LoggerRow key={r.exercise_id} planned={r}
-                   doneSets={setsByExercise[r.exercise_id]} onLogSet={onLogSet}
+                   doneSets={setsByExercise[r.exercise_id]} onLogSet={onLogSet} onUndoSet={onUndoSet}
                    onReorder={(f, t) => reorderWithin(r.exercise_id, f, t)} pair={pairFor(r.exercise_id)} />
       ))}
 
