@@ -679,6 +679,45 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+// A tab address that is ALSO a trial door — musicconnectz.net/rap, /sing, /guitar — is a
+// link people put in bios, ads and DMs, and a stranger who taps it must land on the
+// free scored take, not a sign-in form. A member still gets the tab, as before.
+//
+// Which tabs have a door is the SERVER's list (`/trialdoorz/`, read off the mounted
+// routes), never typed here: a new instrument's coach becomes a working /<slug> link the
+// moment it is mounted. If the list can't be fetched the two doors that have always
+// existed still open, and anything else goes to /login exactly as it did.
+// `/try/bodiez` is not a scored instrument so it is not in that list; it is a known
+// trial route of its own and is named here for the same reason it is named in <Routes>.
+// The query string travels with the redirect: ?src= (channel), ?ref= (who sent them)
+// and ?beat= (a score card's dare) are all read by the trial screen.
+const TRIAL_DOOR_FALLBACK = ["singz", "rapz"];
+function TrialOrApp({ tabKey, children }) {
+  const { user, loading } = useAuth();
+  const here = useLocation();
+  const [doors, setDoors] = useState(null); // null = not asked yet / in flight
+  useEffect(() => {
+    if (loading || user) return undefined;
+    let on = true;
+    api("/api/economy/trialdoorz/", { auth: false })
+      .then((d) => { if (on) setDoors(d?.doors?.length ? d.doors.map((x) => x.app_key) : TRIAL_DOOR_FALLBACK); })
+      .catch(() => { if (on) setDoors(TRIAL_DOOR_FALLBACK); });
+    return () => { on = false; };
+  }, [loading, user]);
+  if (user) return children;
+  if (loading || doors === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  if (doors.includes(tabKey) || tabKey === "bodiez") {
+    return <Navigate to={`/try/${tabKey}${here.search}${here.hash}`} replace />;
+  }
+  return <Navigate to="/login" replace />;
+}
+
 // "/" is the one URL that gets shared, indexed and clicked cold — the
 // index.html SEO meta and every OG card point at it. A signed-in member
 // should land in the app; anyone else gets the marketing page that makes
@@ -1561,9 +1600,9 @@ export default function App() {
           key={t.key}
           path={`/${slugFor(t.key)}`}
           element={
-            <RequireAuth>
+            <TrialOrApp tabKey={t.key}>
               <Home />
-            </RequireAuth>
+            </TrialOrApp>
           }
         />
       ))}
