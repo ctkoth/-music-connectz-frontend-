@@ -12,6 +12,27 @@ import { addSide, asFile, asLink, asPost, asUpload, linkVerdict, listenable, mat
 // The lyric half hands a DIRECTION to Sentence ConnectZ; the reference's words
 // are never shown or carried.
 // The server names what each side was; a post is called by its title and artist.
+// The material that was compared, shown with the result (Corey: every AI coach result can show
+// what it read). A file plays from the member's own device; a link opens where it lives.
+function SideMedia({ side, label }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    if (side?.kind !== "file") return undefined;
+    const u = URL.createObjectURL(side.file);
+    setSrc(u);
+    return () => URL.revokeObjectURL(u);
+  }, [side]);
+  if (side?.kind === "link") return <a className="re-link text-[12px]" href={side.url} target="_blank" rel="noreferrer">{label}: open the video</a>;
+  if (side?.kind !== "file" || !src) return null;
+  const video = String(side.file.type || "").startsWith("video");
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[11px] text-white/45">{label}</p>
+      {video ? <video src={src} controls className="max-h-48 w-full rounded" /> : <audio src={src} controls className="w-full" />}
+    </div>
+  );
+}
+
 const sideLabelOf = (x) => (x?.kind === "link" ? `a YouTube video${x.start_seconds ? ` from ${Math.floor(x.start_seconds / 60)}:${String(x.start_seconds % 60).padStart(2, "0")}` : ""}` : x?.kind === "post" ? `"${x.title}" by @${x.author}` : x?.title ? `"${x.title}"` : "your file");
 const DIR = { more: "needs more", less: "needs less", close: "already close" };
 
@@ -158,7 +179,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
       addSide(f, "take", mine);
       addSide(f, "reference", ref);
       if (genre) f.append("genre", genre);
-      setRes(await api(`/api/${appKey}/match/`, { method: "POST", body: f }));
+      setRes({ ...(await api(`/api/${appKey}/match/`, { method: "POST", body: f })), took: mine, against: ref });
     } catch (e) {
       setErr(`${e.message} Nothing was charged.`);
     } finally { setBusy(false); }
@@ -201,6 +222,10 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
               Compared {sideLabelOf(res.sources.take)} against {sideLabelOf(res.sources.reference)}.
             </p>
           )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <SideMedia side={res.took} label="Your take" />
+            <SideMedia side={res.against} label="The reference" />
+          </div>
           <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
           <p>{res.summary}</p>
           {res.overall && (

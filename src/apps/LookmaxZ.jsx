@@ -267,6 +267,7 @@ function AskForReading({ d }) {
   const [msg, setMsg] = useState("");
   const [photos, setPhotos] = useState({});
   const [ok, setOk] = useState({});
+  const [show, setShow] = useState({});
   const load = () => api("/api/economy/lookmaxz/ask/").then(setA).catch(() => setA(null));
   useEffect(() => { load(); }, []);
   if (!a) return null;
@@ -286,7 +287,7 @@ function AskForReading({ d }) {
   async function answer(id, decision) {
     setBusy(true); setMsg("");
     try {
-      await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "POST", body: { decision, confirm_self: !!ok[id] } });
+      await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "POST", body: { decision, confirm_self: !!ok[id], show_photo: !!show[id] } });
       setMsg(decision === "approve" ? "Read — it's under Your shared readings, and they can see it." : "Declined. The photo is deleted.");
       window.dispatchEvent(new Event("mcz-lookshares-refresh")); load();
     } catch (x) { setMsg(x.message); } finally { setBusy(false); }
@@ -309,6 +310,10 @@ function AskForReading({ d }) {
           <label className="flex items-start gap-2 text-[12px] text-white/75">
             <input type="checkbox" className="mt-0.5" checked={!!ok[r.id]} onChange={(e) => setOk((o) => ({ ...o, [r.id]: e.target.checked }))} />
             This is a photo of me and I want it read.
+          </label>
+          <label className="flex items-start gap-2 text-[12px] text-white/75">
+            <input type="checkbox" className="mt-0.5" checked={!!show[r.id]} onChange={(e) => setShow((o) => ({ ...o, [r.id]: e.target.checked }))} />
+            Show the photo with the reading (kept as my upload, in my storage)
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy || !ok[r.id] || !photos[r.id]} onClick={() => answer(r.id, "approve")}>Approve</button>
@@ -394,6 +399,8 @@ function Inspiration({ d, openShelf }) {
 
 export default function LookmaxZ() {
   const { user } = useAuth();
+  const [keep, setKeep] = useState(false);
+  const [readPhoto, setReadPhoto] = useState("");   // what the coach read, shown above the result
   // ?for=<handle> arrives from an invite (/rate/<handle>); ?look=<token> opens a shared reading.
   const [q] = useState(() => new URLSearchParams(window.location.search));
   const inviter = (q.get("for") || "").slice(0, 40);
@@ -421,6 +428,8 @@ export default function LookmaxZ() {
     try {
       const body = photoBody(file, url);
       body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
+      if (keep) body.append("keep_photo", "true");
+      setReadPhoto(file ? URL.createObjectURL(file) : url.trim());
       picked.filter((k) => d.opt_in_sectors?.includes(k)).forEach((k) => body.append(`${k}_ack`, "true"));
       const r = await api("/api/economy/lookmaxz/", { method: "POST", body });
       setRes(r);
@@ -446,7 +455,7 @@ export default function LookmaxZ() {
         <h2 className="font-display text-xl font-extrabold text-white">✨ LookZMaxZ</h2>
         <p className="text-[12px] leading-snug text-white/60">
           What you can change about how you present — face, skin, teeth, styling and body — with what to do about it and where to shop.
-          It never rates bone structure, face shape or body shape. Your photo is never kept, and your score is kept only if you choose to share it.
+          It never rates bone structure, face shape or body shape. Your photo is kept only if you tick Keep my photo, and your score only if you share it.
         </p>
       </header>
 
@@ -489,6 +498,12 @@ export default function LookmaxZ() {
               <input type="checkbox" checked={self} onChange={(e) => setSelf(e.target.checked)} className="mt-0.5" />
               This is a photo of me. I'm not uploading anyone else's.
             </label>
+            {d.keep_note && (
+              <label className="flex items-start gap-2 text-[12px] text-white/70">
+                <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="mt-0.5" />
+                <span>Keep my photo with this reading <span className="block text-[11px] text-white/40">{d.keep_note}</span></span>
+              </label>
+            )}
             <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of yourself" />
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" className="re-btn !w-auto px-4" disabled={busy || !(file || (url.trim() && !pageLink(url, d.page_hosts))) || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
@@ -523,6 +538,11 @@ export default function LookmaxZ() {
               ) : (
                 <>
                   <section className="neon-frame space-y-2 p-4">
+                    {(res.kept_photo?.url || readPhoto) && (
+                      <img src={res.kept_photo?.url || readPhoto} alt="The photo that was read" className="max-h-72 rounded-lg" />
+                    )}
+                    {res.kept_photo && !res.kept_photo.url && <p className="text-[11px] text-mcz-gold">{res.kept_photo.note}</p>}
+                    {res.kept_photo?.url && <p className="text-[11px] text-white/45">Kept as one of your uploads — delete it there any time.</p>}
                     <RatingRow value={res.overall} label="Overall — plain average of the sectors you asked for"
                       detail={res.verdict} size="lg" outOf />
                     {res.photo_quality != null && <RatingRow value={res.photo_quality} label="Photo quality — how well this photo shows you, not a score of you" size="sm" />}
@@ -534,7 +554,7 @@ export default function LookmaxZ() {
                   {Object.keys(res.sectors).map((k) => (
                     <Sector key={k} k={k} meta={meta[k]} data={res.sectors[k]} shop={res.shop?.[k]} affiliate={res.affiliate_note} />
                   ))}
-                  {res.share && <ShareReading reading={res.share.reading} note={res.share.note} prefillTo={inviter} />}
+                  {res.share && <ShareReading reading={res.share.reading} note={res.share.note} prefillTo={inviter} photoKept={res.share.photo_kept} />}
                 </>
               )}
             </div>

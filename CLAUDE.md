@@ -1926,3 +1926,11 @@ approves or declines; nothing is read before that, the requester pays only for a
 button), and the photo is deleted whatever happens. Approval becomes THEIR share to the requester. `PostIt` on a reading
 you own posts it to PostZ (Everyone / Members / Only me, `data-nomemo` because it is a privacy choice) — the post text is
 built by the server from the stored snapshot. Only the person in a reading can post it.
+
+### Every AI coach result can show what it read — LookZMaxZ included, no exception (Corey's rule)
+
+The material behind a result can be shown, by the person it belongs to, when they choose. Coach takes: Keep this take.
+LookZMaxZ: **Keep my photo** (opt-in per reading, `keep_note` served) keeps the photo as one of their uploads; the result
+shows the photo that was read either way; **Show my photo** on a share and **with my photo** on Post my results show it to
+others. An approval request has **Show the photo with the reading**, which keeps it as HER upload. Inspiration's result
+shows both sides it compared (`SideMedia`: a file plays from the device, a link opens where it lives).

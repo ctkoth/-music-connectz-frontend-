@@ -31,15 +31,16 @@ export function InviteRate({ username }) {
   );
 }
 
-export function ShareReading({ reading, note, prefillTo = "", onShared }) {
+export function ShareReading({ reading, note, prefillTo = "", photoKept = false, onShared }) {
   const [to, setTo] = useState(prefillTo);
+  const [showPhoto, setShowPhoto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(null);
   async function share() {
     setBusy(true); setErr("");
     try {
-      const s = await api("/api/economy/lookmaxz/share/", { method: "POST", body: { reading, to: to.trim() } });
+      const s = await api("/api/economy/lookmaxz/share/", { method: "POST", body: { reading, to: to.trim(), show_photo: photoKept && showPhoto } });
       setDone(s); onShared?.(s);
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
@@ -64,20 +65,26 @@ export function ShareReading({ reading, note, prefillTo = "", onShared }) {
         </button>
         <span className="text-[11px] text-emerald-300">Free</span>
       </div>
+      {photoKept && (
+        <label className="flex items-center gap-2 text-[12px] text-white/70">
+          <input type="checkbox" checked={showPhoto} onChange={(e) => setShowPhoto(e.target.checked)} /> Show my photo with it
+        </label>
+      )}
       {err && <p role="alert" className="text-[12px] text-mcz-ember">{err}</p>}
     </section>
   );
 }
 
-function PostIt({ token }) {
+function PostIt({ token, hasPhoto }) {
   const [vis, setVis] = useState("public");
+  const [photo, setPhoto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
   const [err, setErr] = useState("");
   if (done) return <p className="text-[12px] text-emerald-300">Posted to PostZ{done.visibility !== "public" ? ` (${done.visibility})` : ""}.</p>;
   async function post() {
     setBusy(true); setErr("");
-    try { setDone(await api(`/api/economy/lookmaxz/share/${token}/post/`, { method: "POST", body: { visibility: vis } })); }
+    try { setDone(await api(`/api/economy/lookmaxz/share/${token}/post/`, { method: "POST", body: { visibility: vis, photo: hasPhoto && photo } })); }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
   return (
@@ -85,8 +92,13 @@ function PostIt({ token }) {
       <select className="neon-input !w-auto !py-1 text-[12px]" aria-label="Who sees the post" data-nomemo="true" value={vis} onChange={(e) => setVis(e.target.value)}>
         <option value="public">Everyone</option><option value="restricted">Members</option><option value="private">Only me</option>
       </select>
+      {hasPhoto && (
+        <label className="flex items-center gap-1 text-white/70">
+          <input type="checkbox" checked={photo} onChange={(e) => setPhoto(e.target.checked)} /> with my photo
+        </label>
+      )}
       <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy} onClick={post}>Post my results</button>
-      <span className="text-white/40">Free · the numbers and the coach's words, never the photo</span>
+      <span className="text-white/40">Free · the numbers and the coach's words{hasPhoto ? ", and the photo if ticked" : ""}</span>
       {err && <span role="alert" className="text-mcz-ember">{err}</span>}
     </div>
   );
@@ -98,6 +110,7 @@ export function SharedLook({ s, onDelete }) {
       <p className="text-[11px] uppercase tracking-widest text-white/45">
         {s.mine ? (s.to ? `You shared this with @${s.to}` : "You shared this by link") : `@${s.username} shared their reading`}
       </p>
+      {s.photo_url && <img src={s.photo_url} alt={`The photo @${s.username} had read`} className="max-h-72 rounded-lg" />}
       <RatingRow value={s.overall} outOf size="lg" label="Overall — plain average of the sectors read" detail={s.verdict} />
       <div className="grid gap-2 sm:grid-cols-2">
         {Object.entries(s.sectors || {}).map(([k, sec]) => (
@@ -106,8 +119,8 @@ export function SharedLook({ s, onDelete }) {
         ))}
       </div>
       {s.working?.length > 0 && <ul className="list-disc pl-5 text-[12px] text-emerald-200/90">{s.working.map((w, i) => <li key={i}>{w}</li>)}</ul>}
-      <p className="text-[11px] leading-snug text-white/40">{s.caveat} Their own photo, their own choice to share — the photo itself is never shown.</p>
-      {s.mine && <PostIt token={s.token} />}
+      <p className="text-[11px] leading-snug text-white/40">{s.caveat} Their own photo, their own choice to share — the photo shows only when they chose to show it.</p>
+      {s.mine && <PostIt token={s.token} hasPhoto={!!s.photo_url} />}
       {s.mine && onDelete && (
         <button type="button" className="re-link inline-flex items-center gap-1 text-[12px] text-mcz-ember" onClick={() => onDelete(s.token)}>
           <Trash2 size={12} /> Take it down
