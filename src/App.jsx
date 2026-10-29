@@ -457,6 +457,13 @@ export const iconSources = (icon) => [...new Set([ICON_DEFAULTS[icon], CUSTOM_IC
 
 // Renders a registry icon; if the file is missing (still being remade),
 // falls back to the next source and then the MCZ logo instead of a broken image.
+/** A tab's label and icon by key, for screens that list apps (the home's "Your apps"). */
+export const tabMeta = (key) => {
+  const t = TABS.find((x) => x.key === key);
+  return t ? { key: t.key, label: t.label, icon: t.icon } : null;
+};
+export const tabKeys = () => new Set(TABS.map((t) => t.key));
+
 export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // A key can be registered before its artwork lands — that is deliberate, so
   // dropping the file into public/icons/ is the only step needed to light it

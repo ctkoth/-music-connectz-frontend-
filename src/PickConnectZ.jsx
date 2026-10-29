@@ -24,8 +24,7 @@ import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 import { FOCUS_MODE, inFocus } from "./focus.js";
 
-const USAGE_KEY = "mcz_app_usage";
-const PINS_KEY = "mcz_pinned_apps";
+import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency } from "./yourApps.js";
 const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
 const FREE_PIN_LIMIT = 2;
@@ -88,6 +87,8 @@ export function usePickConnectZ(currentKey) {
       writeStore(USAGE_KEY, next);
       return next;
     });
+    // When it was last opened, so an app a member stopped using fades (yourApps.js).
+    writeStore(LAST_KEY, { ...(readStore(LAST_KEY) || {}), [currentKey]: Date.now() });
   }, [currentKey]);
 
   const togglePin = useCallback((key) => {
@@ -162,9 +163,10 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
   const pinnedApps = pins.map((k) => byKey[k]).filter(Boolean);
+  const last = readStore(LAST_KEY) || {};
   const aiPicks = apps
     .filter((a) => !pins.includes(a.key) && (usage[a.key] || 0) > 0)
-    .sort((a, b) => (usage[b.key] || 0) - (usage[a.key] || 0))
+    .sort((a, b) => frecency(b.key, usage, last) - frecency(a.key, usage, last))
     .slice(0, AI_PICK_COUNT);
   const atLimit = pinnedApps.length >= limit;
   const matched = apps.filter((a) => matchesApp(a, q));

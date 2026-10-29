@@ -5,7 +5,9 @@ import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
 import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { IconImg } from '../App.jsx';
+import { IconImg, tabKeys, tabMeta } from '../App.jsx';
+import { readStore } from '../PickConnectZ.jsx';
+import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps } from '../yourApps.js';
 import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT } from '../focus.js';
 import './ToolZMenu.css';
 
@@ -342,6 +344,25 @@ function FocusTile({ appKey, onOpen, big }) {
 
 // A PARENT: opens the whole ToolZ category (every app under it, with Open / Window / Split), not one
 // app. Same card the "More apps" grid draws, lifted to the front.
+// "Your apps": the member's own, from what they pin and open (yourApps.js, kept on the device).
+function yourAppsNow() {
+  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [],
+                 exclude: ['toolz'], valid: tabKeys() };
+  return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
+}
+
+function YourAppTile({ appKey, onOpen }) {
+  const t = tabMeta(appKey);
+  if (!t) return null;
+  return (
+    <button className="category-card cyan" onClick={() => onOpen(appKey)}>
+      <IconImg icon={t.icon} alt={t.label} className="category-icon-img"
+               fallback={<span style={{ fontSize: 28 }}>{EMOJI[appKey] || '🎵'}</span>} />
+      <div className="category-label">{t.label}</div>
+    </button>
+  );
+}
+
 function ParentTile({ categoryKey, onOpen }) {
   const c = CATEGORIES.find((x) => x.key === categoryKey);
   if (!c) return null;
@@ -369,6 +390,9 @@ export default function ToolZMenu() {
     try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
   };
   const openFocus = (key) => goToSpot(key, `${key}:main`);
+  // Read once per visit to the home screen: what this member uses leads, the rest folds away.
+  const [mine] = useState(yourAppsNow);
+  const [showAll, setShowAll] = useState(false);
   const [hoveredApp, setHoveredApp] = useState(null);
 
   // Where a tile goes. Most tiles ARE a tab; some are a door into one (a
@@ -521,7 +545,21 @@ export default function ToolZMenu() {
         <NeedsView onOpen={openFocus} />
       )}
 
-      {FOCUS_MODE && lens === 'instrument' && (
+      {FOCUS_MODE && mine.apps.length > 0 && (
+        <>
+          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
+          <div className="category-grid">
+            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
+          </div>
+          {mine.own && (
+            <button className="toolz-more-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+              {showAll ? 'Hide the coaches & tools' : 'All coaches & tools'}
+            </button>
+          )}
+        </>
+      )}
+
+      {FOCUS_MODE && lens === 'instrument' && (!mine.own || showAll) && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
           <div className="category-grid">

@@ -1934,3 +1934,13 @@ LookZMaxZ: **Keep my photo** (opt-in per reading, `keep_note` served) keeps the 
 shows the photo that was read either way; **Show my photo** on a share and **with my photo** on Post my results show it to
 others. An approval request has **Show the photo with the reading**, which keeps it as HER upload. Inspiration's result
 shows both sides it compared (`SideMedia`: a file plays from the device, a link opens where it lives).
+
+## Your apps lead; everything else stays one search away (Corey: few apps per member, kept easy to reach)
+
+`yourApps.js` ranks a member's own apps — pins first, then apps opened at least `OWN_MIN_OPENS` (2) times, by frecency:
+opens halved every `HALF_LIFE_DAYS` (14) since the last open (`mcz_app_last`, written by `usePickConnectZ` beside the
+existing count). On device only, never sent. The home screen (`ToolZMenu`) leads with **Your apps**; once a member has
+`OWN_MIN_APPS` (3) of their own, the coach grid and "Around the coach" fold behind **All coaches & tools**, so other apps
+stop getting in the way. A new member, with no history, still sees the coaches first. The dock's AI picks use the same
+frecency, so the two agree. Nothing is hidden from search or routing, and a pin always wins. `yourApps.test.mjs` pins it.
+Not checked in a browser yet.
