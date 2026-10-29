@@ -255,6 +255,95 @@ function photoBody(file, url) {
   return body;
 }
 
+// Ask a member to approve a reading of a photo of THEM. Nothing is read until they say yes; the
+// photo is deleted whatever they decide; the result becomes their share to you. The rules, the
+// price and every refusal are the server's (/api/economy/lookmaxz/ask/).
+function AskForReading({ d }) {
+  const [a, setA] = useState(null);
+  const [to, setTo] = useState("");
+  const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [photos, setPhotos] = useState({});
+  const [ok, setOk] = useState({});
+  const load = () => api("/api/economy/lookmaxz/ask/").then(setA).catch(() => setA(null));
+  useEffect(() => { load(); }, []);
+  if (!a) return null;
+
+  async function send() {
+    setBusy(true); setMsg("");
+    try {
+      const body = photoBody(file, url); body.append("to", to.trim());
+      const r = await api("/api/economy/lookmaxz/ask/", { method: "POST", body });
+      setMsg(`Sent — @${r.subject} will see the photo and decide.`); setTo(""); setFile(null); setUrl(""); load();
+    } catch (x) { setMsg(x.message); } finally { setBusy(false); }
+  }
+  async function see(id) {
+    try { const r = await api(`/api/economy/lookmaxz/ask/${id}/`); setPhotos((p) => ({ ...p, [id]: r.data_url })); }
+    catch (x) { setMsg(x.message); }
+  }
+  async function answer(id, decision) {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "POST", body: { decision, confirm_self: !!ok[id] } });
+      setMsg(decision === "approve" ? "Read — it's under Your shared readings, and they can see it." : "Declined. The photo is deleted.");
+      window.dispatchEvent(new Event("mcz-lookshares-refresh")); load();
+    } catch (x) { setMsg(x.message); } finally { setBusy(false); }
+  }
+  async function cancel(id) {
+    try { await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "DELETE" }); load(); } catch (x) { setMsg(x.message); }
+  }
+  const waiting = a.received.filter((r) => r.status === "pending");
+  const STATUS = { pending: "waiting for them", approved: "approved — see Shared with you", declined: "not approved",
+    cancelled: "cancelled", expired: "expired — the photo was deleted", failed: "couldn't be read — nothing charged" };
+
+  return (
+    <section className="neon-frame space-y-3 p-4" data-tour="lookmax-ask">
+      {waiting.map((r) => (
+        <div key={r.id} className="space-y-2 rounded-lg border border-mcz-gold/40 bg-mcz-gold/[0.05] p-3">
+          <p className="text-[12px] font-semibold text-mcz-gold">@{r.requester} asked to have a photo of you read</p>
+          <p className="text-[11px] leading-snug text-white/65">{r.approve_note}</p>
+          {photos[r.id] ? <img src={photos[r.id]} alt={`The photo @${r.requester} sent`} className="max-h-64 rounded" />
+            : <button type="button" className="re-link text-[12px]" onClick={() => see(r.id)}>See the photo</button>}
+          <label className="flex items-start gap-2 text-[12px] text-white/75">
+            <input type="checkbox" className="mt-0.5" checked={!!ok[r.id]} onChange={(e) => setOk((o) => ({ ...o, [r.id]: e.target.checked }))} />
+            This is a photo of me and I want it read.
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy || !ok[r.id] || !photos[r.id]} onClick={() => answer(r.id, "approve")}>Approve</button>
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy} onClick={() => answer(r.id, "decline")}>Decline</button>
+            <span className="text-[11px] text-emerald-300">Free for you — @{r.requester} pays</span>
+          </div>
+        </div>
+      ))}
+
+      <h3 className="text-sm font-bold text-white">🙋 Ask someone to approve a reading of them</h3>
+      <p className="text-[12px] leading-snug text-white/60">{a.note}</p>
+      <input className="neon-input !w-56 text-sm" placeholder="@their handle" aria-label="Who is in the photo"
+        value={to} onChange={(e) => setTo(e.target.value)} />
+      <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of them" />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="re-btn !w-auto px-4" disabled={busy || !to.trim() || !(file || (url.trim() && !pageLink(url, d.page_hosts)))} onClick={send}>
+          Ask them to approve
+        </button>
+        <span className="text-[11px] text-mcz-ember">−{a.cost_cents} {PROMPTZ} only if they approve and it's read</span>
+      </div>
+      {msg && <p role="status" className="text-[12px] text-white/75">{msg}</p>}
+      {a.sent.length > 0 && (
+        <ul className="space-y-1 text-[12px] text-white/65">
+          {a.sent.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center gap-2">
+              @{r.subject} — {STATUS[r.status] || r.status}
+              {r.status === "pending" && <button type="button" className="re-link text-[11px]" onClick={() => cancel(r.id)}>Cancel</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function Inspiration({ d, openShelf }) {
   const [file, setFile] = useState(null);
   const [url, setUrl] = useState("");
@@ -473,6 +562,7 @@ export default function LookmaxZ() {
           </section>
 
           <InviteRate username={user?.username} />
+          <AskForReading d={d} />
 
           {d.markets && <Markets info={d} onChange={(r) => setD((p) => ({ ...p, ...r }))} />}
         </>

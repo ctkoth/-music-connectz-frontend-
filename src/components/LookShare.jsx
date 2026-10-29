@@ -69,6 +69,29 @@ export function ShareReading({ reading, note, prefillTo = "", onShared }) {
   );
 }
 
+function PostIt({ token }) {
+  const [vis, setVis] = useState("public");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null);
+  const [err, setErr] = useState("");
+  if (done) return <p className="text-[12px] text-emerald-300">Posted to PostZ{done.visibility !== "public" ? ` (${done.visibility})` : ""}.</p>;
+  async function post() {
+    setBusy(true); setErr("");
+    try { setDone(await api(`/api/economy/lookmaxz/share/${token}/post/`, { method: "POST", body: { visibility: vis } })); }
+    catch (e) { setErr(e.message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+      <select className="neon-input !w-auto !py-1 text-[12px]" aria-label="Who sees the post" data-nomemo="true" value={vis} onChange={(e) => setVis(e.target.value)}>
+        <option value="public">Everyone</option><option value="restricted">Members</option><option value="private">Only me</option>
+      </select>
+      <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy} onClick={post}>Post my results</button>
+      <span className="text-white/40">Free · the numbers and the coach's words, never the photo</span>
+      {err && <span role="alert" className="text-mcz-ember">{err}</span>}
+    </div>
+  );
+}
+
 export function SharedLook({ s, onDelete }) {
   return (
     <section className="neon-frame space-y-2 p-4">
@@ -84,6 +107,7 @@ export function SharedLook({ s, onDelete }) {
       </div>
       {s.working?.length > 0 && <ul className="list-disc pl-5 text-[12px] text-emerald-200/90">{s.working.map((w, i) => <li key={i}>{w}</li>)}</ul>}
       <p className="text-[11px] leading-snug text-white/40">{s.caveat} Their own photo, their own choice to share — the photo itself is never shown.</p>
+      {s.mine && <PostIt token={s.token} />}
       {s.mine && onDelete && (
         <button type="button" className="re-link inline-flex items-center gap-1 text-[12px] text-mcz-ember" onClick={() => onDelete(s.token)}>
           <Trash2 size={12} /> Take it down
@@ -98,7 +122,11 @@ export function SharesPanel({ look }) {
   const [one, setOne] = useState(null);
   const [err, setErr] = useState("");
   const load = () => api("/api/economy/lookmaxz/share/").then(setD).catch(() => setD(null));
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    window.addEventListener("mcz-lookshares-refresh", load);
+    return () => window.removeEventListener("mcz-lookshares-refresh", load);
+  }, []);
   useEffect(() => {
     if (!look) return;
     api(`/api/economy/lookmaxz/share/${encodeURIComponent(look)}/`).then(setOne).catch((e) => setErr(e.message));

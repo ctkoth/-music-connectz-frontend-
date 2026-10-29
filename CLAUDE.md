@@ -1917,3 +1917,12 @@ signs up or signs in lands on `/lookmaxz?for=<handle>` (RequireAuth drops the ad
 `ShareReading` sends the SERVER-SIGNED `share.reading` with `@who` pre-filled from `for`; `SharesPanel` shows "Shared with
 you", `?look=<token>`, and her own shares with "Take it down". The share carries numbers and words, never the photo, and
 leaves out Body and the opt-in sectors. The header and the privacy policy say a score is kept only if she shares it.
+
+### Asking someone to approve a reading of them, and posting results
+
+`AskForReading` (LookmaxZ.jsx) sends `/lookmaxz/ask/` a member's handle and a photo of them. The person in the photo sees
+it in the same screen ("See the photo" first — Approve stays disabled until they have), ticks "this is a photo of me", and
+approves or declines; nothing is read before that, the requester pays only for a reading that came back (price on the
+button), and the photo is deleted whatever happens. Approval becomes THEIR share to the requester. `PostIt` on a reading
+you own posts it to PostZ (Everyone / Members / Only me, `data-nomemo` because it is a privacy choice) — the post text is
+built by the server from the stored snapshot. Only the person in a reading can post it.
