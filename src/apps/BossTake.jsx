@@ -1014,7 +1014,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const blockedNote = !blocked ? "" : !price.configured
     ? "The coach isn't switched on right now. That's our end, not yours — nothing here will fix it, so don't spend a take on it."
     : price.already_used
-      ? `You've already had a free take ${price.per_address ? `(${price.per_address})` : "today"}. An account gets you more, every day.`
+      ? `You've had today's free takes ${price.per_address ? `(${price.per_address})` : ""}. An account gets you more, every day.`
       // Never phrased as something they did. The per-address ceiling was ONE
       // for most of this app's life, so a mobile carrier's shared address
       // meant a stranger spent the take and the next visitor got told they

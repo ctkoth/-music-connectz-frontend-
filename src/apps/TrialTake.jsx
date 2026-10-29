@@ -91,6 +91,10 @@ export default function TrialTake() {
   const [bossTakeReady, setBossTakeReady] = useState(false);
   const [stats, setStats] = useState(null);
   const [tiers, setTiers] = useState(null);
+  const [tierInfo, setTierInfo] = useState(null);   // the whole /tiers/ answer: the value panel's only source
+  const [previous, setPrevious] = useState(null);   // the change since this browser's first take
+  const [takesLeft, setTakesLeft] = useState(0);
+  const [round, setRound] = useState(0);            // a new key = a fresh recorder for the second take
 
   useEffect(() => {
     let on = true;
@@ -123,7 +127,7 @@ export default function TrialTake() {
   useEffect(() => {
     let on = true;
     api("/api/economy/tiers/", { auth: false })
-      .then((d) => { if (on && d?.tiers) setTiers(d.tiers); })
+      .then((d) => { if (on && d?.tiers) { setTiers(d.tiers); setTierInfo(d); } })
       .catch(() => {})
       .finally(() => {});
     return () => { on = false; };
@@ -161,6 +165,8 @@ export default function TrialTake() {
     if (typeof result.score_exact === "number") setExact(result.score_exact);
     if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
     if (result.remind && result.claim_token) setRemind({ ...result.remind, token: result.claim_token });
+    setPrevious(result.previous || null);
+    setTakesLeft(Number(result.takes_left) || 0);
     setScored(true);
   }
 
@@ -214,7 +220,7 @@ export default function TrialTake() {
         </h1>
         <p className="mt-1 text-sm text-white/55">
           Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
-          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. One free daily take. Join after
+          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. Free takes every day — send a second one and watch your number move. Join after
           to keep your takes and track progress.
         </p>
         {/* Every door, not the two that were linked. A drummer who lands on
@@ -257,8 +263,8 @@ export default function TrialTake() {
         </div>
       )}
 
-      <div className={bossTakeReady ? "" : "hidden"}>
-        <BossTake appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
+      <div id="trial-recorder" className={bossTakeReady ? "" : "hidden"}>
+        <BossTake key={round} appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
       </div>
 
       {!scored && (
@@ -303,35 +309,14 @@ export default function TrialTake() {
           <RetakeRemind claimToken={remind?.token} remind={remind} appKey={app} />
 
           <div className="mt-6">
-            <TrialToUpgradePrompt score={score ?? 7} />
+            <TrialToUpgradePrompt info={tierInfo} previous={previous} takesLeft={takesLeft}
+              onAgain={() => {
+                setRound((n) => n + 1);
+                requestAnimationFrame(() => document.getElementById("trial-recorder")?.scrollIntoView({ behavior: "smooth" }));
+              }} />
           </div>
 
-          <div className="mt-6 space-y-3">
-            <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
-              What you unlock by joining
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
-                <p className="mb-2 font-semibold text-emerald-300">Free</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Keep all your takes</li>
-                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "free")?.daily_prompts)} scored takes</li>}
-                  <li>✓ Personalized drill</li>
-                  <li>✓ Track your progress</li>
-                  <li>✓ Post & compete</li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
-                <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Everything in Free</li>
-                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "premium")?.daily_prompts)} scored takes</li>}
-                  {tiers?.[0] && <li>✓ {mb(tiers.find((t) => t.key === "premium")?.upload_mb)} per upload</li>}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </>
+</>
       )}
       {/* Counts, never rates.
         *

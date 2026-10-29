@@ -1954,3 +1954,14 @@ take first, then the role's other doors), and LookZMaxZ for somebody who came th
 trial door lands back on that coach (`setLanding` → `RootRoute`'s `LandOnce`, which clears the slot as it is used — before this
 only LookZMaxZ cleared it, so a slot could keep redirecting home for its full 30 minutes), and the habit onboarding asks about
 the coach they came through instead of always SingZ.
+
+## The trial shows what an account adds, and a second take shows the number move
+
+Under a trial score, `TrialToUpgradePrompt` puts three things. First, the change since this browser's first take (`previous`, from the server). Second, the free take still left (`takes_left`), with **Take it again**, which remounts BossTake through a `key`, so the recorder is fresh. Third, Free / Premium / StatZ side by side. Every number and feature in that comparison comes from `/api/economy/tiers/`: `daily_prompts`, storage, `wav_bits`, `profile_links`, the ⚡ ratio, `statz_features` and `statz_sample`. A failed fetch shows no ladder.
+
+The old card made three claims that were not true, and all three are gone:
+- "2x faster Energy". At the rate a new member is on, it is 3x.
+- "AI vocal coach feedback" listed as a Premium perk. Every tier has it.
+- "Advanced analytics". It was never built.
+
+Value shown to a visitor is only what the server actually gates. Somebody who joins on a false claim stops believing the true ones.
