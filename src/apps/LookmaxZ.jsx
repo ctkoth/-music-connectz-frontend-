@@ -4,6 +4,9 @@ import { ArrowDown, ArrowUp, ExternalLink, Loader2, Lock, Plus, Trash2 } from "l
 import { api } from "../api.js";
 import { goToSpot, goToTab } from "../goto.js";
 import { RatingRow } from "../components/Rating.jsx";
+import { InviteRate, ShareReading, SharesPanel } from "../components/LookShare.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { clearLanding } from "../landing.js";
 import { PROMPTZ } from "../resources.js";
 import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
 import { moveItem } from "../dragReorder.js";
@@ -301,6 +304,12 @@ function Inspiration({ d, openShelf }) {
 }
 
 export default function LookmaxZ() {
+  const { user } = useAuth();
+  // ?for=<handle> arrives from an invite (/rate/<handle>); ?look=<token> opens a shared reading.
+  const [q] = useState(() => new URLSearchParams(window.location.search));
+  const inviter = (q.get("for") || "").slice(0, 40);
+  const look = (q.get("look") || "").slice(0, 32);
+  useEffect(() => { clearLanding(); }, []);
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [picked, setPicked] = useState(null);
@@ -348,7 +357,7 @@ export default function LookmaxZ() {
         <h2 className="font-display text-xl font-extrabold text-white">✨ LookZMaxZ</h2>
         <p className="text-[12px] leading-snug text-white/60">
           What you can change about how you present — face, skin, teeth, styling and body — with what to do about it and where to shop.
-          It never rates bone structure, face shape or body shape, and nothing about your photo or your score is kept.
+          It never rates bone structure, face shape or body shape. Your photo is never kept, and your score is kept only if you choose to share it.
         </p>
       </header>
 
@@ -360,6 +369,12 @@ export default function LookmaxZ() {
         </section>
       ) : (
         <>
+          <SharesPanel look={look} />
+          {inviter && !res && (
+            <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-[12px] text-white/75">
+              @{inviter} invited you to get your own reading. It's yours: after it, you choose whether they see it.
+            </p>
+          )}
           <section className="neon-frame space-y-3 p-4" data-tour="lookmax-read">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Read one photo</p>
             <div className="flex flex-wrap gap-1.5">
@@ -430,6 +445,7 @@ export default function LookmaxZ() {
                   {Object.keys(res.sectors).map((k) => (
                     <Sector key={k} k={k} meta={meta[k]} data={res.sectors[k]} shop={res.shop?.[k]} affiliate={res.affiliate_note} />
                   ))}
+                  {res.share && <ShareReading reading={res.share.reading} note={res.share.note} prefillTo={inviter} />}
                 </>
               )}
             </div>
@@ -455,6 +471,8 @@ export default function LookmaxZ() {
               </div>
             ))}
           </section>
+
+          <InviteRate username={user?.username} />
 
           {d.markets && <Markets info={d} onChange={(r) => setD((p) => ({ ...p, ...r }))} />}
         </>

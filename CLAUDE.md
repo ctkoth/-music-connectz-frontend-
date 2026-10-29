@@ -1907,3 +1907,13 @@ The result leads with **two RatingRows** — your take and the reference, each w
 every dimension as `you N · ref N` with who leads by how much, and one line from the server's `compare` ("You lead in 2
 of 5 · the widest gap is Breath"). Both are on one scale so they compare; the subtraction is the server's. Nothing here is
 saved as the member's score, and the screen says so.
+
+## LookZMaxZ invites: she gets her own reading and chooses to show it
+
+Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
+cannot tell whether she agreed), so it works the other way round. `InviteRate` (in LookZMaxZ) copies `/rate/<handle>`;
+`RateInvite.jsx` is that public page — the server's rule, an explicit `?ref=` credit, and `landing.js` so a visitor who
+signs up or signs in lands on `/lookmaxz?for=<handle>` (RequireAuth drops the address otherwise). After her own reading,
+`ShareReading` sends the SERVER-SIGNED `share.reading` with `@who` pre-filled from `for`; `SharesPanel` shows "Shared with
+you", `?look=<token>`, and her own shares with "Take it down". The share carries numbers and words, never the photo, and
+leaves out Body and the opt-in sectors. The header and the privacy policy say a score is kept only if she shares it.
