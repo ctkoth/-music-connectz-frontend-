@@ -43,6 +43,7 @@ import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import MentionText from "../MentionParser.jsx";
 import { recall, remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
+import SocialBar from "../components/SocialBar.jsx";
 
 // "@username" as a real link to their profile — every place BattleZ mentions
 // a contestant by name uses this instead of a bare "@{name}" string.
@@ -326,6 +327,7 @@ function Detail({ id, onBack, onFlash, seed }) {
               {" · "}{b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
               {b.status === "closed" && <span className="text-mcz-ember"> · closed</span>}
             </p>
+            <div className="mt-1"><SocialBar item={`battle:${b.id}`} canRate={!b.mine} compact /></div>
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-2">
             <ShareBattle id={b.id} title={b.title} />

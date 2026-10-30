@@ -24,6 +24,7 @@ import { useWidgets } from "../WidgetBoard.jsx";
 import { IconImg } from "../App.jsx";
 import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
 import { moveItem } from "../dragReorder.js";
+import SocialBar from "../components/SocialBar.jsx";
 
 const PROVIDER_LABEL = {
   spotify: "Spotify", youtube: "YouTube", apple: "Apple Music",
@@ -407,6 +408,8 @@ function Detail({ id, onBack, onChanged }) {
           )}
         </div>
       )}
+
+      {pl.visibility !== "private" && <SocialBar item={`playlist:${pl.id}`} canRate={!pl.mine} compact />}
 
       {items.length === 0 ? (
         <p className="text-[12px] text-white/40">Nothing in the set yet.</p>
