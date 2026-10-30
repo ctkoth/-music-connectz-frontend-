@@ -8,7 +8,12 @@ import {
   dbToGain, gainToDb, peaking, lowShelf, highShelf, responseDb, truePeak, samplePeak, xorshift,
 } from "./dsp.js";
 import { integratedLoudness, loudness, analyse, correlation, bandSpectrum, tilt } from "./meter.js";
-import { master, plan, limiterGains, cleanSettings, INTENSITY, toStereo, balanceChart, GLUE_DB_MAX } from "./master.js";
+import {
+  master, plan, limiterGains, cleanSettings, INTENSITY, toStereo, balanceChart, GLUE_DB_MAX, render, applyPunch, CUSTOM_LUFS,
+} from "./master.js";
+import { resampleChannel } from "./resample.js";
+import { encodeMp3, mp3Mb } from "./mp3.js";
+import { exportMaster } from "./export.js";
 import { truePeakEnvelope } from "./dsp.js";
 import { encodeWav, decodeWav } from "./wav.js";
 import { sniffSampleRate } from "./sniff.js";
@@ -331,4 +336,96 @@ test("16-bit export dithers silence to a faint hiss, and off means off", () => {
   const a = new Uint8Array(encodeWav(silent, FS, { bitDepth: 16, seed: 9 }));
   const b = new Uint8Array(encodeWav(silent, FS, { bitDepth: 16, seed: 9 }));
   assert.deepEqual(a, b);
+});
+
+
+// ---- Loudness by hand, DynamicZ, and export -------------------------------
+
+test("a loudness set by hand lands where it was set, inside the range offered", () => {
+  const ch = track(15, { levelDb: -24 });
+  const out = master(ch, FS, { target: "custom", lufs: -11, intensity: "high" });
+  assert.ok(Math.abs(out.after.lufs + 11) <= 0.3, `lufs ${out.after.lufs}`);
+  assert.match(out.plan.loudness.why, /turn this down/);
+  assert.equal(cleanSettings({ target: "custom", lufs: -3 }).lufs, CUSTOM_LUFS.max);
+  assert.equal(cleanSettings({ target: "custom", lufs: "x" }).lufs, -14);
+});
+
+function bands(gr = 0) {
+  return { ratio: 2, grTarget: gr, attackMs: 30, releaseMs: 200, kneeDb: 6, multiband: true };
+}
+
+test("multiband with nothing to compress gives the track back at the same level at every frequency", () => {
+  // The three LR4 bands must sum flat; a crossover that dips is an EQ nobody asked for.
+  for (const f of [60, 120, 1000, 4000, 9000]) {
+    const x = sine(2, f, -20);
+    const p = { eq: [], width: { side: 1, monoBelow: null }, glue: bands(0.0001), punch: null,
+      loudness: { lufs: -100, ceiling: 0, maxLimitGr: 0 } };
+    const chs = [Float32Array.from(x), Float32Array.from(x)];
+    // Glue only: run the crossover and compressors, measure the level change.
+    const before = integratedLoudness(chs, FS);
+    const out = render(chs, FS, { ...p, loudness: { lufs: before, ceiling: 0, maxLimitGr: 40 } });
+    assert.equal(out.report.glue.multiband, true);
+    const rms = (y) => Math.sqrt(y.slice(FS / 2).reduce((a, v) => a + v * v, 0) / (y.length - FS / 2));
+    const diff = gainToDb(rms(out.channels[0]) / rms(x.slice(0)));
+    assert.ok(Math.abs(diff) < 0.6, `${f} Hz moved ${diff.toFixed(2)} dB`);
+  }
+});
+
+test("multiband compresses each band on its own and says so", () => {
+  const ch = track(10);
+  const a = analyse(ch, FS);
+  const p = plan(a, { multiband: true, glueDb: 3 });
+  assert.equal(p.glue.multiband, true);
+  assert.match(p.glueWhy, /Multiband/);
+  const out = master(ch, FS, { multiband: true, glueDb: 3 });
+  assert.deepEqual(out.report.glue.bands.map((b) => b.band), ["low", "mid", "high"]);
+  assert.ok(out.report.glue.maxGrDb > 0.5);
+  assert.ok(out.after.truePeakDb <= -0.95);
+});
+
+test("punch raises the start of a hit and leaves the sustain alone; negative softens it", () => {
+  // A tone that switches on: the first milliseconds are the attack, the rest is sustain.
+  const x = concat(new Float32Array(FS / 10), sine(1, 200, -20));
+  const peakAt = (y, a, b) => { let m = 0; for (let i = a; i < b; i++) m = Math.max(m, Math.abs(y[i])); return m; };
+  const on = FS / 10;
+  const up = [Float32Array.from(x), Float32Array.from(x)];
+  const r = applyPunch(up, FS, { amount: 0.5, maxDb: 6 });
+  assert.ok(r.maxDb > 1, `boost ${r.maxDb}`);
+  assert.ok(peakAt(up[0], on, on + 400) > peakAt(x, on, on + 400) * 1.1, "attack raised");
+  assert.ok(Math.abs(gainToDb(peakAt(up[0], on + FS / 2, on + FS / 2 + 2000) / peakAt(x, on + FS / 2, on + FS / 2 + 2000))) < 0.2, "sustain untouched");
+  const down = [Float32Array.from(x), Float32Array.from(x)];
+  applyPunch(down, FS, { amount: -0.5, maxDb: 6 });
+  assert.ok(peakAt(down[0], on, on + 400) < peakAt(x, on, on + 400) * 0.95, "attack softened");
+  assert.equal(cleanSettings({ punch: 400 }).punch, 50);
+  assert.equal(plan(analyse(track(4), FS), { punch: 0 }).punch, null);
+});
+
+test("resampling keeps a tone's level and pitch, and does not fold highs back down", () => {
+  const x = sine(1, 1000, -6, 44100);
+  const y = resampleChannel(x, 44100, 48000);
+  assert.equal(y.length, 48000);
+  const rms = (v, a) => Math.sqrt(v.slice(a, v.length - a).reduce((s, q) => s + q * q, 0) / (v.length - 2 * a));
+  assert.ok(Math.abs(gainToDb(rms(y, 2000) / rms(x, 2000))) < 0.05);
+  // A 1 kHz tone at 48 kHz: 48 samples per cycle, so sample 48 repeats sample 0.
+  assert.ok(Math.abs(y[4800] - y[4848]) < 0.01);
+  // 23 kHz at 48 kHz is above 44.1's Nyquist: going down it must vanish, not alias to 21.1 kHz.
+  const hi = sine(1, 23000, -6, 48000);
+  const z = resampleChannel(hi, 48000, 44100);
+  assert.ok(gainToDb(rms(z, 2000) / rms(hi, 2000)) < -60, "aliased");
+});
+
+test("export re-checks the true peak after converting the rate, and MP3 is a real MP3 of the stated size", async () => {
+  const ch = track(6, { levelDb: -24 });
+  const m = master(ch, FS, { target: "loud", intensity: "max" });
+  const out = await exportMaster(m.channels, FS, { format: "wav", bitDepth: 24, rate: 48000 });
+  assert.equal(out.sampleRate, 48000);
+  const back = decodeWav(out.bytes);
+  assert.equal(back.sampleRate, 48000);
+  assert.ok(gainToDb(truePeak(back.channels)) <= -0.95, `tp ${gainToDb(truePeak(back.channels))}`);
+  const mp3 = await exportMaster(m.channels, FS, { format: "mp3", kbps: 192 });
+  const b = new Uint8Array(mp3.bytes);
+  assert.ok(b[0] === 0xff && (b[1] & 0xe0) === 0xe0, "starts on an MPEG frame sync");
+  const mb = b.length / (1024 * 1024);
+  assert.ok(Math.abs(mb - mp3Mb(6, 192)) / mp3Mb(6, 192) < 0.1, `${mb} MB`);
+  await assert.rejects(encodeMp3(m.channels, 96000), /44\.1 or 48/);
 });

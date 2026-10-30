@@ -18,14 +18,13 @@
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
 import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
-import { IconImg, slugFor } from "./App.jsx";
+import { IconImg, pathFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 import { FOCUS_MODE, inFocus } from "./focus.js";
 
-const USAGE_KEY = "mcz_app_usage";
-const PINS_KEY = "mcz_pinned_apps";
+import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency, readSeeds } from "./yourApps.js";
 const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
 const FREE_PIN_LIMIT = 2;
@@ -88,6 +87,8 @@ export function usePickConnectZ(currentKey) {
       writeStore(USAGE_KEY, next);
       return next;
     });
+    // When it was last opened, so an app a member stopped using fades (yourApps.js).
+    writeStore(LAST_KEY, { ...(readStore(LAST_KEY) || {}), [currentKey]: Date.now() });
   }, [currentKey]);
 
   const togglePin = useCallback((key) => {
@@ -125,7 +126,7 @@ function WaitingCount({ appKey }) {
 function DockButton({ app, active, badge, onClick }) {
   return (
     <a
-      {...openable(`/${slugFor(app.key)}`, onClick)}
+      {...openable(pathFor(app.key), onClick)}
       title={`${app.label} — ctrl/cmd-click for a new tab`}
       className={`relative shrink-0 rounded-xl border p-1.5 transition ${
         active
@@ -162,9 +163,10 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
   const pinnedApps = pins.map((k) => byKey[k]).filter(Boolean);
+  const last = readStore(LAST_KEY) || {};
   const aiPicks = apps
     .filter((a) => !pins.includes(a.key) && (usage[a.key] || 0) > 0)
-    .sort((a, b) => (usage[b.key] || 0) - (usage[a.key] || 0))
+    .sort((a, b) => frecency(b.key, usage, last) - frecency(a.key, usage, last))
     .slice(0, AI_PICK_COUNT);
   const atLimit = pinnedApps.length >= limit;
   const matched = apps.filter((a) => matchesApp(a, q));
@@ -180,7 +182,8 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   // Only relevant on the very first visit — the moment pins or real usage
   // exist, the dock is telling that member's OWN story instead of a generic
   // one, and this list gets out of the way for good.
-  const starterApps = STARTER_APPS.map((k) => byKey[k]).filter(Boolean);
+  // What they told us or came in through leads the starters (yourApps.js seeds), then the default loop.
+  const starterApps = [...new Set([...readSeeds(), ...STARTER_APPS])].map((k) => byKey[k]).filter(Boolean).slice(0, 4);
 
   // Escape closes it. ITS340's events chapter is blunt about this and so is
   // every keyboard user: an overlay you can only dismiss by finding and
@@ -278,7 +281,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               return (
                 <div key={a.key} className="relative">
                   <a
-                    {...openable(`/${slugFor(a.key)}`, () => { onOpen(a.key); setDrawer(false); })}
+                    {...openable(pathFor(a.key), () => { onOpen(a.key); setDrawer(false); })}
                     // The purpose is in the tooltip AND printed below, because
                     // a tooltip does not exist on a phone and this grid is
                     // mostly read on one.
@@ -390,7 +393,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
 
       <div className="neon-frame flex items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur">
         <a
-          {...openable(`/${slugFor(apps[0]?.key || "postz")}`, () => onOpen(apps[0]?.key))}
+          {...openable(pathFor(apps[0]?.key || "postz"), () => onOpen(apps[0]?.key))}
           title="PickConnectZ — home · ctrl/cmd-click for a new tab"
           className="flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-white/70 hover:bg-white/10 hover:text-white"
         >

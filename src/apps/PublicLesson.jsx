@@ -65,7 +65,7 @@ export default function PublicLesson() {
           <div className="space-y-2 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="text-white/80">Booking happens inside, with a free account — the price above is what you'd agree to.</p>
             <JoinLink owner={l.teacher_username} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Join to book</JoinLink>
-            <div className="pt-1"><TryLink owner={l.teacher_username} className="text-[12px] text-mcz-cyan hover:underline">Or see where you're at first — get a take scored, free</TryLink></div>
+            <div className="pt-1"><TryLink owner={l.teacher_username} skill={l.skill} className="text-[12px] text-mcz-cyan hover:underline">Or see where you're at first — get a take scored, free</TryLink></div>
           </div>
         </article>
       )}

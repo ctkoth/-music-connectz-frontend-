@@ -1,3 +1,5 @@
+import { clearLanding, peekLanding } from "./landing.js";
+import { needsDoorList, trialPathFor, TRIAL_DOOR_FALLBACK } from "./trialLinks.js";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
@@ -77,6 +79,7 @@ const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.js
 const InstrumentalConnectZ = lazy(lazyRoute(() => import("./apps/InstrumentalConnectZ.jsx")));
 const ImageConnectZ = lazy(lazyRoute(() => import("./apps/ImageConnectZ.jsx")));
 const MixConnectZ = lazy(lazyRoute(() => import("./apps/MixConnectZ.jsx")));
+const VideoZ = lazy(lazyRoute(() => import("./apps/VideoZ.jsx")));
 const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
@@ -91,6 +94,8 @@ const ParcelPrimate = lazy(lazyRoute(() => import("./apps/ParcelPrimate.jsx")));
 const MerchZ = lazy(lazyRoute(() => import("./apps/MerchZ.jsx")));
 const OCC = lazy(lazyRoute(() => import("./apps/OCC.jsx")));
 const SocialConnectZ = lazy(lazyRoute(() => import("./apps/SocialConnectZ.jsx")));
+const BudgetZ = lazy(lazyRoute(() => import("./apps/BudgetZ.jsx")));
+const GenreZ = lazy(lazyRoute(() => import("./apps/GenreZ.jsx")));
 const VybeZ = lazy(lazyRoute(() => import("./apps/VybeZ.jsx")));
 const BeatZ = lazy(lazyRoute(() => import("./apps/BeatZ.jsx")));
 // Logged-out doors. PersonalityTest is a trial like /try; MetZ and ChordZ are
@@ -108,6 +113,7 @@ const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
 const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const RateInvite = lazy(lazyRoute(() => import("./apps/RateInvite.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
@@ -329,7 +335,10 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
+  "genrez.jpg": "/icons/genrez.jpg",
+  "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",
+  "inventoriez.png": "/icons/inventoriez.jpg",   // Corey's art (Oct 28)
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
   "sonday.png": "/icons/sonday.png",
@@ -412,6 +421,26 @@ export const CUSTOM_ICONS = {
   "badge_polyglot.png": "/icons/badge_polyglot.png",
   "badge_patron.png": "/icons/badge_patron.png",
   "badgez.png": "/icons/badgez.png",
+  // Neon medals (tools/make-neon-badges.mjs) for the badges on Corey's emoji. His
+  // `badgez.<name>.jpg`, once committed, wins over these through ICON_DEFAULTS.
+  "badge_high_notez.png": "/icons/badge_high_notez-neon.svg",
+  "badge_hot_barz.png": "/icons/badge_hot_barz-neon.svg",
+  "badge_six_stringz.png": "/icons/badge_six_stringz-neon.svg",
+  "badge_low_endz.png": "/icons/badge_low_endz-neon.svg",
+  "badge_ivory_keyz.png": "/icons/badge_ivory_keyz-neon.svg",
+  "badge_deep_pocketz.png": "/icons/badge_deep_pocketz-neon.svg",
+  "badge_golden_bowz.png": "/icons/badge_golden_bowz-neon.svg",
+  "badge_silver_flutez.png": "/icons/badge_silver_flutez-neon.svg",
+  "badge_smooth_saxz.png": "/icons/badge_smooth_saxz-neon.svg",
+  "badge_reed_tonez.png": "/icons/badge_reed_tonez-neon.svg",
+  "badge_brass_blastz.png": "/icons/badge_brass_blastz-neon.svg",
+  "badge_royal_ratingz.png": "/icons/badge_royal_ratingz-neon.svg",
+  "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
+  "badge_thorough.png": "/icons/badge_thorough-neon.svg",
+  "badge_decent.png": "/icons/badge_decent-neon.svg",
+  "badge_legendary.png": "/icons/badge_legendary-neon.svg",
+  "badge_supreme.png": "/icons/badge_supreme-neon.svg",
+  "badge_perfect.png": "/icons/badge_perfect-neon.svg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
@@ -429,6 +458,13 @@ export const iconSources = (icon) => [...new Set([ICON_DEFAULTS[icon], CUSTOM_IC
 
 // Renders a registry icon; if the file is missing (still being remade),
 // falls back to the next source and then the MCZ logo instead of a broken image.
+/** A tab's label and icon by key, for screens that list apps (the home's "Your apps"). */
+export const tabMeta = (key) => {
+  const t = TABS.find((x) => x.key === key);
+  return t ? { key: t.key, label: t.label, icon: t.icon } : null;
+};
+export const tabKeys = () => new Set(TABS.map((t) => t.key));
+
 export function IconImg({ icon, alt = "", className = "", fallback = null }) {
   // A key can be registered before its artwork lands — that is deliberate, so
   // dropping the file into public/icons/ is the only step needed to light it
@@ -479,6 +515,17 @@ const MAX_MINIS = 3;
 
 export const slugFor = (key) =>
   key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
+// The address a tab lives at. ToolZ is the HOME screen — "Music ConnectZ" — so
+// its address is the bare domain, not /tool: a home page that says musicconnectz.net/tool
+// reads as one tool among many, and it is the one address everybody types or
+// shares. /tool still opens it (old links, bookmarks) and rewrites itself to "/".
+export const pathFor = (key) => (key === "toolz" ? "/" : `/${slugFor(key)}`);
+// "/" is also the address of the default landing, which is OnboardZ for a member
+// who hasn't finished it — so going HOME has to say so. The router remounts the
+// shell when the route changes, and without this the logo would drop a
+// not-yet-onboarded member on OnboardZ instead of the home screen they pressed.
+export const goTo = (navigate, key, opts = {}) =>
+  navigate(pathFor(key), key === "toolz" ? { ...opts, state: { tab: "toolz" } } : opts);
 export const tabForSlug = (slug) =>
   TABS.find((t) => slugFor(t.key) === String(slug || "").toLowerCase());
 
@@ -496,6 +543,9 @@ const TABS = [
   // Social ConnectZ tab four rows up carries — so two tabs wore one icon and
   // neither said which was which. Social ConnectZ is the ROOM; VybeZ is
   // LOOKING, so the glyph is a lens with a heart in it.
+  // GenreZ: the member search with one filter in front — find talent by scene.
+  { key: "budgetz", label: "BudgetZ", icon: "budgetz.jpg", el: <BudgetZ /> },
+  { key: "genrez", label: "GenreZ", icon: "genrez.jpg", el: <GenreZ /> },
   { key: "vybez", label: "VybeZ", icon: "vybez.png", el: <VybeZ /> },
   { key: "soundcloudengagementz", label: "SoundCloud Engagement", icon: "soundcloudengagementz.png", el: <SoundCloudEngagementZ /> },
   { key: "coachz", label: "CoachZ", icon: "coachz.jpg", el: <CoachZ /> },
@@ -573,6 +623,7 @@ const TABS = [
   { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", el: <ImageConnectZ /> },
   { key: "viewz", label: "ViewZ", icon: "viewz.png", el: <ViewZ /> },
   { key: "videoconnectz", label: "Video ConnectZ", icon: "videoconnectz.png", el: <VideoConnectZ /> },
+  { key: "videoz", label: "VideoZ", icon: "videoz.png", el: <VideoZ /> },
   { key: "occ", label: "OCC", icon: "occ.png", el: <OCC /> },
   { key: "logz", label: "LogZ", icon: "logz.png", el: <LogZ /> },
   { key: "royaltiez", label: "RoyaltieZ", icon: "royaltiez.png", el: <RoyaltieZ /> },
@@ -634,6 +685,37 @@ function RequireAuth({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
+// A tab's own address — musicconnectz.net/rap, /sing, /guitar, /metz — is the link people put
+// in bios, ads and DMs. A stranger who taps one must land on that tab's FREE TRIAL, not a
+// sign-in form; a member still gets the tab. What counts as a trial, and which tabs have
+// one, is decided in trialLinks.js (the server's door list for scored coaches, a static map
+// for the client-only tools) so a test can pin it. Anything with no trial goes to /login
+// exactly as it did before.
+function TrialOrApp({ tabKey, children }) {
+  const { user, loading } = useAuth();
+  const here = useLocation();
+  const [doors, setDoors] = useState(null); // null = not asked yet / in flight
+  const wantsDoors = needsDoorList(tabKey);
+  useEffect(() => {
+    if (loading || user || !wantsDoors) return undefined;
+    let on = true;
+    api("/api/economy/trialdoorz/", { auth: false })
+      .then((d) => { if (on) setDoors(d?.doors?.length ? d.doors.map((x) => x.app_key) : TRIAL_DOOR_FALLBACK); })
+      .catch(() => { if (on) setDoors(TRIAL_DOOR_FALLBACK); });
+    return () => { on = false; };
+  }, [loading, user, wantsDoors]);
+  if (user) return children;
+  if (loading || (wantsDoors && doors === null)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-white/50">
+        <Loader2 className="mr-2 animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
+  const to = trialPathFor(tabKey, doors, here.search, here.hash);
+  return <Navigate to={to || "/login"} replace />;
+}
+
 // "/" is the one URL that gets shared, indexed and clicked cold — the
 // index.html SEO meta and every OG card point at it. A signed-in member
 // should land in the app; anyone else gets the marketing page that makes
@@ -641,6 +723,12 @@ function RequireAuth({ children }) {
 // (that redirect is still what every OTHER protected route does — a deep
 // link like /battle while logged out is someone who already knows what this
 // is, and /login is the right place to send them).
+// Use the landing slot once: a slot left set would keep turning the home screen into a redirect.
+function LandOnce({ to }) {
+  useEffect(() => { clearLanding(); }, []);
+  return <Navigate to={to} replace />;
+}
+
 function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) {
@@ -650,6 +738,9 @@ function RootRoute() {
       </div>
     );
   }
+  // A link that went through /login or /register (an invite) says where it meant to land.
+  const land = user ? peekLanding() : "";
+  if (land) return <LandOnce to={land} />;
   return user ? <Home /> : <Landing />;
 }
 
@@ -920,6 +1011,7 @@ const TAB_ABOUT = {
   intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
   sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",
   instrumentalconnectz: "🎹 Instrumental ConnectZ — AI-composed MIDI loops by genre, instruments, BPM and key. Preview the notes, then take the .mid into your DAW.",
+  videoz: "🎬 VideoZ — a multitrack video editor on your own device, like Sony Vegas. Put finished videos, photos, titles and audio on as many tracks as you need, in the order you want; trim, split, crossfade, filters and FX, picture-in-picture, and (StatZ) lip-sync a photo to a voice. Free — nothing is uploaded until you save.",
   mixconnectz: "🎚️ Mix ConnectZ — master a finished song on your own device. Loudness, true peak and tone are measured, every move the master makes is listed with the measurement behind it, and nothing is uploaded unless you save it. It is free.",
   occ: "👁️ OCC — chat with Claude about what you are building, and keep a reply as WorkZ. You pick the engine, and its price is on the button before you send.",
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
@@ -934,7 +1026,8 @@ function Home() {
   // Read the slug off the path rather than from useParams: the tab routes are
   // listed explicitly (so an unknown address still redirects) and an explicit
   // path has no params to read.
-  const slug = useLocation().pathname.replace(/^\/+|\/+$/g, "");
+  const here = useLocation();
+  const slug = here.pathname.replace(/^\/+|\/+$/g, "");
   const [tab, setTab] = useState(null); // decided from the URL or onboarded state
   useViewTracker(tab ? `tab:${tab}` : null);
   const [infoKey, setInfoKey] = useState(null);
@@ -988,7 +1081,7 @@ function Home() {
   const openTab = (key) => {
     setTab(key);
     setSplitKey(null);
-    navigate(`/${slugFor(key)}`, { replace: false });
+    goTo(navigate, key, { replace: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -1015,7 +1108,7 @@ function Home() {
     const h = (e) => {
       if (TABS.some((t) => t.key === e.detail)) {
         setTab(e.detail);
-        navigate(`/${slugFor(e.detail)}`);
+        goTo(navigate, e.detail);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
@@ -1051,6 +1144,9 @@ function Home() {
   useEffect(() => {
     const t = tabForSlug(slug);
     if (t && t.key !== tab) setTab(t.key);
+    // The home screen's address is the bare domain; an old /tool link lands
+    // here and tidies itself.
+    if (slug === "tool") goTo(navigate, "toolz", { replace: true });
   }, [slug]);
 
   // New users land on OnboardZ until they've completed it (it pays a bonus);
@@ -1060,6 +1156,11 @@ function Home() {
     // An address wins over the default landing — someone opening /battle asked
     // for BattleZ, not for wherever we would have sent them.
     if (tabForSlug(slug)) return;
+    // Sent here from another tab on purpose (the logo, the arrows): honour it.
+    if (TABS.some((t) => t.key === here.state?.tab)) {
+      setTab(here.state.tab);
+      return;
+    }
     if (new URLSearchParams(window.location.search).has("checkout")) {
       setTab("membershipz");
       return;
@@ -1098,17 +1199,17 @@ function Home() {
               nav, and these two cost the tab title its last 60px — it measured
               12px wide at 390, then 0 once the member counters went in. */}
           <div className="hidden items-center gap-1 sm:flex">
-            <a {...openable(`/${slugFor(TABS[(idx - 1 + TABS.length) % TABS.length].key)}`, () => go(-1))}
+            <a {...openable(pathFor(TABS[(idx - 1 + TABS.length) % TABS.length].key), () => go(-1))}
                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Previous tab">
               <ChevronLeft size={18} />
             </a>
-            <a {...openable(`/${slugFor(TABS[(idx + 1) % TABS.length].key)}`, () => go(1))}
+            <a {...openable(pathFor(TABS[(idx + 1) % TABS.length].key), () => go(1))}
                className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Next tab">
               <ChevronRight size={18} />
             </a>
           </div>
 
-          <a {...openable("/tool", () => openTab("toolz"))} className="flex items-center gap-2"
+          <a {...openable("/", () => openTab("toolz"))} className="flex items-center gap-2"
              title="Music ConnectZ — every app">
             <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-10 w-10 rounded-lg shadow-neon" onError={e => { e.currentTarget.src = "/mcz-logo-mark.png"; }} />
             <span className="hidden font-display text-lg font-extrabold tracking-tight sm:inline">
@@ -1276,7 +1377,7 @@ function Home() {
             {/* Its address. The whole point of LogicZ — this is the thing you
                 paste to somebody. */}
             <p className="mt-3 font-mono text-[11px] text-mcz-cyan">
-              musicconnectz.net/{slugFor(infoTab.key)}
+              musicconnectz.net{pathFor(infoTab.key)}
             </p>
 
             {/* What lives in this tab, and honestly whether it exists yet. A
@@ -1466,6 +1567,7 @@ export default function App() {
       <Route path="/b/:id" element={<PublicBattle />} />
       <Route path="/l/:id" element={<PublicLesson />} />
       <Route path="/s/:token" element={<ScoreCard />} />
+      <Route path="/rate/:handle" element={<RateInvite />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       {/* Matched BEFORE /try/:appKey — route order matters here, or the
@@ -1486,6 +1588,13 @@ export default function App() {
              blurb="Hear chord voicings and progressions in any key, right in your browser." el={<ChordZ />}
              pitch="Found a progression you like? Sing or play over it and an AI coach scores the take — what's working and what to fix. Free, no account."
              cta="Get scored over these chords" />} />
+      {/* TunerZ listens in the browser and sends nothing anywhere; its drill history is the one
+          server call, and it already renders an empty list when that call is refused, so it is
+          safe logged-out. Saving a drill only exists in drill mode, which a coach take opens. */}
+      <Route path="/tool/tunerz" element={<PublicTool title="TunerZ" heading="Free online instrument tuner — TunerZ"
+             blurb="Tune guitar, bass, violin and more from your mic, right in your browser." el={<TunerZ />}
+             pitch="In tune and ready? Play a take and an AI coach scores it — what's working and what to fix. Free, no account."
+             cta="Get your take scored" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
@@ -1496,9 +1605,9 @@ export default function App() {
           key={t.key}
           path={`/${slugFor(t.key)}`}
           element={
-            <RequireAuth>
+            <TrialOrApp tabKey={t.key}>
               <Home />
-            </RequireAuth>
+            </TrialOrApp>
           }
         />
       ))}

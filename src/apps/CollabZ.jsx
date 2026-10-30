@@ -33,13 +33,14 @@ import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.j
 import CollabFiles from "../CollabFiles.jsx";
 import { IconImg } from "../App.jsx";
 import { ENERGY, MONEY, SPINAZ } from "../resources.js";
-import { labelForSkill } from "../personaSkills.js";
+import { labelForSkill, skillQuoteLine } from "../personaSkills.js";
 import Refused, { isInsufficient } from "../Refused.jsx";
 import RangeGates from "../RangeGates.jsx";
 import MediaFields from "../MediaFields.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import { seed, remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
 
@@ -127,6 +128,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
           <PartnerzMark pairs={deal.partnered} />
           <p className="text-xs text-white/55">
             by <button className="hover:underline" onClick={() => openMember(deal.initiator)}>@{deal.initiator}</button>
+            <ThoroughMark mark={deal.marks?.[deal.initiator]} compact />
             {" · "}{STATUS_LABEL[deal.status] || deal.status}
           </p>
         </div>
@@ -251,7 +253,10 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
       <ul className="space-y-1">
         {deal.participants.map((p) => (
           <li key={p.username} className="flex items-center justify-between gap-2 text-[12px]">
-            <MemberName username={p.username} className="truncate text-white/75" />
+            <span className="flex min-w-0 items-center">
+              <MemberName username={p.username} className="truncate text-white/75" />
+              <ThoroughMark mark={deal.marks?.[p.username]} compact />
+            </span>
             <span className="flex shrink-0 items-center gap-2 text-[11px]">
               {p.pays_cents > 0 && (
                 <span className="text-mcz-ember">−<Amount cents={p.pays_cents} currency={cur} /></span>
@@ -564,7 +569,7 @@ export default function CollabZ() {
             <>
               Drafting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
               {" "}— the combined price of the skills you named:{" "}
-              {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
+              {cost.lines.filter((l) => l.cents > 0).map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}.
               {!cost.affordable && (
                 <span className="text-mcz-ember">
                   {" "}You have {cost.energy} — not enough, so this won't draft yet.

@@ -1,4 +1,5 @@
 import SocialBar from "./SocialBar.jsx";
+import { genreLabel } from "../genres.js";
 import { Price } from "./Price.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -104,7 +105,7 @@ function Row({ t, labels, appKey }) {
         <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
         {t.pb && <span className="rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏆 Personal best</span>}
         <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
-        {t.genre && <span className="text-white/35">{t.genre}</span>}
+        {t.genre && <span className="text-white/35">{genreLabel(t.genre)}</span>}
         {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
         {t.range_class && <span className="text-white/35">{t.range_class}</span>}
       </button>
@@ -247,7 +248,7 @@ export default function RecentTakes({ takes, dimensions, appKey, total, showingA
           <select data-nomemo="true" aria-label="Genre" value={filter.genre} onChange={(e) => setFilter((f) => ({ ...f, genre: e.target.value }))}
                   className="neon-input !w-auto !py-0.5 text-[12px]">
             <option value="">All genres</option>
-            {genres.map((g) => <option key={g} value={g}>{g}</option>)}
+            {genres.map((g) => <option key={g} value={g}>{genreLabel(g)}</option>)}
           </select>
         )}
         {!isDefault(sort, filter) && (

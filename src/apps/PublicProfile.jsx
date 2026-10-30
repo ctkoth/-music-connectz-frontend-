@@ -9,6 +9,7 @@
 // login, because those exist for matching inside the app and are nobody's
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
+import { genreLabel } from "../genres.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
@@ -82,7 +83,7 @@ export default function PublicProfile() {
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9" holders={false}
                        className="pt-1.5" />
           </div>
 
@@ -106,8 +107,11 @@ export default function PublicProfile() {
                 {(persona.skills || []).map((s, j) => (
                   <span key={j} className="pill">
                     {s.name}
+                    {(s.genres || []).length > 0 && (
+                      <span className="ml-1 text-white/55">in {s.genres.map(genreLabel).join(", ")}</span>
+                    )}
                     {s.rate_cents ? (
-                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/hr</span>
+                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/{s.rate_unit === "work" ? "work" : "hr"}</span>
                     ) : null}
                   </span>
                 ))}
@@ -115,7 +119,7 @@ export default function PublicProfile() {
             </div>
           ))}
 
-          <BadgeWearList badges={p.badges} />
+          <BadgeWearList badges={p.badges} holders={false} />
 
           {p.links?.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -135,7 +139,7 @@ export default function PublicProfile() {
               Message {p.display_name}, rate their work, or book a CallZ — that all lives inside.
             </p>
             <JoinLink owner={username} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
-            <div className="mt-3"><TryLink owner={username} className="inline-block rounded-xl border border-mcz-cyan/40 px-5 py-2 text-sm font-semibold text-mcz-cyan hover:bg-mcz-cyan/10" /></div>
+            <div className="mt-3"><TryLink owner={username} skill={(p?.personas || []).flatMap((x) => (x.skills || []).map((k) => k.name))} className="inline-block rounded-xl border border-mcz-cyan/40 px-5 py-2 text-sm font-semibold text-mcz-cyan hover:bg-mcz-cyan/10" /></div>
           </div>
         </div>
       )}

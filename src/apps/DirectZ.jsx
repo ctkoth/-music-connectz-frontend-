@@ -53,7 +53,7 @@ export default function DirectZ() {
   const [form, setForm] = useState({ fmt: recall("directz.fmt") || "reelz", genre: recall("directz.genre") || "",
                                      video_type: recall("directz.video_type") || "",
                                      title: "", description: "",
-                                     craft_rating: false });
+                                     craft_rating: false, craft_extras: [] });
   const [work, setWork] = useState({});
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -140,7 +140,7 @@ export default function DirectZ() {
         },
       });
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
-                description: "", craft_rating: false });
+                description: "", craft_rating: false, craft_extras: [] });
       setWork({}); setSeconds(0);
       setShowUploadLimitPrompt(false);
       setMsg(talk(P.directz_posted));
@@ -285,6 +285,20 @@ export default function DirectZ() {
               )}
             </span>
           </label>
+        )}
+        {spec?.craft?.configured && form.craft_rating && Object.keys(spec.craft.extras || {}).length > 0 && (
+          // Options, not part of the rating: each sits beside the score and never moves it, at no extra price.
+          <fieldset className="ml-6 space-y-1 text-[11px] text-white/60">
+            <legend className="text-white/70">Add to the rating <span className="text-white/35">(optional, same price)</span></legend>
+            {Object.entries(spec.craft.extras).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2">
+                <input type="checkbox" checked={form.craft_extras.includes(k)}
+                       onChange={(e) => setForm({ ...form, craft_extras: e.target.checked
+                         ? [...form.craft_extras, k] : form.craft_extras.filter((x) => x !== k) })} />
+                <span>{label}{k === "mainstream" ? " — reach, not quality" : ""}</span>
+              </label>
+            ))}
+          </fieldset>
         )}
 
         {msg && (

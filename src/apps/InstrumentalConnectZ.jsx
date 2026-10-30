@@ -1,3 +1,6 @@
+import InspirationRef from "../components/InspirationRef.jsx";
+import { genreLabel, GENRES, GENRE_GROUPS } from "../genres.js";
+import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
@@ -111,6 +114,8 @@ export default function InstrumentalConnectZ() {
   const [bpm, setBpm] = useState(90);
   const [key, setKey] = useRemembered("instrumentalz.key", "A minor");
   const [bars, setBars] = useState(4);
+  const [prio, setPrio] = useState({});
+  const [insp, setInsp] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
   // The POST response for the piece just composed: the only place the server says
@@ -149,7 +154,8 @@ export default function InstrumentalConnectZ() {
       // takes up to 90s, and the server goes on to charge and save a loop the
       // browser has already given up on.
       w = await api("/api/economy/instrumentalz/", { method: "POST",
-        body: { genre, brief, instruments: picked, bpm, key, bars },
+        body: { genre, brief, instruments: picked, bpm, key, bars, reference: insp?.url || undefined,
+          ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("build_fail");
@@ -211,7 +217,17 @@ export default function InstrumentalConnectZ() {
           if (d.instruments?.length) setPicked(d.instruments);
           if (d.brief) setBrief(cl.clamp(d.brief));
         }} />
-        <input className="neon-input w-full" maxLength={60} placeholder="Genre (boom bap, drill, R&B, lo-fi…)"
+        {/* The same emoji genres every other screen offers; the text box below still takes anything. */}
+        <select data-nomemo="true" aria-label="Pick a genre" className="neon-input w-full text-sm"
+                value={GENRES.includes(genre) ? genre : ""} onChange={(e) => e.target.value && setGenre(e.target.value)}>
+          <option value="">{genre && !GENRES.includes(genre) ? `Your own: ${genre}` : "Pick a genre…"}</option>
+          {GENRE_GROUPS.map((grp) => (
+            <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+              {grp.genres.map(([name, emoji]) => <option key={name} value={name}>{name} {emoji}</option>)}
+            </optgroup>
+          ))}
+        </select>
+        <input className="neon-input w-full" maxLength={60} placeholder="…or type your own (boom bap, drill, R&B, lo-fi)"
           aria-label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} />
 
         <div>
@@ -300,6 +316,9 @@ export default function InstrumentalConnectZ() {
           )
         ) : <CharLimit cl={cl} value={brief} />}
 
+        <PriorityDials medium="instrumental" value={prio} onChange={setPrio} disabled={busy} />
+        <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
+
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and the run can be paid for: with
               no answer from the server there is no price to have stated. */}
@@ -320,7 +339,7 @@ export default function InstrumentalConnectZ() {
 
       {work && (
         <div key={work.id} className="mcz-reveal neon-frame space-y-3 p-4">
-          <h3 className="font-semibold">{work.genre || "Instrumental"} · {work.key} · {work.bpm} BPM · {work.bars} bars</h3>
+          <h3 className="font-semibold">{work.genre ? genreLabel(work.genre) : "Instrumental"} · {work.key} · {work.bpm} BPM · {work.bars} bars</h3>
           <p className="text-xs text-white/50">{work.tracks.map((t) => `${labelOf(t.instrument)} (${t.notes.length} notes)`).join(" · ")}</p>
           {/* What did not come back, and whether the run was charged: the loop is
               usable either way, so nothing else would ever say a part is absent. */}
@@ -346,7 +365,7 @@ export default function InstrumentalConnectZ() {
           {s.works.map((w) => (
             <button key={w.id} onClick={() => { stop(); setWork(w); }}
               className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
-              {w.genre || "Instrumental"} <span className="text-white/45">— {w.key}, {w.bpm} BPM</span>
+              {w.genre ? genreLabel(w.genre) : "Instrumental"} <span className="text-white/45">— {w.key}, {w.bpm} BPM</span>
             </button>
           ))}
         </div>

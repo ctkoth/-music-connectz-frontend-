@@ -1496,8 +1496,10 @@ from `/api/economy/lookmaxz/`.
 - **A factor the photo did not show is "Not visible in this photo — not guessed."**, never a number.
 - **Links are the marketplace's own search, new tab, `nofollow sponsored`, no affiliate tag** — the screen says we
   earn nothing. StatZ edits their own list; everyone else sees Amazon, eBay, Walmart and a door to StatZ.
-- The tile is Corey's supplied LookZMaxZ art (`public/icons/lookzmaxz.jpg`, 512px). Note it draws a golden-ratio face
-  grid; the feature deliberately never scores proportions, so the art says more than the screen does.
+- The tile is Corey's original LookZMaxZ art (the golden-ratio face, Oct 18) — he lost his copy and chose it over a later
+  neon-sign version (Oct 28) — filed under ProfileZ as `public/icons/profilez.lookzmaxz.jpg` (512px; only this size was ever
+  committed) and mapped to `lookmaxz.png` by `tools/build-icon-manifest.mjs`; `lookzmaxz.jpg` is the same art as the registry fallback. The
+  menu lists it in ProfileZ → Your Profile — before that it had a route and no door.
 
 ## Lilith: move any entry anywhere, Trash, and recommendations from profile and activity
 
@@ -1543,3 +1545,449 @@ rows). `extras` / `mix_tips` come from the server already cleaned; the screen fi
 coach did not give is absent, never a 0. `shareText({extras})` adds "(HookZ 8 · FeelZ 6)" to the sentence only when they exist.
 The picture carries the numbers and the emotion only — the fixes stay on the page, because a card is a result and a fix is for the
 person who made it.
+
+## Mix ConnectZ: DynamicZ, a loudness you set, and delivery as WAV or MP3
+
+The eMastered comparison, done: Mix ConnectZ already had reference matching (Inspiration), level-matched A/B,
+styles, intensity, width and EQ trims. What it lacked is in now, all on the member's device and free at every tier.
+
+- **DynamicZ** is the section for how hits and loud moments behave. **Punch** (`applyPunch`, −50..+50%) is a
+  transient shaper: a 1 ms and a 25 ms envelope differ only while a hit starts, so only the attack moves; under 1 dB
+  apart is a sustained note breathing and is ignored (without that deadband a 200 Hz tone moved 1.7 dB).
+  **Multiband** splits at 120 Hz and 4 kHz with LR4 crossovers and compresses each band on its own; the low band gets
+  the upper split's phase turn too, so at rest the bands sum flat (a test holds five frequencies within 0.6 dB). Every
+  move still states its `why`, and the result lists the most each band took off.
+- **Custom loudness** (`target: "custom"`, −20..−7 LUFS) beside the presets, with the "services turn this down" line
+  when it is louder than −14.
+- **Export** (`export.js`): WAV or MP3, at the mix's own rate or converted to 44.1 / 48 kHz. Converting
+  (`resample.js`, Kaiser-windowed sinc, ~90 dB stopband) re-measures the true peak afterwards and trims any excess,
+  and says so. MP3 is LAME via `@breezystack/lamejs` (LGPL-3.0), loaded unmodified as its own chunk on first use,
+  never bundled into app code; `public/licenses/lamejs.txt` carries the licence and the screen links it. Workers build
+  as ES modules (`worker: { format: "es" }` in every vite config) because the worker imports it dynamically.
+- **Revise**: a saved master's settings go back on the controls (`reviseFrom`). The server keeps `lufs`, `punch`,
+  `multiband`, `format`, `kbps` and `exportRate` for that (`mixz.clean_settings`); the Inspiration track itself is never
+  kept, and the screen says to add it again.
+- **The WAV ladder** (Corey's call): StatZ exports 24-bit WAV, Premium 16-bit, Free MP3. It is `wav_bits` on
+  `catalog.MASTERING`, served in `allowed` / `ladder`; the screen clamps what it exports (`fmt`, `depth`) to it and
+  locks the rest with the tier that has it. No ladder (a failed fetch) offers MP3 only, never a guess upward.
+- Not done: album mastering (several songs to one loudness and tone). It is the next eMastered/LANDR parity item.
+
+## The weight box opens on the last weight entered
+
+All three BodieZ weight boxes (a planned lift in the live logger, "add an unplanned exercise",
+and "log a past session") start on the weight the member last entered for THAT lift done THAT
+way — `lastWeight.js`, in this order: the latest set of it in the session being logged, else the
+last set of the last finished session (`/exercises/<id>/history/`), else the routine's target,
+else blank. It is a default, not a suggestion: every figure is a row they logged or a target they
+set, and a lift with no history opens empty (the substance rule — nothing invented). The box
+says where the number came from ("last set" / "last time" / "target").
+
+- **Side is part of the match.** A one-arm set never fills the two-arm box.
+- **The latest set decides, even with no weight** — a bodyweight set after a loaded one stays
+  bodyweight rather than silently logging the loaded number again.
+- **No effect, no stale copy.** The value is derived each render; a typed number is keyed to
+  (lift, side, sets logged), so logging a set hands the box back to the auto-fill. A unit flip
+  re-expresses it for the same reason. This replaced a `useEffect` that only re-expressed the plan.
+- **A routine target now loses to what the member actually lifted.** Reversible in `lastWeightKg`
+  by swapping the order of the first and last fallbacks.
+
+## The rest timer counts DOWN, and the beep has to be unlocked before it is needed
+
+`RestTimer` shows the time LEFT (`1:12 left of 1:30`), then `rest over` / `over by 0:08`; the bar
+still fills. It used to count up toward a target, which left the member subtracting.
+
+The beep was silent on most phones and nothing said so: it made its `AudioContext` at the moment rest
+ended, with no tap behind it, and browsers start such a context suspended. `restBeep.js` makes and
+resumes one context on the member's own taps while the timer is on screen (`primeRestBeep`), plays
+three ramped beeps into it (one blip is lost under music), and has a **Test beep** pill so the volume
+can be checked before the first set rather than discovered after. It is a different file from
+`sound.js` on purpose — that one is decoration and starts off; this is the timer's one job.
+
+- **It beeps only when rest ends while the member is here** (`shouldBeep`, 15 s of grace). A page loaded
+  long after the last set is a finished rest, not one that just ended, and a beep on every reload is how
+  a feature gets muted. The set is still marked alerted, so it cannot fire later.
+- **Superset hold is unchanged**: no alert while the first half of a pair is waiting for the second.
+- **A locked phone still pauses the page** and no audio unlocks that; the screen-on and notification
+  options beside the timer are the answer, and the copy there says so.
+
+- **Cross-browser, as far as a web page can go.** The unlock listens on `pointerup`, `touchend`, `click`
+  and `keydown` (`UNLOCK_EVENTS`) — activation differs by browser (Chrome counts a touch on release, Safari
+  wants touchend/click), and the first one accepted wins. iOS also needs a silent buffer played inside the
+  gesture and treats `interrupted` like `suspended`; both are handled. Checked in headless Chromium with
+  touch emulation and `--autoplay-policy=document-user-activation-required`: locked until a tap, ready
+  after. **Not checked on a real phone, Safari or Firefox** (no device here) — iOS's silent-mode switch
+  mutes Web Audio and nothing in a page can override it.
+- **The screen says what state the sound is in** ("Sound on" / "Sound is off until you tap once" / "This
+  browser can't play the beep") instead of failing quietly, and a hidden tab's title becomes "Rest over —
+  go" until it is shown again. Vibration is Android/Firefox only; iPhones get neither buzz nor, in a
+  locked state, the beep.
+
+## A finished session says it ended, how much was lifted, and what changed
+
+`SessionSummary` leads with **✓ Session ended**, scrolls itself into view (ending happens at the bottom
+of a long screen and the card is at the top, so "did that work?" was the next thought) and announces
+itself (`role="status"`). Under the totals it states the change since last time, from the server's `vs_last`:
+`▲ +100 kg (+25%) vs last Push day (date)`, then what that session was, any lifts not repeated, and per
+exercise a `top ▲ +5 kg` or `volume …`. `sessionChange.js` only words and orients what the server computed.
+
+- **It says what it compared against** (`againstWhat`): last Push day when it was a routine, "your last
+  session" when it was not — never an implied like-for-like it did not have.
+- **A drop is not coloured as a failure** and carries "a lighter session isn't a worse one". Only records get
+  the 🏆, with their own count ("3 new records").
+- No earlier session reads "First session logged — this is your starting mark", not a 0% or a blank.
+- The share/post text carries the same change line.
+
+## Inspiration can use a post, a FileZ file or a famous example
+
+`Inspiration.jsx` has two `Source` controls: **File**, **A post** (searchable; "My posts" / "Everyone's" —
+the reference defaults to everyone's, the take to yours) and **My files** (FileZ audio/video). A post
+is sent by id (`take_post_id` / `reference_post_id`), never by address, and what is pickable is only a
+filter for the picker (`inspirationSources.js`: has a recording, not known gone); whether the member may
+use it is the server's answer, shown unreworded.
+
+- **The ⚡ price is beside the button before it is pressed** ("−N ⚡ for using a post", once however many
+  sides are posts) with the server's `post_note`; files and FileZ cost none. The result names what was
+  compared ("Compared "My verse" against "Famous" by @artist") and what it cost.
+- The same post on both sides is caught before the press. A failed fetch of the lists leaves only the file
+  door, and says nothing.
+- Not offered: a journal entry (the server accepts it as a take; it was left off the picker).
+
+## The home screen's parents
+
+"Around the coach" now starts with the ToolZ and IntelligenceZ PARENTS (`FOCUS_PARENTS`, the same category
+cards "More apps" draws, lifted to the front — one tap opens everything under them) and SkillZ ends the coach
+grid (`FOCUS_COACH_PARENTS`). There is **no `skillz` tab**: SkillZ exists only as a category, so its tile opens
+that category. Lilith joined BodieZ in the list (Corey uses it).
+
+FileZ's tile showed a music note and the raw key `filez`: it had art in App.jsx's registry and no entry in
+ToolZMenu's own `ICON_KEY` / `EMOJI` / `FOCUS_LABEL`. `focus.test.mjs` now fails when any focus tile lacks all three.
+
+### Inspiration: paste a link, and be told before pressing whether it can be heard
+
+Each side has **A link** beside File / A post / From my apps ("My files" is FileZ, which is where Mix,
+Instrumental and Video ConnectZ put what they make). As the link is typed the control says what will happen,
+using the server's own sentences (`link_sources`, `link_note`) and a host-only guess (`linkProvider`, the same
+labelling-only rule as `widgetz.js`): YouTube → "works, reads the first 4:00 or from ?t=", **Spotify / SoundCloud →
+the server's reason (a player, never the audio), and Use stays disabled**. The server still decides on press.
+A link costs no ⚡; the result names it ("a YouTube video from 1:15").
+
+## SessionZ: see and fix every past log
+
+BodieZ has a **SessionZ** tab (after Today) listing every finished session, not the newest few: `SessionZView`, fed by
+`sessions/log/` (the server pages, searches, bounds by date, totals and flags; `sessionLog.js` builds the query and keeps
+the list straight). RoutineZ's "Logged workouts" list moved here — one list, and RoutineZ keeps a door to it. A session
+finished on Today still jumps to SessionZ's editor via "Edit this workout" (fetched by id if it is not on the page).
+
+- **Each row** is date, routine, length (blank, never 0:00, when it was typed in afterwards), sets, reps and weight lifted,
+  and its lifts. **Edit** opens the same `PastWorkout` editor, inline under the row; **Details** opens the session summary
+  with the change vs last time and records; **Routine**, **Write about it** and delete are the ones RoutineZ had.
+- **"Only ones that need a look"** is the server's `check`: an empty session, or one left open for hours, each with its
+  reason in amber. A drop in weight is never flagged — only facts about the row are.
+- **One debounced request per pause** for every filter (search, from, to), and a ticket so a slow old answer cannot
+  overwrite a newer one. A reload after an edit re-asks for as many rows as the member had paged to (up to the server's 100)
+  instead of throwing them back to the top.
+- Driven in a real browser against the local stack (62 sessions): paging 25 → 50, search, the filter finding exactly the
+  two broken sessions, an edit moving a row's total by the expected amount, and a delete dropping the count and the flagged
+  list. The skill's chromium path was stale (`chrome-linux64` now, not `chrome-linux`).
+
+## Starting from SessionZ, saving a custom session, and fitting a routine to your equipment
+
+**SessionZ opens with "Start a session".** A session already open shows "Continue it" (the server allows one at a
+time). Otherwise: **Start a custom session** (an ad-hoc one — log lift by lift on Today) or a routine from the list
+(title, how many lifts, and the equipment they use), each with **Start** and **Fit to equipment**. The same fit is on
+every RoutineZ card.
+
+- **Save to RoutineZ when a custom session ends.** The ended-session card (and a past session's Details) offers it for a
+  session with sets and no routine behind it: a name box, "Save to RoutineZ", then "Open RoutineZ". It is the server's
+  `routine_from_session` — one row per lift, sets = how many were done, target = the TOP set, never an average — and the
+  workout stays as logged. Free.
+- **The equipment fit is the Planner's, not the AI's** (`equipmentFit.js`, `EquipmentFit.jsx`): free, no 🏷️, and nothing is
+  saved until a button is pressed. The member picks equipment (any of several; none means "any" and nothing changes). Each
+  lift that needs other gear gets same-muscle candidates that use only what was picked, ranked by how much of the
+  movement's NAME they share once the gear words are dropped ("Bench Press" → "Dumbbell Bench Press" before "Dumbbell Fly"),
+  then by the library's curated order. Every swap shows its reason and a dropdown to change it, keep the lift or remove it.
+  "Just show me everything I can do with…" lists the equipment's lifts by muscle. Then **Edit this routine** (in place) or
+  **Save as a new routine** (the original is kept).
+- **A swap clears the weight.** 60 kg on a barbell is not 60 kg in a dumbbell; sets, reps and order are kept and the logger
+  fills in the member's own last weight for the NEW lift. A lift with no same-muscle option in that equipment is said to be
+  kept and is never replaced with an invention; removing it is the member's call. A lift already in the routine is not offered
+  twice, and candidates come from `pickable`, so a movement setting that rules a lift out still does.
+- Superset pairs survive a swap (the label stays on the row); removing half a pair drops the label (`normalize`).
+- Driven in a real browser (barbell routine → Dumbbell → edited; custom session → logged → ended → saved → in RoutineZ) and the
+  saved rows read back from the database. Verified there that weights cleared and the top set became the target.
+
+## The Plan rating on routine cards: a coach-made routine is built to its checks, and an edit says why the score moved
+
+Every routine card shows **Plan N/10** (`PlanRating.jsx`, drawn with `RatingRow`) beside the Thorough line, with "What the Plan
+checks" (each check ✓/✗/– and the lift that decided it) and the server's caveat that it is NOT Thorough. Corey asked for a flat 10 on
+anything the coach makes or edits; that would be a number nothing measured, so what the Planner makes is **built to the checks**
+(which is why it reads 10) and an edit shows the move. The backend CLAUDE.md has the reasoning and the five checks.
+
+- **"Let the Planner fix this"** appears when a fixable check fails (order, reps, sets — `planRating.js` `FIXABLE`). It asks
+  `routines/plan/` with `polish: true` and SHOWS the proposal first: "Plan 4 → 10 if the Planner fixes it", each change in plain words
+  ("Moved Barbell Row from 2 to 1 — big lifts first."), and "Still yours to fix" for access and repeats. Nothing saves until Apply.
+- **Fit to equipment previews the Plan** under the swaps ("Plan stays 10 — 4 of 4 checks after the swaps", or "7.5 → 10" with which check moved
+  and which lift moved it) and saves the Planner's list, so what was previewed is what is saved. A failed preview says so and saves only the swaps.
+- The client decides nothing: scores, checks, wording of reasons and the fix are the server's. `planRating.js` only words them.
+- Fixed with it: the Thorough line on routine cards had always read "not rated yet" (the board feeding the cards never carried it).
+- Driven in a real browser: a routine failing three checks reads 4/10 with each reason, the fix previews 4 → 10 and applies to 10/10, a trained
+  routine shows Thorough and Plan side by side, and Fit to equipment shows the Plan before saving.
+
+### "Improve this routine": the ended-session card lands on the routine's coach controls
+
+When a session started from a routine ends, the card (Today, and a past session's Details in SessionZ) says where that routine stands BEFORE
+anything is pressed — "Push day — Plan 4/10 — 3 checks the Planner can fix." (`improveCta`, from the board's `plan`) — with the price beside
+the button ("Free · you see every change before anything is saved"). **Improve this routine** jumps to RoutineZ and LANDS on that routine's card
+(`jumpToImprove` → `focusRoutine`: filter cleared, card scrolled into view and marked for a few seconds), with its Plan checks already open and,
+when the Planner can fix something, its proposal already on screen (`PlanRating autoOpen`). Arriving saves nothing; Apply does.
+- A routine already at 10 (or with only member-owned checks failing) reads **Open this routine**, not "Improve": a button that promises to
+  improve and has nothing to do is the dead-end this repo keeps relearning. A routine deleted since offers no CTA at all.
+- A custom session saved to RoutineZ from the same card lands on the NEW routine ("Open it in RoutineZ").
+- `autoOpen` is read once at mount, so `landed` is initialised from the focus rather than set in an effect after the cards first render.
+
+## Supersets while logging, a report at the end, and pairing as an option
+
+- **Link any two lifts, in a session as in a routine.** The past-workout editor (SessionZ → Edit) and the live logger both have **Superset with…** on every lift
+  (`SupersetPick`): any other lift of the workout, planned or added on the day. A live pair is saved on the session as it is made (optimistic; a refusal puts the
+  old pairs back and says why) and is drawn as the same Superset block a routine's pair is — the rest clock says "go straight to…" — even when the two lifts were not
+  neighbours (`applySessionPairs`; a pair already side by side is grouped in place so dragging never flips it). Saving the session to RoutineZ carries the pairs.
+- **The ended-session card**: "✓ Session ended" → totals → the **report** ("Done 38% of the plan — 3 of 8 sets · 1 of 2 lifts", rest against the goal's target, "last
+  time 50% (+25 points)", and "this routine was edited since last time" when it was) → vs last time → records → the **coach block**: Improve / Open this routine,
+  **Update the routine from this session** (what it does is said before it is pressed; the answer says how the Plan moved), Save to RoutineZ for a custom session, and
+  the AI coach's read — all above the exercise list, not at the foot of the card. The report says it is effort, not a rating.
+- **Supersets are an OPTION where routines are made and improved** (`PairMode`, modes read from `bodiez/pair/`, never retyped): one shared control above the Planner's
+  builders, in the Plan's "Add supersets with the Planner" and its proposal, and in Fit to equipment. Without StatZ (or the free hour) it says so, offers the sample and
+  names the free way ("link two lifts by hand"); the routine is still built.
+- Driven in a real browser as a StatZ member: a live pair of non-adjacent lifts, the report, saving to RoutineZ (read back: Bench + Curl adjacent as group A, the Row single),
+  updating a routine (skipped lift kept), re-pairing in the SessionZ editor, and the Planner's push + pull preview and Apply.
+
+## Thorough 💯: the mark beside a name, and the group at the top of GroupZ
+
+`ThoroughMark.jsx` renders the server's mark (💯 Thorough 6, 🥈 Decent 7, 🥇 Legendary 8, 🌟 Supreme 9, 💎 Perfect 10 — Corey's
+placeholder emoji) beside the author on a PostZ card, the starter and each participant of a CollabZ deal, and a VenueZ host;
+the member card already shows it as a worn badge. Its tooltip says what it is (how completely they train, not strength, pays
+nothing) and a tap lands on the group. `ThoroughGroup.jsx` is the first section of GroupZ (`data-tour="thorough"`): posts on
+top, then members by rung, and the member's own rating, rung and next rung. Both decide nothing; a hidden badge has no mark.
+
+## InventoryZ: rate a member's gear and clothes, piece by piece and in total
+
+`components/InventoryZ.jsx` (🎒 placeholder icon) sits in ProfileZ under the portfolio and in the member profile modal. The
+pieces are the existing `inventory` profile field — edited in profile fields (`data-tour="profile-fields"`), which gained
+👕 Clothes and a 📷 photo per piece. This component only shows them with their ratings: 1-10 buttons for other members, the
++N ⚡ rater reward stated before the press, each piece's median and count, and a Total that stays "not rated yet" until the
+server's minimum. It decides nothing; `RATING_NOTE` (taste, not a measure of you) is shown as served. A failed fetch renders
+nothing — the pieces still show in the profile fields.
+
+## BadgeZ on the page: title, how it's earned, what it does — and a tap shows who else wears it
+
+Corey: a badge shows its effect without a click, and tapping it shows the others with the same badge. `BadgeWearList`
+(member profile, public profile and now your own ProfileZ) renders every worn badge as title, description, **Earned:**
+and **Does:**; the BadgeZ catalogue labels the same and marks a penalty so "Not yours yet" never reads as one to chase.
+Any medal opens `BadgeHolders.jsx` (who wears it, from `/badgez/holders/`), except on the logged-out public profile
+(`holders={false}`). Badge art: `tools/make-neon-badges.mjs` draws a neon hexagon around Corey's emoji
+(`public/icons/badge_<key>-neon.svg`, registered in App.jsx); his `badgez.<name>.jpg`, once committed and the manifest
+rebuilt, replaces it (`build-icon-manifest.mjs` KEYS). Edit a medal in the generator, never the SVG.
+
+## SuperfanZ 🫶 on the profile, and their comments first
+
+`components/SuperfanZ.jsx` sits in ProfileZ and the member profile: the artist's top three with what earned it (plays,
+ratings, comments, shares — a count of acts, never a rating of a person), the rule, and on somebody else's profile where
+you stand and how many points to go. Comments from an artist's superfans arrive first (the server orders them) and carry
+🫶 beside the name in PostZ. Whether you appear on lists is the "On artists' SuperfanZ 🫶 lists" row in VisibilitieZ.
+Decides nothing; a failed fetch renders nothing.
+
+## VocalZ: Mix ConnectZ raises a vocal that sits too low
+
+A finished stereo mix cannot be un-mixed on the device (no stem separation), so the master offers two honest moves, both
+in `src/mastering/master.js`, both stated on screen as what they are:
+
+- **Vocal lift, Auto by default.** The lead vocal almost always sits dead centre, so the lift raises the MID channel with a
+  wide bell at 2 kHz (about 900 Hz–4.5 kHz) and leaves the sides alone (`applyVocalLift`). **Auto** measures the centre
+  spectrum across 1–4 kHz (`VOCAL_BANDS`) against the same target the EQ uses — the mix's own trend, or the Inspiration
+  track — AFTER the EQ's own moves, so the two never boost one dip twice; past `VOCAL_AUTO_MIN` (1 dB) it lifts
+  `VOCAL_AUTO_SHARE` (75%) of the gap up to `VOCAL_AUTO_MAX` (+4 dB). Every master states what Auto measured, including
+  when it left the centre alone. Limit, said on screen: it measures the centre, not the voice, so a beat that fills the
+  same range reads as full. Manual: 0 to +6 dB.
+- **The vocal as its own file** — the real fix for members who recorded over a beat. `mixVocal` lays it on the beat at
+  `vocalLevel` (±12 dB), resampled to the beat's rate, as long as the longer of the two, BEFORE the chain — a mix, then
+  the master. It never leaves the device and a saved master remembers only that one was used.
+- `src/mastering/vocal.test.mjs` pins the centre moving by what was asked, the sides and the low end staying put, Auto
+  lifting a scooped centre and leaving a full one alone, and Auto measuring after the EQ. Driven in a browser on a track
+  scooped 10 dB at 2 kHz: the EQ took part, Auto measured −2.6 dB left and lifted +2 dB.
+
+## VideoZ: a multitrack editor on the member's device (Sony Vegas, the parts that matter)
+
+`src/apps/VideoZ.jsx` is wiring and words; `src/videoedit/project.js` is the model and every edit
+(pure, tested), `look.js` the filters and framing, `render.js` the engine, `lipsync.js` the voice.
+
+- **Tracks top to bottom; an upper video track plays OVER the lower ones** (picture-in-picture is a
+  smaller clip on an upper track, a title sits on the top one). Clips go anywhere; two that OVERLAP on
+  one track crossfade (the incoming rises over a solid outgoing, sound fades both ways). Mute and
+  solo are per kind, so soloing an audio track never blacks out the picture.
+- **Preview and export are one loop** (`createEngine().play`, recorder on or off) on the AudioContext
+  clock, so what was approved is what is written. Export is a canvas recording, so it runs at playback
+  speed and a hidden tab stutters — both said beside the button, and a hidden stretch is reported after.
+  MP4 where the browser records it, WebM otherwise, named before the press.
+- **Free, and said so up front**: nothing leaves the device until Save to FileZ, which states the MB it
+  uses. Library imports (FileZ, finished Video ConnectZ renders) are fetched into the tab, because a
+  canvas that draws a cross-origin file cannot be recorded.
+- **Lip-sync is StatZ (or the sample)**: a photo's mouth, boxed by the member, opens with the voice's
+  loudness and widens/rounds with its tone, following everything audible or one named clip. It follows
+  the SOUND, not the words, and `lipsync.NOTE` says that on the control. Real AI lip-matching would
+  need a provider and a price — not built.
+- Video ConnectZ points at VideoZ for editing what exists, and a finished render's Edit door hands the
+  file over (`handOff("videoz", …)`).
+- **Driven in a browser** with generated clips (see the commit). Not checked on a phone or in Safari.
+
+## InVenTorieZ: what a member's gear and wardrobe are worth, and how it rates
+
+`components/InventoryZ.jsx` (Corey's name and art, `public/icons/inventoriez.jpg`; the key and API stay
+`inventoryz`). The pieces are still the `inventory` profile field. Each piece's WORTH is an exact price or
+a 1-10 $ level (1 the member's least expensive thing, 10 the most); `inventoriez.js` words it and never
+turns a level into dollars, so the total adds prices and counts levels beside them. Who sees the worth is
+the VisibilitieZ "What my InVenTorieZ is worth" field (members by default; the server strips it, never this
+screen). Members rate pieces as before; the owner can also run an **AI rating** from the photos — piece by
+piece and the kit together — with the price on the button, nothing charged when no photo is read, and each
+reading hidden until they press Show. A piece with no photo is never AI-rated.
+
+## Video ConnectZ Direct: each shot planned to the song (StatZ)
+
+`components/ShotDirector.jsx` sits inside "Music video with your track" (`StitchedMusicVideo`). The coach LISTENS to the
+member's own track and, for each shot's slot of it, says what it hears and offers three shots tied to the lyric, the mood or
+the beat, each with why — `/api/economy/videoz/develop/`. **Direct** is the feature's name (Corey renamed it from Develop; the
+endpoint and keys keep `develop` so nothing stored moves). Two ways to pick: **I pick** (`develop`) and **The coach picks**
+(`direct`), the coach's own pick for every shot, marked "🎬 Coach's pick" with its reason. One paid plan serves both; picks land in the
+ordinary shot fields and stay editable, and the render is the stitch's, priced per shot as before.
+
+- The slot times are the server's (the stitch's own clock: track start + 8 s per shot), never the model's.
+- StatZ or the daily sample (`statz_trial` feature `video_develop`); locked shows the server's sentence and `StatzSample`.
+  Writing shots by hand is open to everyone.
+- Price beside the button before it is pressed, "not charged if it fails"; `unplannable` (silence, not music) says so free.
+- The privacy policy names it: the track, lyrics and mood go to Google for the plan, and the plan is not stored.
+
+## Radar read: coaching somebody else's post
+
+A post that is not yours offers "📡 Radar read in X" (the server's `radar` door; `PostZ` carries `radar` in the
+handoff). BossTake says so before the press ("the coach's read of their work, for you … not counted as your take,
+earns no XP, nothing written on their post"), the button reads **Get the Radar read**, and the result is headed
+"📡 Radar read — what @them's track shows" with the reference-listen layout (no fixes, no share, no history).
+
+## Coaches score reels: a YouTube link, or the reel's own file
+
+BossTake has "Or paste your reel" under Attach (member recorder only; hidden in every standalone shell and on the trial).
+`coachLinks.js` labels the host before the press, with the server's sentences (`links` from GET `/api/<key>/coach/`):
+**YouTube videos and Shorts** are watched by the model at their address (`?t=` honoured, first 4 minutes) — **Score my
+reel**, price beside it; **Instagram, Facebook, TikTok, Snapchat, Threads** cannot be fetched by anyone else, so the line
+says to save your own reel from the app and attach the file, which the coach already watches. In My take a link is
+declared yours like an attached file; somebody else's video goes through "Listen to someone else's track" (a reference
+listen). A private or removed video answers "it has to be public", and is not charged.
+
+## LookZMaxZ: a photo by its image address, and Look Inspiration for anybody's photo
+
+`PhotoPick` in `LookmaxZ.jsx` takes a file OR a pasted image address. The server fetches only the social apps' own
+IMAGE hosts (`imagelinks.py` — fbcdn, cdninstagram, twimg, tiktokcdn, sc-cdn, licdn, pinimg, googleusercontent),
+https, no redirects, size-capped, kept nowhere. A post or profile PAGE link (`instagram.com/p/…`) is said BEFORE the press
+(`page_hosts`, served) with how to copy the image address instead. The reading stays **self-only** — Corey asked for others'
+photos too, and scoring a stranger's face is the harm line the feature was built on, so it is not built. **Look Inspiration**
+(`/lookmaxz/inspire/`) is the answer for anybody's photo: it describes the cut, facial hair, brows and styling and how to get
+them — no number, nothing about the person, no names — priced like a reading, not charged when there is no look to describe.
+
+## Inspiration on every maker: one picker, the server's rule
+
+`components/InspirationRef.jsx` is the one "start from a sound or a picture" control, on Sentence ConnectZ (the kinds in
+`reference.writer_kinds` — every kind but a legal draft), Instrumental, Video ConnectZ, the stitched music video (one file for
+the Direct plan and every shot) and MangaZ's script. The ceiling, the accepted types and the sentence beside it ("feel only,
+never kept, same price") are `/api/economy/priorities/` → `reference`; a failed fetch renders nothing and the maker still works.
+The file rides inside the one request as a data URL and nothing keeps it. A video render reads it into words server-side
+first (Veo would use a picture as the first frame and copy it). Image ConnectZ, the coaches and LookZMaxZ have their own.
+
+### Inspiration rates and compares both takes (Corey's ask)
+
+The result leads with **two RatingRows** — your take and the reference, each with the coach's one-sentence reason — then
+every dimension as `you N · ref N` with who leads by how much, and one line from the server's `compare` ("You lead in 2
+of 5 · the widest gap is Breath"). Both are on one scale so they compare; the subtraction is the server's. Nothing here is
+saved as the member's score, and the screen says so.
+
+## LookZMaxZ invites: she gets her own reading and chooses to show it
+
+Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
+cannot tell whether she agreed), so it works the other way round. `InviteRate` (in LookZMaxZ) copies `/rate/<handle>`;
+`RateInvite.jsx` is that public page — the server's rule, an explicit `?ref=` credit, and `landing.js` so a visitor who
+signs up or signs in lands on `/lookmaxz?for=<handle>` (RequireAuth drops the address otherwise). After her own reading,
+`ShareReading` sends the SERVER-SIGNED `share.reading` with `@who` pre-filled from `for`; `SharesPanel` shows "Shared with
+you", `?look=<token>`, and her own shares with "Take it down". The share carries numbers and words, never the photo, and
+leaves out Body and the opt-in sectors. The header and the privacy policy say a score is kept only if she shares it.
+
+### Asking someone to approve a reading of them, and posting results
+
+`AskForReading` (LookmaxZ.jsx) sends `/lookmaxz/ask/` a member's handle and a photo of them. The person in the photo sees
+it in the same screen ("See the photo" first — Approve stays disabled until they have), ticks "this is a photo of me", and
+approves or declines; nothing is read before that, the requester pays only for a reading that came back (price on the
+button), and the photo is deleted whatever happens. Approval becomes THEIR share to the requester. `PostIt` on a reading
+you own posts it to PostZ (Everyone / Members / Only me, `data-nomemo` because it is a privacy choice) — the post text is
+built by the server from the stored snapshot. Only the person in a reading can post it.
+
+### Every AI coach result can show what it read — LookZMaxZ included, no exception (Corey's rule)
+
+The material behind a result can be shown, by the person it belongs to, when they choose. Coach takes: Keep this take.
+LookZMaxZ: **Keep my photo** (opt-in per reading, `keep_note` served) keeps the photo as one of their uploads; the result
+shows the photo that was read either way; **Show my photo** on a share and **with my photo** on Post my results show it to
+others. An approval request has **Show the photo with the reading**, which keeps it as HER upload. Inspiration's result
+shows both sides it compared (`SideMedia`: a file plays from the device, a link opens where it lives).
+
+## Your apps lead; everything else stays one search away (Corey: few apps per member, kept easy to reach)
+
+`yourApps.js` ranks a member's own apps — pins first, then apps opened at least `OWN_MIN_OPENS` (2) times, by frecency:
+opens halved every `HALF_LIFE_DAYS` (14) since the last open (`mcz_app_last`, written by `usePickConnectZ` beside the
+existing count). On device only, never sent. The home screen (`ToolZMenu`) leads with **Your apps**; once a member has
+`OWN_MIN_APPS` (3) of their own, the coach grid and "Around the coach" fold behind **All coaches & tools**, so other apps
+stop getting in the way. A new member, with no history, still sees the coaches first. The dock's AI picks use the same
+frecency, so the two agree. Nothing is hidden from search or routing, and a pin always wins. `yourApps.test.mjs` pins it.
+Not checked in a browser yet.
+
+### A new member's first apps are the ones they told us about, and joining lands them back where they came in
+
+`yourApps.js` **seeds** (`mcz_app_seed`, `addSeeds`, at most `SEED_MAX` 6) fill "Your apps" and the dock's starters until real
+use takes over: the coach a visitor tried (`TrialTake`), the role picked in OnboardZ's "I'm here for…" (`IntentPicker`: the scored
+take first, then the role's other doors), and LookZMaxZ for somebody who came through an invite. Seeds are never counted as use
+(`hasOwnApps` ignores them), so the coach grid still shows until a member has three apps of their own. A visitor who joins from a
+trial door lands back on that coach (`setLanding` → `RootRoute`'s `LandOnce`, which clears the slot as it is used — before this
+only LookZMaxZ cleared it, so a slot could keep redirecting home for its full 30 minutes), and the habit onboarding asks about
+the coach they came through instead of always SingZ.
+
+## The trial shows what an account adds, and a second take shows the number move
+
+Under a trial score, `TrialToUpgradePrompt` puts three things. First, the change since this browser's first take (`previous`, from the server). Second, the free take still left (`takes_left`), with **Take it again**, which remounts BossTake through a `key`, so the recorder is fresh. Third, Free / Premium / StatZ side by side. Every number and feature in that comparison comes from `/api/economy/tiers/`: `daily_prompts`, storage, `wav_bits`, `profile_links`, the ⚡ ratio, `statz_features` and `statz_sample`. A failed fetch shows no ladder.
+
+The old card made three claims that were not true, and all three are gone:
+- "2x faster Energy". At the rate a new member is on, it is 3x.
+- "AI vocal coach feedback" listed as a Premium perk. Every tier has it.
+- "Advanced analytics". It was never built.
+
+Value shown to a visitor is only what the server actually gates. Somebody who joins on a false claim stops believing the true ones.
+
+## SessionZ is a list of finished workouts first (Jefit-simple)
+
+The top is one compact start bar: **Start a custom session**, then a routine select with **Start** and **Fit to equipment**. It used to be a tall card per routine, which pushed the history off the first screen. A routine with no lifts has Start disabled and says why.
+
+Each finished session is one row:
+- **Left:** the date.
+- **Middle:** title, time, sets and reps, and the lifts.
+- **Right:** the weight lifted, large.
+- **Score line:** "Done N% of the plan" (the server's `done_pct`; absent for a custom session, never 0) and "Routine Thorough N/10" drawn with `RatingNumber`, labelled as the routine's rating now.
+- **Buttons:** **Begin**, **Edit**, **More**. Details, Save as routine, Write about it, the AI read and Delete live under More.
+
+**Begin** runs the session's routine again. A custom session has no routine, so its button reads **Save & begin** and says beside it that it keeps the workout as a routine first. A button must never save something it does not say it saves.
+
+Filters: search stays visible; the date range and "needs a look" sit behind "Filter by date".
+
+**Adding a lift is by muscle AND equipment everywhere.** `ExercisePicker` now has equipment toggles (the shared `EquipmentPicker`, none = any) beside the muscle select. Because Today's "add an exercise", the past-workout editor and the swap control all use that picker, they gained it at once. The routine designer already had both filters.
+
+## The live logger says WHICH lift, and a wrong set is undone on the spot
+
+A member logged sets against the wrong exercise: every planned lift is its own card with its own Log button, and nothing said which one a tap would log. Three changes, all in `LoggerRow`:
+- **The button names the lift:** "Log set for Dumbbell Fly". The lift you are on carries a green ring and "next".
+- **What was logged is said back:** "✓ Logged Dumbbell Fly — 12 @ 20 lb", with **Wrong lift? Undo** beside it. Undo calls the server's single-set delete, so nothing stays half-removed.
+- **Every logged set chip has an ✕** (with a confirm that names the lift and the set), for a slip noticed later in the same session.
+
+A past session is still edited from SessionZ → Edit; the point is that the common slip no longer needs it.

@@ -20,7 +20,7 @@ import { useTierLadder } from "../limits.js";
 import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
-import { BadgeWear } from "../BadgeWear.jsx";
+import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
@@ -31,10 +31,13 @@ import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
+import InventoryZ from "../components/InventoryZ.jsx";
+import SuperfanZ from "../components/SuperfanZ.jsx";
 import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
+import InterestPicker from "../components/InterestPicker.jsx";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -303,12 +306,16 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
   const [bio, setBio] = useState(persona.bio || "");
   const [interests, setInterests] = useState((persona.interests || []).join(", "));
   const [petPeeves, setPetPeeves] = useState((persona.pet_peeves || []).join(", "));
+  const [brands, setBrands] = useState(persona.declared_brands || []);
+  const [strengths, setStrengths] = useState(persona.declared_strengths || []);
 
   function save() {
     onChange({
       bio: bio.trim(),
       interests: interests.split(",").map((s) => s.trim()).filter(Boolean),
       pet_peeves: petPeeves.split(",").map((s) => s.trim()).filter(Boolean),
+      declared_brands: brands,
+      declared_strengths: strengths,
     });
     onClose();
   }
@@ -326,7 +333,7 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
         </div>
         <p className="mb-4 text-[11px] text-white/45">
           What you say about THIS role — separate from your account bio above.
-          Nothing here is scored or inferred; it's what you type.
+          Nothing here is scored. A suggestion is only kept if you accept it.
         </p>
 
         <label className="mb-3 block">
@@ -343,6 +350,13 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
                  onChange={(e) => setInterests(e.target.value)}
                  placeholder="vinyl, analog synths, late-night sessions" />
         </label>
+        <InterestPicker
+          persona={{ key: personaKey, name: personaLabel, skills: persona.skills || [] }}
+          interests={interests.split(",").map((s) => s.trim()).filter(Boolean)}
+          setInterests={(list) => setInterests(list.join(", "))}
+          brands={brands} setBrands={setBrands}
+          strengths={strengths} setStrengths={setStrengths}
+        />
         <label className="mb-4 block">
           <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
             Pet peeves <span className="normal-case text-white/30">(comma-separated)</span>
@@ -502,7 +516,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // SubstanceZ already holds for "what, and how often".
   const [languages, setLanguages] = useState({});
   // Popular-site fields (pronouns, headline, genres…), one object, one save.
-  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "label", "timezone", "pinned_post_id", "cover_url"];
+  const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "inventory", "label", "timezone", "pinned_post_id", "cover_url"];
   const [pf, setPf] = useState(null);
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
@@ -586,7 +600,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setSel((d.personas || []).map((x) =>
         typeof x === "string" ? { key: x, name: x, skills: [] }
                               : { key: x.key || x.name, name: x.name || x.key, skills: x.skills || [],
-                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [] }));
+                                  bio: x.bio || "", interests: x.interests || [], pet_peeves: x.pet_peeves || [],
+                                  declared_brands: x.declared_brands || [], declared_strengths: x.declared_strengths || [] }));
       if (Array.isArray(d.nationalities) && d.nationalities.length) setNats(d.nationalities);
     }).catch((e) => setLoadErr(e.message || "Your profile didn't load."));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
@@ -606,7 +621,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setReligion(d?.religion || "");
       setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
-      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear"].includes(k) ? [] : "")]));
+      const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear", "inventory"].includes(k) ? [] : "")]));
       got.pinned_post_id = d?.pinned_post?.id ?? d?.pinned_post_id ?? null;
       if (!got.timezone) got.timezone = deviceTimezone();
       setPf(got);
@@ -742,6 +757,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                      onOpen={() => spotlight("badgez")} />
         </div>
       </header>
+      {/* What each worn badge DOES, on the page — no hover, no tap needed (Corey).
+          Tapping a row shows everybody else wearing it. */}
+      <BadgeWearList badges={worn.badges} mine />
 
       {/* BadgeZ — the medal, and the effect it actually carries. It reports
           what you wear back up, so the header medals follow the switches
@@ -908,6 +926,14 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             make one. */}
         <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
+        </div>
+        {/* What they play, wear and work with — rated by members piece by piece and in total. */}
+        <div className="border-t border-white/10 pt-3">
+          <InventoryZ />
+        </div>
+        {/* Who keeps coming back to your work. */}
+        <div className="border-t border-white/10 pt-3">
+          <SuperfanZ />
         </div>
         <div className="border-t border-white/10 pt-3">
           <Gallery username={me?.username} mine />

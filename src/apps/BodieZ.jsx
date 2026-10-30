@@ -52,8 +52,18 @@ import { MUSCLE_ART } from "../iconManifest.js";
 import { pickForDay } from "../bodiezPick.js";
 import { estimateRoutineSeconds, fmtEstimate, routineTimeNote } from "../routineTime.js";
 import { getUnit, saveUnit, fromKg, toKg, fmtWeight } from "../weightUnit.js";
+import EquipmentFit from "./EquipmentFit.jsx";
+import PairMode from "../components/PairMode.jsx";
+import PlanRating from "./PlanRating.jsx";
+import { RatingNumber } from "../components/Rating.jsx";
+import { equipmentOf } from "../equipmentFit.js";
+import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
+import { improveCta, moveText } from "../planRating.js";
+import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
+import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
+import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
-import { badge, blocks, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, unlink } from "../supersets.js";
+import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
@@ -69,10 +79,12 @@ const useUnit = () => useContext(UnitCtx);
 
 // A labelled input, because a placeholder disappears the moment a number is
 // typed and "12" next to "35" doesn't say which one is the weight.
-function Field({ label, className = "w-20", ...props }) {
+function Field({ label, className = "w-20", hint = "", ...props }) {
   return (
     <label className={`flex flex-col gap-0.5 ${className}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+        {label}{hint && <span className="ml-1 font-normal normal-case tracking-normal text-mcz-cyan/70">{hint}</span>}
+      </span>
       <input className="neon-input !py-2 w-full text-sm" {...props} />
     </label>
   );
@@ -129,6 +141,8 @@ const BODYMAP_STATUS = {
 
 const TABS = [
   { key: "today", label: "Today" },
+  // Every past session, editable — the place to find a log from last spring and fix it.
+  { key: "sessionz", label: "SessionZ" },
   { key: "routinez", label: "RoutineZ" },
   { key: "scheduler", label: "Scheduler" },
   { key: "bodymap", label: "BodyMap" },
@@ -174,10 +188,14 @@ export default function BodieZ() {
   // Set by SessionSummary's "Edit this workout" — the card shown right after
   // finishing had no way to fix a session's own numbers (a dangling session
   // left open for hours shows 0 sets and a nonsense duration, with nothing
-  // to do about it but hunt for it in RoutineZ's history list). Jumps there
+  // to do about it but hunt for it in a history list). Jumps to SessionZ
   // and opens the editor on this exact session. Read once.
   const [prefillEditSession, setPrefillEditSession] = useState(null);
-  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("routinez"); };
+  const jumpToEditSession = (sessionId) => { setPrefillEditSession(sessionId); setTab("sessionz"); };
+  // "Improve this routine" on an ended session: lands in RoutineZ ON that routine's card with its Plan open (and the
+  // Planner's proposal showing when there is one), not at the top of a tab. Read once.
+  const [improveRoutine, setImproveRoutine] = useState(null);
+  const jumpToImprove = (routineId) => { setImproveRoutine(routineId); setTab("routinez"); };
   // LookZMaxZ's body-photo reading hands a muscle over through sessionStorage (it is another tab,
   // not a child of this one) — read once and cleared, so it lands on the builder and only once.
   useEffect(() => {
@@ -293,6 +311,20 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); }
   }
 
+  // Supersets of the live session. Optimistic (a control that lags reads as broken); a refusal puts the old pairs back
+  // and says why. The server prunes a pair whose lift was never logged when the session ends.
+  async function saveSessionPairs(pairs) {
+    if (!session) return;
+    const before = session.superset_pairs || [];
+    setSession((cur) => (cur ? { ...cur, superset_pairs: pairs } : cur));
+    try {
+      await api(`/api/economy/bodiez/sessions/${session.id}/`, { method: "PATCH", body: { superset_pairs: pairs } });
+    } catch (e) {
+      setSession((cur) => (cur ? { ...cur, superset_pairs: before } : cur));
+      setErr(e.message || "Couldn't save that superset.");
+    }
+  }
+
   async function finishSession() {
     if (!session) return;
     if (!window.confirm(`End this session? You've been going ${clock(secondsSince(session.started_at))}.`)) return;
@@ -325,7 +357,20 @@ export default function BodieZ() {
       // Functional, because "copy last time" logs several sets back to back and
       // each would otherwise overwrite the last with a stale copy of the session.
       setSession((cur) => (cur ? { ...cur, sets: [...cur.sets, s] } : cur));
-    } catch (e) { setErr(e.message); }
+      return s;
+    } catch (e) { setErr(e.message); return null; }
+  }
+
+  // Take back ONE set of the session being logged — a set on the wrong lift is the commonest slip, and fixing it
+  // should not mean leaving the workout. Pessimistic: the set only leaves the screen once the server has dropped it.
+  async function undoSet(setId) {
+    if (!session) return false;
+    try {
+      await api(`/api/economy/bodiez/sessions/${session.id}/sets/${setId}/`, { method: "DELETE" });
+      setSession((cur) => (cur ? { ...cur, sets: cur.sets.filter((x) => x.id !== setId) } : cur));
+      setErr("");
+      return true;
+    } catch (e) { setErr(e.message || "Couldn't take that set back."); return false; }
   }
 
   // Dragging a logged set: a display order only — rest, time and weight are untouched.
@@ -406,6 +451,17 @@ export default function BodieZ() {
     } catch (e) { setErr(e.message); return false; }
   }
 
+  // A routine made from a list of lifts without leaving the screen it was asked for on (createRoutineFromExercises
+  // below jumps to RoutineZ, which is right for the Planner's builders and wrong inside SessionZ). Throws on a
+  // refusal so the caller can show the server's own sentence; `source: "coach"` because the Planner made it.
+  async function saveNewRoutine(title, exerciseList, goal = "") {
+    await api("/api/economy/bodiez/routines/", {
+      method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", goal: goal || "", source: "coach" },
+    });
+    load();
+    return true;
+  }
+
   // A copy to change without losing the one already run — coach-built or not.
   async function copyRoutine(id) {
     try {
@@ -418,11 +474,18 @@ export default function BodieZ() {
   // as the target; the workout itself is untouched).
   async function routineFromSession(id, title) {
     try {
-      await api(`/api/economy/bodiez/sessions/${id}/routine/`, { method: "POST", body: title ? { title } : {} });
+      const made = await api(`/api/economy/bodiez/sessions/${id}/routine/`, { method: "POST", body: title ? { title } : {} });
       setErr("");
       load();
-      return true;
+      return made || true;          // the new routine (so a caller can land on it); always truthy on success
     } catch (e) { setErr(e.message); return false; }
+  }
+
+  // Update the routine a session was started from, from what was done. Throws on a refusal (the card shows the sentence).
+  async function updateRoutineFromSession(sessionId, routineId) {
+    const d = await api(`/api/economy/bodiez/sessions/${sessionId}/routine/`, { method: "POST", body: { update: routineId } });
+    load();
+    return d;
   }
 
   async function deleteSession(id) {
@@ -435,9 +498,11 @@ export default function BodieZ() {
 
   // Sets first, then the note/date: a refused set changes nothing, and the
   // error says which set — the server checks the whole list before writing.
-  async function saveSessionEdit(id, { sets, notes, date }) {
+  async function saveSessionEdit(id, { sets, notes, date, superset_pairs }) {
     const done = await api(`/api/economy/bodiez/sessions/${id}/sets/`, { method: "PUT", body: { sets } });
-    await api(`/api/economy/bodiez/sessions/${id}/`, { method: "PATCH", body: date ? { notes, date } : { notes } });
+    // After the sets: the server prunes pairs to the lifts that survived the edit, then these are the member's own.
+    await api(`/api/economy/bodiez/sessions/${id}/`, { method: "PATCH", body: {
+      notes, ...(date ? { date } : {}), ...(superset_pairs ? { superset_pairs } : {}) } });
     load();
     return done?.summary || null;
   }
@@ -446,11 +511,23 @@ export default function BodieZ() {
   // status (undertrained/untrained muscles first), never a model's guess.
   // It lands in RoutineZ (and the Scheduler's Inbox) like a hand-built routine, so
   // it goes through the same designer to be tweaked or started.
+  // The Planner's builders share one Supersets option (`buildPairMode`): compound + isolation or push + pull, applied by the server
+  // at creation (StatZ's or the free hour's; without it the routine is still built and says why it was not paired).
+  const [buildPairMode, setBuildPairMode] = useState("");
+  const [buildNote, setBuildNote] = useState("");
+  const noteBuilt = (made) => {
+    const bits = [`Built “${made.title}”`, made.plan?.score != null ? `Plan ${made.plan.score}/10` : null,
+                  ...asList(made.polished).filter((c) => c.kind === "superset" || c.kind === "added").map((c) => c.what),
+                  made.pair?.blocked ? made.pair.detail : null].filter(Boolean);
+    setBuildNote(bits.join(" · "));
+  };
   async function createRoutineFromExercises(title, exerciseList, dayTag, goal) {
     try {
-      await api("/api/economy/bodiez/routines/", {
-        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "", source: "coach" },
+      const made = await api("/api/economy/bodiez/routines/", {
+        method: "POST", body: { title, exercises: exerciseList, bucket: "inbox", ...dayBody(dayTag), goal: goal || "", source: "coach",
+                                ...(buildPairMode ? { pair_mode: buildPairMode } : {}) },
       });
+      noteBuilt(made);
       setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
@@ -463,11 +540,14 @@ export default function BodieZ() {
   // 6-day split; this does the same POSTs without either.
   async function createSplitRoutines(days) {
     try {
+      let last = null;
       for (const day of days) {
-        await api("/api/economy/bodiez/routines/", {
-          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "", source: "coach" },
+        last = await api("/api/economy/bodiez/routines/", {
+          method: "POST", body: { title: day.title, exercises: day.exercises, bucket: "inbox", goal: day.goal || "", source: "coach",
+                                  ...(buildPairMode ? { pair_mode: buildPairMode } : {}) },
         });
       }
+      if (last) noteBuilt({ ...last, title: days.length > 1 ? `${days.length} days` : last.title });
       setTab("routinez");
       load();
     } catch (e) { setErr(e.message); }
@@ -578,11 +658,15 @@ export default function BodieZ() {
             <LbFix onFixed={load} />
             {summary && (
               <SessionSummary summary={summary} onClose={() => setSummary(null)}
-                             onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }} />
+                             onEdit={() => { jumpToEditSession(summary.session_id); setSummary(null); }}
+                             onSaveRoutine={(name) => routineFromSession(summary.session_id, name)}
+                             onOpenRoutineZ={() => { setTab("routinez"); }}
+                             routinePlan={routines.find((r) => r.id === summary.routine_id)?.plan} onImprove={jumpToImprove}
+                             onUpdateRoutine={(rid) => updateRoutineFromSession(summary.session_id, rid)} />
             )}
             <TodayView
               session={session} routines={routines} exercises={exercises} pickable={usable}
-              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onReorderSets={reorderSets}
+              onStart={startSession} onFinish={finishSession} onLogSet={logSet} onUndoSet={undoSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -591,19 +675,29 @@ export default function BodieZ() {
                          initialRoutineId={prefillPastRoutine} onInitialRoutineConsumed={() => setPrefillPastRoutine(null)} />
             </>
           )}
+          {tab === "sessionz" && (
+            <SessionZView exercises={exercises} pickable={usable} refreshKey={history} routines={routines}
+                          sessionOpen={!!session} onStart={(id) => { startSession(id); setTab("today"); }}
+                          onOpenToday={() => setTab("today")} onSaveExercises={saveRoutineExercises} onSaveNew={saveNewRoutine}
+                          onOpenRoutineZ={() => setTab("routinez")} onImprove={jumpToImprove}
+                          onUpdateRoutine={updateRoutineFromSession}
+                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
+                          onSaveSession={saveSessionEdit} onRoutineFromSession={routineFromSession}
+                          onDeleteSession={deleteSession} onLogPast={() => jumpToLogPast(null)} />
+          )}
           {tab === "routinez" && (
-            <RoutineZView routines={routines} history={history} exercises={exercises} pickable={usable}
+            <RoutineZView routines={routines} exercises={exercises} pickable={usable}
                           demoCredit={demoCredit} coach={coach} bodymap={bodymap} dayTagLabels={dayTagLabels}
                           prefillMuscle={prefillMuscle} onPrefillConsumed={() => setPrefillMuscle(null)}
-                          onLogPast={jumpToLogPast}
-                          prefillEditSession={prefillEditSession} onEditConsumed={() => setPrefillEditSession(null)}
+                          onLogPast={jumpToLogPast} onOpenSessionZ={() => setTab("sessionz")} onSaveNew={saveNewRoutine}
+                          buildPairMode={buildPairMode} onBuildPairMode={setBuildPairMode} buildNote={buildNote}
+                          planCaveat={board?.plan_caveat}
+                          focusRoutine={improveRoutine} onFocusConsumed={() => setImproveRoutine(null)}
                           onBuildRoutine={createRoutineFromExercises} onBuildSplit={createSplitRoutines}
                           onCreate={(title) => createRoutine(title, "inbox", "")}
                           onSaveExercises={saveRoutineExercises} onCopy={copyRoutine} onDelete={deleteRoutine}
                           onImported={load}
-                          onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session}
-                          onRoutineFromSession={routineFromSession} onDeleteSession={deleteSession}
-                          onSaveSession={saveSessionEdit} onSummary={setSummary} />
+                          onStart={(id) => { startSession(id); setTab("today"); }} sessionOpen={!!session} />
           )}
           {tab === "scheduler" && (
             <SchedulerView buckets={buckets} bucketLabels={bucketLabels} dayTagLabels={dayTagLabels}
@@ -751,6 +845,7 @@ function summaryText(sm, unit, brief = false) {
   const lines = [
     `💪 ${sm.routine_title || "Workout"}${sm.duration_seconds != null ? ` — ${clock(sm.duration_seconds)}` : ""}`,
     `${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted · ${sm.sets} sets · ${sm.reps} reps`,
+    ...(sm.vs_last ? [`${changeText(sm.vs_last.volume_delta_kg, sm.vs_last.volume_delta_pct, (kg) => fmtWeight(kg, unit)) || repsChangeText(sm.vs_last)} vs ${againstWhat(sm.vs_last)}`] : []),
     ...sm.records.map((r) => `🏆 ${recordLine(r, unit)}`),
     ...(brief ? [] : sm.exercises.map((e) => `• ${e.name}: ${e.sets}×, ${e.reps} reps${e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}`)),
   ];
@@ -806,12 +901,44 @@ function AICoachRead({ sessionId }) {
   );
 }
 
-function SessionSummary({ summary: sm, onClose, onEdit }) {
+function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRoutineZ, routinePlan, onImprove, onUpdateRoutine }) {
   const unit = useUnit();
   const [note, setNote] = useState("");
+  // A custom session has no routine behind it. Ending it is the moment to keep it: the server turns each lift into a
+  // row (sets = how many were done, target = the TOP set, never an average), and the session itself stays as logged.
+  const [routineName, setRoutineName] = useState(`Custom workout — ${new Date(sm.started_at).toLocaleDateString()}`);
+  const [savedAs, setSavedAs] = useState("");
+  const [savedId, setSavedId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  // "Update this routine from the session": the routine takes what was done (sets, reps, top-set weight for the lifts done,
+  // the supersets made on the day); lifts that were skipped stay as they were. The answer says how its Plan moved.
+  const [updated, setUpdated] = useState(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateErr, setUpdateErr] = useState("");
+  const updateRoutine = async () => {
+    setUpdating(true); setUpdateErr("");
+    try { setUpdated(await onUpdateRoutine(sm.routine_id)); }
+    catch (e) { setUpdateErr(e?.message || "Couldn't update that routine. Nothing was changed."); }
+    finally { setUpdating(false); }
+  };
+  const canSaveRoutine = !!onSaveRoutine && sm.sets > 0 && !sm.routine_title;
+  const saveRoutine = async () => {
+    setSaving(true);
+    try {
+      const name = routineName.trim().slice(0, 80) || "Custom workout";
+      const made = await onSaveRoutine(name);
+      if (made) { setSavedAs(name); setSavedId(typeof made === "object" ? made.id : null); }
+    } finally { setSaving(false); }
+  };
   const title = `${sm.routine_title || "Workout"} — ${Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()} ${unit} lifted`;
   const text = summaryText(sm, unit);
   const coaches = asList(sm.coaches);
+  const fmt = (kg) => fmtWeight(kg, unit);
+  const vs = sm.vs_last;
+  // Ending a session happens at the bottom of a long screen, and this card is at the top:
+  // bring it into view and announce it, or "did that work?" is the member's next thought.
+  const cardRef = useRef(null);
+  useEffect(() => { try { cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch { /* old browser */ } }, [sm.session_id]);
 
   async function share() {
     try {
@@ -825,10 +952,10 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
   const toCoach = (who) => handOff("messagez", "messagez-compose", { people: who ? [who] : [], title, description: text });
 
   return (
-    <div className="re-card space-y-3 border-emerald-400/40">
+    <div ref={cardRef} role="status" aria-live="polite" className="re-card space-y-3 border-emerald-400/40">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="re-label">Session done</p>
+          <p className="re-label text-emerald-300">✓ Session ended</p>
           <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"}{sm.duration_seconds != null ? ` · ${clock(sm.duration_seconds)}` : " · logged afterwards"}</p>
         </div>
         <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
@@ -836,10 +963,52 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         </button>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div><p className="text-2xl font-extrabold text-white">{Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()}</p><p className="re-label">{unit} lifted</p></div>
+        <div><p className="text-2xl font-extrabold text-white">{Math.round(fromKg(sm.volume_kg, unit)).toLocaleString()}</p><p className="re-label">total {unit} lifted</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.sets}</p><p className="re-label">sets</p></div>
         <div><p className="text-2xl font-extrabold text-white">{sm.reps}</p><p className="re-label">reps</p></div>
       </div>
+      {sm.sets > 0 && (
+        <div className="rounded-lg bg-white/5 p-2.5 text-xs space-y-0.5" data-testid="vs-last">
+          {vs ? (
+            <>
+              <p className="text-white/80">
+                <span className={`font-semibold ${direction(vs.volume_delta_kg) === "up" ? "text-emerald-300" : "text-white"}`}>
+                  {changeText(vs.volume_delta_kg, vs.volume_delta_pct, fmt) || repsChangeText(vs) || "= same as last time"}
+                </span>{" "}
+                vs {againstWhat(vs)}
+              </p>
+              <p className="text-[11px] text-white/45">
+                Then: {Math.round(fromKg(vs.volume_kg, unit)).toLocaleString()} {unit} · {vs.sets} sets · {vs.reps} reps.
+                {vs.sets_delta !== 0 ? ` ${vs.sets_delta > 0 ? "+" : "−"}${Math.abs(vs.sets_delta)} sets` : ""}
+                {vs.duration_delta_seconds != null && Math.abs(vs.duration_delta_seconds) >= 60
+                  ? ` · ${clock(Math.abs(vs.duration_delta_seconds))} ${vs.duration_delta_seconds > 0 ? "longer" : "shorter"}` : ""}
+                {vs.volume_delta_kg < 0 ? " A lighter session isn't a worse one — deloads and short days look like this." : ""}
+              </p>
+              {asList(vs.not_repeated).length > 0 && (
+                <p className="text-[11px] text-white/45">Not done this time: {vs.not_repeated.join(", ")}.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-white/55">First session logged — nothing to compare it to yet. This is your starting mark.</p>
+          )}
+        </div>
+      )}
+      {sm.sets > 0 && sm.report && (
+        <div className="space-y-0.5 rounded-lg bg-white/5 p-2.5 text-xs" data-testid="session-report">
+          <p className="text-white/80">
+            <span className="font-semibold text-white">{doneLine(sm.report)}</span>
+            {doneVsLast(sm.vs_last) && <span className="text-white/50"> · {doneVsLast(sm.vs_last)}</span>}
+          </p>
+          {restLine(sm.report, clock) && <p className="text-[11px] text-white/55">{restLine(sm.report, clock)}.</p>}
+          {editedNote(sm.vs_last) && <p className="text-[11px] text-amber-200">{editedNote(sm.vs_last)}</p>}
+          {asList(sm.superset_pairs).length > 0 && (
+            <p className="text-[11px] text-fuchsia-200/80">
+              {asList(sm.superset_pairs).length} superset{asList(sm.superset_pairs).length === 1 ? "" : "s"} — kept if you save this to RoutineZ.
+            </p>
+          )}
+          <p className="text-[11px] text-white/30">Effort, not a rating: sets done against the plan, and rest against the goal's own.</p>
+        </div>
+      )}
       {sm.sets === 0 ? (
         // A session that sat open with nothing logged — the most likely story
         // behind a 0-set, hours-long "workout" — has no record to report and
@@ -847,6 +1016,7 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
         <p className="text-xs text-white/45">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
       ) : sm.records.length > 0 ? (
         <div className="space-y-1">
+          <p className="re-label text-amber-200">🏆 {sm.records.length} new record{sm.records.length === 1 ? "" : "s"}</p>
           {sm.records.map((r, i) => (
             <p key={i} className="flex items-start gap-1.5 text-xs text-amber-200">
               <Trophy size={13} className="mt-0.5 shrink-0" /> {recordLine(r, unit)}
@@ -861,10 +1031,69 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
       {sm.records.length > 0 && sm.firsts.length > 0 && (
         <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
       )}
+      {sm.routine_id != null && sm.sets > 0 && onImprove && improveCta(routinePlan) && (
+        <div className="space-y-1.5 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2.5 text-xs" data-testid="improve-routine">
+          <p className="text-white/70">
+            <b className="text-white">{sm.routine_title}</b> — {improveCta(routinePlan).line}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={`!w-auto px-3 py-1.5 text-xs ${improveCta(routinePlan).fixable ? "neon-btn-primary" : "neon-btn-ghost"}`}
+                    onClick={() => onImprove(sm.routine_id)}>
+              {improveCta(routinePlan).label}
+            </button>
+            {onUpdateRoutine && !updated && (
+              <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={updating} onClick={updateRoutine}
+                      title="The lifts you did take today's sets, reps and top-set weight; lifts you skipped stay as they were">
+                Update the routine from this session
+              </button>
+            )}
+            <span className="text-white/40">Free · you see every change before anything is saved.</span>
+          </div>
+          {onUpdateRoutine && !updated && (
+            <p className="text-[11px] text-white/40">
+              Updating: the lifts you did take today's sets, reps and top-set weight{asList(sm.superset_pairs).length ? " and today's supersets" : ""}; lifts you skipped stay as they were.
+            </p>
+          )}
+          {updated && (
+            <p className="flex flex-wrap items-center gap-2 text-emerald-300">
+              Updated “{updated.title}”{updated.plan_change ? ` — Plan ${moveText(updated.plan_change)}` : ""}.
+              <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={() => onImprove(sm.routine_id)}>See it</button>
+            </p>
+          )}
+          {updateErr && <p role="alert" className="text-mcz-ember">{updateErr}</p>}
+        </div>
+      )}
+      {canSaveRoutine && (
+        <div className="space-y-1.5 rounded-lg bg-white/5 p-2.5 text-xs" data-testid="save-routine">
+          {savedAs ? (
+            <p className="flex flex-wrap items-center gap-2 text-emerald-300">
+              Saved “{savedAs}” to RoutineZ.
+              {(onImprove && savedId != null)
+                ? <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={() => onImprove(savedId)}>Open it in RoutineZ</button>
+                : onOpenRoutineZ && <button type="button" className="rounded-full border border-emerald-300/40 px-3 py-0.5 text-[11px]" onClick={onOpenRoutineZ}>Open RoutineZ</button>}
+            </p>
+          ) : (
+            <>
+              <p className="text-white/70">This was a custom session. Save it to RoutineZ to run it again — each lift's top set becomes the target.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <input aria-label="Routine name" className="neon-input !py-1.5 min-w-0 flex-1 basis-40 text-xs" maxLength={80}
+                       value={routineName} onChange={(e) => setRoutineName(e.target.value)} />
+                <button type="button" className="neon-btn-primary !w-auto px-3 py-1.5 text-xs" disabled={saving} onClick={saveRoutine}>
+                  Save to RoutineZ
+                </button>
+                <span className="text-white/40">Free · the workout stays as logged.</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {/* The coach, where the result is: the AI coach's read sits with the routine CTAs, not at the foot of the card. */}
+      {sm.sets > 0 && <AICoachRead sessionId={sm.session_id} />}
       <div className="space-y-1">
         {sm.exercises.map((e) => (
           <p key={e.exercise_id} className="text-[11px] text-white/55">
             {e.name}: {e.sets} {e.sets === 1 ? "set" : "sets"}, {e.reps} reps{e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}
+            {liftChange(e, fmt) && <span className={liftChange(e, fmt).includes("▲") ? " text-emerald-300/80" : " text-white/45"}> · {liftChange(e, fmt)}</span>}
           </p>
         ))}
       </div>
@@ -899,7 +1128,6 @@ function SessionSummary({ summary: sm, onClose, onEdit }) {
           <MapPin size={13} /> Train in person · VenueZ
         </button>
       </div>
-      {sm.sets > 0 && <AICoachRead sessionId={sm.session_id} />}
       <p className="text-[11px] text-white/35">
         PostZ shows what posting costs before you post; sending a DM is free. “Coach” always means the AI coach —
         a person you message is named as a person.
@@ -1066,47 +1294,50 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   const [alerted, setAlerted] = useState(null);
   const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
   const elapsed = last ? secondsSince(last.created_at) : 0;
-  const done = last && elapsed >= target;
+  const { left, over, done } = restClock(elapsed, target);
+
+  // Unlock the beep on the member's own taps. A browser starts audio suspended unless a
+  // gesture made or resumed it, and by the time rest ends there is no gesture to lean on.
+  useEffect(() => {
+    const prime = () => primeRestBeep();
+    for (const ev of UNLOCK_EVENTS) document.addEventListener(ev, prime, { passive: true, capture: true });
+    return () => { for (const ev of UNLOCK_EVENTS) document.removeEventListener(ev, prime, { capture: true }); };
+  }, []);
+
+  // A phone in a pocket or folded shut has no screen to watch; the tab title is the one cue
+  // every browser lets a hidden page change, and it is put back the moment they return.
+  const titleRef = useRef(null);
+  useEffect(() => {
+    const restore = () => { if (titleRef.current != null) { document.title = titleRef.current; titleRef.current = null; } };
+    if (done && !hold && document.visibilityState === "hidden") {
+      if (titleRef.current == null) titleRef.current = document.title;
+      document.title = "Rest over — go";
+    } else restore();
+    document.addEventListener("visibilitychange", restore);
+    return () => document.removeEventListener("visibilitychange", restore);
+  }, [done, hold]);
 
   useEffect(() => {
     // Halfway through a superset nobody is resting, so nothing should say they are.
-    if (hold || !done || alerted === last.id) return;
+    if (hold || !last || !done || alerted === last.id) return;
     setAlerted(last.id);
-    try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported */ }
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination);
-      o.start(); o.stop(ctx.currentTime + 0.25);
-    } catch { /* no audio */ }
+    // A reload long after the set is a finished rest, not one that just ended: mark it, stay quiet.
+    if (!shouldBeep({ done, over, alreadyAlerted: false })) return;
+    try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported, e.g. iPhone */ }
+    restBeep();
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!last) return null;
-  if (hold) {
-    return (
-      <div className="re-card border-fuchsia-400/30">
-        <p className="text-sm text-fuchsia-200">
-          Superset — go straight to <span className="font-semibold">{hold}</span>. Rest starts after it.
-        </p>
-      </div>
-    );
-  }
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
   const pick = (t) => { setCustom(t); pickGoal(""); save(REST_KEY, String(t)); };
   const pct = Math.min(100, (elapsed / target) * 100);
 
-  return (
-    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
-      <div className="flex items-baseline justify-between">
-        <p className="re-label">Rest since {last.exercise_name || "last set"}</p>
-        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}>
-          {clock(elapsed)} <span className="text-sm text-white/40">/ {clock(target)}</span>
-        </p>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/10">
-        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
-      </div>
+  // The rest length is chosen the same way whether the clock is running or a superset is waiting on its
+  // second lift, so the choices (and the sound check) are one block shown in both.
+  const choices = (note) => (
+    <>
       {goalList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] text-white/40">
@@ -1133,40 +1364,110 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
             {clock(t)}
           </button>
         ))}
-        <span className="text-[11px] text-white/40">{done ? "Rested — go." : "Logging your next set saves this rest."}</span>
+        <button type="button" className="pill !py-1 text-[11px]"
+                onClick={() => { primeRestBeep(); restBeep(); try { navigator.vibrate?.(80); } catch { /* unsupported */ } }}>Test beep</button>
+        <span className="text-[11px] text-white/40">{note}</span>
+        {beepState() === "ready"
+          ? <span className="text-[11px] text-emerald-300/80">Sound on</span>
+          : beepState() === "unsupported"
+            ? <span className="text-[11px] text-white/45">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
+            : <span className="text-[11px] text-amber-300/90">Sound is off until you tap once — press Test beep (and check your phone isn't on silent).</span>}
       </div>
+    </>
+  );
+
+  // Halfway through a superset nobody is resting, so there is no countdown yet — but the member still
+  // gets both clocks up front: how long since the last set (the gap before the second lift) and the
+  // rest that starts the moment they log it, with how it will tell them. Never a bare "rest starts later".
+  if (hold) {
+    const gap = restClock(elapsed, SUPERSET_GAP_SECONDS);
+    return (
+      <div className="re-card space-y-2 border-fuchsia-400/30">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <p className="text-sm text-fuchsia-200">
+            Superset — go straight to <span className="font-semibold">{hold}</span>.
+          </p>
+          <p className={`font-mono text-2xl font-bold ${gap.done ? "text-emerald-300" : "text-white"}`}
+             aria-label={gap.done ? "Time to start the second lift" : `${clock(gap.left)} left to start the second lift`}>
+            {clock(gap.left)} <span className="text-sm font-normal text-white/40">{gap.done ? (gap.over > 0 ? `go — over by ${clock(gap.over)}` : "go") : `left to start it`}</span>
+          </p>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/10">
+          <div className={`h-full rounded-full ${gap.done ? "bg-emerald-400" : "bg-fuchsia-400"}`}
+               style={{ width: `${Math.min(100, (elapsed / SUPERSET_GAP_SECONDS) * 100)}%` }} />
+        </div>
+        <p className="text-xs text-white/60">
+          Then rest <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span> starts when you log it, counting down
+          with a beep at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}. This {clock(SUPERSET_GAP_SECONDS)} is only
+          the gap between the two lifts — no beep for it.
+        </p>
+        {choices("Change it here — it's the rest after the pair.")}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+      <div className="flex items-baseline justify-between">
+        <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
+        <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
+           aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
+          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
+        </p>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${done ? "bg-emerald-400" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
+      </div>
+      {choices(done ? "Rested — go." : "Beeps when it hits 0:00. Logging your next set saves the rest you actually took.")}
     </div>
   );
 }
 
-function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
-                     grip = null, onReorder = null }) {
+function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
+                     grip = null, onReorder = null, pair = null }) {
   const unit = useUnit();
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [justLogged, setJustLogged] = useState(null);   // the set this card just logged, so it can be named and taken back
   const [reps, setReps] = useState(planned?.reps ? String(planned.reps) : "");
-  const [weight, setWeight] = useState(planned?.weight_kg != null ? String(fromKg(planned.weight_kg, unit)) : "");
-  // A unit flip re-expresses the planned target; a number the member typed is left as typed.
-  useEffect(() => {
-    if (planned?.weight_kg != null) setWeight(String(fromKg(planned.weight_kg, unit)));
-  }, [unit]); // eslint-disable-line react-hooks/exhaustive-deps
   const targetSets = planned?.sets || 3;
   const done = doneSets.length;
   const [side, setSide] = useSide(planned.exercise_id);
   const last = useHistory(planned.exercise_id, side);
   const lastDone = doneSets[doneSets.length - 1];
+  // The weight box opens on the last weight entered for this lift, done this way: the
+  // latest set of it today, else the last finished session, else the routine's target.
+  // Derived each render, so a unit flip re-expresses it and logging a set (which changes
+  // `done`) hands a typed number back to the auto-fill — which is that set's weight.
+  const lw = { sets: byEntered(doneSets), side, last, plannedKg: planned?.weight_kg ?? null };
+  const [typed, setTyped] = useState(null);
+  const box = boxValue(typed, typedKey(planned.exercise_id, side, done), lastWeightKg(lw), fromKg, unit);
+  const weight = box.value;
+  const weightHint = box.auto ? ({ set: "last set", history: "last time", plan: "target" })[lastWeightSource(lw)] : "";
   // Repeat / copy re-log EXISTING numbers as new sets, in the unit the member
   // sees; the server stamps the real time, so rest between them is true.
   const shown = (kg) => (kg != null ? fromKg(kg, unit) : "");
-  const repeatLast = () => onLogSet(planned.exercise_id, lastDone.reps, shown(lastDone.weight_kg), lastDone.one_sided || "");
+  const log = async (reps_, weight_, side_) => { const made = await onLogSet(planned.exercise_id, reps_, weight_, side_); if (made) setJustLogged(made); return made; };
+  const undo = async () => { if (justLogged && (await onUndoSet?.(justLogged.id))) setJustLogged(null); };
+  const removeSet = async (st) => {
+    if (!onUndoSet) return;
+    if (!window.confirm(`Remove ${planned.name}: ${st.reps}${st.weight_kg != null ? ` @ ${fmtWeight(st.weight_kg, unit)}` : ""}?`)) return;
+    if (await onUndoSet(st.id) && justLogged?.id === st.id) setJustLogged(null);
+  };
+  const repeatLast = () => log(lastDone.reps, shown(lastDone.weight_kg), lastDone.one_sided || "");
   const copyLastTime = async () => {
-    for (const st of last.sets) await onLogSet(planned.exercise_id, st.reps, shown(st.weight_kg), st.one_sided || "");
+    for (const st of last.sets) await log(st.reps, shown(st.weight_kg), st.one_sided || "");
   };
 
   return (
-    <div className="re-card space-y-2">
+    <div className={`re-card space-y-2 ${isNext ? "ring-1 ring-emerald-400/40" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         {grip}
+        {muscleIcon(planned.muscle_group) && (
+          <img src={muscleIcon(planned.muscle_group)} alt={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
+               title={MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group} className="h-9 w-9 shrink-0" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white">
             {tag && <span className="mr-1.5 rounded bg-fuchsia-500/20 px-1 py-0.5 text-[10px] font-bold text-fuchsia-300">{tag}</span>}
@@ -1180,6 +1481,12 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
             {planned.reps ? ` x${planned.reps}` : ""}
             {planned.weight_kg != null ? ` @ ${fmtWeight(planned.weight_kg, unit)}` : ""}
           </p>
+          {planned.demo_url && (
+            <button type="button" className="mt-1 inline-flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline"
+                    aria-expanded={demoOpen} onClick={() => setDemoOpen(!demoOpen)}>
+              <PlayCircle size={13} /> {demoOpen ? "Hide demo" : "Watch demo"}
+            </button>
+          )}
         </div>
         {onSwap && (
           <button type="button" className="shrink-0 rounded px-1.5 text-[11px] text-mcz-cyan hover:bg-white/10"
@@ -1193,12 +1500,17 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
           {done}/{targetSets} sets
         </span>
       </div>
+      {demoOpen && planned.demo_url && (
+        <video src={demoSrc(planned.demo_url)} controls autoPlay loop muted playsInline preload="metadata"
+               className="max-h-64 w-full rounded-lg bg-black" aria-label={`${planned.name} demonstration`} />
+      )}
       {swapOpen && onSwap && (
         <ExerciseSwap current={planned.exercise_id} all={allExercises} choices={swapFrom} onPick={onSwap}
                       note={`Do a different lift in this slot, today only — your saved routine isn't changed. Sets you've already logged stay under ${planned.name}.`} />
       )}
       <LastTimeView last={last} side={side} />
       <SidePick value={side} onChange={setSide} />
+      {pair && <SupersetPick id={planned.exercise_id} pairs={pair.pairs} lifts={pair.lifts} nameOf={pair.nameOf} onChange={pair.onChange} />}
       <div className="flex flex-wrap gap-2">
         {lastDone && (
           <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={repeatLast}>
@@ -1212,16 +1524,22 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
         )}
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+               value={weight} onChange={(e) => setTyped({ key: typedKey(planned.exercise_id, side, done), v: e.target.value })} />
         <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                 disabled={!reps}
-                onClick={() => onLogSet(planned.exercise_id, Number(reps), weight === "" ? "" : Number(weight), side)}>
-          <Plus size={13} /> Log set
+                onClick={() => log(Number(reps), weight === "" ? "" : Number(weight), side)}>
+          <Plus size={13} /> Log set for {planned.name}
         </button>
       </div>
+      {justLogged && (
+        <p role="status" className="flex flex-wrap items-center gap-x-2 text-xs text-emerald-300">
+          <span>✓ Logged {planned.name} — {justLogged.reps}{justLogged.weight_kg != null ? ` @ ${fmtWeight(justLogged.weight_kg, unit)}` : ""}</span>
+          {onUndoSet && <button type="button" className="font-semibold underline" onClick={undo}>Wrong lift? Undo</button>}
+        </p>
+      )}
       {doneSets.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {doneSets.map((s, si) => (
@@ -1231,6 +1549,12 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
               {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
+              {onUndoSet && (
+                <button type="button" className="ml-1 rounded p-0.5 text-white/30 hover:text-mcz-ember" aria-label={`Remove this ${planned.name} set`}
+                        title="Remove this set" onClick={() => removeSet(s)}>
+                  <X size={11} />
+                </button>
+              )}
             </span>
           ))}
         </div>
@@ -1239,13 +1563,13 @@ function LoggerRow({ planned, doneSets, onLogSet, tag = "", isNext = false, onSw
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, goals, onReorderSets,
+function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
   const [exerciseId, setExerciseId] = useState("");
   const [reps, setReps] = useState("");
-  const [weight, setWeight] = useState("");
+  const [typedWeight, setTypedWeight] = useState(null);
   // "Done before" is the member's own history (times_done/last_done come off
   // the server, finished sessions only) so a lift they run every week is two
   // taps rather than a hunt through the library. Falls back to the full list
@@ -1296,8 +1620,11 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
         <p className="text-sm text-white/70">No session in progress.</p>
         <button className="neon-btn-primary !w-auto px-4 py-2 text-sm inline-flex items-center gap-1"
                 onClick={() => onStart(null)}>
-          <Play size={14} /> Start ad-hoc session
+          <Play size={14} /> Start a custom session
         </button>
+        <p className="text-[11px] text-white/45">
+          Log it lift by lift. When you end it, you can save it to RoutineZ to run again.
+        </p>
         {routines.length > 0 && (
           <div className="space-y-1">
             <p className="re-label">Or start from a routine:</p>
@@ -1316,7 +1643,7 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
 
   const routine = session.routine_id ? routines.find((r) => r.id === session.routine_id) : null;
   const rank = (id) => { const k = order.indexOf(id); return k < 0 ? Infinity : k; };
-  const planned = routine ? asList(routine.exercises)
+  const routinePlanned = routine ? asList(routine.exercises)
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .sort((a, b) => rank(a.exercise_id) - rank(b.exercise_id))
@@ -1324,22 +1651,46 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
       return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
-               muscle_group: ex?.muscle_group, equipment: ex?.equipment };
+               muscle_group: ex?.muscle_group, equipment: ex?.equipment, demo_url: ex?.demo_url };
     }) : [];
-  // Swap one slot for another lift. Refused when that lift is already in the plan.
-  const swapProps = (p) => ({
-    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
-    allExercises: exercises,
-    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
-  });
   const setsByExercise = {};
   for (const s of asList(session.sets)) {
     (setsByExercise[s.exercise_id] ||= []).push(s);
   }
   const loggedExerciseIds = new Set(asList(session.sets).map((s) => s.exercise_id));
+  // Supersets made while logging: ANY two lifts on screen — a planned one and a lift added on the day, or two added ones. The
+  // pairs are the session's (saved on it, so they survive a reload and ride into a routine made from it); drawing them is
+  // `applySessionPairs`. A lift that is in a pair is shown inside the plan blocks even when the routine did not have it; one
+  // that is not stays where unplanned lifts always were.
+  const pairs = asList(session.superset_pairs);
+  const inPair = new Set(pairs.flat());
+  const extraRows = [...loggedExerciseIds].filter((id) => !routinePlanned.some((p) => p.exercise_id === id)).map((id) => {
+    const ex = exercises.find((x) => x.id === id);
+    return { exercise_id: id, orig_id: id, name: ex?.name || `Exercise #${id}`, muscle_group: ex?.muscle_group,
+             equipment: ex?.equipment, demo_url: ex?.demo_url, sets: setsByExercise[id].length, extra: true };
+  });
+  const planned = applySessionPairs([...routinePlanned, ...extraRows], pairs).filter((r) => !r.extra || inPair.has(r.exercise_id));
+  const trailingExtras = extraRows.filter((r) => !inPair.has(r.exercise_id));
+  const liftsOnScreen = [...planned, ...trailingExtras].map((r) => r.exercise_id);
+  const pairFor = (id) => (onPairs ? {
+    pairs, lifts: liftsOnScreen, nameOf: (x) => exercises.find((e) => e.id === x)?.name || `Exercise #${x}`,
+    onChange: (partner) => onPairs(partner == null ? unsetPair(pairs, id) : setPair(pairs, id, partner)),
+  } : null);
+  // Swap one slot for another lift. Refused when that lift is already in the plan.
+  const swapProps = (p) => (p.extra ? {} : {
+    swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
+    allExercises: exercises,
+    onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+  });
   // The most recent set, and the lift a rest alert should point at when it fires.
   const lastLogged = asList(session.sets).reduce(
     (a, x) => (x.created_at && (!a || x.created_at > a.created_at) ? x : a), null);
+  const upNextId = (() => {
+    for (const b of blocks(planned)) {
+      if (b.single && (setsByExercise[b.single.exercise_id] || []).length < (b.single.sets || 3)) return b.single.exercise_id;
+    }
+    return null;
+  })();
   const upNext = (() => {
     for (const b of blocks(planned)) {
       if (b.single) {
@@ -1353,8 +1704,14 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
     }
     return "";
   })();
-  const extraExerciseIds = [...loggedExerciseIds].filter(
-    (id) => !planned.some((p) => p.exercise_id === id));
+  // The unplanned box opens on the last weight entered for the picked lift, done this
+  // way: today's latest set of it, else its last finished session.
+  const unplannedDone = exerciseId ? (setsByExercise[Number(exerciseId)] || []) : [];
+  const ulw = { sets: byEntered(unplannedDone), side: unplannedSide, last: unplannedLast };
+  const unplannedKey = typedKey(exerciseId, unplannedSide, unplannedDone.length);
+  const ubox = boxValue(typedWeight, unplannedKey, exerciseId ? lastWeightKg(ulw) : null, fromKg, unit);
+  const weight = ubox.value;
+  const weightHint = ubox.auto ? ({ set: "last set", history: "last time" })[lastWeightSource(ulw)] : "";
 
   return (
     <div className="space-y-3">
@@ -1389,8 +1746,9 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
               return (
                 <div key={p.exercise_id} {...dndPlan.row(bi)} className={`rounded-xl${dndPlan.rowClass(bi)}`}>
                   <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
+                             isNext={upNextId === p.exercise_id}
                              onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
-                             onLogSet={onLogSet} {...swapProps(p)} />
+                             onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
                 </div>
               );
             }
@@ -1409,31 +1767,31 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
-                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} {...swapProps(x)}
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(x)}
                            onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
-                           tag={`${b.group}1`} isNext={started && nxt === 0} />
-                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} {...swapProps(y)}
+                           tag={`${b.group}1`} isNext={started && nxt === 0} pair={pairFor(x.exercise_id)} />
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(y)}
                            onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
-                           tag={`${b.group}2`} isNext={started && nxt === 1} />
+                           tag={`${b.group}2`} isNext={started && nxt === 1} pair={pairFor(y.exercise_id)} />
               </div>
             );
           })}
         </div>
       )}
 
-      {extraExerciseIds.map((id) => {
-        const ex = exercises.find((x) => x.id === id);
-        return (
-          <LoggerRow key={id}
-                     planned={{ exercise_id: id, name: ex?.name || `Exercise #${id}`,
-                                muscle_group: ex?.muscle_group, equipment: ex?.equipment, sets: setsByExercise[id].length }}
-                     doneSets={setsByExercise[id]} onLogSet={onLogSet}
-                     onReorder={(f, t) => reorderWithin(id, f, t)} />
-        );
-      })}
+      {trailingExtras.map((r) => (
+        <LoggerRow key={r.exercise_id} planned={r}
+                   doneSets={setsByExercise[r.exercise_id]} onLogSet={onLogSet} onUndoSet={onUndoSet}
+                   onReorder={(f, t) => reorderWithin(r.exercise_id, f, t)} pair={pairFor(r.exercise_id)} />
+      ))}
 
       <div className="re-card space-y-2">
-        <p className="re-label">Add an unplanned exercise</p>
+        <p className="re-label">{routine ? "Add an unplanned exercise" : "Pick a lift to log"}</p>
+        {!routine && asList(session.sets).length === 0 && (
+          <p className="text-[11px] text-white/45">
+            A custom session: pick a lift, log its sets, then the next. End it when you're done and save it to RoutineZ.
+          </p>
+        )}
         <ExercisePicker exercises={pickable || exercises} all={exercises} value={exerciseId} onChange={setExerciseId} />
         {exerciseId && <SidePick value={unplannedSide} onChange={setUnplannedSide} />}
         {exerciseId && unplannedLast && unplannedLast.sets.length > 0 && (
@@ -1447,15 +1805,15 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           </button>
         )}
         <div className="flex flex-wrap items-end gap-2">
-          <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-                 value={weight} onChange={(e) => setWeight(e.target.value)} />
+          <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+                 value={weight} onChange={(e) => setTypedWeight({ key: unplannedKey, v: e.target.value })} />
           <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                  value={reps} onChange={(e) => setReps(e.target.value)} />
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
                   onClick={() => {
                     onLogSet(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight), unplannedSide);
-                    setReps(""); setWeight("");
+                    setReps("");  // the weight stays: logging the set makes it the last one entered
                   }}>
             <Plus size={13} /> Log
           </button>
@@ -1553,6 +1911,24 @@ function WorkoutWrite({ sessionId, onClose }) {
 // Its sets keep their ids, so a set that was logged live keeps the rest time
 // the server measured; the date is only editable on one typed in afterwards,
 // because a live one's time was measured, not chosen.
+// "Superset with…" — any other lift in this workout. A badge when it is paired, so a pair made here reads as one.
+function SupersetPick({ id, pairs, lifts, nameOf, onChange }) {
+  const others = lifts.filter((x) => x !== id);
+  if (others.length === 0) return null;
+  const partner = pairOf(pairs, id);
+  return (
+    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/45">
+      <span className={partner != null ? "font-semibold text-fuchsia-200" : ""}>{partner != null ? "⇄ Superset with" : "Superset with"}</span>
+      <select data-nomemo="true" aria-label={`Superset ${nameOf(id)} with`} value={partner ?? ""}
+              className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none"
+              onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}>
+        <option value="">— not in a superset —</option>
+        {others.map((x) => <option key={x} value={x}>{nameOf(x)}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = null, onSaveEdit, onCancel,
                         initialRoutineId = null, onInitialRoutineConsumed }) {
   const unit = useUnit();
@@ -1568,8 +1944,11 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     .sort((a, b) => (a.position || 0) - (b.position || 0) || a.id - b.id).map((st) => ({
     id: st.id, exercise_id: st.exercise_id, reps: st.reps, weight_kg: st.weight_kg, one_sided: st.one_sided || "" })) : []));
   const [routineId, setRoutineId] = useState("");
+  // Supersets: ANY two lifts of this workout (a logged workout has no neighbours to link, so they are pairs of lift ids).
+  // Saved with the workout, and carried into a routine made from it.
+  const [pairs, setPairs] = useState(() => asList(editing?.superset_pairs).map((p) => [...p]));
   const [exerciseId, setExerciseId] = useState("");
-  const [weight, setWeight] = useState("");
+  const [typedWeight, setTypedWeight] = useState(null);
   const [reps, setReps] = useState("");
   const [side, setSide] = useSide(exerciseId);
   const [busy, setBusy] = useState(false);
@@ -1578,6 +1957,15 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const list = pickable || exercises;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const last = useHistory(exerciseId || null, side);
+  // The weight box opens on the last weight entered for this lift, done this way: the latest
+  // set of it already in THIS workout, else its last finished session. Adding a set changes
+  // the count in the key, which hands a typed number back to the auto-fill.
+  const mineHere = exerciseId ? sets.filter((st) => st.exercise_id === Number(exerciseId)) : [];
+  const lwHere = { sets: mineHere, side, last };
+  const boxKey = typedKey(exerciseId, side, mineHere.length);
+  const wbox = boxValue(typedWeight, boxKey, exerciseId ? lastWeightKg(lwHere) : null, fromKg, unit);
+  const weight = wbox.value;
+  const weightHint = wbox.auto ? ({ set: "last set", history: "last time" })[lastWeightSource(lwHere)] : "";
 
   // A routine fills in the whole workout — every exercise, its planned sets,
   // reps and weight, and the way the member usually does each one (one arm,
@@ -1622,22 +2010,24 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
   const addSet = () => {
     if (!exerciseId || !reps) return;
     setSets([...sets, { exercise_id: Number(exerciseId), reps: Number(reps), weight_kg: weight === "" ? null : toKg(Number(weight), unit), one_sided: side }]);
-    setReps("");  // exercise and weight stay: the next set is usually the same lift
+    setReps("");  // exercise stays, and so does the weight: the added set is now the last one entered
   };
 
   async function save() {
     setBusy(true); setErr("");
     if (editing) {
       try {
-        const sm = await onSaveEdit(editing.id, { sets, notes, date: editing.backfilled && date !== editDate ? date : undefined });
+        const sm = await onSaveEdit(editing.id, { sets, notes, date: editing.backfilled && date !== editDate ? date : undefined,
+                                                   superset_pairs: prunePairs(pairs, sets.map((x) => x.exercise_id)) });
         onSaved(sm);
       } catch (e) { setErr(e.message || "Couldn't save that. Nothing was changed."); }
       finally { setBusy(false); }
       return;
     }
     try {
-      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: { date, notes, sets, routine_id: routineId || undefined } });
-      setSets([]); setNotes(""); setRoutineId(""); setOpen(false);
+      const done = await api("/api/economy/bodiez/sessions/past/", { method: "POST", body: {
+        date, notes, sets, routine_id: routineId || undefined, superset_pairs: prunePairs(pairs, sets.map((x) => x.exercise_id)) } });
+      setSets([]); setNotes(""); setRoutineId(""); setPairs([]); setOpen(false);
       onSaved(done.summary);
     } catch (e) { setErr(e.message || "Couldn't save that workout. Nothing was saved."); }
     finally { setBusy(false); }
@@ -1704,6 +2094,8 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
               {swapping === gi ? "Done" : "Edit"}
             </button>
           </div>
+          <SupersetPick id={g.exercise_id} pairs={pairs} lifts={[...new Set(sets.map((x) => x.exercise_id))]} nameOf={nameOf}
+                        onChange={(partner) => setPairs(partner == null ? unsetPair(pairs, g.exercise_id) : setPair(pairs, g.exercise_id, partner))} />
           {swapping === gi && (
             <div className="mt-2 space-y-2">
               <ExerciseSwap current={g.exercise_id} all={exercises} choices={list}
@@ -1745,8 +2137,8 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       {exerciseId && <SidePick value={side} onChange={setSide} />}
       <div className="flex flex-wrap items-end gap-2">
         <ExercisePicker exercises={list} all={exercises} value={exerciseId} onChange={setExerciseId} />
-        <Field label={`Weight (${unit})`} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
-               value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <Field label={`Weight (${unit})`} hint={weightHint} className="w-28" placeholder="optional" type="number" min="0" step="0.5" inputMode="decimal"
+               value={weight} onChange={(e) => setTypedWeight({ key: boxKey, v: e.target.value })} />
         <Field label="Reps" className="w-24" placeholder="reps" type="number" min="1" max="1000" inputMode="numeric"
                value={reps} onChange={(e) => setReps(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && addSet()} />
@@ -2105,41 +2497,35 @@ const SOURCE_TONE = {
   session: "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30",
   trial: "bg-mcz-cyan/15 text-mcz-cyan ring-mcz-cyan/30",
 };
-const HISTORY_PAGE = 10;
 
-function RoutineZView({ routines, history, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
+function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodymap, dayTagLabels,
                         prefillMuscle, onPrefillConsumed, onLogPast, onBuildRoutine, onBuildSplit, onCreate,
                         onSaveExercises, onCopy, onDelete, onStart, sessionOpen,
-                        onRoutineFromSession, onDeleteSession, onSaveSession, onSummary,
-                        prefillEditSession, onEditConsumed, onImported }) {
+                        onOpenSessionZ, onSaveNew, planCaveat, buildPairMode = "", onBuildPairMode, buildNote = "", focusRoutine = null, onFocusConsumed, onImported }) {
   const [filter, setFilter] = useState("");
-  const [editing, setEditing] = useState(null);
-  const [editingSession, setEditingSession] = useState(null);
-  const [writingSession, setWritingSession] = useState(null);
-  const [title, setTitle] = useState("");
-  const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
-  const [made, setMade] = useState("");
-  const goals = coach?.goals;
-  // "Edit this workout" from SessionSummary hands the session over this way
-  // — open it in the editor directly, rather than leaving the member to find
-  // it again, newest-first, in the list below.
+  // Landed on from an ended session's "Improve this routine": clear any filter that would hide it, bring the card into view
+  // and mark it, while its Plan opens itself (PlanRating `autoOpen`). The focus is consumed once it has been scrolled to.
+  // Initialised from the focus, not set in an effect: PlanRating reads `autoOpen` once, at mount, and the cards first render
+  // before any effect runs.
+  const [landed, setLanded] = useState(focusRoutine);
   useEffect(() => {
-    if (prefillEditSession == null) return;
-    setEditingSession(prefillEditSession);
-    onEditConsumed?.();
-  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (focusRoutine == null) return undefined;
+    setFilter(""); setLanded(focusRoutine);
+    const scroll = setTimeout(() => {
+      try { document.getElementById(`routine-${focusRoutine}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch { /* old browser */ }
+      onFocusConsumed?.();
+    }, 250);
+    const fade = setTimeout(() => setLanded(null), 4000);      // the mark is a pointer, not furniture
+    return () => { clearTimeout(scroll); clearTimeout(fade); };
+  }, [focusRoutine]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [editing, setEditing] = useState(null);
+  const [fitting, setFitting] = useState(null);
+  const [title, setTitle] = useState("");
+  const goals = coach?.goals;
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
   const sourceOf = (r) => r.source || "member";
   const counts = routines.reduce((acc, r) => ({ ...acc, [sourceOf(r)]: (acc[sourceOf(r)] || 0) + 1 }), {});
   const shown = filter ? routines.filter((r) => sourceOf(r) === filter) : routines;
-  const sessionBeingEdited = editingSession != null ? history.find((h) => h.id === editingSession) : null;
-
-  const makeRoutine = async (h) => {
-    const day = new Date(h.started_at).toLocaleDateString();
-    const name = window.prompt("Name the new routine:", `${h.routine_title || "Workout"} — ${day}`);
-    if (name == null) return;
-    if (await onRoutineFromSession(h.id, name.trim())) setMade(`Saved “${name.trim() || h.routine_title || "Workout"}” to your routines.`);
-  };
 
   return (
     <div className="space-y-5">
@@ -2151,6 +2537,8 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
           have — and it builds from the library and your own BodyMap. Free: no 🏷️, no AI, just your data. What it
           saves is yours to edit like any other routine.
         </p>
+        {onBuildPairMode && <PairMode value={buildPairMode} onChange={onBuildPairMode} />}
+        {buildNote && <p className="text-[11px] text-emerald-300" data-testid="build-note">{buildNote}</p>}
         {coach && bodymap && pickable.length > 0 ? (
           <>
             <MuscleDayBuilder exercises={pickable} goals={goals} dayTagLabels={dayTagLabels || []}
@@ -2195,7 +2583,7 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
         {shown.map((r) => {
           const items = asList(r.exercises);
           return (
-            <div key={r.id} className="re-card space-y-1.5">
+            <div key={r.id} id={`routine-${r.id}`} className={`re-card space-y-1.5 ${landed === r.id ? "ring-1 ring-mcz-cyan/60" : ""}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -2220,6 +2608,8 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                       {asList(r.coach_exercises).map((e) => `${nameOf(e.exercise_id)} ${e.rating ?? "–"}`).join(" · ")}
                     </p>
                   )}
+                  <PlanRating key={`${r.id}:${r.updated_at}`} routine={r} caveat={planCaveat} autoOpen={landed === r.id}
+                              onApply={(list) => onSaveExercises(r.id, list)} />
                   <RoutineTime items={items} restSeconds={goals?.[r.goal]?.rest_seconds} />
                   <AskAI scope="routine" id={r.id} disabled={items.length === 0} />
                 </div>
@@ -2227,6 +2617,11 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
                   <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
                           onClick={() => setEditing(editing === r.id ? null : r.id)}>
                     <Pencil size={12} /> {editing === r.id ? "Close" : "Edit"}
+                  </button>
+                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                          title="Pick the equipment you have; the Planner swaps in lifts that use only that (free)"
+                          onClick={() => setFitting(fitting === r.id ? null : r.id)}>
+                    <Dumbbell size={12} /> {fitting === r.id ? "Close fit" : "Fit to equipment"}
                   </button>
                   <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
                           title="A new routine to change, keeping this one as it is" onClick={() => onCopy(r.id)}>
@@ -2265,6 +2660,12 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
               {/* The designer opens UNDER the routine it edits. It used to open
                   once, above the whole list, so Edit on a routine further down
                   flipped to Close with nothing visible beside it. */}
+              {fitting === r.id && (
+                <EquipmentFit key={r.id} routine={r} exercises={exercises} pickable={pickable} sessionOpen={sessionOpen}
+                              onApply={(list) => onSaveExercises(r.id, list)}
+                              onSaveNew={(name, list) => onSaveNew(name, list, r.goal)}
+                              onStart={(id) => onStart(id)} onClose={() => setFitting(null)} />
+              )}
               {editing === r.id && (
                 <RoutineDesigner key={r.id} routine={r} exercises={exercises} pickable={pickable} demoCredit={demoCredit}
                                  onSave={(list, meta) => onSaveExercises(r.id, list, meta)}
@@ -2279,75 +2680,333 @@ function RoutineZView({ routines, history, exercises, pickable, demoCredit, coac
       <section className="space-y-2">
         <p className="re-label">Logged workouts</p>
         <p className="text-[11px] text-white/45">
-          Fix a set you got wrong, or make any workout you did into a routine to run again (each lift's top set
-          becomes the target). The workout itself stays as logged.
+          Every workout you have logged — to fix a set, make it a routine, or delete it — lives in SessionZ.
         </p>
-        {made && <p className="text-xs text-emerald-300">{made}</p>}
-        {sessionBeingEdited && (
-          <PastWorkout key={sessionBeingEdited.id} editing={sessionBeingEdited} exercises={exercises} pickable={pickable}
-                       onSaveEdit={onSaveSession} onCancel={() => setEditingSession(null)}
-                       onSaved={(sm) => { setEditingSession(null); if (sm) onSummary(sm); }} />
-        )}
-        {history.length === 0 && (
-          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
-            Nothing logged yet. Finish a session on Today, or log a past one there.
+        <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1" onClick={onOpenSessionZ}>
+          <Pencil size={12} /> Open SessionZ
+        </button>
+      </section>
+    </div>
+  );
+}
+
+// SessionZ — every past session, editable. RoutineZ used to keep the newest few of these at the bottom
+// of its page; this is where a member goes to find a log from last spring and fix it. The server pages,
+// searches and bounds by date (`sessions/log/`) and says which sessions deserve a second look and why —
+// nothing is guessed here, and nothing is "corrected" for the member: a session left open for nine hours
+// is shown as a question and the sets stay theirs to fix.
+function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onEditConsumed, onSaveSession,
+                        onRoutineFromSession, onDeleteSession, onLogPast, routines = [], sessionOpen = false, onStart,
+                        onOpenToday, onSaveExercises, onSaveNew, onOpenRoutineZ, onImprove, onUpdateRoutine }) {
+  const unit = useUnit();
+  const [fitId, setFitId] = useState(null);
+  const [pickId, setPickId] = useState(null);
+  const [moreId, setMoreId] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const startable = routines.filter((r) => r.bucket !== "trash");
+  // The routine the Start button is on: the member's pick, else the first one that has a lift in it.
+  const picked = startable.find((r) => r.id === pickId) || startable.find((r) => asList(r.exercises).length) || startable[0] || null;
+  const fmt = (kg) => `${Math.round(fromKg(kg, unit)).toLocaleString()} ${unit}`;
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({ total: 0, has_more: false, totals: null });
+  const [loading, setLoading] = useState(true);
+  const [more, setMore] = useState(false);
+  const [err, setErr] = useState("");
+  const [q, setQ] = useState("");
+  const [dq, setDq] = useState("");
+  const [since, setSince] = useState("");
+  const [until, setUntil] = useState("");
+  const [check, setCheck] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [writingId, setWritingId] = useState(null);
+  const [details, setDetails] = useState({});
+  const [made, setMade] = useState("");
+  const loaded = useRef(0);
+  const lastFilter = useRef("");
+  const ticket = useRef(0);
+
+  // Typing is debounced, once, for every filter alike (the VybeZ lesson): one request per pause, not one per key.
+  useEffect(() => { const t = setTimeout(() => setDq(q), 300); return () => clearTimeout(t); }, [q]);
+  const filters = { q: dq, since, until, check };
+  const fKey = filterKey(filters);
+
+  // One effect for "the list changed": a filter moved (back to page one) or the parent reloaded after an
+  // edit/delete (re-ask for as many rows as the member had paged to, so they are not thrown back to the top).
+  useEffect(() => {
+    const mine = ++ticket.current;                       // a slower, older answer must never overwrite a newer one
+    const sameFilter = lastFilter.current === fKey;
+    lastFilter.current = fKey;
+    setLoading(true);
+    api(`/api/economy/bodiez/sessions/log/${logQuery({ ...filters, limit: sameFilter ? refreshLimit(loaded.current) : LOG_PAGE })}`)
+      .then((d) => {
+        if (mine !== ticket.current) return;
+        setRows(asList(d.sessions)); loaded.current = asList(d.sessions).length;
+        setMeta({ total: d.total, has_more: d.has_more, totals: d.totals });
+        setDetails({}); setErr("");
+      })
+      .catch((e) => { if (mine === ticket.current) setErr(e.message || "Couldn't load your sessions."); })
+      .finally(() => { if (mine === ticket.current) setLoading(false); });
+  }, [fKey, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadMore = async () => {
+    setMore(true);
+    try {
+      const d = await api(`/api/economy/bodiez/sessions/log/${logQuery({ ...filters, offset: rows.length })}`);
+      setRows((cur) => { const next = mergeRows(cur, asList(d.sessions)); loaded.current = next.length; return next; });
+      setMeta((m) => ({ ...m, total: d.total, has_more: d.has_more, totals: d.totals }));
+    } catch (e) { setErr(e.message || "Couldn't load more."); }
+    finally { setMore(false); }
+  };
+
+  // "Edit this workout" from a just-finished session's card hands the id over. It is the newest, so it is
+  // usually on the page already — but not always, so it is fetched by id and put at the top if it is not.
+  useEffect(() => {
+    if (prefillEditSession == null) return undefined;
+    let on = true;
+    api(`/api/economy/bodiez/sessions/log/${logQuery({ id: prefillEditSession, limit: 1 })}`)
+      .then((d) => {
+        if (!on) return;
+        const row = asList(d.sessions)[0];
+        if (row) { setRows((cur) => (cur.some((r) => r.id === row.id) ? cur : [row, ...cur])); setEditingId(row.id); }
+      })
+      .catch((e) => on && setErr(e.message || "Couldn't open that session."))
+      .finally(() => on && onEditConsumed?.());
+    return () => { on = false; };
+  }, [prefillEditSession]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleDetails = async (h) => {
+    if (openId === h.id) { setOpenId(null); return; }
+    setOpenId(h.id);
+    if (details[h.id]) return;
+    try { setDetails((d) => ({ ...d, [h.id]: null })); const sm = await api(`/api/economy/bodiez/sessions/${h.id}/summary/`); setDetails((d) => ({ ...d, [h.id]: sm })); }
+    catch (e) { setErr(e.message || "Couldn't read that session."); setOpenId(null); }
+  };
+
+  const makeRoutine = async (h) => {
+    const name = window.prompt("Name the new routine:", `${h.routine_title || "Workout"} — ${new Date(h.started_at).toLocaleDateString()}`);
+    if (name == null) return;
+    if (await onRoutineFromSession(h.id, name.trim())) setMade(`Saved “${name.trim() || h.routine_title || "Workout"}” to your routines.`);
+  };
+
+  const narrowed = filtersActive(filters);
+  const clear = () => { setQ(""); setDq(""); setSince(""); setUntil(""); setCheck(false); };
+  const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
+
+  return (
+    <div className="space-y-3">
+      <section className="re-card space-y-2" data-testid="start-session">
+        <div className="flex flex-wrap items-center gap-2">
+          {sessionOpen ? (
+            <>
+              <span className="text-xs text-white/70">You have a session in progress.</span>
+              <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1" onClick={onOpenToday}>
+                <Play size={12} /> Continue it
+              </button>
+            </>
+          ) : (
+            <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1" onClick={() => onStart(null)}>
+              <Play size={13} /> Start a custom session
+            </button>
+          )}
+        </div>
+        {startable.length === 0 ? (
+          <p className="text-xs text-white/45">
+            No routines yet.{" "}
+            <button className="text-mcz-cyan hover:underline" onClick={onOpenRoutineZ}>Have the Planner build one in RoutineZ</button>
           </p>
-        )}
-        {history.slice(0, historyCount).map((h) => {
-          const sets = asList(h.sets);
-          const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
+        ) : picked && (() => {
+          const items = asList(picked.exercises);
+          const gear = equipmentOf(items, exercises, EQUIPMENT_LABEL);
           return (
-            <div key={h.id} className="re-card space-y-1">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">
-                    {h.routine_title || "Workout"}{" "}
-                    <span className="text-xs font-normal text-white/45">{new Date(h.started_at).toLocaleDateString()}</span>
-                    {h.backfilled && <span className="ml-1.5 text-[10px] text-white/35">logged afterwards</span>}
-                  </p>
-                  <p className="text-xs text-white/45">
-                    {sets.length} set{sets.length === 1 ? "" : "s"}
-                    {names.length > 0 && <>: {names.slice(0, 4).join(", ")}{names.length > 4 ? "…" : ""}</>}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          onClick={() => setEditingSession(editingSession === h.id ? null : h.id)}>
-                    <Pencil size={12} /> {editingSession === h.id ? "Close" : "Edit"}
-                  </button>
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
-                    <Plus size={12} /> Make a routine
-                  </button>
-                  {/* A logged workout is settled data — exercises, sets, reps,
-                      any PR it beat — and nothing here ever did anything with
-                      it beyond showing it back. This is the same jump the
-                      coach's own take history offers ("write a promo post"),
-                      aimed at a workout instead of a take. */}
-                  <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
-                          disabled={sets.length === 0}
-                          onClick={() => setWritingSession(writingSession === h.id ? null : h.id)}>
-                    <Sparkles size={12} /> {writingSession === h.id ? "Close" : "Write about this"}
-                  </button>
-                  <button className="rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
-                          onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+            <div className="space-y-1.5">
+              <select aria-label="Routine to start" data-nomemo="true" value={picked.id}
+                      onChange={(e) => { setPickId(Number(e.target.value)); setFitId(null); }}
+                      className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-2 text-sm text-white outline-none">
+                  {startable.map((r) => (
+                    <option key={r.id} value={r.id}>{r.title} · {asList(r.exercises).length} lift{asList(r.exercises).length === 1 ? "" : "s"}</option>
+                ))}
+              </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                        disabled={sessionOpen || items.length === 0}
+                        title={sessionOpen ? "Finish your open session first" : items.length === 0 ? "Add lifts to this routine in RoutineZ first" : "Start a session from this routine"}
+                        onClick={() => onStart(picked.id)}>
+                  <Play size={12} /> Start
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
+                        disabled={items.length === 0} onClick={() => setFitId(fitId === picked.id ? null : picked.id)}>
+                  <Dumbbell size={12} /> {fitId === picked.id ? "Close" : "Fit to equipment"}
+                </button>
               </div>
-              {writingSession === h.id && (
-                <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingSession(null)} />
+              {items.length === 0 ? (
+                <p className="text-[11px] text-white/45">
+                  No lifts in this one yet. <button className="text-mcz-cyan hover:underline" onClick={onOpenRoutineZ}>Add some in RoutineZ</button>
+                </p>
+              ) : gear.length > 0 && <p className="text-[11px] text-white/40">{gear.join(", ")}</p>}
+              {fitId === picked.id && (
+                <EquipmentFit key={picked.id} routine={picked} exercises={exercises} pickable={pickable} sessionOpen={sessionOpen}
+                              onApply={(list) => onSaveExercises(picked.id, list)}
+                              onSaveNew={(name, list) => onSaveNew(name, list, picked.goal)}
+                              onStart={onStart} onClose={() => setFitId(null)} />
               )}
-              <AskAI scope="session" id={h.id} disabled={sets.length === 0} />
             </div>
           );
-        })}
-        {history.length > historyCount && (
-          <button className="text-xs text-mcz-cyan hover:underline" onClick={() => setHistoryCount(historyCount + HISTORY_PAGE)}>
-            Show {Math.min(HISTORY_PAGE, history.length - historyCount)} more
-          </button>
-        )}
+        })()}
       </section>
+
+      <section className="re-card space-y-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="re-label">SessionZ — every workout you've logged</p>
+          {meta.totals && <p className="text-[11px] text-white/45">{totalsLine(meta.totals, fmt)}, all time</p>}
+        </div>
+        <Field label="Search" className="w-full" placeholder="a lift or a routine" value={q}
+               onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <button className="text-mcz-cyan hover:underline" aria-expanded={showFilters || !!(since || until || check)}
+                  onClick={() => setShowFilters(!showFilters)}>
+            {showFilters || since || until || check ? "Hide filters" : "Filter by date"}
+          </button>
+          {narrowed && <button className="text-mcz-cyan hover:underline" onClick={clear}>Clear filters</button>}
+          <button className="ml-auto text-mcz-cyan hover:underline" onClick={onLogPast}>+ Log a past workout</button>
+        </div>
+        {(showFilters || since || until || check) && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="From" className="min-w-0" type="date" value={since} max={until || undefined} onChange={(e) => setSince(e.target.value)} />
+              <Field label="To" className="min-w-0" type="date" value={until} min={since || undefined} onChange={(e) => setUntil(e.target.value)} />
+            </div>
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-white/70">
+              <input type="checkbox" checked={check} onChange={(e) => setCheck(e.target.checked)} />
+              Only ones that need a look (empty, or left open for hours)
+            </label>
+          </div>
+        )}
+        {made && <p className="text-xs text-emerald-300">{made}</p>}
+        {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
+      </section>
+
+      {loading && rows.length === 0 && (
+        <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={14} /> Loading your sessions…</p>
+      )}
+      {!loading && rows.length === 0 && !err && (
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          {narrowed ? "No sessions match that." : "Nothing logged yet. Finish a session on Today, or log a past one."}
+        </p>
+      )}
+
+      {rows.map((h) => {
+        const sets = asList(h.sets);
+        const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
+        const when = new Date(h.started_at);
+        const sm = details[h.id];
+        const routine = h.routine_id ? routines.find((r) => r.id === h.routine_id) : null;
+        const title = h.routine_title || "Workout";
+        const begin = async () => {
+          if (routine) { onStart(routine.id); return; }
+          // A custom session has no routine to run again, so beginning it saves one first — said on the button.
+          const made = await onRoutineFromSession(h.id, `${title} — ${when.toLocaleDateString()}`);
+          if (made && made.id) onStart(made.id);
+        };
+        return (
+          <div key={h.id} className={`re-card !p-3 space-y-2 ${h.check?.length ? "border-amber-400/30" : ""}`}>
+            <div className="flex items-start gap-3">
+              <div className="w-12 shrink-0 rounded-lg bg-white/5 py-1.5 text-center leading-tight">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">{when.toLocaleDateString(undefined, { month: "short" })}</p>
+                <p className="font-display text-lg font-bold text-white">{when.getDate()}</p>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{title}</p>
+                <p className="text-[11px] text-white/50">
+                  {[durationText(h.duration_seconds, clock), `${sets.length} set${sets.length === 1 ? "" : "s"}`,
+                    h.reps ? `${h.reps} reps` : ""].filter(Boolean).join(" · ")}
+                  {h.backfilled && <span className="ml-1.5 text-white/35">logged afterwards</span>}
+                </p>
+                {names.length > 0 && <p className="truncate text-[11px] text-white/35">{names.slice(0, 4).join(", ")}{names.length > 4 ? ` +${names.length - 4}` : ""}</p>}
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="font-display text-lg font-bold leading-tight text-white">{h.volume_kg ? fmt(h.volume_kg) : "—"}</p>
+                <p className="text-[10px] uppercase tracking-wide text-white/40">lifted</p>
+              </div>
+            </div>
+            {(h.done_pct != null || routine?.coach_rating != null) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/55">
+                {h.done_pct != null && (
+                  <span title="Sets done on this routine's lifts over what it planned. Effort, not a rating.">
+                    Done <span className="font-semibold text-white/85">{h.done_pct}%</span> of the plan
+                  </span>
+                )}
+                {routine?.coach_rating != null && (
+                  <span className="inline-flex items-center gap-1.5" title="How completely this routine is trained over the last 28 days — its rating now, not this one session's.">
+                    Routine Thorough <RatingNumber value={routine.coach_rating} size="sm" outOf />
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                      disabled={sessionOpen || sets.length === 0}
+                      title={sessionOpen ? "Finish your open session first"
+                        : routine ? `Start ${title} again` : "Saves this workout as a routine, then starts it"}
+                      onClick={begin}>
+                <Play size={12} /> {routine ? "Begin" : "Save & begin"}
+              </button>
+              <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                      onClick={() => setEditingId(editingId === h.id ? null : h.id)}>
+                <Pencil size={12} /> {editingId === h.id ? "Close" : "Edit"}
+              </button>
+              <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" aria-expanded={moreId === h.id}
+                      onClick={() => setMoreId(moreId === h.id ? null : h.id)}>
+                {moreId === h.id ? "Less" : "More"}
+              </button>
+            </div>
+            {!routine && sets.length > 0 && !sessionOpen && (
+              <p className="text-[10px] text-white/35">Save &amp; begin keeps this workout as a routine in RoutineZ, then starts it. Free.</p>
+            )}
+            {asList(h.check).map((note, i) => <p key={i} className="text-[11px] text-amber-200">⚠ {note}</p>)}
+            {moreId === h.id && (
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-2">
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={sets.length === 0} onClick={() => toggleDetails(h)}>
+                  {openId === h.id ? "Hide details" : "Details"}
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                        disabled={sets.length === 0} onClick={() => makeRoutine(h)}>
+                  <Plus size={12} /> Save as routine
+                </button>
+                <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
+                        disabled={sets.length === 0} onClick={() => setWritingId(writingId === h.id ? null : h.id)}>
+                  <Sparkles size={12} /> {writingId === h.id ? "Close" : "Write about it"}
+                </button>
+                <AskAI scope="session" id={h.id} disabled={sets.length === 0} />
+                <button className="ml-auto rounded p-1.5 text-white/30 hover:bg-white/10 hover:text-mcz-ember"
+                        onClick={() => onDeleteSession(h.id)} title="Delete this workout" aria-label="Delete workout">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+            {editingId === h.id && (
+              <PastWorkout key={h.id} editing={h} exercises={exercises} pickable={pickable} onSaveEdit={onSaveSession}
+                           onCancel={() => setEditingId(null)}
+                           onSaved={(summary) => { setEditingId(null); if (summary) { setDetails((d) => ({ ...d, [h.id]: summary })); setOpenId(h.id); setMoreId(h.id); } }} />
+            )}
+            {openId === h.id && (sm
+              ? <SessionSummary summary={sm} onClose={() => setOpenId(null)} onEdit={() => setEditingId(h.id)}
+                                onSaveRoutine={(name) => onRoutineFromSession(h.id, name)} onOpenRoutineZ={onOpenRoutineZ}
+                                routinePlan={routines.find((r) => r.id === sm.routine_id)?.plan} onImprove={onImprove}
+                                onUpdateRoutine={(rid) => onUpdateRoutine(h.id, rid)} />
+              : <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={13} /> Reading it…</p>)}
+            {writingId === h.id && <WorkoutWrite key={h.id} sessionId={h.id} onClose={() => setWritingId(null)} />}
+          </div>
+        );
+      })}
+
+      {meta.has_more && (
+        <button className="neon-btn-ghost !w-auto px-4 py-2 text-xs inline-flex items-center gap-1" disabled={more} onClick={loadMore}>
+          {more ? <Loader2 className="animate-spin" size={13} /> : null}
+          Show {Math.min(LOG_PAGE, meta.total - rows.length)} more <span className="text-white/40">({rows.length} of {meta.total})</span>
+        </button>
+      )}
+      {!meta.has_more && rows.length > 0 && <p className="text-center text-[11px] text-white/30">That's all {meta.total} {narrowed ? "that match" : "of them"}.</p>}
     </div>
   );
 }

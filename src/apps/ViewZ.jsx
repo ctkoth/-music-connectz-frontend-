@@ -1,3 +1,4 @@
+import { genreLabel } from "../genres.js";
 import ShareStats from "../components/ShareStats.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -390,7 +391,7 @@ function MyLinks() {
           {d.links.map((l) => (
             <li key={l.token} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-white/5 px-3 py-2 text-[13px]">
               <span className="font-semibold">{KIND_W[l.kind] || "Card"}</span>
-              <span className="text-white/55">{l.app_key} · {l.score}/10{l.genre ? ` · ${l.genre}` : ""}</span>
+              <span className="text-white/55">{l.app_key} · {l.score}/10{l.genre ? ` · ${genreLabel(l.genre)}` : ""}</span>
               <span className="text-white/40">{new Date(l.at).toLocaleDateString()}</span>
               {l.human && <span className="text-emerald-300/80">human-made, declared</span>}
               <span className="ml-auto"><Eye size={12} className="mr-1 inline" />{l.opens} {l.opens === 1 ? "open" : "opens"}</span>

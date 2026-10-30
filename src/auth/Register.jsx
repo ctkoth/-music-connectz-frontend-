@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { clearLanding } from "../landing.js";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
@@ -151,6 +152,7 @@ export default function Register() {
   function completeOnboarding() {
     setShowHabitOnboarding(false);
     if (trialApp && trialApp !== "bodiez") {
+      clearLanding();     // going to the coach directly; a slot left set would redirect "/" later
       navigate(`/${trialApp.endsWith("z") ? trialApp.slice(0, -1) : trialApp}?claimed=1`);
     } else navigate("/");
   }
@@ -289,7 +291,7 @@ export default function Register() {
       )}
     </AuthShell>
 
-    {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+    {showHabitOnboarding && <HabitOnboarding appKey={trialApp && trialApp !== "bodiez" ? trialApp : "singz"} onComplete={completeOnboarding} />}
     </>
   );
 }

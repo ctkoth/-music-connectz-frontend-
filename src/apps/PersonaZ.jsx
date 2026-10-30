@@ -5,7 +5,8 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import VoiceCard from "../components/VoiceCard.jsx";
 import { PERSONAS, PERSONA_READ } from "../personaVoice.js";
-import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDuration } from "../personaSkills.js";
+import { GENRE_GROUPS, genreLabel } from "../genres.js";
+import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDuration, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
 import { say, useVoice } from "../voice.js";
 
 // PersonaZ — every persona, every skill, Corey's read on each in YOUR voice
@@ -24,7 +25,7 @@ import { say, useVoice } from "../voice.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-function Skill({ k, have, onToggle, onDate }) {
+function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
   const start = have ? periodsOf(have)[0]?.start || "" : "";
   const dur = have ? skillDuration(have) : null;
   return (
@@ -38,6 +39,44 @@ function Skill({ k, have, onToggle, onDate }) {
           <input type="date" max={today()} value={start} onChange={(e) => onDate(e.target.value)}
             className="neon-input !w-auto !py-0.5 text-[11px]" aria-label={`Started ${labelForSkill(k)}`} />
           <span className="w-24 text-right text-[11px] text-mcz-gold">{dur || "add a start date"}</span>
+          {/* The price and what it is PER, stated together. Studio skills suggest hourly, a finished
+              piece suggests per work; a price already set keeps its own unit. Blank = no price. */}
+          <span className="flex w-full items-center gap-1.5 text-[11px] text-white/60">
+            <span aria-hidden>$</span>
+            <input type="number" min="0" step="0.01" inputMode="decimal" placeholder="price"
+                   value={have.rate_cents ? (have.rate_cents / 100).toString() : ""}
+                   onChange={(e) => onPrice({ dollars: e.target.value })}
+                   className="neon-input !w-24 !py-0.5 text-[11px]" aria-label={`Price for ${labelForSkill(k)}`} />
+            <select data-nomemo="true" value={have.rate_unit || (have.rate_cents ? "hour" : suggestedRateUnit(personaKey, k))}
+                    onChange={(e) => onPrice({ unit: e.target.value })}
+                    className="neon-input !w-auto !py-0.5 text-[11px]" aria-label={`What the ${labelForSkill(k)} price is per`}>
+              <option value="hour">per hour</option>
+              <option value="work">per work</option>
+            </select>
+          </span>
+          {/* The same emoji genres every picker offers: Singing in Gospel, Rapping in Trap. */}
+          <span className="flex w-full flex-wrap items-center gap-1.5 text-[11px] text-white/60">
+            {(have.genres || []).map((g) => (
+              <span key={g} className="pill !py-0.5">
+                {genreLabel(g)}
+                <button type="button" className="ml-1 text-white/40 hover:text-white" aria-label={`Remove ${g}`}
+                        onClick={() => onGenres((have.genres || []).filter((x) => x !== g))}>✕</button>
+              </span>
+            ))}
+            {(have.genres || []).length < 8 && (
+              <select data-nomemo="true" value="" aria-label={`Add a genre to ${labelForSkill(k)}`}
+                      className="neon-input !w-auto !py-0.5 text-[11px]"
+                      onChange={(e) => e.target.value && !(have.genres || []).includes(e.target.value)
+                        && onGenres([...(have.genres || []), e.target.value])}>
+                <option value="">+ genre</option>
+                {GENRE_GROUPS.map((grp) => (
+                  <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                    {grp.genres.map(([name, emoji]) => <option key={name} value={name}>{name} {emoji}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            )}
+          </span>
         </>
       )}
     </div>
@@ -77,7 +116,30 @@ export default function PersonaZ() {
       if (s.name !== sk) return s;
       const periods = periodsOf(s);
       const rest = periods.slice(1);
-      return { name: s.name, periods: date ? [{ ...(periods[0] || {}), start: date }, ...rest] : rest };
+      // Spread `s` so the price and its unit survive a date edit — rebuilding the skill as
+      // { name, periods } silently erased them.
+      const { start: _legacy, ...keep } = s;
+      return { ...keep, periods: date ? [{ ...(periods[0] || {}), start: date }, ...rest] : rest };
+    }),
+  })));
+  const setGenres = (key, sk, genres) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
+    ...p, skills: p.skills.map((s) => {
+      if (s.name !== sk) return s;
+      const next = { ...s };
+      if (genres.length) next.genres = genres; else delete next.genres;
+      return next;
+    }),
+  })));
+  const setPrice = (key, sk, { dollars, unit }) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
+    ...p, skills: p.skills.map((s) => {
+      if (s.name !== sk) return s;
+      const next = { ...s };
+      if (dollars !== undefined) {
+        const cents = Math.max(0, Math.round(parseFloat(dollars) * 100) || 0);
+        if (cents) { next.rate_cents = cents; next.rate_unit = unit || s.rate_unit || (s.rate_cents ? "hour" : suggestedRateUnit(key, sk)); }
+        else { delete next.rate_cents; delete next.rate_unit; }
+      } else if (unit) next.rate_unit = unit;
+      return next;
     }),
   })));
 
@@ -165,7 +227,8 @@ export default function PersonaZ() {
                           {Object.keys(skills).map((sk) => (
                             mine ? (
                               <Skill key={sk} k={sk} have={mine.skills.find((s) => s.name === sk)}
-                                onToggle={() => toggleSkill(key, sk)} onDate={(d) => setStart(key, sk, d)} />
+                                onToggle={() => toggleSkill(key, sk)} onDate={(d) => setStart(key, sk, d)}
+                                onPrice={(v) => setPrice(key, sk, v)} onGenres={(g) => setGenres(key, sk, g)} personaKey={key} />
                             ) : (
                               <span key={sk} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-white/60">{labelForSkill(sk)}</span>
                             )

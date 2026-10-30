@@ -51,11 +51,12 @@ import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, MONEY, PROMPTZ } from "../resources.js";
-import { labelForSkill } from "../personaSkills.js";
+import { labelForSkill, skillQuoteLine } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
@@ -224,6 +225,14 @@ export default function PostZ() {
   // forced a choice between the two and split the tag across every family.
   const [freestyle, setFreestyle] = useState(false);
   const [skillsUsed, setSkillsUsed] = useState([]);
+  // CoverZ / RemixeZ: the post this one is made from. The server checks it (public, someone else's)
+  // and stores the credit; nothing is paid to the original yet, and the banner says so.
+  const [derived, setDerived] = useState(null);
+  // The original's cut, stated BEFORE posting (cost/gain rule) and read from the server, never typed here.
+  const [derivedTerms, setDerivedTerms] = useState(null);
+  useEffect(() => {
+    if (derived && !derivedTerms) api("/api/economy/derivedz/").then(setDerivedTerms).catch(() => {});
+  }, [derived, derivedTerms]);
   const [visibility, setVisibility] = useState("public");
   const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
@@ -339,6 +348,7 @@ export default function PostZ() {
           title: t, description: description.trim(), genre, freestyle, visibility,
           gates: visibility === "restricted" ? gates : {},
           skills_used: skillsUsed,
+          ...(derived ? { derived: { id: derived.id, kind: derived.kind } } : {}),
           // One of each: audio, video, image and script all ride together.
           // The primary slot is what the feed plays inline; `items` carries
           // every attachment, one per kind, and the server refuses a second of
@@ -350,7 +360,7 @@ export default function PostZ() {
 
       playSound("post");
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
+      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({}); setDerived(null);
       flash("Posted. Rating opens in 30s, comments in 60s.");
       setJustPosted(true);
     } catch (e) {
@@ -440,6 +450,13 @@ export default function PostZ() {
                   className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
             🆓 Freestyle
           </button>
+          {derived && (
+            <div className="w-full rounded-lg border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
+              {derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{derived.title}" — credited to the original on your post.
+              {derivedTerms?.text || ""}{" "}
+              <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setDerived(null)}>Post as new work instead</button>
+            </div>
+          )}
           <div className="flex gap-1">
             {[
               { value: "public", label: "Public", bonus: "+25%", tip: "People who rate it earn +25% ⚡, so it draws more ratings — and it shows on leaderboards" },
@@ -487,7 +504,7 @@ export default function PostZ() {
             {cost.cost.amount > 0 ? (
               <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
                 {" — "}
-                {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
+                {cost.lines.filter((l) => l.cents > 0).map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}.
                 {!cost.affordable && (
                   <span className="text-mcz-ember">
                     {" "}You have {cost.energy} — we'll take what's there.
@@ -583,6 +600,7 @@ export default function PostZ() {
       <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
           <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash}
+            onDerive={(d) => { setDerived(d); setTitle((t) => t || `${d.kind === "cover" ? "Cover" : "Remix"}: ${d.title}`.slice(0, 160)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                     isOwner={isOwner} onChanged={replacePost} />
         ))}
       </div>
@@ -596,7 +614,7 @@ export default function PostZ() {
   );
 }
 
-function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
+function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive }) {
   const talk = useSay();
   const { user } = useAuth();
   const seenRef = useInViewTracker(`post:${post.id}`);
@@ -843,7 +861,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       // The destination states the price again ON the button that spends it —
       // the row here is the quote, the button there is the commitment.
       await handOff(d.app, d.target, {
-        kind: "post", action: d.action, coach_kind: d.coach_kind || "",
+        kind: "post", action: d.action, coach_kind: d.coach_kind || "", radar: !!d.radar,
         // The coach's ceiling travels with the post, so the destination can
         // hold the same line the row just held rather than letting the button
         // find it out.
@@ -914,6 +932,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
+            <ThoroughMark mark={post.author_mark} />
             {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
@@ -1058,6 +1077,19 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       ) : (
         <>
           <p className="text-sm font-semibold text-white">{post.title}</p>
+          {post.derived && (
+            <p className="text-[11px] text-white/50">
+              {post.derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{post.derived.title}" by @{post.derived.author}
+            </p>
+          )}
+          {onDerive && !post.mine && post.visibility !== "private" && post.visibility !== "restricted" && (
+            <p className="mt-1 flex gap-3 text-[11px]">
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "cover", title: post.title })}>🫴🏼 Cover this</button>
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "remix", title: post.title })}>🔄 Remix this</button>
+            </p>
+          )}
           {post.description && (
             <p className="mt-1 whitespace-pre-wrap text-sm text-white/80"><MentionText text={post.description} /></p>
           )}
@@ -1255,7 +1287,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               </div>
             ) : (
               <div>
-                <MemberName username={c.user} bare />{" "}
+                <MemberName username={c.user} bare />
+                {/* SuperfanZ: one of this artist's top fans — the server pins them first. */}
+                {c.superfan && <span className="ml-1 text-[11px]" title={`One of @${post.author}'s SuperfanZ — counted from plays, ratings, comments and shares`}>🫶</span>}{" "}
                 <span className="text-white/80">{c.body}</span>
                 {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
               </div>

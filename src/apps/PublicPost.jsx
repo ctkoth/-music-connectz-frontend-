@@ -9,6 +9,8 @@
 // number anybody can inflate by reloading is worth less than no number.
 // Comments: they're member-authored text, and publishing that to strangers
 // needs a moderation path this page doesn't have.
+import TryLink from "../components/TryLink.jsx";
+import { postCoachApp } from "../trialSkill.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { usePageTitle } from "../pageTitle.js";
@@ -141,7 +143,7 @@ export default function PublicPost() {
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
             <JoinLink owner={post?.author} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
             <p className="mt-2 text-[11px] text-white/45">
-              Or <Link to="/try/singz" className="text-mcz-cyan hover:underline">get a take scored first</Link> — no account needed.
+              Or <TryLink owner={post?.author} app={postCoachApp(post)} className="text-mcz-cyan hover:underline">get a take scored first</TryLink> — no account needed.
             </p>
           </div>
         </article>

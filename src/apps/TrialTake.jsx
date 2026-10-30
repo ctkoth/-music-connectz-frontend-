@@ -13,8 +13,12 @@ import { Link, useParams } from "react-router-dom";
 import { usePageTitle } from "../pageTitle.js";
 import { Share2, Loader2 } from "lucide-react";
 import BossTake from "./BossTake.jsx";
+import TrialInspiration from "../components/TrialInspiration.jsx";
 import { api } from "../api.js";
 import { track } from "../track.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { setLanding } from "../landing.js";
+import { addSeeds } from "../yourApps.js";
 import TrialToUpgradePrompt from "../components/TrialToUpgradePrompt.jsx";
 import RetakeRemind from "../components/RetakeRemind.jsx";
 import { beatVerdict } from "../challenge.js";
@@ -63,10 +67,13 @@ export default function TrialTake() {
   // count one visitor twice and, on a door the fallback doesn't know, count
   // them at the wrong door first.
   const [doorsLoaded, setDoorsLoaded] = useState(false);
-  const known = doors.some((d) => d.app_key === appKey);
+  // Until the server's list has answered, trust the address: the two-door fallback would flip
+  // /try/guitarz to SingZ for the moment before it loaded (and mount the wrong coach's recorder).
+  const known = !doorsLoaded || doors.some((d) => d.app_key === appKey);
   const app = known ? appKey : "singz";
   const label = doors.find((d) => d.app_key === app)?.label || "SingZ";
   const [scored, setScored] = useState(false);
+  const [heard, setHeard] = useState({ blob: null, name: "" });   // what is in the recorder, for Inspiration
   const [score, setScore] = useState(null);
   const [exact, setExact] = useState(null);
   // "Beat my score": a share card's link carries its token (?beat=). Somebody
@@ -88,6 +95,10 @@ export default function TrialTake() {
   const [bossTakeReady, setBossTakeReady] = useState(false);
   const [stats, setStats] = useState(null);
   const [tiers, setTiers] = useState(null);
+  const [tierInfo, setTierInfo] = useState(null);   // the whole /tiers/ answer: the value panel's only source
+  const [previous, setPrevious] = useState(null);   // the change since this browser's first take
+  const [takesLeft, setTakesLeft] = useState(0);
+  const [round, setRound] = useState(0);            // a new key = a fresh recorder for the second take
 
   useEffect(() => {
     let on = true;
@@ -120,7 +131,7 @@ export default function TrialTake() {
   useEffect(() => {
     let on = true;
     api("/api/economy/tiers/", { auth: false })
-      .then((d) => { if (on && d?.tiers) setTiers(d.tiers); })
+      .then((d) => { if (on && d?.tiers) { setTiers(d.tiers); setTierInfo(d); } })
       .catch(() => {})
       .finally(() => {});
     return () => { on = false; };
@@ -129,6 +140,14 @@ export default function TrialTake() {
   // Fired once the door list is known, so an unknown /try/<key> is counted as
   // the door it actually opened rather than as one that does not exist.
   useEffect(() => { if (doorsLoaded) track("try_view", { app_key: app }); }, [app, doorsLoaded]);
+  // The coach somebody came in through is their first app: it leads "Your apps", and a visitor
+  // who joins from here lands back on it instead of the generic home screen (yourApps.js).
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!doorsLoaded) return;
+    addSeeds([app]);
+    if (!user && app !== "bodiez") setLanding(`/${app.endsWith("z") ? app.slice(0, -1) : app}`);
+  }, [app, doorsLoaded, user]);
 
   const freeDaily = Number(tiers?.find?.((t) => t.key === "free")?.daily_prompts) || 0;
 
@@ -150,6 +169,8 @@ export default function TrialTake() {
     if (typeof result.score_exact === "number") setExact(result.score_exact);
     if (result.share_url) setCardUrl(`${window.location.origin}${result.share_url}`);
     if (result.remind && result.claim_token) setRemind({ ...result.remind, token: result.claim_token });
+    setPrevious(result.previous || null);
+    setTakesLeft(Number(result.takes_left) || 0);
     setScored(true);
   }
 
@@ -203,7 +224,7 @@ export default function TrialTake() {
         </h1>
         <p className="mt-1 text-sm text-white/55">
           Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
-          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. One free daily take. Join after
+          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. Free takes every day — send a second one and watch your number move. Join after
           to keep your takes and track progress.
         </p>
         {/* Every door, not the two that were linked. A drummer who lands on
@@ -246,9 +267,15 @@ export default function TrialTake() {
         </div>
       )}
 
-      <div className={bossTakeReady ? "" : "hidden"}>
-        <BossTake appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)} />
+      <div id="trial-recorder" className={bossTakeReady ? "" : "hidden"}>
+        <BossTake key={round} appKey={app} trial onResult={keep} onReady={() => setBossTakeReady(true)}
+                  onTake={(blob, name) => setHeard({ blob, name })} />
       </div>
+
+      {!scored && bossTakeReady && (
+        <TrialInspiration appKey={app} take={heard.blob} takeName={heard.name}
+                          onSpent={(d) => setTakesLeft(Number(d.takes_left) || 0)} />
+      )}
 
       {!scored && (
         <p className="mt-4 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 text-[13px] text-white/75">
@@ -292,35 +319,14 @@ export default function TrialTake() {
           <RetakeRemind claimToken={remind?.token} remind={remind} appKey={app} />
 
           <div className="mt-6">
-            <TrialToUpgradePrompt score={score ?? 7} />
+            <TrialToUpgradePrompt info={tierInfo} previous={previous} takesLeft={takesLeft}
+              onAgain={() => {
+                setRound((n) => n + 1);
+                requestAnimationFrame(() => document.getElementById("trial-recorder")?.scrollIntoView({ behavior: "smooth" }));
+              }} />
           </div>
 
-          <div className="mt-6 space-y-3">
-            <p className="text-center text-xs font-semibold uppercase tracking-wider text-white/50">
-              What you unlock by joining
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
-                <p className="mb-2 font-semibold text-emerald-300">Free</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Keep all your takes</li>
-                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "free")?.daily_prompts)} scored takes</li>}
-                  <li>✓ Personalized drill</li>
-                  <li>✓ Track your progress</li>
-                  <li>✓ Post & compete</li>
-                </ul>
-              </div>
-              <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/5 p-3">
-                <p className="mb-2 font-semibold text-mcz-gold">Premium</p>
-                <ul className="space-y-1 text-[11px] text-white/75">
-                  <li>✓ Everything in Free</li>
-                  {tiers?.[0] && <li>✓ {perDay(tiers.find((t) => t.key === "premium")?.daily_prompts)} scored takes</li>}
-                  {tiers?.[0] && <li>✓ {mb(tiers.find((t) => t.key === "premium")?.upload_mb)} per upload</li>}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </>
+</>
       )}
       {/* Counts, never rates.
         *

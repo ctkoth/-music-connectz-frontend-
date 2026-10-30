@@ -6,6 +6,8 @@ import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goesExternal, openProvider, statePrefixFor, appShell } from "../externalAuth.js";
+import { facebookStallNote } from "../facebookHandoff.js";
+import { deviceShape } from "../useScreenShape.js";
 import { GoogleG, ID_TOKEN_AUTH, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
@@ -251,6 +253,7 @@ function OAuthButtonsInner({ onSuccess, onError }) {
   // render it) — an unconfigured tile up front would be a dead button.
   const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
   const featured = grid.filter(isFeatured);
+  const stall = facebookStallNote({ keys: grid.map((p) => p.key), shape: deviceShape(), shell });
   const rest = grid.filter((p) => !isFeatured(p));
   const hasApple = APPLE_ENABLED && !!clientId("apple") && !oldApp && shell !== "inapp";
   const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || (APPLE_ENABLED && clientId("apple")));
@@ -351,6 +354,14 @@ function OAuthButtonsInner({ onSuccess, onError }) {
               <p.Icon size={20} color={p.color} />
             </button>
           ))}
+        </div>
+      )}
+
+      {stall && (
+        <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-[11px] leading-relaxed text-white/80">
+          <p>{stall.why}</p>
+          <p className="mt-1">{stall.instead}</p>
+          <p className="mt-1 text-white/60">{stall.stuck}</p>
         </div>
       )}
 

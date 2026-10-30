@@ -4,6 +4,9 @@ import { ArrowDown, ArrowUp, ExternalLink, Loader2, Lock, Plus, Trash2 } from "l
 import { api } from "../api.js";
 import { goToSpot, goToTab } from "../goto.js";
 import { RatingRow } from "../components/Rating.jsx";
+import { InviteRate, ShareReading, SharesPanel } from "../components/LookShare.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { clearLanding } from "../landing.js";
 import { PROMPTZ } from "../resources.js";
 import { useDragReorder, DragGrip } from "../useDragReorder.jsx";
 import { moveItem } from "../dragReorder.js";
@@ -221,7 +224,188 @@ function Markets({ info, onChange }) {
   );
 }
 
+// A photo by its image address (imagelinks.py on the server decides). This only says, before the
+// press, that a post or profile PAGE link isn't the photo itself — the server's own list of page hosts.
+function pageLink(url, pageHosts) {
+  try {
+    const host = new URL(String(url).trim()).hostname.toLowerCase();
+    return (pageHosts || []).some((h) => host === h || host.endsWith(`.${h}`));
+  } catch { return false; }
+}
+
+function PhotoPick({ d, file, setFile, url, setUrl, label }) {
+  const page = url.trim() && pageLink(url, d.page_hosts);
+  return (
+    <div className="space-y-1.5">
+      <input aria-label={label} type="file" accept="image/*" onChange={(e) => { setFile(e.target.files?.[0] || null); setUrl(""); }} className="text-[12px] text-white/70" />
+      <input className="neon-input w-full text-[12px]" inputMode="url" value={url} disabled={!!file}
+        onChange={(e) => setUrl(e.target.value)} aria-label={`${label} — or its image address`}
+        placeholder="…or paste the photo's image address (Instagram, Facebook, X, TikTok…)" />
+      <p className={`text-[11px] ${page ? "text-mcz-gold" : "text-white/40"}`}>
+        {page ? "That's a link to a post or page, not the photo. Open the photo, copy its IMAGE address (long-press or right-click → Copy image address), or save it and attach it."
+          : d.link_note}
+      </p>
+    </div>
+  );
+}
+
+function photoBody(file, url) {
+  const body = new FormData();
+  if (file) body.append("photo", file); else body.append("photo_url", url.trim());
+  return body;
+}
+
+// Ask a member to approve a reading of a photo of THEM. Nothing is read until they say yes; the
+// photo is deleted whatever they decide; the result becomes their share to you. The rules, the
+// price and every refusal are the server's (/api/economy/lookmaxz/ask/).
+function AskForReading({ d }) {
+  const [a, setA] = useState(null);
+  const [to, setTo] = useState("");
+  const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [photos, setPhotos] = useState({});
+  const [ok, setOk] = useState({});
+  const [show, setShow] = useState({});
+  const load = () => api("/api/economy/lookmaxz/ask/").then(setA).catch(() => setA(null));
+  useEffect(() => { load(); }, []);
+  if (!a) return null;
+
+  async function send() {
+    setBusy(true); setMsg("");
+    try {
+      const body = photoBody(file, url); body.append("to", to.trim());
+      const r = await api("/api/economy/lookmaxz/ask/", { method: "POST", body });
+      setMsg(`Sent — @${r.subject} will see the photo and decide.`); setTo(""); setFile(null); setUrl(""); load();
+    } catch (x) { setMsg(x.message); } finally { setBusy(false); }
+  }
+  async function see(id) {
+    try { const r = await api(`/api/economy/lookmaxz/ask/${id}/`); setPhotos((p) => ({ ...p, [id]: r.data_url })); }
+    catch (x) { setMsg(x.message); }
+  }
+  async function answer(id, decision) {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "POST", body: { decision, confirm_self: !!ok[id], show_photo: !!show[id] } });
+      setMsg(decision === "approve" ? "Read — it's under Your shared readings, and they can see it." : "Declined. The photo is deleted.");
+      window.dispatchEvent(new Event("mcz-lookshares-refresh")); load();
+    } catch (x) { setMsg(x.message); } finally { setBusy(false); }
+  }
+  async function cancel(id) {
+    try { await api(`/api/economy/lookmaxz/ask/${id}/`, { method: "DELETE" }); load(); } catch (x) { setMsg(x.message); }
+  }
+  const waiting = a.received.filter((r) => r.status === "pending");
+  const STATUS = { pending: "waiting for them", approved: "approved — see Shared with you", declined: "not approved",
+    cancelled: "cancelled", expired: "expired — the photo was deleted", failed: "couldn't be read — nothing charged" };
+
+  return (
+    <section className="neon-frame space-y-3 p-4" data-tour="lookmax-ask">
+      {waiting.map((r) => (
+        <div key={r.id} className="space-y-2 rounded-lg border border-mcz-gold/40 bg-mcz-gold/[0.05] p-3">
+          <p className="text-[12px] font-semibold text-mcz-gold">@{r.requester} asked to have a photo of you read</p>
+          <p className="text-[11px] leading-snug text-white/65">{r.approve_note}</p>
+          {photos[r.id] ? <img src={photos[r.id]} alt={`The photo @${r.requester} sent`} className="max-h-64 rounded" />
+            : <button type="button" className="re-link text-[12px]" onClick={() => see(r.id)}>See the photo</button>}
+          <label className="flex items-start gap-2 text-[12px] text-white/75">
+            <input type="checkbox" className="mt-0.5" checked={!!ok[r.id]} onChange={(e) => setOk((o) => ({ ...o, [r.id]: e.target.checked }))} />
+            This is a photo of me and I want it read.
+          </label>
+          <label className="flex items-start gap-2 text-[12px] text-white/75">
+            <input type="checkbox" className="mt-0.5" checked={!!show[r.id]} onChange={(e) => setShow((o) => ({ ...o, [r.id]: e.target.checked }))} />
+            Show the photo with the reading (kept as my upload, in my storage)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy || !ok[r.id] || !photos[r.id]} onClick={() => answer(r.id, "approve")}>Approve</button>
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy} onClick={() => answer(r.id, "decline")}>Decline</button>
+            <span className="text-[11px] text-emerald-300">Free for you — @{r.requester} pays</span>
+          </div>
+        </div>
+      ))}
+
+      <h3 className="text-sm font-bold text-white">🙋 Ask someone to approve a reading of them</h3>
+      <p className="text-[12px] leading-snug text-white/60">{a.note}</p>
+      <input className="neon-input !w-56 text-sm" placeholder="@their handle" aria-label="Who is in the photo"
+        value={to} onChange={(e) => setTo(e.target.value)} />
+      <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of them" />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="re-btn !w-auto px-4" disabled={busy || !to.trim() || !(file || (url.trim() && !pageLink(url, d.page_hosts)))} onClick={send}>
+          Ask them to approve
+        </button>
+        <span className="text-[11px] text-mcz-ember">−{a.cost_cents} {PROMPTZ} only if they approve and it's read</span>
+      </div>
+      {msg && <p role="status" className="text-[12px] text-white/75">{msg}</p>}
+      {a.sent.length > 0 && (
+        <ul className="space-y-1 text-[12px] text-white/65">
+          {a.sent.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center gap-2">
+              @{r.subject} — {STATUS[r.status] || r.status}
+              {r.status === "pending" && <button type="button" className="re-link text-[11px]" onClick={() => cancel(r.id)}>Cancel</button>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Inspiration({ d, openShelf }) {
+  const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [look, setLook] = useState(null);
+  const ready = (file || (url.trim() && !pageLink(url, d.page_hosts))) && d.affordable && d.configured;
+  async function run() {
+    setBusy(true); setErr(""); setLook(null);
+    try {
+      const r = await api("/api/economy/lookmaxz/inspire/", { method: "POST", body: photoBody(file, url) });
+      setLook(r);
+      if (r.charged) window.dispatchEvent(new Event("mcz-stats-refresh"));
+    } catch (x) { setErr(x.message); } finally { setBusy(false); }
+  }
+  return (
+    <section className="neon-frame space-y-3 p-4" data-tour="lookmax-inspire">
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">✨ Look Inspiration — anyone's photo</p>
+      <p className="text-[12px] leading-snug text-white/70">{d.inspire?.what}</p>
+      <p className="text-[11px] leading-snug text-white/45">{d.inspire?.rule}</p>
+      <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of a look you want" />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="re-btn !w-auto px-4" disabled={busy || !ready} onClick={run}>
+          {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Describe this look"}
+        </button>
+        <Price s={d} /> <span className="text-[11px] text-white/45">— not charged if there's no look to describe.</span>
+      </div>
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
+      {look && (look.parts?.length ? (
+        <div className="space-y-2">
+          {look.summary && <p className="text-[12px] text-white/80">{look.summary}</p>}
+          {look.parts.map((p) => (
+            <div key={p.key} className="rounded-lg border border-white/10 p-2.5">
+              <p className="text-[12px] font-semibold text-white">{p.label}: <span className="font-normal text-white/80">{p.what}</span></p>
+              {p.how?.length > 0 && <ul className="mt-1 list-disc pl-4 text-[11px] text-white/65">{p.how.map((h) => <li key={h}>{h}</li>)}</ul>}
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            {(look.shop?.sectors || []).map((k) => (
+              <button key={k} type="button" className="re-link text-[12px]" onClick={() => openShelf(k)}>Browse the {d.sectors[k]?.label.toLowerCase()} shelf — free</button>
+            ))}
+          </div>
+        </div>
+      ) : <p className="text-[12px] text-white/60">{look.unreadable} Nothing was charged.</p>)}
+    </section>
+  );
+}
+
 export default function LookmaxZ() {
+  const { user } = useAuth();
+  const [keep, setKeep] = useState(false);
+  const [readPhoto, setReadPhoto] = useState("");   // what the coach read, shown above the result
+  // ?for=<handle> arrives from an invite (/rate/<handle>); ?look=<token> opens a shared reading.
+  const [q] = useState(() => new URLSearchParams(window.location.search));
+  const inviter = (q.get("for") || "").slice(0, 40);
+  const look = (q.get("look") || "").slice(0, 32);
+  useEffect(() => { clearLanding(); }, []);
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [picked, setPicked] = useState(null);
@@ -230,6 +414,7 @@ export default function LookmaxZ() {
   // not, in the server's words, and is refused by the server without its tick.
   const [acks, setAcks] = useState({});
   const [file, setFile] = useState(null);
+  const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [shelf, setShelf] = useState(null);
@@ -238,17 +423,19 @@ export default function LookmaxZ() {
   useEffect(() => { load(); }, []);
 
   async function read() {
-    if (!file || !self) return;
+    if ((!file && !url.trim()) || !self) return;
     setBusy(true); setErr(""); setRes(null);
     try {
-      const body = new FormData();
-      body.append("photo", file); body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
+      const body = photoBody(file, url);
+      body.append("confirm_self", "true"); body.append("sectors", picked.join(","));
+      if (keep) body.append("keep_photo", "true");
+      setReadPhoto(file ? URL.createObjectURL(file) : url.trim());
       picked.filter((k) => d.opt_in_sectors?.includes(k)).forEach((k) => body.append(`${k}_ack`, "true"));
       const r = await api("/api/economy/lookmaxz/", { method: "POST", body });
       setRes(r);
       if (r.charged) window.dispatchEvent(new Event("mcz-stats-refresh"));
       load();
-    } catch (x) { setErr(x.message); } finally { setBusy(false); setFile(null); }
+    } catch (x) { setErr(x.message); } finally { setBusy(false); setFile(null); setUrl(""); }
   }
   async function openShelf(sector) {
     try { setShelf(await api(`/api/economy/lookmaxz/shop/?sector=${sector}`)); } catch (x) { setErr(x.message); }
@@ -268,7 +455,7 @@ export default function LookmaxZ() {
         <h2 className="font-display text-xl font-extrabold text-white">✨ LookZMaxZ</h2>
         <p className="text-[12px] leading-snug text-white/60">
           What you can change about how you present — face, skin, teeth, styling and body — with what to do about it and where to shop.
-          It never rates bone structure, face shape or body shape, and nothing about your photo or your score is kept.
+          It never rates bone structure, face shape or body shape. Your photo is kept only if you tick Keep my photo, and your score only if you share it.
         </p>
       </header>
 
@@ -280,6 +467,12 @@ export default function LookmaxZ() {
         </section>
       ) : (
         <>
+          <SharesPanel look={look} />
+          {inviter && !res && (
+            <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-[12px] text-white/75">
+              @{inviter} invited you to get your own reading. It's yours: after it, you choose whether they see it.
+            </p>
+          )}
           <section className="neon-frame space-y-3 p-4" data-tour="lookmax-read">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Read one photo</p>
             <div className="flex flex-wrap gap-1.5">
@@ -305,9 +498,15 @@ export default function LookmaxZ() {
               <input type="checkbox" checked={self} onChange={(e) => setSelf(e.target.checked)} className="mt-0.5" />
               This is a photo of me. I'm not uploading anyone else's.
             </label>
-            <input aria-label="Photo of yourself" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-[12px] text-white/70" />
+            {d.keep_note && (
+              <label className="flex items-start gap-2 text-[12px] text-white/70">
+                <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="mt-0.5" />
+                <span>Keep my photo with this reading <span className="block text-[11px] text-white/40">{d.keep_note}</span></span>
+              </label>
+            )}
+            <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of yourself" />
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !file || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
+              <button type="button" className="re-btn !w-auto px-4" disabled={busy || !(file || (url.trim() && !pageLink(url, d.page_hosts))) || !self || !picked?.length || !d.affordable || !d.configured || !optInsAcked} onClick={read}>
                 {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Read my photo"}
               </button>
               <Price s={d} /> <AiEnergy className="text-[11px]" />
@@ -327,6 +526,8 @@ export default function LookmaxZ() {
 
           {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
 
+          <Inspiration d={d} openShelf={openShelf} />
+
           {res && (
             <div className="space-y-3">
               {res.unreadable ? (
@@ -337,6 +538,11 @@ export default function LookmaxZ() {
               ) : (
                 <>
                   <section className="neon-frame space-y-2 p-4">
+                    {(res.kept_photo?.url || readPhoto) && (
+                      <img src={res.kept_photo?.url || readPhoto} alt="The photo that was read" className="max-h-72 rounded-lg" />
+                    )}
+                    {res.kept_photo && !res.kept_photo.url && <p className="text-[11px] text-mcz-gold">{res.kept_photo.note}</p>}
+                    {res.kept_photo?.url && <p className="text-[11px] text-white/45">Kept as one of your uploads — delete it there any time.</p>}
                     <RatingRow value={res.overall} label="Overall — plain average of the sectors you asked for"
                       detail={res.verdict} size="lg" outOf />
                     {res.photo_quality != null && <RatingRow value={res.photo_quality} label="Photo quality — how well this photo shows you, not a score of you" size="sm" />}
@@ -348,6 +554,7 @@ export default function LookmaxZ() {
                   {Object.keys(res.sectors).map((k) => (
                     <Sector key={k} k={k} meta={meta[k]} data={res.sectors[k]} shop={res.shop?.[k]} affiliate={res.affiliate_note} />
                   ))}
+                  {res.share && <ShareReading reading={res.share.reading} note={res.share.note} prefillTo={inviter} photoKept={res.share.photo_kept} />}
                 </>
               )}
             </div>
@@ -373,6 +580,9 @@ export default function LookmaxZ() {
               </div>
             ))}
           </section>
+
+          <InviteRate username={user?.username} />
+          <AskForReading d={d} />
 
           {d.markets && <Markets info={d} onChange={(r) => setD((p) => ({ ...p, ...r }))} />}
         </>

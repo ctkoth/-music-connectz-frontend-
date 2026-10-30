@@ -136,3 +136,60 @@ export function holdFor(planned, setsByExercise, lastExerciseId) {
   }
   return null;
 }
+
+// ---- Supersets made WHILE LOGGING a session --------------------------------------------------------------------
+//
+// A routine's superset is two ADJACENT rows sharing a `group`. A session has no such adjacency — one lift's sets can be
+// spread across the workout — so a session's supersets are kept as PAIRS of lift ids, [[a, b], ...], ANY two lifts,
+// each lift in at most one pair (the server's `clean_pairs` is the rule; this mirrors it so a screen can show it as it is
+// made). Saving the session as a routine turns them into the routine's own adjacent groups (the server's
+// `pair_session_rows`; `applySessionPairs` is the same thing for drawing a live session).
+
+/** The lift `id` is paired with, or null. */
+export function pairOf(pairs, id) {
+  const p = (pairs || []).find((x) => x[0] === id || x[1] === id);
+  return p ? (p[0] === id ? p[1] : p[0]) : null;
+}
+
+/** `a` and `b` become a pair; any pair either was in comes apart first (its other half is left single). */
+export function setPair(pairs, a, b) {
+  if (a == null || b == null || a === b) return pairs || [];
+  return [...(pairs || []).filter((p) => ![a, b].some((id) => p[0] === id || p[1] === id)), [a, b]];
+}
+
+/** The pair `id` is in comes apart. */
+export const unsetPair = (pairs, id) => (pairs || []).filter((p) => p[0] !== id && p[1] !== id);
+
+/** Only the pairs whose two lifts are both still in the workout — taking a lift out ends its superset. */
+export const prunePairs = (pairs, ids) => {
+  const have = new Set(ids);
+  return (pairs || []).filter((p) => have.has(p[0]) && have.has(p[1]));
+};
+
+/**
+ * Rows with each pair made adjacent and grouped, for drawing a live session. A pair whose lifts already sit side by side is
+ * grouped IN PLACE (so dragging a pair never flips it); otherwise the second lift moves to sit directly below the first,
+ * exactly as `pairWith` does. A pair naming a lift that is not in `rows` is skipped.
+ */
+export function applySessionPairs(rows, pairs) {
+  let out = rows.map((r) => ({ ...r }));
+  for (const [a, b] of pairs || []) {
+    const ia = out.findIndex((r) => r.exercise_id === a);
+    const ib = out.findIndex((r) => r.exercise_id === b);
+    if (ia < 0 || ib < 0 || ia === ib) continue;
+    if (Math.abs(ia - ib) === 1) {
+      const freed = new Set([ia, ib, partnerOf(out, ia), partnerOf(out, ib)].filter((k) => k >= 0));
+      out = out.map((r, k) => {
+        if (!freed.has(k)) return r;
+        const { group: _drop, ...rest } = r;
+        return rest;
+      });
+      out[ia].group = out[ib].group = "_";
+      out = normalize(out);
+    } else {
+      const next = pairWith(out, ia, ib);
+      if (next) out = next;
+    }
+  }
+  return out;
+}

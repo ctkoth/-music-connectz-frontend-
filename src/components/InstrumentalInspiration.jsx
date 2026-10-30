@@ -1,3 +1,4 @@
+import { genreLabel } from "../genres.js";
 import { useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { api } from "../api.js";
@@ -53,7 +54,7 @@ export default function InstrumentalInspiration({ info, onApply }) {
         {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}
         {res && !res.unscorable && (
           <div className="space-y-1">
-            <p className="text-emerald-300">Filled in below: {res.genre} · {res.bpm} BPM{res.key ? ` · ${res.key}` : ""} · {res.instruments.join(", ")}</p>
+            <p className="text-emerald-300">Filled in below: {genreLabel(res.genre)} · {res.bpm} BPM{res.key ? ` · ${res.key}` : ""} · {res.instruments.join(", ")}</p>
             <p>{res.feel}</p>
             {res.fits_lyrics && <p><b>With your lyrics:</b> {res.fits_lyrics}</p>}
           </div>
