@@ -1991,3 +1991,14 @@ A member logged sets against the wrong exercise: every planned lift is its own c
 - **Every logged set chip has an ✕** (with a confirm that names the lift and the set), for a slip noticed later in the same session.
 
 A past session is still edited from SessionZ → Edit; the point is that the common slip no longer needs it.
+
+## FileZ: a lost file is drawn as lost, never as a corrupt player
+
+`FileZ.jsx` used to render a player for every row, so recordings the server had lost sat at
+0:00 / 0:00 and read as corrupt. The server now marks them (`missing`, set only by something that went and
+looked) and the row says so: "no longer on the server… it isn't corrupt — the recording was lost",
+with **Upload it again** (lands on the PostZ composer) and no Post/Doors/avatar buttons, because a door
+to a file that is not there is a dead end. **Check my files** (free, stated on the button) asks
+`/api/economy/uploads/check/`, which looks in storage and says what it found and that nothing was
+deleted (`fileStatus.js`, tested). A player `onError` only suggests the check — "it would not play" is not
+"it is not there" — and never marks anything itself.
