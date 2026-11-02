@@ -38,6 +38,8 @@ import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
 import StatsZSummary from "./StatsZSummary.jsx";
 import InterestPicker from "../components/InterestPicker.jsx";
+import ProfileKids from "../components/ProfileKids.jsx";
+import { PARTNER_GENDERS, changedFields, fieldsOf, saveState, unsavedKids } from "../profileKids.js";
 
 // 18+ age verification via Stripe Identity. Government ID + selfie; the backend
 // webhook flips the flag only if the verified DOB proves 18+. Gates money
@@ -124,12 +126,8 @@ function Verify18Card() {
 // carry its own copy of the list, in a different order from the one the
 // SubstanceZ app and the search read.
 
-// PreferenceZ — the genders a member is attracted to. Any one, any mix, or all.
-const PARTNER_GENDERS = [
-  ["male", "Male", "♂"],
-  ["female", "Female", "♀"],
-  ["nonbinary", "Non-binary", "⚧"],
-];
+// PreferenceZ — the genders a member is attracted to. The list (male, female, non-binary) is
+// PARTNER_GENDERS in profileKids.js, shared with the children strip.
 
 // ZodiacZ — the canonical date ranges. Shown so a member can see why their sign
 // is what it is; the sign itself is derived server-side from the birthday.
@@ -520,6 +518,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   const [pf, setPf] = useState(null);
   const [partners, setPartners] = useState([]); // PreferenceZ keys
   const [saved, setSaved] = useState(false);    // true briefly after a real save
+  // What the server last had, in the flat shape `fieldsOf` produces, and when we last wrote it.
+  // The Save bar and the children strip both compare the SAME two objects, so a tile that says
+  // "unsaved" and a bar that says "saved" cannot happen at once.
+  const [savedVals, setSavedVals] = useState(null);
+  const [savedAt, setSavedAt] = useState(null);
   const [ref, setRef] = useState(null);
   const [copied, setCopied] = useState(false);
   const [msg, setMsg] = useState("");
@@ -656,8 +659,30 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
     setNats((s) => (s.includes(name) ? s.filter((n) => n !== name) : [...s, name]));
   }
 
+  // The values Save writes, flat. The baseline is taken ONCE, when both halves of the profile
+  // have arrived (the account and the economy profile load separately), and again after every
+  // successful save — never from an effect that runs on each edit, which would mark everything
+  // saved the instant it was typed.
+  const nowVals = fieldsOf({ bio, birthday, nats, sel, partners, subs, sober, languages, religion, personality, pf });
+  useEffect(() => {
+    if (savedVals === null && me && pf) setSavedVals(JSON.parse(JSON.stringify(nowVals)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, pf, savedVals]);
+  const changed = changedFields(savedVals, nowVals);
+  const dirty = changed.length > 0;
+  const unsaved = unsavedKids(changed);
+  // Leaving with edits that were never saved loses them without a word — the browser's own
+  // prompt is the only honest thing a page can do here.
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const h = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [dirty]);
+
   async function save() {
     setBusy(true); setMsg(""); setSaved(false);
+    const sent = JSON.parse(JSON.stringify(nowVals));
     // Mirror the public profile into the shared social store so Social ConnectZ
     // can surface & heritage-filter this user immediately.
     saveSocial({
@@ -684,6 +709,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                 nationalities: nats, personality, religion, languages, ...(pf || {}) },
       });
       setMe(d);
+      // What was SENT is now what is saved — not what is on screen a moment later: an edit made
+      // while the request was in flight is still unsaved, and says so.
+      setSavedVals(sent);
+      setSavedAt(new Date());
       setSaved(true);
       playSound("saved");
       setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ, LanguageZ and music details are live.");
@@ -771,6 +800,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           you keep the effect either way, the room just doesn't see it.
         </p>
       )}
+
+      {/* The apps inside this profile, as children: what each holds, saved or not, and a way to
+          land on it. Sits right under the identity so it is the first thing a member scans. */}
+      <ProfileKids unsaved={unsaved} values={{
+        birthday, zodiac: me.zodiac, zodiac_cn: me.zodiac_cn, partners, subs: sober ? {} : subs, sober,
+        languages, religion, inventory: pf?.inventory || [],
+      }} />
 
       <AvatarCard />
 
@@ -1020,12 +1056,12 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           families (Christianity → Catholic, Lutheran, ...; Islam → Sunni,
           Shia, ...). Same shape and same reasoning as PersonalitieZ above:
           a declaration filterable everywhere, never a score. */}
-      <ReligionZ value={religion} onChange={setReligion} />
+      <div data-tour="religionz"><ReligionZ value={religion} onChange={setReligion} /></div>
 
       {/* LanguageZ — languages spoken AND how well, grouped by region.
           Multi-select where ReligionZ is one-of, because a member commonly
           speaks several languages and (usually) practises one religion. */}
-      <LanguageZ value={languages} onChange={setLanguages} />
+      <div data-tour="languagez"><LanguageZ value={languages} onChange={setLanguages} /></div>
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
       <div data-tour="preferencez">
@@ -1238,20 +1274,33 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         )}
       </div>
 
-      {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
-      <div data-tour="save" className="flex flex-wrap items-center gap-3">
-        <button className="neon-btn-primary !w-auto px-6" disabled={busy} onClick={save}>
-          {busy ? <Loader2 className="animate-spin" size={16} />
-                : saved ? <Check size={16} />
-                : <Save size={16} />}
-          {busy ? "Saving…" : saved ? "Saved" : "Save ProfileZ"}
-        </button>
-        {saved && (
-          <span className="flex items-center gap-1 text-xs text-emerald-300">
-            <Check size={13} /> Your profile is live.
-          </span>
-        )}
-      </div>
+      {/* The Save bar. It stays on screen while the form scrolls under it, because the profile is
+          one long page and the button used to be a scroll away from the thing just edited. It says
+          what is unsaved, by name, BEFORE the press, and when everything is in, says so and when.
+          Saving is free and a failed save writes nothing — the line below says which happened. */}
+      {(() => {
+        const st = saveState({ changed, busy, savedAt });
+        const barLook = { dirty: "border-amber-300/60 text-amber-200", saved: "border-emerald-300/50 text-emerald-300",
+          busy: "border-white/20 text-white/70", idle: "border-white/10 text-white/50" }[st.tone];
+        return (
+          <div data-tour="save" className={`sticky bottom-[88px] z-30 space-y-1 rounded-2xl border bg-black/85 p-3 backdrop-blur ${barLook}`}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span role="status" aria-live="polite" className="min-w-0 flex-1 text-xs font-semibold">
+                {st.tone === "dirty" && <span aria-hidden className="mr-1">●</span>}
+                {st.tone === "saved" && <Check size={13} className="mr-1 inline" />}
+                {st.text}
+              </span>
+              <button className="neon-btn-primary !w-auto px-6" disabled={busy || (!dirty && !!savedVals)} onClick={save}>
+                {busy ? <Loader2 className="animate-spin" size={16} />
+                      : saved && !dirty ? <Check size={16} />
+                      : <Save size={16} />}
+                {busy ? "Saving…" : saved && !dirty ? "Saved" : "Save ProfileZ"}
+              </button>
+            </div>
+            {msg && <p className={`text-[11px] ${/^Saved/.test(msg) ? "text-emerald-300/90" : "text-mcz-ember"}`}>{msg}</p>}
+          </div>
+        );
+      })()}
 
       {/* Danger zone — permanent account deletion */}
       <div className="mt-8 rounded-2xl border border-red-500/25 bg-red-500/5 p-4">

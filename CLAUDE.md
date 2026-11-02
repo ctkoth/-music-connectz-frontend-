@@ -1991,3 +1991,39 @@ A member logged sets against the wrong exercise: every planned lift is its own c
 - **Every logged set chip has an ✕** (with a confirm that names the lift and the set), for a slip noticed later in the same session.
 
 A past session is still edited from SessionZ → Edit; the point is that the common slip no longer needs it.
+
+## ProfileZ's children, the Save bar, and SocialZ
+
+ProfileZ is one long form and seven things in it are apps in their own right. `ProfileKids.jsx` (top of
+ProfileZ) shows them as children — ZodiacZ, PreferenceZ, SubstanceZ, LanguageZ, InVenTorieZ, ReligionZ,
+SocialZ — each with what it currently holds, **Saved / ● Unsaved**, and a tap that lands on the exact
+control (`spotlight`) or, for SocialZ, its own tab. ZodiacZ's tile also opens today's horoscope. The
+decisions are in `profileKids.js`, free of React so node can test them. It words and compares; it decides
+no rule of the platform's.
+
+- **One comparison feeds the bar and the tiles.** `fieldsOf` flattens exactly what Save writes,
+  `changedFields(saved, now)` diffs it, and both the sticky Save bar and every tile read that — a tile
+  saying "unsaved" while the bar says "saved" cannot happen. A pickers' choices compare as sets and object
+  keys are sorted (ticking Male then Female is the same answer as Female then Male); the member's own ordered
+  lists (personas, inventory) keep their order.
+- **The baseline is taken when both halves have loaded and again after a successful save, from what was
+  SENT** — an edit made while the request was in flight is still unsaved and says so. Never from an effect on
+  each edit, which would mark everything saved the moment it was typed.
+- **The bar names what is unsaved before the press** and states when everything is in; `beforeunload` guards a
+  dirty profile. It sits at `bottom-[88px]` because the fixed dock covers `bottom-3` (checked at phone width).
+- **Every field Save writes must have a name** in `profileKids.js` (`KIDS` or `OTHER_LABEL`); a test fails
+  otherwise, so nothing is saved unmentioned.
+- **The inventory is `pf.inventory`** (the popular-site fields) but belongs to InVenTorieZ's tile.
+
+`SocialZ.jsx` (`/socialz`) is the screen the verify/reach backend never had. It shows reach, the ⚡/hour that
+pays, what each tier would pay THIS member (all served), each account with an honest status, and Quick match /
+Code in bio. The cost line ("costs you nothing, a failed check charges nothing") sits above the buttons; after a
+check it says what moved by comparing two reads of the server's rate (▲ / ▼ / unchanged — a drop is said as
+plainly as a rise). Connecting a sign-in stays in ProfileZ, where its OAuth return trip lands; SocialZ links
+there rather than embedding a second copy of the connect flow.
+
+- **Found by driving it in a browser:** `socialz` and the `social` tab both slug to `/social` (`slugFor` drops the
+  z), so `/socialz` opened SocialiZeZ. `SLUG_KEEPS_Z` fixes it and `slugs.test.mjs` fails on any two tabs
+  sharing an address.
+- ReligionZ finally has an icon slot (`profilez.religionz.jpg` → `religionz.png`); the ProfileZ menu has an
+  "Inside your profile" group whose doors land on the control (`target`) instead of the top of ProfileZ.

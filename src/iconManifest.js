@@ -69,6 +69,7 @@ export const ICON_DEFAULTS = {
   "profilez.png": "/icons/profilez.png",
   "lookmaxz.png": "/icons/profilez.lookzmaxz.jpg",
   "preferencez.png": "/icons/profilez.preferencez.png",
+  "religionz.png": "/icons/profilez.religionz.jpg",
   "rapz.png": "/icons/rapz.png",
   "singz.png": "/icons/singz.png",
   "infernoz.png": "/icons/socializez.infernoz.jpg",
@@ -1459,9 +1460,9 @@ export const ICON_TREE = [
         "label": "ReligionZ",
         "file": "profilez.religionz.jpg",
         "art": "/icons/profilez.religionz.jpg",
-        "key": null,
-        "status": "unplaced",
-        "note": "ProfileZ has a religion field but no icon slot for it",
+        "key": "religionz.png",
+        "status": "live",
+        "note": "",
         "also": []
       },
       {
@@ -2024,6 +2025,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "royaltiez.png",
   "saxz.png",
   "sentencez_editor.png",
+  "socialz.png",
   "sonday.png",
   "soundcloudengagementz.png",
   "soundz.png",

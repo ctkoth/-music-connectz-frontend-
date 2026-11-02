@@ -37,6 +37,8 @@ const ICON_KEY = {
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
+  // ProfileZ's children: Corey's art files them under ProfileZ (profilez.<child>.*).
+  languagez: "languagez.png", inventoriez: "inventoriez.png", religionz: "religionz.png", socialz: "socialz.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
@@ -46,7 +48,7 @@ const EMOJI = {
   budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", lookmaxz: "✨", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
-  preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
+  preferencez: "💞", substancez: "🧠", zodiacz: "♈", languagez: "🗣️", inventoriez: "🎒", religionz: "🕊️", socialz: "🌐", reelz: "🎞️", episodez: "📺", moviez: "🎥",
   mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
   filez: "🗂️",
 };
@@ -261,13 +263,26 @@ const TOOLZ_MENU = {
       ]
     },
     {
+      // The apps inside a profile. SocialZ has a screen of its own; the others are controls in
+      // ProfileZ, so each is a door that LANDS on its control (`target`), never the top of the
+      // page. ZodiacZ, PreferenceZ and SubstanceZ are below — they browse members by that metric,
+      // and each one's "set yours" lands here too.
+      group: 'Inside your profile',
+      apps: [
+        { key: 'socialz', label: 'SocialZ', color: 'cyan', desc: 'Connect your accounts — verified followers raise how fast your ⚡ comes back' },
+        { key: 'languagez', tab: 'profilez', target: 'languagez', label: 'LanguageZ', color: 'cyan', desc: 'The languages you speak, and how well' },
+        { key: 'inventoriez', tab: 'profilez', target: 'inventoryz', label: 'InVenTorieZ', color: 'yellow', desc: 'Your gear, instruments and wardrobe — rated piece by piece' },
+        { key: 'religionz', tab: 'profilez', target: 'religionz', label: 'ReligionZ', color: 'magenta', desc: 'One declared branch, or nothing — a filter, never a score' },
+      ]
+    },
+    {
       group: 'Members by metric',
       apps: [
-        { key: 'preferencez', label: 'PreferenceZ', color: 'magenta', desc: 'Who members are attracted to (18+)' },
-        { key: 'substancez', label: 'SubstanceZ', color: 'green', desc: 'What members use, and how often (18+)' },
+        { key: 'preferencez', label: 'PreferenceZ', color: 'magenta', desc: 'Who members are attracted to — male, female, non-binary, any mix (18+). Set yours in ProfileZ' },
+        { key: 'substancez', label: 'SubstanceZ', color: 'green', desc: 'What members use, and how often (18+). Set yours in ProfileZ' },
         { key: 'personaz', label: 'PersonaZ', color: 'magenta', desc: 'Every persona and skill — yours with start dates, or find who else has them' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'Faces for your AI videos — and rate others (18+)' },
-        { key: 'zodiacz', label: 'ZodiacZ', color: 'yellow', desc: 'Every sign, its members, and today\'s horoscope' },
+        { key: 'zodiacz', label: 'ZodiacZ', color: 'yellow', desc: 'Every sign, its members, and today\'s horoscope — tap your own sign in ProfileZ' },
       ]
     },
   ],
@@ -403,7 +418,7 @@ export default function ToolZMenu() {
   const handleAppClick = (app) => {
     if (app.category) { setSelectedCategory(app.category); return; }
     if (app.preset) presetDirectzFormat(app.preset);
-    goToSpot(tabOf(app), `${tabOf(app)}:main`);
+    goToSpot(tabOf(app), app.target || `${tabOf(app)}:main`);
   };
 
   const handleOpenOption = (app, openType) => {

@@ -84,6 +84,7 @@ const IntelligenceZ = lazy(lazyRoute(() => import("./apps/IntelligenceZ.jsx")));
 const ViewZ = lazy(lazyRoute(() => import("./apps/ViewZ.jsx")));
 const VideoConnectZ = lazy(lazyRoute(() => import("./apps/VideoConnectZ.jsx")));
 const MetricZ = lazy(lazyRoute(() => import("./apps/MetricZ.jsx")));
+const SocialZ = lazy(lazyRoute(() => import("./apps/SocialZ.jsx")));
 const FaceZ = lazy(lazyRoute(() => import("./apps/FaceZ.jsx")));
 const LookmaxZ = lazy(lazyRoute(() => import("./apps/LookmaxZ.jsx")));
 const PersonaZ = lazy(lazyRoute(() => import("./apps/PersonaZ.jsx")));
@@ -341,6 +342,7 @@ export const CUSTOM_ICONS = {
   "inventoriez.png": "/icons/inventoriez.jpg",   // Corey's art (Oct 28)
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
+  "religionz.png": "/icons/profilez.religionz.jpg",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",
@@ -513,8 +515,12 @@ export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
 export const canMini = () => true;
 const MAX_MINIS = 3;
 
+// Addresses that must not drop their z. `socialz` would become `/social` — the address the
+// SocialiZeZ tab (key "social") already owns — and tabForSlug takes the first match, so SocialZ
+// was unreachable by URL. `slugs.test.mjs` fails on any two tabs that share an address.
+const SLUG_KEEPS_Z = ["socialz"];
 export const slugFor = (key) =>
-  key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;
+  key.endsWith("z") && key.length > 2 && !SLUG_KEEPS_Z.includes(key) ? key.slice(0, -1) : key;
 // The address a tab lives at. ToolZ is the HOME screen — "Music ConnectZ" — so
 // its address is the bare domain, not /tool: a home page that says musicconnectz.net/tool
 // reads as one tool among many, and it is the one address everybody types or
@@ -555,6 +561,9 @@ const TABS = [
   { key: "preferencez", label: "PreferenceZ", icon: "preferencez.png", el: <MetricZ kind="preferencez" /> },
   { key: "substancez", label: "SubstanceZ", icon: "substancez.png", el: <MetricZ kind="substancez" /> },
   { key: "zodiacz", label: "ZodiacZ", icon: "zodiacz.png", el: <MetricZ kind="zodiacz" /> },
+  // SocialZ: connected accounts and what their verified followers pay in ⚡. The backend verified
+  // and read counts since it shipped; the only screen that drove it was in the unmounted mcz2.
+  { key: "socialz", label: "SocialZ", icon: "socialz.png", el: <SocialZ /> },
   { key: "facez", label: "FaceZ", icon: "facez.png", el: <FaceZ /> },
   { key: "lookmaxz", label: "LookZMaxZ", icon: "lookmaxz.png", el: <LookmaxZ /> },
   { key: "distributez", label: "DistributeZ", icon: "distributez.png", el: <DistributeZ /> },
