@@ -1445,6 +1445,16 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "philosophiez",
+        "label": "PhilosophieZ",
+        "file": "profilez.philosophiez.jpg",
+        "art": "/icons/profilez.philosophiez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "preferencez",
         "label": "PreferenceZ",
         "file": "profilez.preferencez.png",

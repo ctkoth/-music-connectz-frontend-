@@ -90,7 +90,8 @@ export const APP_PURPOSE = {
   tunerz:      { does: "Tune an instrument",              words: "tuner tune pitch pegs string guitar bass in tune" },
   breathz:     { does: "Breath training, free",         words: "breath breathing breathe lungs air support exhale hold box hiss practice warm up sing rap" },
   chordz:      { does: "Chords and progressions",         words: "chords progression voicing theory scale music" },
-  dawz:        { does: "Vote for the next DAW build",     words: "daw record produce mix beat maker software studio" },
+  dawz:        { does: "DAWs — open one, or vote for the next", words: "daw record produce mix beat maker software studio" },
+  arsenal:     { does: "Record, edit and mix tracks",      words: "daw pro tools record multitrack edit mix mixer playlist take bounce wav studio produce engineer" },
   lilith:      { does: "Task manager",                    words: "tasks todo reminders manage organize checklist" },
   dupez:       { does: "Sort out a duplicate account",     words: "duplicate account merge second another mine claim" },
 };

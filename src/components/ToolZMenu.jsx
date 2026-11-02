@@ -33,7 +33,7 @@ const ICON_KEY = {
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
-  sentencez: "sentencez_editor.png", videoz: "videoz.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png", arsenal: "arsenal.png", dawz: "dawz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
@@ -47,7 +47,7 @@ const EMOJI = {
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", arsenal: "⚔️", dawz: "🎛️",
   filez: "🗂️",
 };
 
@@ -168,6 +168,8 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
         { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
+        { key: 'arsenal', label: 'Arsenal', color: 'yellow', desc: 'Multitrack DAW like Pro Tools — record takes, playlists, edit, mix with built-in effects, bounce a WAV; free' },
+        { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW we are building — open one, vote for the next' },
       ]
     },
     {

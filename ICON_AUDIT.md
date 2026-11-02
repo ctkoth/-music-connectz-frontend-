@@ -185,7 +185,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `toolz.sentencez.jpg` | — | current art for registry key sentencez_editor.png, kept as the fallback |
 | `toolz.videoz.png` | — | current art for registry key videoz.png, kept as the fallback |
 
-## No place — no tab, app or registry key uses these (41)
+## No place — no tab, app or registry key uses these (42)
 | File | Registry key | Note |
 |---|---|---|
 | `bodiez-old.jpg` | — |  |
@@ -222,6 +222,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `profilez.filez.jpg` | — |  |
 | `profilez.filez.png` | — |  |
 | `profilez.languagez.jpg` | — |  |
+| `profilez.philosophiez.jpg` | — |  |
 | `socializez.personalitiez.png` | — |  |
 | `soundcloud.engagement.jpg` | — |  |
 | `toolz.chordz.jpg` | — |  |

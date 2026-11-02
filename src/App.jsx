@@ -73,6 +73,7 @@ const BattleZ = lazy(lazyRoute(() => import("./apps/BattleZ.jsx")));
 const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
 const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
 const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
+const Arsenal = lazy(lazyRoute(() => import("./apps/Arsenal.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
@@ -652,6 +653,7 @@ const TABS = [
   { key: "groupz", label: "GroupZ", icon: "groupz.png", el: <GroupZ /> },
   { key: "bugz", label: "BugZ", icon: "bugz.png", el: <BugZ /> },
   { key: "dawz", label: "DawZ", icon: "dawz.png", el: <DawZ /> },
+  { key: "arsenal", label: "Arsenal", icon: "arsenal.png", el: <Arsenal /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
   // below. The route and TABS entry still exist for anyone who is the
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
@@ -1006,7 +1008,8 @@ const TAB_ABOUT = {
   labelz: "🏷️ LabelZ — public groups with record-label logic: advances, terms, e-signed contracts (Premium / A&R Scout / Manager).",
   groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
-  dawz: "🎛️ DawZ — seven DAW knockoffs, none built yet. Vote for which one gets built next.",
+  dawz: "🎛️ DawZ — eight DAWs on one engine. A built one opens; the rest take your vote for which gets built next.",
+  arsenal: "⚔️ Arsenal — a multitrack DAW on your own device, Pro Tools-style: record takes onto tracks, keep every take in playlists, edit in Slip, Grid or Shuffle, mix with built-in EQ, compressor, delay and reverb, and bounce a WAV. Free — nothing is uploaded until you save.",
   funnelz: "📊 FunnelZ — owner-only. The join funnel measured: landing → trial → register, real events and real unique visitors.",
   intelligencez: "🧠 IntelligenceZ — every AI app in one place: what each one is, whether it is switched on, and what a run costs before you open it, with your newest pieces from all of them one tap away.",
   sentenceconnectz: "✍️ Sentence ConnectZ — resumes, cover letters, lyrics, poems, bios, posts and essays, written by AI from what you tell it. It says whose voice a piece is in before you press Write, and a resume only ever contains what you gave it.",

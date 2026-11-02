@@ -2025,3 +2025,43 @@ The Karma control is ▲ ▼ (the vote) plus a **React** picker of moods: ❤️
 `POST social/mood/`) and `socialBar.js` only joins them; nothing retypes an emoji. Only moods somebody chose are
 drawn in the row, the picker shows all. One mood each, press yours again to clear. It is free, **pays nothing and
 never changes a rating** — the picker says so. "Like" is not a mood: it is the ▲.
+
+## DawZ: one DAW engine, a workflow per DAW, and Arsenal ⚔️ is the first one built
+
+Corey named six DAWs (Azrael ☠️ Reaper, Trump Toupee 🤵🏼‍♂️ Bitwig, Intuition 💭 Logic, FormulaWon 🚦
+GarageBand, Studio Dragon 🐉 Studio One, Arsenal ⚔️ Pro Tools) beside the two already in the catalogue
+(Fruity Möbius, Witchcraft). They are **one engine with a workflow each, never eight codebases**:
+`src/daw/` is the engine and a DAW app is a `workflow` object handed to `Workspace.jsx`
+(`src/apps/Arsenal.jsx` is twenty lines). A session made in one opens in another.
+
+- `session.js` — the model and every edit, pure and tested (`session.test.mjs`): tracks, **playlists**
+  (takes per track; one plays), regions over sources, Slip / Grid / Shuffle, nudge, split, trim (never
+  past the source), fades, and `recordInto` — a take recorded over existing audio cuts it on a **new
+  playlist**, so the previous take is one switch away rather than gone. Time is seconds; bars|beats is a
+  view over them.
+- `plugins.js` — the built-in effects (EQ, compressor, delay with tempo sync, reverb, filter, gain): a
+  pure spec (ranges, defaults, `cleanInsert`) and one Web Audio builder. The reverb room is made from a
+  seeded noise so the preview and the bounce are the same room.
+- `engine.js` — ONE graph builder for the speakers and the bounce (`buildGraph` on an AudioContext or an
+  OfflineAudioContext), so what was approved by ear is what the WAV holds. Recording is captured INSIDE
+  the AudioContext (AudioWorklet from a Blob URL, ScriptProcessor fallback), so every sample sits on the
+  playback clock — a MediaRecorder starts whenever the browser gets to it and takes flam. The device's own
+  delay (`outputLatency` + `baseLatency` + the mic track's `latency`) is taken off and the screen says by
+  how much. The mic is never monitored through the page (it would feed back on a phone speaker).
+- `store.js` — sessions and their audio in **IndexedDB on this device**; nothing reaches the server
+  until Save to FileZ, and the screen says so first. Imports are kept as their original file, recordings
+  as 24-bit WAV. Every call is guarded: a private window gets a sentence, not a broken DAW.
+- **The bounce is free, 24-bit WAV, at every tier**: a mixdown made on the member's device costs us
+  nothing. Mastering's WAV ladder (Mix ConnectZ) is untouched, and the bounce hands over to it
+  ("Master it in Mix ConnectZ") once saved; Doors gives Post / Share / Coach it.
+- **VST, said plainly** (`plugin_note`, served by `/api/economy/dawz/`): a VST is a native desktop
+  program and no web page or the Android app can load one. Web Audio Modules exist, but third-party plugin
+  code would run with the member's sign-in, so outside plugins wait for the Windows app. Not built.
+- **What is built is the server's** (`BUILT` in `dawz.py`): DawZ shows "Open Arsenal" for a built DAW
+  and a vote for the rest. A DAW joins `BUILT` when its workflow ships, never before.
+- Driven in headless Chromium with a fake mic: import → play (counter moves) → arm a second track →
+  record 2 s → drag the region 2 s in Slip → add an EQ in the Mix window → bounce (10.00 s, the beat's
+  RMS exactly 0.4/√2, a silent tail) → reload restores both regions → 390 px wide with no sideways
+  scroll. **Not checked on a real phone, in Safari or with a real interface's latency.**
+- Not yet: MIDI and instruments, automation, a region on top silencing the one under it (overlapping
+  regions on one track both play), and the other seven workflows.

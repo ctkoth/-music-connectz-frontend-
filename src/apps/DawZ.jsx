@@ -1,5 +1,6 @@
-// DawZ — seven DAW knockoffs, none built yet. Clicking one is a vote for
-// which gets built next.
+// DawZ — every DAW on the one shared engine (src/daw/). A built one opens; an
+// unbuilt one takes a vote for which gets built next. Which is which is the
+// server's `built` / `tab` — a card never claims a DAW exists on its own say-so.
 //
 // The catalog and its vote-to-build design already existed, written in
 // Corey's own voice, in src/mcz2/dawz.js — the frontend's 2.2 reference app,
@@ -14,7 +15,8 @@
 // this codebase follows. Voting is free and pays nothing: the cost/gain
 // rule has nothing to say about a click that moves no resource.
 import { useEffect, useState } from "react";
-import { Loader2, Vote } from "lucide-react";
+import { Loader2, Play, Vote } from "lucide-react";
+import { goToSpot } from "../goto.js";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 
@@ -47,10 +49,11 @@ export default function DawZ() {
       <div className="neon-frame p-4">
         <h1 className="text-lg font-bold text-white">DawZ</h1>
         <p className="mt-1 text-sm text-white/60">
-          Seven DAWs, none of them built yet. Tap one to vote for which gets
-          built next — a click is the whole action, and it earns nothing
-          because it costs nothing.
+          {state.daws.length} DAWs on one engine: a session made in one opens in
+          another. Open the ones that are built; vote for which gets built next —
+          a vote costs nothing and earns nothing.
         </p>
+        {state.plugin_note && <p className="mt-2 text-xs text-white/45">🔌 {state.plugin_note}</p>}
       </div>
 
       <div className="space-y-3">
@@ -67,14 +70,25 @@ export default function DawZ() {
                 <h2 className="font-bold text-white">
                   {d.emoji} {d.name}
                 </h2>
-                <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-semibold text-yellow-300">
-                  not built yet
-                </span>
+                {d.built ? (
+                  <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                    built · free
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-semibold text-yellow-300">
+                    not built yet
+                  </span>
+                )}
                 <span className="text-[10px] text-white/35">our knockoff of {d.knockoff}</span>
               </div>
               <p className="mt-1 text-[13px] leading-snug text-white/65">{d.desc}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
+                {d.built && d.tab && (
+                  <button className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={() => goToSpot(d.tab)}>
+                    <Play size={14} className="mr-1 inline" /> Open {d.name}
+                  </button>
+                )}
+                {!d.built && <button
                   className={`neon-btn-${d.my_vote ? "primary" : "ghost"} !w-auto px-4 py-2 text-xs`}
                   disabled={busy === d.id}
                   onClick={() => vote(d.id)}
@@ -85,10 +99,12 @@ export default function DawZ() {
                     <Vote size={14} className="mr-1 inline" />
                   )}
                   {d.my_vote ? "You voted ✓ (tap to undo)" : "Vote to build this"}
-                </button>
-                <span className="text-[11px] text-white/45">
-                  {d.votes} vote{d.votes === 1 ? "" : "s"} so far
-                </span>
+                </button>}
+                {!d.built && (
+                  <span className="text-[11px] text-white/45">
+                    {d.votes} vote{d.votes === 1 ? "" : "s"} so far
+                  </span>
+                )}
               </div>
             </div>
           </div>
