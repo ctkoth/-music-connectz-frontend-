@@ -157,13 +157,16 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
     api(`/api/economy/members/${encodeURIComponent(username)}/`)
       .then((d) => {
         if (!on) return;
-        // Your own profile opens as a profile, the way everyone else sees it.
-        // Editing is one explicit button away, never the landing screen.
-        setData(d);
+        // If viewing your own profile, navigate to edit instead
+        if (currentUsername && username === currentUsername && onEditProfile) {
+          onEditProfile();
+        } else {
+          setData(d);
+        }
       })
       .catch((e) => on && setError(e.message));
     return () => { on = false; };
-  }, [username]);
+  }, [username, currentUsername, onEditProfile]);
 
   // Escape closes, matching every other modal in the app.
   useEffect(() => {
@@ -319,14 +322,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             <SuperfanZ username={username} />
 
             {data.mine && (
-              <div className="flex items-center gap-3">
-                <p className="text-[11px] text-white/35">This is you — this is how members see your profile.</p>
-                {onEditProfile && (
-                  <button onClick={onEditProfile} className="re-btn !w-auto px-3 py-1 text-xs inline-flex items-center gap-1">
-                    <Edit size={12} /> Edit in ProfileZ
-                  </button>
-                )}
-              </div>
+              <p className="text-[11px] text-white/35">This is you — edit any of it in ProfileZ.</p>
             )}
           </div>
         )}
