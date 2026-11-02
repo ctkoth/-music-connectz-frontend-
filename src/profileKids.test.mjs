@@ -115,3 +115,15 @@ test("SocialZ reads the server's own numbers", () => {
 test("the three genders PreferenceZ offers", () => {
   assert.deepEqual(PARTNER_GENDERS.map(([k]) => k), ["male", "female", "nonbinary"]);
 });
+
+test("PhilosophieZ owns both of its declarations and says only that politics is declared", () => {
+  const saved = base();
+  const now = { ...saved, politics: "centrist" };
+  assert.ok(unsavedKids(changedFields(saved, now)).has("philosophiez"));
+  assert.deepEqual(unsavedNames(["philosophy"]), ["PhilosophieZ"]);
+  assert.equal(kidLine("philosophiez", { philosophy: "", politics: "" }), null);
+  assert.equal(kidLine("philosophiez", { philosophy: "stoicism", philosophyLabel: "Stoicism", politics: "liberal" }),
+    "Stoicism · Political outlook declared");
+  // The outlook itself must never reach a tile: private by default, and a tile is the first thing a glance reads.
+  assert.doesNotMatch(kidLine("philosophiez", { politics: "liberal" }), /liberal/i);
+});

@@ -6,6 +6,8 @@ import { goToSpot, spotlight } from "../goto.js";
 import { openHoroscope } from "./Horoscope.jsx";
 import { useReligions } from "../ReligionZ.jsx";
 import { KIDS, kidLine } from "../profileKids.js";
+import { usePhilosophieLists } from "../PhilosophieZ.jsx";
+import { labelMap } from "../philosophiez.js";
 
 // The apps that live inside ProfileZ, as children: each one says what it currently
 // holds for you, whether that is saved yet, and lands on the exact control.
@@ -21,6 +23,7 @@ import { KIDS, kidLine } from "../profileKids.js";
 export default function ProfileKids({ values, unsaved }) {
   const [social, setSocial] = useState(null);
   const religions = useReligions();
+  const lists = usePhilosophieLists();
 
   useEffect(() => {
     let on = true;
@@ -31,6 +34,7 @@ export default function ProfileKids({ values, unsaved }) {
   const v = {
     ...values, social,
     religionLabel: religions.find((r) => r.key === values.religion)?.label || "",
+    philosophyLabel: labelMap(lists?.philosophies)[values.philosophy] || "",
   };
   const pending = KIDS.filter((k) => unsaved.has(k.key)).length;
 

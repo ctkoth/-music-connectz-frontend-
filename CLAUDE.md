@@ -2027,3 +2027,17 @@ there rather than embedding a second copy of the connect flow.
   sharing an address.
 - ReligionZ finally has an icon slot (`profilez.religionz.jpg` → `religionz.png`); the ProfileZ menu has an
   "Inside your profile" group whose doors land on the control (`target`) instead of the top of ProfileZ.
+
+## PhilosophieZ: the picker says who sees it BEFORE a word is chosen
+
+`PhilosophieZ.jsx` (in ProfileZ, with its own tile in the children strip, a VybeZ filter and a menu door) is two selects —
+philosophy and political outlook — both read from `/api/economy/philosophiez/`; no philosophy or political word is typed
+into a screen. Each states **Who can see this** from the member's own `me.visibility` row (`whoSees`, never assumed) with a
+"Change who" door; politics adds the server's "private by default" line, because that is the sentence needed before choosing.
+
+- **The tile never shows the political outlook** — only that one is declared. A tile is what a glance across a shared screen
+  reads first, and politics is private by default.
+- The select is `data-nomemo` (it is a privacy-adjacent declaration; an autofill from last time would be a choice nobody made).
+- The VybeZ filter says politics only matches members who opened theirs, so an empty grid is not read as "nobody here".
+- Art: `profilez.philosophiez.jpg` (512px, from Corey's image) → `philosophiez.png`. The LookZMaxZ neon-sign image sent with it
+  was NOT swapped in: the notes above record that Corey chose the original over that version.

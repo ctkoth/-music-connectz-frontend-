@@ -5,6 +5,7 @@ import { Loader2, Save, Zap, Gift, Copy, Check, Users, Trash2, ShieldCheck, Load
 import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
 import ReligionZ from "../ReligionZ.jsx";
+import PhilosophieZ from "../PhilosophieZ.jsx";
 import LanguageZ from "../LanguageZ.jsx";
 import { ProfileFieldsEditor, deviceTimezone } from "../components/ProfileFieldz.jsx";
 import { IconImg } from "../App.jsx";
@@ -510,6 +511,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // for "hasn't said". Same shape as personality: what this screen holds is
   // exactly what the column holds.
   const [religion, setReligion] = useState("");
+  // PhilosophieZ — a declared philosophy and a declared political outlook, each one leaf key
+  // or "" for "hasn't said", held exactly as the column holds them.
+  const [philosophy, setPhilosophy] = useState("");
+  const [politics, setPolitics] = useState("");
   // LanguageZ — {lang_key: "beginner"|"intermediate"|"fluent"}. Same shape
   // SubstanceZ already holds for "what, and how often".
   const [languages, setLanguages] = useState({});
@@ -622,6 +627,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setSober(!!d?.sober);
       setPersonality(d?.personality || "");
       setReligion(d?.religion || "");
+      setPhilosophy(d?.philosophy || "");
+      setPolitics(d?.politics || "");
       setLanguages(d?.languages && typeof d.languages === "object" ? d.languages : {});
       setPartners(Array.isArray(d?.attracted_to) ? d.attracted_to : []);
       const got = Object.fromEntries(PF_KEYS.map((k) => [k, d?.[k] ?? (["genres", "influences", "gear", "inventory"].includes(k) ? [] : "")]));
@@ -663,7 +670,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
   // have arrived (the account and the economy profile load separately), and again after every
   // successful save — never from an effect that runs on each edit, which would mark everything
   // saved the instant it was typed.
-  const nowVals = fieldsOf({ bio, birthday, nats, sel, partners, subs, sober, languages, religion, personality, pf });
+  const nowVals = fieldsOf({ bio, birthday, nats, sel, partners, subs, sober, languages, religion, philosophy, politics, personality, pf });
   useEffect(() => {
     if (savedVals === null && me && pf) setSavedVals(JSON.parse(JSON.stringify(nowVals)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -706,7 +713,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       await api("/api/economy/profile/", {
         method: "POST",
         body: { bio, substances: sober ? {} : subs, sober, attracted_to: partners,
-                nationalities: nats, personality, religion, languages, ...(pf || {}) },
+                nationalities: nats, personality, religion, philosophy, politics, languages, ...(pf || {}) },
       });
       setMe(d);
       // What was SENT is now what is saved — not what is on screen a moment later: an edit made
@@ -715,7 +722,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       setSavedAt(new Date());
       setSaved(true);
       playSound("saved");
-      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ, LanguageZ and music details are live.");
+      setMsg("Saved. Your bio, PersonaZ, ZodiacZ, NationalitieZ, SubstanceZ, PreferenceZ, PersonalitieZ, ReligionZ, PhilosophieZ, LanguageZ and music details are live.");
       setTimeout(() => setSaved(false), 4000);
     } catch (e) {
       // Previously this swallowed every failure and answered "Saved locally",
@@ -805,7 +812,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           land on it. Sits right under the identity so it is the first thing a member scans. */}
       <ProfileKids unsaved={unsaved} values={{
         birthday, zodiac: me.zodiac, zodiac_cn: me.zodiac_cn, partners, subs: sober ? {} : subs, sober,
-        languages, religion, inventory: pf?.inventory || [],
+        languages, religion, philosophy, politics, inventory: pf?.inventory || [],
       }} />
 
       <AvatarCard />
@@ -1057,6 +1064,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           Shia, ...). Same shape and same reasoning as PersonalitieZ above:
           a declaration filterable everywhere, never a score. */}
       <div data-tour="religionz"><ReligionZ value={religion} onChange={setReligion} /></div>
+
+      {/* PhilosophieZ — a philosophy and a political outlook, two declarations with their own
+          privacy. Who can see each is stated above its picker, politics being private until opened. */}
+      <div data-tour="philosophiez">
+        <PhilosophieZ philosophy={philosophy} politics={politics} onPhilosophy={setPhilosophy}
+          onPolitics={setPolitics} visibility={me?.visibility} audiences={audiences} />
+      </div>
 
       {/* LanguageZ — languages spoken AND how well, grouped by region.
           Multi-select where ReligionZ is one-of, because a member commonly

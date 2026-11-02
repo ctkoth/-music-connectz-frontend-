@@ -34,6 +34,7 @@ export const KIDS = [
   { key: "languagez", label: "LanguageZ", icon: "languagez.png", spot: "languagez", fields: ["languages"] },
   { key: "inventoriez", label: "InVenTorieZ", icon: "inventoriez.png", spot: "inventoryz", fields: ["pf.inventory"] },
   { key: "religionz", label: "ReligionZ", icon: "religionz.png", spot: "religionz", fields: ["religion"] },
+  { key: "philosophiez", label: "PhilosophieZ", icon: "philosophiez.png", spot: "philosophiez", fields: ["philosophy", "politics"] },
   { key: "socialz", label: "SocialZ", icon: "socialz.png", tab: "socialz", fields: [] },
 ];
 
@@ -52,11 +53,12 @@ const PF_KEYS = ["pronouns", "headline", "genres", "influences", "gear", "invent
 /** The values Save writes, as one flat object — what the screen holds, in the shape
  *  the comparison needs. `subs` is what is SENT (empty when sober), so toggling Sober
  *  with nothing declared is not a change the server would ever see. */
-export function fieldsOf({ bio, birthday, nats, sel, partners, subs, sober, languages, religion, personality, pf }) {
+export function fieldsOf({ bio, birthday, nats, sel, partners, subs, sober, languages, religion, philosophy, politics, personality, pf }) {
   const out = {
     bio: bio || "", birthday: birthday || "", nationalities: nats || [], personas: sel || [],
     partners: partners || [], subs: sober ? {} : (subs || {}), sober: !!sober,
-    languages: languages || {}, religion: religion || "", personality: personality || "",
+    languages: languages || {}, religion: religion || "", philosophy: philosophy || "", politics: politics || "",
+    personality: personality || "",
   };
   for (const k of PF_KEYS) out[`pf.${k}`] = pf ? (pf[k] ?? null) : null;
   return out;
@@ -135,6 +137,14 @@ export function kidLine(key, v = {}) {
       return n ? plural(n, "piece", "pieces") : null;
     }
     case "religionz": return v.religionLabel || (v.religion ? "Declared" : null);
+    case "philosophiez": {
+      // Says what is DECLARED, and for politics only that it is — the outlook itself is
+      // private by default and a tile is the first thing anyone glancing at a screen reads.
+      const bits = [];
+      if (v.philosophy) bits.push(v.philosophyLabel || "Philosophy declared");
+      if (v.politics) bits.push("Political outlook declared");
+      return bits.length ? bits.join(" · ") : null;
+    }
     case "socialz": {
       const s = v.social;
       if (!s) return null;

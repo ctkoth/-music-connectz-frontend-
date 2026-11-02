@@ -38,7 +38,7 @@ const ICON_KEY = {
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
   // ProfileZ's children: Corey's art files them under ProfileZ (profilez.<child>.*).
-  languagez: "languagez.png", inventoriez: "inventoriez.png", religionz: "religionz.png", socialz: "socialz.png",
+  languagez: "languagez.png", inventoriez: "inventoriez.png", religionz: "religionz.png", philosophiez: "philosophiez.png", socialz: "socialz.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
@@ -48,7 +48,7 @@ const EMOJI = {
   budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", lookmaxz: "✨", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
-  preferencez: "💞", substancez: "🧠", zodiacz: "♈", languagez: "🗣️", inventoriez: "🎒", religionz: "🕊️", socialz: "🌐", reelz: "🎞️", episodez: "📺", moviez: "🎥",
+  preferencez: "💞", substancez: "🧠", zodiacz: "♈", languagez: "🗣️", inventoriez: "🎒", religionz: "🕊️", philosophiez: "⚖️", socialz: "🌐", reelz: "🎞️", episodez: "📺", moviez: "🎥",
   mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
   filez: "🗂️",
 };
@@ -273,6 +273,7 @@ const TOOLZ_MENU = {
         { key: 'languagez', tab: 'profilez', target: 'languagez', label: 'LanguageZ', color: 'cyan', desc: 'The languages you speak, and how well' },
         { key: 'inventoriez', tab: 'profilez', target: 'inventoryz', label: 'InVenTorieZ', color: 'yellow', desc: 'Your gear, instruments and wardrobe — rated piece by piece' },
         { key: 'religionz', tab: 'profilez', target: 'religionz', label: 'ReligionZ', color: 'magenta', desc: 'One declared branch, or nothing — a filter, never a score' },
+        { key: 'philosophiez', tab: 'profilez', target: 'philosophiez', label: 'PhilosophieZ', color: 'cyan', desc: 'A philosophy and a political outlook you declare — politics is private until you open it' },
       ]
     },
     {

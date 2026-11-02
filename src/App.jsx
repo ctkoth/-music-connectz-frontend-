@@ -343,6 +343,7 @@ export const CUSTOM_ICONS = {
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
   "religionz.png": "/icons/profilez.religionz.jpg",
+  "philosophiez.png": "/icons/profilez.philosophiez.jpg",
   "sonday.png": "/icons/sonday.png",
   "playlistz.png": "/icons/playlistz-neon.svg",
   "spinaz.png": "/icons/spinaz.png",

@@ -19,6 +19,8 @@ import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
+import { PhilosophieFilter, usePhilosophieLists } from "../PhilosophieZ.jsx";
+import { labelMap, philosophyQuery } from "../philosophiez.js";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { goToSpot, goToTab } from "../goto.js";
@@ -44,7 +46,7 @@ function Chip({ on, children, ...rest }) {
   );
 }
 
-function MemberCard({ m, religionLabel, languageLabel }) {
+function MemberCard({ m, religionLabel, languageLabel, philosophyLabel }) {
   return (
     <div className="re-card space-y-2">
       <div className="flex items-center gap-3">
@@ -78,6 +80,9 @@ function MemberCard({ m, religionLabel, languageLabel }) {
         {m.religion && religionLabel[m.religion] && (
           <span className="pill">🕊️ {religionLabel[m.religion]}</span>
         )}
+        {m.philosophy && philosophyLabel?.[m.philosophy] && (
+          <span className="pill">⚖️ {philosophyLabel[m.philosophy]}</span>
+        )}
         {Object.entries(m.languages || {}).slice(0, 3).map(([key, level]) => (
           languageLabel[key] && (
             <span key={key} className="pill">🗣️ {languageLabel[key]} · {level}</span>
@@ -102,6 +107,7 @@ function MemberCard({ m, religionLabel, languageLabel }) {
 export default function VybeZ() {
   const [personality, setPersonality] = useState({});
   const [religions, setReligions] = useState([]);
+  const [phil, setPhil] = useState({ philosophies: [], politics: [] });
   const [langFilter, setLangFilter] = useState([]);
   const [genders, setGenders] = useState([]);
   const [soberOnly, setSoberOnly] = useState(false);
@@ -136,6 +142,8 @@ export default function VybeZ() {
   // per-row cost this app has already paid for once (see the feed/member
   // search N+1 writeup in CLAUDE.md).
   const religionList = useReligions();
+  const philLists = usePhilosophieLists();
+  const philosophyLabel = useMemo(() => labelMap(philLists?.philosophies), [philLists]);
   const religionLabel = useMemo(
     () => Object.fromEntries(religionList.map((r) => [r.key, r.label])),
     [religionList],
@@ -152,6 +160,8 @@ export default function VybeZ() {
     if (p) parts.push(p);
     const rq = religionQuery(religions);
     if (rq) parts.push(rq);
+    const pq = philosophyQuery(phil);
+    if (pq) parts.push(pq);
     const lq = languageQuery(langFilter);
     if (lq) parts.push(lq);
     if (genders.length) parts.push(`genders=${genders.join(",")}`);
@@ -182,7 +192,7 @@ export default function VybeZ() {
         setError(e.message || "Couldn't run that search.");
       })
       .finally(() => setLoading(false));
-  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, ranges, avoid, avoidUpTo]);
+  }, [personality, religions, phil, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, ranges, avoid, avoidUpTo]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -259,6 +269,7 @@ export default function VybeZ() {
         {more && (
           <div className="space-y-4">
             <ReligionFilter value={religions} onChange={setReligions} />
+            <PhilosophieFilter philosophies={phil.philosophies} politics={phil.politics} onChange={setPhil} />
             <LanguageFilter value={langFilter} onChange={setLangFilter} />
             {subScale && (
               <div className="space-y-2">
@@ -336,7 +347,7 @@ export default function VybeZ() {
         rows.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rows.map((m) => (
-              <MemberCard key={m.username} m={m} religionLabel={religionLabel} languageLabel={languageLabel} />
+              <MemberCard key={m.username} m={m} religionLabel={religionLabel} languageLabel={languageLabel} philosophyLabel={philosophyLabel} />
             ))}
           </div>
         ) : (

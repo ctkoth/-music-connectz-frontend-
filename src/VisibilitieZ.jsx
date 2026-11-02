@@ -31,6 +31,7 @@ const NAMES = {
   nationalities: "Nationalities", sober: "Sober", personality: "PersonalitieZ",
   attracted_to: "Attracted to", age: "Age", birthday: "Birthday",
   location: "Location", substances: "SubstanceZ",
+  religion: "ReligionZ", philosophy: "Philosophy", politics: "Political outlook",
   superfan: "On artists' SuperfanZ 🫶 lists",
   inventory_value: "What my InVenTorieZ is worth",
 };
