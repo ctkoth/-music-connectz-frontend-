@@ -20,7 +20,7 @@
 // uses, and the form defaults to the cautious answer.
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
-import { EQUIPMENT_LABEL } from "./EquipmentPicker.jsx";
+import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 import { suggest } from "../exerciseSearch.js";
 
 export const MUSCLE_LABEL = {
@@ -144,6 +144,8 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
   const listId = `${uid}-list`;
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
+  const [gear, setGear] = useState([]);            // equipment toggles; none = any, as everywhere else
+  const [gearOpen, setGearOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -159,7 +161,10 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
   }, []);
 
   const typed = chosen && query === chosen.name ? "" : query;   // a chosen name is not a filter
-  const results = useMemo(() => suggest(exercises, typed, muscle), [exercises, typed, muscle]);
+  const results = useMemo(
+    () => suggest(gear.length ? exercises.filter((e) => gear.includes(e.equipment)) : exercises, typed, muscle),
+    [exercises, typed, muscle, gear],
+  );
   const shown = results.slice(0, MAX_SHOWN);
   const exact = exercises.some((e) => e.name.toLowerCase() === query.trim().toLowerCase());
   const canCreate = !chosen && query.trim().length >= 2 && !exact;
@@ -178,7 +183,7 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
     } else if (ev.key === "Escape") setOpen(false);
   }
 
-  const heading = !typed && !muscle ? (shown.some((e) => e.times_done > 0) ? "Your recent exercises" : "Exercises") : `${results.length} match${results.length === 1 ? "" : "es"}`;
+  const heading = !typed && !muscle && !gear.length ? (shown.some((e) => e.times_done > 0) ? "Your recent exercises" : "Exercises") : `${results.length} match${results.length === 1 ? "" : "es"}`;
 
   return (
     <div ref={rootRef} className="relative w-full space-y-1.5">
@@ -204,6 +209,20 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button type="button" aria-expanded={gearOpen}
+                className={`pill ${gear.length ? "pill-on" : "hover:text-white"}`}
+                onClick={() => setGearOpen(!gearOpen)}>
+          {gear.length ? `Equipment: ${gear.map((g) => EQUIPMENT_LABEL[g] || g).join(", ")}` : "By equipment"}
+        </button>
+        {gear.length > 0 && (
+          <button type="button" className="text-[11px] text-mcz-cyan hover:underline" onClick={() => { setGear([]); setOpen(true); }}>
+            Any equipment
+          </button>
+        )}
+      </div>
+      {gearOpen && <EquipmentPicker selected={gear} onToggle={(k) => { setGear(toggleEquipment(gear, k)); setActive(0); setOpen(true); }} />}
+
       {open && !creating && (
         <ul id={listId} role="listbox" aria-label={heading}
             className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0d0b16] p-1 shadow-xl">
@@ -221,7 +240,7 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
               </span>
             </li>
           ))}
-          {shown.length === 0 && <li role="presentation" className="px-2.5 py-2 text-xs text-white/55">No exercise matches{muscle ? ` in ${MUSCLE_LABEL[muscle]}` : ""}.</li>}
+          {shown.length === 0 && <li role="presentation" className="px-2.5 py-2 text-xs text-white/55">No exercise matches{muscle ? ` in ${MUSCLE_LABEL[muscle]}` : ""}{gear.length ? " with that equipment" : ""}.</li>}
           {results.length > shown.length && (
             <li role="presentation" className="px-2.5 py-1 text-[11px] text-white/45">+{results.length - shown.length} more — keep typing to narrow</li>
           )}

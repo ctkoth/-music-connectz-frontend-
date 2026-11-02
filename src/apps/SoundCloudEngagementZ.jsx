@@ -1,4 +1,5 @@
-// SoundCloudEngagementZ — Earn energy and spinaz for SoundCloud engagement.
+// SoundCloudEngagementZ — a little ⚡ for SoundCloud engagement. The amounts are the server's
+// (shown on the control); nothing is typed here, because the last copy here drifted.
 //
 // Your SoundCloud audience is your audience here too. Members report likes,
 // reposts and comments on their tracks and earn rewards. Daily caps prevent
@@ -30,27 +31,23 @@ export default function SoundCloudEngagementZ() {
             <div className="space-y-2 text-sm text-white/70">
               <div>
                 <p className="font-semibold text-white/90">👍 Likes</p>
-                <p>Get <span className="text-emerald-300">1 ⚡ + 10 🍥</span> per like</p>
                 <p className="text-xs text-white/40">Up to 20 per day</p>
               </div>
 
               <div>
                 <p className="font-semibold text-white/90">🔁 Reposts</p>
-                <p>Get <span className="text-emerald-300">3 ⚡ + 25 🍥</span> per repost</p>
                 <p className="text-xs text-white/40">Up to 2 per day</p>
               </div>
 
               <div>
                 <p className="font-semibold text-white/90">💬 Comments</p>
-                <p>Get <span className="text-emerald-300">5 ⚡ + 50 🍥</span> per comment (min 10 chars)</p>
                 <p className="text-xs text-white/40">Up to 5 per day</p>
               </div>
             </div>
 
             <div className="rounded bg-white/[0.03] p-3 text-xs text-white/40 space-y-1">
               <p>✓ One reward per track per kind per member</p>
-              <p>✓ Rewards only on engagement you received</p>
-              <p>✓ Can't rate your own track</p>
+              <p>• You report it and we don't check it with SoundCloud yet, so it pays a little ⚡ and no 🍥 — the amount is on the button</p>
               <p>✓ Daily caps reset at midnight UTC</p>
             </div>
           </div>

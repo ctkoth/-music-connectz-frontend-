@@ -22,6 +22,8 @@
 // The age window is only a floor now. Rating a track also needs it to have
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
+import SendTo from "../components/SendTo.jsx";
+import { Gain } from "../components/Price.jsx";
 import { useInViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { celebrate } from "../celebrate.js";
@@ -29,6 +31,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertCircle, Check as CheckIcon, Flame, Handshake, Loader2, Lock, RefreshCw,
   Pencil, Pin, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X as XIcon,
+  Rocket,
 } from "lucide-react";
 import { api } from "../api.js";
 import { PushAsk } from "../components/PushSettings.jsx";
@@ -48,15 +51,16 @@ import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import TakeAnalysisDisplay from "../components/TakeAnalysisDisplay.jsx";
 import MentionText from "../MentionParser.jsx";
 import MemberName from "../MemberName.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import SkillsUsed from "../SkillsUsed.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY, MONEY, PROMPTZ } from "../resources.js";
-import { labelForSkill } from "../personaSkills.js";
+import { labelForSkill, skillQuoteLine } from "../personaSkills.js";
 import { playSound } from "../sound.js";
 import { useSay } from "../voice.js";
 import { P } from "../phrases.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import ShareSheet from "../components/ShareSheet.jsx";
 import CoachReadCard, { CoachReadSetting } from "../components/CoachReadCard.jsx";
@@ -221,6 +225,14 @@ export default function PostZ() {
   // forced a choice between the two and split the tag across every family.
   const [freestyle, setFreestyle] = useState(false);
   const [skillsUsed, setSkillsUsed] = useState([]);
+  // CoverZ / RemixeZ: the post this one is made from. The server checks it (public, someone else's)
+  // and stores the credit; nothing is paid to the original yet, and the banner says so.
+  const [derived, setDerived] = useState(null);
+  // The original's cut, stated BEFORE posting (cost/gain rule) and read from the server, never typed here.
+  const [derivedTerms, setDerivedTerms] = useState(null);
+  useEffect(() => {
+    if (derived && !derivedTerms) api("/api/economy/derivedz/").then(setDerivedTerms).catch(() => {});
+  }, [derived, derivedTerms]);
   const [visibility, setVisibility] = useState("public");
   const [gates, setGates] = useState({});
   const [toast, setToast] = useState("");
@@ -246,6 +258,13 @@ export default function PostZ() {
     if (p.title) setTitle(String(p.title).slice(0, 160));
     const body = p.description ?? p.text;
     if (body) setDescription(String(body).slice(0, 4000));
+    // A file from FileZ arrives already hosted: its stable address goes straight into
+    // the slot, so posting it uploads nothing a second time.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) {
+      if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    }
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
   }), []);
 
   useEffect(() => {
@@ -329,6 +348,7 @@ export default function PostZ() {
           title: t, description: description.trim(), genre, freestyle, visibility,
           gates: visibility === "restricted" ? gates : {},
           skills_used: skillsUsed,
+          ...(derived ? { derived: { id: derived.id, kind: derived.kind } } : {}),
           // One of each: audio, video, image and script all ride together.
           // The primary slot is what the feed plays inline; `items` carries
           // every attachment, one per kind, and the server refuses a second of
@@ -340,7 +360,7 @@ export default function PostZ() {
 
       playSound("post");
       setPosts((cur) => [mapPost(s), ...(cur || [])]);
-      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({});
+      setTitle(""); setDescription(""); setSkillsUsed([]); setWork({}); setDerived(null);
       flash("Posted. Rating opens in 30s, comments in 60s.");
       setJustPosted(true);
     } catch (e) {
@@ -410,7 +430,7 @@ export default function PostZ() {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select data-memo="own" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
+          <select aria-label="Genre" data-memo="own" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
                   value={genre} onChange={(e) => setGenre(e.target.value)}>
             {GENRE_GROUPS.map((grp) => (
               <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
@@ -430,6 +450,13 @@ export default function PostZ() {
                   className={`pill !text-[12px] ${freestyle ? "!text-mcz-gold !border-mcz-gold/60" : ""}`}>
             🆓 Freestyle
           </button>
+          {derived && (
+            <div className="w-full rounded-lg border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
+              {derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{derived.title}" — credited to the original on your post.
+              {derivedTerms?.text || ""}{" "}
+              <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setDerived(null)}>Post as new work instead</button>
+            </div>
+          )}
           <div className="flex gap-1">
             {[
               { value: "public", label: "Public", bonus: "+25%", tip: "People who rate it earn +25% ⚡, so it draws more ratings — and it shows on leaderboards" },
@@ -477,7 +504,7 @@ export default function PostZ() {
             {cost.cost.amount > 0 ? (
               <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
                 {" — "}
-                {cost.lines.filter((l) => l.cents > 0).map((l) => `${labelForSkill(l.skill)} ${l.cents}`).join(" + ")}.
+                {cost.lines.filter((l) => l.cents > 0).map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}.
                 {!cost.affordable && (
                   <span className="text-mcz-ember">
                     {" "}You have {cost.energy} — we'll take what's there.
@@ -573,6 +600,7 @@ export default function PostZ() {
       <div data-tour="feed" className="space-y-3">
         {(posts || []).map((p) => (
           <PostCard key={p.id} post={p} now={now} charLimit={charLimit} onFlash={flash}
+            onDerive={(d) => { setDerived(d); setTitle((t) => t || `${d.kind === "cover" ? "Cover" : "Remix"}: ${d.title}`.slice(0, 160)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                     isOwner={isOwner} onChanged={replacePost} />
         ))}
       </div>
@@ -586,7 +614,7 @@ export default function PostZ() {
   );
 }
 
-function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
+function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive }) {
   const talk = useSay();
   const { user } = useAuth();
   const seenRef = useInViewTracker(`post:${post.id}`);
@@ -833,7 +861,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       // The destination states the price again ON the button that spends it —
       // the row here is the quote, the button there is the commitment.
       await handOff(d.app, d.target, {
-        kind: "post", action: d.action, coach_kind: d.coach_kind || "",
+        kind: "post", action: d.action, coach_kind: d.coach_kind || "", radar: !!d.radar,
         // The coach's ceiling travels with the post, so the destination can
         // hold the same line the row just held rather than letting the button
         // find it out.
@@ -897,11 +925,15 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   return (
     <div ref={seenRef} className="re-card">
       <div className="mb-3 flex items-center gap-3">
-        <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
-                 className="h-10 w-10 rounded-lg object-cover" />
+        <button onClick={() => openMember(post.author)} title={`View ${post.author}'s profile`}>
+          <IconImg icon={post.mine ? "personaz.png" : "personaz_producer.png"} alt=""
+                   className="h-10 w-10 rounded-lg object-cover" />
+        </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
+            <ThoroughMark mark={post.author_mark} />
+            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
             <span>{relTime}</span>
@@ -975,6 +1007,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               {editing ? <XIcon size={15} /> : <Pencil size={15} />}
             </button>
           )}
+          {post.boosted && (
+            <span className="rounded-full border border-mcz-ember/40 px-2 py-0.5 text-[10px] text-mcz-ember"
+                  title="Paid placement: a boosted post leads the feed. It does not change ratings or royalties.">
+              🚀 Boosted
+            </span>
+          )}
+          {post.mine && post.visibility === "public" && <BoostButton post={post} onChanged={onChanged} onFlash={onFlash} />}
           {post.mine && post.visibility === "public" && <PinButton id={post.id} />}
           {canEdit && (
             <button onClick={remove} disabled={busy}
@@ -1038,6 +1077,19 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       ) : (
         <>
           <p className="text-sm font-semibold text-white">{post.title}</p>
+          {post.derived && (
+            <p className="text-[11px] text-white/50">
+              {post.derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{post.derived.title}" by @{post.derived.author}
+            </p>
+          )}
+          {onDerive && !post.mine && post.visibility !== "private" && post.visibility !== "restricted" && (
+            <p className="mt-1 flex gap-3 text-[11px]">
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "cover", title: post.title })}>🫴🏼 Cover this</button>
+              <button type="button" className="text-mcz-cyan hover:underline"
+                onClick={() => onDerive({ id: post.id, kind: "remix", title: post.title })}>🔄 Remix this</button>
+            </p>
+          )}
           {post.description && (
             <p className="mt-1 whitespace-pre-wrap text-sm text-white/80"><MentionText text={post.description} /></p>
           )}
@@ -1128,6 +1180,12 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
       {showOpen && (
         <OpenIn post={post} busy={!!opening} onGo={openIn} />
       )}
+      {showOpen && (
+        <SendTo from="postz" kind="post" label="Any app…"
+                item={{ kind: "post", post_id: post.id, title: post.title, text: post.description || "",
+                        description: post.description || "",
+                        ...(post.media_url ? { url: post.media_url } : {}) }} />
+      )}
 
       {/* What the coach said, kept on the post that was coached — as much of it
           as THIS viewer may see. `post.coach` is the server's answer for the
@@ -1206,6 +1264,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
 
       <div className="mt-3 space-y-2 border-t border-white/[0.06] pt-3">
         <div className="re-label">Comments · {comments.length}</div>
+        {/* The gain, visible: it lived only in each vote button's hover title, which a
+            phone never shows. */}
+        {comments.length > 0 && (
+          <p className="text-[11px] text-white/40">
+            Voting on someone else's comment pays <Gain amount={1} emoji={ENERGY} />, up or down — once per comment, up to a daily cap.
+          </p>
+        )}
         {comments.map((c) => (
           <div key={c.id} className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
             {editingComment?.id === c.id ? (
@@ -1222,7 +1287,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               </div>
             ) : (
               <div>
-                <MemberName username={c.user} bare />{" "}
+                <MemberName username={c.user} bare />
+                {/* SuperfanZ: one of this artist's top fans — the server pins them first. */}
+                {c.superfan && <span className="ml-1 text-[11px]" title={`One of @${post.author}'s SuperfanZ — counted from plays, ratings, comments and shares`}>🫶</span>}{" "}
                 <span className="text-white/80">{c.body}</span>
                 {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
               </div>
@@ -1291,6 +1358,18 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
               />
               <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
             </div>
+            {social?.comment_cost_energy != null && (
+              <p className="mt-1 text-[11px]">
+                {social.comment_cost_energy > 0
+                  ? <><span className="text-mcz-ember">−{social.comment_cost_energy} {ENERGY}</span>{" "}
+                      <span className="text-white/45">per comment — your free ones today are used. Not posted means not charged.</span></>
+                  : <span className="text-emerald-300/80">
+                      {post.mine || post.author === user?.username
+                        ? "Free on your own post."
+                        : `Free · ${social.comment_free_left} of ${social.comment_free_per_day} free comments left today`}
+                    </span>}
+              </p>
+            )}
 
             {/* Show tier comparison when user is near comment character limit */}
             {commentCharState === "near" && charLimit && (
@@ -1313,6 +1392,57 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged }) {
   );
 }
 
+
+// Boost: spend ⚡ for a labelled day near the top of the feed. The price is ON the
+// button; pressing it opens the server's own quote (what it buys, your balance) and
+// nothing is charged until the second press.
+function BoostButton({ post, onChanged, onFlash }) {
+  const [q, setQ] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const cost = post.boost_cost_energy;
+  if (!cost) return null;
+  const show = async () => {
+    setOpen(true);
+    try { setQ(await api(`/api/economy/postz/${post.id}/boost/`)); } catch (e) { onFlash(e.message || "Couldn't check the boost."); setOpen(false); }
+  };
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await api(`/api/economy/postz/${post.id}/boost/`, { method: "POST", body: {} });
+      onChanged(post.id, { ...post, boosted: true, boosted_until: r.boosted_until });
+      onFlash(`Boosted — −${cost} ${ENERGY}. It leads the feed until it ends.`);
+      setOpen(false);
+    } catch (e) { onFlash(e.message || "Couldn't boost that."); }
+    finally { setBusy(false); }
+  };
+  return (
+    <span className="relative">
+      <button onClick={open ? () => setOpen(false) : show} aria-expanded={open}
+              title={`Boost this post: −${cost} ${ENERGY} for a day near the top of the feed`}
+              className="flex items-center gap-1 rounded-lg p-1.5 text-[11px] text-white/45 hover:bg-white/[0.06] hover:text-mcz-ember">
+        <Rocket size={14} /> <span className="text-mcz-ember">−{cost} {ENERGY}</span>
+      </button>
+      {open && (
+        <div role="dialog" aria-label="Boost this post"
+             className="absolute right-0 z-20 mt-1 w-64 space-y-2 rounded-xl border border-white/10 bg-black/90 p-3 text-xs text-white/70">
+          {!q ? <p>Checking…</p> : (
+            <>
+              <p>{q.what_you_get}</p>
+              <p>You hold {q.energy} {ENERGY}. Not boosted means not charged.</p>
+              {q.allowed ? (
+                <button className="neon-btn-primary !w-auto px-3 py-1 text-xs" onClick={go} disabled={busy || q.energy < cost}>
+                  Boost for −{cost} {ENERGY}
+                </button>
+              ) : <p className="text-mcz-ember">{q.why_not}</p>}
+              {q.allowed && q.energy < cost && <p className="text-mcz-ember">You are {cost - q.energy} {ENERGY} short.</p>}
+            </>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
 
 // Pin to profile — X/Instagram's "pinned post": your best work first on your
 // card. Only on your own public posts, because that is all a profile shows.
@@ -1434,7 +1564,7 @@ function BuyBar({ post, onChanged, onFlash }) {
           )}
         </div>
       )}
-      {err && <p className="mt-1 text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="mt-1 text-mcz-ember">{err}</p>}
     </div>
   );
 }

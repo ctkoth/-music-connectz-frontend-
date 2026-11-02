@@ -18,11 +18,14 @@
 // So `derived` groups get their explanation printed and no Delete. FanZ gets
 // no add box at all: being a fan is somebody else's act, and a member who can
 // type their own fan list has a follower count that means nothing.
+import { goToSpot } from "../goto.js";
+import Empty from "../components/Empty.jsx";
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Mail, Eye, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
+import ThoroughGroup from "../components/ThoroughGroup.jsx";
 
 // The art that is actually in the repo. Pointing FriendZ and FanZ at Corey's
 // uncommitted friendz.jpg / fanz.jpg REGRESSED them — both had real art under
@@ -95,6 +98,9 @@ export default function GroupZ({ onViewProfile, onMessage }) {
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/80">{msg}</p>}
 
+      {/* The one platform group: derived from the Thorough badge, not a list you keep. */}
+      <ThoroughGroup />
+
       {!groups ? (
         <p className="flex items-center gap-2 text-white/50">
           <Loader2 className="animate-spin" size={16} /> Loading…
@@ -124,7 +130,7 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                 )}
 
                 {list.length === 0 && kind !== "custom" && (
-                  <p className="text-xs text-white/40">Nothing here yet.</p>
+                  <Empty className="text-xs" text="Nobody here yet." action="Find people in VybeZ" onAction={() => goToSpot("vybez", "")} />
                 )}
 
                 {list.map((g) => (

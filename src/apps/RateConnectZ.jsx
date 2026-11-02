@@ -1,3 +1,6 @@
+import { genreLabel } from "../genres.js";
+import Term from "../components/Term.jsx";
+import LoadGate from "../components/LoadGate.jsx";
 import { useEffect, useRef, useState } from "react";
 import { trackListening } from "../listen.js";
 import { playTrack, useNowPlaying } from "../nowPlaying.js";
@@ -50,6 +53,8 @@ function Dashboard({ d }) {
   const kinds = Object.fromEntries((d.kinds || []).map((k) => [k.key, k]));
   const a = d.attractiveness || {};
   return (
+    <>
+    <p className="mb-2 text-[11px] text-white/45">Every number here is a <Term k="median">median</Term>.</p>
     <div className="grid gap-3 md:grid-cols-2">
       <KindCard kind={kinds.post} value={fmt(d.post.median)} count={null}>
         <p className="text-[11px] text-white/45">{d.post.rated} of {d.post.total} posts rated</p>
@@ -97,6 +102,7 @@ function Dashboard({ d }) {
           : a.note && <p className="text-[11px] text-white/45">{a.note}</p>}
       </KindCard>
     </div>
+    </>
   );
 }
 
@@ -147,7 +153,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
           <a className="re-link block truncate font-semibold" href={p.url}>{p.title || "Untitled"}</a>
           <p className="text-[11px] text-white/50">
             by <MemberName username={p.author} bare />
-            {p.genre ? ` · ${p.genre}` : p.media_type ? ` · ${p.media_type}` : ""}
+            {p.genre ? ` · ${genreLabel(p.genre)}` : p.media_type ? ` · ${p.media_type}` : ""}
             {p.count ? ` · ${fmt(p.rating)} from ${p.count}` : " · not rated yet"}
           </p>
         </div>
@@ -196,7 +202,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
           Skip for now
         </button>
       </div>
-      {err && <p className="text-xs text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );
 }
@@ -209,7 +215,9 @@ const loadSkipped = () => { try { return new Set(JSON.parse(sessionStorage.getIt
 function Queue() {
   const [q, setQ] = useState(null);
   const [err, setErr] = useState("");
-  const load = () => api(QUEUE).then(setQ).catch((e) => setErr(e.message));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api(QUEUE).then((d) => { setQ(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "The rating queue didn't load."));
   useEffect(() => { load(); }, []);
 
   const [skipped, setSkipped] = useState(loadSkipped);
@@ -227,7 +235,7 @@ function Queue() {
   };
 
   if (err) return <p className="text-sm text-mcz-ember">{err}</p>;
-  if (!q) return <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={12} /> Finding work to rate…</p>;
+  if (!q) return <LoadGate small error={loadErr} what="work to rate" onRetry={() => { setLoadErr(""); load(); }} />;
   const r = q.reward;
   return (
     <div className="space-y-2">
@@ -287,7 +295,7 @@ export default function RateConnectZ() {
             {asked && <button type="button" className="re-link text-xs" onClick={() => { setWho(""); setAsked(""); }}>mine</button>}
           </form>
         </div>
-        {err && <p className="text-sm text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
         {!d && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
         {d && <Dashboard d={d} />}
       </section>

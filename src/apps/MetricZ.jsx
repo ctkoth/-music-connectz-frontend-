@@ -103,7 +103,7 @@ export default function MetricZ({ kind }) {
         </div>
       </header>
 
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
       {!d && !err && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
       {d?.locked && (

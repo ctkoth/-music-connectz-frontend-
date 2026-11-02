@@ -2,6 +2,7 @@
 // one-line headline, genres, influences, gear, label, timezone, a pinned
 // post and a cover. The server cleans them (economy/social.py
 // clean_profile_field); this file only edits and renders what it sends.
+import { LEVELS, modeOf, signs, withMode } from "../inventoriez.js";
 import { useState } from "react";
 import { Clock, Pin, Upload } from "lucide-react";
 import { uploadWork } from "../uploadWork.js";
@@ -11,6 +12,17 @@ const LISTS = [
   ["influences", "Influences", "Artists you sound like or learn from"],
   ["gear", "Gear", "Mic, DAW, interface, instrument…"],
 ];
+
+const KINDS = [["instrument", "🎸 Instrument"], ["microphone", "🎙️ Microphone"], ["interface", "🔌 Interface"],
+  ["monitors", "🔊 Monitors"], ["outboard", "🎛️ Outboard"], ["software", "💻 Software"], ["controller", "🎹 Controller"],
+  ["clothing", "👕 Clothes"], ["other", "📦 Other"]];
+const WHERE = [["home", "Home"], ["studio", "Studio"], ["stage", "Stage"]];
+const kindLabel = Object.fromEntries(KINDS);
+// A price being typed is "exact" before the server has turned it into cents.
+const editMode = (it) => (it.price !== undefined ? "exact" : modeOf(it));
+
+/** The emoji alone for a kind — InventoryZ's placeholder when a piece has no photo. */
+export const KIND_EMOJI = Object.fromEntries(KINDS.map(([k, l]) => [k, l.split(" ")[0]]));
 
 const toList = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
@@ -23,6 +35,18 @@ export function ProfileFieldsEditor({ value, onChange }) {
   const v = value || {};
   const set = (k, x) => onChange({ ...v, [k]: x });
   const [drafts, setDrafts] = useState({});
+  const [photoMsg, setPhotoMsg] = useState("");
+  // A piece's photo is uploaded like any other file (it counts against storage)
+  // and the server keeps only an address it hosts or an https one.
+  async function addPhoto(i, file) {
+    if (!file) return;
+    setPhotoMsg("Uploading…");
+    try {
+      const url = (await uploadWork({ image_blob: file })).work.image_url;
+      set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, photo: url } : x)));
+      setPhotoMsg("Photo added — save your profile to keep it.");
+    } catch (e) { setPhotoMsg(e.message || "Couldn't upload that photo."); }
+  }
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverErr, setCoverErr] = useState("");
 
@@ -63,6 +87,60 @@ export function ProfileFieldsEditor({ value, onChange }) {
                  onBlur={(e) => { set(k, toList(e.target.value)); setDrafts({ ...drafts, [k]: undefined }); }} />
         </label>
       ))}
+      <div className="space-y-1.5">
+        <p className="text-xs text-white/50">Inventory <span className="text-white/30">— instruments, equipment and clothes you actually use; members can search and rate it</span></p>
+        {(v.inventory || []).map((it, i) => (
+          <div key={i} className="flex flex-wrap gap-1.5">
+            <input className={`${input} !w-auto flex-1`} maxLength={80} placeholder="Neumann U87"
+                   value={it.name} onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+            <select className={`${input} !w-auto`} data-nomemo="true" value={it.kind}
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, kind: e.target.value } : x)))}>
+              {KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <select className={`${input} !w-auto`} data-nomemo="true" value={it.where}
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, where: e.target.value } : x)))}>
+              {WHERE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            {/* What it is worth, the member's way: an exact price or a 1-10 $ level. */}
+            <select className={`${input} !w-auto`} data-nomemo="true" value={editMode(it)} aria-label="How to show what it's worth"
+                    onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? withMode(x, e.target.value) : x)))}>
+              <option value="none">Worth: —</option>
+              <option value="exact">Exact price</option>
+              <option value="level">$ to $$$$$$$$$$</option>
+            </select>
+            {editMode(it) === "exact" ? (
+              <input className={`${input} !w-24`} inputMode="decimal" placeholder="$ price" aria-label="Price"
+                     value={it.price ?? (it.price_cents ? String(it.price_cents / 100) : "")}
+                     onChange={(e) => set("inventory", v.inventory.map((x, j) => {
+                       if (j !== i) return x;
+                       const { price_cents: _c, ...rest } = x;
+                       return { ...rest, price: e.target.value };
+                     }))} />
+            ) : editMode(it) === "level" ? (
+              <select className={`${input} !w-auto`} data-nomemo="true" value={it.price_level} aria-label="How expensive, 1 to 10"
+                      onChange={(e) => set("inventory", v.inventory.map((x, j) => (j === i ? { ...x, price_level: Number(e.target.value) } : x)))}>
+                {Array.from({ length: LEVELS }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{signs(n)} ({n})</option>)}
+              </select>
+            ) : null}
+            <label className="cursor-pointer text-xs text-white/50 hover:text-white" title={it.photo ? "Change photo" : "Add a photo"}>
+              {it.photo ? <img src={it.photo} alt="" className="inline h-6 w-6 rounded object-cover" /> : "📷"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => addPhoto(i, e.target.files?.[0])} />
+            </label>
+            <button type="button" className="text-white/40" aria-label="Remove"
+                    onClick={() => set("inventory", v.inventory.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+        <button type="button" className="text-xs text-mcz-cyan hover:underline"
+                onClick={() => set("inventory", [...(v.inventory || []), { name: "", kind: "microphone", where: "home", note: "" }])}>
+          + Add gear or clothes
+        </button>
+        <p className="text-[11px] text-white/35">
+          Members can rate each piece and your inventory in total (free; it never moves a skill or a price). Renaming a piece starts its ratings again.
+          Worth is an exact price or $ to $$$$$$$$$$ (1 your least expensive thing, 10 your most) — members see it unless you change
+          "What my InVenTorieZ is worth" in VisibilitieZ; the logged-out page never does by default.
+        </p>
+        {photoMsg && <p className="text-[11px] text-white/60">{photoMsg}</p>}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs text-white/50">Timezone <span className="text-white/30">(from your device)</span>
           <input className={input} maxLength={48} placeholder="America/Denver"
@@ -117,6 +195,19 @@ export function ProfileFields({ p, linkPost }) {
       {pills("Genres", p.genres)}
       {pills("Influences", p.influences)}
       {pills("Gear", p.gear)}
+      {(p.inventory || []).length > 0 && (
+        <div className="space-y-1">
+          <span className="text-[11px] uppercase tracking-wide text-white/35">Inventory</span>
+          <div className="flex flex-wrap gap-1.5">
+            {p.inventory.map((it) => (
+              <span key={it.name} title={`${it.where}${it.note ? ` · ${it.note}` : ""}`}
+                    className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/75">
+                {(kindLabel[it.kind] || "📦").split(" ")[0]} {it.name}{it.where === "studio" ? " · studio" : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {(p.label || time) && (
         <p className="flex flex-wrap items-center gap-3 text-xs text-white/50">
           {p.label && <span>Label: {p.label}</span>}

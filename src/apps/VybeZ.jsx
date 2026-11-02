@@ -21,8 +21,10 @@ import { PersonalityFilter, personalityQuery } from "../PersonalitieZ.jsx";
 import { ReligionFilter, religionQuery, useReligions } from "../ReligionZ.jsx";
 import { LanguageFilter, languageQuery, useLanguages } from "../LanguageZ.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
-import { goToSpot } from "../goto.js";
+import { goToSpot, goToTab } from "../goto.js";
 import { useSubstanceScale } from "../substancez.js";
+import RangeGates from "../RangeGates.jsx";
+import { gatesQuery } from "../gatesQuery.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
 // the gates live behind "More filters" because a wall of sliders is how a
@@ -106,6 +108,10 @@ export default function VybeZ() {
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
   const [maxKm, setMaxKm] = useState("");
+  // The community ranges — skill rating, skill price and attractiveness — are YOUR standard to set,
+  // and the same ranges every gated deal and door already uses. Exclusive, as everywhere: a member with
+  // no value, or who hides theirs, is out of a range you set.
+  const [ranges, setRanges] = useState({});
   const [more, setMore] = useState(false);
   // SubstanceZ, from the searcher's side: substances to steer clear of, and
   // how much of them is still fine ("" = none at all, the filter's original
@@ -119,6 +125,10 @@ export default function VybeZ() {
   const [originShared, setOriginShared] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // VybeZ — finding someone — is 18+. The server says so (403 `adult_only`) with its own
+  // sentence, shown as it came; nothing here works out an age. Collabs, battles and the coach
+  // stay open at any age, so the card points at the door that does.
+  const [locked, setLocked] = useState("");
 
   // Fetched ONCE at the screen level and handed down as a lookup, never
   // per-card — a card component calling this hook itself would mean up to
@@ -137,7 +147,7 @@ export default function VybeZ() {
   );
 
   const search = useCallback(() => {
-    const parts = [];
+    const parts = ["vybez=1"];       // names this surface, so the 18+ rule applies to it and not to other member pickers
     const p = personalityQuery(personality);
     if (p) parts.push(p);
     const rq = religionQuery(religions);
@@ -149,6 +159,7 @@ export default function VybeZ() {
     if (ageMin) parts.push(`age_min=${ageMin}`);
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
+    parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract }));
     if (avoid.length) {
       parts.push(`substances=${avoid.join(",")}`);
       if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);
@@ -166,9 +177,12 @@ export default function VybeZ() {
       })
       // The real error. A search that quietly returns nothing on a 500 is the
       // worst bug class in this app, and it has shipped twice.
-      .catch((e) => setError(e.message || "Couldn't run that search."))
+      .catch((e) => {
+        if (e.status === 403 && /18\+/.test(e.message || "")) { setLocked(e.message); return; }
+        setError(e.message || "Couldn't run that search.");
+      })
       .finally(() => setLoading(false));
-  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, avoid, avoidUpTo]);
+  }, [personality, religions, langFilter, genders, soberOnly, ageMin, ageMax, maxKm, ranges, avoid, avoidUpTo]);
 
   // Debounced, because three of these filters are TEXT INPUTS and `search`
   // is in the effect's deps. Typing "25" into age-min fired two full member
@@ -185,6 +199,32 @@ export default function VybeZ() {
     return () => clearTimeout(t);
   }, [search]);
 
+  if (locked) {
+    return (
+      <div className="space-y-4" data-vybez-locked>
+        <header className="flex items-center gap-3">
+          <IconImg icon="vybez.png" alt="VybeZ" className="h-11 w-11 rounded-xl" />
+          <h2 className="font-display text-xl font-extrabold">VybeZ</h2>
+        </header>
+        <div className="neon-frame space-y-3 p-4">
+          <p className="text-sm text-white/80">{locked}</p>
+          {/* This wall is a stated birthday in the 13-17 range — not an ID check — so
+              there are two honest ways out of it if that birthday is wrong: fix it, or
+              let a verified ID confirm 18+ (the server already lets ID verification
+              override a mistyped birthday, in the permissive direction only). Neither
+              is a workaround for an actual minor; both are just routing a member to the
+              control that fixes a wrong answer, same as any other field. */}
+          <p className="text-[11px] text-white/45">
+            If that birthday is wrong,{" "}
+            <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>fix it in ProfileZ</button>
+            {" "}or{" "}
+            <button className="re-link" onClick={() => goToSpot("profilez", "verify-18")}>verify you're 18+</button>.
+          </p>
+          <button className="re-btn !w-auto px-3 py-1.5" onClick={() => goToTab("collabz")}>Find collaborators in CollabZ</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-5">
       <header className="flex items-center gap-3">
@@ -274,6 +314,8 @@ export default function VybeZ() {
                 )}
               </label>
             </div>
+            <RangeGates keys={["rating", "price", "attract"]} value={ranges} onChange={setRanges}
+                        title="Your standards — rating, price, attractiveness" />
           </div>
         )}
       </div>

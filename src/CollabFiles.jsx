@@ -50,6 +50,7 @@ export default function CollabFiles({ dealId, onFlash }) {
   }
 
   async function remove(f) {
+    if (!window.confirm(`Delete “${f.name || f.title || "this file"}” from the deal? It can't be undone.`)) return;
     try {
       await api(`/api/economy/collab/${dealId}/files/${f.id}/`, { method: "DELETE" });
       load();

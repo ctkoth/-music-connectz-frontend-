@@ -24,7 +24,7 @@ import CharLimit from "../CharLimit.jsx";
 import MediaFields from "../MediaFields.jsx";
 import { hasBlobs, mediaItems, storageNote, uploadWork } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
@@ -220,6 +220,11 @@ export default function JournalZ() {
     setBody([p.description, p.lyrics].filter(Boolean).join("\n\n"));
     if (p.author) setPeople((cur) => (cur.includes(p.author) ? cur : [...cur, p.author]));
     if (p.place) setPlaceName(p.place);
+    // A file handed over by the Doors bar arrives already hosted: its address goes into
+    // the slot, so nothing is uploaded twice.
+    const files = {};
+    for (const slot of ["audio", "video", "image"]) if (p[`${slot}_url`]) files[`${slot}_url`] = String(p[`${slot}_url`]);
+    if (Object.keys(files).length) setWork((w) => ({ ...w, ...files }));
     flash(`"${p.title}" is in today's entry — it stays private until you share it.`);
   }), []);
 
@@ -391,7 +396,7 @@ export default function JournalZ() {
         </button>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
       {toast && <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] text-mcz-cyan">{toast}</p>}
 
       {/* Days kept, entries kept, tags used. Counts of things that happened —
@@ -592,7 +597,7 @@ export default function JournalZ() {
                  value={q} onChange={(e) => setQ(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load()} />
         </span>
-        <select className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
+        <select aria-label="Mood" className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1 text-[11px] text-white"
                 value={mood} onChange={(e) => setMood(e.target.value)}>
           <option value="">Any mood</option>
           {moods.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
@@ -623,7 +628,9 @@ export default function JournalZ() {
           <article key={e.id} className="neon-frame space-y-2 p-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[12px] font-bold text-mcz-gold">{e.day}</span>
-              {!e.mine && <span className="pill !py-0 text-[10px]">@{e.author}</span>}
+              {!e.mine && (
+                <button className="pill !py-0 text-[10px]" onClick={() => openMember(e.author)}>@{e.author}</button>
+              )}
               <span className={`pill !py-0 text-[10px] ${e.private ? "!text-white/60" : "!text-mcz-cyan"}`}>
                 {e.private ? "🔒 Just me" : e.visibility === "public" ? "🌍 Public" : "👥 Members only"}
               </span>
@@ -648,7 +655,7 @@ export default function JournalZ() {
                 <button key={t} onClick={() => setTag(t)} className="pill !py-0 text-[10px]">#{t}</button>
               ))}
               {asList(e.people).map((p) => (
-                <span key={p} className="pill !py-0 text-[10px] !text-mcz-cyan">@{p}</span>
+                <button key={p} className="pill !py-0 text-[10px] !text-mcz-cyan" onClick={() => openMember(p)}>@{p}</button>
               ))}
               {e.place?.name && (
                 <span className="pill !py-0 text-[10px]"><MapPin size={9} className="inline" /> {e.place.name}</span>

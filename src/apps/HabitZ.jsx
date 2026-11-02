@@ -77,7 +77,7 @@ export default function HabitZ() {
         </div>
       </header>
 
-      {err && <p className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[12px] text-mcz-ember">{err}</p>}
 
       <div className="flex flex-wrap gap-2">
         {kinds.map((k) => (

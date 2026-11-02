@@ -24,6 +24,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@breezystack/lamejs": "1.2.7",
     "@capacitor-community/admob": "^6.2.0",
     "@capacitor/android": "6.1.2",
     "@capacitor/app": "6.0.3",

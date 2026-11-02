@@ -6,6 +6,8 @@ import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goesExternal, openProvider, statePrefixFor, appShell } from "../externalAuth.js";
+import { facebookStallNote } from "../facebookHandoff.js";
+import { deviceShape } from "../useScreenShape.js";
 import { GoogleG, ID_TOKEN_AUTH, PROVIDERS as REDIRECT_PROVIDERS, rand, pkceChallenge, clearFlowMarkers, isInAppBrowser } from "../oauthProviders.jsx";
 
 // Optional build-time fallback; the primary source is the backend config below.
@@ -20,6 +22,11 @@ const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#fff
 // The standalone BodieZ build is on another origin, and the providers' redirect
 // URIs are registered for musicconnectz.net only — a button there would open a
 // provider that then refuses to come back. Absent is honest; broken is not.
+// Sign in with Apple is hidden until Corey says to turn it back on. Flip this one
+// flag; nothing else about the Apple flow (startApple, the redirect, the backend)
+// was removed.
+const APPLE_ENABLED = false;
+
 export default function OAuthButtons(props) {
   return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
 }
@@ -246,9 +253,10 @@ function OAuthButtonsInner({ onSuccess, onError }) {
   // render it) — an unconfigured tile up front would be a dead button.
   const isFeatured = (p) => FEATURED.includes(p.key) && (p.key !== "google" || hasGoogle);
   const featured = grid.filter(isFeatured);
+  const stall = facebookStallNote({ keys: grid.map((p) => p.key), shape: deviceShape(), shell });
   const rest = grid.filter((p) => !isFeatured(p));
-  const hasApple = !!clientId("apple") && !oldApp && shell !== "inapp";
-  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || clientId("apple"));
+  const hasApple = APPLE_ENABLED && !!clientId("apple") && !oldApp && shell !== "inapp";
+  const blockedHere = (shell === "inapp" || oldApp) && (clientId("google") || (APPLE_ENABLED && clientId("apple")));
 
   if (choice) {
     const go = choiceRoutes(choice, navigate, oauth);
@@ -346,6 +354,14 @@ function OAuthButtonsInner({ onSuccess, onError }) {
               <p.Icon size={20} color={p.color} />
             </button>
           ))}
+        </div>
+      )}
+
+      {stall && (
+        <div className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-[11px] leading-relaxed text-white/80">
+          <p>{stall.why}</p>
+          <p className="mt-1">{stall.instead}</p>
+          <p className="mt-1 text-white/60">{stall.stuck}</p>
         </div>
       )}
 

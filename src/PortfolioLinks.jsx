@@ -5,6 +5,8 @@ import { goToSpot } from "./goto.js";
 import { useTierLadder } from "./limits.js";
 import { widgetHint } from "./widgetz.js";
 import { LinkList } from "./WidgetBoard.jsx";
+import { useDragReorder, DragGrip } from "./useDragReorder.jsx";
+import { moveItem } from "./dragReorder.js";
 import { labelFor, moveRow, normalizeUrl, parsePasted, pasteSummary, planAdd } from "./portfolio.js";
 
 // Your portfolio: the links that say who you are — tracks, videos, pages, shops.
@@ -38,6 +40,7 @@ export default function PortfolioLinks() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
+  const dnd = useDragReorder("links", (from, to) => setRows((cur) => moveItem(cur || [], from, to)));
 
   const take = (d) => {
     const list = Array.isArray(d?.links) ? d.links.map((l) => ({ label: l.label || "", url: l.url || "" })) : [];
@@ -144,7 +147,9 @@ export default function PortfolioLinks() {
       {rows.length === 0 && <p className="text-xs text-white/55">Nothing here yet. Add the first one below.</p>}
       <ul className="space-y-2">
         {rows.map((r, i) => (
-          <li key={i} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+          <li key={i} {...dnd.row(i)}
+              className={`flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2${dnd.rowClass(i)}`}>
+            <DragGrip label={`Drag link ${i + 1}`} {...dnd.grip(i)} />
             <input className="neon-input !py-1.5 min-w-0 flex-1 basis-32 text-sm" aria-label={`Link ${i + 1} label`}
                    maxLength={80} value={r.label} onChange={(e) => edit(i, { label: e.target.value })} />
             <input className="neon-input !py-1.5 min-w-0 flex-[2] basis-48 text-sm" aria-label={`Link ${i + 1} address`}

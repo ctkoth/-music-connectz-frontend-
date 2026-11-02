@@ -21,7 +21,8 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { SPINAZ } from "../resources.js";
-import { RatingGrid, RatingNumber } from "./Rating.jsx";
+import { RatingGrid, RatingNumber, RatingRow } from "./Rating.jsx";
+import { FeelzTips, MixTips } from "./FeelTips.jsx";
 import { ratingTone } from "../rating.js";
 import {
   READ_CHOICES, REMOVE_RESULT, dimensionRows, firstSentence, givenOn,
@@ -153,6 +154,14 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           {rows.length > 0 && (
             <RatingGrid rows={rows.map((r) => ({ key: r.key, label: r.label, value: r.value, detail: r.detail }))} />
           )}
+          {read.extras?.length > 0 && (
+            <div className="space-y-1.5">
+              {read.extras.map((x) => (
+                <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                  detail={[x.detail, x.counted === true ? "Counts in the score above." : x.counted === false ? "Beside the score, not inside it." : ""].filter(Boolean).join(" ")} />
+              ))}
+            </div>
+          )}
           {read.verdict && <p className="text-[13px] leading-relaxed text-white/85">{read.verdict}</p>}
           {read.song_score != null && read.labels?.song_score && (
             <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
@@ -174,6 +183,8 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           )}
           <List title="What's working" items={read.strengths} />
           <List title="What to fix" items={read.fixes} />
+          <FeelzTips tips={read.extras?.find((x) => x.key === "feelz")?.tips} cause={read.extras?.find((x) => x.key === "feelz")?.cause?.label} />
+          <MixTips tips={read.mix_tips} />
           <Note title="Next drill" text={read.next_drill} />
           <Note title="Style" text={read.style_fit} />
           <Note title="Range" text={read.range_profile} />

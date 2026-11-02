@@ -1,5 +1,6 @@
 // The two doors into PromptZ, each with its cost and gain on the button:
 // earned 🍥 (no card needed) and cash. Both rates are the server's.
+import Term from "./components/Term.jsx";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { MONEY, PROMPTZ, SPINAZ } from "./resources.js";
@@ -30,10 +31,10 @@ export default function PromptzDoor() {
 
   return (
     <div className="re-card space-y-3">
-      <p className="text-sm font-semibold text-white">Get PromptZ {PROMPTZ}</p>
+      <p className="text-sm font-semibold text-white">Get <Term k="promptz">PromptZ</Term> {PROMPTZ}</p>
       {conv && (
         <div className="space-y-1">
-          <p className="text-[11px] text-white/50">{conv.note} You have {conv.spinaz} {SPINAZ}.</p>
+          <p className="text-[11px] text-white/50">{conv.note} You have {conv.spinaz} {SPINAZ} (<Term k="spinaz">SpinaZ</Term>).</p>
           <div className="flex flex-wrap items-center gap-2">
             <input className="neon-input !py-2 w-28 text-sm" type="number" min={per} step={per} inputMode="numeric"
                    placeholder={`${SPINAZ} to convert`} value={spin} onChange={(e) => setSpin(e.target.value)} />

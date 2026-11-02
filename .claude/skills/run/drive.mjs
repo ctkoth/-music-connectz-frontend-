@@ -20,7 +20,9 @@ const PASSWORD = process.env.MCZ_PASSWORD || "pw12345!";
 // the path moves — so find it rather than hardcoding a number.
 const root = "/opt/pw-browsers";
 const dir = fs.readdirSync(root).find((d) => /^chromium-\d+$/.test(d));
-const executablePath = path.join(root, dir, "chrome-linux", "chrome");
+// The folder under it moved too (chrome-linux -> chrome-linux64), so try both.
+const executablePath = ["chrome-linux64", "chrome-linux"].map((d) => path.join(root, dir, d, "chrome"))
+  .find((p) => fs.existsSync(p));
 
 const browser = await chromium.launch({ executablePath });
 const page = await browser.newPage({ viewport: { width: 900, height: 1600 } });

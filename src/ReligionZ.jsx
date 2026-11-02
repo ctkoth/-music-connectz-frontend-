@@ -60,7 +60,7 @@ export default function ReligionZ({ value, onChange }) {
         and picking one never moves a rating or a skill level. It becomes a filter people can
         find you with. Leave it blank and it stays "hasn't said", not a default.
       </p>
-      <select value={value || ""} onChange={(e) => onChange(e.target.value)}
+      <select aria-label="Religion" value={value || ""} onChange={(e) => onChange(e.target.value)}
               className="neon-input !py-2 text-sm">
         <option value="">Hasn't said</option>
         {groups.map((g) => (

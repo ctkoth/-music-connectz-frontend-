@@ -14,15 +14,19 @@
 // Real members now, real avatars (a member's own uploaded custom icon, via
 // `_avatar_url` server-side — never a generic persona placeholder standing
 // in for a person), and a persona chip is only shown when the member has
-// actually claimed one.
+// actually claimed one. A nationality pill carries its flag emoji
+// (`FLAG_FOR`, socialData.js) rather than a two-letter code, and a card is
+// clickable anywhere on it — not only on the name — because the whole card
+// is "this member", not just the text inside it.
 import { useCallback, useEffect, useState } from "react";
 import { MapPin, Search, UserRound } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
-import { NATIONALITIES } from "./socialData.js";
-
-const FLAG = Object.fromEntries(NATIONALITIES.map(([f, n]) => [n, f]));
+import RangeGates from "../RangeGates.jsx";
+import { gatesQuery } from "../gatesQuery.js";
+import { NATIONALITIES, FLAG_FOR, personaLabel } from "./socialData.js";
+import { openMember } from "../goto.js";
 
 export default function SocialConnectZ() {
   const [rows, setRows] = useState([]);
@@ -30,24 +34,33 @@ export default function SocialConnectZ() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Your own standards, the same ranges every gated deal and door uses. Exclusive: a member with no
+  // value for one you set — or who hides it — is out.
+  const [ranges, setRanges] = useState({});
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
-    return api("/api/economy/members/")
+    const qs = gatesQuery(ranges);
+    return api(`/api/economy/members/${qs.length ? `?${qs.join("&")}` : ""}`)
       .then((d) => setRows(d.members || []))
       // The real error. A directory that quietly shows nobody on a 500 reads
       // as "no members" rather than "the request failed" — the exact
       // distinction the funnel's own `pct: null` rule exists to keep clear.
       .catch((e) => setError(e.message || "Couldn't load Social ConnectZ."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [ranges]);
 
-  useEffect(() => { load(); }, [load]);
+  // One delay for every range, for the reason VybeZ gives: these are number boxes, and each
+  // keystroke would otherwise be a full member search.
+  useEffect(() => {
+    const t = setTimeout(load, 300);
+    return () => clearTimeout(t);
+  }, [load]);
 
   const filtered = rows.filter((m) => {
     const natMatch = !nat || (m.nationalities || []).includes(nat);
-    const personaNames = (m.personas || []).map((p) => p.name).join(" ");
+    const personaNames = (m.personas || []).map((p) => personaLabel(p, 99)).join(" ");
     const text = `${m.username} ${m.display_name || ""} ${personaNames} ${(m.regions || []).join(" ")}`.toLowerCase();
     const qMatch = !q || text.includes(q.toLowerCase());
     return natMatch && qMatch;
@@ -73,9 +86,11 @@ export default function SocialConnectZ() {
           <Search size={16} className="text-white/40" />
           <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, region…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+      <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
+                  title="Your standards — who shows up here" />
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
-          <select className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
+          <select aria-label="NationalitieZ" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
             <option value="">🌐 All NationalitieZ</option>
             {NATIONALITIES.map(([flag, name]) => (
               <option key={name} value={name}>{flag} {name}</option>
@@ -94,10 +109,16 @@ export default function SocialConnectZ() {
         <p className="re-card text-sm text-mcz-pink">{error}</p>
       )}
 
-      {/* Results */}
+      {/* Results — real members from GET /api/economy/members/. Tap anywhere
+          on a card to open the member's full profile; nothing here is a
+          dead end. */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div key={m.username} className="re-card">
+          <div
+            key={m.username}
+            onClick={() => openMember(m.username)}
+            className="re-card cursor-pointer transition hover:!border-white/20"
+          >
             <div className="mb-2 flex items-center gap-3">
               {m.avatar
                 ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
@@ -107,7 +128,7 @@ export default function SocialConnectZ() {
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
                 {m.personas?.[0]?.name && (
-                  <div className="text-[11px] text-white/50">{m.personas[0].name}</div>
+                  <div className="text-[11px] text-white/50">{personaLabel(m.personas[0])}</div>
                 )}
               </div>
             </div>
@@ -120,11 +141,11 @@ export default function SocialConnectZ() {
               {(m.nationalities || []).map((n) => (
                 <button
                   key={n}
-                  onClick={() => setNat(n)}
+                  onClick={(e) => { e.stopPropagation(); setNat(n); }}
                   className="pill hover:!text-white"
                   title={`Filter by ${n}`}
                 >
-                  {FLAG[n] || "🌐"} {n}
+                  {FLAG_FOR[n] || "🌐"} {n}
                 </button>
               ))}
             </div>

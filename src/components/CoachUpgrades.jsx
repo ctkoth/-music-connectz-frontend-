@@ -1,3 +1,4 @@
+import AiEnergy from "./AiEnergy.jsx";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -46,7 +47,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div data-tour="coach-upgrades" className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <p className="text-[12px] font-semibold text-white/80">🎛️ Gear and settings for this take</p>
       <p className="text-[11px] leading-relaxed text-white/55">{q.explain}</p>
       <p className="text-[11px] text-white/55">{marketsLine(q.markets)}</p>
@@ -84,7 +85,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
           </button>
           {pay && (
             <span className="text-[11px] text-mcz-ember">
-              −{pay.cost} {PROMPTZ}
+              −{pay.cost} {PROMPTZ} <AiEnergy />
               {pay.cash > 0 && <> ({pay.promptz} {PROMPTZ} + {pay.cash}¢ {MONEY})</>}
               <span className="text-white/40"> — a failed run isn't charged. A free daily prompt doesn't cover this one.</span>
             </span>
@@ -92,7 +93,7 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
           {!q.configured && <span className="text-[11px] text-white/40">Not switched on yet.</span>}
         </div>
       )}
-      {err && <p className="text-[11px] text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
 
       {res && (
         <div className="space-y-3">

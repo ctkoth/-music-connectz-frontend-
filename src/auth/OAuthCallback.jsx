@@ -183,7 +183,7 @@ export default function OAuthCallback() {
           onSignIn={handleSignInExisting}
           busy={signingIn}
         />
-        {error && <p className="text-sm text-mcz-ember mt-3">{error}</p>}
+        {error && <p role="alert" className="text-sm text-mcz-ember mt-3">{error}</p>}
       </AuthShell>
     );
   }

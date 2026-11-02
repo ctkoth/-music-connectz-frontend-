@@ -32,7 +32,7 @@ import RunClock from "../components/RunClock.jsx";
 import OccChat from "../components/occ/OccChat.jsx";
 import { doorsFor, gridTabs } from "../components/occ/occRoutes.js";
 import { perSecondText, runFailure, runLimit, runTimeoutMs } from "../components/occ/occPrice.js";
-import { goToSpot } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { ENERGY, amount } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
@@ -40,6 +40,9 @@ import { hasBlobs, primaryMedia, uploadWork } from "../uploadWork.js";
 import { useRemembered } from "../useRemembered.js";
 import { remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
+
+// The server sends tier keys; these are the names a member reads.
+const TIER_NAME = { free: "Free", premium: "Premium", statz: "StatZ" };
 
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
@@ -89,6 +92,12 @@ function Toggle({ toggle, on, allowed, onChange }) {
 function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith }) {
   const open = ["suggested", "queued", "running"].includes(task.status);
   const [sent, setSent] = useState(false);
+  // When the server offers `choices`, the member picks which ones the suggestion acts on.
+  // Everything starts ticked, so pressing Do it unchanged does exactly what the title says.
+  const choices = asList(match?.choices);
+  const [unticked, setUnticked] = useState(() => new Set());
+  const ticked = choices.filter((c) => !unticked.has(c.id));
+  const flip = (id) => setUnticked((cur) => { const n = new Set(cur); n.has(id) ? n.delete(id) : n.add(id); return n; });
   return (
     <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2">
@@ -152,13 +161,26 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
           <p><span className="text-mcz-gold">What · </span><span className="text-white/70">{task.what}</span></p>
           <p><span className="text-mcz-gold">Why · </span><span className="text-white/70">{task.why}</span></p>
           <p><span className="text-mcz-gold">How · </span><span className="text-white/70">{task.how}</span></p>
+          {match?.auto_safe && choices.length > 0 && (
+            <div className="space-y-0.5 pt-1">
+              <p className="text-[10px] text-white/45">Untick any you want to keep:</p>
+              {choices.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-[11px] text-white/70">
+                  <input type="checkbox" className="h-3.5 w-3.5 accent-cyan-400" checked={!unticked.has(c.id)} onChange={() => flip(c.id)} />
+                  <span className="truncate">{c.title}</span>
+                </label>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* "Do it" does it. It used to move the row to "queued" and nothing
                 ever ran it. Only the suggestions the server calls safe can be
                 done for you; the rest are a door to where you do them. */}
             {match?.auto_safe && (
-              <button className="re-btn !w-auto px-3 text-[11px]" onClick={() => onDoIt(task, match)}>
-                <Check size={11} /> Do it
+              <button className="re-btn !w-auto px-3 text-[11px] disabled:opacity-40"
+                      disabled={choices.length > 0 && ticked.length === 0}
+                      onClick={() => onDoIt(task, match, choices.length > 0 ? ticked.map((c) => c.id) : undefined)}>
+                <Check size={11} /> Do it{choices.length > 0 ? ` (${ticked.length} of ${choices.length})` : ""}
               </button>
             )}
             {match && !match.auto_safe && match.tab && (
@@ -369,10 +391,10 @@ export default function OCC() {
   // The tap that confirms a suggestion — and then OCC does it. The server
   // performs the safe ones and says what it did; anything it can't do for you is
   // a door, never a button that pretends.
-  const doSuggestion = async (t, match) => {
+  const doSuggestion = async (t, match, ids) => {
     try {
       const r = await api("/api/economy/occ/suggest/", {
-        method: "POST", body: { key: match.key, confirm: true },
+        method: "POST", body: { key: match.key, confirm: true, ...(ids ? { ids } : {}) },
       });
       flash(r.detail || "Done.");
     } catch (e) { flash(e.message || "Couldn't do that."); }
@@ -386,7 +408,8 @@ export default function OCC() {
     } catch (e) { flash(e.message || "Couldn't undo that."); }
   };
   const cancel = async (t) => {
-    await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }).catch(() => {});
+    try { await api(`/api/economy/occ/taskz/${t.id}/`, { method: "DELETE" }); }
+    catch (e) { flash(e.message || "Couldn't cancel that."); }
     loadTasks();
   };
   // Cross-pollination: OCC's own queue is a place work SITS, not a place a
@@ -494,7 +517,9 @@ export default function OCC() {
   }
 
   async function removeWork(w) {
-    await api(`/api/economy/occ/workz/${w.id}/`, { method: "DELETE" }).catch(() => {});
+    if (!window.confirm(`Remove “${w.title || "this work"}” from your WorkZ? It can't be undone.`)) return;
+    try { await api(`/api/economy/occ/workz/${w.id}/`, { method: "DELETE" }); }
+    catch (e) { flash(e.message || "Couldn't remove that."); }
     loadWorks();
   }
 
@@ -679,7 +704,8 @@ export default function OCC() {
                 </>
               ) : (
                 <>
-                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by @{fromPost.author}.
+                  🎧 Filled from <b className="text-white">{fromPost.title}</b> by{" "}
+                  <button className="hover:underline" onClick={() => openMember(fromPost.author)}>@{fromPost.author}</button>.
                   Rewrite it here and keep the result — the post itself isn't touched.{" "}
                   <button className="re-link" onClick={() => goToSpot("postz", "feed")}>
                     Back to the post
@@ -863,6 +889,35 @@ export default function OCC() {
         </div>
       )}
 
+      {/* Game levels — the tier buys how much of a game OCC builds, never whether.
+          Every level is listed, the locked ones marked, so the next one is visible. */}
+      {!IN_SHELL && spec && asList(spec.game_levels).length > 0 && (
+        <div className="re-card space-y-2">
+          <div className="re-label">🎮 Games OCC builds for you</div>
+          {asList(spec.game_levels).map((lv) => (
+            <div key={lv.key}
+                 className={`rounded-lg border p-2 ${lv.key === spec.game_level
+                   ? "border-mcz-cyan/50 bg-mcz-cyan/5" : "border-white/10"} ${lv.allowed ? "" : "opacity-60"}`}>
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-white/85">
+                {!lv.allowed && <Lock size={10} />}
+                {lv.label}
+                {lv.key === spec.game_level && <span className="pill !text-[9px]">yours</span>}
+                {!lv.allowed && (
+                  <span className="text-[10px] font-normal text-white/45">
+                    needs {TIER_NAME[lv.needs] || lv.needs}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-white/60">{lv.scope}</p>
+              <p className="text-[10px] text-white/40">e.g. {lv.examples} · {lv.languages}</p>
+            </div>
+          ))}
+          <p className="text-[10px] text-white/35">
+            Ask for more than your level and OCC builds your level's version and says what the next adds.
+          </p>
+        </div>
+      )}
+
       {/* Languages — the C++ / Unreal reservation, stated rather than hidden. */}
       {!IN_SHELL && spec && (
         <div className="re-card space-y-2">
@@ -875,7 +930,7 @@ export default function OCC() {
               </span>
             ))}
             {asList(spec.languages_locked).map((l) => (
-              <span key={l.key} className="pill !text-[10px] !text-white/30" title={`Needs ${l.needs}`}>
+              <span key={l.key} className="pill !text-[10px] !text-white/30" title={`Needs ${TIER_NAME[l.needs] || l.needs}`}>
                 <Lock size={9} className="mr-0.5 inline" />{l.name}
               </span>
             ))}

@@ -28,6 +28,9 @@
 //      the room's own list. Both halves are stated on the control, and the
 //      quote comes from the server's own `quote_for` via /quote/ so what the
 //      button says is what the booking will do.
+import Term from "../components/Term.jsx";
+import Empty from "../components/Empty.jsx";
+import ThoroughMark from "../components/ThoroughMark.jsx";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRight, CalendarClock, Check, Handshake, Loader2, MapPin, Mic2, Plus,
@@ -152,6 +155,7 @@ function Quote({ q, mine, host }) {
         {iPay
           ? "Held in CollabZ escrow, not paid outright — refunded if declined or cancelled before it starts, released after the room has run."
           : "Held in CollabZ escrow and paid to you after the room has run, unless it's disputed."}
+        {" "}<Term k="escrow">What is escrow?</Term>
       </p>
 
       {/* Per hour multiplies; an agreed total is the total however long it
@@ -327,6 +331,7 @@ function EscrowLine({ b }) {
     <p className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/45">
       {MONEY} {money(b.quoted_cents)} {ESCROW_SAID[e.status] || e.status}
       {waiting && e.auto_release_at && ` — pays out ${new Date(e.auto_release_at).toLocaleDateString()} unless disputed`}
+      <Term k="escrow">What is escrow?</Term>
       <button className="text-mcz-cyan underline" onClick={() => goToSpot("collabz", "collabz-deals")}>
         Open in CollabZ
       </button>
@@ -389,6 +394,15 @@ function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
   );
 }
 
+// ISO -> the local "YYYY-MM-DDTHH:mm" a datetime-local input needs to show
+// the room's own time back, not UTC.
+function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function Venue({ v, onChanged, onFlash }) {
   const talk = useSay();
   const [asking, setAsking] = useState(false);
@@ -403,6 +417,39 @@ function Venue({ v, onChanged, onFlash }) {
     finally { setBusy(false); }
   };
 
+  // A typo in the price, time, description or capacity used to mean calling
+  // the whole room off — which refunds and closes every real booking — and
+  // reposting from scratch. Each booking's own price is frozen at the moment
+  // it was made, so these fields can move without touching what anybody
+  // already agreed to pay. Not offered here: `kind`, which decides who pays
+  // whom and locks the moment anyone has asked for a seat — changing that is
+  // a different room, not a correction to this one.
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  function startEdit() {
+    setDraft({
+      title: v.title, description: v.description, area: v.area,
+      starts_at: toLocalInput(v.starts_at), hours: String(v.hours),
+      capacity: String(v.capacity), min_age: String(v.min_age),
+      spinaz_price: String(v.spinaz_price || ""),
+    });
+    setEditing(true);
+  }
+  async function saveEdit() {
+    await act(() => api(`/api/economy/venuez/${v.id}/`, {
+      method: "PATCH",
+      body: {
+        title: draft.title.trim(), description: draft.description.trim(), area: draft.area.trim(),
+        starts_at: draft.starts_at ? new Date(draft.starts_at).toISOString() : undefined,
+        hours: Number(draft.hours) || v.hours,
+        capacity: Number(draft.capacity) || v.capacity,
+        min_age: Number(draft.min_age) || 0,
+        ...(v.kind === "spinaz" ? { spinaz_price: Number(draft.spinaz_price) || 0 } : {}),
+      },
+    }), "Updated.");
+    setEditing(false);
+  }
+
   const respond = (id, accept) => act(
     () => api(`/api/economy/venuez/bookings/${id}/respond/`, { method: "POST", body: { accept } }),
     accept ? "They're in — they can see the address now." : "Declined.",
@@ -413,7 +460,7 @@ function Venue({ v, onChanged, onFlash }) {
     "Cancelled.",
   );
 
-  const callOff = () => act(
+  const callOff = () => window.confirm(`Call off “${v.title || v.name || "this"}”? Everyone who asked will see it's off.`) && act(
     () => api(`/api/economy/venuez/${v.id}/`, { method: "DELETE" }),
     "Called off. Everyone who asked can see that.",
   );
@@ -439,7 +486,7 @@ function Venue({ v, onChanged, onFlash }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{v.title}</p>
           <p className="text-xs text-white/55">
-            by @{v.host} · <KindIcon size={11} className="inline" /> {kind.label}
+            by @{v.host}<ThoroughMark mark={v.host_mark} compact /> · <KindIcon size={11} className="inline" /> {kind.label}
             {v.category === "fitness" && <span className="ml-1 text-emerald-300">· {CATEGORY.fitness}</span>}
             {v.status === "cancelled" && (
               <span className="ml-1 text-mcz-ember">· called off</span>
@@ -544,9 +591,66 @@ function Venue({ v, onChanged, onFlash }) {
       {/* ---- The host's side --------------------------------------------- */}
       {v.mine && (
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
-            Who's asked ({v.bookings?.length || 0})
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+              Who's asked ({v.bookings?.length || 0})
+            </p>
+            {!["cancelled", "done"].includes(v.status) && !editing && (
+              <button className="re-btn !w-auto px-3 py-1 text-[11px]" disabled={busy}
+                      onClick={startEdit}>
+                Edit
+              </button>
+            )}
+          </div>
+          {editing && (
+            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <input className="neon-input !py-2 text-xs" placeholder="What is it?"
+                     value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+              <textarea className="neon-input !py-2 text-xs" placeholder="Description"
+                        value={draft.description}
+                        onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+              <input className="neon-input !py-2 text-xs" placeholder="Area — a city or neighbourhood (public)"
+                     value={draft.area} onChange={(e) => setDraft({ ...draft, area: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <input className="neon-input !py-2 text-xs" type="datetime-local"
+                       value={draft.starts_at} onChange={(e) => setDraft({ ...draft, starts_at: e.target.value })} />
+                <input className="neon-input !py-2 text-xs" type="number" min="1" max="24"
+                       placeholder="Hours" value={draft.hours}
+                       onChange={(e) => setDraft({ ...draft, hours: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input className="neon-input !py-2 text-xs" type="number" min="1" max="500"
+                       placeholder="Seats" value={draft.capacity}
+                       onChange={(e) => setDraft({ ...draft, capacity: e.target.value })} />
+                <input className="neon-input !py-2 text-xs" type="number" min="0" max="99"
+                       placeholder="Minimum age (0 = anyone)" value={draft.min_age}
+                       onChange={(e) => setDraft({ ...draft, min_age: e.target.value })} />
+              </div>
+              {v.kind === "spinaz" && (
+                <input className="neon-input !py-2 text-xs" type="number" min="1" inputMode="numeric"
+                       placeholder={`Entry per visitor, in ${SPINAZ}`} value={draft.spinaz_price}
+                       onChange={(e) => setDraft({ ...draft, spinaz_price: e.target.value })} />
+              )}
+              {/* Each booking already made froze its own price at the moment
+                  it was agreed, so none of this moves what anybody already
+                  owes — only what the room says now and what the next person
+                  to ask sees. */}
+              <p className="text-[10px] text-white/35">
+                Nobody who's already booked owes anything different — their price was
+                locked in when they asked.
+              </p>
+              <div className="flex gap-2">
+                <button className="neon-btn-primary !w-auto px-4 py-1.5 text-xs" disabled={busy}
+                        onClick={saveEdit}>
+                  Save
+                </button>
+                <button className="re-btn !w-auto px-4 py-1.5 text-xs" disabled={busy}
+                        onClick={() => setEditing(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           {v.bookings?.length ? (
             <ul className="space-y-2">
               {v.bookings.map((b) => (
@@ -669,7 +773,7 @@ function HostForm({ onCreated, onFlash }) {
 <UsualHint field="venuez.category" value={f.category} onUse={(v) => { remember("venuez.category", v); setF({ ...f, category: v }); }} />
 
       <div className="space-y-1">
-        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
+        <select aria-label="Kind of booking" data-memo="own" className="neon-input !py-2 text-xs" value={f.kind} onChange={set("kind")}>
           <option value="performance">{f.category === "fitness" ? "Training — they pay your Weightlifter rates" : "Performance — they come for you"}</option>
           <option value="session">Session 🤝 — you want the room full</option>
           <option value="free">Free — nobody pays</option>
@@ -693,7 +797,7 @@ function HostForm({ onCreated, onFlash }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <select data-memo="own" className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
+        <select aria-label="Pricing basis" data-memo="own" className="neon-input !py-2 text-xs" value={f.basis} onChange={set("basis")}>
           <option value="hour">Per hour</option>
           <option value="total">Agreed total</option>
         </select>
@@ -847,7 +951,7 @@ export default function VenueZ() {
       {tab === "mine" && venues && (
         <div className="space-y-3">
           {mine.length === 0 ? (
-            <p className="text-sm text-white/45">You haven't put a room up yet.</p>
+            <Empty text="You haven't put a room up yet." action="Put one up" onAction={() => goToSpot("venuez", "venuez-host")} />
           ) : mine.map((v) => (
             <Venue key={v.id} v={v} onChanged={load} onFlash={flash} />
           ))}

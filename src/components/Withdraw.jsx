@@ -6,6 +6,7 @@
 // Bank details never touch this app: "Connect" opens the provider's own
 // onboarding, and it sends the member back here with ?payout=done, which
 // is when this asks the provider whether they can be paid yet.
+import LoadGate from "./LoadGate.jsx";
 import { useEffect, useState } from "react";
 import { Banknote, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { api } from "../api.js";
@@ -25,7 +26,9 @@ export default function Withdraw() {
   const [busy, setBusy] = useState("");
   const [amount, setAmount] = useState("");
 
-  const load = () => api("/api/economy/payouts/").then(setData).catch((e) => setErr(e.message));
+  const [loadErr, setLoadErr] = useState("");
+  const load = () => api("/api/economy/payouts/").then((d) => { setData(d); setLoadErr(""); })
+    .catch((e) => setLoadErr(e.message || "Withdrawals didn't load."));
 
   useEffect(() => {
     const back = new URLSearchParams(window.location.search).get("payout");
@@ -41,7 +44,7 @@ export default function Withdraw() {
   }, []);
 
   if (err && !data) return <p className="re-card text-[13px] text-mcz-ember">{err}</p>;
-  if (!data) return <p className="flex items-center gap-2 text-white/50"><Loader2 size={14} className="animate-spin" /> Loading withdrawals…</p>;
+  if (!data) return <LoadGate error={loadErr} what="withdrawals" onRetry={() => { setLoadErr(""); load(); }} />;
 
   const q = data.quote || {};
   const cents = amount ? Math.round(parseFloat(amount) * 100) || 0 : q.balance_cents;
@@ -131,7 +134,7 @@ export default function Withdraw() {
           </ul>
         )}
         {msg && <p className="text-[13px] text-emerald-300">{msg}</p>}
-        {err && <p className="text-[13px] text-mcz-ember">{err}</p>}
+        {err && <p role="alert" className="text-[13px] text-mcz-ember">{err}</p>}
       </div>
 
       {data.payouts?.length > 0 && (

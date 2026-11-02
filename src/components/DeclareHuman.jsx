@@ -29,3 +29,26 @@ export default function DeclareHuman({ checked, onChange }) {
     </label>
   );
 }
+
+// "Let people hear it." The card is public by link, so the recording reaching it is
+// the member's choice per card — never a default — and only possible when the take's
+// recording was kept. The server refuses (with the reason) when there is nothing to play.
+export async function playOnCard(url, play) {
+  const token = tokenOf(url);
+  if (!token) return null;
+  return api(`/api/economy/scores/${encodeURIComponent(token)}/media/`, { method: "POST", body: { play } });
+}
+
+export function PlayOnCard({ checked, onChange }) {
+  return (
+    <label className="flex items-start gap-2 text-[11px] text-white/60">
+      <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        Let people hear it — the card plays your recording.
+        <span className="block text-white/40">
+          Anyone with the link can play it. Untick and share again to take it off the card.
+        </span>
+      </span>
+    </label>
+  );
+}

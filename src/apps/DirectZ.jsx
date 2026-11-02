@@ -16,6 +16,9 @@
 // doesn't fit MovieZ, it fits ReelZ" — but only after the upload, which is the
 // right answer at the wrong moment when the thing uploaded is a three-hour film.
 // The same answer arrives here first.
+import AiEnergy from "../components/AiEnergy.jsx";
+import { Price } from "../components/Price.jsx";
+import { PROMPTZ } from "../resources.js";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Clapperboard, Loader2 } from "lucide-react";
 import { api } from "../api.js";
@@ -50,7 +53,7 @@ export default function DirectZ() {
   const [form, setForm] = useState({ fmt: recall("directz.fmt") || "reelz", genre: recall("directz.genre") || "",
                                      video_type: recall("directz.video_type") || "",
                                      title: "", description: "",
-                                     craft_rating: false });
+                                     craft_rating: false, craft_extras: [] });
   const [work, setWork] = useState({});
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -137,7 +140,7 @@ export default function DirectZ() {
         },
       });
       setForm({ fmt: form.fmt, genre: "", video_type: "", title: "",
-                description: "", craft_rating: false });
+                description: "", craft_rating: false, craft_extras: [] });
       setWork({}); setSeconds(0);
       setShowUploadLimitPrompt(false);
       setMsg(talk(P.directz_posted));
@@ -263,7 +266,7 @@ export default function DirectZ() {
                       — uses 1 of the {spec.craft.daily_prompts_left} 🏷️ you have left
                     </span>
                   </span>
-                : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>}
+                : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>} <AiEnergy />
               <span className="block text-white/35">
                 {spec.craft.note}
                 {!spec.craft.affordable && " You're out of prompts and balance for today."}
@@ -282,6 +285,20 @@ export default function DirectZ() {
               )}
             </span>
           </label>
+        )}
+        {spec?.craft?.configured && form.craft_rating && Object.keys(spec.craft.extras || {}).length > 0 && (
+          // Options, not part of the rating: each sits beside the score and never moves it, at no extra price.
+          <fieldset className="ml-6 space-y-1 text-[11px] text-white/60">
+            <legend className="text-white/70">Add to the rating <span className="text-white/35">(optional, same price)</span></legend>
+            {Object.entries(spec.craft.extras).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2">
+                <input type="checkbox" checked={form.craft_extras.includes(k)}
+                       onChange={(e) => setForm({ ...form, craft_extras: e.target.checked
+                         ? [...form.craft_extras, k] : form.craft_extras.filter((x) => x !== k) })} />
+                <span>{label}{k === "mainstream" ? " — reach, not quality" : ""}</span>
+              </label>
+            ))}
+          </fieldset>
         )}
 
         {msg && (
@@ -305,6 +322,13 @@ export default function DirectZ() {
         <button className="neon-btn-primary" disabled={busy || !fits}>
           {busy ? <Loader2 className="animate-spin" size={16} /> : <Clapperboard size={16} />}
           Post to DirectZ
+          {/* The craft rating is what this press spends, so its price rides on the
+              button as well as on the box that turns it on. */}
+          {form.craft_rating && spec?.craft && (
+            <span className="ml-2 text-[12px]">
+              <Price amount={spec.craft.cost_cents} emoji={PROMPTZ} freeToday={!!spec.craft.free_today} />
+            </span>
+          )}
         </button>
       </form>
 

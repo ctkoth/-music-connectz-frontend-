@@ -8,6 +8,24 @@ import { readStore, writeStore } from "./PickConnectZ.jsx";
 
 const KEY = "mcz_persona_icons";
 
+// The one [key, label, defaultIcon] table for every PersonaZ. ProfileZ's
+// picker and Social ConnectZ's member cards both need "producer" to mean
+// the same label and default art, so this lives here once rather than as a
+// copy in each file that would drift.
+export const PERSONAS = [
+  ["arscout", "A&R Scout", "personaz_arscout.png"],
+  ["designer", "Designer", "personaz_designer.png"],
+  ["developer", "Developer", "personaz_developer.png"],
+  ["director", "Director", "personaz_director.webp"],
+  ["ghostwriter", "GhostWriter", "personaz_ghostwriter.png"],
+  ["indieartist", "Indie Artist", "personaz_indieartist.png"],
+  ["manager", "Manager", "personaz_manager.png"],
+  ["mime", "Mime", "personaz_mime.png"],
+  ["mixengineer", "Mix Engineer", "personaz_mixengineer.png"],
+  ["producer", "Producer", "personaz_producer.png"],
+  ["videographer", "Videographer", "personaz_videographer.png"],
+];
+
 export const PERSONA_ICON_VARIANTS = {
   designer: [
     { icon: "personaz_designer.png", label: "Standard" },

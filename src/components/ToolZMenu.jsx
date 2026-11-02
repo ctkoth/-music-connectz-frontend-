@@ -1,11 +1,14 @@
 import VersionBadge from "./VersionBadge.jsx";
 import React, { useState } from 'react';
+import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
-import { canMini, slugFor } from '../App.jsx';
+import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { IconImg } from '../App.jsx';
-import { FOCUS_MODE, FOCUS_COACHES, FOCUS_SUPPORT } from '../focus.js';
+import { IconImg, tabKeys, tabMeta } from '../App.jsx';
+import { readStore } from '../PickConnectZ.jsx';
+import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
+import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT } from '../focus.js';
 import './ToolZMenu.css';
 
 // Each tile draws through the SAME registry key the tab strip uses (App.jsx
@@ -23,31 +26,36 @@ const ICON_KEY = {
   onboardz: "onboardz.png", logz: "logz.png", profilez: "profilez.png", voicez: "voicez.png",
   widgetz: "playlistz.png", keyconnectz: "keyconnectz.png", venuez: "venuez.png",
   directz: "directz.png", statez: "statsz.png", funnelz: "funnelz.png", groupz: "groupz.png",
-  merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png",
+  budgetz: "budgetz.jpg", merchz: "merchz.png", beatz: "beatz.png", lilith: "lilithz.png", bodiez: "bodiez.png", lookmaxz: "lookmaxz.png",
   journalz: "journalz.jpg", metz: "metz.jpg", tunerz: "tunerz.jpg", chordz: "chordz.jpg", breathz: "breathz.png", viewz: "viewz.png",
   intelligencez: "intelligencez.png", mixconnectz: "mixconnectz.png", imageconnectz: "imageconnectz.png", videoconnectz: "videoconnectz.png",
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png",
+  // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
+  // music note and the raw key — the registry knowing a picture is not this menu knowing it.
+  filez: "filez.png",
 };
 const EMOJI = {
   singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
-  funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", journalz: "📔",
+  budgetz: "💰", funnelz: "📉", groupz: "👫", merchz: "🛍️", beatz: "🎹", lilith: "💃", bodiez: "💪", lookmaxz: "✨", journalz: "📔",
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️",
+  filez: "🗂️",
 };
 
 // One app, several doors: CharacterZ and VoiceZ StyleZ sit under DesignZ AND
 // DirectZ (and VoiceZ StyleZ under MangaZ's group), because a character is
 // drawn in one place and directed in another. Same key, same app — listing it
 // twice is a second door, never a second copy.
-const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ', soon: true };
+const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ, and a voice' };
 const VOICEZ_STYLEZ = { key: 'voicezstylez', label: 'VoiceZ StyleZ', color: 'magenta', desc: 'Voices for your CharacterZ', soon: true };
 
 // Flatten apps from grouped structure
@@ -121,7 +129,7 @@ const TOOLZ_MENU = {
     {
       group: 'Quick Connect',
       apps: [
-        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects & dating', soon: true },
+        { key: 'infernoz', label: 'InfernoZ', color: 'orange', desc: 'Short-term projects, and dating for 18+', soon: true },
       ]
     },
     {
@@ -152,6 +160,14 @@ const TOOLZ_MENU = {
         { key: 'chordz', label: 'ChordZ', color: 'magenta', desc: 'Chords, progressions & voicings' },
         { key: 'breathz', label: 'BreathZ', color: 'cyan', desc: 'Free breath training — box, long exhale, bar breathing' },
         { key: 'journalz', label: 'JournalZ', color: 'yellow', desc: 'A private practice diary' },
+        { key: 'budgetz', label: 'BudgetZ', color: 'green', desc: 'Planner for finances — free by hand, StatZ links your bank' },
+      ]
+    },
+    {
+      group: 'Editors',
+      apps: [
+        { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
+        { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
       ]
     },
     {
@@ -215,7 +231,7 @@ const TOOLZ_MENU = {
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ', soon: true },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
       ]
     },
     {
@@ -238,6 +254,10 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'profilez', label: 'ProfileZ', color: 'cyan', desc: 'Edit your profile' },
         { key: 'voicez', label: 'VoiceZ', color: 'magenta', desc: 'Your voices — and which one the coach, the writer and OCC speak in' },
+        // LookZMaxZ had a route and no door — reachable only by typing its address. Corey's
+        // art files it under ProfileZ (profilez.lookzmaxz.jpg). Adults only: the screen
+        // refuses an unverified member with the server's sentence.
+        { key: 'lookmaxz', label: 'LookZMaxZ', color: 'magenta', desc: '18+: hair, skin, teeth and styling rated 1-10 from a photo, with what to do about each' },
       ]
     },
     {
@@ -255,7 +275,7 @@ const TOOLZ_MENU = {
     {
       group: 'Draw & create',
       apps: [
-        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Comics and manga from your CharacterZ', soon: true },
+        { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
       ]
@@ -305,7 +325,7 @@ const FOCUS_LABEL = {
   drumz: 'DrumZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
-  bodiez: 'BodieZ',
+  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith',
 };
 
 function FocusTile({ appKey, onOpen, big }) {
@@ -322,13 +342,57 @@ function FocusTile({ appKey, onOpen, big }) {
   );
 }
 
+// A PARENT: opens the whole ToolZ category (every app under it, with Open / Window / Split), not one
+// app. Same card the "More apps" grid draws, lifted to the front.
+// "Your apps": the member's own, from what they pin and open (yourApps.js, kept on the device).
+function yourAppsNow() {
+  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [],
+                 seeds: readSeeds(), exclude: ['toolz'], valid: tabKeys() };
+  return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
+}
+
+function YourAppTile({ appKey, onOpen }) {
+  const t = tabMeta(appKey);
+  if (!t) return null;
+  return (
+    <button className="category-card cyan" onClick={() => onOpen(appKey)}>
+      <IconImg icon={t.icon} alt={t.label} className="category-icon-img"
+               fallback={<span style={{ fontSize: 28 }}>{EMOJI[appKey] || '🎵'}</span>} />
+      <div className="category-label">{t.label}</div>
+    </button>
+  );
+}
+
+function ParentTile({ categoryKey, onOpen }) {
+  const c = CATEGORIES.find((x) => x.key === categoryKey);
+  if (!c) return null;
+  return (
+    <button className={`category-card ${c.color}`} onClick={() => onOpen(categoryKey)}>
+      <IconImg icon={CATEGORY_ICON_KEY[categoryKey]} alt={c.label} className="category-icon-img" />
+      <div className="category-label">{c.label}</div>
+    </button>
+  );
+}
+
 export default function ToolZMenu() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   // Focus mode: the coach leads and the thirteen categories wait behind one
   // tap. They are all still here — see focus.js for why they are not offered.
   const [showMore, setShowMore] = useState(!FOCUS_MODE);
+  // Two ways into the same apps: by the instrument you play, or by what you need.
+  // The choice is a per-device convenience, so storage failing changes nothing.
+  const [lens, setLens] = useState(() => {
+    try { return localStorage.getItem('mcz-home-lens') === 'need' ? 'need' : 'instrument'; } catch { return 'instrument'; }
+  });
+  const pickLens = (v) => {
+    setLens(v);
+    try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
+  };
   const openFocus = (key) => goToSpot(key, `${key}:main`);
+  // Read once per visit to the home screen: what this member uses leads, the rest folds away.
+  const [mine] = useState(yourAppsNow);
+  const [showAll, setShowAll] = useState(false);
   const [hoveredApp, setHoveredApp] = useState(null);
 
   // Where a tile goes. Most tiles ARE a tab; some are a door into one (a
@@ -346,7 +410,7 @@ export default function ToolZMenu() {
     if (openType === 'window') {
       // `//rapz` is a protocol-relative URL — it opened a HOST called rapz.
       if (app.preset) presetDirectzFormat(app.preset);
-      window.open(`/${slugFor(tabOf(app))}`, '_blank', 'noopener');
+      window.open(pathFor(tabOf(app)), '_blank', 'noopener');
     } else if (openType === 'split') {
       if (app.preset) presetDirectzFormat(app.preset);
       window.dispatchEvent(new CustomEvent('mcz-split', { detail: tabOf(app) }));
@@ -454,20 +518,58 @@ export default function ToolZMenu() {
     <div className="toolz-menu-container">
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
-        <h1>Music ConnectZ</h1>
+        <h1>MusicConnectZ.Net</h1>
+        <p className="toolz-subtitle">✨ AI Coaching & Gamified👾 way to make professional💲 portfolio📑 of your music🎶 related work❓</p>
         <p className="toolz-subtitle">
-          {FOCUS_MODE ? 'Score a take. Send it again. Watch the number move.' : 'Every app, one place'}
+          {FOCUS_MODE ? '🎤 Score a take. Send it again. Watch the number move.' : '🧰 Every app, one place'}
         </p>
       </div>
 
       {FOCUS_MODE && (
+        <div role="tablist" aria-label="How to find an app" className="toolz-lens"
+             style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
+          {/* Corey's art carries the words, so the alt text says them too. */}
+          {[['instrument', 'By what I do', '/icons/what.i.do.jpg'],
+            ['need', 'By what I need', '/icons/what.i.need.jpg']].map(([k, text, art]) => (
+            <button key={k} role="tab" aria-selected={lens === k} aria-label={text} title={text}
+              className={`category-card ${lens === k ? 'cyan' : ''}`}
+              style={{ padding: 4, opacity: lens === k ? 1 : 0.55, width: 'min(42vw, 190px)' }}
+              onClick={() => pickLens(k)}>
+              <img src={art} alt={text} style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 10, display: 'block' }} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {FOCUS_MODE && lens === 'need' && (
+        <NeedsView onOpen={openFocus} />
+      )}
+
+      {FOCUS_MODE && mine.apps.length > 0 && (
+        <>
+          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
+          <div className="category-grid">
+            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
+          </div>
+          {mine.own && (
+            <button className="toolz-more-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
+              {showAll ? 'Hide the coaches & tools' : 'All coaches & tools'}
+            </button>
+          )}
+        </>
+      )}
+
+      {FOCUS_MODE && lens === 'instrument' && (!mine.own || showAll) && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
           <div className="category-grid">
             {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
+            {/* SkillZ is the coaches' own skill tree: a coach app, so it sits with them. */}
+            {FOCUS_COACH_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
           </div>
           <p className="toolz-subtitle" style={{ margin: '20px 0 8px' }}>Around the coach</p>
           <div className="category-grid">
+            {FOCUS_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
             {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
           <button

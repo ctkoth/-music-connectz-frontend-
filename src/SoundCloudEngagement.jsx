@@ -60,7 +60,7 @@ export default function SoundCloudEngagement() {
       // Show toast for reward
       if (res.reward.energy || res.reward.spinaz) {
         console.log(
-          `+${res.reward.energy}⚡ +${res.reward.spinaz}🍥 for ${kind}!`
+          `+${res.reward.energy}⚡${res.reward.spinaz ? ` +${res.reward.spinaz}🍥` : ""} for ${kind}!`
         );
       }
     } catch (e) {
@@ -102,8 +102,7 @@ export default function SoundCloudEngagement() {
 
         <p className="text-xs text-white/50 mb-3">
           Your SoundCloud audience is your audience here too. Earn{" "}
-          <span className="text-emerald-300">⚡</span> and{" "}
-          <span className="text-emerald-300">🍥</span> for engagement on your
+          <span className="text-emerald-300">⚡</span> for engagement on your
           tracks.
         </p>
 
@@ -212,9 +211,9 @@ export default function SoundCloudEngagement() {
             <span className="text-emerald-300">
               +{rewards[kind]?.energy || 0} ⚡
             </span>
-            <span className="text-emerald-300">
-              +{rewards[kind]?.spinaz || 0} 🍥
-            </span>
+            {rewards[kind]?.spinaz > 0 && (
+              <span className="text-emerald-300">+{rewards[kind].spinaz} 🍥</span>
+            )}
           </div>
         </div>
       </div>

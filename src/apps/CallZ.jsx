@@ -21,6 +21,7 @@ import { onHandoff } from "../handoff.js";
 import { Loader2, Phone, PhoneOff, PhoneIncoming, Mic, MicOff, AlertTriangle } from "lucide-react";
 
 import { api } from "../api.js";
+import { IconImg } from "../App.jsx";
 import { asList } from "../shape.js";
 import { MONEY } from "../resources.js";
 import { playSound } from "../sound.js";
@@ -34,6 +35,8 @@ export default function CallZ() {
   const [who, setWho] = useState("");
   useEffect(() => onHandoff("callz", (p) => { if (p.username) setWho(String(p.username)); }), []);
   const [quote, setQuote] = useState(null);      // GET /callz/rate/<who>/
+  // Which of their hourly skills this call is ABOUT. "" = the cheapest, the server's default.
+  const [skill, setSkill] = useState("");
   const [busy, setBusy] = useState(false);
   const [muted, setMuted] = useState(false);
   const [note, setNote] = useState("");
@@ -131,7 +134,7 @@ export default function CallZ() {
   // ---- actions -------------------------------------------------------------
 
   async function getQuote(name) {
-    setQuote(null); setNote("");
+    setQuote(null); setSkill(""); setNote("");
     if (!name.trim()) return;
     try {
       setQuote(await api(`/api/economy/callz/rate/${encodeURIComponent(name.trim())}/`));
@@ -147,7 +150,7 @@ export default function CallZ() {
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       const call = await api("/api/economy/callz/", {
-        method: "POST", body: { username: quote.username, offer_sdp: offer.sdp },
+        method: "POST", body: { username: quote.username, offer_sdp: offer.sdp, ...(skill ? { skill } : {}) },
       });
       // Now the queue has somewhere to go. Anything that arrived while the
       // request was in flight is still queued and goes out on this flush.
@@ -229,6 +232,13 @@ export default function CallZ() {
   return (
     <div className="space-y-4">
       <audio ref={remoteAudio} autoPlay />
+      <header className="flex items-center gap-3">
+        <IconImg icon="callz.png" alt="CallZ" className="h-11 w-11 rounded-xl" />
+        <div>
+          <h2 className="font-display text-xl font-extrabold">CallZ</h2>
+          <p className="text-sm text-white/60">A live 1:1 voice call with another member. Their per-minute rate, your balance and the minutes it buys are shown before anything rings.</p>
+        </div>
+      </header>
 
       {err && (
         <p className="re-card flex items-start gap-2 text-sm text-mcz-ember">
@@ -309,8 +319,26 @@ export default function CallZ() {
             </button>
           </div>
 
-          {quote && (
+          {quote && (() => {
+            // The rate for THIS call: the skill picked, else the server's default (cheapest).
+            const picked = (quote.skills || []).find((s) => s.name === skill);
+            const perMin = picked ? picked.per_min_cents : quote.rate_cents_per_min;
+            const minutes = perMin ? Math.floor((quote.your_money_cents || 0) / perMin) : null;
+            return (
             <div className="space-y-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+              {(quote.skills || []).length > 1 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] text-white/45">Call about (each skill they price by the hour):</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quote.skills.map((s) => (
+                      <button key={s.name} type="button" onClick={() => setSkill(s.name)}
+                              className={`pill ${(skill || quote.skills[0].name) === s.name ? "!bg-white/15 !text-white" : ""}`}>
+                        {s.name} · {usd(s.per_min_cents)}/min
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {/* The rule, on screen: their rate, your balance, and how long
                   you can afford — all before the Call button exists. */}
               <p className="text-[13px]">
@@ -318,12 +346,12 @@ export default function CallZ() {
                 {quote.free
                   ? <span className="text-emerald-300"> hasn't priced a skill — this call is free.</span>
                   : <> costs <span className="font-bold text-mcz-ember">
-                      −{usd(quote.rate_cents_per_min)} {MONEY}</span> a minute.</>}
+                      −{usd(perMin)} {MONEY}</span> a minute{picked ? <> for {picked.name}</> : ""}.</>}
               </p>
               {!quote.free && (
                 <p className="text-[11px] text-white/45">
                   You have {usd(quote.your_money_cents)} {MONEY} — about{" "}
-                  <b className="text-white/70">{quote.affordable_minutes} minutes</b>. Up to{" "}
+                  <b className="text-white/70">{minutes ?? quote.affordable_minutes} minutes</b>. Up to{" "}
                   {quote.max_escrow_minutes} minutes is held when they answer and the rest
                   comes straight back when the call ends.
                 </p>
@@ -332,7 +360,7 @@ export default function CallZ() {
                 <button className="neon-btn-primary !w-auto px-5" disabled={busy}
                         onClick={place}>
                   <Phone size={15} /> Call {quote.username}
-                  {!quote.free && ` · ${usd(quote.rate_cents_per_min)}/min`}
+                  {!quote.free && ` · ${usd(perMin)}/min`}
                 </button>
               ) : (
                 <p className="text-[12px] text-white/60">
@@ -349,7 +377,8 @@ export default function CallZ() {
                 </p>
               )}
             </div>
-          )}
+            );
+          })()}
           {note && <p className="text-[13px] text-white/70">{note}</p>}
         </div>
       )}

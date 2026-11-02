@@ -1,14 +1,23 @@
-import { useState } from "react";
+import SocialBar from "./SocialBar.jsx";
+import { genreLabel } from "../genres.js";
+import { Price } from "./Price.jsx";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { openDoor } from "../doors.js";
 import { api } from "../api.js";
 import { shareLink, shareText } from "../shareText.js";
-import DeclareHuman, { declareHuman } from "./DeclareHuman.jsx";
+import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "./DeclareHuman.jsx";
 import { shellHas, IN_SHELL } from "../standalone.js";
 import PromoPost from "./PromoPost.jsx";
+import PostTake from "./PostTake.jsx";
+import { FeelzTips, MixTips } from "./FeelTips.jsx";
+import HashtagCount, { hashtagBody } from "./HashtagCount.jsx";
+import { useRemembered } from "../useRemembered.js";
+import { saveText } from "../download.js";
 import { PROMPTZ } from "../resources.js";
-import { RatingGrid, RatingNumber } from "./Rating.jsx";
+import { RatingGrid, RatingNumber, RatingRow } from "./Rating.jsx";
+import { DEFAULT_FILTER, DEFAULT_SORT, filterTakes, genresOf, isDefault, needsAll, sortTakes } from "../takeSort.js";
 
 // The coach's recent submissions, and where each one can go next.
 //
@@ -27,12 +36,8 @@ import { RatingGrid, RatingNumber } from "./Rating.jsx";
 // in the coach was scored and not kept. The panel says so rather than letting
 // "export" imply the recording goes too.
 
-function Cost({ cost }) {
-  if (!cost) return null;
-  return cost.free_today
-    ? <span className="text-emerald-300">free today</span>
-    : <span className="text-mcz-ember">−{cost.amount} {PROMPTZ}</span>;
-}
+// The shared price label (components/Price.jsx), fed this screen's quote shape.
+const Cost = ({ cost }) => (cost ? <Price amount={cost.amount} emoji={PROMPTZ} freeToday={!!cost.free_today} /> : null);
 
 function Row({ t, labels, appKey }) {
   const [open, setOpen] = useState(false);
@@ -42,10 +47,18 @@ function Row({ t, labels, appKey }) {
   const [promo, setPromo] = useState(null);
   const [promoBusy, setPromoBusy] = useState(false);
   const [promoMsg, setPromoMsg] = useState("");
+  const [promoFor, setPromoFor] = useState("post");
+  const [tags, setTags] = useRemembered("promo-hashtags", "");
+  const [posting, setPosting] = useState(false);
   const read = t.read || {};
+  // Only a take whose recording was kept can play on its card.
+  const canPlay = !!(t.file?.kept && t.file.url);
+  const [play, setPlay] = useState(false);
   // The promo post is a paid Sentence ConnectZ run, and no standalone shell has
   // that writer in its listing or its data-safety answers — so no shell offers it.
-  const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"));
+  const doors = (t.exports || []).filter((e) => shellHas(e.tab) && !(IN_SHELL && e.kind === "promo"))
+    // A post is PostZ's, and no standalone shell has PostZ.
+    .filter((e) => !(IN_SHELL && e.kind === "post_take"));
   // "Share this score" is not a handoff to another screen: it asks the server for
   // the public link of THIS take (minted once, from what the coach said), then
   // opens the device's share sheet — or copies — with the link in it.
@@ -55,25 +68,35 @@ function Row({ t, labels, appKey }) {
       const r = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(r.share_url);
       try { await declareHuman(r.share_url, human); } catch { /* shared without the claim */ }
-      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb }), url: r.share_url });
+      if (canPlay) {
+        try { await playOnCard(r.share_url, play); }
+        catch (e) { setShareMsg(e.message || "The card will show the score without the recording."); }
+      }
+      const how = await shareLink({ text: shareText({ score: t.overall, exact: t.exact, pb: t.pb, extras: t.extras }), url: r.share_url });
       setShareMsg(how === "shared" ? "Shared." : how === "copied" ? "Link copied — paste it anywhere." : "");
     } catch (e) { setShareMsg(e.message || "Couldn't make the link."); }
   }
   // "Write a promo post" is the share link (free) and then one paid writer run: the
   // link first so the declaration is on the card before the text points at it.
-  async function promoIt() {
+  async function promoIt(kind = "post") {
     if (promoBusy) return;
-    setPromoBusy(true); setPromoMsg(""); setPromo(null);
+    setPromoBusy(true); setPromoMsg(""); setPromo(null); setPromoFor(kind);
     try {
       const sh = await api(`/api/${appKey}/take/${t.id}/share/`, { method: "POST" });
       setShareUrl(sh.share_url);
       try { await declareHuman(sh.share_url, human); } catch { /* the post is written without the claim */ }
-      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST" });
+      const r = await api(`/api/${appKey}/take/${t.id}/promo/`, { method: "POST", body: { kind, ...hashtagBody(tags) } });
       setPromo(r);
     } catch (e) { setPromoMsg(`${e.message || "Couldn't write it."} Nothing was charged.`); }
     finally { setPromoBusy(false); }
   }
-  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt() : openDoor(e));
+  const [dlMsg, setDlMsg] = useState("");
+  async function downloadIt(fmt) {
+    setDlMsg("");
+    try { saveText(await api(`/api/${appKey}/take/${t.id}/download/?format=${fmt}`)); }
+    catch (e) { setDlMsg(e.message || "Couldn't make the file."); }
+  }
+  const go = (e) => (e.kind === "share" ? shareIt() : e.kind === "promo" ? promoIt(e.promo_kind) : e.kind === "download" ? downloadIt("txt") : e.kind === "post_take" ? setPosting((p) => !p) : openDoor(e));
   return (
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
@@ -82,7 +105,7 @@ function Row({ t, labels, appKey }) {
         <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
         {t.pb && <span className="rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏆 Personal best</span>}
         <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
-        {t.genre && <span className="text-white/35">{t.genre}</span>}
+        {t.genre && <span className="text-white/35">{genreLabel(t.genre)}</span>}
         {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
         {t.range_class && <span className="text-white/35">{t.range_class}</span>}
       </button>
@@ -97,6 +120,17 @@ function Row({ t, labels, appKey }) {
                     {read.verdict && <p className="text-white/75">{read.verdict}</p>}
           <RatingGrid rows={Object.entries(t.scores || {}).filter(([k]) => labels[k]).map(([k, v]) => ({
             key: k, label: labels[k], value: v }))} />
+          {t.extras?.length > 0 && (
+            <div className="space-y-1.5">
+              {t.extras.map((x) => (
+                <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                  detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
+              ))}
+              {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}
+              <FeelzTips tips={t.extras.find((x) => x.key === "feelz")?.tips} cause={t.extras.find((x) => x.key === "feelz")?.cause?.label} />
+            </div>
+          )}
+          <MixTips tips={t.mix_tips} />
           {read.strengths?.length > 0 && (
             <div>
               <p className="text-[10px] uppercase tracking-widest text-emerald-300/80">What worked</p>
@@ -134,11 +168,13 @@ function Row({ t, labels, appKey }) {
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   {(e.kind === "share" || e.kind === "promo") && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
-                  <button onClick={() => go(e)} data-door={e.key} disabled={e.kind === "promo" && promoBusy}
+                  {e.kind === "share" && canPlay && <div className="basis-full"><PlayOnCard checked={play} onChange={setPlay} /></div>}
+                  <button onClick={() => go(e)} data-door={e.key} disabled={(e.kind === "promo" && promoBusy)}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
                     {e.label}
                   </button>
                   <Cost cost={e.cost} />
+                  {e.kind === "promo" && <HashtagCount value={tags} onChange={setTags} />}
                   <span className="text-[11px] text-white/45">{e.note}</span>
                   {e.kind === "share" && shareUrl && (
                     <span className="flex flex-wrap gap-2 text-[11px]">
@@ -148,9 +184,14 @@ function Row({ t, labels, appKey }) {
                     </span>
                   )}
                   {e.kind === "share" && shareMsg && <span className="text-[11px] text-emerald-300">{shareMsg}</span>}
-                  {e.kind === "promo" && promoBusy && <span className="text-[11px] text-white/50">Writing…</span>}
-                  {e.kind === "promo" && promoMsg && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
-                  {e.kind === "promo" && promo && <PromoPost key={promo.id} promo={promo} onClose={() => setPromo(null)} />}
+                  {e.kind === "share" && shareUrl && (
+                    <div className="basis-full pt-1"><SocialBar item={`score:${shareUrl.replace(/^\/s\//, "")}`} canRate={false} compact /></div>
+                  )}
+                  {e.kind === "promo" && promoBusy && promoFor === e.promo_kind && <span className="text-[11px] text-white/50">Writing…</span>}
+                  {e.kind === "promo" && promoMsg && promoFor === e.promo_kind && <span className="text-[11px] text-mcz-ember">{promoMsg}</span>}
+                  {e.kind === "promo" && promo && e.promo_kind === promoFor && <PromoPost key={`${promo.id}-${promoFor}`} promo={promo} onClose={() => setPromo(null)} />}
+                  {e.kind === "post_take" && posting && <PostTake appKey={appKey} take={t} onClose={() => setPosting(false)} />}
+                  {e.kind === "download" && (<><button type="button" onClick={() => downloadIt("json")} className="text-[11px] text-white/55 underline">as JSON</button>{t.file?.kept && t.file.url && <a href={t.file.url} download className="text-[11px] text-mcz-cyan underline">Download the recording</a>}{dlMsg && <span className="text-[11px] text-mcz-ember">{dlMsg}</span>}</>)}
                 </div>
               ))}
               <p className="text-[11px] text-white/35">
@@ -164,15 +205,77 @@ function Row({ t, labels, appKey }) {
   );
 }
 
-export default function RecentTakes({ takes, dimensions, appKey }) {
-  if (!takes?.length) return null;
+export default function RecentTakes({ takes, dimensions, appKey, total, showingAll, onShowAll }) {
+  const [sort, setSort] = useState(DEFAULT_SORT);
+  const [filter, setFilter] = useState(DEFAULT_FILTER);
+  const [allMsg, setAllMsg] = useState("");
+  // Any order but newest-first, and any filter, is only true over EVERY take — the ten
+  // newest sorted by score are not the member's best ten — so asking for one loads the rest.
+  useEffect(() => { if (needsAll(sort, filter) && !showingAll && onShowAll) onShowAll(); }, [sort, filter, showingAll, onShowAll]);
   const labels = Object.fromEntries((dimensions || []).map((d) => [d.key, d.label]));
+  const list = useMemo(() => sortTakes(filterTakes(takes || [], filter), sort), [takes, sort, filter]);
+  const genres = useMemo(() => genresOf(takes || []), [takes]);
+  if (!takes?.length) return null;
+  const loading = needsAll(sort, filter) && !showingAll;
+  const downloadAll = async (fmt) => {
+    setAllMsg("");
+    try { saveText(await api(`/api/${appKey}/takes/export/?format=${fmt}`)); }
+    catch (e) { setAllMsg(e.message || "Couldn't make the file."); }
+  };
   return (
     <div>
       <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Recent takes</p>
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]" data-take-controls>
+        <label className="flex items-center gap-1.5 text-white/55">Sort by
+          <select data-nomemo="true" value={sort.by} onChange={(e) => setSort((x) => ({ ...x, by: e.target.value }))}
+                  className="neon-input !w-auto !py-0.5 text-[12px]">
+            <option value="date">Date</option>
+            <option value="overall">Overall score</option>
+            {(dimensions || []).map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+          </select>
+        </label>
+        <button type="button" data-sort-dir onClick={() => setSort((x) => ({ ...x, dir: x.dir === "asc" ? "desc" : "asc" }))}
+                className="rounded-md bg-white/10 px-2 py-0.5 text-white/70 hover:bg-white/15"
+                title="Flip the order">
+          {sort.by === "date" ? (sort.dir === "desc" ? "Newest first ↓" : "Oldest first ↑")
+            : (sort.dir === "desc" ? "Highest first ↓" : "Lowest first ↑")}
+        </button>
+        <label className="flex items-center gap-1.5 text-white/55">
+          <input type="checkbox" checked={filter.pbOnly} onChange={(e) => setFilter((f) => ({ ...f, pbOnly: e.target.checked }))} />
+          🏆 Personal bests only
+        </label>
+        {genres.length > 1 && (
+          <select data-nomemo="true" aria-label="Genre" value={filter.genre} onChange={(e) => setFilter((f) => ({ ...f, genre: e.target.value }))}
+                  className="neon-input !w-auto !py-0.5 text-[12px]">
+            <option value="">All genres</option>
+            {genres.map((g) => <option key={g} value={g}>{genreLabel(g)}</option>)}
+          </select>
+        )}
+        {!isDefault(sort, filter) && (
+          <button type="button" onClick={() => { setSort(DEFAULT_SORT); setFilter(DEFAULT_FILTER); }} className="text-white/45 underline">Reset</button>
+        )}
+      </div>
+      {loading && <p className="mb-1 text-[11px] text-white/45">Loading every take so the order is true across all of them…</p>}
+      {!loading && list.length === 0 && <p className="text-[12px] text-white/50">No takes match that filter.</p>}
       <ul className="space-y-1">
-        {takes.map((t) => <Row key={t.id} t={t} labels={labels} appKey={appKey} />)}
+        {list.map((t) => <Row key={t.id} t={t} labels={labels} appKey={appKey} />)}
       </ul>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]" data-download-all>
+        <span className="text-white/45">Download all {total ?? takes.length} takes:</span>
+        <button type="button" onClick={() => downloadAll("csv")} className="text-mcz-cyan underline">spreadsheet (.csv)</button>
+        <button type="button" onClick={() => downloadAll("json")} className="text-mcz-cyan underline">.json</button>
+        {allMsg && <span className="text-mcz-ember">{allMsg}</span>}
+      </div>
+      {!showingAll && total > takes.length && onShowAll && (
+        <button type="button" onClick={onShowAll} data-show-all
+                className="mt-2 text-[12px] text-mcz-cyan underline">
+          Show all {total} takes — {total - takes.length} older {total - takes.length === 1 ? "one is" : "ones are"} not listed
+        </button>
+      )}
+      <p className="mt-2 text-[11px] text-white/35">
+        Takes are listed with their score and the coach's read. The recording itself is only here when you ticked
+        "Keep this take" or the take came from a post or journal entry — older takes were scored and not stored.
+      </p>
     </div>
   );
 }

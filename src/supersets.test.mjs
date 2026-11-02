@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validGroups, relabel, normalize, partnerOf, badge, linkWithNext, unlink, blocks, nextInPair, holdFor } from "./supersets.js";
+import { validGroups, relabel, normalize, partnerOf, badge, linkWithNext, pairWith, unlink, blocks, nextInPair, holdFor } from "./supersets.js";
 
 const r = (id, group, sets = 3) => ({ exercise_id: id, sets, ...(group ? { group } : {}) });
 const groups = (rows) => rows.map((x) => x.group ?? null);
@@ -79,4 +79,23 @@ test("after the first half of a pair the rest clock is held and the second lift 
   assert.equal(holdFor(planned, { 1: [{}], 2: [{}] }, 2), null);       // finished the round: rest
   assert.equal(holdFor(planned, { 1: [{}], 2: [{}] }, 1), null);
   assert.equal(holdFor(planned, { 3: [{}] }, 3), null);                // a single lift rests as always
+});
+
+test("any two rows can be paired: the partner moves directly below", () => {
+  const ids = (rows) => rows.map((x) => x.exercise_id);
+  const down = pairWith([r(1), r(2), r(3), r(4)], 0, 3);
+  assert.deepEqual(ids(down), [1, 4, 2, 3]);
+  assert.deepEqual(groups(down), ["A", "A", null, null]);
+  const up = pairWith([r(1), r(2), r(3), r(4)], 3, 0);
+  assert.deepEqual(ids(up), [2, 3, 4, 1]);
+  assert.deepEqual(groups(up), [null, null, "A", "A"]);
+});
+
+test("pairing breaks the old pairs; their other halves stay as singles", () => {
+  const rows = [r(1, "A"), r(2, "A"), r(3, "B"), r(4, "B")];
+  const out = pairWith(rows, 0, 3);
+  assert.deepEqual(out.map((x) => x.exercise_id), [1, 4, 2, 3]);
+  assert.deepEqual(groups(out), ["A", "A", null, null]);
+  assert.equal(pairWith(rows, 1, 1), null);
+  assert.equal(pairWith(rows, 0, 9), null);
 });

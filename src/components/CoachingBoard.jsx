@@ -1,3 +1,4 @@
+import { Price } from "./Price.jsx";
 import { useState } from "react";
 import { api } from "../api.js";
 import { openDoor } from "../doors.js";
@@ -65,12 +66,8 @@ function ShareWin({ appKey, win }) {
   );
 }
 
-function Cost({ cost }) {
-  if (!cost) return null;
-  return cost.free_today
-    ? <span className="text-emerald-300">free today</span>
-    : <span className="text-mcz-ember">−{cost.amount} {PROMPTZ}</span>;
-}
+// The shared price label (components/Price.jsx), fed this screen's quote shape.
+const Cost = ({ cost }) => (cost ? <Price amount={cost.amount} emoji={PROMPTZ} freeToday={!!cost.free_today} /> : null);
 
 // A month of takes, as the member would tell it — built by the server from their own
 // history, shareable as a story-sized card. Absent below three takes (no month yet).

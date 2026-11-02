@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { clearLanding } from "../landing.js";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AtSign, Download, Gift, Loader2, Phone, Sparkles, User } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
-import { clearTrialToken, storedTrialToken } from "../apps/TrialTake.jsx";
+import { clearTrialToken, storedTrialApp, storedTrialToken } from "../trialToken.js";
+import { clearQuizResult, storedQuizResult } from "../quizResult.js";
 import { clearTrialSplit, storedTrialSplit } from "../apps/BodieZTrial.jsx";
 import HabitOnboarding from "../components/HabitOnboarding.jsx";
 
@@ -39,6 +41,8 @@ export default function Register() {
   // in. Registering with the token attaches it — otherwise the trial was a
   // dead end, and the one thing that made them sign up is thrown away.
   const trialToken = storedTrialToken();
+  // Read before the token is cleared on success: where the new member lands next.
+  const [trialApp] = useState(() => (trialToken ? storedTrialApp() : ""));
   // A week built on the BodieZ trial door's split builder — free, no account,
   // computed client-side. It only survives as real routines if this
   // registration completes; see BodieZTrial.jsx's own comment on why.
@@ -120,8 +124,9 @@ export default function Register() {
     setBusy(true);
     try {
       await register({ ...form, birthday: form.birthday || null, ref, trial_token: trialToken,
-                       trial_split: trialSplit || undefined });
+                       trial_split: trialSplit || undefined, personality: storedQuizResult() || undefined });
       clearTrialToken();
+      clearQuizResult();
       clearTrialSplit();
       track("register_success");
       // Show habit onboarding before going home — new users hook into daily returns.
@@ -141,9 +146,15 @@ export default function Register() {
     }
   }
 
+  // Somebody who joined to keep a scored take lands on that coach, where it is now the
+  // first row of their history — not on the home page, where nothing says it was kept.
+  // (BodieZ's claim is a routine, not a coach take, so it keeps the home page.)
   function completeOnboarding() {
     setShowHabitOnboarding(false);
-    navigate("/");
+    if (trialApp && trialApp !== "bodiez") {
+      clearLanding();     // going to the coach directly; a slot left set would redirect "/" later
+      navigate(`/${trialApp.endsWith("z") ? trialApp.slice(0, -1) : trialApp}?claimed=1`);
+    } else navigate("/");
   }
 
   return (
@@ -174,7 +185,8 @@ export default function Register() {
           changes nobody's behaviour. */}
       {join?.welcome_spinaz > 0 && !ref && !STANDALONE && (
         <p className="text-sm text-emerald-300">
-          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span> in your balance the moment you join.
+          <span className="font-semibold">+{join.welcome_spinaz} 🍥</span>
+          {join.welcome_energy > 0 && <> <span className="font-semibold">+{join.welcome_energy} ⚡</span></>} in your balance the moment you join.
         </p>
       )}
 
@@ -213,7 +225,7 @@ export default function Register() {
           </button>
         )}
 
-        {error && <p className="text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
 
         <button className="neon-btn-primary" disabled={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : null}
@@ -279,7 +291,7 @@ export default function Register() {
       )}
     </AuthShell>
 
-    {showHabitOnboarding && <HabitOnboarding appKey="singz" onComplete={completeOnboarding} />}
+    {showHabitOnboarding && <HabitOnboarding appKey={trialApp && trialApp !== "bodiez" ? trialApp : "singz"} onComplete={completeOnboarding} />}
     </>
   );
 }

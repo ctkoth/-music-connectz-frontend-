@@ -3,6 +3,8 @@
 // Opened by tapping someone in the online list on the CommunityBar. Reads the
 // same payload Social ConnectZ uses, so whatever a member fills in on ProfileZ
 // shows up here.
+import InventoryZ from "../components/InventoryZ.jsx";
+import SuperfanZ from "../components/SuperfanZ.jsx";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
@@ -13,11 +15,12 @@ import { IconImg } from "../App.jsx";
 import CopyLink, { profileUrl } from "../CopyLink.jsx";
 import { handOff } from "../handoff.js";
 import { ENERGY, MONEY } from "../resources.js";
-import { personaName } from "./socialData.js";
+import { personaLabel, personaName, FLAG_FOR } from "./socialData.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import { SignLink } from "../components/Horoscope.jsx";
 import { LinkList } from "../WidgetBoard.jsx";
+import Gallery from "../components/Gallery.jsx";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 
 // What a member can DO with somebody from their card. Every card in the app
@@ -111,9 +114,10 @@ function FollowButton({ username, onCounts }) {
   const [rel, setRel] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [cost, setCost] = useState(0);
   useEffect(() => {
     api(`/api/economy/follow/?username=${encodeURIComponent(username)}`)
-      .then((d) => setRel(d.relationship)).catch(() => {});
+      .then((d) => { setRel(d.relationship); setCost(d.follow_cost_energy || 0); }).catch(() => {});
   }, [username]);
   if (!rel || rel.label === "self") return null;
   async function toggle() {
@@ -122,6 +126,7 @@ function FollowButton({ username, onCounts }) {
       const d = await api("/api/economy/follow/", { method: "POST",
         body: { username, action: rel.is_following ? "unfollow" : "follow" } });
       setRel(d.relationship);
+      setCost(d.follow_cost_energy || 0);
       onCounts?.({ followers: d.followers, following: d.following });
       if (d.relationship.is_following) playSound("follow");
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -133,6 +138,7 @@ function FollowButton({ username, onCounts }) {
       <button className={rel.is_following ? "re-btn !w-auto px-4 py-1.5 text-sm" : "neon-btn-primary !w-auto px-4 py-1.5 text-sm"}
         disabled={busy} onClick={toggle} title={rel.is_following ? "Tap to unfollow" : ""}>
         {label}
+        {cost > 0 && !rel.is_following && <span className="ml-1.5 text-mcz-ember">−{cost} {ENERGY}</span>}
       </button>
       {err && <span className="text-xs text-mcz-ember">{err}</span>}
     </div>
@@ -236,7 +242,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             <Loader2 className="animate-spin" size={16} /> Loading profile…
           </p>
         )}
-        {error && <p className="py-4 text-sm text-mcz-pink">{error}</p>}
+        {error && <p role="alert" className="py-4 text-sm text-mcz-ember">{error}</p>}
 
         {data && (
           <div className="space-y-4">
@@ -284,7 +290,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                       landed. Rendering it raw put an object where React wants
                       a child and took every member profile down. */}
                   {data.personas.map((p, i) => (
-                    <Pill key={(p && p.key) || personaName(p) || i}>{personaName(p)}</Pill>
+                    <Pill key={(p && p.key) || personaName(p) || i}>{personaLabel(p)}</Pill>
                   ))}
                 </div>
               </div>
@@ -294,7 +300,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">NationalitieZ</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.nationalities.map((n) => <Pill key={n}>{n}</Pill>)}
+                  {data.nationalities.map((n) => <Pill key={n}>{FLAG_FOR[n] || "🌐"} {n}</Pill>)}
                 </div>
               </div>
             )}
@@ -310,6 +316,10 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                 <LinkList links={data.links} owner={data.mine ? "" : username} />
               </div>
             )}
+
+            <Gallery username={username} mine={!!data.mine} />
+            <InventoryZ username={username} />
+            <SuperfanZ username={username} />
 
             {data.mine && (
               <p className="text-[11px] text-white/35">This is you — edit any of it in ProfileZ.</p>

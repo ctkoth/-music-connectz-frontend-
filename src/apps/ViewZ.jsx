@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { genreLabel } from "../genres.js";
+import ShareStats from "../components/ShareStats.jsx";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Loader2, Radio } from "lucide-react";
 import { api } from "../api.js";
@@ -10,6 +12,8 @@ import DawLanes, { dur } from "../components/DawLanes.jsx";
 // ViewZ — how your things are being looked at, three ways:
 //   Timeline — every viewer of your posts and profile as a track, every visit a clip.
 //   My posts — one post at a time: the numbers, the history by day, and who.
+//   ActionZ — what people DID across all your posts (rated, commented, liked, shared…), and
+//             where all your views came from.
 //   My links — every share link you sent out and how often it was opened.
 // Everything here is /api/economy/views/*; the screen only draws it. The numbers are
 // yours at every tier; WHO viewed (names, and the tracks) is StatZ's, with the free
@@ -25,19 +29,25 @@ const KIND = {
 const KIND_LABEL = { post: "Post", profile: "Profile", tab: "App page" };
 const DEV_ICON = { phone: "📱", tablet: "📲", desktop: "💻" };
 const RANGES = [["1h", "1 hour"], ["24h", "24 hours"], ["7d", "7 days"]];
-const TABS = [["timeline", "Timeline"], ["posts", "My posts"], ["links", "My links"]];
+const TABS = [["timeline", "Timeline"], ["posts", "My posts"], ["actionz", "ActionZ"], ["links", "My links"]];
 
 /** Ask for `path` now and every POLL_MS while the tab is visible. */
 function useLive(path, deps = []) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const inflight = useRef(null);
   const load = useCallback(() => {
-    if (!path) return Promise.resolve();
+    // A slow answer must not stack a second request behind it every 15 s.
+    if (!path || inflight.current === path) return Promise.resolve();
+    inflight.current = path;
     setBusy(true);
-    return api(path).then((x) => { setD(x); setErr(""); })
-      .catch((e) => setErr(e.message || "Couldn't load."))
-      .finally(() => setBusy(false));
+    // Only the answer for the screen that is CURRENT may land: switching tabs mid-request must
+    // not paint the previous tab's numbers.
+    const mine = () => inflight.current === path;
+    return api(path).then((x) => { if (mine()) { setD(x); setErr(""); } })
+      .catch((e) => { if (mine()) setErr(e.message || "Couldn't load."); })
+      .finally(() => { if (mine()) { inflight.current = null; setBusy(false); } });
   }, [path]);
   useEffect(() => {
     setD(null);
@@ -133,7 +143,7 @@ function Timeline() {
         ))}
       </div>
       {d?.notice && <p className="text-[11px] text-white/40">{d.notice}</p>}
-      {err && <p className="text-sm text-mcz-ember">{err}</p>}
+      {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
     </>
   );
 }
@@ -162,6 +172,68 @@ function Numbers({ d }) {
         <li><b>Stayed</b> — {d.definitions?.stayed}</li>
         <li><b>Came back</b> — {d.definitions?.came_back}</li>
       </ul>
+    </div>
+  );
+}
+
+const DEVICE_LABEL = { phone: "📱 phone", tablet: "📲 tablet", desktop: "💻 desktop", unknown: "unknown" };
+
+// Where the visits came from and on what — counts, never names, so every tier sees them.
+// "direct" is a visit that carried no ?src= (a link pasted somewhere untagged, or typed): a
+// real bucket, said as it is, not folded into "unknown".
+function Sources({ d }) {
+  const src = d.sources || [], dev = d.devices || [];
+  if (!src.length) return null;
+  const total = src.reduce((n, x) => n + x.visits, 0) || 1;
+  return (
+    <div data-viewz-sources className="space-y-1.5">
+      <p className="text-[11px] uppercase tracking-wide text-white/40">Where the visits came from</p>
+      <ul className="space-y-1">
+        {src.map((x) => (
+          <li key={x.src} className="flex items-center gap-2 text-[12px]">
+            <span className="w-24 shrink-0 truncate text-white/70">{x.src}</span>
+            <span className="h-2 flex-1 overflow-hidden rounded bg-white/10"><span className="block h-full rounded bg-mcz-cyan/60" style={{ width: `${(x.visits / total) * 100}%` }} /></span>
+            <span className="w-28 shrink-0 text-right text-white/55">{x.visits} {x.visits === 1 ? "visit" : "visits"} · {x.people} {x.people === 1 ? "person" : "people"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[12px] text-white/55">On: {dev.map((x) => `${DEVICE_LABEL[x.dev] || x.dev} ${x.visits}`).join(" · ")}</p>
+      <p className="text-[11px] text-white/35">A source is the <code>?src=</code> on the link a visitor used (your share links carry one); "direct" is a visit that carried none.</p>
+    </div>
+  );
+}
+
+const ACTION_ICON = { rating: "⭐", comment: "💬", like: "👍", share: "🔁", join: "🚪", message: "✉️" };
+
+// ActionZ: what people DID from this post — a rating, a comment, a like, a share, a
+// members-only join, a message sent after looking — newest first. Names are StatZ's, with
+// the counts above open to everybody; `via_page` says whether they also came and looked.
+function ActionZ({ d }) {
+  return (
+    <div className="space-y-1.5" data-actionz>
+      <p className="text-[11px] uppercase tracking-wide text-white/40">ActionZ — what people did from this post</p>
+      {d.action_log == null ? (
+        <div className="neon-frame space-y-2 p-4">
+          <StatzSample what="ActionZ by name" />
+          <p className="text-xs text-white/45">{d.action_log_locked}</p>
+        </div>
+      ) : d.action_log.length === 0 ? (
+        <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">Nobody has rated, commented, liked or shared this yet.</p>
+      ) : (
+        <ul className="max-h-72 space-y-1 overflow-y-auto">
+          {d.action_log.map((a, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
+              <span>{ACTION_ICON[a.type] || "•"}</span>
+              <button className="font-semibold text-mcz-cyan hover:underline" onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: a.who }))}>@{a.who}</button>
+              <span className="text-white/60">{a.label}</span>
+              {a.detail && <span className="min-w-0 truncate text-white/75">{a.detail}</span>}
+              <span className="ml-auto text-white/35" title={a.via_page ? "Also looked at the post's page" : "Acted from the feed, without opening the post"}>
+                {a.via_page ? "saw it here · " : "from the feed · "}{new Date(a.at).toLocaleString()}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -201,6 +273,7 @@ function PostDetail({ id, onBack }) {
   return (
     <div className="space-y-3">
       <button className="re-link text-sm" onClick={onBack}>← All my posts</button>
+      <ShareStats endpoint={`/api/economy/views/post/${id}/share/`} />
       {!d ? (err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />) : (
         <>
           <div className="flex items-center gap-2">
@@ -210,6 +283,8 @@ function PostDetail({ id, onBack }) {
           </div>
           <Numbers d={d} />
           <History days={d.by_day} />
+          <Sources d={d} />
+          <ActionZ d={d} />
           <div className="space-y-1.5" data-tour="viewz-tracks">
             <p className="text-[11px] uppercase tracking-wide text-white/40">Every viewer, every visit — time, date and length</p>
             {d.viewers == null ? (
@@ -253,6 +328,49 @@ function MyPosts({ open, setOpen }) {
   );
 }
 
+const COUNT_LABEL = { rating: "⭐ rated", comment: "💬 commented", like: "👍 liked", share: "🔁 shared", join: "🚪 joined" };
+
+// ActionZ across every post: what people did, newest first, naming the post each was on.
+// Counts are every tier's; the named log is StatZ's (sample included). Clicking a row opens
+// that post's own results.
+function AllActionZ({ openPost }) {
+  const { d, err } = useLive("/api/economy/views/mine/");
+  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
+  const counts = d.action_counts || {};
+  const total = Object.values(counts).reduce((n, x) => n + x, 0);
+  return (
+    <div className="space-y-4" data-actionz-all>
+      <div className="flex flex-wrap gap-2 text-sm">
+        {Object.keys(COUNT_LABEL).map((k) => <Pill key={k}>{COUNT_LABEL[k]} {counts[k] || 0}</Pill>)}
+      </div>
+      {total === 0 && <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">Nobody has rated, commented, liked or shared your posts yet. Share one from <button className="re-link" onClick={() => goToTab("postz")}>PostZ</button> and it lands here.</p>}
+      {d.action_log == null ? (
+        total > 0 && (
+          <div className="neon-frame space-y-2 p-4">
+            <StatzSample what="ActionZ by name" />
+            <p className="text-xs text-white/45">{d.action_log_locked}</p>
+          </div>
+        )
+      ) : (
+        <ul className="max-h-[28rem] space-y-1 overflow-y-auto">
+          {d.action_log.map((a, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-white/5 px-3 py-1.5 text-[12px]">
+              <span>{ACTION_ICON[a.type] || "•"}</span>
+              <button className="font-semibold text-mcz-cyan hover:underline" onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: a.who }))}>@{a.who}</button>
+              <span className="text-white/60">{a.label}</span>
+              <button className="min-w-0 truncate text-white/80 hover:underline" onClick={() => openPost(a.post)}>{a.post_title}</button>
+              {a.detail && <span className="min-w-0 truncate text-white/55">{a.detail}</span>}
+              <span className="ml-auto text-white/35">{new Date(a.at).toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Sources d={d} />
+      <p className="text-[11px] text-white/40">Messages are not listed here: a message is about a person, not a post, so it appears on a post's own page when it follows a visit to it. Updates every {POLL_MS / 1000} seconds.</p>
+    </div>
+  );
+}
+
 function MyLinks() {
   const { d, err } = useLive("/api/economy/views/mine/");
   if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
@@ -266,13 +384,14 @@ function MyLinks() {
         </Pill>
       </div>
       {!d.links.length ? (
-        <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">No share links yet. Open any past take and press <b>Share this score</b> or <b>Write a promo post</b> — its results come here.</p>
+        <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">No share links yet. Open any past take and press <b>Share this score</b> or <b>Write a promo post</b> — its results come here.{" "}
+          <button type="button" className="re-link" onClick={() => goToTab("toolz")}>Pick a coach →</button></p>
       ) : (
         <ul className="space-y-1.5">
           {d.links.map((l) => (
             <li key={l.token} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-white/5 px-3 py-2 text-[13px]">
               <span className="font-semibold">{KIND_W[l.kind] || "Card"}</span>
-              <span className="text-white/55">{l.app_key} · {l.score}/10{l.genre ? ` · ${l.genre}` : ""}</span>
+              <span className="text-white/55">{l.app_key} · {l.score}/10{l.genre ? ` · ${genreLabel(l.genre)}` : ""}</span>
               <span className="text-white/40">{new Date(l.at).toLocaleDateString()}</span>
               {l.human && <span className="text-emerald-300/80">human-made, declared</span>}
               <span className="ml-auto"><Eye size={12} className="mr-1 inline" />{l.opens} {l.opens === 1 ? "open" : "opens"}</span>
@@ -306,6 +425,7 @@ export default function ViewZ() {
       </div>
       {tab === "timeline" && <Timeline />}
       {tab === "posts" && <MyPosts open={open} setOpen={setOpen} />}
+      {tab === "actionz" && <AllActionZ openPost={(id) => { setTab("posts"); setOpen(id); }} />}
       {tab === "links" && <MyLinks />}
     </div>
   );

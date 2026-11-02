@@ -69,11 +69,11 @@ export default function PushSettings({ compact = false }) {
           </div>
           <div className="flex flex-wrap items-center gap-1 text-white/60">
             Quiet from
-            <select data-nomemo="true" className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.start} onChange={(e) => quiet("quiet_start", e.target.value)}>
+            <select aria-label="Quiet from" data-nomemo="true" className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.start} onChange={(e) => quiet("quiet_start", e.target.value)}>
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hour(h)}</option>)}
             </select>
             to
-            <select data-nomemo="true" className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.end} onChange={(e) => quiet("quiet_end", e.target.value)}>
+            <select aria-label="Quiet until" data-nomemo="true" className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.end} onChange={(e) => quiet("quiet_end", e.target.value)}>
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hour(h)}</option>)}
             </select>
             {s.quiet.tz && <span className="text-white/35">({s.quiet.tz.replace(/_/g, " ")}{s.quiet.tz_guessed ? " — assumed until your browser says" : ""})</span>}

@@ -1,3 +1,4 @@
+import AiEnergy from "../AiEnergy.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Check, Flag, Loader2, Lock, MessageSquare, Save, Send } from "lucide-react";
 import { api } from "../../api.js";
@@ -257,6 +258,13 @@ export default function OccChat({ onKept }) {
         timeoutMs: chatTimeoutMs(state?.chat_budget_seconds),
         body: { prompt, history, ...(voice ? { model: voice } : {}) },
       });
+      // Media goes to the app that makes it: the server answers with that app and
+      // charges nothing. The turn is shown with the door, and "build it anyway"
+      // sends it through OCC instead.
+      if (r.routed) {
+        setMessages((ms) => [...ms, { id: nextId.current++, role: "routed", text: r.text, routed: r.routed, prompt }]);
+        return;
+      }
       setMessages((ms) => [...ms, {
         id: nextId.current++, role: "occ", text: r.text, prompt,
         meta: {
@@ -372,6 +380,17 @@ export default function OccChat({ onKept }) {
             <li key={m.id} className="ml-6 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-[13px]">
               <p className="whitespace-pre-wrap text-white/80">{m.text}</p>
             </li>
+          ) : m.role === "routed" ? (
+            <li key={m.id} className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3 text-[13px]">
+              <p className="text-white/80">{m.text}</p>
+              <div className="flex flex-wrap items-center gap-3 text-[12px]">
+                <button type="button" className="neon-btn-primary !w-auto px-4 py-1.5" onClick={() => goToSpot(m.routed.tab, "")}>
+                  Open {m.routed.label} →
+                </button>
+                <button type="button" className="re-link" onClick={() => choose(`${m.prompt} — build it anyway`)}>Have OCC try anyway</button>
+                <span className="text-emerald-300">No charge</span>
+              </div>
+            </li>
           ) : (
             <ReplyCard key={m.id} m={m} onChoose={choose} onKept={onKept} />
           )))}
@@ -418,6 +437,7 @@ export default function OccChat({ onKept }) {
               <span className="text-[11px] text-mcz-ember">{price.text}</span>
             )}
             {price.kind === "locked" && <span className="text-[11px] text-mcz-ember">{price.note}</span>}
+            {price.kind !== "locked" && <AiEnergy engine={state?.engine} className="text-[11px]" />}
             {/* The server's stated ceiling beside the clock: a wait with a stated
                 end is one somebody sits through, and a bare count that only goes
                 up cannot tell working from hung. */}

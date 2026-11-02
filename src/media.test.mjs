@@ -19,3 +19,11 @@ test("every demo link goes through demoSrc", () => {
     assert.ok(!/href=\{[^}]*demo_url\}/.test(src), `${f} links a demo_url without demoSrc`);
   }
 });
+
+test("a lift being logged shows its muscle icon by the name and can play its demo in place", () => {
+  const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
+  const row = src.slice(src.indexOf("function LoggerRow"), src.indexOf("function TodayView"));
+  assert.ok(row.includes("muscleIcon(planned.muscle_group)"), "muscle icon beside the name");
+  assert.ok(row.includes("<video src={demoSrc(planned.demo_url)}"), "the demo plays through demoSrc, in the card");
+  assert.ok(src.includes("demo_url: ex?.demo_url"), "planned rows carry the library's demo_url");
+});

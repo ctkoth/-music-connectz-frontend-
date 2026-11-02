@@ -9,6 +9,7 @@
 // login, because those exist for matching inside the app and are nobody's
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
+import { genreLabel } from "../genres.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
@@ -16,11 +17,14 @@ import { useEffect, useState } from "react";
 import { usePageTitle } from "../pageTitle.js";
 import { ProfileFields, CoverBanner } from "../components/ProfileFieldz.jsx";
 import { Link, useParams } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
+import TryLink from "../components/TryLink.jsx";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
 import MentionText from "../MentionParser.jsx";
 import CopyLink from "../CopyLink.jsx";
+import Gallery from "../components/Gallery.jsx";
 
 const money = (cents) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 
@@ -47,9 +51,10 @@ export default function PublicProfile() {
           <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
-        <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-          Join free
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
+          <JoinLink owner={username} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
+        </div>
       </header>
 
       {err && (
@@ -78,7 +83,7 @@ export default function PublicProfile() {
             {/* A shared profile is somebody's proof they are worth hiring.
                 The badge travels with it; what it pays does not — the server
                 leaves the effect off a card a stranger can read. */}
-            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9"
+            <BadgeWear badges={p.badges} title={p.badge_title} size="h-9 w-9" holders={false}
                        className="pt-1.5" />
           </div>
 
@@ -94,13 +99,19 @@ export default function PublicProfile() {
             <div key={i}>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
                 {persona.name || persona.key}
+                {Array.isArray(persona.roles) && persona.roles.length > 0 && (
+                  <span className="ml-2 normal-case tracking-normal text-mcz-cyan/80">· {persona.roles.join(", ")}</span>
+                )}
               </p>
               <div className="mt-1 flex flex-wrap gap-2">
                 {(persona.skills || []).map((s, j) => (
                   <span key={j} className="pill">
                     {s.name}
+                    {(s.genres || []).length > 0 && (
+                      <span className="ml-1 text-white/55">in {s.genres.map(genreLabel).join(", ")}</span>
+                    )}
                     {s.rate_cents ? (
-                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/hr</span>
+                      <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/{s.rate_unit === "work" ? "work" : "hr"}</span>
                     ) : null}
                   </span>
                 ))}
@@ -108,7 +119,7 @@ export default function PublicProfile() {
             </div>
           ))}
 
-          <BadgeWearList badges={p.badges} />
+          <BadgeWearList badges={p.badges} holders={false} />
 
           {p.links?.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -121,13 +132,14 @@ export default function PublicProfile() {
             </div>
           )}
 
+          <Gallery username={p.username} auth={false} />
+
           <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">
               Message {p.display_name}, rate their work, or book a CallZ — that all lives inside.
             </p>
-            <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
-              Create your account
-            </Link>
+            <JoinLink owner={username} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
+            <div className="mt-3"><TryLink owner={username} skill={(p?.personas || []).flatMap((x) => (x.skills || []).map((k) => k.name))} className="inline-block rounded-xl border border-mcz-cyan/40 px-5 py-2 text-sm font-semibold text-mcz-cyan hover:bg-mcz-cyan/10" /></div>
           </div>
         </div>
       )}

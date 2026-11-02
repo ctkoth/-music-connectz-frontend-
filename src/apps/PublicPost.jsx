@@ -9,11 +9,14 @@
 // number anybody can inflate by reloading is worth less than no number.
 // Comments: they're member-authored text, and publishing that to strangers
 // needs a moderation path this page doesn't have.
+import TryLink from "../components/TryLink.jsx";
+import { postCoachApp } from "../trialSkill.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { usePageTitle } from "../pageTitle.js";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import JoinLink from "../components/JoinLink.jsx";
 import { AlertCircle, Flame, Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -62,9 +65,10 @@ export default function PublicPost() {
           <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-9 w-9 rounded-xl shadow-neon" />
           <span className="font-display text-lg font-extrabold tracking-tight">Music ConnectZ</span>
         </Link>
-        <Link to="/register" className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">
-          Join free
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white">Sign in</Link>
+          <JoinLink owner={post?.author} className="rounded-xl bg-mcz-ember px-4 py-2 text-sm font-bold text-white hover:brightness-110">Join free</JoinLink>
+        </div>
       </header>
 
       {err && (
@@ -137,11 +141,9 @@ export default function PublicPost() {
 
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
-            <Link to="/register" className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">
-              Create your account
-            </Link>
+            <JoinLink owner={post?.author} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
             <p className="mt-2 text-[11px] text-white/45">
-              Or <Link to="/try/singz" className="text-mcz-cyan hover:underline">get a take scored first</Link> — no account needed.
+              Or <TryLink owner={post?.author} app={postCoachApp(post)} className="text-mcz-cyan hover:underline">get a take scored first</TryLink> — no account needed.
             </p>
           </div>
         </article>

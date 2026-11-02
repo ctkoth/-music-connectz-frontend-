@@ -1,3 +1,5 @@
+import InspirationRef from "../components/InspirationRef.jsx";
+import PriorityDials, { usePriorityInfo } from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Copy, Download, Flag, Loader2, PenLine, Star } from "lucide-react";
@@ -8,8 +10,11 @@ import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
 import SpeakingIn from "../components/SpeakingIn.jsx";
+import SentenceInspiration from "../components/SentenceInspiration.jsx";
 import UseIn from "../components/UseIn.jsx";
 import RunPrice from "../components/RunPrice.jsx";
+import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
+import { useRemembered } from "../useRemembered.js";
 import RunClock from "../components/RunClock.jsx";
 import { budgetOf, runTimeoutMs, shellRoyaltyLine, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
 import { briefCut, cutNote, nextTierBrief, pickKind, visibleKinds } from "../sentencez.js";
@@ -143,6 +148,7 @@ export default function SentenceConnectZ() {
   const [kind, setKind] = useState(IN_SHELL ? "resume" : "lyrics");
   const [topic, setTopic] = useState("");
   const [genre, setGenre] = useState("");
+  const [tags, setTags] = useRemembered("promo-hashtags", "");
   const [majority, setMajority] = useState(2);
   const [minority, setMinority] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -160,6 +166,8 @@ export default function SentenceConnectZ() {
   // never kept the member's words, so they paste the ones they want fixed.
   useEffect(() => (IN_SHELL ? undefined : onHandoff("sentenceconnectz", (p) => {
     if (p.kind) setKind(String(p.kind));
+    // WriteZ has the member's own words, so they arrive in the brief.
+    if (p.text) setTopic(String(p.text));
     const g = p.style || p.genre;
     if (g) setGenre(String(g).slice(0, 60));
   })), []);
@@ -199,10 +207,19 @@ export default function SentenceConnectZ() {
     return () => clearTimeout(timer.current);
   }, [draft, work]);
 
+  const prioInfo = usePriorityInfo();
+  const [prio, setPrio] = useState({});
+  const dialsHere = !!prioInfo?.writing_kinds?.includes(kind);
+  const [insp, setInsp] = useState(null);
+  const inspHere = !!prioInfo?.reference?.writer_kinds?.includes(kind);
+
   async function write() {
     setErr(""); setBusy(true);
     const body = { kind, topic, genre };
+    if (dialsHere && Object.keys(prio).length) body.priorities = prio;
+    if (inspHere && insp) body.reference = insp.url;
     if (kind === "lyrics") Object.assign(body, { majority, minority });
+    if (current?.hashtags) Object.assign(body, hashtagBody(tags));
     let w;
     try {
       // The wait has to outlast the server's: api.js stops at 30s, a write takes
@@ -221,6 +238,10 @@ export default function SentenceConnectZ() {
     open(w);
     load();
     setBusy(false);
+    // Said, not hidden: the writer can miscount, and the text is what it is.
+    if (w?.hashtags && w.hashtags.got !== w.hashtags.asked) {
+      setErr(`You asked for ${w.hashtags.asked} hashtag${w.hashtags.asked === 1 ? "" : "s"}; the writer gave ${w.hashtags.got}. Add or cut to taste.`);
+    }
   }
 
   // The draft is the lines the member has ticked, in the order they are shown.
@@ -296,6 +317,10 @@ export default function SentenceConnectZ() {
           <>
             <VoiceNote kind={current} />
             {!IN_SHELL && current?.takes_voice && <SpeakingIn surface="writer" />}
+            {!IN_SHELL && (current?.fixer || ["lyrics", "poem"].includes(kind)) && (
+              <SentenceInspiration info={s} kind={kind} label={current?.label || kind}
+                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)} />
+            )}
             <textarea
               className="neon-input min-h-28 w-full"
               aria-label="What to write about"
@@ -307,6 +332,7 @@ export default function SentenceConnectZ() {
             <input className="neon-input w-full" maxLength={60} aria-label={current?.style_label || "Genre / style (optional)"}
               placeholder={current?.style_label || "Genre / style (optional)"}
               value={genre} onChange={(e) => setGenre(e.target.value)} />
+            {current?.hashtags && <HashtagCount value={tags} onChange={setTags} max={s?.hashtag_max || 30} />}
 
             {kind === "lyrics" && (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -322,6 +348,9 @@ export default function SentenceConnectZ() {
                 </label>
               </div>
             )}
+
+            {dialsHere && <PriorityDials medium="writing" value={prio} onChange={setPrio} disabled={busy} />}
+            {inspHere && <InspirationRef value={insp} onChange={setInsp} disabled={busy} />}
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Live only once the price is known and the run can be paid for: with

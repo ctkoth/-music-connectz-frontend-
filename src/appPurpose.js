@@ -23,6 +23,10 @@
 export const APP_PURPOSE = {
   onboardz:    { does: "Set your profile up",            words: "start setup welcome begin first steps getting started" },
   postz:       { does: "Share a track or video",         words: "post upload share feed publish release song" },
+  characterz:  { does: "Make characters with a voice",   words: "characters cast persona face voice personality oc" },
+  mangaz:      { does: "Make manga pages with AI",       words: "manga comic page panels draw story characters ai" },
+  sentencez:   { does: "Write, and get it coached",      words: "text editor lyrics writing coach score rhyme punchline verse write notes" },
+  filez:       { does: "Every file you've uploaded",      words: "files uploads gallery images storage avatar picture" },
   playlistz:   { does: "Collect tracks into a playlist", words: "playlist collection album mixtape queue" },
   social:      { does: "Find and follow members",        words: "social follow friends people discover network community" },
   profilez:    { does: "Your identity and skills",       words: "profile persona skills bio avatar about me rates" },
@@ -66,6 +70,8 @@ export const APP_PURPOSE = {
   // map only worked if you already knew the invented name. Same gap as the
   // five trial coaches nothing once linked to: built, and invisible, this
   // time from the SEARCH rather than the nav.
+  budgetz:     { does: "Plan your money",              words: "budget money finance expenses income spending savings bank limit planner" },
+  genrez:      { does: "Find talent by genre",           words: "genre hip hop metal country scene talent find filter sound style" },
   vybez:       { does: "Find members by filters",        words: "dating match filter search browse region zodiac sober distance personality vibe" },
   bodiez:      { does: "Log workouts and build routines", words: "workout exercise gym lift squat routine fitness strength train bodybuilding weights" },
   coachz:      { does: "Manage your teaching studio",    words: "coach teach studio students lessons tutor mentor" },

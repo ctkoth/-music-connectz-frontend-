@@ -31,6 +31,8 @@ const NAMES = {
   nationalities: "Nationalities", sober: "Sober", personality: "PersonalitieZ",
   attracted_to: "Attracted to", age: "Age", birthday: "Birthday",
   location: "Location", substances: "SubstanceZ",
+  superfan: "On artists' SuperfanZ 🫶 lists",
+  inventory_value: "What my InVenTorieZ is worth",
 };
 const nameOf = (f) => NAMES[f] || f.replace(/_/g, " ");
 const same = (a, b) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
@@ -139,7 +141,7 @@ export default function VisibilitieZ({ visibility, audiences, onChange }) {
         })}
       </ul>
 
-      {error && <p className="pt-2 text-sm text-mcz-pink">{error}</p>}
+      {error && <p role="alert" className="pt-2 text-sm text-mcz-ember">{error}</p>}
     </div>
   );
 }

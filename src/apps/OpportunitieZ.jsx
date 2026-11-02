@@ -3,6 +3,7 @@ import { Loader2, Send, Briefcase, Users } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
+import { goToSpot } from "../goto.js";
 
 /**
  * OpportunitieZ — feed of what other musicians are seeking,
@@ -26,7 +27,7 @@ export default function OpportunitieZ() {
           offset === 0 ? data.results : [...prev, ...data.results]
         );
         if (!data.results?.length) {
-          setMsg(offset === 0 ? "No opportunities yet." : "No more opportunities.");
+          if (offset > 0) setMsg("No more opportunities.");
         }
       } catch (e) {
         setMsg(e.message || "Couldn't load opportunities.");
@@ -60,7 +61,8 @@ export default function OpportunitieZ() {
       ) : opportunities.length === 0 ? (
         <div className="neon-frame space-y-3 p-6 text-center">
           <Briefcase size={24} className="mx-auto text-white/40" />
-          <p className="text-white/60">Musicians will appear here once they fill out "What I Need" on their ProfileZ.</p>
+          <p className="text-white/60">Nobody has posted what they need yet. Members show up here once they fill in "What I Need" on their ProfileZ — be the first, and the people who can help find you.</p>
+          <button className="neon-btn-primary !w-auto px-5" onClick={() => goToSpot("profilez", "what-i-need")}>Fill in what I need →</button>
         </div>
       ) : (
         <div className="space-y-3">

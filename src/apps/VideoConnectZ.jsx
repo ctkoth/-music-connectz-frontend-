@@ -1,9 +1,13 @@
+import InspirationRef from "../components/InspirationRef.jsx";
+import PriorityDials from "../components/PriorityDials.jsx";
+import Doors from "../components/Doors.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Download, Loader2 } from "lucide-react";
 import { useCharLimit } from "../limits.js";
 import CharLimit from "../CharLimit.jsx";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
+import { handOff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import EarnInstead from "../EarnInstead.jsx";
 import { MONEY, PROMPTZ, SPINAZ } from "../resources.js";
@@ -12,6 +16,9 @@ import UseIn from "../components/UseIn.jsx";
 import { money, runTimeoutMs, splitCost, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
 import { firstPollDelay, newestPending, pollIsHopeless } from "../videoz.js";
 import { FACE_FEED_NOTE } from "../facez.js";
+import StitchedMusicVideo from "../components/StitchedMusicVideo.jsx";
+import CoachPromoVideo from "../components/CoachPromoVideo.jsx";
+import { onHandoff } from "../handoff.js";
 
 // Video ConnectZ — music, bio and promo videos, optionally starting from the
 // member's own FaceZ photo. Price, kinds and faces come from
@@ -62,10 +69,15 @@ export default function VideoConnectZ() {
   const [failReason, setFailReason] = useState("");
   const [kind, setKind] = useState("music");
   const [prompt, setPrompt] = useState("");
+  const [prio, setPrio] = useState({});
+  const [insp, setInsp] = useState(null);
   const [aspect, setAspect] = useState("16:9");
   const [face, setFace] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
+  // A coach's read handed over from a scored take (BossTake's "Coach Review Promo Video").
+  const [promo, setPromo] = useState(null);
+  useEffect(() => onHandoff("videoconnectz", (p) => { if (p?.coach_review) setPromo(p.coach_review); }), []);
   const [elapsed, setElapsed] = useState(0);
   const resumed = useRef(false);
 
@@ -138,7 +150,8 @@ export default function VideoConnectZ() {
     let w;
     try {
       w = await api("/api/economy/videoz/", { method: "POST",
-        body: { kind, prompt, aspect, face_id: face || undefined },
+        body: { kind, prompt, aspect, face_id: face || undefined, reference: insp?.url || undefined,
+          ...(Object.keys(prio).length ? { priorities: prio } : {}) },
         timeoutMs: runTimeoutMs(s?.budget_seconds) });
     } catch (e) {
       playSound("error");
@@ -170,6 +183,15 @@ export default function VideoConnectZ() {
           <p className="text-sm text-white/60">Music, bio and promo videos — starring your FaceZ if you want.</p>
         </div>
       </header>
+      {promo && <div data-tour="coach-promo"><CoachPromoVideo review={promo} onClose={() => setPromo(null)} /></div>}
+
+      {/* Editing what already exists is a different tool, and free: say where it is. */}
+      <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+        Already have the videos or photos? Put them in order, trim them and add filters, FX and titles in{" "}
+        <button className="re-link" onClick={() => goToSpot("videoz", "videoz-add")}>VideoZ</button> — free, on your device.
+      </p>
+
+      <StitchedMusicVideo />
 
       {s && !s.configured && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">Video ConnectZ isn't switched on yet.</p>}
 
@@ -223,6 +245,9 @@ export default function VideoConnectZ() {
             {uploading ? <Loader2 className="animate-spin" size={12} /> : "+"} Add a FaceZ photo
           </label>
         </div>
+
+        <PriorityDials medium="video" value={prio} onChange={setPrio} disabled={busy} />
+        <InspirationRef value={insp} onChange={setInsp} disabled={busy} />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Live only once the price is known and affordable: with no answer
@@ -280,6 +305,8 @@ export default function VideoConnectZ() {
               <video src={work.video_url} controls playsInline
                 className={`w-full rounded-xl bg-black ${work.aspect === "9:16" ? "mx-auto max-w-xs" : ""}`} />
               <a className="re-btn !w-auto px-4" href={work.video_url} download><Download size={14} /> Download</a>
+              <Doors item={{ title: work.title || "My video", url: work.video_url, kind: "video",
+                onEdit: () => handOff("videoz", "videoz-timeline", { url: work.video_url, name: work.title || work.label, kind: "video" }) }} />
               {pct != null && <UseIn source="video" sourceId={work.id} pct={pct} />}
             </>
           )}
