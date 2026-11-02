@@ -2002,3 +2002,18 @@ to a file that is not there is a dead end. **Check my files** (free, stated on t
 `/api/economy/uploads/check/`, which looks in storage and says what it found and that nothing was
 deleted (`fileStatus.js`, tested). A player `onError` only suggests the check — "it would not play" is not
 "it is not there" — and never marks anything itself.
+
+## One bar of five on everything anybody makes: Karma · Rate · Comment · Share · Open in…
+
+`components/SocialBar.jsx` is the one bar, in that order, wherever UGC is shown (takes, battles, playlists
+today). It used to carry only vote, rate and comment; Share lived in `ShareSheet` (PostZ only) and the doors in
+`Doors` (FileZ and the coaches), so a battle or a playlist had no way to be linked or opened elsewhere. Each
+control states what it costs or earns BESIDE it before it is pressed (`socialBar.js`): Rate shows the +⚡ a first
+rating pays, Comment shows free-and-how-many-left or −⚡, Share and Open are free. The address to share and the
+apps an item opens in are the server's (`share`, `opens` on `/economy/social/`), never typed here, and a
+switched-off control says why on itself (`whyOff`) instead of sitting dead. Share records nothing and pays
+nothing for these kinds; the +5 ⚡ for sharing somebody's post is still PostZ's own.
+
+**Not yet on the bar:** PostZ keeps its own richer row (priced doors from `crosspost.destinations_for`), and
+collab deals, lessons, venues, FileZ files, inventory pieces, Sentence pieces, instrumentals, mixes and videos have
+no registered kind, so no bar. Adding one is a `ITEM_KINDS` entry plus a `SHARE_PATHS` entry on the backend.
