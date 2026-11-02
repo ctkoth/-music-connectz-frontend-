@@ -2017,3 +2017,11 @@ nothing for these kinds; the +5 ⚡ for sharing somebody's post is still PostZ's
 **Not yet on the bar:** PostZ keeps its own richer row (priced doors from `crosspost.destinations_for`), and
 collab deals, lessons, venues, FileZ files, inventory pieces, Sentence pieces, instrumentals, mixes and videos have
 no registered kind, so no bar. Adding one is a `ITEM_KINDS` entry plus a `SHARE_PATHS` entry on the backend.
+
+### Karma has a mood beside the vote
+
+The Karma control is ▲ ▼ (the vote) plus a **React** picker of moods: ❤️ Love, 😂 Funny, 😲 Shocked, 🤔 Curious,
+😢 Sad, 😡 Hate. The list, the counts and your own come from the server (`moods` on `/economy/social/`, set by
+`POST social/mood/`) and `socialBar.js` only joins them; nothing retypes an emoji. Only moods somebody chose are
+drawn in the row, the picker shows all. One mood each, press yours again to clear. It is free, **pays nothing and
+never changes a rating** — the picker says so. "Like" is not a mood: it is the ▲.

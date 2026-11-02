@@ -28,3 +28,35 @@ test("every disabled control says why", () => {
   assert.equal(whyOff("open", { opens: [{ label: "x" }] }), "");
   assert.equal(whyOff("rate", { canRate: true }), "");
 });
+
+import { moodRows, shownMoods, nextMood } from "./socialBar.js";
+
+const M = {
+  list: [{ key: "love", emoji: "❤️", label: "Love" }, { key: "shocked", emoji: "😲", label: "Shocked" }, { key: "hate", emoji: "😡", label: "Hate" }],
+  counts: { love: 3, shocked: 5, hate: 0 },
+  mine: "love",
+};
+
+test("moods join the server's list with its counts and mine", () => {
+  const rows = moodRows(M);
+  assert.equal(rows.length, 3);
+  assert.equal(rows.find((r) => r.key === "love").mine, true);
+  assert.equal(rows.find((r) => r.key === "shocked").mine, false);
+  assert.equal(rows.find((r) => r.key === "hate").count, 0);
+});
+
+test("the row shows only moods somebody chose, most first; the picker keeps all", () => {
+  assert.deepEqual(shownMoods(M).map((m) => m.key), ["shocked", "love"]);
+  assert.deepEqual(shownMoods({ list: M.list, counts: {}, mine: "" }), []);
+});
+
+test("pressing your own mood clears it, any other sets it", () => {
+  assert.equal(nextMood(M, "love"), "");
+  assert.equal(nextMood(M, "shocked"), "shocked");
+  assert.equal(nextMood(null, "love"), "love");
+});
+
+test("a failed or older response draws nothing rather than guessing", () => {
+  assert.deepEqual(moodRows(undefined), []);
+  assert.deepEqual(shownMoods(null), []);
+});

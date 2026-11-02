@@ -35,3 +35,22 @@ export function whyOff(control, { canRate, share, opens }) {
   if (control === "open" && !(opens && opens.length)) return "Nothing else opens this yet";
   return "";
 }
+
+// The mood row. The list, the counts and this member's own come from the server
+// (`moods`); this only joins them. Moods with nobody on them are not drawn in the
+// row (they are still in the picker), so a bar with no reactions stays quiet.
+export function moodRows(moods) {
+  const list = (moods && Array.isArray(moods.list)) ? moods.list : [];
+  const counts = (moods && moods.counts) || {};
+  const mine = (moods && moods.mine) || "";
+  return list.map((m) => ({ ...m, count: Number(counts[m.key]) || 0, mine: m.key === mine }));
+}
+
+export function shownMoods(moods) {
+  return moodRows(moods).filter((m) => m.count > 0).sort((a, b) => b.count - a.count);
+}
+
+// Pressing the mood you are already on clears it; any other sets it.
+export function nextMood(moods, key) {
+  return moods && moods.mine === key ? "" : key;
+}

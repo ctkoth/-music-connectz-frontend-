@@ -1,4 +1,4 @@
-// The five controls on any item anybody makes — Karma, Rate, Comment, Share, Open in…
+// The five controls on any item anybody makes — Karma (vote + mood), Rate, Comment, Share, Open in…
 // — in that order, on every app, on the one social endpoint, so a vote is a vote
 // everywhere and nobody has to learn a new bar per app. Each shows what it costs or
 // earns BESIDE it, before it is pressed (cost/gain rule): a first rating pays the rater
@@ -8,11 +8,11 @@
 // decides what is allowed; a refusal is shown as it came, and a switched-off control
 // says why on itself rather than sitting there dead.
 import { useEffect, useState } from "react";
-import { Check, ExternalLink, MessageSquare, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, ExternalLink, MessageSquare, Share2, Smile, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY } from "../resources.js";
-import { commentPrice, rateState, shareUrl, whyOff } from "../socialBar.js";
+import { commentPrice, moodRows, nextMood, rateState, shareUrl, shownMoods, whyOff } from "../socialBar.js";
 
 const CHIP = "inline-flex items-center gap-1 rounded px-2 py-1 disabled:opacity-40";
 
@@ -38,6 +38,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
   const toggle = (name) => setPanel((p) => (p === name ? null : name));
   const on = (name) => panel === name ? "bg-mcz-cyan/20 text-white" : "bg-white/5 text-white/70";
 
+  const moods = d.moods;           // absent on an older server: the picker simply isn't drawn
   const rate = rateState(d);
   const price = commentPrice(d);
   const url = shareUrl(window.location.origin, d.share);
@@ -61,6 +62,17 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
                   onClick={() => act("react", { value: d.my === 1 ? 0 : 1 })} aria-label="Like"><ThumbsUp size={12} /> {d.up}</button>
           <button className={`${CHIP} ${d.my === -1 ? "bg-mcz-ember/20 text-mcz-ember" : "bg-white/5 text-white/70"}`}
                   onClick={() => act("react", { value: d.my === -1 ? 0 : -1 })} aria-label="Dislike"><ThumbsDown size={12} /> {d.down}</button>
+          {/* Mood: how it made people feel. Only the ones somebody chose are drawn here. */}
+          {shownMoods(moods).map((m) => (
+            <button key={m.key} className={`${CHIP} ${m.mine ? "bg-mcz-cyan/25 text-white" : "bg-white/5 text-white/70"}`}
+                    disabled={!canRate} onClick={() => act("mood", { mood: nextMood(moods, m.key) })}
+                    aria-label={`${m.label}: ${m.count}`} title={m.label}>{m.emoji} {m.count}</button>
+          ))}
+          {moods && moods.list.length > 0 && (
+            <button className={`${CHIP} ${on("mood")}`} aria-label="React with a mood" onClick={() => toggle("mood")}>
+              <Smile size={12} /> React
+            </button>
+          )}
         </span>
         {/* 2 · Rate — the gain sits beside it until the first rating is made. */}
         <button className={`${CHIP} ${on("rate")}`} disabled={!!off("rate")} title={off("rate")} aria-label="Rate" onClick={() => toggle("rate")}>
@@ -81,6 +93,22 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
           <ExternalLink size={12} /> Open in…
         </button>
       </div>
+
+      {panel === "mood" && moods && (
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {moodRows(moods).map((m) => (
+              <button key={m.key} disabled={!canRate} title={!canRate ? "You can't react to your own work" : m.label}
+                      className={`${CHIP} ${m.mine ? "bg-mcz-cyan/25 text-white" : "bg-white/5 text-white/80"}`}
+                      onClick={() => act("mood", { mood: nextMood(moods, m.key) })}>
+                <span className="text-base leading-none">{m.emoji}</span> {m.label}{m.count > 0 ? ` ${m.count}` : ""}
+              </button>
+            ))}
+            <span className="text-emerald-300">Free</span>
+          </div>
+          <p className="text-white/40">How it made you feel. One mood each; press yours again to clear it. It pays nothing and never changes a rating.</p>
+        </div>
+      )}
 
       {panel === "rate" && canRate && (
         <div className="flex flex-wrap items-center gap-2">
