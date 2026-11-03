@@ -1962,6 +1962,12 @@ has no audio, so only the track goes, as the server's note says). Mix ConnectZ's
 exactly as if it had been picked there (Match reference becomes the target), each half reporting its own failure,
 and the Fine-tune section (`data-tour="mixz-match"`) opens itself once a reference is loaded.
 
+### Inspiration: writing, factor by factor
+
+A "Writing, factor by factor" `FactorTable` sits between delivery and lyrics: how each track is written (riff, chord
+choices, signature beat, cadence switches, melody…), worded by the server per coach, with the coach's `how` and a free
+door to a new take. Rows, wording and doors are the server's (`writing_scores`, `writing_doors`, `writing_compare_note`).
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app

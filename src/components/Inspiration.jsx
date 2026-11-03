@@ -354,6 +354,8 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
                    note={res.mix_compare_note} trial={trial} track={res.took} against={res.against} />
       <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
                    note={res.delivery_compare_note} trial={trial} />
+      <FactorTable title="Writing, factor by factor" rows={res.writing_scores} doors={res.writing_doors}
+                   note={res.writing_compare_note} trial={trial} />
       <FactorTable title="Lyrics, factor by factor" rows={res.lyric_scores} doors={res.lyric_doors}
                    note={res.lyric_compare_note} trial={trial}
                    picked={fixPick} onPick={fixDoor ? togglePick : undefined} />
