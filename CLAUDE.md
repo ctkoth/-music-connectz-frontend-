@@ -1923,6 +1923,14 @@ pink). It is used on the pickers, the two track cards, the ratings, the per-dime
 and the trial reads it too. Each track card shows what it was and the server's `heard` sentence ("The coach heard: …")
 under a line asking the member to check the two are the right way round. The letters match the ones the model is sent.
 
+### Inspiration: every lyric factor scored for both tracks, and a writer per factor
+
+`LyricFactors` sits above the lyric direction: one row per factor (rhyme, punchlines, story, imagery, freshness,
+HookZ, FeelZ), "you N · inspiration N" with the gap ("inspiration +3") and the coach's reason. **Improve yours —
+open Sentence ConnectZ** hands off that factor's own fixer with the scores and reason already in the brief, and the
+writer's price sits beside it. Rows, doors and the note are all the server's (`lyric_scores`, `lyric_doors`,
+`lyric_compare_note`), and nothing renders without them. Trial: rows, no door.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
