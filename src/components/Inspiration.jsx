@@ -36,6 +36,29 @@ export function SideMedia({ side, label }) {
 const sideLabelOf = (x) => (x?.kind === "link" ? `a YouTube video${x.start_seconds ? ` from ${Math.floor(x.start_seconds / 60)}:${String(x.start_seconds % 60).padStart(2, "0")}` : ""}` : x?.kind === "post" ? `"${x.title}" by @${x.author}` : x?.title ? `"${x.title}"` : "your file");
 const DIR = { more: "needs more", less: "needs less", close: "already close" };
 
+// Which track is which, said the same way everywhere: one name, one letter (the model is told the
+// same A and B), one colour. The server's keys stay "take" / "reference"; these are the words.
+export const TRACK = {
+  take: { name: "🎤 Your track", short: "you", letter: "A", border: "border-mcz-cyan/60", text: "text-mcz-cyan" },
+  reference: { name: "✨ Inspiration", short: "inspiration", letter: "B", border: "border-pink-400/60", text: "text-pink-300" },
+};
+
+// One side's chip: its name, its letter, what it was, and what the coach heard in it — the
+// "heard" sentence is how a member checks the two were not swapped.
+function TrackChip({ which, source, heard, children }) {
+  const t = TRACK[which];
+  return (
+    <div className={`space-y-1 rounded-lg border-2 ${t.border} p-2`}>
+      <p className={`font-semibold ${t.text}`}>
+        {t.name} <span className="text-[10px] font-normal text-white/45">track {t.letter}</span>
+        {source && <span className="font-normal text-white/70"> — {sideLabelOf(source)}</span>}
+      </p>
+      {heard && <p className="text-white/60"><span className="text-white/40">The coach heard:</span> {heard}</p>}
+      {children}
+    </div>
+  );
+}
+
 // One side of the comparison: a file from the device, or something already on the platform. Choosing
 // a post here is the same thing PostZ's "Coach it" door does for a take — nothing is uploaded twice.
 export function Source({ label, side, onSide, disabled, posts, mine, uploads, allowUploads, linkSources, noPosts }) {
@@ -148,11 +171,11 @@ function BetterWorse({ c, label, why }) {
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       <div className="rounded border border-emerald-300/25 p-2">
-        <p className="font-semibold text-emerald-300">Where yours is better</p>
+        <p className="font-semibold text-emerald-300">Where {TRACK.take.name.toLowerCase().replace("🎤 ", "")} is better</p>
         {c.better?.length ? <ul className="space-y-0.5">{c.better.map(row)}</ul> : <p className="text-white/45">Nowhere yet — the reference leads or ties on every dimension.</p>}
       </div>
       <div className="rounded border border-white/15 p-2">
-        <p className="font-semibold text-white">Where the reference is ahead</p>
+        <p className={`font-semibold ${TRACK.reference.text}`}>Where the {TRACK.reference.name.replace("✨ ", "")} is ahead</p>
         {c.worse?.length ? <ul className="space-y-0.5">{c.worse.map(row)}</ul> : <p className="text-white/45">Nowhere — you match or lead on every dimension.</p>}
       </div>
     </div>
@@ -173,21 +196,23 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
   const why = (k) => res.compare?.dimensions?.find((r) => r.key === k)?.why;
   return (
     <div className="space-y-3">
-      {res.sources && (
-        <p className="text-white/50">
-          Compared {sideLabelOf(res.sources.take)} against {sideLabelOf(res.sources.reference)}.
-        </p>
-      )}
       <div className="grid gap-2 sm:grid-cols-2">
-        <SideMedia side={res.took} label="Your take" />
-        <SideMedia side={res.against} label="The reference" />
+        <TrackChip which="take" source={res.sources?.take} heard={res.heard?.take}>
+          <SideMedia side={res.took} label="Play it" />
+        </TrackChip>
+        <TrackChip which="reference" source={res.sources?.reference} heard={res.heard?.reference}>
+          <SideMedia side={res.against} label="Play it" />
+        </TrackChip>
       </div>
+      {res.heard && (
+        <p className="text-white/40">Check these two: if they're the wrong way round, the coach mixed the tracks up and the numbers below are swapped too.</p>
+      )}
       <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
       <p>{res.summary}</p>
       {res.overall && (
         <div className="grid gap-2 sm:grid-cols-2">
-          <RatingRow value={res.overall.take} outOf label="Your take" detail={res.overall.take_why} />
-          <RatingRow value={res.overall.reference} outOf label="The reference" detail={res.overall.reference_why} />
+          <RatingRow value={res.overall.take} outOf label={TRACK.take.name} detail={res.overall.take_why} className={`border-2 ${TRACK.take.border}`} />
+          <RatingRow value={res.overall.reference} outOf label={TRACK.reference.name} detail={res.overall.reference_why} className={`border-2 ${TRACK.reference.border}`} />
         </div>
       )}
       {res.compare?.dimensions?.length > 0 && (
@@ -201,9 +226,9 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
               <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-white/5 px-2 py-1">
                 <span>{scores?.[r.key] || r.key}</span>
                 <span className="tabular-nums">
-                  you <RatingNumber value={r.take} size="sm" /> · ref <RatingNumber value={r.reference} size="sm" />
+                  <span className={TRACK.take.text}>you</span> <RatingNumber value={r.take} size="sm" /> · <span className={TRACK.reference.text}>inspiration</span> <RatingNumber value={r.reference} size="sm" />
                   <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/40"}`}>
-                    {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `ref +${-r.gap}` : "even"}
+                    {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `inspiration +${-r.gap}` : "even"}
                   </span>
                 </span>
               </li>
@@ -226,7 +251,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
       ))}
       {res.drills?.length > 0 && (
         <div className="space-y-1.5">
-          <p className="font-semibold text-white">Drills to sound more like the reference</p>
+          <p className="font-semibold text-white">Drills to sound more like the inspiration</p>
           {res.drills.map((d) => (
             <div key={d.name} className="rounded bg-white/5 p-2">
               <p className="text-white">
@@ -324,9 +349,9 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
       <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
       <p>Pick a song you want to sound like and your own take. The coach rates both, says where yours is better and where it's behind, gives drills to close the gap, and can send a lyric direction to Sentence ConnectZ.</p>
       <p className="text-white/50">{info.notice}</p>
-      <Source label="Your take — a file, a post of yours (like a RapZ submission), or your own YouTube link" side={mine} onSide={setTake} disabled={busy}
+      <Source label={`${TRACK.take.name} (A) — a file, a post of yours (like a RapZ submission), or your own YouTube link`} side={mine} onSide={setTake} disabled={busy}
               posts={posts} mine allowUploads uploads={uploads} linkSources={info.link_sources} />
-      <Source label="Reference — a file, any post you can see, or a YouTube link (a famous example)" side={ref} onSide={setRef} disabled={busy}
+      <Source label={`${TRACK.reference.name} (B) — the song you want to sound like: a file, any post you can see, or a YouTube link`} side={ref} onSide={setRef} disabled={busy}
               posts={posts} uploads={uploads} allowUploads linkSources={info.link_sources} />
       {same && <p className="text-amber-200">That's the same post on both sides — pick a different reference.</p>}
       <div className="flex flex-wrap items-center gap-3">

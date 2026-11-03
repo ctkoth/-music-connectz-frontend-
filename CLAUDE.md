@@ -1916,6 +1916,13 @@ name, the dimension trained, minutes and steps (free; the next take's score is t
 button reads the server's `lyrics_door` — label, what it carries, and the writer's price beside it before it is
 pressed ("when you press Write"); an older server without it falls back to the old hand-off. Trial: no door.
 
+### Inspiration: which track is which is never left to guess
+
+`TRACK` in `Inspiration.jsx` is one name, letter and colour per side: 🎤 Your track (A, cyan) and ✨ Inspiration (B,
+pink). It is used on the pickers, the two track cards, the ratings, the per-dimension rows and the better/worse lists,
+and the trial reads it too. Each track card shows what it was and the server's `heard` sentence ("The coach heard: …")
+under a line asking the member to check the two are the right way round. The letters match the ones the model is sent.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
