@@ -140,13 +140,37 @@ function compareLine(c, label) {
   return parts.join(" · ") + ".";
 }
 
+// What is better and what is worse, as the server listed them (biggest lead / widest gap first), each
+// with the coach's one-line reason. An older server without the lists falls back to the grid alone.
+function BetterWorse({ c, label, why }) {
+  if (!Array.isArray(c?.better) && !Array.isArray(c?.worse)) return null;
+  const row = (k) => <li key={k}><b>{label(k)}</b>{why(k) ? <span className="text-white/60"> — {why(k)}</span> : null}</li>;
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <div className="rounded border border-emerald-300/25 p-2">
+        <p className="font-semibold text-emerald-300">Where yours is better</p>
+        {c.better?.length ? <ul className="space-y-0.5">{c.better.map(row)}</ul> : <p className="text-white/45">Nowhere yet — the reference leads or ties on every dimension.</p>}
+      </div>
+      <div className="rounded border border-white/15 p-2">
+        <p className="font-semibold text-white">Where the reference is ahead</p>
+        {c.worse?.length ? <ul className="space-y-0.5">{c.worse.map(row)}</ul> : <p className="text-white/45">Nowhere — you match or lead on every dimension.</p>}
+      </div>
+    </div>
+  );
+}
+
 // The comparison's result, drawn once for the member's Inspiration and the free door's. `trial` only
 // drops what needs an account (the Sentence ConnectZ hand-off) and words the cost as the free take.
 export function InspirationResult({ res, scores, genre, trial = false }) {
-  const toLyrics = () => handOff("sentenceconnectz", "", {
+  // The server builds the door (what it carries, its price, its note); an older server that sends
+  // none falls back to the plain hand-off this screen always had.
+  const door = res.lyrics_door;
+  const toLyrics = () => handOff("sentenceconnectz", door?.target || "", door?.carry || {
     kind: "lyrics", genre,
     text: `Rewrite my lyrics with this direction (the reference's words are not used):\n${res.lyric_direction}\n\nMy lyrics:\n`,
   });
+  const label = (k) => scores?.[k] || k;
+  const why = (k) => res.compare?.dimensions?.find((r) => r.key === k)?.why;
   return (
     <div className="space-y-3">
       {res.sources && (
@@ -169,8 +193,9 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
       {res.compare?.dimensions?.length > 0 && (
         <div className="space-y-1">
           <p className="text-white/70">
-            {compareLine(res.compare, (k) => scores?.[k] || k)}
+            {compareLine(res.compare, label)}
           </p>
+          <BetterWorse c={res.compare} label={label} why={why} />
           <ul className="grid gap-1 sm:grid-cols-2">
             {res.compare.dimensions.map((r) => (
               <li key={r.key} className="flex items-center justify-between gap-2 rounded bg-white/5 px-2 py-1">
@@ -199,6 +224,22 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
       {res.how_to?.map((h, i) => (
         <div key={i}><p className="font-semibold text-white">{h.what}</p><p>{h.why}</p><p className="text-emerald-300">{h.how}</p></div>
       ))}
+      {res.drills?.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="font-semibold text-white">Drills to sound more like the reference</p>
+          {res.drills.map((d) => (
+            <div key={d.name} className="rounded bg-white/5 p-2">
+              <p className="text-white">
+                <b>{d.name}</b>
+                <span className="text-white/50"> · trains {label(d.targets)}{d.minutes ? ` · ${d.minutes} min` : ""}</span>
+              </p>
+              {d.why && <p>{d.why}</p>}
+              <p className="text-emerald-300">{d.how}</p>
+            </div>
+          ))}
+          <p className="text-white/40">Free to do. Your next take's {label(res.drills[0].targets)} score is how you'll know it worked.</p>
+        </div>
+      )}
       {res.keep && <p><b>Keep:</b> {res.keep}</p>}
       {res.lyric_direction && (
         <div className="rounded border border-white/10 p-2">
@@ -206,10 +247,19 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
           <p>{res.lyric_direction}</p>
           <p className="text-white/45">{res.lyric_note}</p>
           {!trial && (
-            <button type="button" onClick={toLyrics} className="mt-1 rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
-              Rewrite my lyrics in Sentence ConnectZ
-            </button>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <button type="button" onClick={toLyrics} className="rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
+                {door?.label || "Rewrite my lyrics in Sentence ConnectZ"}
+              </button>
+              {/* The writer's price, beside the door, before it is pressed (charged in Sentence ConnectZ on Write). */}
+              {door?.cost && (
+                <span className="text-[11px] text-mcz-ember">
+                  {door.cost.free_today ? "Free today — uses 1 free prompt" : `−${door.cost.amount} ${PROMPTZ}`} when you press Write
+                </span>
+              )}
+            </div>
           )}
+          {!trial && door?.note && <p className="text-white/40">{door.note}</p>}
         </div>
       )}
       <p className="text-white/40">
@@ -272,7 +322,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   return (
     <section className="mt-3 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
       <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
-      <p>Pick a song you want to sound like and your own take. The coach tells you what separates them — in the score, the EQ and the how-to — and can send a lyric direction to Sentence ConnectZ.</p>
+      <p>Pick a song you want to sound like and your own take. The coach rates both, says where yours is better and where it's behind, gives drills to close the gap, and can send a lyric direction to Sentence ConnectZ.</p>
       <p className="text-white/50">{info.notice}</p>
       <Source label="Your take — a file, a post of yours (like a RapZ submission), or your own YouTube link" side={mine} onSide={setTake} disabled={busy}
               posts={posts} mine allowUploads uploads={uploads} linkSources={info.link_sources} />

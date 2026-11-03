@@ -1908,6 +1908,14 @@ every dimension as `you N · ref N` with who leads by how much, and one line fro
 of 5 · the widest gap is Breath"). Both are on one scale so they compare; the subtraction is the server's. Nothing here is
 saved as the member's score, and the screen says so.
 
+### Inspiration: better / worse, drills, and the lyric rewrite priced on its door
+
+Under the two ratings, `BetterWorse` lists "Where yours is better" and "Where the reference is ahead" from the
+server's `compare.better` / `worse`, each with the coach's reason. **Drills to sound more like the reference** show
+name, the dimension trained, minutes and steps (free; the next take's score is the measure). The Sentence ConnectZ
+button reads the server's `lyrics_door` — label, what it carries, and the writer's price beside it before it is
+pressed ("when you press Write"); an older server without it falls back to the old hand-off. Trial: no door.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
