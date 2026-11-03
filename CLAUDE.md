@@ -1931,6 +1931,12 @@ open Sentence ConnectZ** hands off that factor's own fixer with the scores and r
 writer's price sits beside it. Rows, doors and the note are all the server's (`lyric_scores`, `lyric_doors`,
 `lyric_compare_note`), and nothing renders without them. Trial: rows, no door.
 
+### Inspiration: delivery, factor by factor
+
+`FactorTable` draws both families with one component, delivery first and then lyrics. Delivery rows (SingZ and RapZ) add
+the coach's `how` in green, and their door is free to open: a new take in the coach's recorder, or breath training for
+projection. A door with no `cost` shows its note, never a price.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app

@@ -182,15 +182,15 @@ function BetterWorse({ c, label, why }) {
   );
 }
 
-// Every lyric factor, both tracks on one scale, with the server's gap ("inspiration +3") and the
+// One table for every factor family (delivery, lyrics): both tracks on one scale, with the server's gap ("inspiration +3") and the
 // coach's reason — then "Improve yours", which opens that factor's own writer with the reason in the
 // brief and its price beside it before it is pressed. On the trial there is no writer, so no door.
-function LyricFactors({ rows, doors, note, trial }) {
+function FactorTable({ title, rows, doors, note, trial }) {
   if (!rows?.length) return null;
   const price = (c) => (c ? (c.free_today ? "Free today — uses 1 free prompt" : `−${c.amount} ${PROMPTZ}`) : "");
   return (
     <div className="space-y-1.5 rounded border border-white/10 p-2">
-      <p className="font-semibold text-white">Lyrics, factor by factor</p>
+      <p className="font-semibold text-white">{title}</p>
       <ul className="space-y-1.5">
         {rows.map((r) => {
           const door = !trial && doors?.[r.dim];
@@ -207,13 +207,16 @@ function LyricFactors({ rows, doors, note, trial }) {
                 </span>
               </div>
               {r.why && <p className="text-white/60">{r.why}</p>}
+              {r.how && <p className="text-emerald-300">→ {r.how}</p>}
               {door && (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <button type="button" onClick={() => handOff(door.tab, door.target, door.carry)}
                           className="rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
-                    {door.label} — open Sentence ConnectZ
+                    {door.tab === "sentenceconnectz" ? `${door.label} — open Sentence ConnectZ` : door.label}
                   </button>
-                  {door.cost && <span className="text-[11px] text-mcz-ember">{price(door.cost)} when you press Write</span>}
+                  {door.cost
+                    ? <span className="text-[11px] text-mcz-ember">{price(door.cost)} when you press Write</span>
+                    : <span className="text-[11px] text-white/45">{door.note || "Free"}</span>}
                 </div>
               )}
             </li>
@@ -221,7 +224,9 @@ function LyricFactors({ rows, doors, note, trial }) {
         })}
       </ul>
       {note && <p className="text-white/40">{note}</p>}
-      {!trial && doors && Object.values(doors)[0]?.note && <p className="text-white/40">{Object.values(doors)[0].note}</p>}
+      {!trial && doors && Object.values(doors).find((d) => d.cost)?.note && (
+        <p className="text-white/40">{Object.values(doors).find((d) => d.cost).note}</p>
+      )}
     </div>
   );
 }
@@ -310,7 +315,10 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
         </div>
       )}
       {res.keep && <p><b>Keep:</b> {res.keep}</p>}
-      <LyricFactors rows={res.lyric_scores} doors={res.lyric_doors} note={res.lyric_compare_note} trial={trial} />
+      <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
+                   note={res.delivery_compare_note} trial={trial} />
+      <FactorTable title="Lyrics, factor by factor" rows={res.lyric_scores} doors={res.lyric_doors}
+                   note={res.lyric_compare_note} trial={trial} />
       {res.lyric_direction && (
         <div className="rounded border border-white/10 p-2">
           <p className="font-semibold text-white">Lyrics</p>
