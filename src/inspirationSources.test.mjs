@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { addSide, asFile, asLink, asPost, asUpload, linkProvider, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "./inspirationSources.js";
+import { addSide, asFile, asLink, asPost, asUpload, linkProvider, mixCarry, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "./inspirationSources.js";
 
 class FakeForm { constructor() { this.rows = []; } append(k, v, name) { this.rows.push([k, name ? `${v.name}` : v]); } }
 const file = { name: "r.wav" };
@@ -108,4 +108,13 @@ test("the screen offers a link door and states the window beside it", () => {
   for (const needle of ["A link", "Paste a YouTube link", "link_sources", "linkVerdict", "From my apps"]) {
     assert.ok(src.includes(needle), needle);
   }
+});
+
+test("mixCarry hands Mix ConnectZ the member's own track when it has an address, and nothing otherwise", () => {
+  assert.deepEqual(mixCarry(asUpload({ id: 3, name: "v.wav", url: "/api/economy/media/3/v.wav" })),
+    { url: "/api/economy/media/3/v.wav", title: "v.wav" });
+  assert.deepEqual(mixCarry(asPost({ id: 9, title: "Mine", author: "me", media_url: "/m/9.mp3" })), { url: "/m/9.mp3", title: "Mine" });
+  assert.deepEqual(mixCarry(asPost({ id: 9, title: "No file", author: "me" })), {});
+  assert.deepEqual(mixCarry(asLink("https://youtu.be/abcdefghijk")), {});
+  assert.deepEqual(mixCarry(null), {});
 });

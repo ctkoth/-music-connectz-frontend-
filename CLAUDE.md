@@ -1937,6 +1937,13 @@ writer's price sits beside it. Rows, doors and the note are all the server's (`l
 the coach's `how` in green, and their door is free to open: a new take in the coach's recorder, or breath training for
 projection. A door with no `cost` shows its note, never a price.
 
+### Inspiration: mix diagnosis first, and the door arrives with the song loaded
+
+"Mix diagnosis, factor by factor" is the first `FactorTable`: seven mix factors for both tracks, with the server's
+`how`. Its door, **Fix it in Mix ConnectZ**, lands on the control (`mixz-vocalz`, `mixz-dynamicz`, `mixz-settings`)
+and hands over the member's own track (`mixCarry`: a local file as a blob address, a post or FileZ upload by its
+address, a link not at all), so the song is already open. Reverb opens Arsenal. Clean signal has no door.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app

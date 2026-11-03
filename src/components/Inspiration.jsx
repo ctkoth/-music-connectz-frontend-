@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { RatingNumber, RatingRow } from "./Rating.jsx";
 import { handOff } from "../handoff.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
-import { addSide, asFile, asLink, asPost, asUpload, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
+import { addSide, mixCarry, asFile, asLink, asPost, asUpload, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
 
 // Inspiration — your take, heard against a song you want to sound like. It
 // decides nothing: the price, the EQ regions, the notices and every word of the
@@ -185,7 +185,7 @@ function BetterWorse({ c, label, why }) {
 // One table for every factor family (delivery, lyrics): both tracks on one scale, with the server's gap ("inspiration +3") and the
 // coach's reason — then "Improve yours", which opens that factor's own writer with the reason in the
 // brief and its price beside it before it is pressed. On the trial there is no writer, so no door.
-function FactorTable({ title, rows, doors, note, trial }) {
+function FactorTable({ title, rows, doors, note, trial, track }) {
   if (!rows?.length) return null;
   const price = (c) => (c ? (c.free_today ? "Free today — uses 1 free prompt" : `−${c.amount} ${PROMPTZ}`) : "");
   return (
@@ -210,7 +210,8 @@ function FactorTable({ title, rows, doors, note, trial }) {
               {r.how && <p className="text-emerald-300">→ {r.how}</p>}
               {door && (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <button type="button" onClick={() => handOff(door.tab, door.target, door.carry)}
+                  <button type="button" onClick={() => handOff(door.tab, door.target,
+                            door.tab === "mixconnectz" ? { ...door.carry, ...mixCarry(track) } : door.carry)}
                           className="rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
                     {door.tab === "sentenceconnectz" ? `${door.label} — open Sentence ConnectZ` : door.label}
                   </button>
@@ -315,6 +316,8 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
         </div>
       )}
       {res.keep && <p><b>Keep:</b> {res.keep}</p>}
+      <FactorTable title="Mix diagnosis, factor by factor" rows={res.mix_scores} doors={res.mix_doors}
+                   note={res.mix_compare_note} trial={trial} track={res.took} />
       <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
                    note={res.delivery_compare_note} trial={trial} />
       <FactorTable title="Lyrics, factor by factor" rows={res.lyric_scores} doors={res.lyric_doors}
