@@ -1954,6 +1954,14 @@ list, with what each means) above the lyrics box, and Write stays disabled with 
 and why, and the server's note. The draft is the whole fixed song, and its royalty line reads "% of the song is the
 writer's fixes", worked out by the server.
 
+### Mix my song like the inspiration: both tracks arrive in Mix ConnectZ
+
+Above the mix table, **🎚️ Mix my song like the inspiration** (free, on device) and every mix factor's door hand Mix
+ConnectZ the member's track AND the inspiration (`mixBoth` → `{url, title, reference: {url, title}}`; a link side
+has no audio, so only the track goes, as the server's note says). Mix ConnectZ's hand-off now loads the reference
+exactly as if it had been picked there (Match reference becomes the target), each half reporting its own failure,
+and the Fine-tune section (`data-tour="mixz-match"`) opens itself once a reference is loaded.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
