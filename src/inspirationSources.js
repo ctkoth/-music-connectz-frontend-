@@ -9,8 +9,19 @@ import { hostOf } from "./widgetz.js";
 
 /** A side of the comparison. `file` | `post` | `upload` | `link` | null. */
 export const asFile = (file) => (file ? { kind: "file", file, label: file.name } : null);
-export const asPost = (p) => ({ kind: "post", id: p.id, label: p.title, author: p.author, mine: !!p.mine });
-export const asUpload = (u) => ({ kind: "upload", id: u.id, label: u.name });
+export const asPost = (p) => ({ kind: "post", id: p.id, label: p.title, author: p.author, mine: !!p.mine, url: p.media_url || "" });
+export const asUpload = (u) => ({ kind: "upload", id: u.id, label: u.name, url: u.url || "" });
+
+/** What Mix ConnectZ's hand-off needs to open THIS side already loaded ({url, title}), or {} when there is
+ *  no address to give it (a link, or nothing) — then the screen opens on the control with "Pick your song". */
+export function mixCarry(side) {
+  if (!side) return {};
+  if (side.kind === "file" && side.file && typeof URL !== "undefined" && URL.createObjectURL) {
+    return { url: URL.createObjectURL(side.file), title: side.label || "Your track" };
+  }
+  if ((side.kind === "post" || side.kind === "upload") && side.url) return { url: side.url, title: side.label || "Your track" };
+  return {};
+}
 export const asLink = (url) => ({ kind: "link", url: String(url).trim(), label: String(url).trim() });
 
 /** The multipart fields for one side, under the server's names (`take_post_id`, `reference_upload_id`…). */
