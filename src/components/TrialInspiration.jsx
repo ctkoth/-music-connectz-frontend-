@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import { anonId } from "../track.js";
-import { InspirationResult, Source } from "./Inspiration.jsx";
+import { InspirationResult, Source, TRACK } from "./Inspiration.jsx";
 import { addSide, asFile } from "../inspirationSources.js";
 
 // Inspiration at the free door: the visitor's own take, heard against a song they want to sound
@@ -61,9 +61,9 @@ export default function TrialInspiration({ appKey, take, takeName, onSpent }) {
       <p className="text-white/50">{info.notice}</p>
       {/* The take is whatever is in the recorder above; it is shown, not re-asked. */}
       <p className={mine ? "text-emerald-300/80" : "text-white/45"}>
-        {mine ? `Your take: ${takeName || "recording"}` : "Your take: record or attach one above first."}
+        {mine ? `${TRACK.take.name} (A): ${takeName || "recording"}` : `${TRACK.take.name} (A): record or attach one above first.`}
       </p>
-      <Source label="Reference — a file or a YouTube link" side={ref} onSide={setRef} disabled={busy || spent}
+      <Source label={`${TRACK.reference.name} (B) — the song you want to sound like: a file or a YouTube link`} side={ref} onSide={setRef} disabled={busy || spent}
               noPosts linkSources={info.link_sources} />
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={run} disabled={busy || !mine || !ref || spent}
