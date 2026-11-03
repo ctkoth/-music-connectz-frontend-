@@ -140,6 +140,54 @@ function download(name, text) {
   } catch { /* the Copy button is still there */ }
 }
 
+// Fix my lyrics: which factors change. Nothing else in the song does, and the screen says so before
+// Write. The factors and what each means are the server's; notes are what Inspiration heard.
+function FixPicker({ factors, picked, notes, onChange, disabled }) {
+  const toggle = (k) => onChange(picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k]);
+  return (
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3" data-tour="sentencez-fixpick">
+      <p className="text-sm text-white/80">Fix only these — every other line stays exactly as you wrote it:</p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="What to fix">
+        {factors.map((f) => (
+          <button key={f.key} type="button" disabled={disabled} aria-pressed={picked.includes(f.key)} title={f.core}
+                  onClick={() => toggle(f.key)}
+                  className={`rounded-full border px-3 py-1 text-xs ${picked.includes(f.key)
+                    ? "border-mcz-cyan bg-mcz-cyan/15 text-white" : "border-white/15 text-white/60 hover:border-white/40"}`}>
+            {f.emoji} {f.label}
+          </button>
+        ))}
+      </div>
+      {picked.filter((k) => notes?.[k]).map((k) => (
+        <p key={k} className="text-[11px] text-white/50">
+          {factors.find((f) => f.key === k)?.label}: the comparison heard “{notes[k]}”
+        </p>
+      ))}
+      {!picked.length && <p className="text-[11px] text-mcz-gold">Pick at least one — only what you pick changes.</p>}
+    </div>
+  );
+}
+
+// What a revision changed, line by line, and how much of the song is untouched — the server's count.
+function RevisionChanges({ r, note }) {
+  return (
+    <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+      <p className="text-white/80">
+        Kept <b>{r.kept_lines} of {r.total_lines}</b> of your lines word for word · {r.changes?.length || 0} fixed
+      </p>
+      {(r.changes || []).map((c, i) => (
+        <div key={i} className="rounded bg-white/5 p-2">
+          <p className="text-[11px] text-mcz-cyan/80">{c.label}</p>
+          <p className="text-white/50 line-through">{c.before}</p>
+          <p className="text-white">{c.after}</p>
+          {c.why && <p className="text-[11px] text-white/60">{c.why}</p>}
+        </div>
+      ))}
+      {!r.changes?.length && <p className="text-white/60">Nothing needed fixing on what you picked — your lyrics came back as they were.</p>}
+      {note && <p className="text-[11px] text-white/45">{note}</p>}
+    </div>
+  );
+}
+
 export default function SentenceConnectZ() {
   const cl = useCharLimit();
   const [s, setS] = useState(null);
@@ -159,6 +207,8 @@ export default function SentenceConnectZ() {
   const [items, setItems] = useState(null);      // a fixer's ranked suggestions
   const [picked, setPicked] = useState([]);      // which of them the member is using
   const [hidden, setHidden] = useState(false);   // the suggestions, minimised
+  const [fixFactors, setFixFactors] = useState([]);   // Fix my lyrics: only these change
+  const [fixNotes, setFixNotes] = useState({});       // what Inspiration said about each, if it came from there
   const timer = useRef(null);
 
   // The coach hands a weak score here with the writer for it already chosen, and
@@ -166,6 +216,8 @@ export default function SentenceConnectZ() {
   // never kept the member's words, so they paste the ones they want fixed.
   useEffect(() => (IN_SHELL ? undefined : onHandoff("sentenceconnectz", (p) => {
     if (p.kind) setKind(String(p.kind));
+    if (Array.isArray(p.factors)) setFixFactors(p.factors.map(String));
+    if (p.notes && typeof p.notes === "object") setFixNotes(p.notes);
     // WriteZ has the member's own words, so they arrive in the brief.
     if (p.text) setTopic(String(p.text));
     const g = p.style || p.genre;
@@ -190,9 +242,10 @@ export default function SentenceConnectZ() {
     setItems(its); setHidden(false);
     // Every suggestion starts selected: "suggest all", the member narrows down.
     setPicked(its ? its.map((i) => i.idx) : []);
-    setWork(w); setDraft(w.text);
+    // A revision's draft is the whole song as fixed; its stored text is only the changed lines.
+    setWork(w); setDraft(w.revision?.lyrics || w.text);
     const pct = w.royalty_pct ?? s?.royalty_pct;
-    setRoyalty(pct == null ? null : { royalty_pct: pct, kept_share: 1 });
+    setRoyalty(pct == null ? null : { royalty_pct: pct, kept_share: w.kept_share ?? 1 });
   };
 
   useEffect(() => {
@@ -219,6 +272,7 @@ export default function SentenceConnectZ() {
     if (dialsHere && Object.keys(prio).length) body.priorities = prio;
     if (inspHere && insp) body.reference = insp.url;
     if (kind === "lyrics") Object.assign(body, { majority, minority });
+    if (kind === "revise") Object.assign(body, { factors: fixFactors, notes: fixNotes });
     if (current?.hashtags) Object.assign(body, hashtagBody(tags));
     let w;
     try {
@@ -321,9 +375,13 @@ export default function SentenceConnectZ() {
               <SentenceInspiration info={s} kind={kind} label={current?.label || kind}
                 onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)} />
             )}
+            {kind === "revise" && (
+              <FixPicker factors={current?.factors || []} picked={fixFactors} notes={fixNotes}
+                         onChange={setFixFactors} disabled={busy} />
+            )}
             <textarea
               className="neon-input min-h-28 w-full"
-              aria-label="What to write about"
+              aria-label={kind === "revise" ? "Your lyrics" : "What to write about"}
               placeholder={current?.hint || "What should it say?"}
               value={topic}
               onChange={(e) => takeBrief(e.target.value)}
@@ -356,7 +414,7 @@ export default function SentenceConnectZ() {
               {/* Live only once the price is known and the run can be paid for: with
                   no answer from the server there is no price to have stated. */}
               <button className="neon-btn-primary !w-auto px-5"
-                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run} onClick={write}>
+                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run || (kind === "revise" && !fixFactors.length)} onClick={write}>
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <PenLine size={16} />} Write it
               </button>
               <RunPrice s={s} noun="writes" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
@@ -376,13 +434,14 @@ export default function SentenceConnectZ() {
             {!IN_SHELL && royalty && (
               <span className="text-xs text-white/60">
                 If used in DistributeZ, CollabZ or BattleZ: <span className="text-mcz-ember">−{royalty.royalty_pct}%</span> to K-Oth
-                <span className="text-white/40"> ({Math.round(royalty.kept_share * 100)}% of the original kept)</span>
+                <span className="text-white/40"> ({Math.round(royalty.kept_share * 100)}% {work.kind === "revise" ? "of the song is the writer's fixes" : "of the original kept"})</span>
               </span>
             )}
           </div>
           <p className="text-[11px] text-white/45">Written by AI. Check it before you use it.</p>
           {work.legal_note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.legal_note}</p>}
           {work.note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.note}</p>}
+          {work.revision && <RevisionChanges r={work.revision} note={work.revise_note} />}
           {items && (
             <div className="space-y-2" data-tour="sentencez-fixes">
               <div className="flex flex-wrap items-center justify-between gap-2">

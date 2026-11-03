@@ -1944,6 +1944,16 @@ projection. A door with no `cost` shows its note, never a price.
 and hands over the member's own track (`mixCarry`: a local file as a blob address, a post or FileZ upload by its
 address, a link not at all), so the song is already open. Reverb opens Arsenal. Clean signal has no door.
 
+### Fix my lyrics: pick the factors, keep the song
+
+Inspiration's lyric table has a checkbox per factor, pre-ticked by the server where the inspiration leads (`revise_door`),
+and one **🩹 Fix my lyrics — only what I pick (N)** button with the writer's price beside it. It hands Sentence ConnectZ
+`kind: "revise"` with only the ticked factors and their notes. There, `FixPicker` shows the same factors (the server's
+list, with what each means) above the lyrics box, and Write stays disabled with none picked. The result leads with
+`RevisionChanges`: "Kept N of M of your lines word for word", each change as before (struck) → after with its factor
+and why, and the server's note. The draft is the whole fixed song, and its royalty line reads "% of the song is the
+writer's fixes", worked out by the server.
+
 ## LookZMaxZ invites: she gets her own reading and chooses to show it
 
 Corey asked to score a woman who asked whether she was a 10/10. Scoring a photo somebody else uploads stays out (the app
