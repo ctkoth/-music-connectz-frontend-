@@ -182,10 +182,18 @@ function BetterWorse({ c, label, why }) {
   );
 }
 
+// What Mix ConnectZ is handed: the member's track and, when there is a file to give, the inspiration as its
+// reference — so the song opens already set to match it. A link has no audio to hand over (the server's door
+// says so); then only the track goes.
+function mixBoth(door, track, against) {
+  const ref = door.with_reference === false ? {} : mixCarry(against);
+  return { ...door.carry, ...mixCarry(track), ...(ref.url ? { reference: ref } : {}) };
+}
+
 // One table for every factor family (delivery, lyrics): both tracks on one scale, with the server's gap ("inspiration +3") and the
 // coach's reason — then "Improve yours", which opens that factor's own writer with the reason in the
 // brief and its price beside it before it is pressed. On the trial there is no writer, so no door.
-function FactorTable({ title, rows, doors, note, trial, track, picked, onPick }) {
+function FactorTable({ title, rows, doors, note, trial, track, against, picked, onPick }) {
   if (!rows?.length) return null;
   const price = (c) => (c ? (c.free_today ? "Free today — uses 1 free prompt" : `−${c.amount} ${PROMPTZ}`) : "");
   return (
@@ -217,7 +225,7 @@ function FactorTable({ title, rows, doors, note, trial, track, picked, onPick })
               {door && (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <button type="button" onClick={() => handOff(door.tab, door.target,
-                            door.tab === "mixconnectz" ? { ...door.carry, ...mixCarry(track) } : door.carry)}
+                            door.tab === "mixconnectz" ? mixBoth(door, track, against) : door.carry)}
                           className="rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
                     {door.tab === "sentenceconnectz" ? `${door.label} — open Sentence ConnectZ` : door.label}
                   </button>
@@ -330,8 +338,20 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
         </div>
       )}
       {res.keep && <p><b>Keep:</b> {res.keep}</p>}
+      {!trial && res.mix_match_door && (
+        <div className="space-y-1 rounded border border-mcz-cyan/30 p-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => handOff(res.mix_match_door.tab, res.mix_match_door.target, mixBoth(res.mix_match_door, res.took, res.against))}
+                    className="rounded-full border border-mcz-cyan bg-mcz-cyan/15 px-3 py-1 text-[11px] font-semibold text-white">
+              🎚️ {res.mix_match_door.label}
+            </button>
+            <span className="text-[11px] text-emerald-300">Free · on your device</span>
+          </div>
+          <p className="text-white/45">{res.mix_match_door.note}</p>
+        </div>
+      )}
       <FactorTable title="Mix diagnosis, factor by factor" rows={res.mix_scores} doors={res.mix_doors}
-                   note={res.mix_compare_note} trial={trial} track={res.took} />
+                   note={res.mix_compare_note} trial={trial} track={res.took} against={res.against} />
       <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
                    note={res.delivery_compare_note} trial={trial} />
       <FactorTable title="Lyrics, factor by factor" rows={res.lyric_scores} doors={res.lyric_doors}

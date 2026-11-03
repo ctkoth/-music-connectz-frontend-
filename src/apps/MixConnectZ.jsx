@@ -222,15 +222,27 @@ export default function MixConnectZ() {
     .catch((e) => setLoadErr(e.message || "Your saved masters couldn't be loaded."));
   useEffect(() => { load(); }, []);
 
-  // A track handed over from another app (a post's audio) arrives as a URL.
+  // A track handed over from another app (a post's audio) arrives as a URL — and, from Inspiration, the
+  // song to sound like as `reference`, which becomes the Match reference target exactly as if it had been
+  // picked here. Each half reports its own failure: a reference that won't load must not hide the song.
   useEffect(() => onHandoff("mixconnectz", async (p) => {
-    if (!p?.url) return;
-    try {
-      setBusy("Fetching the track"); setErr("");
-      const r = await fetch(p.url);
-      if (!r.ok) throw new Error(`That track couldn't be fetched (${r.status}).`);
-      await open(await r.arrayBuffer(), p.title || "Your track");
-    } catch (e) { setErr(e.message); setBusy(""); }
+    if (p?.url) {
+      try {
+        setBusy("Fetching the track"); setErr("");
+        const r = await fetch(p.url);
+        if (!r.ok) throw new Error(`That track couldn't be fetched (${r.status}).`);
+        await open(await r.arrayBuffer(), p.title || "Your track");
+      } catch (e) { setErr(e.message); setBusy(""); }
+    }
+    if (p?.reference?.url) {
+      try {
+        setBusy("Fetching the inspiration");
+        const r = await fetch(p.reference.url);
+        if (!r.ok) throw new Error(`The inspiration couldn't be fetched (${r.status}) — add its file under Inspiration.`);
+        const blob = await r.blob();
+        await openReference(new File([blob], p.reference.title || "Inspiration", { type: blob.type }));
+      } catch (e) { setErr(e.message); setBusy(""); }
+    }
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allowed = s?.allowed;
@@ -585,7 +597,7 @@ export default function MixConnectZ() {
             )}
           </div>
 
-          <details className="space-y-3 rounded-lg border border-white/10 p-3">
+          <details className="space-y-3 rounded-lg border border-white/10 p-3" data-tour="mixz-match" open={ref ? true : undefined}>
             <summary className="cursor-pointer text-sm text-white/70">Fine-tune: EQ, width, mono bass, Inspiration</summary>
             <label className="flex items-center gap-2 text-sm text-white/70">
               <input type="checkbox" checked={settings.eq} onChange={(e) => set("eq", e.target.checked)} />
