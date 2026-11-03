@@ -185,7 +185,7 @@ function BetterWorse({ c, label, why }) {
 // One table for every factor family (delivery, lyrics): both tracks on one scale, with the server's gap ("inspiration +3") and the
 // coach's reason — then "Improve yours", which opens that factor's own writer with the reason in the
 // brief and its price beside it before it is pressed. On the trial there is no writer, so no door.
-function FactorTable({ title, rows, doors, note, trial, track }) {
+function FactorTable({ title, rows, doors, note, trial, track, picked, onPick }) {
   if (!rows?.length) return null;
   const price = (c) => (c ? (c.free_today ? "Free today — uses 1 free prompt" : `−${c.amount} ${PROMPTZ}`) : "");
   return (
@@ -197,7 +197,13 @@ function FactorTable({ title, rows, doors, note, trial, track }) {
           return (
             <li key={r.dim} className="rounded bg-white/5 px-2 py-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-white">{r.label}</span>
+                {onPick && r.fixer ? (
+                  <label className="flex items-center gap-2 text-white">
+                    <input type="checkbox" checked={picked.includes(r.fixer)} onChange={() => onPick(r.fixer)}
+                           aria-label={`Fix ${r.label} in my lyrics`} />
+                    {r.label}
+                  </label>
+                ) : <span className="text-white">{r.label}</span>}
                 <span className="tabular-nums">
                   <span className={TRACK.take.text}>you</span> <RatingNumber value={r.take} size="sm" /> ·{" "}
                   <span className={TRACK.reference.text}>inspiration</span> <RatingNumber value={r.reference} size="sm" />
@@ -243,6 +249,14 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
     text: `Rewrite my lyrics with this direction (the reference's words are not used):\n${res.lyric_direction}\n\nMy lyrics:\n`,
   });
   const label = (k) => scores?.[k] || k;
+  // Fix my lyrics: the member's pick of factors, pre-ticked by the server where the inspiration leads.
+  const fixDoor = !trial && res.revise_door;
+  const [fixPick, setFixPick] = useState(() => fixDoor?.carry?.factors || []);
+  const togglePick = (k) => setFixPick((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+  const sendFix = () => handOff(fixDoor.tab, fixDoor.target, {
+    ...fixDoor.carry, factors: fixPick,
+    notes: Object.fromEntries(Object.entries(fixDoor.carry.notes || {}).filter(([k]) => fixPick.includes(k))),
+  });
   const why = (k) => res.compare?.dimensions?.find((r) => r.key === k)?.why;
   return (
     <div className="space-y-3">
@@ -321,7 +335,26 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
       <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
                    note={res.delivery_compare_note} trial={trial} />
       <FactorTable title="Lyrics, factor by factor" rows={res.lyric_scores} doors={res.lyric_doors}
-                   note={res.lyric_compare_note} trial={trial} />
+                   note={res.lyric_compare_note} trial={trial}
+                   picked={fixPick} onPick={fixDoor ? togglePick : undefined} />
+      {fixDoor && (
+        <div className="space-y-1 rounded border border-mcz-cyan/30 p-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={sendFix} disabled={!fixPick.length}
+                    className="rounded-full border border-mcz-cyan bg-mcz-cyan/15 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-40">
+              🩹 {fixDoor.label} ({fixPick.length})
+            </button>
+            {fixDoor.cost && (
+              <span className="text-[11px] text-mcz-ember">
+                {fixDoor.cost.free_today ? "Free today — uses 1 free prompt" : `−${fixDoor.cost.amount} ${PROMPTZ}`} when you press Write
+              </span>
+            )}
+          </div>
+          <p className="text-white/45">
+            {fixPick.length ? "Tick or untick the factors above — only the ticked ones change." : "Tick at least one factor above."} {fixDoor.note}
+          </p>
+        </div>
+      )}
       {res.lyric_direction && (
         <div className="rounded border border-white/10 p-2">
           <p className="font-semibold text-white">Lyrics</p>
