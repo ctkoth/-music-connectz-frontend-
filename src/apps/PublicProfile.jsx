@@ -107,6 +107,11 @@ export default function PublicProfile() {
                 {(persona.skills || []).map((s, j) => (
                   <span key={j} className="pill">
                     {s.name}
+                    {s.rating != null && (
+                      <span className="ml-1 text-mcz-gold" title="Median of the work that used this skill">
+                        ★ {s.rating} <span className="text-white/45">({s.rating_count})</span>
+                      </span>
+                    )}
                     {(s.genres || []).length > 0 && (
                       <span className="ml-1 text-white/55">in {s.genres.map(genreLabel).join(", ")}</span>
                     )}
