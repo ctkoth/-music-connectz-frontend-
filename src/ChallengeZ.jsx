@@ -33,7 +33,7 @@ function useCalloutCost() {
 
 const Cost = ({ n }) => (n ? <span className="font-semibold text-mcz-ember">−{n} {ENERGY}</span> : null);
 
-/** The Challenge button on a post card. Not shown on your own posts. */
+/** The Challenge button on a post card — "Beat my score" when the post has a rating. Not shown on your own posts. */
 export function ChallengeButton({ post, onSent }) {
   const cost = useCalloutCost();
   const [open, setOpen] = useState(false);
@@ -69,7 +69,11 @@ export function ChallengeButton({ post, onSent }) {
     <div className="mt-1 text-[11px]">
       <button type="button" className="inline-flex items-center gap-1 text-mcz-cyan hover:underline"
         onClick={() => setOpen((v) => !v)}>
-        <Swords size={12} /> Challenge @{post.author} {cost ? <Cost n={cost} /> : null}
+        <Swords size={12} />
+        {post.rating != null
+          ? <>Beat my score ({post.rating}) · @{post.author}</>
+          : <>Challenge @{post.author}</>}
+        {cost ? <Cost n={cost} /> : null}
       </button>
       {open && (
         <div className="neon-frame mt-2 space-y-2 p-3">
