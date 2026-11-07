@@ -86,7 +86,7 @@ export default function SocialConnectZ() {
           <Search size={16} className="text-white/40" />
           <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, region…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-      <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
+      <RangeGates keys={["rating", "price", "attract", "age", "km"]} value={ranges} onChange={setRanges}
                   title="Your standards — who shows up here" />
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
