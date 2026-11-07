@@ -54,6 +54,9 @@ import RangeGates from "../RangeGates.jsx";
 import { seed, remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
 
+// Browser key for the Maps embed. Restrict it to the site's referrers in Google Cloud. Unset = no map.
+const VENUE_MAP_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
 const KIND = {
@@ -525,6 +528,11 @@ function Venue({ v, onChanged, onFlash }) {
               ? "The address comes when the host says yes."
               : "The area is public; the address is shared once you're accepted."}
           </p>
+        )}
+        {v.address && v.location && VENUE_MAP_KEY && (
+          <iframe title={`Map of ${v.title || "this venue"}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+            className="mt-1 h-44 w-full rounded-lg border border-white/10"
+            src={`https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(VENUE_MAP_KEY)}&q=${v.location.lat},${v.location.lng}&zoom=15`} />
         )}
         {v.min_age > 0 && (
           <p className="text-[11px] text-mcz-gold">{v.min_age}+ only.</p>
