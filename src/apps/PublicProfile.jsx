@@ -109,7 +109,7 @@ export default function PublicProfile() {
                     {s.name}
                     {s.rating != null && (
                       <span className="ml-1 text-mcz-gold" title="Median of the work that used this skill">
-                        ★ {s.rating} <span className="text-white/45">({s.rating_count})</span>
+                        ★ {s.rating} <span className="text-white/45">({s.rating_count}{s.rating_coach ? " + coach" : ""})</span>
                       </span>
                     )}
                     {(s.genres || []).length > 0 && (
