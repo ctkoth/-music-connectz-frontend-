@@ -66,6 +66,7 @@ import ShareSheet from "../components/ShareSheet.jsx";
 import CoachReadCard, { CoachReadSetting } from "../components/CoachReadCard.jsx";
 import PostEmbeds from "../PostEmbeds.jsx";
 import RangeGates from "../RangeGates.jsx";
+import { ChallengeButton } from "../ChallengeZ.jsx";
 import { trackListening } from "../listen.js";
 import EditWindowCountdown from "../components/EditWindowCountdown.jsx";
 import LeaderboardZ from "./LeaderboardZ.jsx";
@@ -1090,6 +1091,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 onClick={() => onDerive({ id: post.id, kind: "remix", title: post.title })}>🔄 Remix this</button>
             </p>
           )}
+          <ChallengeButton post={post} />
           {post.description && (
             <p className="mt-1 whitespace-pre-wrap text-sm text-white/80"><MentionText text={post.description} /></p>
           )}

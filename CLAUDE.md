@@ -848,6 +848,21 @@ answer**, or it ships inside a fitness app.
   separate Play-review risk for the main listing (an app promoting an off-Play install of
   itself) and is not fixed here.
 
+## ChallengeZ: a Challenge button on the post, filters for whoever is challenged, one list in BattleZ
+
+`ChallengeZ.jsx` holds all three and decides nothing: the price (`callout_cost_energy`), the refund on a decline, what a
+filter turned away and who an auto-accept covers are all the server's (`apps/economy/callouts.py`).
+
+- **`ChallengeButton`** is on every post that is not yours and not private or restricted. The price is on the button and
+  beside Send, in ember, and the line under it says the other two things a member needs first: a decline refunds it and a
+  filter's refusal is free. The server's sentence for a refusal is shown unreworded.
+- **Same beat, two tracks** is two optional fields (title, link). Blank means each side brings their own; the screen says
+  it asks for a shared beat and does not check one was used.
+- **`ChallengeZ`** mounts above the money poll in BattleZ: Incoming, Sent, and a Filters form. Accept says `free`, Decline
+  says what it refunds the challenger, and every row carries `open_in` to the post it came from.
+- **The cost is read once per page load** and shared by every post card, so a feed of forty posts is one request.
+- The red and green are the repo's tokens (`text-mcz-ember`, `text-emerald-300`), not Tailwind's red and green.
+
 ## Conventions
 
 - Tier numbers (char limits, prompts, storage) come from the server via

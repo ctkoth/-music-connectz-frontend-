@@ -44,6 +44,7 @@ import MentionText from "../MentionParser.jsx";
 import { recall, remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
 import SocialBar from "../components/SocialBar.jsx";
+import ChallengeZ from "../ChallengeZ.jsx";
 
 // "@username" as a real link to their profile — every place BattleZ mentions
 // a contestant by name uses this instead of a bare "@{name}" string.
@@ -672,6 +673,8 @@ export default function BattleZ() {
       </header>
 
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">{msg}</p>}
+
+      {!open && <ChallengeZ onOpen={(id) => { setOpen(id); }} />}
 
       {!open && <MoneyPoll />}
 
