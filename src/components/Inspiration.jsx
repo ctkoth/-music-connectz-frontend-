@@ -3,6 +3,7 @@ import { Loader2, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { RatingNumber, RatingRow } from "./Rating.jsx";
 import { handOff } from "../handoff.js";
+import { goToSpot } from "../goto.js";
 import { ENERGY, PROMPTZ } from "../resources.js";
 import { addSide, mixCarry, asFile, asLink, asPost, asUpload, linkVerdict, listenable, matches, samePost, sideLabel, usesPost, withRecording } from "../inspirationSources.js";
 
@@ -190,6 +191,45 @@ function mixBoth(door, track, against) {
   return { ...door.carry, ...mixCarry(track), ...(ref.url ? { reference: ref } : {}) };
 }
 
+// ProduceZ only: how to make a song like the reference. The blueprint is what the coach HEARD (tempo, key,
+// feel, form, sounds — anything it could not tell is simply absent, never guessed) and the steps are the
+// server's, each with a door into the place that does it. Approach only; the server's note says so.
+function BuildPlan({ blueprint, plan, note }) {
+  if (!blueprint && !plan?.length) return null;
+  const facts = blueprint ? [
+    blueprint.tempo_bpm ? `${blueprint.tempo_bpm} BPM` : null, blueprint.key, blueprint.feel] .filter(Boolean) : [];
+  return (
+    <div className="space-y-2 rounded border border-mcz-cyan/30 p-2" data-tour="inspiration-buildplan">
+      <p className="font-semibold text-white">🎚️ How to make a song like this</p>
+      {blueprint && (
+        <div className="space-y-1">
+          {facts.length > 0 && <p className="text-white/80">{facts.join(" · ")}</p>}
+          {blueprint.sections?.length > 0 && (
+            <p className="text-white/70">{blueprint.sections.map((x) => `${x.name}${x.bars ? ` ${x.bars} bars` : ""}`).join(" → ")}</p>
+          )}
+          {blueprint.sounds?.length > 0 && <p className="text-white/60">Sounds: {blueprint.sounds.join(", ")}</p>}
+        </div>
+      )}
+      <ol className="space-y-1.5">
+        {(plan || []).map((st) => (
+          <li key={st.order} className="rounded bg-white/5 p-1.5">
+            <p className="text-white"><span className="text-mcz-cyan">{st.order}.</span> {st.what}</p>
+            {st.why && <p className="text-white/55">{st.why}</p>}
+            <p className="text-emerald-300/90">{st.how}</p>
+            {st.open_in && (
+              <button type="button" onClick={() => goToSpot(st.open_in.tab, st.open_in.target)}
+                      className="mt-1 rounded-full border border-mcz-cyan px-2.5 py-0.5 text-[11px] text-white">
+                {st.open_in.label} · <span className="text-emerald-300">Free</span>
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+      {note && <p className="text-[11px] text-white/45">{note}</p>}
+    </div>
+  );
+}
+
 // One table for every factor family (delivery, lyrics): both tracks on one scale, with the server's gap ("inspiration +3") and the
 // coach's reason — then "Improve yours", which opens that factor's own writer with the reason in the
 // brief and its price beside it before it is pressed. On the trial there is no writer, so no door.
@@ -350,6 +390,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
           <p className="text-white/45">{res.mix_match_door.note}</p>
         </div>
       )}
+      <BuildPlan blueprint={res.blueprint} plan={res.build_plan} note={res.build_note} />
       <FactorTable title="Mix diagnosis, factor by factor" rows={res.mix_scores} doors={res.mix_doors}
                    note={res.mix_compare_note} trial={trial} track={res.took} against={res.against} />
       <FactorTable title="Delivery, factor by factor" rows={res.delivery_scores} doors={res.delivery_doors}
