@@ -18,7 +18,7 @@ import './ToolZMenu.css';
 // art at all. A third copy of "which picture is this app" is how that happens.
 const ICON_KEY = {
   singz: "singz.png", rapz: "rapz.png", guitarz: "guitarz.png", bassz: "bassz.png",
-  keyz: "keyz.png", drumz: "drumz.png", violinz: "violinz.png",
+  keyz: "keyz.png", drumz: "drumz.png", producez: "producez.png", violinz: "violinz.png",
   flutez: "flutez.png", saxz: "saxz.png", clarinetz: "clarinetz.png", trumpetz: "trumpetz.png",
   battlez: "battlez.png", collabz: "collabz.png", infernoz: "infernoz.png",
   socialiZeZ: "social_connectz.png", vybez: "vybez.png", postz: "postz.png",
@@ -39,7 +39,7 @@ const ICON_KEY = {
   filez: "filez.png",
 };
 const EMOJI = {
-  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
+  singz: "🎤", rapz: "🎙️", guitarz: "🎸", bassz: "🎸", keyz: "🎹", drumz: "🥁", producez: "🎚️", violinz: "🎻", flutez: "🪈", saxz: "🎷", clarinetz: "🎼", trumpetz: "🎺",
   battlez: "⚔️", collabz: "🤝", infernoz: "🔥", socialiZeZ: "👥", vybez: "💫", postz: "📝",
   messagez: "💬", skillz: "⭐", occ: "👨‍🏫", bosttake: "🎬", onboardz: "🚀", logz: "📊",
   profilez: "👤", voicez: "🎙️", widgetz: "🔗", keyconnectz: "🔑", venuez: "🎪", directz: "🎥", statez: "📈",
@@ -112,6 +112,7 @@ const COACH_GROUPS = [
       group: 'Percussion',
       apps: [
         { key: 'drumz', label: 'DrumZ', color: 'magenta', desc: 'Drums coaching' },
+        { key: 'producez', label: 'ProduceZ', color: 'magenta', desc: 'Producer coaching' },
       ]
     },
 ];
@@ -324,7 +325,7 @@ const CATEGORIES = [
 // Labels for the focus tiles that no ToolZ category names (see focus.js).
 const FOCUS_LABEL = {
   singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', bassz: 'BassZ', keyz: 'KeyZ',
-  drumz: 'DrumZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
+  drumz: 'DrumZ', producez: 'ProduceZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
   bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith',

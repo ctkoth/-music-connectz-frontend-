@@ -26,7 +26,7 @@ export const RECEIVES = {
   occ: ["post_id", "journal_id", "title", "audio_url", "video_url", "image_url"],
 };
 // Every coach takes a stored take by id (post, upload or journal entry).
-export const COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "violinz",
+export const COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "producez", "violinz",
   "flutez", "saxz", "clarinetz", "trumpetz"];
 for (const c of COACHES) RECEIVES[c] = ["post_id", "upload_id", "journal_id"];
 

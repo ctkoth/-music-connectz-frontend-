@@ -77,6 +77,7 @@ const KEYS = {
   "genrez.jpg": "genrez.jpg",
   "budgetz.jpg": "budgetz.jpg",
   "inventoriez.jpg": "inventoriez.png",
+  "producez.jpg": "producez.png",
   "collabz.coverz.png": "collabz.coverz.png",
   "collabz.originalz.png": "collabz.originalz.png",
   "collabz.png": "collabz.png",

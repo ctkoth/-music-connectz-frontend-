@@ -35,6 +35,7 @@ const FALLBACK = [
   { key: "clarinetz", label: "ClarinetZ", icon: "clarinetz.png" },
   { key: "trumpetz", label: "TrumpetZ", icon: "trumpetz.png" },
   { key: "drumz", label: "DrumZ", icon: "drumz.png" },
+  { key: "producez", label: "ProduceZ", icon: "producez.png" },
 ].map((a) => ({ ...a, built: true, in_app: true }));
 
 const day = (iso) => {

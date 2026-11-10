@@ -339,6 +339,7 @@ export const CUSTOM_ICONS = {
   "genrez.jpg": "/icons/genrez.jpg",
   "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",
+  "producez.png": "/icons/producez.jpg",   // Corey's art (Nov 9)
   "inventoriez.png": "/icons/inventoriez.jpg",   // Corey's art (Oct 28)
   "beatz.png": "/icons/beatz.jpg",          // Corey's art (Oct 22)
   "socialz.png": "/icons/socialz.png",
@@ -642,6 +643,11 @@ const TABS = [
   { key: "drumz", label: "DrumZ", icon: "drumz.png",
     el: <InstrumentZ appKey="drumz" icon="drumz.png" title="DrumZ" accent="#ef4444"
         tagline="Timing, groove, dynamics, consistency and fills scored on every take — plus a practice pad to warm up on." /> },
+  // The producer's coach: scores the PRODUCTION (groove, sounds, arrangement, melody & harmony, mix),
+  // and Inspiration turns a reference song into a build plan. Backend: /api/producez/coach/.
+  { key: "producez", label: "ProduceZ", icon: "producez.png",
+    el: <InstrumentZ appKey="producez" icon="producez.png" title="ProduceZ" accent="#a855f7"
+        tagline="Send your instrumental, get it scored on groove, sounds, arrangement, melody and mix — then compare it to a song you want to sound like and get the steps to build it." /> },
   { key: "journalz", label: "JournalZ", icon: "journalz.jpg", el: <JournalZ /> },
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "lilith", label: "Lilith", icon: "lilithz.png", el: <Lilith /> },

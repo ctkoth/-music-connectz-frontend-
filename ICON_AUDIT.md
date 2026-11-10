@@ -106,7 +106,7 @@ show committed dotted files the tree picked up from public/icons.
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
-## Adopted — committed under the registry key's own name (29)
+## Adopted — committed under the registry key's own name (30)
 The supplied list spells these differently, so they were never matched by
 name; the committed file is the artwork, and it is the default now.
 
@@ -134,6 +134,7 @@ name; the committed file is the artwork, and it is the default now.
 | `onboardz.png` | `onboardz.png` | /icons/onboardz-neon.svg |
 | `postz.png` | `postz.png` | /icons/postz-neon.svg |
 | `personaz_director.webp` | `personaz_director.png` | /icons/personaz_director.webp |
+| `producez.png` | `producez.png` | /icons/producez.jpg |
 | `royaltiez.png` | `royaltiez.png` | /icons/royaltiez-neon.svg |
 | `playlistz.png` | `playlistz.png` | /icons/playlistz-neon.svg |
 | `habitz.png` | `habitz.png` | /icons/habitz-neon.svg |
@@ -238,7 +239,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (37)
+## Tabs and apps that ask for an icon no supplied file covers (38)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -265,6 +266,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `onboardz.png` → /icons/onboardz-neon.svg
 - `playlistz.png` → /icons/playlistz-neon.svg
 - `postz.png` → /icons/postz-neon.svg
+- `producez.png` → /icons/producez.jpg
 - `ratez.png` → /icons/ratez.png
 - `royaltiez.png` → /icons/royaltiez-neon.svg
 - `saxz.png` → /icons/saxz-neon.png

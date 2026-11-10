@@ -85,6 +85,7 @@ export const APP_PURPOSE = {
   saxz:        { does: "Record sax and get scored",      words: "sax saxophone alto tenor woodwind breath record score take practice coach jazz band" },
   clarinetz:   { does: "Record clarinet and get scored", words: "clarinet woodwind reed breath record score take practice coach band" },
   trumpetz:    { does: "Record trumpet and get scored",  words: "trumpet brass horn breath record score take practice coach band" },
+  producez:    { does: "Score your instrumental, learn to build one like a reference", words: "producer production beat instrumental song make mix arrangement sounds inspiration coach" },
   drumz:       { does: "Record drums and get scored",    words: "drums drumming beat record score take practice coach" },
   metz:        { does: "Metronome",                      words: "metronome tempo bpm beat click time signature practice" },
   tunerz:      { does: "Tune an instrument",              words: "tuner tune pitch pegs string guitar bass in tune" },

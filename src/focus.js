@@ -17,7 +17,7 @@ export const FOCUS_MODE = true;
 
 // The coaches — the product. Ordered as the home screen shows them.
 export const FOCUS_COACHES = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "violinz",
-                               "flutez", "saxz", "clarinetz", "trumpetz"];
+                               "flutez", "saxz", "clarinetz", "trumpetz", "producez"];
 
 // The coach's own side, shown at the end of the coach grid: SkillZ is every coach with its skill
 // tree, so it is a coach app and not one of thirteen categories behind "More apps". It is a ToolZ
