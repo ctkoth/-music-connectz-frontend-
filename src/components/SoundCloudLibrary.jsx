@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
 import SoundCloudImport, { LAST } from "../SoundCloudImport.jsx";
 import { ENERGY } from "../resources.js";
+import { OpenIn, usePostDoors } from "./PostDoors.jsx";
 import {
   LABEL, VISIBILITIES, alreadyAt, canApply, chunk, countsLine, mergeResults, orderedIds,
   pageFullySelected, previewText, resultLine, selectPage, toggleId, unselectPage,
@@ -15,6 +16,31 @@ import {
 // Nothing here has run against SoundCloud itself.
 
 const Cost = ({ cost }) => <Price amount={cost?.amount || 0} emoji={ENERGY} />;
+
+// A row's options: the same panel a PostZ card opens, from the server's own list
+// for THIS post (`/postz/<id>/open/`), so a price is read when the member asks
+// rather than when the list loaded. A failed fetch says so; it never invents doors.
+function RowOptions({ row }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
+  const { opening, openIn } = usePostDoors({ id: row.id, title: row.title }, setNote);
+  useEffect(() => {
+    let live = true;
+    api(`/api/economy/postz/${row.id}/open/`)
+      .then((d) => { if (live) setData(d); })
+      .catch((e) => { if (live) setErr(e.message || "Couldn't load the options for this track."); });
+    return () => { live = false; };
+  }, [row.id]);
+  if (err) return <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>;
+  if (!data) return <p className="flex items-center gap-2 text-[11px] text-white/45"><Loader2 className="animate-spin" size={12} /> Loading options…</p>;
+  return (
+    <div>
+      <OpenIn post={{ destinations: data.destinations }} busy={!!opening} onGo={openIn} />
+      {note && <p role="status" className="mt-1 text-[11px] text-white/60">{note}</p>}
+    </div>
+  );
+}
 
 export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [data, setData] = useState(null);
@@ -30,6 +56,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [prog, setProg] = useState("");
   const [outcome, setOutcome] = useState(null);
   const [error, setError] = useState("");
+  const [optionsFor, setOptionsFor] = useState(null);   // the row whose options are open
   const root = useRef(null);
   const [last, setLast] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem(LAST) || "null"); } catch { return null; }
@@ -165,13 +192,22 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
 
       <ul className="divide-y divide-white/5">
         {rows.map((r) => (
-          <li key={r.id} className="flex items-center gap-2 py-1.5">
+          <li key={r.id} className="flex flex-wrap items-center gap-2 py-1.5">
             <input type="checkbox" checked={sel.has(r.id)} onChange={() => setSel(toggleId(sel, r.id))} />
             {r.artwork
               ? <img src={r.artwork} alt="" className="h-9 w-9 rounded object-cover" loading="lazy" />
               : <div className="h-9 w-9 rounded bg-white/5" />}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-white/85">{r.title}{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
+              <p className="truncate text-sm text-white/85">
+                <button type="button" onClick={() => setOptionsFor(optionsFor === r.id ? null : r.id)}
+                  aria-expanded={optionsFor === r.id}
+                  title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
+                  className="text-left hover:text-mcz-gold">
+                  {r.title}
+                  <span className={`ml-1.5 text-[10px] ${optionsFor === r.id ? "text-mcz-gold" : "text-white/35"}`}>
+                    {optionsFor === r.id ? "▴ options" : "▾ options"}
+                  </span>
+                </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
               <p className="text-[10px] text-white/35">
                 {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
                 {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
@@ -188,6 +224,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                 </button>
               ))}
             </div>
+            {optionsFor === r.id && <div className="w-full basis-full"><RowOptions row={r} /></div>}
           </li>
         ))}
       </ul>
