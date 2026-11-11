@@ -631,6 +631,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
   // to two apps at once.
   const [opening, setOpening] = useState("");
   const [showOpen, setShowOpen] = useState(false);
+  const openRef = useRef(null);
+  // The title is a door to the same panel as "Open it in…", because the title
+  // is the thing a member's eye is on. The panel sits below the action row, which
+  // on a post with comments is off the screen, so opening it brings it into view.
+  function toggleOptions() {
+    setShowOpen((v) => !v);
+    requestAnimationFrame(() => openRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }));
+  }
   const [eTitle, setETitle] = useState(post.title);
   const [eDesc, setEDesc] = useState(post.description || "");
   const [eWork, setEWork] = useState({});
@@ -858,6 +866,15 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
     try {
       if (d.action === "deal") return await takeToCollabZ(d.target);
       if (d.action === "distribute") return await distribute(d.target);
+      if (d.action === "open") {
+        // Nothing to carry: a SoundCloud post is a player and has no file. The coach
+        // opens on its recorder and the member attaches their own copy there.
+        goToSpot(d.app, d.target);
+        onFlash(d.own_copy
+          ? `SoundCloud gives us a player, not the file — attach your own copy of "${post.title}" in ${d.app.toUpperCase()} to have it scored.`
+          : `Opened ${d.app.toUpperCase()}.`);
+        return;
+      }
       // "coach" and "seed" both carry the post over and land on the control.
       // The destination states the price again ON the button that spends it —
       // the row here is the quote, the button there is the commitment.
@@ -1077,7 +1094,14 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
         </div>
       ) : (
         <>
-          <p className="text-sm font-semibold text-white">{post.title}</p>
+          <button type="button" onClick={toggleOptions} aria-expanded={showOpen}
+                  title={showOpen ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
+                  className="group block max-w-full text-left text-sm font-semibold text-white hover:text-mcz-gold">
+            <span className="break-words">{post.title}</span>
+            <span className={`ml-1.5 text-[10px] font-normal ${showOpen ? "text-mcz-gold" : "text-white/35 group-hover:text-mcz-gold"}`}>
+              {showOpen ? "▴ options" : "▾ options"}
+            </span>
+          </button>
           {post.derived && (
             <p className="text-[11px] text-white/50">
               {post.derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{post.derived.title}" by @{post.derived.author}
@@ -1180,7 +1204,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
       )}
 
       {showOpen && (
-        <OpenIn post={post} busy={!!opening} onGo={openIn} />
+        <div ref={openRef}><OpenIn post={post} busy={!!opening} onGo={openIn} /></div>
       )}
       {showOpen && (
         <SendTo from="postz" kind="post" label="Any app…"
