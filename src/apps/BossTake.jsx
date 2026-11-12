@@ -40,7 +40,8 @@ import { IN_SHELL as IN_SHELL_COACH, IN_SKILLZ } from "../standalone.js";
 import ReportTake from "../components/ReportTake.jsx";
 import { listenersLine } from "../coachUpgrades.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { mediaError, bestMime, sizeLabel } from "../recorder.js";
+import { mediaError, bestMime, sizeLabel, releaseRecorder } from "../recorder.js";
+import { useRecordingHold } from "../useRecordingHold.js";
 import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
 
@@ -530,6 +531,22 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, secs]);
+
+  // Opening another app no longer ends a take: the shell keeps this screen
+  // mounted while it records, and its bar carries a Stop (recordingHold.js).
+  useRecordingHold({ recording, label: "a take for the coach", stop: () => stopRec() });
+  // ...and if this screen really is going away (signed out, a crash above it),
+  // the recorder goes with it. It used to be left running with the microphone
+  // open and nothing on any screen that could close it.
+  useEffect(() => () => {
+    releaseRecorder(rec.current);
+    const m = meter.current;
+    meter.current = null;
+    if (m) {
+      try { cancelAnimationFrame(m.raf); } catch { /* nothing to cancel */ }
+      try { m.ctx.close(); } catch { /* already closed */ }
+    }
+  }, []);
 
   // In the SkillZ app every coach stays mounted, only hidden, when the member moves to
   // another one (standalone/skillz/Shell.jsx) — so a recorder left running would keep

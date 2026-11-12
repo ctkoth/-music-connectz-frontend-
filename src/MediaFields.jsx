@@ -15,7 +15,8 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Film, Image as ImageIcon, Mic, Square, Trash2, Upload } from "lucide-react";
 import { playSound } from "./sound.js";
 import { useUploadLimit } from "./limits.js";
-import { mediaError, bestMime, sizeLabel } from "./recorder.js";
+import { mediaError, bestMime, sizeLabel, releaseRecorder } from "./recorder.js";
+import { useRecordingHold } from "./useRecordingHold.js";
 import { goToTab } from "./goto.js";
 
 // One of each — the order they preview in. The tag is how each renders.
@@ -159,6 +160,12 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
     setRecording(false);
     playSound("record_stop");
   }
+
+  // A take here survives opening another app (recordingHold.js) — and so does
+  // everything else typed into the form around it.
+  useRecordingHold({ recording, label: "an audio take", stop: stopRec });
+  // If the form itself goes away, so does its recorder and its microphone.
+  useEffect(() => () => releaseRecorder(rec.current), []);
 
   const mmss = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
 

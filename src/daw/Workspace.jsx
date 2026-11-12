@@ -12,6 +12,7 @@ import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import { handOff, onHandoff } from "../handoff.js";
 import { mediaError } from "../recorder.js";
+import { useRecordingHold, useTabActive } from "../useRecordingHold.js";
 import { createDaw } from "./engine.js";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
@@ -186,7 +187,7 @@ export default function Workspace({ workflow }) {
       setBusy("Finishing the take…");
       try {
         const take = await daw.stopRecording();
-        setRecording(false); setPlaying(false);
+        setUnsaved(true); setRecording(false); setPlaying(false);
         if (!take) { setErr("Nothing was captured — the microphone sent no sound."); return; }
         if (take.silent) { setErr("That take is silent — check the microphone isn't muted, then record again. It was not added."); return; }
         const armed = armedTrack(sRef.current);
@@ -203,7 +204,7 @@ export default function Workspace({ workflow }) {
         const lined = take.offsetMs > 0 ? ` Lined up ${take.offsetMs} ms earlier for this device's own audio delay.` : "";
         setMsg(`Recorded ${minSec(take.duration)} onto ${armed.name}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${lined}`);
         try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
-      } catch (e) { setErr(e.message); } finally { setBusy(""); }
+      } catch (e) { setErr(e.message); } finally { setBusy(""); setTimeout(() => setUnsaved(false), 1500); }
       return;
     }
     const armed = armedTrack(sRef.current);
@@ -219,6 +220,14 @@ export default function Workspace({ workflow }) {
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); }
   };
+
+  // A take keeps running when the member opens another app (recordingHold.js):
+  // the shell keeps this workspace mounted, and its bar's Stop lands here. The
+  // hold outlasts the take by the moment it takes to autosave, or leaving would
+  // unmount the session before the new take was written to the device.
+  const [unsaved, setUnsaved] = useState(false);
+  useRecordingHold({ recording: recording || unsaved, label: `a take in ${workflow.name}`, stop: () => { if (recording) record(); } });
+  const onScreen = useTabActive();
 
   // ---- getting audio in ----
   const targetTrack = (s) => {
@@ -273,6 +282,8 @@ export default function Workspace({ workflow }) {
   // ---- keys ----
   useEffect(() => {
     const onKey = (e) => {
+      // Mounted but hidden behind another app: its keys are that app's keys.
+      if (!onScreen) return;
       if (e.target.closest?.("input, select, textarea")) return;
       if (e.code === "Space") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else startPlay(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }

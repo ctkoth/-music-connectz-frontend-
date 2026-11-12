@@ -39,7 +39,10 @@ export function spotlight(target, { tries = 25, every = 120, delay = 400 } = {})
   return new Promise((resolve) => {
     let n = 0;
     const tick = () => {
-      const el = document.querySelector(`[data-tour="${target}"]`);
+      // Not the first match: an app that is recording stays mounted, hidden,
+      // behind the one on screen, and its anchors are still in the document.
+      const el = [...document.querySelectorAll(`[data-tour="${target}"]`)]
+        .find((n) => !n.closest("[hidden]"));
       if (el) {
         const bring = () => el.scrollIntoView({ behavior: "smooth", block: "center" });
         bring();

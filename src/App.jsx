@@ -1,6 +1,6 @@
 import { clearLanding, peekLanding } from "./landing.js";
 import { needsDoorList, trialPathFor, TRIAL_DOOR_FALLBACK } from "./trialLinks.js";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -9,6 +9,9 @@ import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
 import { goToSpot, openMember } from "./goto.js";
+import { heldTabs, stableSlots, stopAll } from "./recordingHold.js";
+import { TabSlotContext, useHolds } from "./useRecordingHold.js";
+import RecordingBar from "./components/RecordingBar.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
@@ -1026,8 +1029,22 @@ const TAB_ABOUT = {
   dupez: "👤 DupeZ — one person, one account. Accounts that look like the same member, what each one holds, and the one safe way to close the spare: yours goes when you say so, anyone else's is the owner's call.",
 };
 
+// One mounted app. Its tab key and whether it is the one on screen reach the
+// app through context, so a recorder inside it can hold its own tab open
+// (useRecordingHold) without a prop threaded through every screen.
+function TabSlot({ tab, active, children }) {
+  const value = useMemo(() => ({ tab, active }), [tab, active]);
+  return (
+    <div hidden={!active} className="mcz-tab-enter min-w-0">
+      <TabSlotContext.Provider value={value}>{children}</TabSlotContext.Provider>
+    </div>
+  );
+}
+
 function Home() {
-  const { user, logout } = useAuth();
+  const { user, logout: signOut } = useAuth();
+  // A recorder left running would outlive the session it belongs to.
+  const logout = () => { stopAll(); signOut(); };
   // Reminders and quiet hours run on the member's own clock; until the
   // browser has said which, the server assumes US Eastern.
   useEffect(() => { if (user) reportTimezone(); }, [user]);
@@ -1072,6 +1089,14 @@ function Home() {
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
   }, []);
+  // Apps that are recording stay mounted when the member opens another one —
+  // hidden, not unmounted — so any app can be used during a take. Each slot
+  // keeps its position (stableSlots) because a moved node loses focus and
+  // restarts its animation.
+  const holds = useHolds();
+  const slotOrder = useRef([]);
+  slotOrder.current = stableSlots(slotOrder.current, [...heldTabs(holds), tab]);
+  const slots = slotOrder.current;
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
   const infoTab = infoKey ? TABS.find((t) => t.key === infoKey) : null;
@@ -1286,6 +1311,8 @@ function Home() {
         <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />
+        <RecordingBar holds={holds} activeTab={tab} onOpen={openTab}
+                      labelOf={(k) => TABS.find((t) => t.key === k)?.label} />
         {/* keyed by tab so switching apps clears a previous app's crash.
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
@@ -1321,14 +1348,23 @@ function Home() {
           </aside>
         )}
         <div className={splitKey ? "grid min-w-0 gap-4 lg:grid-cols-2" : "min-w-0"}>
-          <ErrorBoundary key={tab} label={active?.label}>
-            <StatzTimerBanner />
-            <CelebrationLayer />
-            <HoroscopeLayer />
-            <div key={tab} className="mcz-tab-enter">
-              <Suspense fallback={<RouteFallback />}>{appEl(tab)}</Suspense>
-            </div>
-          </ErrorBoundary>
+          <div className="min-w-0">
+            <ErrorBoundary key={tab} label={active?.label}>
+              <StatzTimerBanner />
+              <CelebrationLayer />
+              <HoroscopeLayer />
+            </ErrorBoundary>
+            {/* One slot per mounted app: the one on screen, plus any that is
+                recording (hidden). Each has its own boundary, so a crash in a
+                hidden app cannot blank the one being used. */}
+            {slots.map((k) => (
+              <TabSlot key={k} tab={k} active={k === tab}>
+                <ErrorBoundary label={TABS.find((t) => t.key === k)?.label}>
+                  <Suspense fallback={<RouteFallback />}>{appEl(k)}</Suspense>
+                </ErrorBoundary>
+              </TabSlot>
+            ))}
+          </div>
           {splitKey && (
             <div className="min-w-0">
               <div className="mb-2 flex items-center justify-between rounded-lg bg-mcz-cyan/10 px-3 py-1.5">

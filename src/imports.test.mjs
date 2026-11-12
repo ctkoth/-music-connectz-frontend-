@@ -46,6 +46,8 @@ const HELPERS = [
   "src/apps/EquipmentPicker.jsx",
   // The one drag-to-reorder pattern, used by every list that can be reordered.
   "src/dragReorder.js", "src/useDragReorder.jsx",
+  // What an app calls to keep its recording alive across a tab switch.
+  "src/recordingHold.js", "src/useRecordingHold.js",
 ];
 
 // `src/mcz2/` is the 2.2 reference app and is not mounted — see CLAUDE.md.

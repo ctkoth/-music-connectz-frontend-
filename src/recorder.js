@@ -87,3 +87,17 @@ export function sizeLabel(n) {
     ? `${Math.max(1, Math.round(n / 1024))}KB`
     : `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
+
+/**
+ * Let go of a recorder whose screen is going away: no more callbacks, recorder
+ * stopped, microphone and camera released. For an unmount, where `onstop`
+ * would attach a take to a component that no longer exists — and where NOT
+ * doing this leaves the microphone open with nothing on screen to close it.
+ */
+export function releaseRecorder(mr) {
+  if (!mr) return;
+  const stream = mr.stream;
+  try { mr.ondataavailable = null; mr.onerror = null; mr.onstop = null; } catch { /* a read-only stub */ }
+  try { if (mr.state && mr.state !== "inactive") mr.stop(); } catch { /* already stopped */ }
+  try { stream?.getTracks().forEach((t) => t.stop()); } catch { /* already released */ }
+}
