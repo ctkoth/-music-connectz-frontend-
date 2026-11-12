@@ -18,10 +18,30 @@ export function logQuery({ q = "", since = "", until = "", check = false, limit 
   return `?${p.toString()}`;
 }
 
-/** Append a page without repeating a row the list already holds (a refresh and a "more" can overlap). */
+/** When a session was COMPLETED. A finished row always has `ended_at`; `started_at` is only the fallback for a
+ *  row that somehow lacks one. A workout begun Monday and finished Friday is a Friday workout. */
+export function completedAt(row) {
+  const t = new Date(row?.ended_at || row?.started_at || 0).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+/** Newest completed first; the id breaks a tie the same way the server does, so the order never flickers. */
+export function byCompleted(rows) {
+  return [...rows].sort((a, b) => completedAt(b) - completedAt(a) || b.id - a.id);
+}
+
+/** "Thu, Nov 12, 2026" — the day it was completed, with the year, so every row says its date outright. */
+export function completedDate(row, locale) {
+  const t = completedAt(row);
+  if (!t) return "";
+  return new Date(t).toLocaleDateString(locale, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+}
+
+/** Append a page without repeating a row the list already holds (a refresh and a "more" can overlap).
+ *  The result is always newest-completed first, whatever order the pages arrived in. */
 export function mergeRows(existing, incoming) {
   const seen = new Set(existing.map((r) => r.id));
-  return [...existing, ...incoming.filter((r) => !seen.has(r.id))];
+  return byCompleted([...existing, ...incoming.filter((r) => !seen.has(r.id))]);
 }
 
 /** Is anything narrowing the list? */

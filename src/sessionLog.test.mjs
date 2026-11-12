@@ -52,3 +52,41 @@ test("SessionZ is a tab, reads the log endpoint, and RoutineZ no longer keeps a 
   const routinez = src.slice(src.indexOf("function RoutineZView"), src.indexOf("function SessionZView"));
   assert.ok(!routinez.includes("history.slice"), "the logged-workouts list should live in SessionZ only");
 });
+
+import { byCompleted, completedAt, completedDate } from "./sessionLog.js";
+
+test("SessionZ is newest COMPLETED first: a workout begun earlier but finished later sits above one finished before it", () => {
+  const rows = [
+    { id: 1, started_at: "2026-11-10T09:00:00Z", ended_at: "2026-11-10T10:00:00Z" },
+    { id: 2, started_at: "2026-11-05T09:00:00Z", ended_at: "2026-11-12T08:00:00Z" },   // began last week, finished today
+    { id: 3, started_at: "2026-11-11T09:00:00Z", ended_at: "2026-11-11T10:00:00Z" },
+  ];
+  assert.deepEqual(byCompleted(rows).map((r) => r.id), [2, 3, 1]);
+  assert.deepEqual(byCompleted(rows.slice().reverse()).map((r) => r.id), [2, 3, 1]);
+});
+
+test("a tie on the completed time falls back to the newer id, the way the server does", () => {
+  const t = "2026-11-12T08:00:00Z";
+  assert.deepEqual(byCompleted([{ id: 4, ended_at: t }, { id: 9, ended_at: t }]).map((r) => r.id), [9, 4]);
+});
+
+test("pages that arrive out of order, or a row put at the top, still land newest-completed first", () => {
+  const older = [{ id: 1, ended_at: "2026-11-01T10:00:00Z" }];
+  const newer = [{ id: 2, ended_at: "2026-11-09T10:00:00Z" }];
+  assert.deepEqual(mergeRows(older, newer).map((r) => r.id), [2, 1]);
+});
+
+test("every row says the day it was completed, with the year", () => {
+  const d = completedDate({ id: 1, started_at: "2026-11-05T12:00:00Z", ended_at: "2026-11-12T12:00:00Z" }, "en-US");
+  assert.match(d, /Nov/); assert.match(d, /12/); assert.match(d, /2026/);
+  assert.equal(completedDate({ id: 2 }, "en-US"), "");                       // no date: say nothing, never 1970
+  assert.equal(completedAt({ started_at: "2026-11-05T12:00:00Z" }), new Date("2026-11-05T12:00:00Z").getTime());
+});
+
+test("the SessionZ row shows the completed date and sorts by it", () => {
+  const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
+  const view = src.slice(src.indexOf("function SessionZView"), src.indexOf("// Same scheduler shape"));
+  assert.ok(view.includes("completedDate(h)"));
+  assert.ok(view.includes("new Date(completedAt(h))"), "the date chip uses the completed time, not started_at");
+  assert.ok(view.includes("setRows(byCompleted("));
+});

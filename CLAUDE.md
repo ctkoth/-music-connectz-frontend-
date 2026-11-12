@@ -1700,6 +1700,10 @@ BodieZ has a **SessionZ** tab (after Today) listing every finished session, not 
 the list straight). RoutineZ's "Logged workouts" list moved here — one list, and RoutineZ keeps a door to it. A session
 finished on Today still jumps to SessionZ's editor via "Edit this workout" (fetched by id if it is not on the page).
 
+- **Newest COMPLETED on top, and every row says its date** (Corey's call). The list is ordered by `ended_at`, not `started_at`: a
+  workout begun Monday and finished Friday is a Friday workout. Each row prints the completed day with the year ("Thu, Nov 12, 2026"),
+  and `byCompleted` / `mergeRows` re-sort on the client so a page that arrives late, or a row opened from "Edit this workout", can
+  never land out of place. The date filter bounds that same completed date.
 - **Each row** is date, routine, length (blank, never 0:00, when it was typed in afterwards), sets, reps and weight lifted,
   and its lifts. **Edit** opens the same `PastWorkout` editor, inline under the row; **Details** opens the session summary
   with the change vs last time and records; **Routine**, **Write about it** and delete are the ones RoutineZ had.

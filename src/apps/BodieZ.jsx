@@ -57,7 +57,7 @@ import PairMode from "../components/PairMode.jsx";
 import PlanRating from "./PlanRating.jsx";
 import { RatingNumber } from "../components/Rating.jsx";
 import { equipmentOf } from "../equipmentFit.js";
-import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
+import { PAGE as LOG_PAGE, byCompleted, completedAt, completedDate, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { improveCta, moveText } from "../planRating.js";
 import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
 import { primeRestBeep, restBeep, scheduleBeep, beepState, restClock, shouldBeep, sinceLogged, clockSkew, UNLOCK_EVENTS } from "../restBeep.js";
@@ -2740,7 +2740,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
     api(`/api/economy/bodiez/sessions/log/${logQuery({ ...filters, limit: sameFilter ? refreshLimit(loaded.current) : LOG_PAGE })}`)
       .then((d) => {
         if (mine !== ticket.current) return;
-        setRows(asList(d.sessions)); loaded.current = asList(d.sessions).length;
+        setRows(byCompleted(asList(d.sessions))); loaded.current = asList(d.sessions).length;
         setMeta({ total: d.total, has_more: d.has_more, totals: d.totals });
         setDetails({}); setErr("");
       })
@@ -2767,7 +2767,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
       .then((d) => {
         if (!on) return;
         const row = asList(d.sessions)[0];
-        if (row) { setRows((cur) => (cur.some((r) => r.id === row.id) ? cur : [row, ...cur])); setEditingId(row.id); }
+        if (row) { setRows((cur) => (cur.some((r) => r.id === row.id) ? cur : byCompleted([row, ...cur]))); setEditingId(row.id); }
       })
       .catch((e) => on && setErr(e.message || "Couldn't open that session."))
       .finally(() => on && onEditConsumed?.());
@@ -2897,7 +2897,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
       {rows.map((h) => {
         const sets = asList(h.sets);
         const names = [...new Set(sets.map((st) => st.exercise_name || nameOf(st.exercise_id)))];
-        const when = new Date(h.started_at);
+        const when = new Date(completedAt(h));
         const sm = details[h.id];
         const routine = h.routine_id ? routines.find((r) => r.id === h.routine_id) : null;
         const title = h.routine_title || "Workout";
@@ -2916,6 +2916,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">{title}</p>
+                <p className="text-[11px] font-medium text-mcz-cyan" title="The day this workout was completed">{completedDate(h)}</p>
                 <p className="text-[11px] text-white/50">
                   {[durationText(h.duration_seconds, clock), `${sets.length} set${sets.length === 1 ? "" : "s"}`,
                     h.reps ? `${h.reps} reps` : ""].filter(Boolean).join(" · ")}
