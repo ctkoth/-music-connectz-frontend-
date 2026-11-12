@@ -78,3 +78,39 @@ export function importScope(info) {
 export const countsLine = (c) => c
   ? `${c.total} imported: ${c.public || 0} public, ${c.restricted || 0} restricted, ${c.private || 0} private`
   : "";
+
+/** Combine per-call delete answers (the server does at most max_per_call). */
+export function mergeDeleted(parts) {
+  const out = { deleted: 0, skipped: 0, ignored: 0, not_attempted: 0, results: [] };
+  for (const p of parts) {
+    if (!p) continue;
+    out.deleted += p.deleted || 0;
+    out.skipped += p.skipped || 0;
+    out.ignored += p.ignored || 0;
+    out.not_attempted += p.not_attempted || 0;
+    out.results.push(...(p.results || []));
+  }
+  return out;
+}
+
+/** What actually happened, from what the server reported. */
+export function deleteLine(m) {
+  const bits = [`${m.deleted} deleted`];
+  if (m.skipped) bits.push(`${m.skipped} kept (changed since you selected them)`);
+  if (m.ignored) bits.push(`${m.ignored} weren't yours to delete here`);
+  if (m.not_attempted) bits.push(`${m.not_attempted} not attempted`);
+  return bits.join(", ");
+}
+
+/** Asked before anything is deleted: the count, the filter it was chosen under,
+ *  and the two facts that matter (permanent; SoundCloud untouched). */
+export function deleteConfirm(n, filter) {
+  const what = filter ? `${LABEL[filter].toLowerCase()} ` : "";
+  return `Delete ${n} ${what}track${n === 1 ? "" : "s"} from Music ConnectZ for good?\n\n`
+    + "This can't be undone, and any ratings or comments on them go too. "
+    + "Nothing on SoundCloud itself is touched.";
+}
+
+/** The "Select all" label names the filter it will follow. */
+export const selectAllLabel = (matching, filter) =>
+  `Select all ${matching}${filter ? ` ${LABEL[filter].toLowerCase()}` : ""}`;

@@ -46,3 +46,23 @@ test("import scope comes from the server numbers", () => {
   assert.equal(L.importScope({ whole_catalogue: false, max_tracks: 5 }), "your newest 5 SoundCloud tracks");
   assert.equal(L.countsLine({ total: 3, public: 1, restricted: 0, private: 2 }), "3 imported: 1 public, 0 restricted, 2 private");
 });
+
+test("delete: merged answers, honest line, confirm names the filter", () => {
+  const m = L.mergeDeleted([
+    { deleted: 100, skipped: 1, results: [{ id: 5, result: "skipped" }] },
+    { deleted: 3, not_attempted: 2, results: [] },
+    null,
+  ]);
+  assert.equal(m.deleted, 103);
+  assert.equal(L.deleteLine(m), "103 deleted, 1 kept (changed since you selected them), 2 not attempted");
+  assert.equal(L.deleteLine(L.mergeDeleted([])), "0 deleted");
+  const q = L.deleteConfirm(459, "private");
+  assert.ok(q.startsWith("Delete 459 private tracks"));
+  assert.ok(q.includes("can't be undone") && q.includes("SoundCloud"));
+  assert.ok(L.deleteConfirm(1, "").startsWith("Delete 1 track from"));
+});
+
+test("select-all names the filter it follows", () => {
+  assert.equal(L.selectAllLabel(459, "private"), "Select all 459 private");
+  assert.equal(L.selectAllLabel(459, ""), "Select all 459");
+});
