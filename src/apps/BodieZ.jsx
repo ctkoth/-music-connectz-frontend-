@@ -60,7 +60,7 @@ import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { improveCta, moveText } from "../planRating.js";
 import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
-import { primeRestBeep, restBeep, scheduleBeep, beepState, restClock, shouldBeep, sinceLogged, clockSkew, STALE_AFTER_SECONDS, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
+import { primeRestBeep, restBeep, scheduleBeep, beepState, restClock, shouldBeep, sinceLogged, clockSkew, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
@@ -1316,53 +1316,41 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   const titleRef = useRef(null);
   useEffect(() => {
     const restore = () => { if (titleRef.current != null) { document.title = titleRef.current; titleRef.current = null; } };
-    if (done && !hold && document.visibilityState === "hidden") {
+    if (done && document.visibilityState === "hidden") {
       if (titleRef.current == null) titleRef.current = document.title;
       document.title = "Rest over — go";
     } else restore();
     document.addEventListener("visibilitychange", restore);
     return () => document.removeEventListener("visibilitychange", restore);
-  }, [done, hold]);
+  }, [done]);
 
-  // The beep is BOOKED on the audio clock the moment the set is logged (and again if the rest length or the
-  // pair state changes), rather than fired from the one-second tick below: a locked phone or a hidden tab
-  // throttles ticks, and the rest would end in silence. `booked` remembers which set's beep is on the clock so
-  // the tick does not play a second one on top. Where it cannot be booked (sound still locked) the tick beeps
-  // as it always did.
-  const booked = useRef({ id: null, kind: "" });
+  // The beep is BOOKED on the audio clock the moment the set is logged (and again if the rest length changes), rather
+  // than fired from the one-second tick below: a locked phone or a hidden tab throttles ticks, and the rest would end
+  // in silence. `booked` remembers which set's beep is on the clock so the tick does not play a second one on top.
+  // Where it cannot be booked (sound still locked) the tick beeps as it always did.
+  const booked = useRef(null);
   const lastId = last?.id ?? null, lastAt = last?.created_at ?? null;
   useEffect(() => {
-    booked.current = { id: null, kind: "" };
+    booked.current = null;
     if (lastId == null) return undefined;
-    const kind = hold ? "gap" : "rest";
-    const sinceSet = sinceLogged(new Date(lastAt).getTime(), Date.now(), serverSkewMs);
-    const remaining = (hold ? SUPERSET_GAP_SECONDS : target) - sinceSet;
+    const remaining = target - sinceLogged(new Date(lastAt).getTime(), Date.now(), serverSkewMs);
     if (remaining <= 0) return undefined;
-    const cancel = scheduleBeep(remaining, kind);
+    const cancel = scheduleBeep(remaining);
     if (!cancel) return undefined;
-    booked.current = { id: lastId, kind };
-    return () => { cancel(); booked.current = { id: null, kind: "" }; };
-  }, [lastId, lastAt, target, !!hold]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Halfway through a superset the gap between the two lifts ends with one short beep (not the rest-over one).
-  const [gapAlerted, setGapAlerted] = useState(null);
-  useEffect(() => {
-    if (!hold || !last || elapsed < SUPERSET_GAP_SECONDS || gapAlerted === last.id) return;
-    setGapAlerted(last.id);
-    if (elapsed - SUPERSET_GAP_SECONDS > STALE_AFTER_SECONDS) return;
-    if (!(booked.current.id === last.id && booked.current.kind === "gap")) scheduleBeep(0, "gap");
-  }, [hold, last, elapsed, gapAlerted]); // eslint-disable-line react-hooks/exhaustive-deps
+    booked.current = lastId;
+    return () => { cancel(); booked.current = null; };
+  }, [lastId, lastAt, target]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Halfway through a superset nobody is resting, so nothing should say they are.
-    if (hold || !last || !done || alerted === last.id) return;
+    // Every logged set is a rest, the first half of a superset included.
+    if (!last || !done || alerted === last.id) return;
     setAlerted(last.id);
     // A reload long after the set is a finished rest, not one that just ended: mark it, stay quiet.
     if (!shouldBeep({ done, over, alreadyAlerted: false })) return;
     try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported, e.g. iPhone */ }
-    if (!(booked.current.id === last.id && booked.current.kind === "rest")) restBeep();
+    if (booked.current !== last.id) restBeep();
     if (alerts?.notify) fireRestNotification(nextName);
-  }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [done, alerted, last]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!last) return null;
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
@@ -1412,38 +1400,13 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     </>
   );
 
-  // Halfway through a superset nobody is resting, so there is no countdown yet — but the member still
-  // gets both clocks up front: how long since the last set (the gap before the second lift) and the
-  // rest that starts the moment they log it, with how it will tell them. Never a bare "rest starts later".
-  if (hold) {
-    const gap = restClock(elapsed, SUPERSET_GAP_SECONDS);
-    return (
-      <div className="re-card space-y-2 border-fuchsia-400/30">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <p className="text-sm text-fuchsia-200">
-            Superset — go straight to <span className="font-semibold">{hold}</span>.
-          </p>
-          <p className={`font-mono text-2xl font-bold ${gap.done ? "text-emerald-300" : "text-white"}`}
-             aria-label={gap.done ? "Time to start the second lift" : `${clock(gap.left)} left to start the second lift`}>
-            {clock(gap.left)} <span className="text-sm font-normal text-white/40">{gap.done ? (gap.over > 0 ? `go — over by ${clock(gap.over)}` : "go") : `left to start it`}</span>
-          </p>
-        </div>
-        <div className="h-1.5 rounded-full bg-white/10">
-          <div className={`h-full rounded-full ${gap.done ? "bg-emerald-400" : "bg-fuchsia-400"}`}
-               style={{ width: `${Math.min(100, (elapsed / SUPERSET_GAP_SECONDS) * 100)}%` }} />
-        </div>
-        <p className="text-xs text-white/60">
-          Then rest <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span> starts when you log it, counting down
-          with a beep at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}. This {clock(SUPERSET_GAP_SECONDS)} is only
-          the gap between the two lifts — it ends with one short beep, not the rest-over three.
-        </p>
-        {choices("Change it here — it's the rest after the pair.")}
-      </div>
-    );
-  }
-
   return (
     <div className={`re-card space-y-2 ${done ? "border-emerald-400/40" : ""}`}>
+      {hold && (
+        <p className="text-sm text-fuchsia-200">
+          Superset — rest now, then <span className="font-semibold">{hold}</span> is next.
+        </p>
+      )}
       <div className="flex items-baseline justify-between">
         <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
         <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}

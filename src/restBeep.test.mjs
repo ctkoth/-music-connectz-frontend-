@@ -90,14 +90,13 @@ test("the timer shows time LEFT and no longer makes its own audio context at the
   assert.ok(timer.includes("restBeep()") && timer.includes("primeRestBeep"));
 });
 
-test("a superset waiting on its second lift still shows both clocks and the rest that follows, up front", () => {
+test("every set of a superset starts the full rest: a held pair only adds a hint, never suppresses the rest or its beep", () => {
   const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
   const timer = src.slice(src.indexOf("function RestTimer"), src.indexOf("function LoggerRow"));
-  const held = timer.slice(timer.indexOf("if (hold) {"), timer.indexOf("Rest after {last.exercise_name"));
-  assert.ok(held.includes("clock(gap.left)"), "the gap to the second lift counts DOWN while held");
-  assert.ok(held.includes("clock(target)"), "the rest that follows is stated before it starts");
-  assert.ok(held.includes("alerts?.notify"), "says whether a notification will come");
-  assert.ok(held.includes("choices("), "the rest length can be changed without leaving the superset");
+  assert.ok(!timer.includes("if (hold)"), "no separate held-pair card with no rest in it");
+  assert.ok(!/if \(hold \|\|/.test(timer), "hold does not stop the alert");
+  assert.ok(timer.includes("is next"), "still says which lift is next");
+  assert.ok(timer.includes("clock(left)"), "the rest counts down after the first half too");
 });
 
 test("a beep booked on the audio clock is cancellable, and is never booked while sound is still locked", async () => {
@@ -110,13 +109,6 @@ test("a beep booked on the audio clock is cancellable, and is never booked while
   assert.equal(typeof cancel, "function");
   assert.equal(made.osc, 3);                       // the three rest-over beeps
   assert.doesNotThrow(() => cancel());
-});
-
-test("the superset gap books ONE short beep, not the three that mean rest is over", async () => {
-  const made = fakeAudio({ state: "running" });
-  const { scheduleBeep } = await import("./restBeep.js?s2");
-  assert.equal(typeof scheduleBeep(20, "gap"), "function");
-  assert.equal(made.osc, 1);
 });
 
 test("the rest counts from when the set was logged even when the phone's clock is off the server's", async () => {
@@ -144,6 +136,6 @@ test("a nonsense timestamp is no skew and no elapsed time, never NaN", async () 
 test("BodieZ books the beep when the set is logged and measures the clock gap there", () => {
   const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
   assert.match(src, /serverSkewMs = clockSkew\(/);
-  assert.match(src, /scheduleBeep\(remaining, kind\)/);
+  assert.match(src, /scheduleBeep\(remaining\)/);
   assert.match(src, /sinceLogged\(new Date\(last\.created_at\)/);
 });

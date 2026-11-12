@@ -1621,9 +1621,9 @@ can be checked before the first set rather than discovered after. It is a differ
 - **It beeps only when rest ends while the member is here** (`shouldBeep`, 15 s of grace). A page loaded
   long after the last set is a finished rest, not one that just ended, and a beep on every reload is how
   a feature gets muted. The set is still marked alerted, so it cannot fire later.
-- **Superset hold: no REST alert, but the gap ends with one short beep.** While the first half of a pair waits for the second,
-  nothing says rest; the 20 s gap counts down and ends with a single lower beep (never the three that mean "rest is over"). Logging
-  the second lift cancels it and starts the real rest from that moment.
+- **Every set is a rest, the first half of a superset included (Corey's call).** Logging any set starts the full rest and it beeps at
+  0:00. A pair only adds a hint above the clock ("Superset — rest now, then Fly is next"). This replaces the earlier rule that held the
+  rest until the second lift and gave the gap its own short beep; both are gone (`SUPERSET_GAP_SECONDS`, the gap card, the gap beep).
 - **The beep is booked on the audio clock when the set is logged** (`scheduleBeep`), not fired from the one-second UI tick, which a
   locked phone or a hidden tab throttles — a rest could end in silence. Where sound is still locked it cannot be booked and the tick
   beeps as before (`booked` stops the two doubling up). **The rest counts from when Log was pressed on this device**: a set's

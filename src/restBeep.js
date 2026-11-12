@@ -56,10 +56,6 @@ let unlocked = false;
 // clicks, and a click does not read as "rest is over".
 const BEEPS = [{ at: 0, dur: 0.16, hz: 880 }, { at: 0.24, dur: 0.16, hz: 880 }, { at: 0.48, dur: 0.38, hz: 1175 }];
 
-// The superset gap ends with ONE short, lower beep — a different sound from the three that mean "rest is over",
-// so a member who hears it knows which one it is without looking.
-const GAP_BEEPS = [{ at: 0, dur: 0.14, hz: 660 }];
-
 // Builds the oscillators for a pattern starting at audio-clock time `t0` and returns a function that takes
 // them back. Returns null if anything throws.
 function play(c, pattern, t0, gain) {
@@ -100,11 +96,11 @@ export function restBeep(gain = 0.35) {
  * The audio clock keeps its schedule while the page is hidden, so a beep booked at the moment the set was
  * logged sounds when the rest ends, not when the page next wakes up.
  */
-export function scheduleBeep(delaySeconds, kind = "rest", gain = 0.35) {
+export function scheduleBeep(delaySeconds, gain = 0.35) {
   const c = context();
   if (!c || c.state !== "running") return null;
   const when = c.currentTime + Math.max(0.02, Number(delaySeconds) || 0);
-  return play(c, kind === "gap" ? GAP_BEEPS : BEEPS, when, gain);
+  return play(c, BEEPS, when, gain);
 }
 
 // What the timer shows and when it fires, kept pure so it can be tested.
@@ -129,11 +125,6 @@ export function clockSkew(createdAtMs, nowMs) {
   const d = nowMs - createdAtMs;
   return Number.isFinite(d) && Math.abs(d) < 86400000 ? d : 0;
 }
-
-/** The gap inside a superset: how long to take getting to the second lift. Shown as a countdown like every
- *  other rest here, and it ends with ONE short beep (`scheduleBeep(…, "gap")`) — never the three that mean
- *  "rest is over", because the rest has not started. */
-export const SUPERSET_GAP_SECONDS = 20;
 
 /** Beep only when rest ends WHILE the member is here. A page loaded long after the last
  *  set is not "rest just ended", and a beep on every reload would teach them to mute it. */
