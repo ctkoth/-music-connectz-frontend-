@@ -56,15 +56,16 @@ let unlocked = false;
 // clicks, and a click does not read as "rest is over".
 const BEEPS = [{ at: 0, dur: 0.16, hz: 880 }, { at: 0.24, dur: 0.16, hz: 880 }, { at: 0.48, dur: 0.38, hz: 1175 }];
 
-/** Plays the rest-over beep. Returns true if it was handed to a running context. */
-export function restBeep(gain = 0.35) {
-  const c = context();
-  if (!c) return false;
-  if (c.state !== "running") { try { c.resume(); } catch { /* see primeRestBeep */ } }
-  if (c.state === "closed") return false;
-  const t0 = c.currentTime + 0.02;
-  for (const b of BEEPS) {
-    try {
+// The superset gap ends with ONE short, lower beep — a different sound from the three that mean "rest is over",
+// so a member who hears it knows which one it is without looking.
+const GAP_BEEPS = [{ at: 0, dur: 0.14, hz: 660 }];
+
+// Builds the oscillators for a pattern starting at audio-clock time `t0` and returns a function that takes
+// them back. Returns null if anything throws.
+function play(c, pattern, t0, gain) {
+  const nodes = [];
+  try {
+    for (const b of pattern) {
       const o = c.createOscillator(), g = c.createGain();
       o.type = "sine"; o.frequency.value = b.hz;
       const at = t0 + b.at;
@@ -73,9 +74,37 @@ export function restBeep(gain = 0.35) {
       g.gain.exponentialRampToValueAtTime(0.0001, at + b.dur);
       o.connect(g).connect(c.destination);
       o.start(at); o.stop(at + b.dur + 0.03);
-    } catch { return false; }
-  }
+      nodes.push({ o, g });
+    }
+  } catch { return null; }
+  return () => { for (const { o, g } of nodes) { try { o.stop(); } catch { /* not started */ } try { o.disconnect(); g.disconnect(); } catch { /* gone */ } } };
+}
+
+/** Plays the rest-over beep. Returns true if it was handed to a running context. */
+export function restBeep(gain = 0.35) {
+  const c = context();
+  if (!c) return false;
+  if (c.state !== "running") { try { c.resume(); } catch { /* see primeRestBeep */ } }
+  if (c.state === "closed") return false;
+  if (!play(c, BEEPS, c.currentTime + 0.02, gain)) return false;
   return c.state === "running";
+}
+
+/**
+ * Hands a beep to the AUDIO clock to play `delaySeconds` from now, and returns a function that cancels it —
+ * or null when that cannot be done (no audio, or the context is still locked), in which case the caller falls
+ * back to beeping when its own tick notices the time is up.
+ *
+ * Why this exists: the beep used to fire from a one-second UI tick, and a locked phone or a backgrounded tab
+ * throttles those ticks (a hidden tab can be down to one a minute), so a rest could end with nothing heard.
+ * The audio clock keeps its schedule while the page is hidden, so a beep booked at the moment the set was
+ * logged sounds when the rest ends, not when the page next wakes up.
+ */
+export function scheduleBeep(delaySeconds, kind = "rest", gain = 0.35) {
+  const c = context();
+  if (!c || c.state !== "running") return null;
+  const when = c.currentTime + Math.max(0.02, Number(delaySeconds) || 0);
+  return play(c, kind === "gap" ? GAP_BEEPS : BEEPS, when, gain);
 }
 
 // What the timer shows and when it fires, kept pure so it can be tested.
@@ -85,9 +114,25 @@ export function restClock(elapsed, target) {
   return { left: Math.max(0, target - elapsed), over: Math.max(0, elapsed - target), done: elapsed >= target };
 }
 
-/** The gap inside a superset: how long to take getting to the second lift before it reads as rest. Shown
- *  as a countdown like every other rest here; it never beeps, because "rest is over" is the only thing the
- *  beep means and the rest has not started. */
+/** Seconds since a set was logged. `skewMs` is how far this device's clock runs ahead of the server's
+ *  (measured when the set was logged — see `clockSkew`); a set's timestamp is the SERVER's, and a phone a
+ *  minute behind it would otherwise show a rest that has not started, or one already over with no beep. */
+export function sinceLogged(createdAtMs, nowMs, skewMs = 0) {
+  if (!Number.isFinite(createdAtMs)) return 0;
+  return Math.max(0, Math.floor((nowMs - (createdAtMs + skewMs)) / 1000));
+}
+
+/** How far this device's clock is ahead of the server's, from a set the server has just stamped. Only a
+ *  reading taken as the answer arrives is believed (a slow request makes it a little high, never by minutes);
+ *  anything else is 0. Capped at a day so a bad timestamp cannot park the timer. */
+export function clockSkew(createdAtMs, nowMs) {
+  const d = nowMs - createdAtMs;
+  return Number.isFinite(d) && Math.abs(d) < 86400000 ? d : 0;
+}
+
+/** The gap inside a superset: how long to take getting to the second lift. Shown as a countdown like every
+ *  other rest here, and it ends with ONE short beep (`scheduleBeep(…, "gap")`) — never the three that mean
+ *  "rest is over", because the rest has not started. */
 export const SUPERSET_GAP_SECONDS = 20;
 
 /** Beep only when rest ends WHILE the member is here. A page loaded long after the last

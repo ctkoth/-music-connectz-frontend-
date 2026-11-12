@@ -60,7 +60,7 @@ import { equipmentOf } from "../equipmentFit.js";
 import { PAGE as LOG_PAGE, durationText, filterKey, filtersActive, logQuery, mergeRows, refreshLimit, totalsLine } from "../sessionLog.js";
 import { improveCta, moveText } from "../planRating.js";
 import { changeText, againstWhat, doneLine, doneVsLast, editedNote, liftChange, repsChangeText, restLine, direction } from "../sessionChange.js";
-import { primeRestBeep, restBeep, beepState, restClock, shouldBeep, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
+import { primeRestBeep, restBeep, scheduleBeep, beepState, restClock, shouldBeep, sinceLogged, clockSkew, STALE_AFTER_SECONDS, SUPERSET_GAP_SECONDS, UNLOCK_EVENTS } from "../restBeep.js";
 import { lastWeightKg, lastWeightSource, byEntered, typedKey, boxValue } from "../lastWeight.js";
 import { handOff } from "../handoff.js";
 import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor, linkWithNext, nextInPair, normalize, prunePairs, setPair, unlink, unsetPair } from "../supersets.js";
@@ -356,6 +356,8 @@ export default function BodieZ() {
       });
       // Functional, because "copy last time" logs several sets back to back and
       // each would otherwise overwrite the last with a stale copy of the session.
+      // Read the clock gap BEFORE the state update: the rest timer starts from this set and must already know it.
+      serverSkewMs = clockSkew(new Date(s.created_at).getTime(), Date.now());
       setSession((cur) => (cur ? { ...cur, sets: [...cur.sets, s] } : cur));
       return s;
     } catch (e) { setErr(e.message); return null; }
@@ -1163,6 +1165,11 @@ function LastTimeView({ last, side = "" }) {
 // target so logging a planned set is one tap rather than four fields typed
 // from scratch every time.
 const secondsSince = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+// A set's `created_at` is the SERVER's clock; the rest timer runs on this device's. How far apart they are is measured
+// the moment a set is logged (the answer has just been stamped), so the rest counts from when the member pressed Log
+// even on a phone whose clock is a minute off. 0 until a set has been logged on this page (a reload falls back to
+// trusting the two clocks, as before).
+let serverSkewMs = 0;
 const clock = (sec) => {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = sec % 60;
   const mm = String(m).padStart(h ? 2 : 1, "0"), ss = String(x).padStart(2, "0");
@@ -1293,7 +1300,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
   const target = goal?.rest_seconds || custom;
   const [alerted, setAlerted] = useState(null);
   const last = sets.reduce((a, s) => (s.created_at && (!a || s.created_at > a.created_at) ? s : a), null);
-  const elapsed = last ? secondsSince(last.created_at) : 0;
+  const elapsed = last ? sinceLogged(new Date(last.created_at).getTime(), Date.now(), serverSkewMs) : 0;
   const { left, over, done } = restClock(elapsed, target);
 
   // Unlock the beep on the member's own taps. A browser starts audio suspended unless a
@@ -1317,6 +1324,35 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     return () => document.removeEventListener("visibilitychange", restore);
   }, [done, hold]);
 
+  // The beep is BOOKED on the audio clock the moment the set is logged (and again if the rest length or the
+  // pair state changes), rather than fired from the one-second tick below: a locked phone or a hidden tab
+  // throttles ticks, and the rest would end in silence. `booked` remembers which set's beep is on the clock so
+  // the tick does not play a second one on top. Where it cannot be booked (sound still locked) the tick beeps
+  // as it always did.
+  const booked = useRef({ id: null, kind: "" });
+  const lastId = last?.id ?? null, lastAt = last?.created_at ?? null;
+  useEffect(() => {
+    booked.current = { id: null, kind: "" };
+    if (lastId == null) return undefined;
+    const kind = hold ? "gap" : "rest";
+    const sinceSet = sinceLogged(new Date(lastAt).getTime(), Date.now(), serverSkewMs);
+    const remaining = (hold ? SUPERSET_GAP_SECONDS : target) - sinceSet;
+    if (remaining <= 0) return undefined;
+    const cancel = scheduleBeep(remaining, kind);
+    if (!cancel) return undefined;
+    booked.current = { id: lastId, kind };
+    return () => { cancel(); booked.current = { id: null, kind: "" }; };
+  }, [lastId, lastAt, target, !!hold]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Halfway through a superset the gap between the two lifts ends with one short beep (not the rest-over one).
+  const [gapAlerted, setGapAlerted] = useState(null);
+  useEffect(() => {
+    if (!hold || !last || elapsed < SUPERSET_GAP_SECONDS || gapAlerted === last.id) return;
+    setGapAlerted(last.id);
+    if (elapsed - SUPERSET_GAP_SECONDS > STALE_AFTER_SECONDS) return;
+    if (!(booked.current.id === last.id && booked.current.kind === "gap")) scheduleBeep(0, "gap");
+  }, [hold, last, elapsed, gapAlerted]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     // Halfway through a superset nobody is resting, so nothing should say they are.
     if (hold || !last || !done || alerted === last.id) return;
@@ -1324,7 +1360,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     // A reload long after the set is a finished rest, not one that just ended: mark it, stay quiet.
     if (!shouldBeep({ done, over, alreadyAlerted: false })) return;
     try { navigator.vibrate?.([200, 100, 200]); } catch { /* unsupported, e.g. iPhone */ }
-    restBeep();
+    if (!(booked.current.id === last.id && booked.current.kind === "rest")) restBeep();
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last, hold]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1399,7 +1435,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         <p className="text-xs text-white/60">
           Then rest <span className="font-mono font-semibold text-mcz-cyan">{clock(target)}</span> starts when you log it, counting down
           with a beep at 0:00{alerts?.notify ? " and a notification if you have switched apps" : ""}. This {clock(SUPERSET_GAP_SECONDS)} is only
-          the gap between the two lifts — no beep for it.
+          the gap between the two lifts — it ends with one short beep, not the rest-over three.
         </p>
         {choices("Change it here — it's the rest after the pair.")}
       </div>

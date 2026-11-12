@@ -99,3 +99,51 @@ test("a superset waiting on its second lift still shows both clocks and the rest
   assert.ok(held.includes("alerts?.notify"), "says whether a notification will come");
   assert.ok(held.includes("choices("), "the rest length can be changed without leaving the superset");
 });
+
+test("a beep booked on the audio clock is cancellable, and is never booked while sound is still locked", async () => {
+  const made = fakeAudio({ state: "suspended" });
+  const { scheduleBeep, primeRestBeep } = await import("./restBeep.js?s1");
+  assert.equal(scheduleBeep(60), null);            // locked: the caller falls back to beeping on its tick
+  assert.equal(made.osc, 0);
+  primeRestBeep();                                 // a tap resumes it
+  const cancel = scheduleBeep(60);
+  assert.equal(typeof cancel, "function");
+  assert.equal(made.osc, 3);                       // the three rest-over beeps
+  assert.doesNotThrow(() => cancel());
+});
+
+test("the superset gap books ONE short beep, not the three that mean rest is over", async () => {
+  const made = fakeAudio({ state: "running" });
+  const { scheduleBeep } = await import("./restBeep.js?s2");
+  assert.equal(typeof scheduleBeep(20, "gap"), "function");
+  assert.equal(made.osc, 1);
+});
+
+test("the rest counts from when the set was logged even when the phone's clock is off the server's", async () => {
+  const { sinceLogged, clockSkew } = await import("./restBeep.js?s3");
+  const serverStamp = 1_000_000;
+  // Phone runs 60 s BEHIND the server: it reads the stamp as 60 s in the future when the set comes back.
+  const nowBehind = serverStamp - 60_000 + 100;
+  const skew = clockSkew(serverStamp, nowBehind);
+  assert.equal(sinceLogged(serverStamp, nowBehind, 0), 0);        // uncorrected: stuck at zero, rest never starts
+  assert.equal(sinceLogged(serverStamp, nowBehind + 30_000, skew), 30);
+  // Phone runs 5 minutes AHEAD: uncorrected, the rest is "over" at once and the beep is judged stale.
+  const nowAhead = serverStamp + 300_000 + 100;
+  const skew2 = clockSkew(serverStamp, nowAhead);
+  assert.equal(sinceLogged(serverStamp, nowAhead, 0), 300);
+  assert.equal(sinceLogged(serverStamp, nowAhead + 45_000, skew2), 45);
+});
+
+test("a nonsense timestamp is no skew and no elapsed time, never NaN", async () => {
+  const { sinceLogged, clockSkew } = await import("./restBeep.js?s4");
+  assert.equal(clockSkew(NaN, 5), 0);
+  assert.equal(clockSkew(0, 3 * 86400000), 0);
+  assert.equal(sinceLogged(NaN, 5, 0), 0);
+});
+
+test("BodieZ books the beep when the set is logged and measures the clock gap there", () => {
+  const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
+  assert.match(src, /serverSkewMs = clockSkew\(/);
+  assert.match(src, /scheduleBeep\(remaining, kind\)/);
+  assert.match(src, /sinceLogged\(new Date\(last\.created_at\)/);
+});

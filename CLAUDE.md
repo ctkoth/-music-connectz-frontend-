@@ -1621,7 +1621,15 @@ can be checked before the first set rather than discovered after. It is a differ
 - **It beeps only when rest ends while the member is here** (`shouldBeep`, 15 s of grace). A page loaded
   long after the last set is a finished rest, not one that just ended, and a beep on every reload is how
   a feature gets muted. The set is still marked alerted, so it cannot fire later.
-- **Superset hold is unchanged**: no alert while the first half of a pair is waiting for the second.
+- **Superset hold: no REST alert, but the gap ends with one short beep.** While the first half of a pair waits for the second,
+  nothing says rest; the 20 s gap counts down and ends with a single lower beep (never the three that mean "rest is over"). Logging
+  the second lift cancels it and starts the real rest from that moment.
+- **The beep is booked on the audio clock when the set is logged** (`scheduleBeep`), not fired from the one-second UI tick, which a
+  locked phone or a hidden tab throttles — a rest could end in silence. Where sound is still locked it cannot be booked and the tick
+  beeps as before (`booked` stops the two doubling up). **The rest counts from when Log was pressed on this device**: a set's
+  `created_at` is the server's clock, so `logSet` measures the gap (`clockSkew`) as the answer arrives and `sinceLogged` applies it;
+  without it a phone a minute behind never started the rest and one ahead showed it over with the beep judged stale. A full reload
+  has no measurement and trusts the two clocks, as before. Not checked on a real phone.
 - **A locked phone still pauses the page** and no audio unlocks that; the screen-on and notification
   options beside the timer are the answer, and the copy there says so.
 
