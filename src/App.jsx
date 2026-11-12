@@ -77,6 +77,7 @@ const LabelZ = lazy(lazyRoute(() => import("./apps/LabelZ.jsx")));
 const BugZ = lazy(lazyRoute(() => import("./apps/BugZ.jsx")));
 const DawZ = lazy(lazyRoute(() => import("./apps/DawZ.jsx")));
 const Arsenal = lazy(lazyRoute(() => import("./apps/Arsenal.jsx")));
+const Intuition = lazy(lazyRoute(() => import("./apps/Intuition.jsx")));
 const FormulaWon = lazy(lazyRoute(() => import("./apps/FormulaWon.jsx")));
 const FruityMobius = lazy(lazyRoute(() => import("./apps/FruityMobius.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
@@ -667,6 +668,7 @@ const TABS = [
   { key: "arsenal", label: "Arsenal", icon: "arsenal.png", el: <Arsenal /> },
   { key: "fruitymobius", label: "Fruity Möbius", icon: "fruity_mobius.png", el: <FruityMobius /> },
   { key: "formulawon", label: "FormulaWon", icon: "dawz_formulawon.png", el: <FormulaWon /> },
+  { key: "intuition", label: "Intuition", icon: "intuition.png", el: <Intuition /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
   // below. The route and TABS entry still exist for anyone who is the
   // owner and lands here directly (e.g. a bookmark), and FunnelZ itself
@@ -1022,6 +1024,7 @@ const TAB_ABOUT = {
   groupz: "👥 GroupZ — your own private lists. FriendZ and FanZ follow who follows whom, PartnerZ is earned by finishing collabs together, Blocked is the real block, and Custom is yours to make.",
   bugz: "🐞 BugZ — submit a bug as a post. Admins mark it In Progress or Squashed (Squashed rewards 200 SpinaZ).",
   dawz: "🎛️ DawZ — eight DAWs on one engine. A built one opens; the rest take your vote for which gets built next.",
+  intuition: "💭 Intuition — a songwriter's DAW on your own device, Logic-style: pick a key and a chord progression, stack pad, keys, bass and arp on it, set the tempo by tapping, add the Smart Drummer, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   formulawon: "🚦 FormulaWon — the beginner's DAW on your own device, GarageBand-style: a Smart Drummer plays in six styles (you set how busy and how hard), you send it to a track, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   fruitymobius: "🍑 Fruity Möbius — a pattern-first DAW on your own device, FL Studio-style: tap beats into a 16-step Channel Rack with built-in drums, 808 and pluck, clone patterns, send them to the Playlist, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   arsenal: "⚔️ Arsenal — a multitrack DAW on your own device, Pro Tools-style: record takes onto tracks, keep every take in playlists, edit in Slip, Grid or Shuffle, mix with built-in EQ, compressor, delay and reverb, and bounce a WAV. Free — nothing is uploaded until you save.",
