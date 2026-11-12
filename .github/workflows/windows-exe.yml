@@ -41,6 +41,25 @@ jobs:
           cp desktop/dist/MusicConnectZ-Setup.exe "$GITHUB_WORKSPACE/MusicConnectZ-Setup.exe"
           cp desktop/dist/MusicConnectZ.exe "$GITHUB_WORKSPACE/MusicConnectZ.exe"
 
+      # The Microsoft Store takes the installer by URL and wants one that names its
+      # version and never changes underneath a submission. exe-latest is rebuilt on
+      # every push, so each desktop version also gets its own release, written once:
+      # bump "version" in desktop/package.json to publish the next one.
+      - name: Read the desktop version
+        id: ver
+        shell: bash
+        run: echo "v=$(node -p "require('./desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the versioned release (the Store's package URL)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: exe-v${{ steps.ver.outputs.v }}
+          name: Music ConnectZ for Windows ${{ steps.ver.outputs.v }}
+          body: |
+            Version ${{ steps.ver.outputs.v }}, built from ${{ github.sha }}.
+            Silent install: `MusicConnectZ-Setup.exe /S`
+          files: MusicConnectZ-Setup.exe
+
       - name: Publish to the exe-latest release
         uses: softprops/action-gh-release@v2
         with:
