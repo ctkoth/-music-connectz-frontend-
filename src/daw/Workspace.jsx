@@ -14,6 +14,7 @@ import { handOff, onHandoff } from "../handoff.js";
 import { mediaError } from "../recorder.js";
 import { useRecordingHold, useTabActive } from "../useRecordingHold.js";
 import { createDaw } from "./engine.js";
+import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
 import {
@@ -29,6 +30,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -71,7 +73,7 @@ export default function Workspace({ workflow }) {
   const [saved, setSaved] = useState([]);         // sessions on this device
   const [storeErr, setStoreErr] = useState("");
   const [selected, setSelected] = useState(null);
-  const [view, setView] = useState("edit");
+  const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
   const [zoom, setZoom] = useState(40);           // pixels per second
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -236,7 +238,7 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items) => {
+  const bring = async (items, { own = false } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
@@ -246,7 +248,7 @@ export default function Workspace({ workflow }) {
         const at = playhead;
         commit((s) => {
           let next = addSource(s, meta);
-          let track = items.length === 1 ? targetTrack(next) : null;
+          let track = items.length === 1 && !own ? targetTrack(next) : null;
           if (!track) { next = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40)); track = next.tracks.at(-1).id; }
           return addRegion(next, track, { src: meta.id, at, name: it.name });
         });
@@ -401,7 +403,7 @@ export default function Workspace({ workflow }) {
         <div className="flex overflow-hidden rounded-lg border border-white/15" role="tablist" aria-label="Window">
           {(workflow.windows || ["edit", "mix"]).map((w) => (
             <button key={w} type="button" role="tab" aria-selected={view === w} onClick={() => setView(w)}
-                    className={`px-3 py-1.5 ${view === w ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{w === "edit" ? "Edit" : "Mix"}</button>
+                    className={`px-3 py-1.5 ${view === w ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{workflow.windowNames?.[w] || WINDOW_NAME[w] || w}</button>
           ))}
         </div>
         {view === "edit" && (
@@ -427,7 +429,10 @@ export default function Workspace({ workflow }) {
         )}
       </div>
 
-      {view === "edit" ? (
+      {view === "rack" ? (
+        <ChannelRack app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
+                     onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on the Playlist at the playhead, on its own track.`); }} />
+      ) : view === "edit" ? (
         <EditWindow
           session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
