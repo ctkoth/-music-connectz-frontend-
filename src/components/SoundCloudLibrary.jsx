@@ -6,8 +6,9 @@ import SoundCloudImport, { LAST } from "../SoundCloudImport.jsx";
 import { ENERGY } from "../resources.js";
 import { OpenIn, usePostDoors } from "./PostDoors.jsx";
 import {
-  LABEL, VISIBILITIES, alreadyAt, canApply, chunk, countsLine, mergeResults, orderedIds,
-  pageFullySelected, previewText, resultLine, selectPage, toggleId, unselectPage,
+  LABEL, VISIBILITIES, alreadyAt, canApply, chunk, countsLine, deleteConfirm, deleteLine,
+  mergeDeleted, mergeResults, orderedIds, pageFullySelected, previewText, resultLine,
+  selectAllLabel, selectPage, toggleId, unselectPage,
 } from "../soundcloudLibrary.js";
 
 // "Your SoundCloud tracks": the manager for imported drafts. The import keeps
@@ -20,7 +21,7 @@ const Cost = ({ cost }) => <Price amount={cost?.amount || 0} emoji={ENERGY} />;
 // A row's options: the same panel a PostZ card opens, from the server's own list
 // for THIS post (`/postz/<id>/open/`), so a price is read when the member asks
 // rather than when the list loaded. A failed fetch says so; it never invents doors.
-function RowOptions({ row }) {
+function RowOptions({ row, coachOnly = false }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -34,9 +35,15 @@ function RowOptions({ row }) {
   }, [row.id]);
   if (err) return <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>;
   if (!data) return <p className="flex items-center gap-2 text-[11px] text-white/45"><Loader2 className="animate-spin" size={12} /> Loading options…</p>;
+  // coachOnly: just the coach doors (the server marks a SoundCloud-only one `own_copy`),
+  // so "Coach it" is one short list instead of every door a post has.
+  const destinations = coachOnly ? (data.destinations || []).filter((d) => d.own_copy) : data.destinations;
+  if (coachOnly && !destinations.length) {
+    return <p className="text-[11px] text-white/55">The coach can't take this one from here. Open its options for what it can do.</p>;
+  }
   return (
     <div>
-      <OpenIn post={{ destinations: data.destinations }} busy={!!opening} onGo={openIn} />
+      <OpenIn post={{ destinations }} busy={!!opening} onGo={openIn} />
       {note && <p role="status" className="mt-1 text-[11px] text-white/60">{note}</p>}
     </div>
   );
@@ -55,8 +62,10 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [busy, setBusy] = useState(false);
   const [prog, setProg] = useState("");
   const [outcome, setOutcome] = useState(null);
+  const [gone, setGone] = useState(null);   // what the last delete actually did
   const [error, setError] = useState("");
   const [optionsFor, setOptionsFor] = useState(null);   // the row whose options are open
+  const [coachFor, setCoachFor] = useState(null);         // the row whose coach doors are open
   const root = useRef(null);
   const [last, setLast] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem(LAST) || "null"); } catch { return null; }
@@ -153,6 +162,29 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
     await load();   // never trust a stale list after a write
   }
 
+  // Permanent, so it asks first, says what it will remove, and is told which
+  // visibility the selection was made under: the server keeps any row that has
+  // since changed. Free; nothing on SoundCloud is touched.
+  async function runDelete() {
+    if (!ids.length || !window.confirm(deleteConfirm(ids.length, filter))) return;
+    setBusy(true); setOutcome(null); setGone(null); setError("");
+    const parts = [];
+    try {
+      const groups = chunk(ids, data.max_per_call || 100);
+      for (let i = 0; i < groups.length; i++) {
+        setProg(groups.length > 1 ? `Deleting batch ${i + 1} of ${groups.length}…` : "Deleting…");
+        parts.push(await api("/api/economy/soundcloud/library/delete/", {
+          method: "POST", body: { ids: groups[i], ...(filter ? { visibility: filter } : {}) } }));
+      }
+    } catch (e) {
+      setError(e.message || "Something went wrong part way. Nothing after this point was deleted.");
+    }
+    setGone(mergeDeleted(parts));
+    setSel(new Set()); setOrder([]); setConsent(false);
+    setBusy(false); setProg("");
+    if (page !== 1) setPage(1); else await load();   // never trust a stale list after a write
+  }
+
   const rows = data.rows;
   const needs = pv?.needs_consent?.length || 0;
   const ready = canApply(pv, target, ids.length);
@@ -173,10 +205,15 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
       </ul>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <select aria-label="Which tracks" className="neon-input !w-auto" value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }}>
-          <option value="">All</option>
-          {VISIBILITIES.map((v) => <option key={v} value={v}>{LABEL[v]}</option>)}
-        </select>
+        <div role="group" aria-label="Which tracks" className="flex flex-wrap gap-1">
+          {[["", "All", c.total], ...VISIBILITIES.map((v) => [v, LABEL[v], c[v] || 0])].map(([v, label, n]) => (
+            <button key={v || "all"} type="button" aria-pressed={filter === v}
+              onClick={() => { setFilter(v); setPage(1); }}
+              className={`pill !px-2 !py-0.5 ${filter === v ? "!border-mcz-cyan !text-mcz-cyan" : ""}`}>
+              {label} ({n})
+            </button>
+          ))}
+        </div>
         <input className="neon-input !w-auto" placeholder="Search titles" value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         <label className="flex items-center gap-1 text-white/60">
@@ -185,7 +222,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
           Select this page
         </label>
         {data.matching > rows.length && (
-          <button className="underline text-mcz-cyan" onClick={selectEverything}>Select all {data.matching}</button>
+          <button className="underline text-mcz-cyan" onClick={selectEverything}>{selectAllLabel(data.matching, filter)}</button>
         )}
         {sel.size > 0 && <button className="underline text-white/50" onClick={() => setSel(new Set())}>Clear ({sel.size})</button>}
       </div>
@@ -199,7 +236,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
               : <div className="h-9 w-9 rounded bg-white/5" />}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-white/85">
-                <button type="button" onClick={() => setOptionsFor(optionsFor === r.id ? null : r.id)}
+                <button type="button" onClick={() => { setOptionsFor(optionsFor === r.id ? null : r.id); setCoachFor(null); }}
                   aria-expanded={optionsFor === r.id}
                   title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
                   className="text-left hover:text-mcz-gold">
@@ -208,6 +245,13 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                     {optionsFor === r.id ? "▴ options" : "▾ options"}
                   </span>
                 </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
+              <p className="mt-0.5">
+                <button type="button" onClick={() => { setCoachFor(coachFor === r.id ? null : r.id); setOptionsFor(null); }}
+                  aria-expanded={coachFor === r.id}
+                  className={`pill !px-2 !py-0.5 !text-[11px] ${coachFor === r.id ? "!border-mcz-gold !text-mcz-gold" : "!border-mcz-cyan/60 !text-mcz-cyan"}`}>
+                  🎤 Coach it
+                </button>
+              </p>
               <p className="text-[10px] text-white/35">
                 {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
                 {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
@@ -224,6 +268,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                 </button>
               ))}
             </div>
+            {coachFor === r.id && <div className="w-full basis-full"><RowOptions row={r} coachOnly /></div>}
             {optionsFor === r.id && <div className="w-full basis-full"><RowOptions row={r} /></div>}
           </li>
         ))}
@@ -264,10 +309,25 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
             {pv && <span className="text-sm"><Cost cost={pv.cost} /></span>}
             <span className="text-[10px] text-white/40">A refused or stopped item is not charged.</span>
           </div>
+          <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-2">
+            <button className="pill !border-mcz-ember/60 !text-mcz-ember" disabled={busy} onClick={runDelete}>
+              Delete {ids.length} selected
+            </button>
+            <span className="text-[10px] text-white/45">
+              Free · permanent, can't be undone · SoundCloud isn't touched
+            </span>
+          </div>
         </div>
       )}
 
       {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
+      {gone && (
+        <div className="rounded-lg border border-white/10 p-3 text-sm space-y-1" role="status">
+          <p className="text-white/85">{deleteLine(gone)}.</p>
+          {gone.results.filter((r) => r.result === "skipped").slice(0, 5)
+            .map((r) => <p key={r.id} className="text-[11px] text-white/50">{r.title || `#${r.id}`}: {r.reason}</p>)}
+        </div>
+      )}
       {outcome && (
         <div className="rounded-lg border border-white/10 p-3 text-sm space-y-1" role="status">
           <p className="text-white/85">{resultLine(outcome)}.{outcome.charged > 0 && <> Charged <span className="text-mcz-ember">−{outcome.charged} {ENERGY}</span>.</>}</p>
