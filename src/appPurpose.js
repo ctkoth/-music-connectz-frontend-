@@ -92,6 +92,7 @@ export const APP_PURPOSE = {
   breathz:     { does: "Breath training, free",         words: "breath breathing breathe lungs air support exhale hold box hiss practice warm up sing rap" },
   chordz:      { does: "Chords and progressions",         words: "chords progression voicing theory scale music" },
   dawz:        { does: "DAWs — open one, or vote for the next", words: "daw record produce mix beat maker software studio" },
+  formulawon:  { does: "Start a song with a drummer",      words: "daw garageband beginner easy smart drummer drums loop record first song starter simple" },
   fruitymobius: { does: "Make beats in a step sequencer",  words: "daw fl studio fruity loops beat maker step sequencer channel rack pattern drums 808 producer playlist mixer" },
   arsenal:     { does: "Record, edit and mix tracks",      words: "daw pro tools record multitrack edit mix mixer playlist take bounce wav studio produce engineer" },
   lilith:      { does: "Task manager",                    words: "tasks todo reminders manage organize checklist" },

@@ -17,6 +17,7 @@ import { createDaw } from "./engine.js";
 import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
+import SmartDrummer from "./SmartDrummer.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTrack, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
@@ -30,7 +31,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
-const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack" };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -432,6 +433,9 @@ export default function Workspace({ workflow }) {
       {view === "rack" ? (
         <ChannelRack app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on the Playlist at the playhead, on its own track.`); }} />
+      ) : view === "drummer" ? (
+        <SmartDrummer app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
+                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead — open Tracks to see it.`); }} />
       ) : view === "edit" ? (
         <EditWindow
           session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}

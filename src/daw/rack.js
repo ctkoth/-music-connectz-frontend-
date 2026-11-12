@@ -203,6 +203,27 @@ export function playVoice(ctx, out, hiss, channel, t) {
 }
 
 /**
+ * Render a list of patterns one bar each, in order, as one AudioBuffer — a
+ * drummer's groove with a fill on the last bar is three of one and one of another.
+ */
+export async function renderBars(patterns, { bpm, swing = 0, rate = 44100 }) {
+  const bar = barSeconds(bpm, 4);
+  const ctx = new OfflineAudioContext(2, Math.ceil(bar * patterns.length * rate), rate);
+  const out = ctx.createGain();
+  out.gain.value = 0.9;
+  out.connect(ctx.destination);
+  const hiss = noise(ctx, 0.5);
+  const times = stepTimes(bpm, swing, 1);
+  patterns.forEach((pattern, b) => {
+    for (const c of pattern.channels) {
+      if (c.vol <= 0) continue;
+      times.forEach((t, i) => { if (c.steps[i]) playVoice(ctx, out, hiss, c, b * bar + t); });
+    }
+  });
+  return ctx.startRendering();
+}
+
+/**
  * Render `bars` bars of a pattern to an AudioBuffer exactly `bars` bars long,
  * so it loops seamlessly and lines up bar-for-bar on the Playlist. Tails that
  * run past the end are cut there — which is what a loop does.
