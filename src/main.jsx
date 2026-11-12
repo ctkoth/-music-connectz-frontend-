@@ -7,6 +7,7 @@ import { AuthProvider } from "./auth/AuthContext.jsx";
 import { initAdMob } from "./admob.js";
 import { listenForAppReturn } from "./externalAuth.js";
 import { startAutoMemo } from "./autoMemo.js";
+import { startAutoTranslate } from "./autoTranslate.js";
 import "./index.css";
 
 // Wire native rewarded ads (no-op on web).
@@ -14,6 +15,7 @@ initAdMob();
 // A Facebook/Spotify login run in a Chrome tab comes back as a deep link.
 listenForAppReturn();
 startAutoMemo();
+startAutoTranslate();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

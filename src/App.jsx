@@ -12,6 +12,8 @@ import { goToSpot, openMember } from "./goto.js";
 import { heldTabs, stableSlots, stopAll } from "./recordingHold.js";
 import { TabSlotContext, useHolds } from "./useRecordingHold.js";
 import RecordingBar from "./components/RecordingBar.jsx";
+import LangPicker from "./components/LangPicker.jsx";
+import { protectNames } from "./autoTranslate.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
@@ -1303,6 +1305,7 @@ function Home() {
           <NotificationsButton onClick={() => setNotificationsOpen(true)} />
           <SoundzButton onClick={() => setSoundzOpen(true)} />
           <SoundToggle />
+          <LangPicker />
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>
@@ -1315,7 +1318,7 @@ function Home() {
       {/* pb leaves room for the fixed PickConnectZ dock */}
       <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
         <p className="mb-4 text-xs text-white/45">
-          Signed in as <span className="text-white/80">{user?.username}</span>
+          Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
         <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
@@ -1607,8 +1610,12 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
 }
 
 export default function App() {
+  const { user } = useAuth();
+  useEffect(() => { protectNames([user?.username, user?.display_name]); }, [user?.username, user?.display_name]);
   return (
     <Suspense fallback={<RouteFallback />}>
+    {/* Signed in, the language picker is in the header. Signed out there is no header. */}
+    {!user && <LangPicker corner />}
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

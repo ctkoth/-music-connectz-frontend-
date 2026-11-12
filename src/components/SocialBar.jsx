@@ -132,7 +132,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
         <>
           <div className="max-h-48 space-y-1 overflow-y-auto">
             {d.comments.map((c) => (
-              <p key={c.id} className="text-white/70"><span className="font-semibold text-white/85">@{c.user}</span> {c.body}</p>
+              <p key={c.id} className="text-white/70" data-ugc="true"><span className="font-semibold text-white/85">@{c.user}</span> {c.body}</p>
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-2">

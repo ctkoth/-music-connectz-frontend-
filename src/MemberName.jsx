@@ -53,7 +53,7 @@ export default function MemberName({
   };
 
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
+    <span data-ugc="true" className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
       <button
         type="button"
         onClick={open}

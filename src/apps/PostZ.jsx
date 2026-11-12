@@ -949,7 +949,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
           <button type="button" onClick={toggleOptions} aria-expanded={showOpen}
                   title={showOpen ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
                   className="group block max-w-full text-left text-sm font-semibold text-white hover:text-mcz-gold">
-            <span className="break-words">{post.title}</span>
+            <span className="break-words" data-ugc="true">{post.title}</span>
             <span className={`ml-1.5 text-[10px] font-normal ${showOpen ? "text-mcz-gold" : "text-white/35 group-hover:text-mcz-gold"}`}>
               {showOpen ? "▴ options" : "▾ options"}
             </span>
@@ -1168,7 +1168,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 <MemberName username={c.user} bare />
                 {/* SuperfanZ: one of this artist's top fans — the server pins them first. */}
                 {c.superfan && <span className="ml-1 text-[11px]" title={`One of @${post.author}'s SuperfanZ — counted from plays, ratings, comments and shares`}>🫶</span>}{" "}
-                <span className="text-white/80">{c.body}</span>
+                <span className="text-white/80" data-ugc="true">{c.body}</span>
                 {c.edited_at && <span className="ml-1 text-[10px] text-white/30">· edited</span>}
               </div>
             )}
