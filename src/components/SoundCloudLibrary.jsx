@@ -21,7 +21,7 @@ const Cost = ({ cost }) => <Price amount={cost?.amount || 0} emoji={ENERGY} />;
 // A row's options: the same panel a PostZ card opens, from the server's own list
 // for THIS post (`/postz/<id>/open/`), so a price is read when the member asks
 // rather than when the list loaded. A failed fetch says so; it never invents doors.
-function RowOptions({ row }) {
+function RowOptions({ row, coachOnly = false }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -35,9 +35,15 @@ function RowOptions({ row }) {
   }, [row.id]);
   if (err) return <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>;
   if (!data) return <p className="flex items-center gap-2 text-[11px] text-white/45"><Loader2 className="animate-spin" size={12} /> Loading options…</p>;
+  // coachOnly: just the coach doors (the server marks a SoundCloud-only one `own_copy`),
+  // so "Coach it" is one short list instead of every door a post has.
+  const destinations = coachOnly ? (data.destinations || []).filter((d) => d.own_copy) : data.destinations;
+  if (coachOnly && !destinations.length) {
+    return <p className="text-[11px] text-white/55">The coach can't take this one from here. Open its options for what it can do.</p>;
+  }
   return (
     <div>
-      <OpenIn post={{ destinations: data.destinations }} busy={!!opening} onGo={openIn} />
+      <OpenIn post={{ destinations }} busy={!!opening} onGo={openIn} />
       {note && <p role="status" className="mt-1 text-[11px] text-white/60">{note}</p>}
     </div>
   );
@@ -59,6 +65,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [gone, setGone] = useState(null);   // what the last delete actually did
   const [error, setError] = useState("");
   const [optionsFor, setOptionsFor] = useState(null);   // the row whose options are open
+  const [coachFor, setCoachFor] = useState(null);         // the row whose coach doors are open
   const root = useRef(null);
   const [last, setLast] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem(LAST) || "null"); } catch { return null; }
@@ -229,7 +236,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
               : <div className="h-9 w-9 rounded bg-white/5" />}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-white/85">
-                <button type="button" onClick={() => setOptionsFor(optionsFor === r.id ? null : r.id)}
+                <button type="button" onClick={() => { setOptionsFor(optionsFor === r.id ? null : r.id); setCoachFor(null); }}
                   aria-expanded={optionsFor === r.id}
                   title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
                   className="text-left hover:text-mcz-gold">
@@ -238,6 +245,13 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                     {optionsFor === r.id ? "▴ options" : "▾ options"}
                   </span>
                 </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
+              <p className="mt-0.5">
+                <button type="button" onClick={() => { setCoachFor(coachFor === r.id ? null : r.id); setOptionsFor(null); }}
+                  aria-expanded={coachFor === r.id}
+                  className={`pill !px-2 !py-0.5 !text-[11px] ${coachFor === r.id ? "!border-mcz-gold !text-mcz-gold" : "!border-mcz-cyan/60 !text-mcz-cyan"}`}>
+                  🎤 Coach it
+                </button>
+              </p>
               <p className="text-[10px] text-white/35">
                 {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
                 {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
@@ -254,6 +268,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                 </button>
               ))}
             </div>
+            {coachFor === r.id && <div className="w-full basis-full"><RowOptions row={r} coachOnly /></div>}
             {optionsFor === r.id && <div className="w-full basis-full"><RowOptions row={r} /></div>}
           </li>
         ))}
