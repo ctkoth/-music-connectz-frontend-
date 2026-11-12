@@ -1168,9 +1168,8 @@ never guess at a pairing.
   and the example all come from `/api/economy/bodiez/pair/`; the screen decides
   nothing about who is paired with whom. Nothing is saved until Save routine, and
   Undo restores the rows from before.
-- **In a session, a pair is one block.** The rest clock holds while the first half
-  of a pair has been done and the second has not ("go straight to the Fly") so it
-  never says rest in the middle of a superset. The "next" marker only appears in a
+- **In a session, a pair is one block.** Every set still starts the rest clock,
+  the first half of a pair included; the card just says which lift is next ("rest now, then the Fly is next"). The "next" marker only appears in a
   pair that is under way: three untouched pairs would each say it, and a marker on
   three rows at once marks nothing.
 - **Rest alerts (`useRestAlertPrefs`) are the sample's or StatZ's.** The
@@ -1772,7 +1771,7 @@ when the Planner can fix something, its proposal already on screen (`PlanRating 
 
 - **Link any two lifts, in a session as in a routine.** The past-workout editor (SessionZ → Edit) and the live logger both have **Superset with…** on every lift
   (`SupersetPick`): any other lift of the workout, planned or added on the day. A live pair is saved on the session as it is made (optimistic; a refusal puts the
-  old pairs back and says why) and is drawn as the same Superset block a routine's pair is — the rest clock says "go straight to…" — even when the two lifts were not
+  old pairs back and says why) and is drawn as the same Superset block a routine's pair is — the rest clock says which lift is next — even when the two lifts were not
   neighbours (`applySessionPairs`; a pair already side by side is grouped in place so dragging never flips it). Saving the session to RoutineZ carries the pairs.
 - **The ended-session card**: "✓ Session ended" → totals → the **report** ("Done 38% of the plan — 3 of 8 sets · 1 of 2 lifts", rest against the goal's target, "last
   time 50% (+25 points)", and "this routine was edited since last time" when it was) → vs last time → records → the **coach block**: Improve / Open this routine,
