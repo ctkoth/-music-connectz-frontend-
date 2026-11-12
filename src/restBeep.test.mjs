@@ -139,3 +139,13 @@ test("BodieZ books the beep when the set is logged and measures the clock gap th
   assert.match(src, /scheduleBeep\(remaining\)/);
   assert.match(src, /sinceLogged\(new Date\(last\.created_at\)/);
 });
+
+test("the rest length is one number: first set, last set and every set of a superset get the same one", () => {
+  const src = readFileSync(new URL("./apps/BodieZ.jsx", import.meta.url), "utf8");
+  const timer = src.slice(src.indexOf("function RestTimer"), src.indexOf("function LoggerRow"));
+  assert.equal((timer.match(/const target = /g) || []).length, 1, "one definition of the rest length");
+  assert.match(timer, /const target = goal\?\.rest_seconds \|\| custom;/);
+  // `hold` (a pair's next lift) may only be read as the hint line, never to pick a different length or schedule.
+  const uses = timer.split("\n").filter((l) => /\bhold\b/.test(l) && !l.includes("function RestTimer"));
+  for (const l of uses) assert.ok(!/target|scheduleBeep|restClock/.test(l), `hold must not change the rest: ${l.trim()}`);
+});
