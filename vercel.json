@@ -7,6 +7,7 @@
   ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://admin.musicconnectz.net/api/:path*" },
+    { "source": "/downloads/:version/MusicConnectZ-Setup.exe", "destination": "https://raw.githubusercontent.com/ctkoth/-music-connectz-frontend-/downloads/:version/MusicConnectZ-Setup.exe" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

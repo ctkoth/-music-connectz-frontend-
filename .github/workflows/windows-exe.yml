@@ -60,6 +60,39 @@ jobs:
             Silent install: `MusicConnectZ-Setup.exe /S`
           files: MusicConnectZ-Setup.exe
 
+      # Partner Center refuses a package URL that redirects, and every GitHub release
+      # download does. So the same installer is also committed, once per version, to
+      # the orphan `downloads` branch; raw.githubusercontent.com serves that with no
+      # redirect, and vercel.json puts it at musicconnectz.net/downloads/<version>/.
+      # Written once: a version already there is left alone, because the Store wants
+      # the file behind a submitted URL never to change.
+      - name: Publish the installer to the downloads branch (no-redirect URL)
+        shell: bash
+        env:
+          V: ${{ steps.ver.outputs.v }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          work="$RUNNER_TEMP/downloads"
+          if git ls-remote --exit-code origin refs/heads/downloads >/dev/null 2>&1; then
+            git clone --depth 1 --branch downloads "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$work"
+          else
+            mkdir -p "$work" && cd "$work" && git init -q -b downloads
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            cd "$GITHUB_WORKSPACE"
+          fi
+          cd "$work"
+          if [ -f "$V/MusicConnectZ-Setup.exe" ]; then
+            echo "Version $V is already published; left as it is."
+            exit 0
+          fi
+          mkdir -p "$V"
+          cp "$GITHUB_WORKSPACE/MusicConnectZ-Setup.exe" "$V/MusicConnectZ-Setup.exe"
+          git add "$V/MusicConnectZ-Setup.exe"
+          git commit -q -m "Music ConnectZ for Windows $V"
+          git push -q origin downloads
+
       - name: Publish to the exe-latest release
         uses: softprops/action-gh-release@v2
         with:
