@@ -1,0 +1,36 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { flatSkills, ratingDetail, workShown, workLine } from "./skillsUsed.js";
+
+test("an unrated skill says so and never reads as a 0", () => {
+  assert.equal(ratingDetail({ skill: "mixing", rating: null, count: 0 }), "not rated yet");
+  assert.equal(ratingDetail(undefined), "not rated yet");
+});
+
+test("a rated skill says how many ratings stand behind the median", () => {
+  assert.equal(ratingDetail({ rating: 7.5, count: 12 }), "median of 12 ratings");
+  assert.equal(ratingDetail({ rating: 9, count: 1 }), "median of 1 rating");
+});
+
+test("the coach blend is said, so the number is never unexplained", () => {
+  assert.match(ratingDetail({ rating: 8, count: 4, coach: { takes: 3 } }), /AI coach/);
+});
+
+test("work lists what it was given and counts what was left off", () => {
+  const s = { work: [{ id: 1 }, { id: 2 }], work_total: 5 };
+  const { shown, more } = workShown(s);
+  assert.equal(shown.length, 2);
+  assert.equal(more, 3);
+  assert.deepEqual(workShown({}), { shown: [], more: 0 });
+});
+
+test("a line names the post, its score and how many scored it", () => {
+  assert.equal(workLine({ id: 3, title: "Midnight", rating: 8, count: 3 }), "Midnight — 8/10 from 3");
+  assert.equal(workLine({ id: 3, title: "Midnight", rating: 7.5, count: 2 }), "Midnight — 7.5/10 from 2");
+  assert.equal(workLine({ id: 3, title: "", rating: null, count: 1 }), "Post 3");
+});
+
+test("flatSkills tolerates an empty or failed answer", () => {
+  assert.deepEqual(flatSkills(null), []);
+  assert.deepEqual(flatSkills({ personas: [{ skills: [{ skill: "a" }] }, { skills: [{ skill: "b" }] }] }).map((s) => s.skill), ["a", "b"]);
+});

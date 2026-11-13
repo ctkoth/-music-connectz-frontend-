@@ -2147,3 +2147,17 @@ GarageBand, Studio Dragon 🐉 Studio One, Arsenal ⚔️ Pro Tools) beside the 
   scroll. **Not checked on a real phone, in Safari or with a real interface's latency.**
 - Not yet: MIDI and instruments, automation, a region on top silencing the one under it (overlapping
   regions on one track both play), and the other seven workflows.
+
+## "Skills used on this" is the member's own learned skills, with proof beside each
+
+`SkillsUsed.jsx` (PostZ, BattleZ, CollabZ, VenueZ "What you're bringing") lists only skills on the
+member's profile, from `/api/economy/ratez/skills/`. Each row shows the median (`RatingNumber`, the
+house rating drawing), how many ratings stand behind it, and links to the posts that gave it (new tab,
+so a half-written post survives checking the evidence). Unrated reads "not rated yet", never 0. An empty
+list offers a jump to PersonaZ rather than the whole catalogue. `skillsUsed.js` only words what the
+server sent.
+
+`source="catalogue"` keeps the old tree for the one place that is NOT naming the member's own skills:
+a venue host's "What's on offer here" (what visitors should bring). Any new picker of the member's own
+skills takes the default. A failed fetch says so with Try again; it never falls back to the catalogue.
+The server does not yet reject a skill that isn't on the profile (see the backend CLAUDE.md).
