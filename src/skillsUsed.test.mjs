@@ -67,3 +67,10 @@ test("monthYear refuses what is not a date", () => {
   assert.equal(monthYear("nope"), "");
   assert.equal(monthYear("2012-13-01"), "");
 });
+
+test("a year-only start says the year and 'about', never a month", () => {
+  assert.equal(experienceLine({ learned: "2012-01-01", learned_precision: "year", periods: [{ start: "2012-01-01", precision: "year" }], active: true, years: 13 }),
+               "Learned 2012 · about 13 years");
+  assert.equal(experienceLine({ learned: "2026-01-01", learned_precision: "year", periods: [{ start: "2026-01-01", precision: "year" }], active: true, years: 0 }),
+               "Learned 2026 · less than a year");
+});

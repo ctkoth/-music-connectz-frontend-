@@ -2161,3 +2161,15 @@ server sent.
 a venue host's "What's on offer here" (what visitors should bring). Any new picker of the member's own
 skills takes the default. A failed fetch says so with Try again; it never falls back to the catalogue.
 The server does not yet reject a skill that isn't on the profile (see the backend CLAUDE.md).
+
+## Skill start dates: a full date, or just the year
+
+`SkillStartInput.jsx` is the one "when did you start" input, used by PersonaZ and by ProfileZ's stint
+editor. Members mostly know the year ("I started rapping at 16"), so "Just the year" is a first-class
+answer, not a guessed date: it commits only once it is four digits inside 1900..this year, and is stored
+as that year's 1 January with `precision: "year"` on the stint (the server keeps the flag only on a
+1 January). Wording then claims only what was given: `skillDurationShown` / `experienceLine` say "about
+13 years" or "less than a year", never a month or a day, and ProfileZ's total reads "about N yrs".
+Switching back to "I know the date" keeps the 1 January as a plain date to adjust. Only the start has this
+option; an end date is still a full date. Pure helpers (`parseYear`, `yearOnlyStart`, `startIsYearOnly`)
+are in `personaSkills.js` and tested in `skillStart.test.mjs`.

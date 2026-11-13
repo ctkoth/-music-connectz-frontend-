@@ -564,6 +564,39 @@ export function skillDuration(skill) {
   return m ? `${n(y, "year")} ${n(m, "month")}` : n(y, "year");
 }
 
+// ---- Year-only start dates.
+//
+// Members know the YEAR they started ("I started rapping at 16"), not the month or the day, so a start
+// can be given as a year alone. It is stored as that year's 1 January plus `precision: "year"` on the
+// stint: every date parser keeps working, and the flag says the month and day are a convention, not a
+// claim. Calendar years since 1 January is exactly the whole years served, so the arithmetic is unchanged.
+
+/** The stored start for a year-only answer. */
+export const yearOnlyStart = (year) => `${year}-01-01`;
+
+/** 1900..this year from a string of exactly four digits, else null. */
+export function parseYear(v) {
+  const t = String(v ?? "").trim();
+  if (!/^\d{4}$/.test(t)) return null;
+  const y = Number(t);
+  return y >= 1900 && y <= new Date().getFullYear() ? y : null;
+}
+
+/** True when the skill's first stint was dated by year alone. */
+export function startIsYearOnly(skill) {
+  const p = periodsOf(typeof skill === "string" ? { start: skill } : skill)[0];
+  return !!p && p.precision === "year" && String(p.start).endsWith("-01-01");
+}
+
+/** How long a skill has been practised, in words that claim only what the member gave. A year-only
+ *  start never shows a month or a day: "about 13 years", or "less than a year". */
+export function skillDurationShown(skill) {
+  if (!startIsYearOnly(skill)) return skillDuration(skill);
+  const y = skillYears(skill);
+  if (y == null) return null;
+  return y < 1 ? "less than a year" : `about ${y} year${y === 1 ? "" : "s"}`;
+}
+
 // What a skill's price is PER. The server stores "hour" (the default, never written) or "work".
 // Studio time is hourly — producing, recording, mixing, mastering, engineering — and that is
 // what CollabZ-style work is bought by; a finished piece (a verse, a cover, a hook) is per work.

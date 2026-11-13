@@ -6,7 +6,8 @@ import MemberName from "../MemberName.jsx";
 import VoiceCard from "../components/VoiceCard.jsx";
 import { PERSONAS, PERSONA_READ } from "../personaVoice.js";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
-import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDuration, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
+import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDurationShown, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
+import SkillStartInput from "../components/SkillStartInput.jsx";
 import { say, useVoice } from "../voice.js";
 import { onHandoff } from "../handoff.js";
 
@@ -28,7 +29,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
   const start = have ? periodsOf(have)[0]?.start || "" : "";
-  const dur = have ? skillDuration(have) : null;
+  const dur = have ? skillDurationShown(have) : null;
   return (
     <div className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-1 text-xs ${have ? "border-mcz-cyan/40 bg-mcz-cyan/[0.06]" : "border-white/10"}`}>
       <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
@@ -37,8 +38,10 @@ function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
       </label>
       {have && (
         <>
-          <input type="date" max={today()} value={start} onChange={(e) => onDate(e.target.value)}
-            className="neon-input !w-auto !py-0.5 text-[11px]" aria-label={`Started ${labelForSkill(k)}`} />
+          {/* A full date, or just the year — most members know the year they started and not the day. */}
+          <SkillStartInput start={start} precision={periodsOf(have)[0]?.precision || ""} max={today()}
+            onChange={onDate} label={`Started ${labelForSkill(k)}`}
+            inputClass="neon-input !w-auto !py-0.5 text-[11px]" />
           <span className="w-24 text-right text-[11px] text-mcz-gold">{dur || "add a start date"}</span>
           {/* The price and what it is PER, stated together. Studio skills suggest hourly, a finished
               piece suggests per work; a price already set keeps its own unit. Blank = no price. */}
@@ -118,7 +121,7 @@ export default function PersonaZ() {
   const toggleSkill = (key, sk) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
     ...p, skills: p.skills.some((s) => s.name === sk) ? p.skills.filter((s) => s.name !== sk) : [...p.skills, { name: sk }],
   })));
-  const setStart = (key, sk, date) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
+  const setStart = (key, sk, date, precision) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
     ...p, skills: p.skills.map((s) => {
       if (s.name !== sk) return s;
       const periods = periodsOf(s);
@@ -126,7 +129,10 @@ export default function PersonaZ() {
       // Spread `s` so the price and its unit survive a date edit — rebuilding the skill as
       // { name, periods } silently erased them.
       const { start: _legacy, ...keep } = s;
-      return { ...keep, periods: date ? [{ ...(periods[0] || {}), start: date }, ...rest] : rest };
+      // The first stint's own precision is replaced, never inherited: a year-only answer turned back into
+      // a full date must not keep claiming to be approximate.
+      const { precision: _old, ...first } = periods[0] || {};
+      return { ...keep, periods: date ? [{ ...first, start: date, ...(precision === "year" ? { precision: "year" } : {}) }, ...rest] : rest };
     }),
   })));
   const setGenres = (key, sk, genres) => edit((cur) => cur.map((p) => (p.key !== key ? p : {
@@ -234,7 +240,7 @@ export default function PersonaZ() {
                           {Object.keys(skills).map((sk) => (
                             mine ? (
                               <Skill key={sk} k={sk} have={mine.skills.find((s) => s.name === sk)}
-                                onToggle={() => toggleSkill(key, sk)} onDate={(d) => setStart(key, sk, d)}
+                                onToggle={() => toggleSkill(key, sk)} onDate={(d, prec) => setStart(key, sk, d, prec)}
                                 onPrice={(v) => setPrice(key, sk, v)} onGenres={(g) => setGenres(key, sk, g)} personaKey={key} />
                             ) : (
                               <span key={sk} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-white/60">{labelForSkill(sk)}</span>
@@ -259,7 +265,7 @@ export default function PersonaZ() {
                             <div className="flex flex-wrap gap-1">
                               {(theirs?.skills || []).slice(0, 8).map((s) => (
                                 <span key={s.name} className="pill text-[10px]">
-                                  {labelForSkill(s.name)}{skillDuration(s) ? ` · ${skillDuration(s)}` : ""}
+                                  {labelForSkill(s.name)}{skillDurationShown(s) ? ` · ${skillDurationShown(s)}` : ""}
                                 </span>
                               ))}
                               {!theirs?.skills?.length && <span className="text-[11px] text-white/40">No skills listed yet.</span>}

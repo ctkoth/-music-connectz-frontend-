@@ -56,6 +56,13 @@ export function experienceLine(s) {
   const none = "Learned: no start date yet";
   if (!year(s?.learned)) return none;
   const years = s.years;
+  // The member only knew the year they started: say the year and "about", never a month or a day.
+  if (s.learned_precision === "year") {
+    const len = years == null ? "" : years < 1 ? "less than a year" : `about ${years} year${years === 1 ? "" : "s"}`;
+    if (!len) return none;
+    const lp = year(s.last_played);
+    return `Learned ${year(s.learned)} · ${len}${s.active === false && lp ? ` · last practised ${lp}` : ""}`;
+  }
   const old = years != null && years >= OLD_YEARS;
   const length = old ? `${years} year${years === 1 ? "" : "s"}` : skillDuration({ periods: s.periods || [] });
   if (!length) return none;
