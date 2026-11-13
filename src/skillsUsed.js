@@ -41,14 +41,26 @@ export function monthYear(iso) {
   return y && m >= 1 && m <= 12 ? `${MONTHS[m - 1]} ${y}` : "";
 }
 
-/** Experience, as the member declared it: the date they learned the skill and how long that
- *  is from today ("Learned Mar 2012 · 13 years 7 months"). Undated says so rather than 0. The
- *  length is the server's stints summed (`skillDuration`, the same words PersonaZ uses), so a
- *  stint the member ended is not counted as practice. Never a rating, never inferred. */
+const year = (iso) => (/^\d{4}/.test(String(iso || "")) ? String(iso).slice(0, 4) : "");
+
+/** Experience, as the member declared it: when they learned the skill and how long that is from
+ *  today. Undated says so rather than 0. The length is time SERVED, from the stints the server
+ *  summed, so a stint the member ended is not counted as practice. Never a rating, never inferred.
+ *
+ *  Precision follows what a member can honestly know. Somebody who started rapping "at 16" knows the
+ *  year, not the month or the day, so from `OLD_YEARS` up it says years only ("Learned 2012 · 13
+ *  years"). A month or a day is claimed only for a young skill, where the member really does know it
+ *  ("Learned Mar 2025 · 8 months", "9 days"). */
+export const OLD_YEARS = 2;
 export function experienceLine(s) {
-  const learned = monthYear(s?.learned);
-  const length = skillDuration({ periods: s?.periods || [] });
-  if (!learned || !length) return "Learned: no start date yet";
-  const stopped = s.active === false && s.last_played ? ` · last practised ${monthYear(s.last_played)}` : "";
+  const none = "Learned: no start date yet";
+  if (!year(s?.learned)) return none;
+  const years = s.years;
+  const old = years != null && years >= OLD_YEARS;
+  const length = old ? `${years} year${years === 1 ? "" : "s"}` : skillDuration({ periods: s.periods || [] });
+  if (!length) return none;
+  const learned = old ? year(s.learned) : monthYear(s.learned);
+  const last = old ? year(s.last_played) : monthYear(s.last_played);
+  const stopped = s.active === false && last ? ` · last practised ${last}` : "";
   return `Learned ${learned} · ${length}${stopped}`;
 }

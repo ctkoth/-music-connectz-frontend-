@@ -35,12 +35,21 @@ test("flatSkills tolerates an empty or failed answer", () => {
   assert.deepEqual(flatSkills({ personas: [{ skills: [{ skill: "a" }] }, { skills: [{ skill: "b" }] }] }).map((s) => s.skill), ["a", "b"]);
 });
 
-test("experience is the date learned and the length from it to today", () => {
-  const start = new Date(); start.setFullYear(start.getFullYear() - 5);
-  const iso = start.toISOString().slice(0, 10);
-  const line = experienceLine({ learned: iso, periods: [{ start: iso }], active: true });
-  // Five calendar years back is 5 years plus whatever months the date arithmetic leaves.
-  assert.match(line, new RegExp(`^Learned ${monthYear(iso)} · (4 years 1\\d months?|5 years( \\d+ months?)?)$`));
+test("an old skill is years only: a member knows the year they started, not the month", () => {
+  const line = experienceLine({ learned: "2012-03-01", periods: [{ start: "2012-03-01" }], active: true, years: 13 });
+  assert.equal(line, "Learned 2012 · 13 years");
+});
+
+test("a young skill keeps the precision the member really has", () => {
+  const d = new Date(); d.setMonth(d.getMonth() - 8); d.setDate(1);
+  const iso = d.toISOString().slice(0, 10);
+  const line = experienceLine({ learned: iso, periods: [{ start: iso }], active: true, years: 0 });
+  assert.match(line, new RegExp(`^Learned ${monthYear(iso)} · \\d+ months?$`));
+});
+
+test("the switch to years-only is at two years", () => {
+  assert.equal(experienceLine({ learned: "2000-06-15", periods: [{ start: "2000-06-15" }], years: 1 }).includes("year"), true);
+  assert.match(experienceLine({ learned: "2000-06-15", periods: [{ start: "2000-06-15" }], active: true, years: 2 }), /^Learned 2000 · 2 years$/);
 });
 
 test("an undated skill says so and never reads as zero experience", () => {
@@ -48,10 +57,10 @@ test("an undated skill says so and never reads as zero experience", () => {
   assert.equal(experienceLine(undefined), "Learned: no start date yet");
 });
 
-test("a skill the member stopped says when, and counts only the time served", () => {
+test("a skill the member stopped says which year, and counts only the time served", () => {
   const line = experienceLine({ learned: "2000-01-01", periods: [{ start: "2000-01-01", end: "2010-01-01" }],
-                                active: false, last_played: "2010-01-01" });
-  assert.match(line, /^Learned Jan 2000 · 10 years · last practised Jan 2010$/);
+                                active: false, last_played: "2010-01-01", years: 10 });
+  assert.equal(line, "Learned 2000 · 10 years · last practised 2010");
 });
 
 test("monthYear refuses what is not a date", () => {

@@ -9,6 +9,8 @@ import { startTour } from "../Tour.jsx";
 import { goToSpot } from "../goto.js";
 import { SPINAZ, ENERGY } from "../resources.js";
 import IntentPicker from "../components/IntentPicker.jsx";
+import { handOff } from "../handoff.js";
+import { personaSkillRows, skillsStepDone } from "../onboardSkills.js";
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -133,6 +135,14 @@ export default function OnboardZ() {
       how: "Open ProfileZ, tap every PersonaZ that fits, tap again to drop one. Date the skills under each one — that is what turns a class into years of experience. Premium can swap the artwork; the class itself is free either way.",
       done: (me?.personas?.length || 0) > 0,
       tab: "profilez", target: "personas", cta: "Open the PersonaZ picker" },
+
+    { key: "skills", icon: <Star size={18} />, title: "Add your skills, persona by persona", skills: true,
+      desc: "Under each PersonaZ you picked, add the skills you have actually learned.",
+      what: "The skills you have learned, filed under the persona they belong to — Pro Tools under Mix Engineer, Rapping under Independent Artist — each with the date you learned it.",
+      why: "Skills and experience are what Music ConnectZ is built around. Only skills on your profile can be listed on your work, so this is what fills \"Skills used on this\" when you post. Each skill is rated by the posts that used it, with the work linked beside the rating, and its experience is the time since the date you learned it. A best guess at the date is fine.",
+      how: "Open PersonaZ, press Skills under a persona, tick what you have learned and add a start date. Do it for each persona you play — one is enough to finish this step, and the rest can wait.",
+      done: skillsStepDone(me?.personas),
+      tab: "personaz", target: "personaz-skills", cta: "Open PersonaZ" },
 
     { key: "birthday", icon: <Cake size={18} />, title: "Add your birthday", bday: true,
       desc: "Sets your ZodiacZ and keeps ads age-appropriate. You must be 13+ to use Music ConnectZ.",
@@ -286,6 +296,27 @@ export default function OnboardZ() {
                           onClick={() => setDetailOpen((d) => ({ ...d, [s.key]: true }))}>
                     <Info size={11} /> What is this, and why?
                   </button>
+                )}
+
+                {/* Skills step: each persona the member holds, how many skills sit under it, and a door
+                    that opens THAT persona in PersonaZ. Read from the profile, never inferred. */}
+                {s.skills && (
+                  <div className="mt-2 space-y-1">
+                    {personaSkillRows(me?.personas).length === 0 ? (
+                      <p className="text-[11px] text-white/50">Pick your PersonaZ first (the step above), then add skills under each.</p>
+                    ) : personaSkillRows(me?.personas).map((r) => (
+                      <div key={r.key} className="flex items-center gap-2 text-[12px]">
+                        <span className="min-w-0 flex-1 truncate text-white/80">{r.label}</span>
+                        <span className={r.count ? "text-emerald-300" : "text-white/45"}>
+                          {r.count ? `${r.count} skill${r.count === 1 ? "" : "s"}` : "no skills yet"}
+                        </span>
+                        <button type="button" className="text-mcz-ember hover:underline"
+                                onClick={() => handOff("personaz", `personaz-${r.key}`, { persona: r.key })}>
+                          {r.count ? "Edit" : "Add skills"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {/* Refer step: inline invite link + stats */}
