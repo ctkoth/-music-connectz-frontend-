@@ -834,7 +834,10 @@ function HostForm({ onCreated, onFlash }) {
 
       <RangeGates value={gates} onChange={setGates} title="Who can ask for a seat" />
 
-      <SkillsUsed value={skills} onChange={setSkills} label="What's on offer here" />
+      {/* The host is naming what they want visitors to BRING, not skills they hold, so the
+          whole catalogue stays here; every picker that names the member's OWN skills reads
+          their profile instead. */}
+      <SkillsUsed source="catalogue" value={skills} onChange={setSkills} label="What's on offer here" />
       <p className="text-[10px] leading-relaxed text-white/35">
         {f.kind === "session"
           ? "On a session this is what you're asking people to bring — each visitor's "
