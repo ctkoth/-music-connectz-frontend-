@@ -19,7 +19,7 @@ import { api } from "./api.js";
 import { goToSpot } from "./goto.js";
 import { RatingNumber } from "./components/Rating.jsx";
 import { PERSONA_SKILLS, PERSONA_LABELS, labelForSkill } from "./personaSkills.js";
-import { flatSkills, ratingDetail, workLine, workShown } from "./skillsUsed.js";
+import { experienceLine, flatSkills, ratingDetail, workLine, workShown } from "./skillsUsed.js";
 
 const isAny = (key) => key.startsWith("any_") || key === "any";
 
@@ -135,6 +135,8 @@ function SkillRow({ s, picked, onToggle }) {
           <span className="max-w-[9rem] text-[10px] leading-tight text-white/50">{ratingDetail(s)}</span>
         </span>
       </div>
+      {/* Experience is declared (learned date + time since), never blended into the rating. */}
+      <p className="mt-1 pl-6 text-[10px] text-white/50">{experienceLine(s)}</p>
       {shown.length > 0 && (
         <p className="mt-1 pl-6 text-[10px] leading-relaxed text-white/45">
           Rated on:{" "}

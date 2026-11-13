@@ -8,6 +8,7 @@ import { PERSONAS, PERSONA_READ } from "../personaVoice.js";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDuration, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
 import { say, useVoice } from "../voice.js";
+import { onHandoff } from "../handoff.js";
 
 // PersonaZ — every persona, every skill, Corey's read on each in YOUR voice
 // (VoiceZ: slang, emoji and explicit, the switches right here at the top),
@@ -92,6 +93,12 @@ export default function PersonaZ() {
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // OnboardZ (and anything else) can hand over WHICH persona to open, so "add your skills" lands on
+  // that persona's skills rather than at the top of the list.
+  useEffect(() => onHandoff("personaz", (h) => {
+    if (h?.persona) { setMode("mine"); setOpen(h.persona); }
+  }), []);
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => setSel((d.personas || []).map((x) => (typeof x === "string"
@@ -185,14 +192,14 @@ export default function PersonaZ() {
       {!sel && !msg && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>}
 
       {sel && (
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="personaz-skills">
           {PERSONAS.map(([key, label, icon, emoji]) => {
             const mine = mineOf(key);
             const tree = PERSONA_SKILLS[key] || {};
             const total = Object.values(tree).reduce((n, cat) => n + Object.keys(cat).length, 0);
             const isOpen = open === key;
             return (
-              <section key={key} className={`neon-frame p-3 ${mine ? "border-mcz-cyan/40" : ""}`}>
+              <section key={key} data-tour={`personaz-${key}`} className={`neon-frame p-3 ${mine ? "border-mcz-cyan/40" : ""}`}>
                 <div className="flex items-start gap-3">
                   <IconImg icon={icon} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover"
                     fallback={<span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/5 text-2xl">{emoji}</span>} />
