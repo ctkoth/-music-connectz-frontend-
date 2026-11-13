@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseYear, yearOnlyStart, startIsYearOnly, skillDurationShown, skillYears } from "./personaSkills.js";
+import { parseYear, yearOnlyStart, yearOnlyEnd, startIsYearOnly, endIsYearOnly, hasYearOnlyDates, skillDurationShown, skillYears } from "./personaSkills.js";
 
 const thisYear = new Date().getFullYear();
 
@@ -36,4 +36,33 @@ test("a full date keeps its precise wording", () => {
   const d = new Date(); d.setFullYear(d.getFullYear() - 5);
   const iso = d.toISOString().slice(0, 10);
   assert.doesNotMatch(skillDurationShown({ periods: [{ start: iso }] }), /about/);
+});
+
+test("a year-only stop is stored as that year's 1 July", () => {
+  assert.equal(yearOnlyEnd(2013), "2013-07-01");
+});
+
+test("only a 1 July with the flag counts as a year-only stop", () => {
+  assert.equal(endIsYearOnly({ start: "2000-01-01", end: "2013-07-01", end_precision: "year" }), true);
+  assert.equal(endIsYearOnly({ start: "2000-01-01", end: "2013-03-04", end_precision: "year" }), false);
+  assert.equal(endIsYearOnly({ start: "2000-01-01", end: "2013-07-01" }), false);
+  assert.equal(endIsYearOnly({ start: "2000-01-01", end_precision: "year" }), false);
+  assert.equal(endIsYearOnly(undefined), false);
+});
+
+test("any year-only date, start or stop, makes the skill approximate", () => {
+  assert.equal(hasYearOnlyDates({ periods: [{ start: "2000-03-04", end: "2010-07-01", end_precision: "year" }] }), true);
+  assert.equal(hasYearOnlyDates({ periods: [{ start: "2000-01-01", precision: "year", end: "2010-05-06" }] }), true);
+  assert.equal(hasYearOnlyDates({ periods: [{ start: "2000-03-04", end: "2010-05-06" }] }), false);
+});
+
+test("a year-only stop is never worded in months or days either", () => {
+  const sk = { periods: [{ start: "2000-03-04", end: yearOnlyEnd(2010), end_precision: "year" }] };
+  assert.equal(skillDurationShown(sk), "about 10 years");
+});
+
+test("a start and a stop in the same year is under a year, not dropped", () => {
+  const y = thisYear - 3;
+  const sk = { periods: [{ start: yearOnlyStart(y), precision: "year", end: yearOnlyEnd(y), end_precision: "year" }] };
+  assert.equal(skillDurationShown(sk), "less than a year");
 });

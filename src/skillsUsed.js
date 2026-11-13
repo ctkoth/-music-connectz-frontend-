@@ -56,18 +56,16 @@ export function experienceLine(s) {
   const none = "Learned: no start date yet";
   if (!year(s?.learned)) return none;
   const years = s.years;
-  // The member only knew the year they started: say the year and "about", never a month or a day.
-  if (s.learned_precision === "year") {
-    const len = years == null ? "" : years < 1 ? "less than a year" : `about ${years} year${years === 1 ? "" : "s"}`;
-    if (!len) return none;
-    const lp = year(s.last_played);
-    return `Learned ${year(s.learned)} · ${len}${s.active === false && lp ? ` · last practised ${lp}` : ""}`;
-  }
-  const old = years != null && years >= OLD_YEARS;
-  const length = old ? `${years} year${years === 1 ? "" : "s"}` : skillDuration({ periods: s.periods || [] });
+  if (years == null) return none;
+  // Any year-only date (the start, or a stop) makes the length an estimate: say "about", never a month or a day.
+  const yearStart = s.learned_precision === "year";
+  const approx = yearStart || !!s.approximate;
+  const old = years >= OLD_YEARS;
+  const yearsWord = approx && years < 1 ? "less than a year" : `${approx ? "about " : ""}${years} year${years === 1 ? "" : "s"}`;
+  const length = approx || old ? yearsWord : skillDuration({ periods: s.periods || [] });
   if (!length) return none;
-  const learned = old ? year(s.learned) : monthYear(s.learned);
-  const last = old ? year(s.last_played) : monthYear(s.last_played);
+  const learned = yearStart || old ? year(s.learned) : monthYear(s.learned);
+  const last = approx || old || s.last_played_precision === "year" ? year(s.last_played) : monthYear(s.last_played);
   const stopped = s.active === false && last ? ` · last practised ${last}` : "";
   return `Learned ${learned} · ${length}${stopped}`;
 }

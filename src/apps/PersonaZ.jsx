@@ -7,7 +7,7 @@ import VoiceCard from "../components/VoiceCard.jsx";
 import { PERSONAS, PERSONA_READ } from "../personaVoice.js";
 import { GENRE_GROUPS, genreLabel } from "../genres.js";
 import { PERSONA_SKILLS, labelForSkill, periodsOf, skillDurationShown, rateUnitOf, suggestedRateUnit } from "../personaSkills.js";
-import SkillStartInput from "../components/SkillStartInput.jsx";
+import SkillDateInput from "../components/SkillDateInput.jsx";
 import { say, useVoice } from "../voice.js";
 import { onHandoff } from "../handoff.js";
 
@@ -39,7 +39,7 @@ function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
       {have && (
         <>
           {/* A full date, or just the year — most members know the year they started and not the day. */}
-          <SkillStartInput start={start} precision={periodsOf(have)[0]?.precision || ""} max={today()}
+          <SkillDateInput start={start} precision={periodsOf(have)[0]?.precision || ""} max={today()}
             onChange={onDate} label={`Started ${labelForSkill(k)}`}
             inputClass="neon-input !w-auto !py-0.5 text-[11px]" />
           <span className="w-24 text-right text-[11px] text-mcz-gold">{dur || "add a start date"}</span>
