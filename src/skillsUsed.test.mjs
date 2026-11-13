@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { flatSkills, ratingDetail, workShown, workLine } from "./skillsUsed.js";
+import { flatSkills, ratingDetail, workShown, workLine, monthYear, experienceLine } from "./skillsUsed.js";
 
 test("an unrated skill says so and never reads as a 0", () => {
   assert.equal(ratingDetail({ skill: "mixing", rating: null, count: 0 }), "not rated yet");
@@ -33,4 +33,28 @@ test("a line names the post, its score and how many scored it", () => {
 test("flatSkills tolerates an empty or failed answer", () => {
   assert.deepEqual(flatSkills(null), []);
   assert.deepEqual(flatSkills({ personas: [{ skills: [{ skill: "a" }] }, { skills: [{ skill: "b" }] }] }).map((s) => s.skill), ["a", "b"]);
+});
+
+test("experience is the date learned and the length from it to today", () => {
+  const start = new Date(); start.setFullYear(start.getFullYear() - 5);
+  const iso = start.toISOString().slice(0, 10);
+  const line = experienceLine({ learned: iso, periods: [{ start: iso }], active: true });
+  // Five calendar years back is 5 years plus whatever months the date arithmetic leaves.
+  assert.match(line, new RegExp(`^Learned ${monthYear(iso)} · (4 years 1\\d months?|5 years( \\d+ months?)?)$`));
+});
+
+test("an undated skill says so and never reads as zero experience", () => {
+  assert.equal(experienceLine({ learned: null, periods: [] }), "Learned: no start date yet");
+  assert.equal(experienceLine(undefined), "Learned: no start date yet");
+});
+
+test("a skill the member stopped says when, and counts only the time served", () => {
+  const line = experienceLine({ learned: "2000-01-01", periods: [{ start: "2000-01-01", end: "2010-01-01" }],
+                                active: false, last_played: "2010-01-01" });
+  assert.match(line, /^Learned Jan 2000 · 10 years · last practised Jan 2010$/);
+});
+
+test("monthYear refuses what is not a date", () => {
+  assert.equal(monthYear("nope"), "");
+  assert.equal(monthYear("2012-13-01"), "");
 });
