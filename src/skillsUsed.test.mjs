@@ -74,3 +74,17 @@ test("a year-only start says the year and 'about', never a month", () => {
   assert.equal(experienceLine({ learned: "2026-01-01", learned_precision: "year", periods: [{ start: "2026-01-01", precision: "year" }], active: true, years: 0 }),
                "Learned 2026 · less than a year");
 });
+
+test("a year-only stop makes the length an estimate and the last-practised a year", () => {
+  assert.equal(experienceLine({ learned: "2000-03-04", learned_precision: "day", approximate: true, active: false,
+    last_played: "2010-07-01", last_played_precision: "year", years: 10,
+    periods: [{ start: "2000-03-04", end: "2010-07-01", end_precision: "year" }] }),
+    "Learned 2000 · about 10 years · last practised 2010");
+});
+
+test("a young skill stopped within one year says less than a year", () => {
+  const d = new Date(); d.setMonth(d.getMonth() - 10); d.setDate(1);
+  const iso = d.toISOString().slice(0, 10);
+  assert.equal(experienceLine({ learned: iso, learned_precision: "day", approximate: true, active: false,
+    last_played: `${d.getFullYear()}-07-01`, last_played_precision: "year", years: 0, periods: [{ start: iso, end: `${d.getFullYear()}-07-01`, end_precision: "year" }] }).includes("less than a year"), true);
+});

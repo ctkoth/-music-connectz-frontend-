@@ -10,8 +10,8 @@ import { ProfileFieldsEditor, deviceTimezone } from "../components/ProfileFieldz
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
 import { PERSONA_ICON_VARIANTS, loadPersonaIcons, personaIcon, setPersonaIcon } from "../personaIcons.js";
-import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears, startIsYearOnly } from "../personaSkills.js";
-import SkillStartInput from "../components/SkillStartInput.jsx";
+import { PERSONA_SKILLS, periodsOf, skillActivity, skillYears, hasYearOnlyDates } from "../personaSkills.js";
+import SkillDateInput from "../components/SkillDateInput.jsx";
 import { useCharLimit } from "../limits.js";
 import VoiceCard from "../components/VoiceCard.jsx";
 import { PERSONAS } from "../personaVoice.js";
@@ -184,7 +184,8 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
   // period, and storing it would look like dated experience that isn't there.
   const clean = (rows) => rows.filter((p) => p.start)
     .map((p) => ({ start: p.start, ...(p.end ? { end: p.end } : {}),
-                   ...(p.precision === "year" ? { precision: "year" } : {}) }));
+                   ...(p.precision === "year" ? { precision: "year" } : {}),
+                   ...(p.end && p.end_precision === "year" ? { end_precision: "year" } : {}) }));
 
   function toggle(label) {
     const next = { ...picked };
@@ -243,7 +244,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                         {rows.map((pr, i) => (
                           <div key={i} className="flex flex-wrap items-center gap-1.5">
                             <span className="text-[10px] text-white/40">{i === 0 ? "Started" : "Again"}</span>
-                            <SkillStartInput start={pr.start || ""} precision={pr.precision || ""} max={today}
+                            <SkillDateInput start={pr.start || ""} precision={pr.precision || ""} max={today}
                               onChange={(v, prec) => setPeriods(label, rows.map((r, j) => {
                                 if (j !== i) return r;
                                 const { precision: _old, ...rest } = r;
@@ -254,11 +255,18 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                             {pr.end ? (
                               <>
                                 <span className="text-[10px] text-white/40">until</span>
-                                <input type="date" value={pr.end} max={today} min={pr.start || undefined}
-                                  onChange={(e) => setPeriods(label, rows.map((r, j) => j === i ? { ...r, end: e.target.value } : r))}
-                                  className="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
+                                {/* A full date, or just the year they stopped. */}
+                                <SkillDateInput end start={pr.end} precision={pr.end_precision || ""} max={today} min={pr.start || undefined}
+                                  minYear={Number(String(pr.start || "").slice(0, 4)) || 1900}
+                                  onChange={(v, prec) => setPeriods(label, rows.map((r, j) => {
+                                    if (j !== i) return r;
+                                    const { end_precision: _old, ...rest } = r;
+                                    return { ...rest, end: v, ...(prec === "year" ? { end_precision: "year" } : {}) };
+                                  }))}
+                                  label={`Stopped ${label}`}
+                                  inputClass="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
                                 <button title="Still doing it"
-                                  onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { start: r.start } : r))}
+                                  onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { start: r.start, ...(r.precision === "year" ? { precision: "year" } : {}) } : r))}
                                   className="text-[10px] text-white/35 hover:text-mcz-cyan">still going</button>
                               </>
                             ) : (
@@ -283,7 +291,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                           )}
                           {total != null && (
                             <span className="text-[10px] text-mcz-cyan">
-                              {startIsYearOnly(picked[label]) ? "about " : ""}{total} yr{total === 1 ? "" : "s"} total
+                              {hasYearOnlyDates(picked[label]) ? "about " : ""}{total} yr{total === 1 ? "" : "s"} total
                               {act?.active
                                 ? <span className="text-emerald-300"> · active</span>
                                 : act?.lastPlayed && <span className="text-white/35"> · last played {act.lastPlayed.slice(0, 4)}</span>}

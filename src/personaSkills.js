@@ -574,6 +574,11 @@ export function skillDuration(skill) {
 /** The stored start for a year-only answer. */
 export const yearOnlyStart = (year) => `${year}-01-01`;
 
+/** The stored END for a year-only answer: that year's 1 July. A stop can fall anywhere in the year, so
+ *  the middle is the unbiased point; 1 January would drop a start and stop in one year to zero days,
+ *  and 31 December would overstate every stint. */
+export const yearOnlyEnd = (year) => `${year}-07-01`;
+
 /** 1900..this year from a string of exactly four digits, else null. */
 export function parseYear(v) {
   const t = String(v ?? "").trim();
@@ -588,10 +593,20 @@ export function startIsYearOnly(skill) {
   return !!p && p.precision === "year" && String(p.start).endsWith("-01-01");
 }
 
-/** How long a skill has been practised, in words that claim only what the member gave. A year-only
- *  start never shows a month or a day: "about 13 years", or "less than a year". */
+/** True when a stint's END was given as a year only (and so is a 1 July). */
+export const endIsYearOnly = (period) =>
+  !!period && period.end_precision === "year" && String(period.end || "").endsWith("-07-01");
+
+/** True when ANY date on the skill, start or stop, is a year only: its length is then an estimate. */
+export function hasYearOnlyDates(skill) {
+  const ps = periodsOf(typeof skill === "string" ? { start: skill } : skill);
+  return ps.some((p) => (p.precision === "year" && String(p.start).endsWith("-01-01")) || endIsYearOnly(p));
+}
+
+/** How long a skill has been practised, in words that claim only what the member gave. With any
+ *  year-only date it never shows a month or a day: "about 13 years", or "less than a year". */
 export function skillDurationShown(skill) {
-  if (!startIsYearOnly(skill)) return skillDuration(skill);
+  if (!hasYearOnlyDates(skill)) return skillDuration(skill);
   const y = skillYears(skill);
   if (y == null) return null;
   return y < 1 ? "less than a year" : `about ${y} year${y === 1 ? "" : "s"}`;

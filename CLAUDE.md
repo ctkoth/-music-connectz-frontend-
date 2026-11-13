@@ -2162,14 +2162,18 @@ a venue host's "What's on offer here" (what visitors should bring). Any new pick
 skills takes the default. A failed fetch says so with Try again; it never falls back to the catalogue.
 The server does not yet reject a skill that isn't on the profile (see the backend CLAUDE.md).
 
-## Skill start dates: a full date, or just the year
+## Skill dates: a full date, or just the year, for the start and for the stop
 
-`SkillStartInput.jsx` is the one "when did you start" input, used by PersonaZ and by ProfileZ's stint
-editor. Members mostly know the year ("I started rapping at 16"), so "Just the year" is a first-class
-answer, not a guessed date: it commits only once it is four digits inside 1900..this year, and is stored
-as that year's 1 January with `precision: "year"` on the stint (the server keeps the flag only on a
-1 January). Wording then claims only what was given: `skillDurationShown` / `experienceLine` say "about
-13 years" or "less than a year", never a month or a day, and ProfileZ's total reads "about N yrs".
-Switching back to "I know the date" keeps the 1 January as a plain date to adjust. Only the start has this
-option; an end date is still a full date. Pure helpers (`parseYear`, `yearOnlyStart`, `startIsYearOnly`)
-are in `personaSkills.js` and tested in `skillStart.test.mjs`.
+`SkillDateInput.jsx` is the one date input for a skill's START or STOP, used by PersonaZ (the start) and by
+ProfileZ's stint editor (both). Members mostly know the year ("I started rapping at 16", "I stopped in
+2013"), so "Just the year" is a first-class answer, not a guessed date: it commits only once it is four digits
+inside 1900..this year (and, for a stop, not before the year it started), and is stored with a flag on the
+stint. A year-only START is that year's 1 January (`precision: "year"`); a year-only STOP is that year's
+1 JULY (`end_precision: "year"`) — a stop can fall anywhere in the year, so the middle is the unbiased point,
+and 1 January would have dropped a start and stop in one year to zero days while 31 December would overstate
+every stint. The server keeps each flag only on its own day. Wording then claims only what was given:
+`skillDurationShown` / `experienceLine` say "about 13 years" or "less than a year" when ANY date on the skill
+is year-only, never a month or a day, and ProfileZ's total reads "about N yrs". Switching back to "I know the
+date" keeps the stored day as a plain date to adjust. Pure helpers (`parseYear`, `yearOnlyStart`,
+`yearOnlyEnd`, `startIsYearOnly`, `endIsYearOnly`, `hasYearOnlyDates`) are in `personaSkills.js` and tested
+in `skillStart.test.mjs`.
