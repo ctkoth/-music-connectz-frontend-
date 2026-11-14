@@ -427,7 +427,12 @@ export default function PostZ() {
             {cost.cost.amount > 0 ? (
               <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
                 {" — "}
-                {cost.lines.filter((l) => l.cents > 0).map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}.
+                {cost.lines.filter((l) => l.cents > 0 && l.skill !== "Posting").map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}
+                {/* The tier minimum, said where the price is: a post costs at least what one AI
+                    prompt does on your tier, so a cheap skill is lifted to it, not added to it. */}
+                {cost.lines.some((l) => l.skill === "Posting") && (
+                  <>{cost.lines.some((l) => l.cents > 0 && l.skill !== "Posting") ? " · " : ""}minimum for your tier — the same {ENERGY} as one AI prompt</>
+                )}.
                 {!cost.affordable && (
                   <span className="text-mcz-ember">
                     {" "}You have {cost.energy} — we'll take what's there.
@@ -637,15 +642,16 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
 
   // What PUBLISHING this one would cost, quoted before the button rather than
   // discovered by pressing it — the same rule the composer's own price
-  // follows. A post with no skills_used (every SoundCloud import, since a
-  // track carries no priced skill) is free by construction and needs no
-  // request to know that; the server's own math (post_cost_cents minus what
-  // was already charged) is the same shortfall `postz._edit` charges.
+  // follows. Always asked, even with no skills_used: every post costs at least the
+  // tier's floor (what an AI prompt costs), so "no skills" is no longer "free" and
+  // a SoundCloud import's Publish button must not say so. The server's own math
+  // (post_cost_cents minus what was already charged) is the same shortfall
+  // `postz._edit` charges.
   const [publishCost, setPublishCost] = useState(null);
   useEffect(() => {
     if (post.visibility !== "private" || !canEdit) return;
-    if (!post.skills_used?.length) { setPublishCost(0); return; }
-    api(`/api/economy/postz/cost/?skills=${encodeURIComponent(post.skills_used.join(","))}`)
+    const q = post.skills_used?.length ? `?skills=${encodeURIComponent(post.skills_used.join(","))}` : "";
+    api(`/api/economy/postz/cost/${q}`)
       .then((d) => setPublishCost(Math.max(0, (d?.cost?.amount || 0) - (post.skill_cost_cents || 0))))
       .catch(() => setPublishCost(null));
   }, [post.visibility, post.skills_used, post.skill_cost_cents, canEdit]);
