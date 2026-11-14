@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { api } from "./api.js";
 import { PROVIDERS, REDIRECT, clearFlowMarkers, pkceChallenge, rand } from "./oauthProviders.jsx";
+import { importLimit as importLimitOf } from "./soundcloudLibrary.js";
 
 // Bring a SoundCloud catalogue in as DRAFT posts.
 //
@@ -15,6 +16,8 @@ import { PROVIDERS, REDIRECT, clearFlowMarkers, pkceChallenge, rand } from "./oa
 // code on an import instead of a sign-in.
 
 const MARK = "mcz_sc_import";
+// The member's own "newest N", carried across the SoundCloud redirect. Blank is the plan's number.
+const HOW_MANY = "mcz_sc_import_limit";
 // The full answer, handed to PostZ: a bare count in the URL could not say
 // that private tracks were left behind or that a slow SoundCloud cut the run
 // short — the two things a member most needs to know after a big import.
@@ -33,6 +36,9 @@ export async function finishImport(code, verifier) {
   // VITE_OAUTH_REDIRECT differs from the origin SoundCloud refused the code.
   const body = { code, redirect_uri: REDIRECT };
   if (verifier) body.code_verifier = verifier;
+  const limit = importLimitOf(sessionStorage.getItem(HOW_MANY));
+  sessionStorage.removeItem(HOW_MANY);
+  if (limit) body.limit = limit;
   const out = await api("/api/economy/soundcloud/import/", { method: "POST", body });
   try { sessionStorage.setItem(RESULT, JSON.stringify(out)); } catch { /* the count still travels in the URL */ }
   // PostZ spends RESULT on its toast; the library keeps this copy for the card.
@@ -46,6 +52,7 @@ export default function SoundCloudImport({ clientId: given = "", compact = false
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [howMany, setHowMany] = useState("");
   // The PUBLIC client id, read from the same open endpoint as the login buttons
   // when the screen did not pass one — so the import works wherever it is
   // mounted (PostZ as well as ProfileZ), never from a build-time copy.
@@ -79,6 +86,8 @@ export default function SoundCloudImport({ clientId: given = "", compact = false
     const verifier = rand();
     sessionStorage.setItem("mcz_oauth_verifier", verifier);
     sessionStorage.setItem(MARK, "1");
+    const n = importLimitOf(howMany, info.max_tracks);
+    if (n) sessionStorage.setItem(HOW_MANY, String(n)); else sessionStorage.removeItem(HOW_MANY);
     // One authorize URL for SoundCloud, shared with sign-in — this file used
     // to carry its own hand-typed copy, which is how the two drifted apart.
     window.location.href = SC.auth(encodeURIComponent(clientId), state, await pkceChallenge(verifier));
@@ -108,9 +117,23 @@ export default function SoundCloudImport({ clientId: given = "", compact = false
         <li>Running it again skips tracks already here.</li>
       </ul>
 
+      {info.can_choose && (
+        <label className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/75">
+          Only my newest
+          <input type="number" inputMode="numeric" min="1" max={info.max_tracks || undefined}
+                 className="neon-input !w-20 !py-1" placeholder="all" value={howMany}
+                 onChange={(e) => setHowMany(e.target.value)} aria-label="How many tracks to import" />
+          <span className="text-[11px] text-white/50">
+            Leave it blank for {info.whole_catalogue || info.max_tracks == null ? "your whole library" : `your plan's ${info.max_tracks}`}.
+            Fewer in means fewer drafts to sort afterwards.
+          </span>
+        </label>
+      )}
+
       <button className="neon-btn !w-auto mt-3" onClick={start} disabled={busy}>
         {busy ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
-        {busy ? "Opening SoundCloud…" : "Import my tracks"}
+        {busy ? "Opening SoundCloud…"
+          : importLimitOf(howMany, info.max_tracks) ? `Import my newest ${importLimitOf(howMany, info.max_tracks)}` : "Import my tracks"}
       </button>
 
       {error && <p role="alert" className="pt-2 text-sm text-mcz-ember">{error}</p>}

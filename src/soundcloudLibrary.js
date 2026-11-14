@@ -114,3 +114,11 @@ export function deleteConfirm(n, filter) {
 /** The "Select all" label names the filter it will follow. */
 export const selectAllLabel = (matching, filter) =>
   `Select all ${matching}${filter ? ` ${LABEL[filter].toLowerCase()}` : ""}`;
+
+/** The member's own "newest N" for an import: a whole number from 1, never above the
+ *  plan's ceiling (null = no ceiling). Blank, junk or 0 is "did not say" -> null. */
+export function importLimit(raw, planCap = null) {
+  const n = Math.floor(Number(String(raw ?? "").trim()));
+  if (!Number.isFinite(n) || n < 1) return null;
+  return planCap == null ? n : Math.min(n, planCap);
+}

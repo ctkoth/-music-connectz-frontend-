@@ -67,6 +67,9 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
   const [optionsFor, setOptionsFor] = useState(null);   // the row whose options are open
   const [coachFor, setCoachFor] = useState(null);         // the row whose coach doors are open
   const root = useRef(null);
+  // The action panel, and whether it is on screen: off screen, a slim bar stands in for it.
+  const actions = useRef(null);
+  const [actionsSeen, setActionsSeen] = useState(true);
   const [last, setLast] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem(LAST) || "null"); } catch { return null; }
   });
@@ -98,6 +101,15 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
     return () => { live = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel, target, consent, data?.counts?.total]);
+
+  const anySelected = sel.size > 0;
+  useEffect(() => {
+    const el = actions.current;
+    if (!anySelected || !el || typeof IntersectionObserver === "undefined") { setActionsSeen(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setActionsSeen(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [anySelected]);
 
   const card = last && (
     <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-sm space-y-1" role="status">
@@ -227,63 +239,9 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
         {sel.size > 0 && <button className="underline text-white/50" onClick={() => setSel(new Set())}>Clear ({sel.size})</button>}
       </div>
 
-      <ul className="divide-y divide-white/5">
-        {rows.map((r) => (
-          <li key={r.id} className="flex flex-wrap items-center gap-2 py-1.5">
-            <input type="checkbox" checked={sel.has(r.id)} onChange={() => setSel(toggleId(sel, r.id))} />
-            {r.artwork
-              ? <img src={r.artwork} alt="" className="h-9 w-9 rounded object-cover" loading="lazy" />
-              : <div className="h-9 w-9 rounded bg-white/5" />}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-white/85">
-                <button type="button" onClick={() => { setOptionsFor(optionsFor === r.id ? null : r.id); setCoachFor(null); }}
-                  aria-expanded={optionsFor === r.id}
-                  title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
-                  className="text-left hover:text-mcz-gold">
-                  {r.title}
-                  <span className={`ml-1.5 text-[10px] ${optionsFor === r.id ? "text-mcz-gold" : "text-white/35"}`}>
-                    {optionsFor === r.id ? "▴ options" : "▾ options"}
-                  </span>
-                </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
-              <p className="mt-0.5">
-                <button type="button" onClick={() => { setCoachFor(coachFor === r.id ? null : r.id); setOptionsFor(null); }}
-                  aria-expanded={coachFor === r.id}
-                  className={`pill !px-2 !py-0.5 !text-[11px] ${coachFor === r.id ? "!border-mcz-gold !text-mcz-gold" : "!border-mcz-cyan/60 !text-mcz-cyan"}`}>
-                  🎤 Coach it
-                </button>
-              </p>
-              <p className="text-[10px] text-white/35">
-                {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
-                {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
-              </p>
-              {!r.can_publish && r.why_not && <p className="text-[10px] text-mcz-ember">{r.why_not}</p>}
-            </div>
-            <div className="flex gap-1">
-              {VISIBILITIES.map((v) => (
-                <button key={v} disabled={busy || r.visibility === v}
-                  onClick={() => oneRow(r, v)}
-                  className={`pill !px-1.5 !py-0 !text-[10px] ${r.visibility === v ? "!border-emerald-300/60 !text-emerald-300" : ""}`}>
-                  {LABEL[v]}{r.visibility === "private" && v !== "private" && r.publish_cost.amount > 0 &&
-                    <span className="ml-1 text-mcz-ember">−{r.publish_cost.amount} {ENERGY}</span>}
-                </button>
-              ))}
-            </div>
-            {coachFor === r.id && <div className="w-full basis-full"><RowOptions row={r} coachOnly /></div>}
-            {optionsFor === r.id && <div className="w-full basis-full"><RowOptions row={r} /></div>}
-          </li>
-        ))}
-      </ul>
-
-      {data.pages > 1 && (
-        <div className="flex items-center gap-2 text-xs text-white/50">
-          <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="underline">Previous</button>
-          <span>Page {page} of {data.pages}</span>
-          <button disabled={page >= data.pages} onClick={() => setPage(page + 1)} className="underline">Next</button>
-        </div>
-      )}
-
+      {/* The actions sit ABOVE the list: after Select all they are right here, not under a hundred rows. */}
       {ids.length > 0 && (
-        <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2">
+        <div ref={actions} className="rounded-lg border border-mcz-cyan/30 bg-black/20 p-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-white/70">Set {ids.length} selected to:</span>
             {VISIBILITIES.map((v) => (
@@ -320,6 +278,71 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
         </div>
       )}
 
+      <ul className="divide-y divide-white/5">
+        {rows.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-start gap-2 py-2 sm:items-center">
+            <input type="checkbox" checked={sel.has(r.id)} onChange={() => setSel(toggleId(sel, r.id))} />
+            {r.artwork
+              ? <img src={r.artwork} alt="" className="h-9 w-9 rounded object-cover" loading="lazy" />
+              : <div className="h-9 w-9 rounded bg-white/5" />}
+            <div className="min-w-0 flex-1 basis-[60%] sm:basis-0">
+              <p className="text-sm text-white/85 sm:truncate">
+                <button type="button" onClick={() => { setOptionsFor(optionsFor === r.id ? null : r.id); setCoachFor(null); }}
+                  aria-expanded={optionsFor === r.id}
+                  title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
+                  className="text-left hover:text-mcz-gold">
+                  {r.title}
+                  <span className={`ml-1.5 text-[10px] ${optionsFor === r.id ? "text-mcz-gold" : "text-white/35"}`}>
+                    {optionsFor === r.id ? "▴ options" : "▾ options"}
+                  </span>
+                </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
+              <p className="mt-0.5">
+                <button type="button" onClick={() => { setCoachFor(coachFor === r.id ? null : r.id); setOptionsFor(null); }}
+                  aria-expanded={coachFor === r.id}
+                  className={`pill whitespace-nowrap !px-2 !py-0.5 !text-[11px] ${coachFor === r.id ? "!border-mcz-gold !text-mcz-gold" : "!border-mcz-cyan/60 !text-mcz-cyan"}`}>
+                  🎤 Coach it
+                </button>
+              </p>
+              <p className="text-[10px] text-white/35">
+                {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
+                {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
+              </p>
+              {!r.can_publish && r.why_not && <p className="text-[10px] text-mcz-ember">{r.why_not}</p>}
+            </div>
+            <div className="flex basis-full flex-wrap gap-1 pl-[3.75rem] sm:basis-auto sm:pl-0">
+              {VISIBILITIES.map((v) => (
+                <button key={v} disabled={busy || r.visibility === v}
+                  onClick={() => oneRow(r, v)}
+                  className={`pill whitespace-nowrap !px-2 !py-0.5 !text-[11px] ${r.visibility === v ? "!border-emerald-300/60 !text-emerald-300" : ""}`}>
+                  {LABEL[v]}{r.visibility === "private" && v !== "private" && r.publish_cost.amount > 0 &&
+                    <span className="ml-1 text-mcz-ember">−{r.publish_cost.amount} {ENERGY}</span>}
+                </button>
+              ))}
+            </div>
+            {coachFor === r.id && <div className="w-full basis-full"><RowOptions row={r} coachOnly /></div>}
+            {optionsFor === r.id && <div className="w-full basis-full"><RowOptions row={r} /></div>}
+          </li>
+        ))}
+      </ul>
+
+      {data.pages > 1 && (
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="underline">Previous</button>
+          <span>Page {page} of {data.pages}</span>
+          <button disabled={page >= data.pages} onClick={() => setPage(page + 1)} className="underline">Next</button>
+        </div>
+      )}
+
+      {ids.length > 0 && !actionsSeen && (
+        <div className="sticky bottom-24 z-20 flex flex-wrap items-center gap-3 rounded-lg border border-mcz-cyan/40 bg-[#0b0b14] px-3 py-2 text-xs shadow-lg">
+          <span className="text-white/80">{ids.length} selected</span>
+          <button type="button" className="underline text-mcz-cyan"
+                  onClick={() => actions.current?.scrollIntoView?.({ behavior: "smooth", block: "center" })}>
+            Change visibility or delete ↑
+          </button>
+          <button type="button" className="underline text-white/50" onClick={() => setSel(new Set())}>Clear</button>
+        </div>
+      )}
       {error && <p role="alert" className="text-sm text-mcz-ember">{error}</p>}
       {gone && (
         <div className="rounded-lg border border-white/10 p-3 text-sm space-y-1" role="status">

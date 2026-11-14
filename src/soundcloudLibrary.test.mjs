@@ -66,3 +66,10 @@ test("select-all names the filter it follows", () => {
   assert.equal(L.selectAllLabel(459, "private"), "Select all 459 private");
   assert.equal(L.selectAllLabel(459, ""), "Select all 459");
 });
+
+test("import limit: the member's number, capped by the plan, blank means the plan's", () => {
+  assert.equal(L.importLimit("20"), 20);
+  assert.equal(L.importLimit("20", 10), 10);
+  assert.equal(L.importLimit("7.9", null), 7);
+  for (const junk of ["", "  ", "abc", "0", "-4", null, undefined]) assert.equal(L.importLimit(junk, 25), null);
+});
