@@ -267,6 +267,14 @@ const SOUNDS = {
 
   // Housekeeping. The two smallest sounds here, because they confirm rather
   // than announce.
+  // A high score: the same rise as score_in, carried up a chord. The number on
+  // screen is what earned it; this never plays for a score that is not high.
+  score_high: [
+    { type: "triangle", from: 523, to: 523, dur: 0.12, gain: 0.07 },
+    { type: "triangle", from: 659, to: 659, dur: 0.12, gain: 0.07, at: 0.09 },
+    { type: "triangle", from: 784, to: 784, dur: 0.12, gain: 0.07, at: 0.18 },
+    { type: "sine", from: 1047, to: 1568, dur: 0.32, gain: 0.07, at: 0.27 },
+  ],
   saved: [{ type: "sine", from: 880, to: 1175, dur: 0.07, gain: 0.04 }],
   deleted: [{ type: "sine", from: 520, to: 260, dur: 0.14, gain: 0.045 }],
   // A door opening onto another app. The cross-pollination sound.
@@ -327,7 +335,46 @@ export const PACKS = {
   },
 };
 
+// Two louder sets. `extra` adds voices on top of each shaped one: the same factor on
+// `from` and `to`, so a gain still rises and a spend still falls. It is how a pack
+// gets a shimmer without a second copy of the vocabulary.
+PACKS.casino = {
+  name: "Casino",
+  blurb: "Slot-machine bells: bright, with a chime climbing after every sound.",
+  voice: (v) => ({ ...v, type: "triangle", from: v.from * 2, to: (v.to ?? v.from) * 2, dur: v.dur * 1.2 }),
+  extra: (v) => [
+    { ...v, type: "sine", from: v.from * 1.5, to: (v.to ?? v.from) * 1.5, gain: v.gain * 0.5, at: 0.05 },
+    { ...v, type: "sine", from: v.from * 2, to: (v.to ?? v.from) * 2, gain: v.gain * 0.35, at: 0.1 },
+  ],
+};
+PACKS.highroller = {
+  name: "High Roller",
+  blurb: "The big room: a low body under every sound and a long glittering tail.",
+  voice: (v) => ({ ...v, type: "triangle", dur: v.dur * 1.5 }),
+  extra: (v) => [
+    { ...v, type: "sine", from: v.from * 0.5, to: (v.to ?? v.from) * 0.5, gain: v.gain * 0.7, at: 0 },
+    { ...v, type: "sine", from: v.from * 3, to: (v.to ?? v.from) * 3, gain: v.gain * 0.28, at: 0.07 },
+    { ...v, type: "sine", from: v.from * 4, to: (v.to ?? v.from) * 4, gain: v.gain * 0.18, at: 0.14 },
+  ],
+};
+
 export const PACK_KEYS = Object.keys(PACKS);
+
+/** Every voice one sound makes in one pack, with its start offset. Pure: the
+ *  engine plays these and the tests read them. */
+export function voicesFor(key, packKey = "house") {
+  const spec = SOUNDS[key];
+  if (!spec) return [];
+  const def = PACKS[packKey] || PACKS.house;
+  const out = [];
+  for (const v of spec) {
+    const shaped = def.voice(v);
+    const at = v.at || 0;
+    out.push({ ...shaped, at });
+    for (const x of (def.extra ? def.extra(shaped) : [])) out.push({ ...x, at: at + (x.at || 0) });
+  }
+  return out;
+}
 
 // The member's choice, mirrored from the server. It is stored on the ACCOUNT
 // (see apps/economy/soundz.py) because it is sold; this is a local cache so a
@@ -388,13 +435,12 @@ export function playSoundNow(key, forcePack) {
   if (!c) return;
   // forcePack (audition) > this sound's own override > the chosen pack.
   const chosen = forcePack || overrides[key] || pack;
-  const shape = (PACKS[chosen] || PACKS.house).voice;
   try {
     // A context made before the first gesture starts suspended; resuming it
     // from inside a click is what lets the very first sound actually play.
     if (c.state === "suspended") c.resume();
     const now = c.currentTime + 0.01;
-    spec.forEach((v) => voice(now + (v.at || 0), shape(v)));
+    voicesFor(key, PACKS[chosen] ? chosen : "house").forEach((v) => voice(now + v.at, v));
   } catch {
     /* audio is a nicety; never let it throw into a click handler */
   }

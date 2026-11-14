@@ -21,13 +21,13 @@ import { goToTab } from "../goto.js";
 
 // The sounds worth auditioning, in the order they make sense as a demo: money
 // moving, then the things that happen to you, then the things you do.
-const DEMO = ["spinaz_gain", "energy_spend", "money_earn", "badge",
+const DEMO = ["spinaz_gain", "energy_spend", "money_earn", "badge", "score_high",
               "message", "call_ring", "build_done", "post"];
 
 const LABEL = {
   spinaz_gain: "Coin in", energy_spend: "Energy out", money_earn: "Money in",
   badge: "Badge earned", message: "Message", call_ring: "Incoming call",
-  build_done: "Build finished", post: "Posted",
+  build_done: "Build finished", post: "Posted", score_high: "High score",
 };
 
 export default function SoundZ() {
@@ -47,11 +47,14 @@ export default function SoundZ() {
       .catch((e) => setErr(e.message || "Couldn't load SoundZ."));
   }, []);
 
+  // The packs a tier above Premium, named by the server; this screen only locks them.
+  const statzOnly = (pack) => (state?.statz_packs || []).includes(pack) && !state?.has_statz_packs;
+
   async function choose(pack) {
     // Audition first, then save. Hearing it after committing is the same
     // mistake as showing a price after the button.
     playSoundNow("spinaz_gain", pack);
-    if (!state?.can_customize) return;
+    if (!state?.can_customize || statzOnly(pack)) return;
     setBusy(true);
     try {
       const d = await api("/api/economy/soundz/", {
@@ -128,7 +131,8 @@ export default function SoundZ() {
           {PACK_KEYS.map((k) => {
             const p = PACKS[k];
             const active = k === current;
-            const locked = !state.can_customize && k !== "house";
+            const top = statzOnly(k);
+            const locked = top || (!state.can_customize && k !== "house");
             return (
               <button key={k} disabled={busy}
                       onClick={() => choose(k)}
@@ -143,7 +147,7 @@ export default function SoundZ() {
                   {p.blurb}
                 </span>
                 <span className="block text-[10px] text-white/30">
-                  {locked ? "Tap to hear it — Premium to keep it" : "Tap to hear it"}
+                  {top ? "Tap to hear it — StatZ to keep it" : locked ? "Tap to hear it — Premium to keep it" : "Tap to hear it"}
                 </span>
               </button>
             );
@@ -164,6 +168,14 @@ export default function SoundZ() {
           </div>
         )}
       </div>
+
+      {state.can_customize && (state.statz_packs || []).some(statzOnly) && (
+        <p className="re-card text-[12px] text-white/60">
+          {(state.statz_packs || []).filter((k) => PACKS[k]).map((k) => PACKS[k].name).join(", ")} is a StatZ pack: you can hear it
+          here, and StatZ keeps it. Every other pack is yours.{" "}
+          <button className="underline text-mcz-cyan" onClick={() => goToTab("membershipz")}>See StatZ</button>
+        </p>
+      )}
 
       <div className="space-y-2">
         <p className="re-label">Hear them</p>
@@ -198,7 +210,7 @@ export default function SoundZ() {
                   disabled={busy}
                   onChange={(e) => overrideOne(k, e.target.value)}>
                   <option value="">same as pack</option>
-                  {PACK_KEYS.map((p) => <option key={p} value={p}>{PACKS[p].name}</option>)}
+                  {PACK_KEYS.map((p) => <option key={p} value={p} disabled={statzOnly(p)}>{PACKS[p].name}{statzOnly(p) ? " — StatZ" : ""}</option>)}
                 </select>
               </li>
             ))}

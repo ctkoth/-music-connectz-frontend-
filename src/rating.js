@@ -26,4 +26,18 @@ export function heardFor(heard, dim) {
   return `${top.t ? `${top.t} · ` : ""}${top.what}`;
 }
 
-export const SIZES = { xl: "text-5xl", lg: "text-3xl", md: "text-2xl", sm: "text-lg" };
+// Corey: the number is the loudest thing on the card. One size step up everywhere.
+export const SIZES = { xl: "text-7xl", lg: "text-5xl", md: "text-3xl", sm: "text-xl" };
+
+/** How much of a row of `outOf` stars a rating fills, as a percent. 6.5 of 10 is
+ *  65: six whole stars and half of the seventh. Out-of-range is clamped, and no
+ *  rating is null (no stars drawn), never an empty row that reads as a zero. */
+export function starPercent(value, outOf = 10) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || outOf <= 0) return null;
+  return Math.round(Math.max(0, Math.min(outOf, n)) / outOf * 1000) / 10;
+}
+
+export const STAR_COUNT = 10;
+export const STAR_SIZES = { xl: "text-3xl", lg: "text-2xl", md: "text-sm", sm: "text-[11px]" };

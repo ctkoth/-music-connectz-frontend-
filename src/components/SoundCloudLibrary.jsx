@@ -5,6 +5,7 @@ import { api } from "../api.js";
 import SoundCloudImport, { LAST } from "../SoundCloudImport.jsx";
 import { ENERGY } from "../resources.js";
 import { OpenIn, usePostDoors } from "./PostDoors.jsx";
+import { SelectAllLocked, useSelectAllAllowed } from "./SelectAllBar.jsx";
 import {
   LABEL, VISIBILITIES, alreadyAt, canApply, chunk, countsLine, deleteConfirm, deleteLine,
   mergeDeleted, mergeResults, orderedIds, pageFullySelected, previewText, resultLine,
@@ -50,6 +51,7 @@ function RowOptions({ row, coachOnly = false }) {
 }
 
 export default function SoundCloudLibrary({ refreshKey = 0 }) {
+  const bulk = useSelectAllAllowed();   // "Select all N" across pages is StatZ; this page stays free
   const [data, setData] = useState(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState("");
@@ -233,9 +235,9 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
             onChange={(e) => setSel(e.target.checked ? selectPage(sel, rows) : unselectPage(sel, rows))} />
           Select this page
         </label>
-        {data.matching > rows.length && (
-          <button className="underline text-mcz-cyan" onClick={selectEverything}>{selectAllLabel(data.matching, filter)}</button>
-        )}
+        {data.matching > rows.length && (bulk
+          ? <button className="underline text-mcz-cyan" onClick={selectEverything}>{selectAllLabel(data.matching, filter)}</button>
+          : <SelectAllLocked label={selectAllLabel(data.matching, filter)} />)}
         {sel.size > 0 && <button className="underline text-white/50" onClick={() => setSel(new Set())}>Clear ({sel.size})</button>}
       </div>
 
