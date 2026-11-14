@@ -2177,3 +2177,28 @@ is year-only, never a month or a day, and ProfileZ's total reads "about N yrs". 
 date" keeps the stored day as a plain date to adjust. Pure helpers (`parseYear`, `yearOnlyStart`,
 `yearOnlyEnd`, `startIsYearOnly`, `endIsYearOnly`, `hasYearOnlyDates`) are in `personaSkills.js` and tested
 in `skillStart.test.mjs`.
+
+## What a month of FunnelZ taught: the trial's buttons were below the first screen, and the headline divided two different crowds
+
+30 days read 397 landed, 156 opened a trial, 1 pressed anything, 0 scored. Four things came out of it.
+
+- **On a phone, Upload a clip sat at 773px on a 664px screen.** A six-line intro, three rows of door pills, an example
+  card and a beat picker came first. The trial now puts the three controls on the first screen (398px): the intro is two
+  lines, the door pills are one sideways-scrolling row on a phone, and the example and the beat sit AFTER the controls.
+  Measured in a phone-sized browser before and after. **Anything added above the trial's controls goes below them.**
+- **`try_engage`** is one row the first time a real tap, scroll or key touches the trial (`isTrusted`, once per visit). A
+  person who looked and left and a page load nobody was behind used to be the same row.
+- **`shell` rides every funnel event** (`appShell()`: web, inapp, android, desktop). In an app's built-in browser the
+  trial says so under the controls, with a copy-link, because recording and the file picker often fail there and the page
+  cannot tell from inside. Not checked inside a real Instagram or TikTok browser.
+- **`track()` sends nothing for a program that says it is one** (`navigator.webdriver`, or a crawler naming itself in
+  its user agent). Each crawl has empty storage, so each was a new "person". Nothing is guessed: an unannounced bot is
+  still counted, and `try_engage` is what separates it. **A browser test that needs funnel events must launch with
+  `--disable-blink-features=AutomationControlled`.**
+- **The headline rates are same-browser now** (server). "Landing -> trial 39.3%" divided phones that arrived on a trial
+  link by desktops that landed. `direct_trial` is the group the landing rate cannot see. FunnelZ also has "Make a tagged
+  link", which builds a `?src=` link by the server's slug rule.
+- **One automatic resend on the trial** for a dropped connection (`network` only, never a timeout or a refusal, never
+  offline). Cost: if the first send did arrive, it is a second model call and the visitor's second free take.
+- Not explained: "Register screen opened" read 0 beside one signup refused and one account created. The call is in
+  `Register.jsx` and the server stores it in a test; no cause found.

@@ -55,6 +55,7 @@ const SERVER_KINDS = new Set([
   "register_view",
   "try_attach",
   "try_blocked",
+  "try_engage",
   "try_failed",
   "try_mic_denied",
   "try_record",

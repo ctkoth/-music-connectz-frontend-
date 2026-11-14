@@ -7,6 +7,7 @@
 // person. The owner reads the counts back at GET /api/auth/funnel/summary/.
 import { api } from "./api.js";
 import { deviceShape } from "./useScreenShape.js";
+import { appShell } from "./externalAuth.js";
 
 const ANON_ID_KEY = "mcz_anon_id";
 
@@ -125,19 +126,51 @@ function device() {
   }
 }
 
+/** Which build the page is running in: a browser, the browser inside
+ * Instagram / TikTok / Facebook ("inapp"), or one of our own apps. The same
+ * `appShell()` sign-in already branches on, so there is one list. A trial
+ * opened inside Instagram fails for different reasons than one in Chrome. */
+function shell() {
+  try {
+    return appShell();
+  } catch {
+    return "";
+  }
+}
+
+/** A program that SAYS it is one: automation (`navigator.webdriver`), or a
+ * crawler or link-preview fetcher naming itself in its user agent. Nothing
+ * here guesses — a browser that does not announce itself is counted, and
+ * `try_engage` is what tells a person from the rest. This reads the user agent
+ * only to believe a program's own statement that it is not a person, which is
+ * the one thing a UA does not lie about. Each crawl arrives with empty storage,
+ * so every visit from one of these was a new "person" in every count. */
+function selfDeclaredBot() {
+  try {
+    if (navigator.webdriver) return true;
+    return /bot\b|crawl|spider|slurp|lighthouse|headless|preview|facebookexternalhit|pingdom|uptime|monitor/i
+      .test(navigator.userAgent || "");
+  } catch {
+    return false;
+  }
+}
+
 export function track(kind, meta = {}) {
+  if (selfDeclaredBot()) return;
   const anon_id = anonId();
   if (!anon_id) return;
   // Attached here rather than at each call site, so a step added later is
   // attributed without anybody remembering to pass it.
   const src = readSrc();
   const dev = device();
+  const sh = shell();
   rememberDoor(meta);
   const app_key = meta.app_key || readDoor();
   const full = {
     ...meta,
     ...(src ? { src } : {}),
     ...(dev ? { dev } : {}),
+    ...(sh ? { shell: sh } : {}),
     ...(app_key ? { app_key } : {}),
   };
   try {

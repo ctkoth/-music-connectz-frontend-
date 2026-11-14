@@ -25,7 +25,7 @@ const DAY_OPTIONS = [7, 14, 30, 90];
 function Headline({ rows }) {
   if (!rows?.length) return null;
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className={`grid gap-3 ${rows.length > 3 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
       {rows.map((r) => (
         <div key={r.key} className="re-card space-y-1">
           <p className="text-[10px] uppercase tracking-widest text-white/40">{r.label}</p>
@@ -46,6 +46,46 @@ function Headline({ rows }) {
           <p className="text-[11px] leading-relaxed text-white/35">{r.note}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+// A link with ?src= already on it. "Where they came from" has been empty
+// because tagging a link meant typing a query string by hand every time.
+// The slug rule is the server's (`_SRC_OK`: lowercase letters, digits, - and
+// _, 24 at most), applied here so what is copied is what will be recorded.
+const SRC_DOORS = [["/try/singz", "SingZ trial"], ["/try/rapz", "RapZ trial"], ["/try", "Trial (any coach)"], ["/", "Landing page"], ["/test", "PersonalitieZ test"]];
+function SrcLink() {
+  const [channel, setChannel] = useState("");
+  const [path, setPath] = useState(SRC_DOORS[0][0]);
+  const [said, setSaid] = useState("");
+  const slug = channel.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^[-_]+/, "").slice(0, 24).replace(/-+$/, "");
+  const url = slug ? `${window.location.origin}${path}?src=${slug}` : "";
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setSaid("Copied.");
+    } catch {
+      setSaid("Couldn't copy — select the link and copy it by hand.");
+    }
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">Make a tagged link</p>
+      <p className="text-[11px] leading-relaxed text-white/35">
+        Name where you are posting it (instagram-bio, tiktok, flyer). Everyone who arrives through the link is counted under that name above.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input className="neon-input !w-44" placeholder="instagram-bio" value={channel} aria-label="Channel name"
+               onChange={(e) => { setChannel(e.target.value); setSaid(""); }} />
+        <select className="neon-input !w-auto" value={path} aria-label="Where the link opens" data-nomemo="true"
+                onChange={(e) => { setPath(e.target.value); setSaid(""); }}>
+          {SRC_DOORS.map(([p, label]) => <option key={p} value={p}>{label}</option>)}
+        </select>
+        <button type="button" className="re-btn !w-auto px-4" disabled={!url} onClick={copy}>Copy link</button>
+      </div>
+      {url && <p className="break-all text-[12px] text-mcz-cyan">{url}</p>}
+      {said && <p className="text-[11px] text-white/55">{said}</p>}
     </div>
   );
 }
@@ -402,6 +442,15 @@ export default function FunnelZ() {
       )}
 
       {steps && !loading && <Headline rows={data.headline} />}
+      {/* Each rate above counts only browsers that did BOTH steps. This is the
+          group the landing rate cannot see, and it has been most of the trial's
+          traffic: people who came by a link straight to a trial door. */}
+      {steps && !loading && data.direct_trial > 0 && (
+        <p className="re-card text-[12px] leading-relaxed text-white/70">
+          <b className="text-white">{data.direct_trial.toLocaleString()}</b> more opened a trial by a link
+          straight to a trial door. <span className="text-white/45">They never saw the landing page, so the first rate above cannot count them.</span>
+        </p>
+      )}
       {steps && !loading && <ShareStats endpoint="/api/economy/funnel/share/" membersToggle defaultDays={[1, 7, 14, 30, 90].includes(days) ? days : 30} />}
       {/* The other no-account door, read the same way: same browser, test then account. */}
       {steps && !loading && data.quiz && (
@@ -483,6 +532,14 @@ export default function FunnelZ() {
             blurb="Phone, tablet or desktop, measured from the screen itself. The trial opens with a mic permission prompt, which is a different obstacle on a handset than on a laptop."
             rows={data.devices} field="dev" steps={steps} note={data.devices_note}
           />
+          {data.shells && (
+            <Breakdown
+              title="Which browser it ran in"
+              blurb="A link opened inside Instagram, TikTok or Facebook runs in that app's own browser, where recording and picking a file often fail. If the trial opens there and nothing follows, the fix is on the trial page, not in the traffic."
+              rows={data.shells} field="shell" steps={steps} note={data.shells_note}
+            />
+          )}
+          <SrcLink />
           <ByDoor doors={data.by_door} note={data.by_door_note} />
           <WhoJoined members={data.members} />
         </div>

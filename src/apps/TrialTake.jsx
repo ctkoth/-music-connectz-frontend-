@@ -140,6 +140,27 @@ export default function TrialTake() {
   // Fired once the door list is known, so an unknown /try/<key> is counted as
   // the door it actually opened rather than as one that does not exist.
   useEffect(() => { if (doorsLoaded) track("try_view", { app_key: app }); }, [app, doorsLoaded]);
+  // Was anybody actually there? One row, the first time a real finger, wheel or
+  // key touches this page. 156 browsers opened the trial and 1 pressed anything;
+  // without this a person who looked and left and a link preview nobody was
+  // behind are the same row, and they need opposite fixes. `isTrusted` is false
+  // for an event a script made up, so a page that scrolls itself is not a person.
+  useEffect(() => {
+    if (!doorsLoaded) return undefined;
+    const kinds = { pointerdown: "tap", touchstart: "tap", scroll: "scroll", keydown: "key" };
+    let done = false;
+    const stop = () => Object.keys(kinds).forEach((k) => window.removeEventListener(k, on, true));
+    function on(e) {
+      if (done || !e.isTrusted) return;
+      done = true;
+      stop();
+      track("try_engage", { app_key: app, how: kinds[e.type] });
+    }
+    Object.keys(kinds).forEach((k) => window.addEventListener(k, on, { capture: true, passive: true }));
+    return stop;
+    // Once per visit to the page, not once per door switched to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doorsLoaded]);
   // The coach somebody came in through is their first app: it leads "Your apps", and a visitor
   // who joins from here lands back on it instead of the generic home screen (yourApps.js).
   const { user } = useAuth();
@@ -222,16 +243,17 @@ export default function TrialTake() {
         <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">
           One take scored — free, instantly
         </h1>
+        {/* Two lines, not six: on a phone the long version and three rows of door
+            pills filled the first screen, and the recorder started below it. */}
         <p className="mt-1 text-sm text-white/55">
-          Upload a clip — eight to fifteen seconds is plenty — or record one here, and get exact
-          feedback from the same <Term k="ai_coach">AI coach</Term> our {label} members use. Free takes every day — send a second one and watch your number move. Join after
-          to keep your takes and track progress.
+          Upload or record 8–15 seconds. The <Term k="ai_coach">AI coach</Term> our {label} members use
+          scores it out of 10 and says what to fix. No account.
         </p>
         {/* Every door, not the two that were linked. A drummer who lands on
             a page offering "SingZ or RapZ" correctly concludes this place is
             not for drummers — and DrumZ has scored drum takes the whole
             time. */}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [&>*]:shrink-0 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Pick your coach">
           {doors.map((d) => (
             <Link key={d.app_key} to={`/try/${d.app_key}`}
                   title={d.coach ? `Scored by the ${d.coach}` : undefined}

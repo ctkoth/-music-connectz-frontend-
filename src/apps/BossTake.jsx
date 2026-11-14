@@ -44,6 +44,10 @@ import { mediaError, bestMime, sizeLabel, releaseRecorder } from "../recorder.js
 import { useRecordingHold } from "../useRecordingHold.js";
 import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
+import { appShell } from "../externalAuth.js";
+
+// The browser inside Instagram, TikTok, Facebook and similar apps. Read once: it cannot change.
+const INAPP = (() => { try { return appShell() === "inapp"; } catch { return false; } })();
 
 // Ranges, difficulties, score dimensions and the honest-scope footnote all
 // come from GET /api/<appKey>/coach/. They differ per instrument — a guitar
@@ -975,13 +979,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             if (trial && trialEmail.trim() && price?.remind?.ready) f.append("email", trialEmail.trim());
             return f;
           })();
-      const out = await api(path, {
+      const send = () => api(path, {
         method: "POST", body, auth: !trial,
         // Only a FormData body has bytes to report. A handed-over post is
         // already on the server, so `api` ignores this and the panel falls
         // straight through to the scoring phase, which is correct.
         onProgress: setUpload,
       });
+      let out;
+      try {
+        out = await send();
+      } catch (e) {
+        // ONE automatic resend, on the trial, for a connection that dropped.
+        // The only take a stranger ever sent in a month died this way, and the
+        // "Send it again" button asks somebody with no reason to trust us yet
+        // to try twice. Not for a timeout or a refusal: resending cannot help
+        // those. Not while offline: it would fail the same way a second later.
+        // Cost, accepted: if the first send did reach the coach before the
+        // link died, this is a second model call and the visitor's second
+        // free take.
+        if (!(trial && failReason(e) === "network" && navigator.onLine !== false)) throw e;
+        await new Promise((r) => setTimeout(r, 1500));
+        out = await send();
+      }
       setResult(out);
       if (out?.score == null) {
         step("try_failed", { why: "empty" });
@@ -1032,6 +1052,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // because the thing they spent was a performance. `price` null means the
   // fetch failed, and a failed fetch is not a refusal: nothing is blocked.
   const blocked = trial && price && price.available === false;
+  const [linkCopied, setLinkCopied] = useState(false);
   const blockedNote = !blocked ? "" : !price.configured
     ? "The coach isn't switched on right now. That's our end, not yours — nothing here will fix it, so don't spend a take on it."
     : price.already_used
@@ -1210,15 +1231,6 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         )}
         {/* A shut door shows the join card and nothing that implies a take can be sent:
             a beat to perform over, or options for a take, would read as controls that work. */}
-        {trial && !result && !busy && !blocked && (
-          <div className="mt-2 space-y-2">
-            {/* Open by default before a take exists: the first thing a stranger should
-                be able to do is hear a real take and see what it scored, with no mic
-                prompt and no upload. */}
-            <ExampleCard example={price?.example} open={!blob} />
-            {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
-          </div>
-        )}
         {!trial && price?.reference?.available && (
           <div role="tablist" aria-label="Whose track" className="mt-2 flex flex-wrap gap-2">
             {[["take", "My take"], ["reference", "Listen to someone else's track"]].map(([k, l]) => (
@@ -1244,7 +1256,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             <p className="font-semibold text-white/80">Not saved to your progress.</p>
           </div>
         )}
-        <p className={`mt-1 text-[11px] text-white/45 ${refMode || blocked ? "hidden" : ""}`}>
+        {/* Not on the trial: the page above the recorder already says this, and on a
+            phone every line here pushed Upload further below the first screen. */}
+        <p className={`mt-1 text-[11px] text-white/45 ${refMode || blocked || trial ? "hidden" : ""}`}>
           Record one take — mic or camera — or upload audio or video, and have it scored. You'll get what
           actually worked, what to fix, and a drill to run before the next one. On camera the coach can
           mark delivery and breath too.
@@ -1467,6 +1481,29 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           Eight seconds is enough to score. A voice note you already have works —
           nothing to install, nothing to allow.
         </p>
+      )}
+      {/* The browser inside Instagram, TikTok, Facebook and the rest. Recording and the
+          file picker often fail there and the page cannot tell from inside, so it says
+          where the fault would be and gives the way out, before anything is pressed. */}
+      {trial && !blocked && !result && INAPP && (
+        <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] leading-relaxed text-white/80">
+          <p>You're in an app's built-in browser. If recording or uploading doesn't work here, that's the reason — open this page in Chrome or Safari and it will.</p>
+          <button type="button" className="mt-1 text-mcz-cyan underline"
+                  onClick={() => navigator.clipboard?.writeText(window.location.href)
+                    .then(() => setLinkCopied(true)).catch(() => {})}>
+            {linkCopied ? "Link copied — paste it into Chrome or Safari" : "Copy this page's link"}
+          </button>
+        </div>
+      )}
+      {/* AFTER the controls on purpose. This sat above them, and on a phone it put
+          Upload a clip a full screen down (773px on a 664px screen): 156 visitors
+          opened the trial and 1 pressed anything. A real take to hear and a beat to
+          perform over are still here, one scroll below the thing they came to do. */}
+      {trial && !result && !busy && !blocked && !recording && (
+        <div className="space-y-2">
+          <ExampleCard example={price?.example} open={!blob} />
+          {!blob && <PracticeBeat vocal={appKey === "singz" || appKey === "rapz"} />}
+        </div>
       )}
 
       {/* The camera, live, while it rolls. Mirrored, because a selfie preview
