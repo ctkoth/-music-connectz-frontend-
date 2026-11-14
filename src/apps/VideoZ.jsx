@@ -10,6 +10,7 @@
 //
 // It decides nothing on its own: edits are project.js's, the look is look.js's,
 // the drawing is render.js's. This file is wiring and words.
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, FolderOpen, Loader2, Magnet, Pause, Play, Plus, Redo2, Save, SkipBack, Square, Type, Undo2, Upload } from "lucide-react";
 import { api } from "../api.js";
@@ -64,6 +65,7 @@ function Library({ onAdd, onClose }) {
         <p className="mb-3 text-xs text-white/55">Tick them in the order you want them — that's the order they go onto the track.</p>
         {!files && !err && <p className="text-xs text-white/50"><Loader2 size={12} className="mr-1 inline animate-spin" />Loading…</p>}
         {files && !rows.length && <p className="text-xs text-white/50">No videos, photos or audio in FileZ yet.</p>}
+        <SelectAllBar className="mb-2" all={rows.map((r) => r.key)} picked={pick} onChange={setPick} disabled={busy} />
         <ul className="space-y-1">
           {rows.map((r) => (
             <li key={r.key}>

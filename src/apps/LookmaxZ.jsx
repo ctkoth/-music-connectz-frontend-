@@ -1,3 +1,4 @@
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, Loader2, Lock, Plus, Trash2 } from "lucide-react";
@@ -475,6 +476,8 @@ export default function LookmaxZ() {
           )}
           <section className="neon-frame space-y-3 p-4" data-tour="lookmax-read">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Read one photo</p>
+            <SelectAllBar all={d.photo_sectors.filter((k) => !d.opt_in_sectors?.includes(k))} picked={picked || []}
+                          onChange={setPicked} allLabel="Select all standard" />
             <div className="flex flex-wrap gap-1.5">
               {d.photo_sectors.map((k) => (
                 <button key={k} type="button" aria-pressed={picked?.includes(k)} onClick={() => toggle(k)}

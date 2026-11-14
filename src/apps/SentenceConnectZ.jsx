@@ -1,4 +1,5 @@
 import InspirationRef from "../components/InspirationRef.jsx";
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import PriorityDials, { usePriorityInfo } from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
 import { playSound } from "../sound.js";
@@ -147,6 +148,7 @@ function FixPicker({ factors, picked, notes, onChange, disabled }) {
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3" data-tour="sentencez-fixpick">
       <p className="text-sm text-white/80">Fix only these — every other line stays exactly as you wrote it:</p>
+      <SelectAllBar all={factors.map((f) => f.key)} picked={picked} onChange={onChange} disabled={disabled} />
       <div className="flex flex-wrap gap-2" role="group" aria-label="What to fix">
         {factors.map((f) => (
           <button key={f.key} type="button" disabled={disabled} aria-pressed={picked.includes(f.key)} title={f.core}
@@ -301,11 +303,11 @@ export default function SentenceConnectZ() {
   // The draft is the lines the member has ticked, in the order they are shown.
   // Using fewer lines keeps less of the original, and the royalty (the server's
   // number, re-read as the draft changes) scales with it.
-  const toggle = (idx) => {
-    const next = picked.includes(idx) ? picked.filter((i) => i !== idx) : [...picked, idx];
+  const pickLines = (next) => {
     setPicked(next);
     setDraft((items || []).filter((i) => next.includes(i.idx)).map((i) => i.line).join("\n"));
   };
+  const toggle = (idx) => pickLines(picked.includes(idx) ? picked.filter((i) => i !== idx) : [...picked, idx]);
   async function rate(idx, stars) {
     try {
       const r = await api(`/api/economy/sentencez/${work.id}/punchline/${idx}/rate/`, { method: "POST", body: { stars } });
@@ -450,6 +452,9 @@ export default function SentenceConnectZ() {
                   {hidden ? `Show the ${items.length} suggestions` : "Minimise"}
                 </button>
               </div>
+              {!hidden && (
+                <SelectAllBar all={items.map((i) => i.idx)} picked={picked} onChange={pickLines} allLabel="Use every line" />
+              )}
               {!hidden && items.map((it) => (
                 <div key={it.idx} className="space-y-1 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
                   <label className="flex items-start gap-2">

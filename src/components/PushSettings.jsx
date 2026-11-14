@@ -1,3 +1,4 @@
+import SelectAllBar from "./SelectAllBar.jsx";
 import { useEffect, useState } from "react";
 import { BellRing, Loader2 } from "lucide-react";
 import {
@@ -34,6 +35,9 @@ export default function PushSettings({ compact = false }) {
   const on = () => run(() => enablePush(s.public_key), () => { setHere(true); setMsg("Push is on for this device."); });
   const off = () => run(disablePush, () => setHere(false));
   const flip = (k, v) => run(() => savePushPrefs({ kinds: { [k]: v } }));
+  // All on / all off in ONE save, so a half-applied set of switches cannot happen.
+  const flipAll = (next) => run(() => savePushPrefs({
+    kinds: Object.fromEntries(s.kinds.map((k) => [k.key, next.includes(k.key)])) }));
   const quiet = (f, v) => run(() => savePushPrefs({ [f]: Number(v) }));
   const test = () => run(testPush, (r) => setMsg(r?.reached ? "Sent — check this device." : "Nothing reached a device."));
 
@@ -59,6 +63,8 @@ export default function PushSettings({ compact = false }) {
             Only things about you, at most {s.daily_cap} a day, and never during quiet hours.
             Tap one and it opens the thing it's about.
           </p>
+          <SelectAllBar all={s.kinds.map((k) => k.key)} picked={s.kinds.filter((k) => k.on).map((k) => k.key)}
+                        onChange={flipAll} disabled={busy} allLabel="Turn all on" />
           <div className="grid gap-1 sm:grid-cols-2">
             {s.kinds.map((k) => (
               <label key={k.key} className="flex cursor-pointer items-center gap-2 text-white/70">

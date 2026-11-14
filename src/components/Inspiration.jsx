@@ -1,3 +1,4 @@
+import SelectAllBar from "./SelectAllBar.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { api } from "../api.js";
@@ -402,6 +403,8 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
                    picked={fixPick} onPick={fixDoor ? togglePick : undefined} />
       {fixDoor && (
         <div className="space-y-1 rounded border border-mcz-cyan/30 p-2">
+          <SelectAllBar all={[...new Set((res.lyric_scores || []).map((r) => r.fixer).filter(Boolean))]}
+                        picked={fixPick} onChange={setFixPick} allLabel="Tick every factor" />
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={sendFix} disabled={!fixPick.length}
                     className="rounded-full border border-mcz-cyan bg-mcz-cyan/15 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-40">

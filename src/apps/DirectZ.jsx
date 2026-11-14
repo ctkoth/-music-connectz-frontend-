@@ -16,6 +16,7 @@
 // doesn't fit MovieZ, it fits ReelZ" — but only after the upload, which is the
 // right answer at the wrong moment when the thing uploaded is a three-hour film.
 // The same answer arrives here first.
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
 import { Price } from "../components/Price.jsx";
 import { PROMPTZ } from "../resources.js";
@@ -290,6 +291,8 @@ export default function DirectZ() {
           // Options, not part of the rating: each sits beside the score and never moves it, at no extra price.
           <fieldset className="ml-6 space-y-1 text-[11px] text-white/60">
             <legend className="text-white/70">Add to the rating <span className="text-white/35">(optional, same price)</span></legend>
+            <SelectAllBar all={Object.keys(spec.craft.extras)} picked={form.craft_extras}
+                          onChange={(next) => setForm({ ...form, craft_extras: next })} />
             {Object.entries(spec.craft.extras).map(([k, label]) => (
               <label key={k} className="flex items-center gap-2">
                 <input type="checkbox" checked={form.craft_extras.includes(k)}
