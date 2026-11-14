@@ -45,6 +45,7 @@ import { useRecordingHold } from "../useRecordingHold.js";
 import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
 import { appShell } from "../externalAuth.js";
+import { readOptsOpen, scoringSummary, writeOptsOpen } from "../coachOptions.js";
 
 // The browser inside Instagram, TikTok, Facebook and similar apps. Read once: it cannot change.
 const INAPP = (() => { try { return appShell() === "inapp"; } catch { return false; } })();
@@ -317,6 +318,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // somebody down for their room — a number they could raise by buying an
   // interface rather than by getting better.
   const [rateMix, setRateMix] = useState(false);
+  // The scoring options are folded by default; open is the member's choice and is kept.
+  const [optsOpen, setOptsOpenState] = useState(readOptsOpen);
+  const setOptsOpen = (open) => { setOptsOpenState(open); writeOptsOpen(open); };
   // RapZ picks a style the way SingZ picks a range. The list comes from the
   // server profile, so the coach is judging against the same names the picker
   // offered rather than a second list kept over here.
@@ -1093,12 +1097,20 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     });
   }, [blocked, price]);
 
+  const challengeCard = !refMode && price?.challenge && (
+    <WeeklyChallenge appKey={appKey} challenge={price.challenge}
+      onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
+  );
+  // What the take will be judged on, in one line, so the options can stay folded
+  // and the member still reads them before recording.
+  const scoringLine = scoringSummary({
+    genre, style, difficulty: refMode ? "" : (DIFFICULTY_LABEL[difficulty] || difficulty),
+    lyrics: !!price?.rates_lyrics && !refMode && rateLyrics,
+    extras: refMode ? 0 : Object.keys(price?.wit_scores || {}).filter((k) => extra[k]?.on).length,
+    mix: !!price?.rates_mix && !refMode && rateMix,
+  });
   const settings = (
     <>
-      {!refMode && price?.challenge && (
-        <WeeklyChallenge appKey={appKey} challenge={price.challenge}
-          onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
-      )}
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-white/50">
           Genre
@@ -1293,9 +1305,25 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <summary className="cursor-pointer text-[12px] text-white/55">
             Options — genre, range, difficulty, lyrics, mix <span className="text-white/35">(the defaults are fine)</span>
           </summary>
-          <div className="mt-3 space-y-4">{settings}</div>
+          <div className="mt-3 space-y-4">{challengeCard}{settings}</div>
         </details>
-      ) : settings}
+      ) : (
+        <>
+          {challengeCard}
+          {/* A member came to record. The options are one line saying what the take will be
+              judged on; they open on a tap and stay how the member left them. */}
+          <details className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2"
+                   data-tour="bosstake-options" open={optsOpen}
+                   onToggle={(e) => setOptsOpen(e.currentTarget.open)}>
+            <summary className="cursor-pointer text-[12px] text-white/70">
+              <span className="font-semibold text-white/85">Scoring options</span>{" "}
+              <span className="text-white/55">— {scoringLine}</span>{" "}
+              <span className="text-mcz-cyan">{optsOpen ? "hide" : "change"}</span>
+            </summary>
+            <div className="mt-3 space-y-4">{settings}</div>
+          </details>
+        </>
+      )}
 
       {/* A post arrived from PostZ. It IS the take — there is nothing to record
           and nothing to upload, so the recorder steps aside and the only thing
