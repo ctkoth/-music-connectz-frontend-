@@ -18,6 +18,7 @@
 // Custom exercises are the member's own and private to them. The tags they give
 // one (needs arms, needs legs, positions) feed the same access filter the library
 // uses, and the form defaults to the cautious answer.
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
@@ -89,6 +90,7 @@ export function CustomExerciseForm({ initialName = "", initialMuscle = "", onCre
       </div>
       <fieldset className="space-y-1">
         <legend className="re-label">How can it be done?</legend>
+        <SelectAllBar all={Object.keys(POSITION_LABEL)} picked={positions} onChange={setPositions} />
         <div className="flex flex-wrap gap-1.5">
           {Object.entries(POSITION_LABEL).map(([k, l]) => (
             <label key={k} className={`${box} cursor-pointer`}>

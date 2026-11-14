@@ -3,6 +3,8 @@
 // Each is its own choice, and each has its own second choice: whether it counts
 // toward the overall. Off by default on both, so the headline number only moves
 // when the member says so. The list and labels are the server's (`wit_scores`).
+import SelectAllBar from "./SelectAllBar.jsx";
+
 export default function ExtraScores({ scores, neverCounted = [], value, onChange, disabled }) {
   const entries = Object.entries(scores || {});
   if (!entries.length) return null;
@@ -12,6 +14,16 @@ export default function ExtraScores({ scores, neverCounted = [], value, onChange
     if (!next.on) next.count = false;
     onChange({ ...value, [k]: next });
   };
+  const keys = entries.map(([k]) => k);
+  const onKeys = keys.filter((k) => value[k]?.on);
+  // Select all ticks every extra and leaves each "counts in overall" as it was;
+  // Clear unticks them (and with them their count).
+  const setOn = (next) => onChange(Object.fromEntries(keys.map((k) =>
+    [k, next.includes(k) ? { on: true, count: !!value[k]?.count } : { on: false, count: false }])));
+  const countable = onKeys.filter((k) => !neverCounted.includes(k));
+  const allCounted = countable.length > 0 && countable.every((k) => value[k]?.count);
+  const countAll = (count) => onChange({ ...value,
+    ...Object.fromEntries(countable.map((k) => [k, { on: true, count }])) });
   return (
     <fieldset className="space-y-1 text-[11px] text-white/60" disabled={disabled}>
       <legend className="text-white/75">Extra scores <span className="text-white/35">(optional)</span></legend>
@@ -20,6 +32,14 @@ export default function ExtraScores({ scores, neverCounted = [], value, onChange
         "counts in overall" on the ones you want inside it. Judged on the words the coach
         can actually make out; a style that doesn't ask for one reads "—". Mainstream Appeal is
         reach, not quality, so it always stays beside your overall.
+      </p>
+      <p className="flex flex-wrap items-center gap-3">
+        <SelectAllBar all={keys} picked={onKeys} onChange={setOn} disabled={disabled} />
+        {countable.length > 1 && (
+          <button type="button" className="underline text-white/60" onClick={() => countAll(!allCounted)}>
+            {allCounted ? "Count none in overall" : `Count all ${countable.length} ticked in overall`}
+          </button>
+        )}
       </p>
       <div className="grid gap-1 sm:grid-cols-2">
         {entries.map(([k, label]) => {
