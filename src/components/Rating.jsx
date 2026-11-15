@@ -38,16 +38,20 @@ export function RatingNumber({ value, exact, size = "lg", outOf = false, classNa
   );
 }
 
-/** Number + label + detail, side by side. */
+/** Number + label + detail, side by side, with the stars on their own line under them.
+ *  The stars get the card's full width: beside the label they pushed a two-column card
+ *  wider than a phone screen (found by measuring at 360px, not by reading the code). */
 export function RatingRow({ value, exact, label, detail, size = "md", outOf = false, className = "" }) {
   return (
-    <div className={`flex items-start gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] p-2.5 ${className}`}>
-      <RatingNumber value={value} exact={exact} size={size} outOf={outOf} />
-      <span className="min-w-0">
-        <span className="block text-[12px] font-semibold text-white/90">{label}</span>
-        <RatingStars value={value} exact={exact} size={size === "xl" || size === "lg" ? "lg" : "md"} className="mt-0.5" />
-        {detail ? <span className="block text-[11px] leading-snug text-white/60">{detail}</span> : null}
-      </span>
+    <div className={`min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-2.5 ${className}`}>
+      <div className="flex items-start gap-2.5">
+        <RatingNumber value={value} exact={exact} size={size} outOf={outOf} />
+        <span className="min-w-0">
+          <span className="block text-[12px] font-semibold text-white/90">{label}</span>
+          {detail ? <span className="block text-[11px] leading-snug text-white/60">{detail}</span> : null}
+        </span>
+      </div>
+      <RatingStars value={value} exact={exact} size={size === "xl" ? "lg" : "sm"} className="mt-1.5" />
     </div>
   );
 }

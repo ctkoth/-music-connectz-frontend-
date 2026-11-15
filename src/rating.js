@@ -40,4 +40,6 @@ export function starPercent(value, outOf = 10) {
 }
 
 export const STAR_COUNT = 10;
-export const STAR_SIZES = { xl: "text-3xl", lg: "text-2xl", md: "text-sm", sm: "text-[11px]" };
+// Ten stars in a row are ten characters wide, so the size is capped by the narrowest
+// place they sit: a rating card on a 360px phone. The largest row is ~200px.
+export const STAR_SIZES = { xl: "text-xl", lg: "text-base", md: "text-sm", sm: "text-[11px]" };

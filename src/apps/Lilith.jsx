@@ -537,7 +537,7 @@ export default function Lilith() {
           <form onSubmit={addRoutine} className="flex gap-2">
             <input value={routineTitle} onChange={(e) => setRoutineTitle(e.target.value)}
                    placeholder="A habit to keep" maxLength={140}
-                   className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
+                   className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm" />
             <button type="submit" className="re-btn !w-auto px-4">Add</button>
           </form>
         ) : (
