@@ -21,7 +21,7 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
-import { RatingGrid } from "./../components/Rating.jsx";
+import { RatingGrid, RatingStars } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
@@ -1016,7 +1016,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       // is announced separately, and only when one was actually spent — a
       // take covered by the day's free allowance costs nothing, and saying
       // otherwise in audio would be the same lie as saying it on screen.
-      playSound("score_in");
+      // A high score gets the bigger flourish: same moment, and the number on screen says why.
+      playSound(Number(out?.score_exact ?? out?.score) >= 8 ? "score_high" : "score_in");
       if (!trial && out?.cost_cents) playSound("promptz_spend");
       // A reference listen is not a result of the member's: nothing upstream
       // (post attach, history, SkillZ) gets it.
@@ -1842,12 +1843,15 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {result.radar ? `📡 Radar read — what @${result.post_author}'s track shows` : "🎧 Reference listen — what this track shows"}
             </p>
           )}
-          <div className="flex items-baseline gap-3">
-            <span className={`font-display text-6xl font-extrabold leading-none ${scoreColor(result.score)}`}>
-              {typeof result.score_exact === "number" ? result.score_exact.toFixed(1)
-                : typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-xl text-white/30">/10</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="flex flex-col items-start gap-1.5">
+              <span className={`font-display text-8xl font-extrabold leading-none [filter:drop-shadow(0_0_10px_currentColor)] ${scoreColor(result.score)}`}>
+                {typeof result.score_exact === "number" ? result.score_exact.toFixed(1)
+                  : typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-2xl text-white/30">/10</span>
+              </span>
+              <RatingStars size="xl" value={result.score} exact={result.score_exact} />
             </span>
-            <p className="flex-1 text-[12px] leading-relaxed text-white/75">{result.verdict}</p>
+            <p className="min-w-[12rem] flex-1 text-[13px] leading-relaxed text-white/80">{result.verdict}</p>
           </div>
           {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
           {trial && result.as_member && (

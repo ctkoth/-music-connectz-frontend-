@@ -3,9 +3,10 @@
 // Each is its own choice, and each has its own second choice: whether it counts
 // toward the overall. Off by default on both, so the headline number only moves
 // when the member says so. The list and labels are the server's (`wit_scores`).
-import SelectAllBar from "./SelectAllBar.jsx";
+import SelectAllBar, { useSelectAllAllowed } from "./SelectAllBar.jsx";
 
 export default function ExtraScores({ scores, neverCounted = [], value, onChange, disabled }) {
+  const bulk = useSelectAllAllowed();
   const entries = Object.entries(scores || {});
   if (!entries.length) return null;
   const set = (k, patch) => {
@@ -35,7 +36,7 @@ export default function ExtraScores({ scores, neverCounted = [], value, onChange
       </p>
       <p className="flex flex-wrap items-center gap-3">
         <SelectAllBar all={keys} picked={onKeys} onChange={setOn} disabled={disabled} />
-        {countable.length > 1 && (
+        {bulk && countable.length > 1 && (
           <button type="button" className="underline text-white/60" onClick={() => countAll(!allCounted)}>
             {allCounted ? "Count none in overall" : `Count all ${countable.length} ticked in overall`}
           </button>

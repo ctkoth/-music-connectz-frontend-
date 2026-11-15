@@ -46,3 +46,14 @@ test("no screen defines its own rating colours or helpers", () => {
   }
   assert.deepEqual(offenders, [], "Import ratingTone / heardFor from src/rating.js and draw ratings with components/Rating.jsx");
 });
+
+test("stars fill to the decimal: 6.5 is six stars and half of the seventh", async () => {
+  const { starPercent } = await import("./rating.js");
+  assert.equal(starPercent(6.5), 65);
+  assert.equal(starPercent(10), 100);
+  assert.equal(starPercent(7.4), 74);
+  assert.equal(starPercent(0), 0);
+  assert.equal(starPercent(14), 100);
+  // No rating draws no stars: an empty row would read as a zero.
+  for (const none of [null, undefined, "", "abc"]) assert.equal(starPercent(none), null);
+});

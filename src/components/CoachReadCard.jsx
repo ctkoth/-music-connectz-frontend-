@@ -21,7 +21,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Loader2, Lock } from "lucide-react";
 import { api } from "../api.js";
 import { SPINAZ } from "../resources.js";
-import { RatingGrid, RatingNumber, RatingRow } from "./Rating.jsx";
+import { RatingGrid, RatingNumber, RatingRow, RatingStars } from "./Rating.jsx";
 import { FeelzTips, MixTips } from "./FeelTips.jsx";
 import { ratingTone } from "../rating.js";
 import {
@@ -120,7 +120,10 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
   return (
     <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3" data-testid="coach-shown">
       <div className="flex items-start gap-3">
-        <RatingNumber size="xl" outOf value={read.score} exact={read.score_exact} />
+        <span className="flex flex-col items-start gap-1">
+          <RatingNumber size="xl" outOf value={read.score} exact={read.score_exact} />
+          <RatingStars size="md" value={read.score} exact={read.score_exact} />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
             👑 Coach's read · {read.label}

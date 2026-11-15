@@ -16,7 +16,7 @@ import HashtagCount, { hashtagBody } from "./HashtagCount.jsx";
 import { useRemembered } from "../useRemembered.js";
 import { saveText } from "../download.js";
 import { PROMPTZ } from "../resources.js";
-import { RatingGrid, RatingNumber, RatingRow } from "./Rating.jsx";
+import { RatingGrid, RatingNumber, RatingRow, RatingStars } from "./Rating.jsx";
 import { DEFAULT_FILTER, DEFAULT_SORT, filterTakes, genresOf, isDefault, needsAll, sortTakes } from "../takeSort.js";
 
 // The coach's recent submissions, and where each one can go next.
@@ -102,7 +102,10 @@ function Row({ t, labels, appKey }) {
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left">
         {open ? <ChevronDown size={13} className="text-white/40" /> : <ChevronRight size={13} className="text-white/40" />}
-        <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
+        <span className="flex flex-col items-start gap-0.5">
+          <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
+          <RatingStars size="sm" value={t.overall} exact={t.exact} />
+        </span>
         {t.pb && <span className="rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏆 Personal best</span>}
         <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
         {t.genre && <span className="text-white/35">{genreLabel(t.genre)}</span>}
