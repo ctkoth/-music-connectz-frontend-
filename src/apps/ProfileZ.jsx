@@ -34,6 +34,7 @@ import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
+import { MyClassZ } from "../components/ClassZ.jsx";
 import Gallery from "../components/Gallery.jsx";
 import WhatINeed from "./WhatINeed.jsx";
 import { openHoroscope } from "../components/Horoscope.jsx";
@@ -948,6 +949,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         </div>
         {/* Who keeps coming back to your work. */}
         <div className="border-t border-white/10 pt-3">
+          {/* Where you stand on ThuroZ and SeXi, in the server's own words: the count first, then the bar. */}
+          <MyClassZ />
           <SuperfanZ />
         </div>
         <div className="border-t border-white/10 pt-3">
