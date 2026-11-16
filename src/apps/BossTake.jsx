@@ -46,6 +46,7 @@ import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
 import { appShell } from "../externalAuth.js";
 import { readOptsOpen, scoringSummary, writeOptsOpen } from "../coachOptions.js";
+import { addCustomPart, partsField, partsLine, splitParts, togglePart } from "../coachParts.js";
 
 // The browser inside Instagram, TikTok, Facebook and similar apps. Read once: it cannot change.
 const INAPP = (() => { try { return appShell() === "inapp"; } catch { return false; } })();
@@ -318,6 +319,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // somebody down for their room — a number they could raise by buying an
   // interface rather than by getting better.
   const [rateMix, setRateMix] = useState(false);
+  // Which verses or choruses of the song are the member's (none = the whole take is theirs).
+  const [myParts, setMyParts] = useState([]);
+  const [partDraft, setPartDraft] = useState("");
   // The scoring options are folded by default; open is the member's choice and is kept.
   const [optsOpen, setOptsOpenState] = useState(readOptsOpen);
   const setOptsOpen = (open) => { setOptsOpenState(open); writeOptsOpen(open); };
@@ -946,6 +950,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               range, difficulty,
               ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
               ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
+              ...(partsField(myParts) ? { my_part: partsField(myParts) } : {}),
               ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }) }
         : fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
@@ -960,6 +965,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             // one of them honours it.
             ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
             ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
+            ...(partsField(myParts) ? { my_part: partsField(myParts) } : {}),
             ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }
         : (() => {
             const f = new FormData();
@@ -974,6 +980,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             f.append("difficulty", difficulty);
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
+            if (partsField(myParts) && !trial) f.append("my_part", partsField(myParts));
             for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores, price?.wit_never_counted))) f.append(k, v);
             if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
@@ -1109,7 +1116,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     lyrics: !!price?.rates_lyrics && !refMode && rateLyrics,
     extras: refMode ? 0 : Object.keys(price?.wit_scores || {}).filter((k) => extra[k]?.on).length,
     mix: !!price?.rates_mix && !refMode && rateMix,
-  });
+  }) + (!refMode && !trial && partsLine(myParts) ? ` · ${partsLine(myParts)}` : "");
   const settings = (
     <>
       <div className="grid gap-2 sm:grid-cols-3">
@@ -1167,6 +1174,40 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         what Style Match is measured against;{price?.range_label ? ` ${price.range_label.toLowerCase()} is the range it checks you aimed at;` : ""} Difficulty sets
         how the 1-10 scale and your next goal are pitched. They change how the take is judged, not whether it is scored.
       </p>
+      )}
+
+      {/* Whose part: a song with more than one performer. The member picks every verse or
+          chorus they are on; the coach scores those and grades each one. The choices and
+          the sentence are the server's. Not on the trial (one stranger, one take). */}
+      {price?.my_part?.choices?.length > 0 && !refMode && !trial && (
+        <fieldset className="space-y-1.5 text-[11px] text-white/60" data-tour="bosstake-parts">
+          <legend className="text-white/75">Which parts are yours? <span className="text-white/35">(optional — leave empty if the whole take is you)</span></legend>
+          <p className="text-white/35">{price.my_part.note}</p>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Which parts are yours">
+            {[...price.my_part.choices, ...myParts.filter((x) => !price.my_part.choices.includes(x))].map((label) => (
+              <button key={label} type="button" aria-pressed={myParts.includes(label)} disabled={busy}
+                      onClick={() => setMyParts((cur) => togglePart(cur, label, price.my_part.max_parts))}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] ${myParts.includes(label)
+                        ? "border-mcz-cyan bg-mcz-cyan/15 text-white" : "border-white/15 text-white/60 hover:border-white/40"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input className="neon-input !w-44 !py-1.5 text-[11px]" placeholder="Another part (e.g. second 16)"
+                   maxLength={price.my_part.max_chars} value={partDraft} disabled={busy}
+                   onChange={(e) => setPartDraft(e.target.value)}
+                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setMyParts((cur) => addCustomPart(cur, partDraft, { max: price.my_part.max_parts, maxChars: price.my_part.max_chars })); setPartDraft(""); } }} />
+            <button type="button" className="underline text-mcz-cyan disabled:opacity-40" disabled={busy || !partDraft.trim()}
+                    onClick={() => { setMyParts((cur) => addCustomPart(cur, partDraft, { max: price.my_part.max_parts, maxChars: price.my_part.max_chars })); setPartDraft(""); }}>
+              Add
+            </button>
+            {myParts.length > 0 && (
+              <button type="button" className="underline text-white/50" onClick={() => setMyParts([])}>Clear ({myParts.length})</button>
+            )}
+            {myParts.length >= (price.my_part.max_parts || 6) && <span className="text-white/35">That's the most one take can name.</span>}
+          </div>
+        </fieldset>
       )}
 
       {/* The server says whether this coach has words to read. Rendering it
@@ -1853,6 +1894,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="min-w-[12rem] flex-1 text-[13px] leading-relaxed text-white/80">{result.verdict}</p>
           </div>
+          {result.part?.label && (() => {
+            const { mine, others } = splitParts(result.parts);
+            return (
+              <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3" data-testid="coach-parts">
+                <p className="text-[11px] text-white/70">
+                  The score above is for <b className="text-white">your parts</b>: {result.part.label}. The song has its own score below.
+                </p>
+                {mine.length > 0 && <RatingGrid rows={mine.map((p, i) => ({ key: `m${i}`, label: `${p.label} — yours`, value: p.score }))} />}
+                {others.length > 0 && (
+                  <p className="text-[11px] text-white/55">
+                    The other sections: {others.map((p) => `${p.label} ${p.score}/10`).join(" · ")}
+                  </p>
+                )}
+                {!mine.length && <p className="text-[11px] text-mcz-gold">The coach did not grade your parts one by one this time. The score above still covers them together.</p>}
+              </div>
+            );
+          })()}
           {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
           {trial && result.as_member && (
             <p className="text-[12px] text-white/60">

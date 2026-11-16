@@ -18,3 +18,15 @@ test("price stays in cents and km is a max only", () => {
 test("junk never becomes a param", () => {
   assert.deepEqual(gatesQuery({ attract: [NaN, null], age: "x", km: [null, null] }), []);
 });
+
+test("the classes ride the query as flags, and off leaves no trace", async () => {
+  const { gatesQuery, gatesSet, toggleClass } = await import("./gatesQuery.js");
+  let g = toggleClass({}, "thuro");
+  assert.deepEqual(g, { thuro: true });
+  assert.deepEqual(gatesQuery(g), ["thuro=1"]);
+  g = toggleClass({ ...g, rating: [5, null] }, "sexi");
+  assert.deepEqual(gatesQuery(g).sort(), ["rating_min=5", "sexi=1", "thuro=1"]);
+  assert.equal(gatesSet(g), 3);
+  assert.deepEqual(toggleClass({ thuro: true }, "thuro"), {});
+  assert.deepEqual(gatesQuery({ thuro: false, sexi: "yes" }), []);
+});

@@ -10,6 +10,8 @@
 // entries instead of thirty.
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { ClassToggles } from "./components/ClassZ.jsx";
+import { gatesSet } from "./gatesQuery.js";
 
 // Keys and labels mirror apps/economy/gates.py — GATE_KEYS, and describe().
 const RANGES = [
@@ -27,12 +29,13 @@ const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v)
 /** `value` and `onChange` speak the server's shape: {key: [min, max]}, km max-only. */
 // `keys` limits which ranges a screen shows. VybeZ already has its own age and distance boxes, so it
 // asks for the other three; a gated post or deal shows all five.
-export default function RangeGates({ value = {}, onChange, title = "Who can join", keys = null }) {
+// `classes={false}` hides the one-tap classes (ThuroZ, SeXi) where a screen has no use for them.
+export default function RangeGates({ value = {}, onChange, title = "Who can join", keys = null, classes = true }) {
   const [open, setOpen] = useState(false);
 
   const pair = (key) => (Array.isArray(value[key]) ? value[key] : [null, null]);
   const kmMax = Array.isArray(value.km) ? value.km[1] : null;
-  const active = Object.keys(value || {}).length;
+  const active = gatesSet(value);
 
   function setSide(key, side, raw, money) {
     const next = { ...value };
@@ -62,6 +65,10 @@ export default function RangeGates({ value = {}, onChange, title = "Who can join
         </span>
         {open ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
       </button>
+
+      {/* One tap, always in view: the classes are the simple way to set a bar, so they are
+          not folded away with the number boxes. */}
+      {classes && <ClassToggles value={value} onChange={onChange} />}
 
       {open && (
         <div className="space-y-2 px-3 pb-3">
