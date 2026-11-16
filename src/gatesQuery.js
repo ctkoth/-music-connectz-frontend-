@@ -7,6 +7,19 @@
 // empty range asks nothing of anyone.
 const PARAM = { rating: "rating", price: "price", attract: "attr", age: "age" };
 
+export const CLASS_KEYS = ["thuro", "sexi"];
+
+/** How many gates are set: ranges and classes both count. */
+export const gatesSet = (gates) => Object.entries(gates || {})
+  .filter(([k, v]) => (CLASS_KEYS.includes(k) ? v === true : Array.isArray(v))).length;
+
+/** Flip one class on a gates value. Off removes the key, so "no gate" stays an empty object. */
+export function toggleClass(gates, key) {
+  const next = { ...(gates || {}) };
+  if (next[key] === true) delete next[key]; else next[key] = true;
+  return next;
+}
+
 export function gatesQuery(gates) {
   const parts = [];
   for (const [key, base] of Object.entries(PARAM)) {
@@ -17,5 +30,7 @@ export function gatesQuery(gates) {
   }
   const km = Array.isArray(gates?.km) ? gates.km[1] : null;
   if (km != null && !Number.isNaN(km)) parts.push(`max_km=${km}`);
+  // The one-tap classes (ThuroZ, SeXi): a yes on the gate, a flag on the search.
+  for (const key of CLASS_KEYS) if (gates?.[key] === true) parts.push(`${key}=1`);
   return parts;
 }

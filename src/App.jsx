@@ -344,6 +344,10 @@ export const CUSTOM_ICONS = {
   "skillz.png": "/icons/skillz.png",
   "social_connectz.png": "/icons/social_connectz-neon.svg",
   "vybez.png": "/icons/vybez-neon.svg",
+  // The two rating classes (apps/economy/classz.py). ThuroZ is Corey's own neon sign;
+  // SeXi is generated (tools/make-neon-icons.mjs) until he draws one.
+  "thuroz.jpg": "/icons/thuroz.jpg",
+  "sexi.png": "/icons/sexi-neon.svg",
   "genrez.jpg": "/icons/genrez.jpg",
   "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",

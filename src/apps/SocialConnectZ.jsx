@@ -24,6 +24,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
+import { ClassMarks } from "../components/ClassZ.jsx";
 import { gatesQuery } from "../gatesQuery.js";
 import { NATIONALITIES, FLAG_FOR, personaLabel } from "./socialData.js";
 import { openMember } from "../goto.js";
@@ -37,13 +38,15 @@ export default function SocialConnectZ() {
   // Your own standards, the same ranges every gated deal and door uses. Exclusive: a member with no
   // value for one you set — or who hides it — is out.
   const [ranges, setRanges] = useState({});
+  // The server's line about who a class filter left out, shown unreworded.
+  const [classNote, setClassNote] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
     const qs = gatesQuery(ranges);
     return api(`/api/economy/members/${qs.length ? `?${qs.join("&")}` : ""}`)
-      .then((d) => setRows(d.members || []))
+      .then((d) => { setRows(d.members || []); setClassNote(d.class_note || ""); })
       // The real error. A directory that quietly shows nobody on a 500 reads
       // as "no members" rather than "the request failed" — the exact
       // distinction the funnel's own `pct: null` rule exists to keep clear.
@@ -88,6 +91,7 @@ export default function SocialConnectZ() {
         </div>
       <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
                   title="Your standards — who shows up here" />
+      {classNote && <p role="status" className="text-[11px] text-white/55">{classNote}</p>}
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
           <select aria-label="NationalitieZ" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
@@ -151,8 +155,9 @@ export default function SocialConnectZ() {
             </div>
             {/* Nothing is a dead end — the same handoff every other member
                 list on this platform uses, not a second implementation. */}
-            <div className="pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <MemberName username={m.username} />
+              <ClassMarks classes={m.classes} />
             </div>
           </div>
         ))}

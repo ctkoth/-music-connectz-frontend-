@@ -59,6 +59,18 @@ const G = {
   // with a heart inside it. At tab-strip size the circle-and-handle
   // silhouette is unmistakable against a plain heart, which is the only test
   // a 24px icon has to pass.
+  // SeXi: the class for an attractiveness rating above 6.9. A flame (the mark the Sexy
+  // badge already wears) with the bar written under it, so the tile says what the gate
+  // asks for. Not a face and not a body: the class is a number the room gave, shown by
+  // the member, and the picture should not suggest it is anything else.
+  sexi: (a, b) => `
+    <path d="M256 92c10 44 62 66 62 128a62 62 0 0 1-124 0c0-26 12-40 26-58 4 24 16 34 26 34-6-36 0-70 10-104z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M256 204c14 14 22 26 22 40a22 22 0 0 1-44 0c0-14 8-26 22-40z"
+          fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>
+    <text x="256" y="342" text-anchor="middle" font-family="Poppins, system-ui, sans-serif" font-weight="800"
+          font-size="54" fill="${b}" stroke="none">6.9+</text>`,
+
   vybez: (a, b) => `
     <circle cx="228" cy="214" r="112" fill="none" stroke="${a}" stroke-width="16"/>
     <path d="M228 268c-34-24-54-41-54-63a31 31 0 0 1 54-19 31 31 0 0 1 54 19c0 22-20 39-54 63z"
@@ -460,6 +472,7 @@ const APPS = [
   // Pink to cyan reversed from Social ConnectZ's, so the two read as a pair
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
+  ["sexi", "SeXi", C.ember, C.pink],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
   ["money", "MembershipZ", C.gold, C.emerald],

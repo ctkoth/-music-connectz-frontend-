@@ -24,6 +24,7 @@ import { SignLink } from "../components/Horoscope.jsx";
 import { goToSpot, goToTab } from "../goto.js";
 import { useSubstanceScale } from "../substancez.js";
 import RangeGates from "../RangeGates.jsx";
+import { ClassMarks } from "../components/ClassZ.jsx";
 import { gatesQuery } from "../gatesQuery.js";
 
 // Age is the one range worth having on the front of this screen; the rest of
@@ -92,8 +93,9 @@ function MemberCard({ m, religionLabel, languageLabel }) {
           control rather than a tab switch wearing a handoff's clothes. A
           second implementation of "open this member" would be the thing that
           drifts from it. */}
-      <div className="pt-1">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <MemberName username={m.username} />
+        <ClassMarks classes={m.classes} />
       </div>
     </div>
   );
@@ -159,7 +161,8 @@ export default function VybeZ() {
     if (ageMin) parts.push(`age_min=${ageMin}`);
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
-    parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract }));
+    parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract,
+                               thuro: ranges.thuro, sexi: ranges.sexi }));
     if (avoid.length) {
       parts.push(`substances=${avoid.join(",")}`);
       if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);
@@ -172,7 +175,7 @@ export default function VybeZ() {
         // The server's own line about who it hid and why. Never reworded here
         // — an empty grid has two completely different causes (nobody
         // matches, or nobody has said) and only the server knows which.
-        setNote(d.personality_note || "");
+        setNote([d.personality_note, d.class_note].filter(Boolean).join(" "));
         setOriginShared(!!d.origin_shared);
       })
       // The real error. A search that quietly returns nothing on a 500 is the
