@@ -30,8 +30,18 @@ let observer = null;
 let timer = 0;
 let busy = false;
 let capped = false;
+let cappedAt = 0;
+let backoffUntil = 0;
+const RETRY_MS = 60_000;            // a string the model did not answer is asked again after this
+const MAX_TRIES = 3;                // ...this many times a session, then it stays English
+const CAP_RETRY_MS = 10 * 60_000;   // the daily cap is asked about again after this
+const ATTRS = ["placeholder", "title", "aria-label"];
 const originals = new WeakMap();    // text node → the English it held
-const asked = new Set();            // templates already sent to the model this session
+const attrOriginals = new WeakMap(); // element → { attr: {english, shown} }
+// Templates sent to the model: template → {tries, at}. A string asked once and not answered
+// used to be skipped for the whole session, which is what left screens half translated: one
+// failed batch, or the daily cap, and those 60 strings stayed English until a reload.
+const asked = new Map();
 const looked = new Set();           // templates already looked up this session
 const listeners = new Set();
 const names = new Set();            // the signed-in member's own name: never sent, wherever a screen prints it
@@ -59,6 +69,27 @@ function textNodes() {
   return out;
 }
 
+function textAttrs() {
+  const out = [];
+  for (const el of document.body.querySelectorAll("[placeholder],[title],[aria-label]")) {
+    if (el.closest(SKIP_SEL)) continue;
+    for (const a of ATTRS) if (el.hasAttribute(a)) out.push([el, a]);
+  }
+  return out;
+}
+
+function setAttr(el, a, text) {
+  if (el.getAttribute(a) === text) return;
+  observer?.disconnect();
+  el.setAttribute(a, text);
+  observe();
+}
+
+function mayAsk(key) {
+  const t = asked.get(key);
+  return !t || (t.tries < MAX_TRIES && Date.now() - t.at > RETRY_MS);
+}
+
 function setText(node, text) {
   if (node.nodeValue === text) return;
   observer?.disconnect();
@@ -67,7 +98,7 @@ function setText(node, text) {
 }
 
 function observe() {
-  observer?.observe(document.body, { childList: true, subtree: true, characterData: true });
+  observer?.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRS });
 }
 
 function restore() {
@@ -75,6 +106,10 @@ function restore() {
     const o = originals.get(node);
     if (o != null && node.nodeValue !== o.shown) continue;      // React already replaced it
     if (o != null) setText(node, o.english);
+  }
+  for (const [el, a] of textAttrs()) {
+    const o = attrOriginals.get(el)?.[a];
+    if (o && el.getAttribute(a) === o.shown) setAttr(el, a, o.english);
   }
 }
 
@@ -98,9 +133,25 @@ async function pass() {
         originals.set(node, { english: now, shown });
         setText(node, shown);
       }
-    } else if (!asked.has(`${choice.code}\n${template}`)) want.add(template);
+    } else if (mayAsk(`${choice.code}\n${template}`)) want.add(template);
   }
-  if (busy || !want.size) return;
+  // Placeholders, tooltips and screen-reader labels are the app's words too; leaving them
+  // English is the "Search languages" box in the middle of a Portuguese screen.
+  for (const [el, a] of textAttrs()) {
+    const now = el.getAttribute(a) || "";
+    const rec = attrOriginals.get(el) || {};
+    if (rec[a] && rec[a].shown === now) continue;
+    const core = now.trim();
+    if (!worth(core) || core.startsWith("@") || names.has(core.toLowerCase())) continue;
+    const { template, nums } = toTemplate(core);
+    const hit = dict[template];
+    if (hit != null) {
+      const done = fromTemplate(hit, nums);
+      if (done != null) { rec[a] = { english: now, shown: done }; attrOriginals.set(el, rec); setAttr(el, a, done); }
+    } else if (mayAsk(`${choice.code}\n${template}`)) want.add(template);
+  }
+  if (busy || !want.size || Date.now() < backoffUntil) return;
+  if (capped && Date.now() - cappedAt > CAP_RETRY_MS) capped = false;
   const code = choice.code;
   // What somebody already had translated comes first and comes at once; only
   // what nobody has seen yet waits on the model.
@@ -111,14 +162,27 @@ async function pass() {
   busy = true;
   try {
     const r = await api("/api/economy/uitext/", { method: "POST", body: { lang: code, texts: batch, known_only: lookup } });
-    batch.forEach((t) => (lookup ? looked : asked).add(`${code}\n${t}`));
-    if (r?.capped) capped = true;
+    const now = Date.now();
+    batch.forEach((t) => {
+      const k = `${code}\n${t}`;
+      if (lookup) looked.add(k);
+      else asked.set(k, { tries: (asked.get(k)?.tries || 0) + 1, at: now });
+    });
+    if (r?.capped) { capped = true; cappedAt = now; setTimeout(schedule, CAP_RETRY_MS + 500); }
+    // A quiet screen makes no mutations, so nothing would wake the retry; book one.
+    const got0 = r?.translations || {};
+    if (!lookup && batch.some((t) => !(t in got0))) setTimeout(schedule, RETRY_MS + 500);
     const got = r?.translations && typeof r.translations === "object" ? r.translations : {};
     if (Object.keys(got).length) {
       cache = addToCache(cache, code, got);
       write(CACHE_KEY, cache);
     }
-  } catch { /* offline or signed out: the screen keeps its English */ }
+  } catch {
+    // Offline or a server error: nothing is marked as asked, so the same strings are tried
+    // again once the back-off passes instead of staying English for the session.
+    backoffUntil = Date.now() + 30_000;
+    setTimeout(schedule, 30_500);
+  }
   busy = false;
   schedule();
 }
@@ -134,6 +198,7 @@ export function setUiLang(next) {
   if (choice && (!cleaned || cleaned.code !== choice.code)) restore();
   choice = cleaned;
   capped = false;
+  backoffUntil = 0;
   if (cleaned) write(LANG_KEY, cleaned); else { try { localStorage.removeItem(LANG_KEY); } catch { /* blocked */ } }
   document.documentElement.lang = cleaned ? cleaned.code : "en";
   listeners.forEach((fn) => fn(choice));
