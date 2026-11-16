@@ -17,8 +17,9 @@ export default function LangPicker({ corner = false }) {
   useEffect(() => onLangChange(setLang), []);
   useEffect(() => {
     if (!open || list) return;
+    setFailed(false); // a failure from an earlier open must not sit over a list that loaded
     api("/api/economy/uitext/", { auth: false })
-      .then((d) => { setList(Array.isArray(d?.languages) ? d.languages : []); setNote(d?.note || ""); })
+      .then((d) => { setList(Array.isArray(d?.languages) ? d.languages : []); setNote(d?.note || ""); setFailed(false); })
       .catch(() => setFailed(true));
   }, [open, list]);
   const pick = (l) => { setUiLang(l.code === "en" ? null : l); setOpen(false); setQ(""); };
@@ -34,7 +35,8 @@ export default function LangPicker({ corner = false }) {
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search languages"
                  aria-label="Search languages" className="neon-input mb-2 !py-1.5 text-sm" />
           {note && <p className="mb-2 px-1 text-[11px] text-white/50"><span className="text-emerald-300">Free.</span> {note}</p>}
-          {failed && <p className="px-1 text-xs text-mcz-ember">Couldn't load the languages. Try again in a moment.</p>}
+          {failed && !list?.length && <p className="px-1 text-xs text-mcz-ember">Couldn't load the languages. Try again in a moment.</p>}
+          {list?.length > 0 && <p className="mb-1 px-1 text-[11px] text-white/40">{list.length} languages</p>}
           <ul role="listbox" aria-label="Display language" className="max-h-72 overflow-y-auto">
             {(list || []).filter((l) => langMatches(l, q)).map((l) => {
               const on = (lang ? lang.code : "en") === l.code;
