@@ -2,6 +2,8 @@ import InspirationRef from "../components/InspirationRef.jsx";
 import { genreLabel, GENRES, GENRE_GROUPS } from "../genres.js";
 import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
+import { encodeWav } from "../mastering/wav.js";
+import { handOff, onHandoff } from "../handoff.js";
 import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
 import { useCharLimit } from "../limits.js";
@@ -67,12 +69,31 @@ function playLoop(work, repeats = 2) {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
   const ctx = new Ctx();
+  const ends = scheduleLoop(ctx, work, repeats, ctx.currentTime + 0.1);
+  return { ctx, ends };
+}
+
+/**
+ * The same preview sound, rendered offline to a WAV — so a loop can go onto an Arsenal track as audio
+ * (Arsenal has no MIDI yet). It is the preview's simple voices, said on the button; the .mid stays the
+ * way to real instruments.
+ */
+async function renderLoopWav(work, repeats = 4) {
+  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!Off) throw new Error("This browser can't render audio — download the .mid instead.");
+  const rate = 44100, secs = (work.bars * 4 * 60 / work.bpm) * repeats + 1;
+  const ctx = new Off(2, Math.ceil(secs * rate), rate);
+  scheduleLoop(ctx, work, repeats, 0);
+  const buf = await ctx.startRendering();
+  return new Blob([encodeWav([buf.getChannelData(0), buf.getChannelData(1)], rate, { bitDepth: 16 })], { type: "audio/wav" });
+}
+
+function scheduleLoop(ctx, work, repeats, t0) {
   const master = ctx.createGain();
   master.gain.value = 0.25;
   master.connect(ctx.destination);
   const spb = 60 / work.bpm;
   const loopLen = work.bars * 4 * spb;
-  const t0 = ctx.currentTime + 0.1;
   for (let r = 0; r < repeats; r++) {
     for (const tr of work.tracks) {
       for (const [pitch, start, length, v] of tr.notes) {
@@ -91,7 +112,7 @@ function playLoop(work, repeats = 2) {
       }
     }
   }
-  return { ctx, ends: t0 + repeats * loopLen };
+  return t0 + repeats * loopLen;
 }
 
 // A StatZ sample can start or end while this screen is open, and what it unlocks
@@ -125,6 +146,20 @@ export default function InstrumentalConnectZ() {
   const [mood, setMood] = useState("");
   const [moodHits, setMoodHits] = useState(null);
   const player = useRef(null);
+  // From MangaZ (or any app): a brief to compose from, e.g. a manga page's story and mood.
+  useEffect(() => (IN_SHELL ? undefined : onHandoff("instrumentalconnectz", (p) => {
+    if (p?.brief) setBrief(String(p.brief).slice(0, 1000));
+    if (p?.genre) setGenre(String(p.genre).slice(0, 60));
+  })), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [toDaw, setToDaw] = useState("");
+  async function openInArsenal() {
+    setToDaw("Rendering the loop…");
+    try {
+      const blob = await renderLoopWav(work);
+      handOff("arsenal", "", { url: URL.createObjectURL(blob), name: `${work.genre || "Instrumental"} ${work.bpm} BPM` });
+      setToDaw("");
+    } catch (e) { setToDaw(e.message); }
+  }
 
   const load = () => api("/api/economy/instrumentalz/").then(setS).catch((e) => setErr(e.message));
   useEffect(() => { load(); return () => stop(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -353,7 +388,11 @@ export default function InstrumentalConnectZ() {
               ? <button className="re-btn !w-auto px-4" onClick={stop}><Square size={14} /> Stop</button>
               : <button className="re-btn !w-auto px-4" onClick={play}><Play size={14} /> Preview</button>}
             <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download .mid</button>
+            {!IN_SHELL && <button className="re-btn !w-auto px-4" onClick={openInArsenal}
+              title="Renders the loop with the preview's simple sounds (4 times round) and puts it on an Arsenal track to record over — free">
+              Record over it in Arsenal <span className="text-emerald-300">free</span></button>}
           </div>
+          {toDaw && <p className="text-xs text-white/60">{toDaw}</p>}
           <p className="text-[11px] text-white/40">The preview uses simple built-in sounds. Load the .mid into your DAW for the real instruments.</p>
           {!IN_SHELL && pct != null && <UseIn source="instrumental" sourceId={work.id} pct={pct} />}
         </div>

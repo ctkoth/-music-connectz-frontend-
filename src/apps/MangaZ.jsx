@@ -81,6 +81,16 @@ function PageEditor({ s, page, chars, onChange }) {
         <Cost s={s} drawing />
       </div>
       <ShareIt kind="manga" refId={p.id} />
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="text-white/50">Make it a song:</span>
+        <button className="re-btn !w-auto px-3" title="Opens Sentence ConnectZ with this page's story and lines as the brief — priced there, before you press Write"
+          onClick={() => handOff("sentenceconnectz", "", { kind: "lyrics",
+            text: `A song about this manga page, "${p.title}": ${p.panels.map((q) => q.action).filter(Boolean).join(" ")} Lines: ${p.panels.flatMap((q) => q.dialogue.map((dl) => `${dl.who}: "${dl.line}"`)).join(" ")}`.slice(0, 1500) })}>
+          ✍️ Write the lyrics</button>
+        <button className="re-btn !w-auto px-3" title="Opens Instrumental ConnectZ with this page's mood as the brief — priced there, before you press Compose"
+          onClick={() => handOff("instrumentalconnectz", "", { brief: `A beat for a ${p.style || "manga"} scene: ${p.title}. ${p.panels.map((q) => q.action).filter(Boolean).slice(0, 4).join(" ")}`.slice(0, 600) })}>
+          🎹 Make the beat</button>
+      </div>
       <p className="text-[11px] text-white/40">Panel by panel keeps your characters' looks consistent and lets you redraw one; the whole page is one charge but drifts more.</p>
       {p.page_image && (
         <>

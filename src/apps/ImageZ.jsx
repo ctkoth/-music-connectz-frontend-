@@ -1480,6 +1480,16 @@ export default function ImageZ() {
             <button className="neon-btn-primary" disabled={!!busy} onClick={doExport}><Download size={14} /> Export {doc.w * scaleOut}×{doc.h * scaleOut} <span className="text-emerald-300">· free</span></button>
             {result && <>
               <a className="re-btn" href={result.url} download={`imagez.${result.ext}`}><Download size={14} /> Download</a>
+              <button className="re-btn" disabled={!!busy} title="Saves the picture to FileZ (uses storage) and opens CharacterZ with it as the look — a drawing you made, so it can be a character's face"
+                onClick={async () => {
+                  setBusy("Saving for CharacterZ…"); setErr("");
+                  try {
+                    const form = new FormData();
+                    form.append("file", result.blob, `character-${Date.now()}.${result.ext}`);
+                    const res = await api("/api/economy/uploads/", { method: "POST", body: form });
+                    if (res?.upload?.id) handOff("characterz", "", { upload_id: res.upload.id });
+                  } catch (e) { setErr(e.message); } finally { setBusy(""); }
+                }}>Make a character from it <span className="text-white/60">· uses {(result.blob.size / 1048576).toFixed(1)} MB</span></button>
               <button className="re-btn" title="Put this picture on the VideoZ timeline — free"
                 onClick={() => handOff("videoz", "", { url: result.url, name: "ImageZ picture", kind: "image" })}>Use in VideoZ</button>
               {!saved ? (

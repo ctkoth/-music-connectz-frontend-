@@ -8,6 +8,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
+import { onHandoff } from "../handoff.js";
 import LoadGate from "../components/LoadGate.jsx";
 import Empty from "../components/Empty.jsx";
 import PersonalitieZ from "../PersonalitieZ.jsx";
@@ -115,6 +116,8 @@ export default function CharacterZ() {
   const load = () => api("/api/economy/characterz/").then((r) => { setD(r); setLoadErr(""); })
     .catch((e) => setLoadErr(e.message || "CharacterZ didn't load."));
   useEffect(() => { load(); }, []);
+  // From ImageZ: "Make a character from it" opens a new character with that picture as the look.
+  useEffect(() => onHandoff("characterz", (p) => { if (p?.upload_id) setEdit({ ...blank, upload_id: p.upload_id }); }), []);
   if (!d) return <LoadGate error={loadErr} what="your characters" onRetry={load} />;
   const full = d.characters.length >= d.limit;
 
