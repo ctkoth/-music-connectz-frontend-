@@ -108,9 +108,9 @@ export const FILTERS = {
 
 /**
  * Apply a filter by key with its settings ({ amount, radius }), inside the selection if one is given.
- * `rand` is the random source for noise, so a test can make it repeatable.
+ * `random` is the random source for noise, so a test can make it repeatable.
  */
-export function applyFilter(img, key, { amount = 50, radius = 4 } = {}, sel = null, rand = Math.random) {
+export function applyFilter(img, key, { amount = 50, radius = 4 } = {}, sel = null, random = Math.random) {
   const { data: d, width: w, height: h } = img;
   const out = new Uint8ClampedArray(d);
   if (key === "blur") {
@@ -121,7 +121,7 @@ export function applyFilter(img, key, { amount = 50, radius = 4 } = {}, sel = nu
     for (let i = 0; i < d.length; i++) out[i] = (i % 4 === 3) ? d[i] : d[i] + (d[i] - b[i]) * k;
   } else if (key === "noise") {
     const k = (amount / 100) * 128;
-    for (let p = 0; p < w * h; p++) { const n = (rand() * 2 - 1) * k; for (let c = 0; c < 3; c++) out[p * 4 + c] = d[p * 4 + c] + n; }
+    for (let p = 0; p < w * h; p++) { const n = (random() * 2 - 1) * k; for (let c = 0; c < 3; c++) out[p * 4 + c] = d[p * 4 + c] + n; }
   } else if (key === "pixelate") {
     const s = Math.max(2, Math.round(radius));
     for (let by = 0; by < h; by += s) for (let bx = 0; bx < w; bx += s) {
