@@ -21,7 +21,9 @@ test("every tab OCC may open is a tab App.jsx mounts", () => {
 });
 
 test("the tabs the server used to name that never existed are not claimed", () => {
-  for (const k of ["imagez", "writez", "modelz", "social-compose"]) {
+  // imagez is a real tab now (the layered editor); OCC still does not open it.
+  assert.ok(!MOUNTED.has("imagez"));
+  for (const k of ["writez", "modelz", "social-compose"]) {
     assert.ok(!MOUNTED.has(k), k);
     assert.ok(!REAL.has(k), k);
   }
