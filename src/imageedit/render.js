@@ -148,7 +148,7 @@ function body(ctx, doc, l, images) {
 export function drawLayer(ctx, doc, l, images) {
   if (!l.visible || !l.opacity) return;
   const f = filterOf(l.adj);
-  const masked = l.mask && l.mask.on && (l.mask.strokes.length || l.mask.fade);
+  const masked = l.mask && l.mask.on && (l.mask.strokes.length || l.mask.fade || l.mask.src);
   if (!masked) {
     ctx.save();
     ctx.globalAlpha = l.opacity / 100;
@@ -178,6 +178,8 @@ export function drawLayer(ctx, doc, l, images) {
     mx.fillStyle = g;
   } else mx.fillStyle = "#fff";
   mx.fillRect(0, 0, doc.w, doc.h);
+  const pic = l.mask.src && images.get(l.mask.src);
+  if (pic) { mx.globalCompositeOperation = "destination-in"; mx.drawImage(pic, 0, 0, doc.w, doc.h); mx.globalCompositeOperation = "source-over"; }
   drawStrokes(mx, l.mask.strokes, maskStyle);
   lx.filter = "none";
   lx.globalCompositeOperation = "destination-in";
@@ -245,4 +247,32 @@ export async function dataUrlOf(src) {
     r.onerror = () => reject(new Error("Couldn't read an image back to save the project."));
     r.readAsDataURL(blob);
   });
+}
+
+/** A selection as a canvas: white where selected (alpha = how much), clear elsewhere. */
+export function selCanvas(sel) {
+  const c = document.createElement("canvas");
+  c.width = sel.w; c.height = sel.h;
+  const ctx = c.getContext("2d");
+  const im = ctx.createImageData(sel.w, sel.h);
+  for (let p = 0; p < sel.data.length; p++) { const i = p * 4; im.data[i] = im.data[i + 1] = im.data[i + 2] = 255; im.data[i + 3] = sel.data[p]; }
+  ctx.putImageData(im, 0, 0);
+  return c;
+}
+
+/** The overlay that shows a selection: everything outside dimmed, the edge traced in cyan. */
+export function selOverlay(sel) {
+  const c = document.createElement("canvas");
+  c.width = sel.w; c.height = sel.h;
+  const ctx = c.getContext("2d");
+  const im = ctx.createImageData(sel.w, sel.h);
+  const { w, h, data } = sel;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x, i = p * 4, on = data[p] > 127;
+    const edge = on && (x === 0 || y === 0 || x === w - 1 || y === h - 1 || data[p - 1] <= 127 || data[p + 1] <= 127 || data[p - w] <= 127 || data[p + w] <= 127);
+    if (edge) { im.data[i] = 34; im.data[i + 1] = 211; im.data[i + 2] = 238; im.data[i + 3] = 255; }
+    else if (!on) im.data[i + 3] = 90;
+  }
+  ctx.putImageData(im, 0, 0);
+  return c;
 }

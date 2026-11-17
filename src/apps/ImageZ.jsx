@@ -2,13 +2,15 @@
 // device. Image, text, paint, shape, gradient and fill layers; opacity, blend
 // modes, hide, lock, reorder, duplicate, merge down, flip; layer masks; per-layer
 // adjustments; move, brush, eraser, magic eraser, background eraser, shapes,
-// eyedropper and crop; gradient fades on masks; opacity graded down the stack; undo; keyboard
+// eyedropper and crop; selections (marquee, lasso, magic wand; add, subtract, invert,
+// feather; copy, cut, paste, fill, to a mask); Levels and Curves; clone, blur and smudge
+// brushes; gradient fades on masks; opacity graded down the stack; undo; keyboard
 // shortcuts; and a project file that reopens with every layer intact. A pen tablet (Wacom and the like) draws with pressure, and the
 // pen's eraser end erases.
 //
 // Tiers: the editor is free at every tier. How MANY layers a picture holds is the
-// tier's (`imagez_layers`, served — Free 5, Premium more, StatZ unlimited), so are the
-// fonts (`imagez_fonts` — Premium 6, StatZ every one plus the device's own), and the
+// tier's (`imagez_layers`, served — Free 3, Premium 6, StatZ unlimited), so are the
+// fonts (`imagez_fonts`, the same numbers — StatZ every one plus the device's own), and the
 // magic and background erasers are StatZ's (or the free daily sample's). The plain
 // eraser and masks stay free, so nobody loses a way to cut something out.
 //
@@ -21,6 +23,7 @@ import {
   ArrowDown, ArrowUp, Brush, Copy, Crop, Download, Eraser, Eye, EyeOff, FolderOpen, ImagePlus, Layers, Lock,
   Blend, Contrast, FileDown, FileUp, FlipHorizontal, FlipVertical, Merge, Move, PaintBucket, Palette, Pipette, Plus,
   Redo2, Save, Shapes, Trash2, Type, Undo2, Unlock, Wand, WandSparkles,
+  Droplets, Fingerprint, Lasso, MousePointerSquareDashed, Stamp, BoxSelect,
 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
@@ -31,7 +34,11 @@ import {
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer,
 } from "../imageedit/layers.js";
-import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc } from "../imageedit/render.js";
+import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc, selCanvas, selOverlay } from "../imageedit/render.js";
+import {
+  allSel, applyLUT, blurDab, bounds, clearSelected, cloneDab, combine, curveLUT, ellipseSel, feather, fillSelected,
+  invert, isEmpty, keepSelected, levelsLUT, polygonSel, rectSel, smudgeDab, wandSel,
+} from "../imageedit/selection.js";
 import { useStatzTrial, StatzSample } from "../components/StatzSample.jsx";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
@@ -81,6 +88,19 @@ export default function ImageZ() {
   const [onMask, setOnMask] = useState(false);
   const [wand, setWand] = useState({ tolerance: 32, contiguous: true });
   const [dragRow, setDragRow] = useState(null);
+  // The selection lives beside the document, not in it: like Photoshop, undo is for edits.
+  const selRef = useRef(null);
+  const overlay = useRef(null);
+  const [selVer, setSelVer] = useState(0);
+  const [selMode, setSelMode] = useState("new");
+  const [marquee, setMarquee] = useState("rect");
+  const [featherPx, setFeatherPx] = useState(8);
+  const clip = useRef(null);
+  const cloneFrom = useRef(null);
+  const [cloneSet, setCloneSet] = useState(false);
+  const [levels, setLevels] = useState({ inBlack: 0, inWhite: 255, gamma: 1, outBlack: 0, outWhite: 255 });
+  const [curve, setCurve] = useState({ s: 64, m: 128, h: 192 });
+  const [retouch, setRetouch] = useState(50);
   const { s: statz } = useStatzTrial();
   const erasersAllowed = !!(statz?.is_statz || statz?.active);
   // The tier's layer ceiling. `undefined` until /limits/ answers: nothing is blocked while
@@ -138,6 +158,21 @@ export default function ImageZ() {
     } else if (live?.kind === "shape") {
       renderDoc(ctx, addLayer(d, { kind: "shape", ...live.spec, ...shapeFromDrag(live.a, live.b, live.spec.shape) }, live.above), images.current, { checker: true });
     }
+    if (live?.kind === "pix") {
+      renderDoc(ctx, replaceLayer(d, live.id, { ...live.layer, kind: "image", src: live.key, x: 0, y: 0, scale: 1, rotate: 0, flipX: false, flipY: false, adj: null, w: d.w, h: d.h }), images.current, { checker: true });
+    }
+    if (overlay.current && overlay.current.width === d.w && overlay.current.height === d.h) ctx.drawImage(overlay.current, 0, 0);
+    if (live?.kind === "marquee" || live?.kind === "lasso") {
+      ctx.save();
+      ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = Math.max(1.5, d.w / 600); ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      if (live.kind === "lasso") { ctx.moveTo(...live.pts[0]); for (const q of live.pts) ctx.lineTo(...q); ctx.closePath(); }
+      else {
+        const r = { x: Math.min(live.a[0], live.b[0]), y: Math.min(live.a[1], live.b[1]), w: Math.abs(live.b[0] - live.a[0]), h: Math.abs(live.b[1] - live.a[1]) };
+        if (live.shape === "ellipse") ctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, r.w / 2, r.h / 2, 0, 0, Math.PI * 2); else ctx.rect(r.x, r.y, r.w, r.h);
+      }
+      ctx.stroke(); ctx.restore();
+    }
     const box = live?.kind === "crop" ? cropRect(d, live.a, live.b) : cropBox;
     if (box) {
       ctx.save();
@@ -148,8 +183,22 @@ export default function ImageZ() {
       ctx.strokeRect(box.x, box.y, box.w, box.h);
       ctx.restore();
     }
-  }, [cropBox]);
+  }, [cropBox, selVer]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { draw(doc); }, [doc, draw]);
+
+  // Set (or clear) the selection, combining with the old one per the mode or the held keys.
+  const setSelection = (next, mode = "new") => {
+    const d = docRef.current;
+    let s2 = next ? combine(selRef.current && selRef.current.w === d.w && selRef.current.h === d.h ? selRef.current : null, next, mode) : null;
+    if (s2 && isEmpty(s2)) s2 = null;
+    selRef.current = s2;
+    overlay.current = s2 ? selOverlay(s2) : null;
+    setSelVer((v) => v + 1);
+  };
+  const modeOf = (e) => (e.shiftKey && e.altKey ? "intersect" : e.shiftKey ? "add" : e.altKey ? "subtract" : selMode);
+  // A selection made on one canvas size means nothing on another.
+  useEffect(() => { if (selRef.current && (selRef.current.w !== doc.w || selRef.current.h !== doc.h)) setSelection(null); }, [doc.w, doc.h]); // eslint-disable-line react-hooks/exhaustive-deps
+  const liveSel = () => (selRef.current && selRef.current.w === doc.w && selRef.current.h === doc.h ? selRef.current : null);
   // The Google Fonts, once per page: a canvas draws a font only after it has loaded, so the
   // picture is redrawn as each one arrives rather than staying in the fallback font.
   useEffect(() => {
@@ -227,7 +276,7 @@ export default function ImageZ() {
   const pressureOf = (e) => (e.pointerType === "pen" ? (e.pressure || 0.01) : undefined);
   // The pixel erasers turn the layer into a picture of itself (opacity, blend and mask kept), then edit pixels.
   const pixelTarget = () => {
-    if (!layer) { setErr("Pick a layer first — the magic and background erasers work on one layer at a time."); return null; }
+    if (!layer) { setErr("Pick a layer first — that tool works on one layer at a time."); return null; }
     if (layer.locked) { setErr("That layer is locked."); return null; }
     if (layer.kind === "fill") { setErr("A fill layer is one colour all over — delete or hide it instead."); return null; }
     const c = rasterize(doc, layer, images.current);
@@ -243,6 +292,14 @@ export default function ImageZ() {
       kind: "image", src, w: d.w, h: d.h, x: 0, y: 0, name: l.name, visible: l.visible, locked: l.locked,
       opacity: l.opacity, blend: l.blend, mask: l.mask,
     }));
+  };
+
+  // One dab of a retouching brush; pen pressure scales the size.
+  const dab = (g, [x, y], pr) => {
+    const size = brush.size * (pr ?? 1), k = retouch / 100;
+    if (g.tool === "clone") cloneDab(g.img, g.src, x, y, g.dx, g.dy, size, g.sel);
+    else if (g.tool === "blur") blurDab(g.img, x, y, size, k, g.sel);
+    else smudgeDab(g.img, g.carry, x, y, size, k, g.sel);
   };
 
   const down = (e) => {
@@ -276,6 +333,31 @@ export default function ImageZ() {
       backgroundDab(t.img, p[0], p[1], brush.size, colour, wand);
       t.ctx.putImageData(t.img, 0, 0);
       drag.current = { kind: "bg", ...t, key, colour, last: p };
+      setErr(""); draw(); return;
+    }
+    if (tool === "marquee") { drag.current = { kind: "marquee", a: p, b: p, shape: marquee, mode: modeOf(e) }; draw(); return; }
+    if (tool === "lasso") { drag.current = { kind: "lasso", pts: [p], mode: modeOf(e) }; draw(); return; }
+    if (tool === "wand") {
+      const src = layer && layer.kind !== "fill" ? rasterize(doc, layer, images.current) : (() => {
+        const c = document.createElement("canvas"); c.width = doc.w; c.height = doc.h;
+        renderDoc(c.getContext("2d"), doc, images.current); return c;
+      })();
+      const im = src.getContext("2d").getImageData(0, 0, doc.w, doc.h);
+      setSelection(wandSel(im, p[0], p[1], wand), modeOf(e));
+      return;
+    }
+    if (tool === "clone" || tool === "blur" || tool === "smudge") {
+      if (tool === "clone" && e.altKey) { cloneFrom.current = p; setCloneSet(true); setErr(""); return; }
+      if (tool === "clone" && !cloneFrom.current) { setErr("Alt-click (Option-click on a Mac) where to copy from first."); return; }
+      const t = pixelTarget();
+      if (!t) return;
+      const key = `work:${t.id}`;
+      images.current.set(key, t.c);
+      const g = { kind: "pix", ...t, key, last: p, sel: liveSel(), carry: new Map(), tool };
+      if (tool === "clone") { g.src = new ImageData(new Uint8ClampedArray(t.img.data), t.img.width, t.img.height); g.dx = cloneFrom.current[0] - p[0]; g.dy = cloneFrom.current[1] - p[1]; }
+      drag.current = g;
+      dab(g, p, pressureOf(e));
+      g.ctx.putImageData(g.img, 0, 0);
       setErr(""); draw(); return;
     }
     if (tool === "eyedropper") {
@@ -329,7 +411,18 @@ export default function ImageZ() {
         g.last = pt;
       }
       g.ctx.putImageData(g.img, 0, 0);
-    } else if (g.kind === "crop" || g.kind === "shape") g.b = at(e);
+    } else if (g.kind === "pix") {
+      const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      for (const ev of evs.length ? evs : [e]) {
+        const pt = at(ev);
+        for (const q of dabsAlong(g.last, pt, brush.size)) dab(g, q, pressureOf(ev));
+        g.last = pt;
+      }
+      g.ctx.putImageData(g.img, 0, 0);
+    } else if (g.kind === "lasso") {
+      const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      for (const ev of evs.length ? evs : [e]) g.pts.push(at(ev));
+    } else if (g.kind === "crop" || g.kind === "shape" || g.kind === "marquee") g.b = at(e);
     else {
       const p = at(e);
       const dx = Math.round(p[0] - g.from[0]), dy = Math.round(p[1] - g.from[1]);
@@ -345,6 +438,13 @@ export default function ImageZ() {
     if (!g) return;
     if (g.kind === "paint") commit((d) => addStroke(d, g.id, g.stroke));
     else if (g.kind === "bg") { finishPixels(g).catch((x) => setErr(x.message)).finally(() => images.current.delete(g.key)); }
+    else if (g.kind === "pix") { finishPixels(g).catch((x) => setErr(x.message)).finally(() => images.current.delete(g.key)); }
+    else if (g.kind === "marquee") {
+      const r = { x: Math.min(g.a[0], g.b[0]), y: Math.min(g.a[1], g.b[1]), w: Math.abs(g.b[0] - g.a[0]), h: Math.abs(g.b[1] - g.a[1]) };
+      if (r.w < 2 && r.h < 2) { if (g.mode === "new") setSelection(null); }
+      else setSelection((g.shape === "ellipse" ? ellipseSel : rectSel)(doc.w, doc.h, r), g.mode);
+    }
+    else if (g.kind === "lasso") setSelection(g.pts.length > 2 ? polygonSel(doc.w, doc.h, g.pts) : null, g.mode);
     else if (g.kind === "maskpaint") commit((d) => addMaskStroke(d, g.id, g.stroke));
     else if (g.kind === "shape") {
       const box = shapeFromDrag(g.a, g.b, g.spec.shape);
@@ -402,9 +502,57 @@ export default function ImageZ() {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
 
+  // ── Selection actions: Edit → Copy / Cut / Paste / Fill / Clear, Layer via copy, to mask ──
+  const needSel = () => { const s2 = liveSel(); if (!s2) setErr("Make a selection first (marquee M, lasso L or magic wand W)."); return s2; };
+  const copySel = (cut = false) => {
+    const s2 = needSel(); if (!s2) return null;
+    const t = pixelTarget(); if (!t) return null;
+    const piece = new ImageData(new Uint8ClampedArray(t.img.data), t.img.width, t.img.height);
+    keepSelected(piece, s2);
+    const c = document.createElement("canvas"); c.width = doc.w; c.height = doc.h;
+    c.getContext("2d").putImageData(piece, 0, 0);
+    clip.current = { c, box: bounds(s2) };
+    if (cut) { clearSelected(t.img, s2); t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message)); }
+    setErr("");
+    return c;
+  };
+  const pasteClip = async (c = clip.current?.c) => {
+    if (!c) { setErr("Nothing copied yet."); return; }
+    if (!roomFor()) return;
+    const blob = await new Promise((res) => c.toBlob(res, "image/png"));
+    const src = URL.createObjectURL(blob);
+    images.current.set(src, await loadImage(src));
+    const id = uid();
+    commit((d) => addLayer(d, { kind: "image", id, name: "Pasted", src, w: c.width, h: c.height }, sel));
+    setSel(id);
+  };
+  const viaCopy = () => { const c = copySel(false); if (c) pasteClip(c); };
+  const clearSel = () => { const s2 = needSel(); if (!s2) return; const t = pixelTarget(); if (!t) return; clearSelected(t.img, s2); t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message)); };
+  const fillSel = () => {
+    const s2 = needSel(); if (!s2) return;
+    const t = pixelTarget(); if (!t) return;
+    const hex = brush.color.replace("#", "");
+    fillSelected(t.img, s2, [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)));
+    t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message));
+  };
+  const selToMask = async () => {
+    const s2 = needSel(); if (!s2 || !layer) return;
+    const blob = await new Promise((res) => selCanvas(s2).toBlob(res, "image/png"));
+    const src = URL.createObjectURL(blob);
+    images.current.set(src, await loadImage(src));
+    patch({ mask: { strokes: [], on: true, fade: null, src } });
+    setSelection(null); setOnMask(true);
+  };
+  const adjustPixels = (lut) => {
+    const t = pixelTarget(); if (!t) return;
+    applyLUT(t.img, lut, liveSel());
+    t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message));
+  };
+  const curvePts = [[0, 0], [64, curve.s], [128, curve.m], [192, curve.h], [255, 255]];
+
   // Photoshop's single-key tools, plus undo/redo and delete. Never while typing in a field.
   const keys = useRef({});
-  keys.current = { undo, redo, sel, commit };
+  keys.current = { undo, redo, sel, commit, liveSel, setSelection, clearSel, copySel, pasteClip, viaCopy, doc };
   useEffect(() => {
     const onKey = (e) => {
       const t = e.target;
@@ -413,12 +561,27 @@ export default function ImageZ() {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); (e.shiftKey ? k.redo : k.undo)(); return; }
       if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); k.redo(); return; }
-      if (mod) return;
-      const tools = { v: "move", b: "brush", e: "eraser", c: "crop", i: "eyedropper", u: "shape", w: "magic", g: "bgerase" };
+      if (mod) {
+        const key = e.key.toLowerCase();
+        if (key === "a") { e.preventDefault(); k.setSelection(allSel(k.doc.w, k.doc.h)); }
+        else if (key === "d") { e.preventDefault(); k.setSelection(null); }
+        else if (key === "i" && e.shiftKey) { e.preventDefault(); const s2 = k.liveSel(); if (s2) k.setSelection(invert(s2)); }
+        else if (key === "c" && k.liveSel()) { e.preventDefault(); k.copySel(false); }
+        else if (key === "x" && k.liveSel()) { e.preventDefault(); k.copySel(true); }
+        else if (key === "v") { e.preventDefault(); k.pasteClip(); }
+        else if (key === "j" && k.liveSel()) { e.preventDefault(); k.viaCopy(); }
+        return;
+      }
+      const tools = { v: "move", b: "brush", e: "eraser", c: "crop", i: "eyedropper", u: "shape", y: "magic", g: "bgerase",
+        m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge" };
       if (tools[e.key.toLowerCase()]) { setTool(tools[e.key.toLowerCase()]); return; }
       if (e.key === "[") setBrush((b) => ({ ...b, size: Math.max(1, Math.round(b.size / 1.25)) }));
       if (e.key === "]") setBrush((b) => ({ ...b, size: Math.min(300, Math.round(b.size * 1.25)) }));
-      if ((e.key === "Delete" || e.key === "Backspace") && k.sel) { e.preventDefault(); k.commit((d) => removeLayer(d, k.sel)); setSel(null); }
+      if ((e.key === "Delete" || e.key === "Backspace") && k.sel) {
+        e.preventDefault();
+        // With a selection, Delete clears inside it (Photoshop); without one, it removes the layer.
+        if (k.liveSel()) k.clearSel(); else { k.commit((d) => removeLayer(d, k.sel)); setSel(null); }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -442,8 +605,9 @@ export default function ImageZ() {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
 
-  const tools = [["move", Move, "Move (V)"], ["brush", Brush, "Brush (B)"], ["eraser", Eraser, "Eraser (E)"], ["magic", Wand, "Magic eraser (W)"], ["bgerase", WandSparkles, "Background eraser (G)"], ["shape", Shapes, "Shapes (U)"],
-    ["eyedropper", Pipette, "Eyedropper (I)"], ["crop", Crop, "Crop (C)"]];
+  const tools = [["move", Move, "Move (V)"], ["brush", Brush, "Brush (B)"], ["eraser", Eraser, "Eraser (E)"], ["marquee", BoxSelect, "Marquee select (M)"], ["lasso", Lasso, "Lasso select (L)"], ["wand", MousePointerSquareDashed, "Magic wand select (W)"],
+    ["magic", Wand, "Magic eraser (Y)"], ["bgerase", WandSparkles, "Background eraser (G)"], ["shape", Shapes, "Shapes (U)"],
+    ["eyedropper", Pipette, "Eyedropper (I)"], ["clone", Stamp, "Clone stamp (S)"], ["blur", Droplets, "Blur brush (R)"], ["smudge", Fingerprint, "Smudge (N)"], ["crop", Crop, "Crop (C)"]];
   const icon = { image: ImagePlus, text: Type, paint: Brush, fill: PaintBucket, shape: Shapes, gradient: Palette };
 
   return (
@@ -497,6 +661,33 @@ export default function ImageZ() {
             <canvas ref={canvas} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
               className="max-h-[70vh] max-w-full" style={{ touchAction: "none", cursor: tool === "move" ? "move" : "crosshair", aspectRatio: `${doc.w} / ${doc.h}` }} />
           </div>
+          {(tool === "marquee" || tool === "lasso" || tool === "wand") && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {tool === "marquee" && (
+                <select className="neon-input !w-auto" data-nomemo="true" value={marquee} onChange={(e) => setMarquee(e.target.value)}>
+                  <option value="rect">Rectangle</option><option value="ellipse">Ellipse</option>
+                </select>
+              )}
+              {[["new", "New"], ["add", "Add (Shift)"], ["subtract", "Subtract (Alt)"], ["intersect", "Intersect"]].map(([k, label]) => (
+                <button key={k} className={`re-btn !w-auto px-2 ${selMode === k ? "!border-mcz-cyan text-mcz-cyan" : ""}`} onClick={() => setSelMode(k)}>{label}</button>
+              ))}
+              {tool === "wand" && <>
+                <label className="flex items-center gap-1">Tolerance <input type="range" min="0" max="100" value={wand.tolerance} onChange={(e) => setWand({ ...wand, tolerance: +e.target.value })} /> {wand.tolerance}%</label>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={wand.contiguous} onChange={(e) => setWand({ ...wand, contiguous: e.target.checked })} /> Connected only</label>
+                <span className="text-white/50">Samples the selected layer, or the whole picture when none is picked.</span>
+              </>}
+            </div>
+          )}
+          {(tool === "clone" || tool === "blur" || tool === "smudge") && (
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <label className="flex items-center gap-1">Size <input type="range" min="2" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
+              {tool !== "clone" && <label className="flex items-center gap-1">Strength <input type="range" min="5" max="100" value={retouch} onChange={(e) => setRetouch(+e.target.value)} /> {retouch}%</label>}
+              <span className="text-white/50">
+                {tool === "clone" ? (cloneSet ? "Source set — paint to copy from it. Alt-click again to move it." : "Alt-click (Option-click on a Mac) where to copy from, then paint.") : tool === "blur" ? "Paint to soften." : "Drag to push colour along."}
+                {" "}Works on the selected layer, inside the selection if there is one.
+              </span>
+            </div>
+          )}
           {tool === "shape" && (
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <select className="neon-input !w-auto" data-nomemo="true" value={shape.shape} onChange={(e) => setShape({ ...shape, shape: e.target.value })}>
@@ -717,6 +908,57 @@ export default function ImageZ() {
               </details>
             </div>
           )}
+
+          <div className="glass-card space-y-2 p-3 text-xs">
+            <h3 className="flex items-center gap-1 font-semibold"><BoxSelect size={14} /> Selection {liveSel() ? <span className="text-mcz-cyan">· active</span> : <span className="text-white/40">· none</span>}</h3>
+            <div className="flex flex-wrap gap-1">
+              <button className="re-btn !w-auto px-2" title="Ctrl+A" onClick={() => setSelection(allSel(doc.w, doc.h))}>All</button>
+              <button className="re-btn !w-auto px-2" title="Ctrl+D" disabled={!liveSel()} onClick={() => setSelection(null)}>Deselect</button>
+              <button className="re-btn !w-auto px-2" title="Shift+Ctrl+I" disabled={!liveSel()} onClick={() => setSelection(invert(liveSel()))}>Invert</button>
+              <span className="flex items-center gap-1">
+                <button className="re-btn !w-auto px-2" disabled={!liveSel()} onClick={() => { const s2 = liveSel(); selRef.current = null; setSelection(feather(s2, featherPx)); }}>Feather</button>
+                <input type="number" min="1" max="200" value={featherPx} onChange={(e) => setFeatherPx(+e.target.value)} className="neon-input !w-14 !py-0.5" />px
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <button className="re-btn !w-auto px-2" title="Ctrl+C" disabled={!liveSel()} onClick={() => copySel(false)}>Copy</button>
+              <button className="re-btn !w-auto px-2" title="Ctrl+X" disabled={!liveSel()} onClick={() => copySel(true)}>Cut</button>
+              <button className="re-btn !w-auto px-2" title="Ctrl+V — as a new layer" onClick={() => pasteClip()}>Paste</button>
+              <button className="re-btn !w-auto px-2" title="Ctrl+J" disabled={!liveSel()} onClick={viaCopy}>Layer via copy</button>
+              <button className="re-btn !w-auto px-2" title="Delete" disabled={!liveSel()} onClick={clearSel}>Clear</button>
+              <button className="re-btn !w-auto px-2" disabled={!liveSel()} onClick={fillSel}>Fill <span className="ml-1 inline-block h-3 w-3 rounded" style={{ background: brush.color }} /></button>
+              <button className="re-btn !w-auto px-2" disabled={!liveSel() || !layer} onClick={selToMask}>To mask</button>
+            </div>
+          </div>
+
+          <div className="glass-card space-y-2 p-3 text-xs">
+            <h3 className="font-semibold">Levels &amp; Curves</h3>
+            <p className="text-white/50">On the selected layer{liveSel() ? ", inside the selection" : ""}. Undo takes it back.</p>
+            <details>
+              <summary className="cursor-pointer text-white/70">Levels</summary>
+              <div className="mt-1 space-y-1">
+                {[["inBlack", "Input black", 0, 254], ["inWhite", "Input white", 1, 255], ["gamma", "Midtones", 0.1, 4, 0.05], ["outBlack", "Output black", 0, 255], ["outWhite", "Output white", 0, 255]].map(([k, label, lo, hi, st]) => (
+                  <label key={k} className="flex items-center gap-2"><span className="w-24">{label}</span>
+                    <input type="range" min={lo} max={hi} step={st || 1} value={levels[k]} onChange={(e) => setLevels({ ...levels, [k]: +e.target.value })} className="flex-1" /> {levels[k]}</label>
+                ))}
+                <button className="re-btn" onClick={() => adjustPixels(levelsLUT(levels))}>Apply Levels</button>
+              </div>
+            </details>
+            <details>
+              <summary className="cursor-pointer text-white/70">Curves</summary>
+              <div className="mt-1 space-y-1">
+                <svg viewBox="0 0 256 256" className="h-32 w-32 rounded border border-white/10 bg-black/40">
+                  <polyline fill="none" stroke="#22d3ee" strokeWidth="3" points={Array.from(curveLUT(curvePts)).map((v, i) => `${i},${255 - v}`).join(" ")} />
+                  <line x1="0" y1="255" x2="255" y2="0" stroke="rgba(255,255,255,0.15)" />
+                </svg>
+                {[["s", "Shadows"], ["m", "Midtones"], ["h", "Highlights"]].map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2"><span className="w-20">{label}</span>
+                    <input type="range" min="0" max="255" value={curve[k]} onChange={(e) => setCurve({ ...curve, [k]: +e.target.value })} className="flex-1" /> {curve[k]}</label>
+                ))}
+                <button className="re-btn" onClick={() => adjustPixels(curveLUT(curvePts))}>Apply Curves</button>
+              </div>
+            </details>
+          </div>
 
           <div className="glass-card space-y-2 p-3 text-xs">
             <h3 className="font-semibold">Export</h3>

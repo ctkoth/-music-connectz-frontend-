@@ -118,7 +118,10 @@ export function makeLayer(spec = {}) {
     flipX: !!spec.flipX, flipY: !!spec.flipY,
     // A layer mask: null for none. Its strokes are in CANVAS coordinates, so moving the
     // layer slides it under the mask, the way Photoshop's unlinked mask behaves.
-    mask: spec.mask && Array.isArray(spec.mask.strokes) ? { strokes: spec.mask.strokes, on: spec.mask.on !== false, fade: cleanFade(spec.mask.fade) } : null,
+    // `src` is a picture of the mask (from a selection): its alpha is where the layer shows.
+    mask: spec.mask && Array.isArray(spec.mask.strokes)
+      ? { strokes: spec.mask.strokes, on: spec.mask.on !== false, fade: cleanFade(spec.mask.fade), src: typeof spec.mask.src === "string" ? spec.mask.src : null }
+      : null,
   };
   if (kind === "image") return { ...base, src: spec.src || "", w: side(spec.w || 1), h: side(spec.h || 1) };
   if (kind === "text") return {
@@ -349,7 +352,11 @@ export const PROJECT_VERSION = 1;
 /** The document as JSON, with each image's pixels supplied by `dataOf(src)` (a data: URL). */
 export async function toProject(doc, dataOf) {
   const layers = [];
-  for (const l of doc.layers) layers.push(l.kind === "image" ? { ...l, src: await dataOf(l.src) } : l);
+  for (const l of doc.layers) {
+    let x = l.kind === "image" ? { ...l, src: await dataOf(l.src) } : l;
+    if (x.mask?.src) x = { ...x, mask: { ...x.mask, src: await dataOf(x.mask.src) } };
+    layers.push(x);
+  }
   return JSON.stringify({ imagez: PROJECT_VERSION, w: doc.w, h: doc.h, layers });
 }
 
@@ -360,6 +367,7 @@ export function fromProject(text) {
   if (!p || p.imagez !== PROJECT_VERSION || !Array.isArray(p.layers)) throw new Error("That isn't an ImageZ project file.");
   const doc = { w: Math.round(clamp(p.w, 1, MAX_SIDE)), h: Math.round(clamp(p.h, 1, MAX_SIDE)), layers: [] };
   doc.layers = p.layers.map((l) => makeLayer({ ...l, id: uid() }))
-    .filter((l) => l.kind !== "image" || /^data:image\//.test(l.src));
+    .filter((l) => l.kind !== "image" || /^data:image\//.test(l.src))
+    .map((l) => (l.mask?.src && !/^data:image\//.test(l.mask.src) ? { ...l, mask: { ...l.mask, src: null } } : l));
   return doc;
 }
