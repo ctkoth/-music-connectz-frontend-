@@ -1,4 +1,5 @@
 import InspirationRef from "../components/InspirationRef.jsx";
+import MangaPageDesigner from "../components/MangaPageDesigner.jsx";
 // MangaZ — AI pages from your CharacterZ and your idea.
 //
 // Two steps, each priced on its button: the SCRIPT (panels, shots, each character's
@@ -136,6 +137,7 @@ export default function MangaZ() {
               </button>
             ))}
             <button className="re-link text-[12px]" onClick={() => goToSpot("characterz", "")}>+ character</button>
+            <span className="text-[11px] text-white/45">{picked.length} of {s.max_characters} on a page{s.max_characters < 10 ? " · Premium 6, StatZ every one" : ""}</span>
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens on this page?"
                     value={idea} onChange={(e) => setIdea(e.target.value)} aria-label="Idea" />
@@ -161,6 +163,7 @@ export default function MangaZ() {
         </div>
       )}
       {open && <PageEditor s={s} page={open} chars={pageChars(open)} onChange={(pg) => { setOpen(pg); load(); }} />}
+      {open && <MangaPageDesigner key={`${open.id}-${open.panels.map((q) => q.image).join("|")}`} page={open} chars={pageChars(open)} onSaved={(pg) => { setOpen(pg); load(); }} />}
       {s.pages.length > 0 && (
         <div className="space-y-1">
           <p className="re-label">Your pages</p>
