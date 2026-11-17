@@ -4,6 +4,7 @@
 // section") against the StatZ AI Vocal Coach. Record in the browser or attach a
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
+import FeatureIcon from "../components/FeatureIcon.jsx";
 import SocialBar from "../components/SocialBar.jsx";
 import SendTo from "../components/SendTo.jsx";
 import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
@@ -46,7 +47,8 @@ import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
 import { appShell } from "../externalAuth.js";
 import { readOptsOpen, scoringSummary, writeOptsOpen } from "../coachOptions.js";
-import { addCustomPart, partsField, partsLine, splitParts, togglePart } from "../coachParts.js";
+import { addCustomPart, partsField, partsLine, togglePart } from "../coachParts.js";
+import VerseBreakdown from "../components/VerseBreakdown.jsx";
 
 // The browser inside Instagram, TikTok, Facebook and similar apps. Read once: it cannot change.
 const INAPP = (() => { try { return appShell() === "inapp"; } catch { return false; } })();
@@ -322,6 +324,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // Which verses or choruses of the song are the member's (none = the whole take is theirs).
   const [myParts, setMyParts] = useState([]);
   const [partDraft, setPartDraft] = useState("");
+  // Verse by verse: null = "has not chosen", so the server's default for this coach applies.
+  const [breakPick, setBreakPick] = useState(() => {
+    try { const v = localStorage.getItem("mcz_coach_breakdown"); return v === "1" ? true : v === "0" ? false : null; } catch { return null; }
+  });
+  const chooseBreak = (on) => { setBreakPick(on); try { localStorage.setItem("mcz_coach_breakdown", on ? "1" : "0"); } catch { /* this visit only */ } };
   // The scoring options are folded by default; open is the member's choice and is kept.
   const [optsOpen, setOptsOpenState] = useState(readOptsOpen);
   const setOptsOpen = (open) => { setOptsOpenState(open); writeOptsOpen(open); };
@@ -951,6 +958,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
               ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
               ...(partsField(myParts) ? { my_part: partsField(myParts) } : {}),
+              ...(breakOn ? { break_parts: "1" } : {}),
               ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }) }
         : fromPost && !refMode
         ? { ...(fromPost.kind === "journal"
@@ -966,6 +974,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             ...(rateLyrics && price?.rates_lyrics ? { rate_lyrics: "1" } : {}),
             ...(rateMix && price?.rates_mix ? { rate_mix: "1" } : {}),
             ...(partsField(myParts) ? { my_part: partsField(myParts) } : {}),
+            ...(breakOn ? { break_parts: "1" } : {}),
             ...extraFields(extra, price?.wit_scores, price?.wit_never_counted) }
         : (() => {
             const f = new FormData();
@@ -981,6 +990,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             if (rateLyrics && price?.rates_lyrics) f.append("rate_lyrics", "1");
             if (rateMix && price?.rates_mix) f.append("rate_mix", "1");
             if (partsField(myParts) && !trial) f.append("my_part", partsField(myParts));
+            if (breakOn) f.append("break_parts", "1");
             for (const [k, v] of Object.entries(extraFields(extra, price?.wit_scores, price?.wit_never_counted))) f.append(k, v);
             if (keep && !trial && !IN_SHELL_COACH) f.append("keep", "1");
             // Same id as the GET above, and as the funnel's. Blank in a
@@ -1105,6 +1115,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     });
   }, [blocked, price]);
 
+  const breakOn = !trial && !refMode && !!price?.my_part?.breakdown
+    && (breakPick ?? !!price.my_part.breakdown.default);
   const challengeCard = !refMode && price?.challenge && (
     <WeeklyChallenge appKey={appKey} challenge={price.challenge}
       onSetup={(c) => { if (GENRES.includes(c.genre)) setGenreQuiet(c.genre); setDifficultyQuiet(c.difficulty); }} />
@@ -1116,7 +1128,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     lyrics: !!price?.rates_lyrics && !refMode && rateLyrics,
     extras: refMode ? 0 : Object.keys(price?.wit_scores || {}).filter((k) => extra[k]?.on).length,
     mix: !!price?.rates_mix && !refMode && rateMix,
-  }) + (!refMode && !trial && partsLine(myParts) ? ` · ${partsLine(myParts)}` : "");
+  }) + (breakOn ? " · verse by verse" : "") + (!refMode && !trial && partsLine(myParts) ? ` · ${partsLine(myParts)}` : "");
   const settings = (
     <>
       <div className="grid gap-2 sm:grid-cols-3">
@@ -1179,6 +1191,16 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {/* Whose part: a song with more than one performer. The member picks every verse or
           chorus they are on; the coach scores those and grades each one. The choices and
           the sentence are the server's. Not on the trial (one stranger, one take). */}
+      {price?.my_part?.breakdown && !refMode && !trial && (
+        <label className="flex cursor-pointer items-start gap-2 text-[11px] text-white/60" data-tour="bosstake-breakdown-toggle">
+          <input type="checkbox" checked={breakOn} disabled={busy} onChange={(e) => chooseBreak(e.target.checked)}
+                 className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-mcz-cyan" />
+          <span>
+            Grade it verse by verse
+            <span className="block text-white/35">{price.my_part.breakdown.note}</span>
+          </span>
+        </label>
+      )}
       {price?.my_part?.choices?.length > 0 && !refMode && !trial && (
         <fieldset className="space-y-1.5 text-[11px] text-white/60" data-tour="bosstake-parts">
           <legend className="text-white/75">Which parts are yours? <span className="text-white/35">(optional — leave empty if the whole take is you)</span></legend>
@@ -1270,7 +1292,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
     <div className="neon-frame space-y-4 p-4">
       <div>
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
-          {refMode ? "🎧 Reference listen" : "👑 Boss Take"} — {price?.label || "AI"} Coach
+          {refMode ? "🎧 Reference listen" : <><FeatureIcon name="bosstake" className="h-7 w-7" /> Boss Take</>} — {price?.label || "AI"} Coach
         </p>
         {claimed && !result && (
           <p className="mt-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[12px] text-emerald-200">
@@ -1374,7 +1396,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
         <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
             {fromPost.kind === "journal" ? "📔 From your journal" : fromPost.kind === "upload" ? "🗂️ From your FileZ"
-              : fromPost.radar ? "📡 Radar read — somebody else's post" : "🎧 From PostZ"}
+              : fromPost.radar ? <><FeatureIcon name="radar" /> Radar read — somebody else's post</> : "🎧 From PostZ"}
           </p>
           <p className="text-[13px] font-semibold text-white">{fromPost.title}</p>
           <p className="text-[11px] text-white/45">
@@ -1894,23 +1916,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </span>
             <p className="min-w-[12rem] flex-1 text-[13px] leading-relaxed text-white/80">{result.verdict}</p>
           </div>
-          {result.part?.label && (() => {
-            const { mine, others } = splitParts(result.parts);
-            return (
-              <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3" data-testid="coach-parts">
-                <p className="text-[11px] text-white/70">
-                  The score above is for <b className="text-white">your parts</b>: {result.part.label}. The song has its own score below.
-                </p>
-                {mine.length > 0 && <RatingGrid rows={mine.map((p, i) => ({ key: `m${i}`, label: `${p.label} — yours`, value: p.score }))} />}
-                {others.length > 0 && (
-                  <p className="text-[11px] text-white/55">
-                    The other sections: {others.map((p) => `${p.label} ${p.score}/10`).join(" · ")}
-                  </p>
-                )}
-                {!mine.length && <p className="text-[11px] text-mcz-gold">The coach did not grade your parts one by one this time. The score above still covers them together.</p>}
-              </div>
-            );
-          })()}
+          {(result.parts?.length > 0 || result.part?.label) && (
+            <VerseBreakdown parts={result.parts} factors={result.part_factors} compare={result.parts_compare} part={result.part} />
+          )}
           {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
           {trial && result.as_member && (
             <p className="text-[12px] text-white/60">

@@ -14,7 +14,7 @@
 //   * what is typed into a field, code, and anything marked `data-notranslate`.
 // It is machine translation and it says so on the picker (the server's note).
 import { api } from "./api.js";
-import { CACHE_KEY, LANG_KEY, addToCache, cleanChoice, fromTemplate, splitSpace, toTemplate, worth } from "./uiLang.js";
+import { CACHE_KEY, LANG_KEY, addToCache, cleanChoice, fromTemplate, pruneStale, splitSpace, toTemplate, worth } from "./uiLang.js";
 
 const SKIP_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT", "CODE", "PRE", "SCRIPT", "STYLE", "NOSCRIPT", "svg", "SVG"]);
 const SKIP_SEL = "[data-ugc],[data-notranslate],[contenteditable='true'],.whitespace-pre-wrap";
@@ -211,7 +211,8 @@ export function setUiLang(next) {
 /** Called once from main.jsx. English costs nothing: no observer, no walk. */
 export function startAutoTranslate() {
   if (typeof document === "undefined") return;
-  cache = read(CACHE_KEY) || {};
+  // Answers the server has since changed its mind about are dropped here, so they are asked again.
+  cache = pruneStale(read(CACHE_KEY) || {});
   const saved = cleanChoice(read(LANG_KEY));
   if (saved) setUiLang(saved);
 }

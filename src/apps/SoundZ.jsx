@@ -11,6 +11,7 @@
 // the grammar survives every choice: gains rise, spends fall, and a coin never
 // sounds like a prompt no matter which pack is on. That is what keeps the set
 // learnable — the pack changes the voice, not the language.
+import FeatureIcon from "../components/FeatureIcon.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Volume2, Lock, RotateCcw, ArrowRight } from "lucide-react";
 
@@ -139,7 +140,7 @@ export default function SoundZ() {
                       className={`re-card space-y-1 text-left transition ${
                         active ? "!border-mcz-ember" : "hover:!border-white/25"}`}>
                 <span className="flex items-center justify-between gap-2">
-                  <span className="font-display text-sm font-extrabold">{p.name}</span>
+                  <span className="flex items-center gap-2 font-display text-sm font-extrabold">{p.icon && <FeatureIcon name={p.icon} className="h-7 w-7" />}{p.name}</span>
                   {active && <span className="re-badge">On</span>}
                   {locked && <Lock size={12} className="text-white/30" />}
                 </span>

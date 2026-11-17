@@ -279,5 +279,5 @@ Still what something draws today; custom art takes over where a default exists.
 - `videoz.png` → /icons/toolz.videoz.png
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 115 of 212 (most are the
+Registry keys with no supplied file: 125 of 222 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).

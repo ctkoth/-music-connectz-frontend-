@@ -49,3 +49,13 @@ test("the picker's search reads either name or the code", () => {
   for (const q of ["", "span", "ESPA", "es"]) assert.ok(langMatches(es, q), q);
   assert.ok(!langMatches(es, "german"));
 });
+
+test("a cached answer that kept Energy in English is dropped; a real translation is kept", async () => {
+  const { pruneStale } = await import("./uiLang.js");
+  const got = pruneStale({ pt: { "Energy": "Energy", "{0} Energy": "{0} Energy", "+{0} Energy for every rating": "+{0} Energia por avaliação",
+                                 "members": "membros", "Energy drink": "Bebida energética" },
+                           fr: { "Energy": "Énergie" } });
+  assert.deepEqual(Object.keys(got.pt).sort(), ["+{0} Energy for every rating", "Energy drink", "members"]);
+  assert.deepEqual(got.fr, { "Energy": "Énergie" });
+  assert.deepEqual(pruneStale(null), {});
+});

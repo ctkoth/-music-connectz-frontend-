@@ -1,3 +1,4 @@
+import FeatureIcon from "./FeatureIcon.jsx";
 import SelectAllBar from "./SelectAllBar.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
@@ -54,6 +55,7 @@ function TrackChip({ which, source, heard, children }) {
       <p className={`font-semibold ${t.text}`}>
         {t.name} <span className="text-[10px] font-normal text-white/45">track {t.letter}</span>
         {source && <span className="font-normal text-white/70"> — {sideLabelOf(source)}</span>}
+        {source?.part && <span className="font-normal text-white"> · only {source.part}</span>}
       </p>
       {heard && <p className="text-white/60"><span className="text-white/40">The coach heard:</span> {heard}</p>}
       {children}
@@ -461,6 +463,9 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [res, setRes] = useState(null);
+  // Verse against verse: the one part of each track to compare ("" = the whole recording).
+  const [takePart, setTakePart] = useState("");
+  const [refPart, setRefPart] = useState("");
 
   useEffect(() => {
     let on = true;
@@ -482,7 +487,9 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   if (!info) return null;
 
   const mine = take || (hostBlob ? asFile(new File([hostBlob], hostName || "take.webm", { type: hostBlob.type })) : null);
-  const same = samePost(mine, ref);
+  // One song against itself is a comparison only when a different part is named on each side.
+  const twoVerses = !!takePart.trim() && !!refPart.trim() && takePart.trim().toLowerCase() !== refPart.trim().toLowerCase();
+  const same = samePost(mine, ref) && !twoVerses;
   const needsEnergy = usesPost(mine, ref) && info.post_energy_cost > 0;
 
   const run = async () => {
@@ -493,6 +500,8 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
       addSide(f, "take", mine);
       addSide(f, "reference", ref);
       if (genre) f.append("genre", genre);
+      if (takePart.trim()) f.append("take_part", takePart.trim());
+      if (refPart.trim()) f.append("reference_part", refPart.trim());
       setRes({ ...(await api(`/api/${appKey}/match/`, { method: "POST", body: f })), took: mine, against: ref });
     } catch (e) {
       setErr(`${e.message} Nothing was charged.`);
@@ -501,14 +510,32 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
 
   return (
     <section className="mt-3 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
-      <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><FeatureIcon name="inspiration" className="h-7 w-7" /> Inspiration</h3>
       <p>Pick a song you want to sound like and your own take. The coach rates both, says where yours is better and where it's behind, gives drills to close the gap, and can send a lyric direction to Sentence ConnectZ.</p>
       <p className="text-white/50">{info.notice}</p>
       <Source label={`${TRACK.take.name} (A) — a file, a post of yours (like a RapZ submission), or your own YouTube link`} side={mine} onSide={setTake} disabled={busy}
               posts={posts} mine allowUploads uploads={uploads} linkSources={info.link_sources} />
       <Source label={`${TRACK.reference.name} (B) — the song you want to sound like: a file, any post you can see, or a YouTube link`} side={ref} onSide={setRef} disabled={busy}
               posts={posts} uploads={uploads} allowUploads linkSources={info.link_sources} />
-      {same && <p className="text-amber-200">That's the same post on both sides — pick a different reference.</p>}
+      {info.parts?.choices?.length > 0 && (
+        <div className="space-y-1 rounded border border-white/10 p-2" data-tour="inspiration-parts">
+          <p className="text-white/80">Compare one verse with another <span className="text-white/40">(optional)</span></p>
+          <p className="text-white/45">{info.parts.note}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[[TRACK.take, takePart, setTakePart], [TRACK.reference, refPart, setRefPart]].map(([t, value, set]) => (
+              <label key={t.name} className="block">
+                <span className={t.text}>{t.name}: which part?</span>
+                <input list="inspiration-part-choices" className="neon-input !py-1.5 text-xs" placeholder="The whole recording"
+                       maxLength={info.parts.max_chars} value={value} disabled={busy} onChange={(e) => set(e.target.value)} />
+              </label>
+            ))}
+          </div>
+          <datalist id="inspiration-part-choices">
+            {info.parts.choices.map((c) => <option key={c} value={c} />)}
+          </datalist>
+        </div>
+      )}
+      {same && <p className="text-amber-200">That's the same post on both sides. Pick a different reference, or name a different part on each side to compare two verses of it.</p>}
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={run} disabled={busy || !mine || !ref || same || !info.configured}
                 className="rounded-full border border-mcz-cyan bg-mcz-cyan/15 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40">

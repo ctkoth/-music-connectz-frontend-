@@ -348,6 +348,17 @@ export const CUSTOM_ICONS = {
   // SeXi is generated (tools/make-neon-icons.mjs) until he draws one.
   "thuroz.jpg": "/icons/thuroz.jpg",
   "sexi.png": "/icons/sexi-neon.svg",
+  // Features inside apps: generated tiles (tools/make-neon-icons.mjs) until Corey draws them.
+  "feature_inspiration.png": "/icons/inspiration-neon.svg",
+  "feature_bosstake.png": "/icons/bosstake-neon.svg",
+  "feature_versez.png": "/icons/versez-neon.svg",
+  "feature_radar.png": "/icons/radar-neon.svg",
+  "feature_superfanz.png": "/icons/superfanz-neon.svg",
+  "feature_challenge.png": "/icons/challenge-neon.svg",
+  "feature_hookz.png": "/icons/hookz-neon.svg",
+  "feature_feelz.png": "/icons/feelz-neon.svg",
+  "feature_casino.png": "/icons/casino-neon.svg",
+  "feature_highroller.png": "/icons/highroller-neon.svg",
   "genrez.jpg": "/icons/genrez.jpg",
   "budgetz.jpg": "/icons/budgetz.jpg",
   "lookmaxz.png": "/icons/lookzmaxz.jpg",

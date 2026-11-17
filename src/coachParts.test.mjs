@@ -29,3 +29,25 @@ test("the graded sections split into mine and the rest, and a row with no number
   assert.deepEqual(got.others.map((p) => p.label), ["Verse 1"]);
   assert.deepEqual(splitParts(undefined), { mine: [], others: [] });
 });
+
+test("the breakdown table: a row per graded parameter, the leader marked, an ungraded cell a null", async () => {
+  const { breakdownTable, compareLine } = await import("./coachParts.js");
+  const parts = [{ label: "Verse 1", score: 7, scores: { flow: 8, wordplay: 6 } },
+                 { label: "Verse 2", score: 8, mine: true, scores: { flow: 7, wordplay: 9, imagery: 7 } },
+                 { label: "Hook", score: 8, scores: { flow: 8 } }, { label: "no score" }];
+  const t = breakdownTable(parts, { flow: "Flow", wordplay: "Wordplay", imagery: "Imagery", story: "Story" });
+  assert.deepEqual(t.sections.map((s) => s.label), ["Verse 1", "Verse 2", "Hook"]);
+  const by = Object.fromEntries(t.rows.map((r) => [r.key, r]));
+  assert.equal(by._overall.best, -1, "two sections level at the top: nobody leads");
+  assert.deepEqual(by.flow.cells, [8, 7, 8]);
+  assert.equal(by.flow.best, -1);
+  assert.equal(by.wordplay.best, 1);
+  assert.deepEqual(by.imagery.cells, [null, 7, null]);
+  assert.equal(by.imagery.best, -1, "one graded section leads nobody");
+  assert.equal(by.story, undefined, "a parameter nobody was graded on is not a row");
+  assert.equal(compareLine(null), "");
+  assert.equal(compareLine({ ranked: [{ label: "Verse 2", score: 8 }, { label: "Verse 1", score: 7 }], best: "Verse 2",
+    by_factor: [{ label: "Wordplay", best: "Verse 2", lead: 3 }, { label: "Flow", best: "Verse 1", lead: 1 }] }),
+    "Verse 2 is the strongest section (8/10). Verse 2 leads Wordplay by 3.");
+  assert.match(compareLine({ ranked: [{ label: "A", score: 8 }, { label: "B", score: 8 }], best: null, by_factor: [] }), /A and B are level/);
+});

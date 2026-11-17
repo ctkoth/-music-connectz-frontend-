@@ -2,6 +2,7 @@
 // where their followers land. It shows exactly what the coach said (the
 // server's record, never a number from a URL) and offers the same thing free,
 // with the sharer's handle carried as the referral code.
+import FeatureIcon, { EXTRA_ICON } from "../components/FeatureIcon.jsx";
 import SocialBar from "../components/SocialBar.jsx";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -92,7 +93,8 @@ export default function ScoreCard() {
             {d.extras?.length > 0 && (
               <div className="space-y-2 text-left">
                 {d.extras.map((x) => (
-                  <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                  <RatingRow key={x.key} value={x.value} size="sm"
+                  label={<>{EXTRA_ICON[x.key] && <FeatureIcon name={EXTRA_ICON[x.key]} />} {x.label}</>}
                     detail={[x.detail,
                       x.counted === true ? "Counts in the score above." : x.counted === false ? "Beside the score, not inside it." : ""].filter(Boolean).join(" ")} />
                 ))}

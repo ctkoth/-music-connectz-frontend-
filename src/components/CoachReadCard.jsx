@@ -16,6 +16,7 @@
 //
 // `CoachReadSetting` is the author's half: who sees the read, with what each
 // choice does written under it before it is pressed.
+import FeatureIcon, { EXTRA_ICON } from "./FeatureIcon.jsx";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Loader2, Lock } from "lucide-react";
@@ -160,7 +161,8 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           {read.extras?.length > 0 && (
             <div className="space-y-1.5">
               {read.extras.map((x) => (
-                <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                <RatingRow key={x.key} value={x.value} size="sm"
+                  label={<>{EXTRA_ICON[x.key] && <FeatureIcon name={EXTRA_ICON[x.key]} />} {x.label}</>}
                   detail={[x.detail, x.counted === true ? "Counts in the score above." : x.counted === false ? "Beside the score, not inside it." : ""].filter(Boolean).join(" ")} />
               ))}
             </div>

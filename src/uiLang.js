@@ -55,6 +55,21 @@ export function addToCache(cache, code, pairs) {
   return { ...cache, [code]: trimmed };
 }
 
+/** Words the server used to keep in English and now translates. A device still holds
+ *  the old answer ("Energy" → "Energy") and would go on showing it; an entry whose
+ *  English AND translation both carry one of these is dropped, so it is asked again.
+ *  A translation that already uses the language's own word is kept. */
+export const RETRANSLATE = ["Energy"];
+
+export function pruneStale(cache, words = RETRANSLATE) {
+  const out = {};
+  for (const [code, dict] of Object.entries(cache || {})) {
+    out[code] = Object.fromEntries(Object.entries(dict || {}).filter(([english, shown]) =>
+      !words.some((w) => String(english).includes(w) && String(shown).includes(w))));
+  }
+  return out;
+}
+
 /** A stored language choice, or null for English / anything unreadable. */
 export function cleanChoice(raw) {
   if (!raw || typeof raw !== "object" || typeof raw.code !== "string" || !raw.code || raw.code === "en") return null;

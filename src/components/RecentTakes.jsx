@@ -1,3 +1,4 @@
+import FeatureIcon, { EXTRA_ICON } from "./FeatureIcon.jsx";
 import SocialBar from "./SocialBar.jsx";
 import { genreLabel } from "../genres.js";
 import { Price } from "./Price.jsx";
@@ -126,7 +127,8 @@ function Row({ t, labels, appKey }) {
           {t.extras?.length > 0 && (
             <div className="space-y-1.5">
               {t.extras.map((x) => (
-                <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
+                <RatingRow key={x.key} value={x.value} size="sm"
+                  label={<>{EXTRA_ICON[x.key] && <FeatureIcon name={EXTRA_ICON[x.key]} />} {x.label}</>}
                   detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
               ))}
               {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}

@@ -71,6 +71,81 @@ const G = {
     <text x="256" y="342" text-anchor="middle" font-family="Poppins, system-ui, sans-serif" font-weight="800"
           font-size="54" fill="${b}" stroke="none">6.9+</text>`,
 
+  /* ---- Features inside apps. A feature that only ever wore an emoji gets a tile in the
+     same chassis, so a heading inside an app reads as part of the same set as its tab. ---- */
+
+  // Inspiration: a big four-point star with a small one beside it — the song you want to sound like.
+  inspiration: (a, b) => `
+    <path d="M236 96c8 62 26 82 92 100-66 18-84 38-92 100-8-62-26-82-92-100 66-18 84-38 92-100z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M356 216c4 26 12 36 40 44-28 8-36 18-40 44-4-26-12-36-40-44 28-8 36-18 40-44z"
+          fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>`,
+
+  // Boss Take: a crown over a microphone — one take, scored.
+  bosstake: (a, b) => `
+    <path d="M168 150l34-50 54 44 54-44 34 50-18 30H186z" fill="none" stroke="${b}" stroke-width="13" stroke-linejoin="round"/>
+    <rect x="222" y="200" width="68" height="74" rx="34" fill="none" stroke="${a}" stroke-width="14"/>
+    <path d="M196 252a60 60 0 0 0 120 0M256 312v-0" fill="none" stroke="${a}" stroke-width="13"/>
+    <path d="M256 312v22" stroke="${a}" stroke-width="13"/>`,
+
+  // VerseZ: the song in sections — stacked lines of different lengths, one of them marked.
+  versez: (a, b) => `
+    <path d="M150 124h212M150 168h150" stroke="${a}" stroke-width="15"/>
+    <path d="M150 226h212M150 270h176" stroke="${b}" stroke-width="15"/>
+    <path d="M150 316h118" stroke="${a}" stroke-width="15"/>
+    <path d="M122 208v80" stroke="${b}" stroke-width="10"/>
+    <path d="M122 208h14M122 288h14" stroke="${b}" stroke-width="10"/>`,
+
+  // Radar: arcs, a sweep and a blip — somebody else's work, read for you.
+  radar: (a, b) => `
+    <circle cx="256" cy="212" r="110" fill="none" stroke="${a}" stroke-width="13"/>
+    <circle cx="256" cy="212" r="62" fill="none" stroke="${a}" stroke-opacity="0.6" stroke-width="9"/>
+    <path d="M256 212L336 136" stroke="${b}" stroke-width="13"/>
+    <circle cx="312" cy="250" r="12" fill="${b}" stroke="none"/>
+    <circle cx="256" cy="212" r="9" fill="${a}" stroke="none"/>`,
+
+  // SuperfanZ: a heart with a star lifted off its shoulder — the ones who keep coming back.
+  superfanz: (a, b) => `
+    <path d="M246 316c-62-44-100-78-100-120a56 56 0 0 1 100-34 56 56 0 0 1 100 34c0 42-38 76-100 120z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M356 96l8 22 22 8-22 8-8 22-8-22-22-8 22-8z" fill="none" stroke="${b}" stroke-width="9" stroke-linejoin="round"/>`,
+
+  // The weekly challenge: a flag on its pole, squares on the cloth — the same start line for everybody.
+  challenge: (a, b) => `
+    <path d="M168 100v230" stroke="${a}" stroke-width="15"/>
+    <path d="M168 112h176l-28 54 28 54H168" fill="none" stroke="${a}" stroke-width="13" stroke-linejoin="round"/>
+    <path d="M204 112v108M258 112v108M168 166h160" stroke="${b}" stroke-width="8" stroke-opacity="0.9"/>`,
+
+  // HookZ: a hook with a note on its line — the part that catches.
+  hookz: (a, b) => `
+    <path d="M276 96v134a56 56 0 0 1-112 0v-22" fill="none" stroke="${a}" stroke-width="16"/>
+    <path d="M164 208l-26 30M164 208l30 22" stroke="${a}" stroke-width="13"/>
+    <circle cx="276" cy="92" r="14" fill="none" stroke="${a}" stroke-width="10"/>
+    <ellipse cx="338" cy="290" rx="24" ry="17" fill="none" stroke="${b}" stroke-width="11"/>
+    <path d="M362 288V196l38-12" fill="none" stroke="${b}" stroke-width="11"/>`,
+
+  // FeelZ: a heart with a pulse through it — how it moves a listener.
+  feelz: (a, b) => `
+    <path d="M256 320c-66-46-106-82-106-126a59 59 0 0 1 106-36 59 59 0 0 1 106 36c0 44-40 80-106 126z"
+          fill="none" stroke="${a}" stroke-width="15" stroke-linejoin="round"/>
+    <path d="M132 220h72l22-40 34 78 26-50 18 12h76" fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>`,
+
+  // Casino (sound pack): three reels and a lever.
+  casino: (a, b) => `
+    <rect x="132" y="120" width="216" height="170" rx="22" fill="none" stroke="${a}" stroke-width="14"/>
+    <path d="M204 120v170M276 120v170" stroke="${a}" stroke-width="9"/>
+    <path d="M152 180h34l-22 54M224 180h34l-22 54M296 180h34l-22 54" fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>
+    <path d="M348 206h30v-70" fill="none" stroke="${a}" stroke-width="12"/>
+    <circle cx="378" cy="124" r="15" fill="none" stroke="${b}" stroke-width="11"/>`,
+
+  // High Roller (sound pack): a chip, notched round its edge, a diamond at its centre.
+  highroller: (a, b) => `
+    <circle cx="256" cy="210" r="112" fill="none" stroke="${a}" stroke-width="15"/>
+    <circle cx="256" cy="210" r="70" fill="none" stroke="${a}" stroke-opacity="0.65" stroke-width="9"/>
+    <path d="M256 98v34M256 288v34M144 210h34M334 210h34M177 131l24 24M311 265l24 24M335 131l-24 24M201 265l-24 24"
+          stroke="${b}" stroke-width="11"/>
+    <path d="M256 168l34 42-34 42-34-42z" fill="none" stroke="${b}" stroke-width="11" stroke-linejoin="round"/>`,
+
   vybez: (a, b) => `
     <circle cx="228" cy="214" r="112" fill="none" stroke="${a}" stroke-width="16"/>
     <path d="M228 268c-34-24-54-41-54-63a31 31 0 0 1 54-19 31 31 0 0 1 54 19c0 22-20 39-54 63z"
@@ -473,6 +548,17 @@ const APPS = [
   // that belongs together while never being mistaken for each other.
   ["vybez", "VybeZ", C.cyan, C.pink],
   ["sexi", "SeXi", C.ember, C.pink],
+  // Features inside apps (see the glyphs' note above).
+  ["inspiration", "Inspiration", C.pink, C.cyan],
+  ["bosstake", "Boss Take", C.cyan, C.gold],
+  ["versez", "VerseZ", C.cyan, C.gold],
+  ["radar", "Radar", C.emerald, C.cyan],
+  ["superfanz", "SuperfanZ", C.pink, C.gold],
+  ["challenge", "Challenge", C.gold, C.ember],
+  ["hookz", "HookZ", C.cyan, C.pink],
+  ["feelz", "FeelZ", C.pink, C.cyan],
+  ["casino", "Casino", C.gold, C.ember],
+  ["highroller", "High Roller", C.purple, C.gold],
   ["personaz", "ProfileZ", C.purple, C.cyan],
   ["specz", "SpecZ", C.gold, C.pink],
   ["money", "MembershipZ", C.gold, C.emerald],

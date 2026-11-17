@@ -339,7 +339,7 @@ export const PACKS = {
 // `from` and `to`, so a gain still rises and a spend still falls. It is how a pack
 // gets a shimmer without a second copy of the vocabulary.
 PACKS.casino = {
-  name: "Casino",
+  name: "Casino", icon: "casino",
   blurb: "Slot-machine bells: bright, with a chime climbing after every sound.",
   voice: (v) => ({ ...v, type: "triangle", from: v.from * 2, to: (v.to ?? v.from) * 2, dur: v.dur * 1.2 }),
   extra: (v) => [
@@ -348,7 +348,7 @@ PACKS.casino = {
   ],
 };
 PACKS.highroller = {
-  name: "High Roller",
+  name: "High Roller", icon: "highroller",
   blurb: "The big room: a low body under every sound and a long glittering tail.",
   voice: (v) => ({ ...v, type: "triangle", dur: v.dur * 1.5 }),
   extra: (v) => [

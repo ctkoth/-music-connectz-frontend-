@@ -1,3 +1,4 @@
+import FeatureIcon from "./FeatureIcon.jsx";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { handOff } from "../handoff.js";
@@ -18,7 +19,7 @@ export default function WeeklyChallenge({ appKey, challenge, onSetup }) {
   if (!challenge) return null;
   return (
     <div className="space-y-1.5 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.06] p-3 text-[12px]" data-tour={`${appKey}-challenge`}>
-      <p className="text-[10px] uppercase tracking-widest text-mcz-gold/90">🏁 This week's challenge · {challenge.week}</p>
+      <p className="text-[10px] uppercase tracking-widest text-mcz-gold/90"><FeatureIcon name="challenge" /> This week's challenge · {challenge.week}</p>
       <p className="text-sm font-semibold text-white">{challenge.title} · {challenge.difficulty}</p>
       <p className="text-white/60">{challenge.rule}</p>
       <div className="flex flex-wrap items-center gap-2">

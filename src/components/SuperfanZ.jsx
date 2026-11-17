@@ -7,6 +7,7 @@
 // worth, so the climb is readable before you make it. On your own it lists the
 // people who keep coming back to your work, each a door to their profile.
 // Whether YOU appear on artists' lists is your VisibilitieZ "superfan" switch.
+import FeatureIcon from "./FeatureIcon.jsx";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import MemberName from "../MemberName.jsx";
@@ -24,7 +25,8 @@ export default function SuperfanZ({ username = "" }) {
   const you = d.you;
   return (
     <section data-tour="superfanz" className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-white/40">
+        <FeatureIcon name="superfanz" className="h-6 w-6" />
         {d.name} {d.emoji}
       </p>
       {d.top.length === 0 ? (
