@@ -1,6 +1,6 @@
 {
   "name": "music-connectz-desktop",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Music ConnectZ desktop wrapper",
   "main": "main.cjs",
   "scripts": {
@@ -39,6 +39,22 @@
         "name": "Music ConnectZ sign-in",
         "schemes": [
           "net.musicconnectz.app"
+        ]
+      }
+    ],
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "vst.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "vsthost/bin",
+        "to": "vsthost",
+        "filter": [
+          "mcz-vsthost.exe",
+          "LICENSE-VST3-SDK.txt"
         ]
       }
     ]

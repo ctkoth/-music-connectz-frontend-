@@ -10,6 +10,8 @@
 // "MCZDesktop/2" UA marker is how the page knows this build can take a
 // sign-in back; an older .exe without it keeps the in-window behaviour.
 const { app, BrowserWindow, shell } = require("electron");
+const path = require("path");
+const vst = require("./vst.cjs");
 
 const SITE = "https://musicconnectz.net";
 const SCHEME = "net.musicconnectz.app";
@@ -44,7 +46,8 @@ if (!app.requestSingleInstanceLock()) {
       height: 860,
       backgroundColor: "#07060d",
       autoHideMenuBar: true,
-      webPreferences: { contextIsolation: true, nodeIntegration: false },
+      // The preload hands the VST3 bridge to our own site only (preload.cjs checks the origin).
+      webPreferences: { contextIsolation: true, nodeIntegration: false, preload: path.join(__dirname, "preload.cjs") },
     });
     win.webContents.setUserAgent(`${win.webContents.getUserAgent()} MCZDesktop/2`);
     win.loadURL(SITE);
@@ -58,6 +61,7 @@ if (!app.requestSingleInstanceLock()) {
   }
 
   app.whenReady().then(() => {
+    vst.setup();
     createWindow();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

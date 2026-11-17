@@ -20,6 +20,7 @@ import MixWindow from "./MixWindow.jsx";
 import MidiImport from "./MidiImport.jsx";
 import LoopLibrary from "./LoopLibrary.jsx";
 import KeyActions from "./KeyActions.jsx";
+import VstRack from "./VstRack.jsx";
 import { pitchShift, rangeFor } from "./pitch.js";
 import { loadLimits } from "../limits.js";
 import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } from "./keymap.js";
@@ -38,7 +39,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
-const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI", loops: "Loops", actions: "Actions" };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI", loops: "Loops", actions: "Actions", vst: "VST" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -510,7 +511,7 @@ export default function Workspace({ workflow }) {
       {/* Edit tools */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <div className="flex overflow-hidden rounded-lg border border-white/15" role="tablist" aria-label="Window">
-          {[...(workflow.windows || ["edit", "mix"]), "midi"].map((w) => (
+          {[...(workflow.windows || ["edit", "mix"]), "midi", "vst"].map((w) => (
             <button key={w} type="button" role="tab" aria-selected={view === w} onClick={() => setView(w)}
                     className={`px-3 py-1.5 ${view === w ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{workflow.windowNames?.[w] || WINDOW_NAME[w] || w}</button>
           ))}
@@ -541,6 +542,21 @@ export default function Workspace({ workflow }) {
       {view === "loops" ? (
         <LoopLibrary daw={daw} bpm={session.bpm} busy={busy}
                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />
+      ) : view === "vst" ? (
+        <VstRack session={session} daw={daw} busy={busy}
+                 onRendered={async (trackId, wav, name, plug) => {
+                   const meta = await daw.decode(wav, name);
+                   let kept = false;
+                   commit((s) => {
+                     const withSrc = addSource(s, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate });
+                     const out = recordInto(withSrc, trackId, { src: meta.id, at: 0, name });
+                     kept = out.keptPrevious;
+                     const tr = out.session.tracks.find((t) => t.id === trackId);
+                     return setTrack(out.session, trackId, { vst: [...(tr?.vst || []), plug].slice(-64) });
+                   });
+                   try { await putSource(meta.id, daw.toWav(daw.buffer(meta.id), 24)); } catch { setStoreErr("The render is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+                   setMsg(`${name} is a new take${kept ? " — the original is the previous take in the playlist menu" : ""}.`);
+                 }} />
       ) : view === "actions" ? (
         <KeyActions keymap={keymap} onKeymap={setKeymap} skin={skin} onSkin={setSkin} />
       ) : view === "midi" ? (

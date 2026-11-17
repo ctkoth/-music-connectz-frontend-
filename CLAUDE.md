@@ -2226,3 +2226,23 @@ Everything runs on the member's device; nothing is uploaded until Save to FileZ.
 - **AI background removal is StatZ-only** (Corey's call) and is not built: it needs a provider and a price.
 - Driven in headless Chromium: text with a drop shadow, a brush stroke, moving a layer, grouping,
   a marquee, zoom and history, no console errors. Not checked with a real pen, on a phone or in Safari.
+
+## VST3 in the Windows app: a native host beside the shell, and only our site may drive it
+
+`desktop/vsthost/mcz_vsthost.cpp` is a small native program built on Steinberg's VST3 SDK (MIT licence,
+3.8.1, pinned by commit in `windows-exe.yml`; its LICENSE ships as `LICENSE-VST3-SDK.txt`). The Electron
+shell starts it (`desktop/vst.cjs`) and talks to it one line per command: scan, params, render, editor.
+`desktop/preload.cjs` gives `window.mczVst` to musicconnectz.net and to nothing else — a plugin host is
+native code on the member's PC. Every DAW has a **VST** tab (`src/daw/VstRack.jsx`): pick a track and an
+installed VST3 effect, set it in the plugin's own window or its settings list, render the track through it;
+the result is a new take, the original one switch away. Outside the app the tab says why and links the
+installer. Plugins per track ladder 3 / 6 / unlimited.
+
+- **A host must send the processor every parameter's current value at the start.** Steinberg's own AGain
+  starts its gain at 0 and rendered silence until the host did. Found by measuring, not reading.
+- **Tested for real:** `desktop/vsthost/test_host.py` renders a tone through AGain (default, and gain 0.25 →
+  exactly a quarter) and reloads saved settings; it runs on Linux here and in CI on Windows before the
+  installer is packaged, so a broken host fails the build. The page side was driven end to end against the
+  same host. The plugin's own window (Win32) has only ever been compiled, never seen — check it on a PC.
+- **Not yet:** VST instruments (need MIDI in), live playback through a plugin (needs the host to run audio in
+  real time), VST2 (Steinberg no longer licenses it). Never use the VST logo without Steinberg's guidelines.

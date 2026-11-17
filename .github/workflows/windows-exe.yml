@@ -27,6 +27,34 @@ jobs:
         working-directory: desktop
         run: npm install
 
+      # The VST3 host (desktop/vsthost): Steinberg's VST3 SDK, MIT licence, pinned to the exact
+      # commit it was written and tested against. Built, then TESTED against Steinberg's own AGain
+      # plugin before packaging — a host that can't render a real plugin fails the build here.
+      - name: Fetch the VST3 SDK (MIT)
+        shell: bash
+        run: |
+          git clone --recursive https://github.com/steinbergmedia/vst3sdk.git "$RUNNER_TEMP/vst3sdk"
+          git -C "$RUNNER_TEMP/vst3sdk" checkout 3cdf9ca5d1f5b1b21e0a86832aa4abe55607bd96
+          git -C "$RUNNER_TEMP/vst3sdk" submodule update --init --recursive
+
+      - name: Build the VST3 host
+        shell: bash
+        run: |
+          cmake -S desktop/vsthost -B "$RUNNER_TEMP/vsthost" -DVST3_SDK="$RUNNER_TEMP/vst3sdk"
+          cmake --build "$RUNNER_TEMP/vsthost" --config Release --target mcz-vsthost
+          mkdir -p desktop/vsthost/bin
+          cp "$RUNNER_TEMP/vsthost/Release/mcz-vsthost.exe" desktop/vsthost/bin/
+          cp "$RUNNER_TEMP/vst3sdk/LICENSE.txt" desktop/vsthost/bin/LICENSE-VST3-SDK.txt
+
+      - name: Test the host against a real VST3 plugin
+        shell: bash
+        run: |
+          cmake -S "$RUNNER_TEMP/vst3sdk" -B "$RUNNER_TEMP/sdkbuild" -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF -DSMTG_ENABLE_VST3_HOSTING_EXAMPLES=OFF -DSMTG_CREATE_PLUGIN_LINK=OFF -DSMTG_RUN_VST_VALIDATOR=OFF
+          cmake --build "$RUNNER_TEMP/sdkbuild" --config Release --target again-sample-accurate
+          mkdir -p "/c/Program Files/Common Files/VST3"
+          cp -r "$RUNNER_TEMP/sdkbuild/VST3/Release/again-sample-accurate.vst3" "/c/Program Files/Common Files/VST3/"
+          python desktop/vsthost/test_host.py desktop/vsthost/bin/mcz-vsthost.exe
+
       # Two files from one build. The installer is the one that puts Music
       # ConnectZ on the desktop and in the Start menu; the portable exe is for
       # anyone who wants to run it off a stick without installing anything, and
@@ -51,6 +79,7 @@ jobs:
         run: echo "v=$(node -p "require('./desktop/package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Publish the versioned release (the Store's package URL)
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: exe-v${{ steps.ver.outputs.v }}
@@ -67,6 +96,7 @@ jobs:
       # Written once: a version already there is left alone, because the Store wants
       # the file behind a submitted URL never to change.
       - name: Publish the installer to the downloads branch (no-redirect URL)
+        if: github.ref == 'refs/heads/main'
         shell: bash
         env:
           V: ${{ steps.ver.outputs.v }}
@@ -94,6 +124,7 @@ jobs:
           git push -q origin downloads
 
       - name: Publish to the exe-latest release
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: exe-latest
