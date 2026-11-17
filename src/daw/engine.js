@@ -246,81 +246,93 @@ export function createDaw() {
   }
 
   /** Arm the mic. Resolves once the browser has said yes. Errors carry the browser's own `name`. */
-  async function openMic() {
+  async function openMic(deviceId = "") {
     if (!navigator.mediaDevices?.getUserMedia) {
       const e = new Error("This page can't reach a microphone here — it needs a secure (https) address.");
       e.name = "NoMediaDevices";
       throw e;
     }
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 2 },
+               ...(deviceId ? { deviceId: { exact: deviceId } } : {}) },
     });
     return stream;
   }
 
   /**
-   * Record from `from` on the timeline while the session plays (overdub). Returns the context time
-   * recording started. `stopRecording()` resolves with { id, duration, offset } for the new source.
+   * Record from `from` on the timeline while the session plays (overdub) — onto one track or several
+   * at once. `inputs` is [{ key, stream, channel }]: one entry per armed track, `channel` "both" | "left"
+   * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
+   * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream }) {
+  async function startRecording(session, from, { click = false, stream, inputs }) {
     const c = audio();
     if (c.state !== "running") await c.resume();
+    const list = inputs || [{ key: "", stream, channel: "both" }];
     const t0 = await play(session, from, { click });
-    const input = c.createMediaStreamSource(stream);
-    const chunks = [];
     const startFrame = Math.round(t0 * c.sampleRate);
-    const take = (frame, data) => {
-      const skip = Math.max(0, startFrame - frame);
-      if (skip >= data[0].length) return;
-      chunks.push(data.map((d) => (skip ? d.slice(skip) : d)));
-    };
-    let node;
-    if (c.audioWorklet && typeof AudioWorkletNode !== "undefined") {
-      if (!rec?.workletReady) {
-        const url = URL.createObjectURL(new Blob([CAPTURE_WORKLET], { type: "text/javascript" }));
-        await c.audioWorklet.addModule(url);
-        URL.revokeObjectURL(url);
-      }
-      node = new AudioWorkletNode(c, "mcz-capture", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 2 });
-      node.port.onmessage = (e) => take(e.data.frame, e.data.data);
-    } else {
-      node = c.createScriptProcessor(4096, 2, 2);
-      node.onaudioprocess = (e) => {
-        const frame = Math.round(e.playbackTime * c.sampleRate);
-        take(frame, Array.from({ length: e.inputBuffer.numberOfChannels }, (_, i) => e.inputBuffer.getChannelData(i).slice(0)));
-      };
+    const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
+    if (useWorklet && !rec?.workletReady) {
+      const url = URL.createObjectURL(new Blob([CAPTURE_WORKLET], { type: "text/javascript" }));
+      await c.audioWorklet.addModule(url);
+      URL.revokeObjectURL(url);
     }
-    // A silent sink keeps the node pulled without sending the mic to the speakers — monitoring the
-    // mic through the page would feed it straight back into itself on a phone's speaker.
-    const sink = c.createGain();
-    sink.gain.value = 0;
-    input.connect(node).connect(sink).connect(c.destination);
-    const track = stream.getAudioTracks()[0];
-    const inLatency = Number(track?.getSettings?.().latency) || 0;
+    // One source per stream, shared by the parts that read it (two channels of one interface).
+    const sources = new Map();
+    const parts = list.map((inp) => {
+      if (!sources.has(inp.stream)) sources.set(inp.stream, c.createMediaStreamSource(inp.stream));
+      const src = sources.get(inp.stream);
+      const chunks = [];
+      const take = (frame, data) => {
+        const skip = Math.max(0, startFrame - frame);
+        if (skip >= data[0].length) return;
+        chunks.push(data.map((d) => (skip ? d.slice(skip) : d)));
+      };
+      let node;
+      if (useWorklet) {
+        node = new AudioWorkletNode(c, "mcz-capture", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 2 });
+        node.port.onmessage = (e) => take(e.data.frame, e.data.data);
+      } else {
+        node = c.createScriptProcessor(4096, 2, 2);
+        node.onaudioprocess = (e) => {
+          const frame = Math.round(e.playbackTime * c.sampleRate);
+          take(frame, Array.from({ length: e.inputBuffer.numberOfChannels }, (_, i) => e.inputBuffer.getChannelData(i).slice(0)));
+        };
+      }
+      // One channel of a stereo input becomes a mono part: split it out and send it alone.
+      const extra = [];
+      if (inp.channel === "left" || inp.channel === "right") {
+        const split = c.createChannelSplitter(2), mono = c.createGain();
+        mono.channelCount = 1; mono.channelCountMode = "explicit";
+        src.connect(split); split.connect(mono, inp.channel === "left" ? 0 : 1); mono.connect(node);
+        extra.push(split, mono);
+      } else src.connect(node);
+      // A silent sink keeps the node pulled without sending the mic to the speakers — monitoring the
+      // mic through the page would feed it straight back into itself on a phone's speaker.
+      const sink = c.createGain();
+      sink.gain.value = 0;
+      node.connect(sink).connect(c.destination);
+      const track = inp.stream.getAudioTracks()[0];
+      const inLatency = Number(track?.getSettings?.().latency) || 0;
+      return { key: inp.key, node, sink, extra, chunks, inLatency };
+    });
     const outLatency = (Number(c.outputLatency) || 0) + (Number(c.baseLatency) || 0);
-    rec = { node, input, sink, chunks, stream, workletReady: true, offset: inLatency + outLatency, from };
+    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from };
     return t0;
   }
 
-  async function stopRecording() {
-    const r = rec;
-    stop();
-    if (!r) return null;
-    try { r.input.disconnect(); r.node.disconnect(); r.sink.disconnect(); } catch { /* gone */ }
-    r.stream.getTracks().forEach((t) => t.stop());
-    rec = { workletReady: r.workletReady };
-    const c = audio();
-    const total = r.chunks.reduce((n, ch) => n + ch[0].length, 0);
+  function assemble(c, chunks, offset, from) {
+    const total = chunks.reduce((n, ch) => n + ch[0].length, 0);
     if (!total) return null;
     // Drop the samples the device's own delay put in front of the performance.
-    const drop = Math.min(total - 1, Math.round(r.offset * c.sampleRate));
+    const drop = Math.min(total - 1, Math.round(offset * c.sampleRate));
     const n = total - drop;
-    const chans = Math.max(...r.chunks.map((ch) => ch.length));
+    const chans = Math.max(...chunks.map((ch) => ch.length));
     const buf = c.createBuffer(Math.min(2, chans), n, c.sampleRate);
     for (let ci = 0; ci < buf.numberOfChannels; ci++) {
       const out = buf.getChannelData(ci);
       let w = -drop;
-      for (const ch of r.chunks) {
+      for (const ch of chunks) {
         const d = ch[ci] || ch[0];
         for (let i = 0; i < d.length; i++, w++) if (w >= 0) out[w] = d[i];
       }
@@ -331,7 +343,23 @@ export function createDaw() {
     const id = srcId();
     buffers.set(id, buf);
     peaks.set(id, computePeaks(buf, peakCount(buf)));
-    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(r.offset * 1000), from: r.from, silent: peak < 1e-4 };
+    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from, silent: peak < 1e-4 };
+  }
+
+  /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
+  async function stopRecording() {
+    const r = rec;
+    stop();
+    if (!r?.parts) return [];
+    for (const p of r.parts) { try { p.node.disconnect(); p.sink.disconnect(); p.extra.forEach((x) => x.disconnect()); } catch { /* gone */ } }
+    for (const s2 of r.sources) { try { s2.disconnect(); } catch { /* gone */ } }
+    r.streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
+    rec = { workletReady: r.workletReady };
+    const c = audio();
+    return r.parts.map((p) => {
+      const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from);
+      return t ? { key: p.key, ...t } : { key: p.key, empty: true };
+    });
   }
 
   /** Render the session offline from 0 to its end (+ a tail for reverb and delay). */
@@ -352,14 +380,14 @@ export function createDaw() {
 
   function destroy() {
     stopSources();
-    if (rec?.stream) rec.stream.getTracks().forEach((t) => t.stop());
+    if (rec?.streams) rec.streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
     if (ctx) ctx.close().catch(() => {});
     ctx = null;
   }
 
   return {
     decode, adopt, play, stop, position, setLive, meters, openMic, startRecording, stopRecording, bounce, toWav, destroy,
-    buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.node,
+    buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,
   };
 }

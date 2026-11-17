@@ -24,7 +24,7 @@ import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } fro
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
-  BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTrack, barsBeats, cleanSession, deletePlaylist,
+  BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid,
 } from "./session.js";
@@ -189,42 +189,75 @@ export default function Workspace({ workflow }) {
   };
   const restartIfPlaying = () => { if (playing && !recording) startPlay(headRef.current); };
 
+  // The inputs this device offers (labels appear once the browser has allowed a mic once).
+  const [devices, setDevices] = useState([]);
+  const refreshDevices = useCallback(() => {
+    navigator.mediaDevices?.enumerateDevices?.().then((ds) => setDevices(ds.filter((d) => d.kind === "audioinput" && d.deviceId !== "default")
+      .map((d, i) => ({ id: d.deviceId, label: d.label || `Input ${i + 1}` })))).catch(() => {});
+  }, []);
+  useEffect(() => {
+    refreshDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshDevices);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
+  }, [refreshDevices]);
+
   const record = async () => {
     setErr(""); setMsg("");
     if (recording) {
       setBusy("Finishing the take…");
       try {
-        const take = await daw.stopRecording();
+        const takes = await daw.stopRecording();
         setUnsaved(true); setRecording(false); setPlaying(false);
-        if (!take) { setErr("Nothing was captured — the microphone sent no sound."); return; }
-        if (take.silent) { setErr("That take is silent — check the microphone isn't muted, then record again. It was not added."); return; }
-        const armed = armedTrack(sRef.current);
-        if (!armed) return;
-        const name = `${armed.name} take`;
-        let kept = false;
+        const good = takes.filter((t) => !t.empty && !t.silent);
+        const byId = Object.fromEntries(sRef.current.tracks.map((t) => [t.id, t]));
+        const silent = takes.filter((t) => t.silent).map((t) => byId[t.key]?.name).filter(Boolean);
+        if (!good.length) { setErr(takes.some((t) => t.silent) ? "That take is silent — check the microphone isn't muted, then record again. It was not added." : "Nothing was captured — the microphone sent no sound."); return; }
+        let kept = 0, longest = 0;
         commit((s) => {
-          const withSrc = addSource(s, { id: take.id, name, duration: take.duration, channels: take.channels, rate: take.rate });
-          const out = recordInto(withSrc, armed.id, { src: take.id, at: take.from, name });
-          kept = out.keptPrevious;
-          return out.session;
+          let cur = s;
+          for (const take of good) {
+            const tr = byId[take.key];
+            if (!tr) continue;
+            const name = `${tr.name} take`;
+            cur = addSource(cur, { id: take.id, name, duration: take.duration, channels: take.channels, rate: take.rate });
+            const out = recordInto(cur, tr.id, { src: take.id, at: take.from, name });
+            if (out.keptPrevious) kept++;
+            cur = out.session;
+            longest = Math.max(longest, take.from + take.duration);
+          }
+          return cur;
         });
-        setPlayhead(take.from + take.duration);
-        const lined = take.offsetMs > 0 ? ` Lined up ${take.offsetMs} ms earlier for this device's own audio delay.` : "";
-        setMsg(`Recorded ${minSec(take.duration)} onto ${armed.name}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${lined}`);
-        try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+        setPlayhead(longest || playhead);
+        const names = good.map((t) => byId[t.key]?.name).filter(Boolean);
+        const lined = good[0].offsetMs > 0 ? ` Lined up ${good[0].offsetMs} ms earlier for this device's own audio delay.` : "";
+        setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
+        for (const take of good) {
+          try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+        }
       } catch (e) { setErr(e.message); } finally { setBusy(""); setTimeout(() => setUnsaved(false), 1500); }
       return;
     }
-    const armed = armedTrack(sRef.current);
-    if (!armed) { setErr("Arm a track first — press R on the track you want to record onto."); return; }
+    const armed = armedTracks(sRef.current);
+    if (!armed.length) { setErr("Arm a track first — press R on the track (or tracks) you want to record onto."); return; }
+    const clash = inputClash(armed);
+    if (clash) { setErr(`${clash[0].name} and ${clash[1].name} are set to the same input, so they'd record the same sound twice — give each its own input (a different device, or Left and Right of a stereo one).`); return; }
     try {
-      let stream;
-      try { stream = await daw.openMic(); } catch (e) {
-        const m = mediaError(e, false);
-        if (!m.retry) throw new Error(m.msg);
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // One stream per device; the tracks reading it take their own channel of it.
+      const streams = new Map();
+      for (const t of armed) {
+        const dev = t.input?.device || "";
+        if (streams.has(dev)) continue;
+        let stream;
+        try { stream = await daw.openMic(dev); } catch (e) {
+          const m = mediaError(e, false);
+          if (!m.retry) throw new Error(m.msg);
+          stream = await navigator.mediaDevices.getUserMedia({ audio: dev ? { deviceId: { exact: dev } } : true });
+        }
+        streams.set(dev, stream);
       }
-      await daw.startRecording(sRef.current, playhead, { click, stream });
+      refreshDevices();
+      await daw.startRecording(sRef.current, playhead, { click,
+        inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); }
   };
@@ -358,7 +391,9 @@ export default function Workspace({ workflow }) {
   };
 
   const len = lengthOf(session);
-  const armed = armedTrack(session);
+  const armedAll = armedTracks(session);
+  const armed = armedAll[0] || null;
+  const armedNames = armedAll.length > 2 ? `${armedAll.length} tracks` : armedAll.map((t) => t.name).join(" + ");
 
   return (
     <div className="space-y-3" style={skinFilter(skin) ? { filter: skinFilter(skin) } : undefined}>
@@ -404,8 +439,8 @@ export default function Workspace({ workflow }) {
           : <button type="button" className="neon-btn-primary !w-auto px-3" onClick={() => startPlay()} disabled={recording}><Play size={14} /> Play</button>}
         <button type="button" onClick={record} disabled={!!busy && !recording}
                 className={`!w-auto rounded-full px-3 py-1.5 font-semibold ${recording ? "animate-pulse bg-red-600 text-white" : "border border-red-500/60 text-red-300"}`}
-                title={armed ? `Records onto ${armed.name}` : "Arm a track first (R)"}>
-          <Circle size={12} className="mr-1 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armed.name}` : "Record"}
+                title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
+          <Circle size={12} className="mr-1 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
@@ -476,6 +511,7 @@ export default function Workspace({ workflow }) {
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
+          devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
           onAddTrack={() => commit((s) => addTrack(s))}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {

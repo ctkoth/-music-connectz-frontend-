@@ -133,7 +133,7 @@ test("deleting a playlist keeps at least one, and drops audio nothing plays any 
   assert.deepEqual(Object.keys(s.sources), []);
 });
 
-test("solo wins over mute, and only one track is armed at a time", () => {
+test("solo wins over mute, and arming is per track", () => {
   let s = addTrack(addTrack(newSession()));
   const [a, b, c] = s.tracks.map((t) => t.id);
   s = setTrack(s, a, { mute: true });
@@ -141,8 +141,8 @@ test("solo wins over mute, and only one track is armed at a time", () => {
   s = setTrack(s, c, { solo: true });
   assert.deepEqual(audible(s).map((t) => t.id), [c]);
   s = armTrack(armTrack(s, a), b);
-  assert.equal(armedTrack(s).id, b);
-  assert.equal(s.tracks.filter((t) => t.armed).length, 1);
+  assert.equal(armedTrack(s).id, a);
+  assert.equal(s.tracks.filter((t) => t.armed).length, 2);
 });
 
 test("the last track cannot be removed", () => {
@@ -227,4 +227,21 @@ test("recording into empty space just adds the take", () => {
   assert.equal(keptPrevious, false);
   assert.equal(session.tracks[0].playlists.length, 1);
   assert.equal(regionsOf(session.tracks[0])[0].at, 3);
+});
+
+import { armTrack as armT, armedTracks as armedTs, inputClash as clash, newSession as newS, addTrack as addT, setTrack as setT } from "./session.js";
+
+test("several tracks can be armed, and two on the same input are named as a clash", () => {
+  let s = addT(addT(newS()));
+  const [a, b, c] = s.tracks.map((t) => t.id);
+  s = armT(armT(s, a), b);
+  assert.deepEqual(armedTs(s).map((t) => t.id), [a, b]);
+  assert.ok(clash(armedTs(s)), "both on the default mic");
+  s = setT(setT(s, a, { input: { device: "", channel: "left" } }), b, { input: { device: "", channel: "right" } });
+  assert.equal(clash(armedTs(s)), null, "left and right of one device are two inputs");
+  s = setT(s, b, { input: { device: "usb", channel: "both" } });
+  assert.equal(clash(armedTs(s)), null);
+  s = armT(s, a);
+  assert.deepEqual(armedTs(s).map((t) => t.id), [b]);
+  void c;
 });

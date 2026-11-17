@@ -43,8 +43,15 @@ export function newTrack(n = 1, name) {
   return {
     id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length],
     gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [],
+    input: { device: "", channel: "both" },
     playlists: [{ id: uid("p"), name: "Take 1", regions: [] }], active: 0,
   };
+}
+
+const CHANNELS = ["both", "left", "right"];
+/** A track's recording input: a device id ("" = the default mic) and which of its channels. */
+export function cleanInput(i) {
+  return { device: typeof i?.device === "string" ? i.device.slice(0, 200) : "", channel: CHANNELS.includes(i?.channel) ? i.channel : "both" };
 }
 
 export function newSession(name = "Untitled session") {
@@ -149,16 +156,30 @@ export function setTrack(s, id, patch) {
     out.gain = clamp(num(out.gain, 0), GAIN_DB.min, GAIN_DB.max);
     out.pan = clamp(num(out.pan, 0), -1, 1);
     out.name = String(out.name || t.name).slice(0, 40);
+    out.input = cleanInput(out.input);
     return out;
   });
 }
 
-/** Arm ONE track at a time: recording into two at once from one mic is two copies of one take. */
+/** Arm or disarm one track. Several may be armed at once — a band, or an interface's channels — as
+ *  long as each records its own input (`inputClash` says when two would record the same sound). */
 export function armTrack(s, id) {
-  return { ...s, tracks: s.tracks.map((t) => ({ ...t, armed: t.id === id ? !t.armed : false })) };
+  return { ...s, tracks: s.tracks.map((t) => (t.id === id ? { ...t, armed: !t.armed } : t)) };
 }
 
 export const armedTrack = (s) => s.tracks.find((t) => t.armed) || null;
+export const armedTracks = (s) => s.tracks.filter((t) => t.armed);
+
+/** Two armed tracks on the same input (same device, overlapping channel) would be two copies of one
+ *  take: the pair, so the screen can say which, or null. Left and right of one device do not clash. */
+export function inputClash(tracks) {
+  for (let i = 0; i < tracks.length; i++) for (let j = i + 1; j < tracks.length; j++) {
+    const a = cleanInput(tracks[i].input), b = cleanInput(tracks[j].input);
+    if (a.device !== b.device) continue;
+    if (a.channel === "both" || b.channel === "both" || a.channel === b.channel) return [tracks[i], tracks[j]];
+  }
+  return null;
+}
 
 /** Register a source (a decoded file or a recording) so regions can point at it. */
 export function addSource(s, { id, name, duration, channels = 2, rate = 48000 }) {
@@ -341,6 +362,7 @@ export function cleanSession(raw) {
       ...d, ...t, id: String(t?.id || d.id), name: String(t?.name || d.name).slice(0, 40),
       gain: clamp(num(t?.gain, 0), GAIN_DB.min, GAIN_DB.max), pan: clamp(num(t?.pan, 0), -1, 1),
       mute: !!t?.mute, solo: !!t?.solo, armed: false, inserts: Array.isArray(t?.inserts) ? t.inserts : [],
+      input: cleanInput(t?.input),
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });

@@ -63,7 +63,7 @@ export function Playhead({ position, zoom, height }) {
 
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
-  onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording,
+  onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput,
 }) {
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
   const total = Math.max(60, endOfSession(session) + 30);
@@ -140,6 +140,20 @@ export default function EditWindow({
                       onClick={() => onTrack(t.id, { solo: !t.solo })}>S</button>
               <button type="button" aria-pressed={t.mute} className={`rounded px-1.5 py-0.5 ${t.mute ? "bg-sky-500 text-black" : "bg-white/10 text-white/60"}`}
                       onClick={() => onTrack(t.id, { mute: !t.mute })}>M</button>
+              {t.armed && onInput && (
+                // Which input this armed track records: a device, and both channels or one of them —
+                // so a stereo interface's two inputs can be two tracks recorded at once.
+                <select className="min-w-0 flex-1 rounded bg-red-900/40 px-1 py-0.5 text-[10px] font-normal text-white/90" data-nomemo="true"
+                        aria-label={`${t.name} input`} disabled={recording} title="Record from"
+                        value={`${t.input?.device || ""}|${t.input?.channel || "both"}`}
+                        onChange={(e) => { const [device, channel] = e.target.value.split("|"); onInput(t.id, { device, channel }); }}>
+                  {[{ id: "", label: "Default mic" }, ...devices].flatMap((d) => [
+                    <option key={`${d.id}|both`} value={`${d.id}|both`}>{d.label}</option>,
+                    <option key={`${d.id}|left`} value={`${d.id}|left`}>{d.label} · left</option>,
+                    <option key={`${d.id}|right`} value={`${d.id}|right`}>{d.label} · right</option>,
+                  ])}
+                </select>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <select className="min-w-0 flex-1 rounded bg-white/10 px-1 py-0.5 text-[10px] text-white/80" data-nomemo="true"
