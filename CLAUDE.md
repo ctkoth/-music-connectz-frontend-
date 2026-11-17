@@ -2218,11 +2218,11 @@ Everything runs on the member's device; nothing is uploaded until Save to FileZ.
   erases; Free draws at full size like a mouse. Premium because the pressure costs us nothing to
   serve, is a capability on top of one everybody has, and gives Premium a reason of its own in an app
   where StatZ already holds the erasers — and the people with a Wacom are the members most likely to pay.
-- **Premium also holds layer styles and the creative filters** (noise, pixelate, posterize,
-  threshold, vignette, emboss). The rule behind every ImageZ gate: FIXING a picture is every tier's
-  (sharpen, blur, levels, curves, dodge and burn, the bucket, crop, image size), DECORATION and
-  finesse is Premium's, SPEED and automation is StatZ's. A style already on a layer keeps showing
-  after a lapse; only editing it locks.
+- **Every list ladders by the same numbers (Corey's call):** filters, blend modes and adjustment
+  presets give a tier the first `imagez_layers` entries (Free 3, Premium 6, StatZ all), so each list
+  keeps its everyday entries first. The paint bucket and layer styles are Premium (Corey: bucket; mine:
+  styles, as decoration). Fill inside a selection stays free. A style or blend already on a layer keeps
+  showing after a lapse; only choosing it again locks.
 - **AI background removal is StatZ-only** (Corey's call) and is not built: it needs a provider and a price.
 - Driven in headless Chromium: text with a drop shadow, a brush stroke, moving a layer, grouping,
   a marquee, zoom and history, no console errors. Not checked with a real pen, on a phone or in Safari.

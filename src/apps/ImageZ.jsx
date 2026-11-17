@@ -48,8 +48,10 @@ import { FILTERS, applyFilter, bucketFill, toneDab } from "../imageedit/filters.
 import { backgroundDab, dabsAlong, magicErase, sample } from "../imageedit/pixels.js";
 
 const HISTORY = 60;
-// Filters that fix a picture are every tier's; the rest are Premium's creative ones.
-const CORRECTIVE = new Set(["sharpen", "blur"]);
+// Corey's rule for every list in ImageZ: a tier may use as many entries as it may hold layers
+// (Free 3, Premium 6, StatZ all), counted from the top of the list — so each list is ordered
+// with the everyday entries first.
+const firstN = (list, n) => (n == null ? list : list.slice(0, Math.max(0, n)));
 
 /** A history row's words, worked out from what changed — so no edit needs to remember to name itself. */
 function describe(a, b) {
@@ -343,6 +345,16 @@ export default function ImageZ() {
   // finesse. Fixing a picture (sharpen, blur, levels, dodge and burn, the bucket) is every tier's.
   const premiumOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
   const pressureOn = premiumOn;
+  // How many entries of each list (filters, blend modes, presets) — the same served number as layers.
+  // Unknown until /limits/ answers, which offers everything rather than guessing a number.
+  const listCap = cap === undefined ? null : cap;
+  const okFilters = new Set(firstN(Object.keys(FILTERS), listCap));
+  const okBlends = new Set(firstN(BLENDS.map(([k]) => k), listCap));
+  const okPresets = new Set(firstN(Object.keys(PRESETS), listCap));
+  const upsell = (what) => (
+    <p className="text-mcz-gold">{what} — {TIER_LABEL[lim?.tier] || "your tier"} has the first {listCap}.{" "}
+      <button className="re-link" onClick={() => goToSpot("membershipz", "")}>{nextCap ? `Premium has ${nextCap}, StatZ all` : "StatZ has all"}</button></p>
+  );
   const pressureOf = (e) => (e.pointerType === "pen" && pressureOn ? (e.pressure || 0.01) : undefined);
   // The pixel erasers turn the layer into a picture of itself (opacity, blend and mask kept), then edit pixels.
   const pixelTarget = () => {
@@ -437,6 +449,7 @@ export default function ImageZ() {
       setSelection(wandSel(im, p[0], p[1], wand), modeOf(e));
       return;
     }
+    if (tool === "bucket" && !premiumOn) { setErr("The paint bucket is Premium. Fill inside a selection is free (Selection → Fill)."); return; }
     if (tool === "bucket") {
       // On a fill layer with no selection, the bucket simply recolours it.
       if (layer?.kind === "fill" && !liveSel() && !layer.locked) { patch({ color: brush.color }); setErr(""); return; }
@@ -843,6 +856,7 @@ export default function ImageZ() {
               <label className="flex items-center gap-1">Tolerance <input type="range" min="0" max="100" value={wand.tolerance} onChange={(e) => setWand({ ...wand, tolerance: +e.target.value })} /> {wand.tolerance}%</label>
               <label className="flex items-center gap-1"><input type="checkbox" checked={wand.contiguous} onChange={(e) => setWand({ ...wand, contiguous: e.target.checked })} /> Connected only</label>
               <span className="text-white/50">Click to fill the area like that spot on the selected layer.</span>
+              {!premiumOn && <span className="text-mcz-gold">The bucket is Premium. <button className="re-link" onClick={() => goToSpot("membershipz", "")}>See Premium</button></span>}
             </div>
           )}
           {tool === "tone" && (
@@ -1007,7 +1021,7 @@ export default function ImageZ() {
               <label className="flex items-center gap-2">Opacity <input type="range" min="0" max="100" value={layer.opacity} onChange={(e) => patch({ opacity: +e.target.value })} className="flex-1" /> {layer.opacity}%</label>
               <label className="flex items-center gap-2">Blend
                 <select className="neon-input" data-nomemo="true" value={layer.blend} onChange={(e) => patch({ blend: e.target.value })}>
-                  {BLENDS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  {BLENDS.map(([k, label]) => <option key={k} value={k} disabled={!okBlends.has(k) && k !== layer.blend}>{label}{okBlends.has(k) ? "" : " — upgrade"}</option>)}
                 </select>
               </label>
               <div className="flex flex-wrap items-center gap-2">
@@ -1133,7 +1147,7 @@ export default function ImageZ() {
                 <div className="mt-2 space-y-1">
                   <select className="neon-input" data-nomemo="true" value="" onChange={(e) => e.target.value && patch({ adj: PRESETS[e.target.value] })}>
                     <option value="">Preset…</option>
-                    {Object.keys(PRESETS).map((k) => <option key={k} value={k}>{k}</option>)}
+                    {Object.keys(PRESETS).map((k) => <option key={k} value={k} disabled={!okPresets.has(k)}>{k}{okPresets.has(k) ? "" : " — upgrade"}</option>)}
                   </select>
                   {Object.keys(ADJ0).map((k) => (
                     <label key={k} className="flex items-center gap-2">
@@ -1190,19 +1204,18 @@ export default function ImageZ() {
               const f = FILTERS[e.target.value];
               setFilt({ key: e.target.value, amount: f.amount?.[2] ?? 50, radius: f.radius?.[2] ?? 4 });
             }}>
-              {Object.entries(FILTERS).map(([k, f]) => <option key={k} value={k}>{f.label}{CORRECTIVE.has(k) || premiumOn ? "" : " — Premium"}</option>)}
+              {Object.entries(FILTERS).map(([k, f]) => <option key={k} value={k}>{f.label}{okFilters.has(k) ? "" : " — upgrade"}</option>)}
             </select>
             {FILTERS[filt.key].amount && <label className="flex items-center gap-2">Amount <input type="range" min={FILTERS[filt.key].amount[0]} max={FILTERS[filt.key].amount[1]} value={filt.amount} onChange={(e) => setFilt({ ...filt, amount: +e.target.value })} className="flex-1" /> {filt.amount}</label>}
             {FILTERS[filt.key].radius && <label className="flex items-center gap-2">Radius <input type="range" min={FILTERS[filt.key].radius[0]} max={FILTERS[filt.key].radius[1]} value={filt.radius} onChange={(e) => setFilt({ ...filt, radius: +e.target.value })} className="flex-1" /> {filt.radius}px</label>}
-            {CORRECTIVE.has(filt.key) || premiumOn ? (
+            {okFilters.has(filt.key) ? (
               <button className="re-btn" onClick={() => {
                 const t = pixelTarget(); if (!t) return;
                 applyFilter(t.img, filt.key, filt, liveSel());
                 t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message));
               }}>Apply {FILTERS[filt.key].label}{liveSel() ? " inside the selection" : ""}</button>
             ) : (
-              <p className="text-mcz-gold">{FILTERS[filt.key].label} is a Premium filter — sharpen and blur are free at every tier.{" "}
-                <button className="re-link" onClick={() => goToSpot("membershipz", "")}>See Premium</button></p>
+              upsell(`${FILTERS[filt.key].label} isn't in your filters`)
             )}
           </div>
 
