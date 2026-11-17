@@ -18,6 +18,9 @@ import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
 import MidiImport from "./MidiImport.jsx";
+import LoopLibrary from "./LoopLibrary.jsx";
+import KeyActions from "./KeyActions.jsx";
+import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } from "./keymap.js";
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
@@ -33,7 +36,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
-const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI" };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI", loops: "Loops", actions: "Actions" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -290,16 +293,27 @@ export default function Workspace({ workflow }) {
   const del = () => { if (sel) { commit((s) => removeRegion(s, sel.region.id)); setSelected(null); } };
 
   // ---- keys ----
+  // The shortcuts are a map every DAW reads (defaults unless changed); Azrael is where it is edited.
+  const [keymap, setKeymapRaw] = useState(() => loadKeymap(workflow.app));
+  const setKeymap = (m) => { setKeymapRaw(m); saveKeymap(workflow.app, m); };
+  const [skin, setSkinRaw] = useState(() => loadSkin(workflow.app));
+  const setSkin = (k) => { setSkinRaw(k); saveSkin(workflow.app, k); };
   useEffect(() => {
     const onKey = (e) => {
       // Mounted but hidden behind another app: its keys are that app's keys.
       if (!onScreen) return;
       if (e.target.closest?.("input, select, textarea")) return;
-      if (e.code === "Space") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else startPlay(); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
-      else if ((e.key === "Delete" || e.key === "Backspace") && selected) { e.preventDefault(); del(); }
-      else if (e.key.toLowerCase() === "b" && selected) split();
-      else if (e.key === "Enter") seek(0);
+      const act = actionFor(keymap, e);
+      if (!act) return;
+      if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else startPlay(); }
+      else if (act === "record") { e.preventDefault(); record(); }
+      else if (act === "undo") { e.preventDefault(); undo(); }
+      else if (act === "redo") { e.preventDefault(); redo(); }
+      else if (act === "delete" && selected) { e.preventDefault(); del(); }
+      else if (act === "split" && selected) split();
+      else if (act === "home") seek(0);
+      else if (act === "addtrack") commit((s) => addTrack(s));
+      else if (act === "bounce") { e.preventDefault(); bounce(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -347,7 +361,7 @@ export default function Workspace({ workflow }) {
   const armed = armedTrack(session);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" style={skinFilter(skin) ? { filter: skinFilter(skin) } : undefined}>
       <header className="flex items-center gap-3">
         <IconImg icon={workflow.icon} alt={workflow.name} className="h-14 w-14 rounded-2xl shadow-neon"
                  fallback={<span className="text-4xl">{workflow.emoji}</span>} />
@@ -437,7 +451,12 @@ export default function Workspace({ workflow }) {
         )}
       </div>
 
-      {view === "midi" ? (
+      {view === "loops" ? (
+        <LoopLibrary daw={daw} bpm={session.bpm} busy={busy}
+                     onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />
+      ) : view === "actions" ? (
+        <KeyActions keymap={keymap} onKeymap={setKeymap} skin={skin} onSkin={setSkin} />
+      ) : view === "midi" ? (
         <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}
                     onBpm={(v) => { if (!recording) commit((s) => setSession(s, { bpm: v })); }}
                     onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />

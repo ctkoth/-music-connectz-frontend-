@@ -33,7 +33,7 @@ const ICON_KEY = {
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
-  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", dawz: "dawz.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
@@ -47,7 +47,7 @@ const EMOJI = {
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", dawz: "🎛️",
+  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", witchcraft: "🔮", azrael: "☠️", dawz: "🎛️",
   filez: "🗂️",
 };
 
