@@ -1,6 +1,6 @@
 // Draws an ImageZ document onto a 2D canvas. The preview and the export call
 // the same function, so what was approved on screen is what the file holds.
-import { filterOf } from "./layers.js";
+import { effective, filterOf, hasStyle } from "./layers.js";
 
 /** Load an image from a URL into an <img>, resolved once it can be drawn. */
 export function loadImage(src) {
@@ -144,50 +144,84 @@ function body(ctx, doc, l, images) {
   }
 }
 
-/** One layer, with its own opacity, blend, transform, adjustments and mask. */
-export function drawLayer(ctx, doc, l, images) {
-  if (!l.visible || !l.opacity) return;
+/** One layer, with its own opacity, blend, transform, adjustments, mask and styles. */
+export function drawLayer(ctx, doc, l, images, eff = null) {
+  const visible = eff ? eff.visible : l.visible, opacity = eff ? eff.opacity : l.opacity;
+  if (!visible || !opacity) return;
   const f = filterOf(l.adj);
   const masked = l.mask && l.mask.on && (l.mask.strokes.length || l.mask.fade || l.mask.src);
-  if (!masked) {
+  const styled = hasStyle(l);
+  if (!masked && !styled) {
     ctx.save();
-    ctx.globalAlpha = l.opacity / 100;
+    ctx.globalAlpha = opacity / 100;
     ctx.globalCompositeOperation = l.blend;
     if (f) ctx.filter = f;
     body(ctx, doc, l, images);
     ctx.restore();
     return;
   }
-  // Masked: draw the layer alone, keep only where the mask is white, then composite it.
+  // The layer alone first (masked if it has one), so its styles are drawn from its real outline.
   const [lc, lx] = scratch("layer", doc.w, doc.h);
   if (f) lx.filter = f;
   lx.save(); body(lx, doc, l, images); lx.restore();
-  const [mc, mx] = scratch("mask", doc.w, doc.h);
-  const fade = l.mask.fade;
-  if (fade) {
-    // A gradient mask: white (shown) at `from`%, fading to `to`%, so the layer melts away.
-    let g;
-    if (fade.style === "radial") g = mx.createRadialGradient(doc.w / 2, doc.h / 2, 0, doc.w / 2, doc.h / 2, Math.hypot(doc.w, doc.h) / 2);
-    else {
-      const r = (fade.angle * Math.PI) / 180, cx = doc.w / 2, cy = doc.h / 2;
-      const half = (Math.abs(doc.w * Math.cos(r)) + Math.abs(doc.h * Math.sin(r))) / 2;
-      g = mx.createLinearGradient(cx - Math.cos(r) * half, cy - Math.sin(r) * half, cx + Math.cos(r) * half, cy + Math.sin(r) * half);
-    }
-    g.addColorStop(0, `rgba(255,255,255,${fade.from / 100})`);
-    g.addColorStop(1, `rgba(255,255,255,${fade.to / 100})`);
-    mx.fillStyle = g;
-  } else mx.fillStyle = "#fff";
-  mx.fillRect(0, 0, doc.w, doc.h);
-  const pic = l.mask.src && images.get(l.mask.src);
-  if (pic) { mx.globalCompositeOperation = "destination-in"; mx.drawImage(pic, 0, 0, doc.w, doc.h); mx.globalCompositeOperation = "source-over"; }
-  drawStrokes(mx, l.mask.strokes, maskStyle);
   lx.filter = "none";
-  lx.globalCompositeOperation = "destination-in";
-  lx.drawImage(mc, 0, 0);
+  if (masked) {
+    const [mc, mx] = scratch("mask", doc.w, doc.h);
+    const fade = l.mask.fade;
+    if (fade) {
+      // A gradient mask: white (shown) at `from`%, fading to `to`%, so the layer melts away.
+      let g;
+      if (fade.style === "radial") g = mx.createRadialGradient(doc.w / 2, doc.h / 2, 0, doc.w / 2, doc.h / 2, Math.hypot(doc.w, doc.h) / 2);
+      else {
+        const r = (fade.angle * Math.PI) / 180, cx = doc.w / 2, cy = doc.h / 2;
+        const half = (Math.abs(doc.w * Math.cos(r)) + Math.abs(doc.h * Math.sin(r))) / 2;
+        g = mx.createLinearGradient(cx - Math.cos(r) * half, cy - Math.sin(r) * half, cx + Math.cos(r) * half, cy + Math.sin(r) * half);
+      }
+      g.addColorStop(0, `rgba(255,255,255,${fade.from / 100})`);
+      g.addColorStop(1, `rgba(255,255,255,${fade.to / 100})`);
+      mx.fillStyle = g;
+    } else mx.fillStyle = "#fff";
+    mx.fillRect(0, 0, doc.w, doc.h);
+    const pic = l.mask.src && images.get(l.mask.src);
+    if (pic) { mx.globalCompositeOperation = "destination-in"; mx.drawImage(pic, 0, 0, doc.w, doc.h); mx.globalCompositeOperation = "source-over"; }
+    drawStrokes(mx, l.mask.strokes, maskStyle);
+    lx.globalCompositeOperation = "destination-in";
+    lx.drawImage(mc, 0, 0);
+    lx.globalCompositeOperation = "source-over";
+  }
+  let out = lc;
+  if (styled) {
+    const st = l.style;
+    const [sc, sx] = scratch("styled", doc.w, doc.h);
+    const FAR = 4 * Math.max(doc.w, doc.h);
+    // A shadow of the outline alone: the layer is drawn far off the canvas and only its shadow lands.
+    const shadowOnly = (color, blur, x, y, alpha) => {
+      sx.save();
+      sx.globalAlpha = alpha; sx.shadowColor = color; sx.shadowBlur = blur; sx.shadowOffsetX = x + FAR; sx.shadowOffsetY = y;
+      sx.drawImage(lc, -FAR, 0);
+      sx.restore();
+    };
+    if (st.shadow.on) shadowOnly(st.shadow.color, st.shadow.blur, st.shadow.x, st.shadow.y, st.shadow.opacity / 100);
+    if (st.glow.on) { shadowOnly(st.glow.color, st.glow.blur, 0, 0, st.glow.opacity / 100); shadowOnly(st.glow.color, st.glow.blur / 2, 0, 0, st.glow.opacity / 100); }
+    if (st.stroke.on) {
+      // The outline grown by `width` (the layer stamped round a circle), then coloured.
+      const [kc, kx] = scratch("stroke", doc.w, doc.h);
+      const w = st.stroke.width, steps = Math.max(12, Math.round(w * 3));
+      for (let k = 0; k < steps; k++) {
+        const a = (k / steps) * Math.PI * 2;
+        kx.drawImage(lc, Math.cos(a) * w, Math.sin(a) * w);
+      }
+      kx.globalCompositeOperation = "source-in";
+      kx.fillStyle = st.stroke.color; kx.fillRect(0, 0, doc.w, doc.h);
+      sx.drawImage(kc, 0, 0);
+    }
+    sx.drawImage(lc, 0, 0);
+    out = sc;
+  }
   ctx.save();
-  ctx.globalAlpha = l.opacity / 100;
+  ctx.globalAlpha = opacity / 100;
   ctx.globalCompositeOperation = l.blend;
-  ctx.drawImage(lc, 0, 0);
+  ctx.drawImage(out, 0, 0);
   ctx.restore();
 }
 
@@ -205,7 +239,7 @@ export function renderDoc(ctx, doc, images, { checker = false, only = null } = {
   for (let i = doc.layers.length - 1; i >= 0; i--) {
     const l = doc.layers[i];
     if (only && !only.has(l.id)) continue;
-    drawLayer(ctx, doc, l, images);
+    drawLayer(ctx, doc, l, images, effective(doc, l));
   }
 }
 
@@ -227,7 +261,7 @@ export function exportDoc(doc, images, type = "image/png", quality = 0.92, only 
 export function rasterize(doc, l, images) {
   const c = document.createElement("canvas");
   c.width = doc.w; c.height = doc.h;
-  drawLayer(c.getContext("2d"), doc, { ...l, visible: true, opacity: 100, blend: "source-over", mask: null }, images);
+  drawLayer(c.getContext("2d"), doc, { ...l, visible: true, opacity: 100, blend: "source-over", mask: null, style: null }, images);
   return c;
 }
 

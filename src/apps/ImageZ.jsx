@@ -4,7 +4,8 @@
 // adjustments; move, brush, eraser, magic eraser, background eraser, shapes,
 // eyedropper and crop; selections (marquee, lasso, magic wand; add, subtract, invert,
 // feather; copy, cut, paste, fill, to a mask); Levels and Curves; clone, blur and smudge
-// brushes; gradient fades on masks; opacity graded down the stack; undo; keyboard
+// brushes; layer groups; layer styles (shadow, glow, stroke); free transform with
+// handles; snapping guides; zoom and pan; a history panel; gradient fades on masks; opacity graded down the stack; undo; keyboard
 // shortcuts; and a project file that reopens with every layer intact. A pen tablet (Wacom and the like) draws with pressure, and the
 // pen's eraser end erases.
 //
@@ -23,7 +24,7 @@ import {
   ArrowDown, ArrowUp, Brush, Copy, Crop, Download, Eraser, Eye, EyeOff, FolderOpen, ImagePlus, Layers, Lock,
   Blend, Contrast, FileDown, FileUp, FlipHorizontal, FlipVertical, Merge, Move, PaintBucket, Palette, Pipette, Plus,
   Redo2, Save, Shapes, Trash2, Type, Undo2, Unlock, Wand, WandSparkles,
-  Droplets, Fingerprint, Lasso, MousePointerSquareDashed, Stamp, BoxSelect,
+  Droplets, Fingerprint, Lasso, Folder, FolderOpen as FolderOpenIcon, History, Maximize, Sparkles, ZoomIn, ZoomOut, MousePointerSquareDashed, Stamp, BoxSelect,
 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
@@ -32,7 +33,7 @@ import Doors from "../components/Doors.jsx";
 import {
   ADJ0, ADJ_RANGE, BLENDS, FONTS, GOOGLE_FONTS_URL, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
-  shapeFromDrag, toProject, uid, updateLayer,
+  shapeFromDrag, toProject, uid, updateLayer, boxOf, effective, groupLayers, ungroup, updateGroup, snap,
 } from "../imageedit/layers.js";
 import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc, selCanvas, selOverlay } from "../imageedit/render.js";
 import {
@@ -45,6 +46,23 @@ import { goToSpot } from "../goto.js";
 import { backgroundDab, dabsAlong, magicErase, sample } from "../imageedit/pixels.js";
 
 const HISTORY = 60;
+
+/** A history row's words, worked out from what changed — so no edit needs to remember to name itself. */
+function describe(a, b) {
+  if (a.w !== b.w || a.h !== b.h) return `Canvas ${b.w}×${b.h}`;
+  if (b.layers.length > a.layers.length) return `Add ${b.layers.find((l) => !a.layers.some((x) => x.id === l.id))?.name || "layer"}`;
+  if (b.layers.length < a.layers.length) return `Delete ${a.layers.find((l) => !b.layers.some((x) => x.id === l.id))?.name || "layer"}`;
+  if (JSON.stringify(a.groups || {}) !== JSON.stringify(b.groups || {})) return "Groups";
+  if (a.layers.some((l, i) => l.id !== b.layers[i].id)) return "Reorder layers";
+  for (let i = 0; i < b.layers.length; i++) {
+    const x = a.layers[i], y = b.layers[i];
+    if (x === y) continue;
+    const key = Object.keys(y).find((k) => JSON.stringify(x[k]) !== JSON.stringify(y[k]));
+    const words = { strokes: "paint", src: "pixels", x: "move", y: "move", adj: "adjust", style: "style", mask: "mask", opacity: "opacity", kind: "pixels" };
+    return `${y.name}: ${words[key] || key || "edit"}`;
+  }
+  return "Edit";
+}
 const SIZES = [["1080×1080 · square post", 1080, 1080], ["1080×1920 · story", 1080, 1920], ["1920×1080 · cover", 1920, 1080], ["3000×3000 · album art", 3000, 3000]];
 const ADJ_LABEL = { brightness: "Brightness", contrast: "Contrast", saturate: "Saturation", hue: "Hue", blur: "Blur", grayscale: "Grayscale", sepia: "Sepia", invert: "Invert" };
 
@@ -124,13 +142,15 @@ export default function ImageZ() {
   const canvas = useRef(null);
   const images = useRef(new Map());
   const drag = useRef(null);
+  const handlesRef = useRef(null);
   const docRef = useRef(doc);
   docRef.current = doc;
 
   const commit = useCallback((fn) => {
     setDoc((d) => {
-      const next = fn(d);
+      let next = fn(d);
       if (next === d) return d;
+      next = { ...next, _label: describe(d, next) };
       setPast((p) => [...p.slice(-HISTORY + 1), d]);
       setFuture([]);
       setResult(null); setSaved(null);
@@ -139,6 +159,16 @@ export default function ImageZ() {
   }, []);
   const undo = () => past.length && (setFuture((f) => [doc, ...f]), setDoc(past.at(-1)), setPast((p) => p.slice(0, -1)));
   const redo = () => future.length && (setPast((p) => [...p, doc]), setDoc(future[0]), setFuture((f) => f.slice(1)));
+  // History panel: jump to any earlier (or undone) state; everything after it stays redoable.
+  const jumpTo = (i) => {
+    const list = [...past, doc, ...future];
+    if (i < 0 || i >= list.length) return;
+    setPast(list.slice(0, i)); setDoc(list[i]); setFuture(list.slice(i + 1));
+  };
+  const [picked, setPicked] = useState([]);
+  const [zoom, setZoom] = useState(null);   // null = fit the screen
+  const scroller = useRef(null);
+  const space = useRef(false);
 
   const draw = useCallback((d = docRef.current) => {
     const c = canvas.current;
@@ -162,6 +192,23 @@ export default function ImageZ() {
       renderDoc(ctx, replaceLayer(d, live.id, { ...live.layer, kind: "image", src: live.key, x: 0, y: 0, scale: 1, rotate: 0, flipX: false, flipY: false, adj: null, w: d.w, h: d.h }), images.current, { checker: true });
     }
     if (overlay.current && overlay.current.width === d.w && overlay.current.height === d.h) ctx.drawImage(overlay.current, 0, 0);
+    if (live?.guides) {
+      ctx.save(); ctx.strokeStyle = "#ff2fb4"; ctx.lineWidth = Math.max(1, d.w / 800);
+      for (const x of live.guides.v) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, d.h); ctx.stroke(); }
+      for (const y of live.guides.h) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(d.w, y); ctx.stroke(); }
+      ctx.restore();
+    }
+    const tl = handlesRef.current?.();
+    if (tl) {
+      ctx.save();
+      ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = tl.hs / 5; ctx.setLineDash([tl.hs / 2, tl.hs / 3]);
+      ctx.strokeRect(tl.b.x, tl.b.y, tl.b.w, tl.b.h);
+      ctx.setLineDash([]); ctx.fillStyle = "#0b0b14";
+      for (const [hx, hy] of tl.corners) { ctx.fillRect(hx - tl.hs / 2, hy - tl.hs / 2, tl.hs, tl.hs); ctx.strokeRect(hx - tl.hs / 2, hy - tl.hs / 2, tl.hs, tl.hs); }
+      ctx.beginPath(); ctx.moveTo(tl.b.x + tl.b.w / 2, tl.b.y); ctx.lineTo(...tl.rot); ctx.stroke();
+      ctx.beginPath(); ctx.arc(...tl.rot, tl.hs / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
     if (live?.kind === "marquee" || live?.kind === "lasso") {
       ctx.save();
       ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = Math.max(1.5, d.w / 600); ctx.setLineDash([8, 6]);
@@ -260,6 +307,16 @@ export default function ImageZ() {
   };
 
   const layer = sel ? layerOf(doc, sel) : null;
+  // Free transform: the selected layer's box, four corner handles (scale) and one above (rotate).
+  const handles = () => {
+    const c = canvas.current;
+    if (tool !== "move" || !layer || layer.locked || layer.kind === "fill" || layer.kind === "gradient" || !c) return null;
+    const b = boxOf(layer, doc);
+    if (!b) return null;
+    const hs = Math.max(8, (doc.w / Math.max(1, c.getBoundingClientRect().width)) * 12);
+    return { b, hs, corners: [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]], rot: [b.x + b.w / 2, b.y - hs * 3] };
+  };
+  handlesRef.current = handles;
   const patch = (p) => sel && commit((d) => updateLayer(d, sel, p));
   const add = (spec) => {
     if (!roomFor()) return;
@@ -273,7 +330,10 @@ export default function ImageZ() {
     const r = canvas.current.getBoundingClientRect();
     return [((e.clientX - r.left) / r.width) * doc.w, ((e.clientY - r.top) / r.height) * doc.h];
   };
-  const pressureOf = (e) => (e.pointerType === "pen" ? (e.pressure || 0.01) : undefined);
+  // Pen pressure is Premium's (Corey asked; Premium is the pick — see CLAUDE.md). A pen still draws
+  // and still erases with its eraser end at every tier; Free draws at full size, like a mouse.
+  const pressureOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
+  const pressureOf = (e) => (e.pointerType === "pen" && pressureOn ? (e.pressure || 0.01) : undefined);
   // The pixel erasers turn the layer into a picture of itself (opacity, blend and mask kept), then edit pixels.
   const pixelTarget = () => {
     if (!layer) { setErr("Pick a layer first — that tool works on one layer at a time."); return null; }
@@ -290,7 +350,7 @@ export default function ImageZ() {
     images.current.set(src, await loadImage(src));
     commit((d) => replaceLayer(d, id, {
       kind: "image", src, w: d.w, h: d.h, x: 0, y: 0, name: l.name, visible: l.visible, locked: l.locked,
-      opacity: l.opacity, blend: l.blend, mask: l.mask,
+      opacity: l.opacity, blend: l.blend, mask: l.mask, style: l.style, group: l.group,
     }));
   };
 
@@ -334,6 +394,26 @@ export default function ImageZ() {
       t.ctx.putImageData(t.img, 0, 0);
       drag.current = { kind: "bg", ...t, key, colour, last: p };
       setErr(""); draw(); return;
+    }
+    if (space.current && scroller.current) {
+      drag.current = { kind: "pan", sx: e.clientX, sy: e.clientY, left: scroller.current.scrollLeft, top: scroller.current.scrollTop };
+      return;
+    }
+    const h = handles();
+    if (h) {
+      const near = (q) => Math.hypot(q[0] - p[0], q[1] - p[1]) <= h.hs;
+      const cx = h.b.x + h.b.w / 2, cy = h.b.y + h.b.h / 2;
+      if (near(h.rot)) {
+        drag.current = { kind: "rotate", id: sel, cx, cy, a0: Math.atan2(p[1] - cy, p[0] - cx), r0: layer.rotate, moved: false };
+        return;
+      }
+      const ci = h.corners.findIndex(near);
+      if (ci >= 0) {
+        // Scale from the opposite corner, proportionally — so the image never stretches.
+        const opp = h.corners[3 - ci];
+        drag.current = { kind: "scale", id: sel, opp, d0: Math.hypot(p[0] - opp[0], p[1] - opp[1]) || 1, s0: layer.scale, x0: layer.x, y0: layer.y, moved: false };
+        return;
+      }
     }
     if (tool === "marquee") { drag.current = { kind: "marquee", a: p, b: p, shape: marquee, mode: modeOf(e) }; draw(); return; }
     if (tool === "lasso") { drag.current = { kind: "lasso", pts: [p], mode: modeOf(e) }; draw(); return; }
@@ -400,6 +480,27 @@ export default function ImageZ() {
   const move = (e) => {
     const g = drag.current;
     if (!g) return;
+    if (g.kind === "pan") {
+      scroller.current.scrollLeft = g.left - (e.clientX - g.sx);
+      scroller.current.scrollTop = g.top - (e.clientY - g.sy);
+      return;
+    }
+    if (g.kind === "rotate" || g.kind === "scale") {
+      const p = at(e);
+      if (!g.moved) { g.moved = true; setPast((h) => [...h.slice(-HISTORY + 1), docRef.current]); setFuture([]); }
+      if (g.kind === "rotate") {
+        let r = g.r0 + ((Math.atan2(p[1] - g.cy, p[0] - g.cx) - g.a0) * 180) / Math.PI;
+        if (e.shiftKey) r = Math.round(r / 15) * 15;   // Shift snaps to 15°, as in Photoshop
+        r = ((r + 540) % 360) - 180;
+        setDoc((d) => updateLayer(d, g.id, { rotate: Math.round(r) }));
+      } else {
+        const k = Math.max(0.02, Math.hypot(p[0] - g.opp[0], p[1] - g.opp[1]) / g.d0);
+        const scale = g.s0 * k;
+        // The opposite corner stays put: the layer's origin moves toward or away from it.
+        setDoc((d) => updateLayer(d, g.id, { scale, x: Math.round(g.opp[0] + (g.x0 - g.opp[0]) * k), y: Math.round(g.opp[1] + (g.y0 - g.opp[1]) * k) }));
+      }
+      return;
+    }
     if (g.kind === "paint" || g.kind === "maskpaint") {
       const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       for (const ev of evs.length ? evs : [e]) g.stroke.points.push([...at(ev), pressureOf(ev)].filter((v) => v !== undefined));
@@ -425,8 +526,18 @@ export default function ImageZ() {
     } else if (g.kind === "crop" || g.kind === "shape" || g.kind === "marquee") g.b = at(e);
     else {
       const p = at(e);
-      const dx = Math.round(p[0] - g.from[0]), dy = Math.round(p[1] - g.from[1]);
+      let dx = Math.round(p[0] - g.from[0]), dy = Math.round(p[1] - g.from[1]);
       if (!g.moved) { g.moved = true; setPast((h) => [...h.slice(-HISTORY + 1), docRef.current]); setFuture([]); }
+      const cur = docRef.current, l = layerOf(cur, g.id);
+      if (l && !e.ctrlKey && !e.metaKey) {
+        // Smart guides: snap to the canvas edges and centre and to other layers. Hold Ctrl to place freely.
+        const b = boxOf({ ...l, x: g.x + dx, y: g.y + dy }, cur);
+        if (b) {
+          const c = canvas.current.getBoundingClientRect();
+          const sn = snap(cur, g.id, b, (cur.w / Math.max(1, c.width)) * 8);
+          dx += Math.round(sn.dx); dy += Math.round(sn.dy); g.guides = sn.guides;
+        }
+      } else g.guides = null;
       setDoc((d) => updateLayer(d, g.id, { x: g.x + dx, y: g.y + dy }));
       return;
     }
@@ -436,6 +547,8 @@ export default function ImageZ() {
     const g = drag.current;
     drag.current = null;
     if (!g) return;
+    if (g.kind === "pan") return;
+    if (g.kind === "rotate" || g.kind === "scale") { if (g.moved) { setResult(null); setSaved(null); } draw(); return; }
     if (g.kind === "paint") commit((d) => addStroke(d, g.id, g.stroke));
     else if (g.kind === "bg") { finishPixels(g).catch((x) => setErr(x.message)).finally(() => images.current.delete(g.key)); }
     else if (g.kind === "pix") { finishPixels(g).catch((x) => setErr(x.message)).finally(() => images.current.delete(g.key)); }
@@ -552,7 +665,13 @@ export default function ImageZ() {
 
   // Photoshop's single-key tools, plus undo/redo and delete. Never while typing in a field.
   const keys = useRef({});
-  keys.current = { undo, redo, sel, commit, liveSel, setSelection, clearSel, copySel, pasteClip, viaCopy, doc };
+  const groupNow = () => {
+    const ids = picked.length ? picked : sel ? [sel] : [];
+    if (!ids.length) { setErr("Pick the layers to group — Ctrl-click (Cmd on a Mac) rows to pick several."); return; }
+    commit((d) => groupLayers(d, ids, `Group ${Object.keys(d.groups || {}).length + 1}`));
+    setPicked([]);
+  };
+  keys.current = { groupNow, undo, redo, sel, commit, liveSel, setSelection, clearSel, copySel, pasteClip, viaCopy, doc };
   useEffect(() => {
     const onKey = (e) => {
       const t = e.target;
@@ -561,6 +680,11 @@ export default function ImageZ() {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); (e.shiftKey ? k.redo : k.undo)(); return; }
       if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); k.redo(); return; }
+      if (mod && (e.key === "=" || e.key === "+")) { e.preventDefault(); setZoom((z) => Math.min(8, (z || 1) * 1.25)); return; }
+      if (mod && e.key === "-") { e.preventDefault(); setZoom((z) => Math.max(0.05, (z || 1) / 1.25)); return; }
+      if (mod && e.key === "0") { e.preventDefault(); setZoom(null); return; }
+      if (mod && e.key === "1") { e.preventDefault(); setZoom(1); return; }
+      if (mod && e.key.toLowerCase() === "g") { e.preventDefault(); k.groupNow(); return; }
       if (mod) {
         const key = e.key.toLowerCase();
         if (key === "a") { e.preventDefault(); k.setSelection(allSel(k.doc.w, k.doc.h)); }
@@ -575,6 +699,7 @@ export default function ImageZ() {
       const tools = { v: "move", b: "brush", e: "eraser", c: "crop", i: "eyedropper", u: "shape", y: "magic", g: "bgerase",
         m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge" };
       if (tools[e.key.toLowerCase()]) { setTool(tools[e.key.toLowerCase()]); return; }
+      if (e.key === " ") { space.current = true; e.preventDefault(); return; }
       if (e.key === "[") setBrush((b) => ({ ...b, size: Math.max(1, Math.round(b.size / 1.25)) }));
       if (e.key === "]") setBrush((b) => ({ ...b, size: Math.min(300, Math.round(b.size * 1.25)) }));
       if ((e.key === "Delete" || e.key === "Backspace") && k.sel) {
@@ -583,8 +708,10 @@ export default function ImageZ() {
         if (k.liveSel()) k.clearSel(); else { k.commit((d) => removeLayer(d, k.sel)); setSel(null); }
       }
     };
+    const onUp = (e) => { if (e.key === " ") space.current = false; };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onUp);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onUp); };
   }, []);
 
   const doExport = async () => {
@@ -621,7 +748,7 @@ export default function ImageZ() {
       </header>
       <p className="text-xs text-white/60">
         <span className="text-emerald-300">Free.</span> Everything runs on your device and nothing is uploaded until you press Save to FileZ.
-        A pen tablet (Wacom and similar) draws with pressure, and the pen&apos;s eraser end erases.
+        A pen tablet (Wacom and similar) works at every tier and its eraser end erases; pressure is Premium.
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -657,9 +784,19 @@ export default function ImageZ() {
         </div>
 
         <div className="min-w-0 space-y-2">
-          <div className="flex justify-center rounded-xl border border-white/10 bg-black/40 p-2">
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <button className="re-btn !w-auto px-2" title="Zoom out (Ctrl −)" onClick={() => setZoom((z) => Math.max(0.05, (z || 1) / 1.25))}><ZoomOut size={14} /></button>
+            <span className="w-14 text-center">{zoom ? `${Math.round(zoom * 100)}%` : "Fit"}</span>
+            <button className="re-btn !w-auto px-2" title="Zoom in (Ctrl +)" onClick={() => setZoom((z) => Math.min(8, (z || 1) * 1.25))}><ZoomIn size={14} /></button>
+            <button className="re-btn !w-auto px-2" title="Fit (Ctrl 0)" onClick={() => setZoom(null)}><Maximize size={14} /></button>
+            <button className="re-btn !w-auto px-2" title="Actual pixels (Ctrl 1)" onClick={() => setZoom(1)}>100%</button>
+            <span className="text-white/40">Hold Space and drag to pan · Ctrl while moving turns snapping off</span>
+          </div>
+          <div ref={scroller} className={`rounded-xl border border-white/10 bg-black/40 p-2 ${zoom ? "max-h-[75vh] overflow-auto" : "flex justify-center"}`}
+            onWheel={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom((z) => Math.min(8, Math.max(0.05, (z || 1) * (e.deltaY < 0 ? 1.1 : 1 / 1.1)))); } }}>
             <canvas ref={canvas} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-              className="max-h-[70vh] max-w-full" style={{ touchAction: "none", cursor: tool === "move" ? "move" : "crosshair", aspectRatio: `${doc.w} / ${doc.h}` }} />
+              className={zoom ? "" : "max-h-[70vh] max-w-full"}
+              style={{ touchAction: "none", cursor: space.current ? "grab" : tool === "move" ? "move" : "crosshair", aspectRatio: `${doc.w} / ${doc.h}`, ...(zoom ? { width: doc.w * zoom, maxWidth: "none" } : {}) }} />
           </div>
           {(tool === "marquee" || tool === "lasso" || tool === "wand") && (
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -725,7 +862,9 @@ export default function ImageZ() {
               {onMask && layer?.mask && <span className="text-mcz-cyan">Painting the mask: brush shows the layer, eraser hides it.</span>}
               {tool === "brush" && <label className="flex items-center gap-1">Colour <input type="color" value={brush.color} onChange={(e) => setBrush({ ...brush, color: e.target.value })} /></label>}
               <label className="flex items-center gap-1">Size <input type="range" min="1" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
-              <span className="text-white/50">[ and ] change the size. {penSeen ? "Pen detected — pressure sets the width." : "With a pen tablet, pressure sets the width; a mouse draws at full size."}</span>
+              <span className="text-white/50">[ and ] change the size. {pressureOn
+                ? (penSeen ? "Pen detected — pressure sets the width." : "With a pen tablet (Wacom and similar), pressure sets the width.")
+                : <>Your pen draws at full size on {TIER_LABEL[lim?.tier] || "Free"}. <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Pen pressure is Premium</button>.</>}</span>
             </div>
           )}
           {tool === "crop" && (
@@ -751,14 +890,32 @@ export default function ImageZ() {
             <ul className="max-h-72 space-y-1 overflow-y-auto">
               {doc.layers.map((l, i) => {
                 const I = icon[l.kind];
-                return (
-                  <li key={l.id} onClick={() => setSel(l.id)} draggable
+                const g = l.group && doc.groups?.[l.group];
+                const head = g && doc.layers[i - 1]?.group !== l.group ? (
+                  <li key={`h${l.group}`} className="flex items-center gap-2 rounded-lg border border-mcz-magenta/40 bg-mcz-magenta/10 px-2 py-1 text-sm">
+                    <button title={g.open ? "Fold" : "Unfold"} onClick={() => commit((d) => updateGroup(d, l.group, { open: !g.open }))}>{g.open ? <FolderOpenIcon size={14} /> : <Folder size={14} />}</button>
+                    <button title={g.visible ? "Hide group" : "Show group"} onClick={() => commit((d) => updateGroup(d, l.group, { visible: !g.visible }))}>
+                      {g.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/40" />}
+                    </button>
+                    <input className="min-w-0 flex-1 bg-transparent" value={g.name} onChange={(e) => commit((d) => updateGroup(d, l.group, { name: e.target.value }))} />
+                    <input type="number" min="0" max="100" value={g.opacity} title="Group opacity — multiplies each layer's" className="w-11 rounded bg-black/40 px-1 text-right text-xs"
+                      onChange={(e) => commit((d) => updateGroup(d, l.group, { opacity: +e.target.value }))} />%
+                    <button className="text-xs text-white/60" title="Ungroup — the layers stay" onClick={() => commit((d) => ungroup(d, l.group))}>Ungroup</button>
+                  </li>
+                ) : null;
+                if (g && !g.open) return head;
+                const eff = effective(doc, l);
+                return [head, (
+                  <li key={l.id} onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey) { setPicked((pk) => (pk.includes(l.id) ? pk.filter((x) => x !== l.id) : [...pk, l.id])); return; }
+                    setSel(l.id); setPicked([]);
+                  }} draggable
                     onDragStart={(e) => { setDragRow(l.id); e.dataTransfer.effectAllowed = "move"; }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => { e.preventDefault(); if (dragRow) commit((d) => moveLayerTo(d, dragRow, i)); setDragRow(null); }}
                     onDragEnd={() => setDragRow(null)}
                     title="Drag to reorder — top of the list is the front"
-                    className={`flex cursor-grab items-center gap-2 rounded-lg border px-2 py-1 text-sm ${sel === l.id ? "border-mcz-cyan bg-mcz-cyan/10" : "border-white/10"}`}>
+                    className={`flex cursor-grab items-center gap-2 rounded-lg border px-2 py-1 text-sm ${g ? "ml-4" : ""} ${sel === l.id ? "border-mcz-cyan bg-mcz-cyan/10" : picked.includes(l.id) ? "border-mcz-magenta bg-mcz-magenta/10" : "border-white/10"} ${eff.visible ? "" : "opacity-60"}`}>
                     <button title={l.visible ? "Hide" : "Show"} onClick={(e) => { e.stopPropagation(); commit((d) => updateLayer(d, l.id, { visible: !l.visible })); }}>
                       {l.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/40" />}
                     </button>
@@ -769,13 +926,18 @@ export default function ImageZ() {
                       onChange={(e) => commit((d) => updateLayer(d, l.id, { opacity: +e.target.value }))}
                       className="w-11 rounded bg-black/40 px-1 text-right text-xs" />%
                     {l.mask && <Contrast size={12} className={l.mask.on ? "text-mcz-cyan" : "text-white/30"} title="Has a mask" />}
+                    {l.style && !l.style.none && <Sparkles size={12} className="text-mcz-gold" title="Has layer styles" />}
                     <button title={l.locked ? "Unlock" : "Lock"} onClick={(e) => { e.stopPropagation(); commit((d) => updateLayer(d, l.id, { locked: !l.locked })); }}>
                       {l.locked ? <Lock size={12} /> : <Unlock size={12} className="text-white/30" />}
                     </button>
                   </li>
-                );
+                )];
               })}
             </ul>
+            <div className="flex flex-wrap items-center gap-1 text-xs text-white/60">
+              <button className="re-btn !w-auto px-2" title="Ctrl+G" onClick={groupNow}><Folder size={12} /> Group{picked.length ? ` (${picked.length})` : ""}</button>
+              <span>Ctrl-click rows to pick several.</span>
+            </div>
             {cap != null && !canAdd(doc, cap) && (
               <p className="text-xs text-mcz-gold">Full — {cap} layers on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
                 <button className="re-link" onClick={() => goToSpot("membershipz", "")}>{nextCap ? `Premium holds ${nextCap}, StatZ unlimited` : "StatZ is unlimited"}</button></p>
@@ -845,6 +1007,40 @@ export default function ImageZ() {
                 {layer.shape !== "line" && <label className="flex items-center gap-1"><input type="checkbox" checked={layer.filled} onChange={(e) => patch({ filled: e.target.checked })} /> Filled</label>}
                 <label className="flex items-center gap-2">Line <input type="range" min="1" max="100" value={layer.line} onChange={(e) => patch({ line: +e.target.value })} className="flex-1" /> {layer.line}px</label>
               </>}
+              {layer.kind !== "fill" && (
+                <details>
+                  <summary className="cursor-pointer text-white/70"><Sparkles size={12} className="inline" /> Layer styles</summary>
+                  <div className="mt-1 space-y-2">
+                    {(() => {
+                      const st = layer.style || {};
+                      const set = (k, v) => patch({ style: { ...st, [k]: { ...(st[k] || {}), ...v } } });
+                      const sh = st.shadow || {}, gl = st.glow || {}, sk = st.stroke || {};
+                      return <>
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={!!sh.on} onChange={(e) => set("shadow", { on: e.target.checked })} /> Drop shadow <input type="color" value={sh.color || "#000000"} onChange={(e) => set("shadow", { color: e.target.value, on: true })} /></label>
+                          {sh.on && <>
+                            <label className="flex items-center gap-2">Blur <input type="range" min="0" max="100" value={sh.blur} onChange={(e) => set("shadow", { blur: +e.target.value })} className="flex-1" /> {sh.blur}</label>
+                            <label className="flex items-center gap-2">Offset <input type="range" min="-100" max="100" value={sh.x} onChange={(e) => set("shadow", { x: +e.target.value })} className="flex-1" />
+                              <input type="range" min="-100" max="100" value={sh.y} onChange={(e) => set("shadow", { y: +e.target.value })} className="flex-1" /></label>
+                            <label className="flex items-center gap-2">Opacity <input type="range" min="0" max="100" value={sh.opacity} onChange={(e) => set("shadow", { opacity: +e.target.value })} className="flex-1" /> {sh.opacity}%</label>
+                          </>}
+                        </div>
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={!!gl.on} onChange={(e) => set("glow", { on: e.target.checked })} /> Outer glow <input type="color" value={gl.color || "#22d3ee"} onChange={(e) => set("glow", { color: e.target.value, on: true })} /></label>
+                          {gl.on && <>
+                            <label className="flex items-center gap-2">Size <input type="range" min="0" max="120" value={gl.blur} onChange={(e) => set("glow", { blur: +e.target.value })} className="flex-1" /> {gl.blur}</label>
+                            <label className="flex items-center gap-2">Opacity <input type="range" min="0" max="100" value={gl.opacity} onChange={(e) => set("glow", { opacity: +e.target.value })} className="flex-1" /> {gl.opacity}%</label>
+                          </>}
+                        </div>
+                        <div className="space-y-1">
+                          <label className="flex items-center gap-2"><input type="checkbox" checked={!!sk.on} onChange={(e) => set("stroke", { on: e.target.checked })} /> Stroke <input type="color" value={sk.color || "#ffffff"} onChange={(e) => set("stroke", { color: e.target.value, on: true })} /></label>
+                          {sk.on && <label className="flex items-center gap-2">Width <input type="range" min="1" max="40" value={sk.width} onChange={(e) => set("stroke", { width: +e.target.value })} className="flex-1" /> {sk.width}px</label>}
+                        </div>
+                      </>;
+                    })()}
+                  </div>
+                </details>
+              )}
               {layer.kind !== "fill" && layer.kind !== "gradient" && <>
                 <label className="flex items-center gap-2">Scale <input type="range" min="1" max="400" value={Math.round(layer.scale * 100)} onChange={(e) => patch({ scale: +e.target.value / 100 })} className="flex-1" /> {Math.round(layer.scale * 100)}%</label>
                 <label className="flex items-center gap-2">Rotate <input type="range" min="-180" max="180" value={layer.rotate} onChange={(e) => patch({ rotate: +e.target.value })} className="flex-1" /> {layer.rotate}°</label>
@@ -908,6 +1104,21 @@ export default function ImageZ() {
               </details>
             </div>
           )}
+
+          <details className="glass-card p-3 text-xs">
+            <summary className="flex cursor-pointer items-center gap-1 font-semibold"><History size={14} /> History <span className="text-white/40">{past.length + 1 + future.length}</span></summary>
+            <ol className="mt-2 max-h-48 space-y-0.5 overflow-y-auto">
+              {[...past, doc, ...future].map((d, i) => (
+                <li key={i}>
+                  <button onClick={() => jumpTo(i)}
+                    className={`w-full truncate rounded px-2 py-0.5 text-left ${i === past.length ? "bg-mcz-cyan/20 text-mcz-cyan" : i > past.length ? "text-white/35" : "hover:bg-white/5"}`}>
+                    {i === 0 && !d._label ? "Start" : d._label || "Edit"}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-1 text-white/40">Click a step to go back to it; the steps after it stay until you make a new edit.</p>
+          </details>
 
           <div className="glass-card space-y-2 p-3 text-xs">
             <h3 className="flex items-center gap-1 font-semibold"><BoxSelect size={14} /> Selection {liveSel() ? <span className="text-mcz-cyan">· active</span> : <span className="text-white/40">· none</span>}</h3>

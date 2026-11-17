@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  addMaskStroke, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
+  addMaskStroke, effective, groupLayers, ungroup, updateGroup, snap, hasStyle, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
   ADJ0, MAX_SIDE, canAdd, cleanFont, fontsFor, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
   moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer,
 } from "./layers.js";
@@ -179,4 +179,44 @@ test("dragging a layer to a slot moves it there and clamps past the ends", () =>
   assert.deepEqual(moveLayerTo(d, "a", 0).layers.map((l) => l.id), ["a", "c", "b"]);
   assert.deepEqual(moveLayerTo(d, "c", 99).layers.map((l) => l.id), ["b", "a", "c"]);
   assert.equal(moveLayerTo(d, "c", 0), d);
+});
+
+test("grouping pulls layers together, and the group's switch and opacity apply to them", () => {
+  let d = newDoc(100, 100);
+  for (const id of ["a", "b", "c"]) d = addLayer(d, { kind: "paint", id, opacity: 80 });
+  d = groupLayers(d, ["c", "a"], "Pair");
+  const gid = d.layers.find((l) => l.id === "a").group;
+  assert.deepEqual(d.layers.map((l) => l.id).slice(0, 3), ["c", "a", "b"]);
+  d = updateGroup(d, gid, { opacity: 50 });
+  assert.deepEqual(effective(d, d.layers[0]), { visible: true, opacity: 40 });
+  d = updateGroup(d, gid, { visible: false });
+  assert.equal(effective(d, d.layers[1]).visible, false);
+  assert.equal(effective(d, d.layers[2]).visible, true);
+  d = ungroup(d, gid);
+  assert.equal(d.layers[0].group, null);
+  assert.deepEqual(d.groups, {});
+});
+
+test("groups survive a project file; a layer naming a missing group is ungrouped", async () => {
+  let d = groupLayers(addLayer(newDoc(10, 10), { kind: "text", id: "t" }), ["t"], "G");
+  const back = fromProject(await toProject(d, async (x) => x));
+  assert.equal(Object.values(back.groups)[0].name, "G");
+  assert.ok(back.layers[0].group);
+  const broken = JSON.parse(await toProject(d, async (x) => x)); broken.groups = {};
+  assert.equal(fromProject(JSON.stringify(broken)).layers[0].group, null);
+});
+
+test("snapping lands on the canvas centre within the threshold and not beyond", () => {
+  const d = newDoc(1000, 1000);
+  const near = snap(d, "x", { x: 446, y: 10, w: 100, h: 100 }, 8);
+  assert.equal(near.dx, 4);
+  assert.deepEqual(near.guides.v, [500]);
+  assert.equal(snap(d, "x", { x: 300, y: 300, w: 10, h: 10 }, 8).dx, 0);
+});
+
+test("styles are cleaned and only count when one is on", () => {
+  const l = addLayer(newDoc(), { kind: "text", style: { shadow: { on: true, blur: 9999 } } }).layers[0];
+  assert.equal(l.style.shadow.blur, 200);
+  assert.equal(hasStyle(l), true);
+  assert.equal(hasStyle(addLayer(newDoc(), { kind: "text", style: { shadow: { on: false } } }).layers[0]), false);
 });

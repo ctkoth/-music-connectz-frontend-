@@ -99,7 +99,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+v) ? +v 
 const side = (v) => Math.round(clamp(v, 1, MAX_SIDE));
 
 export function newDoc(w = 1080, h = 1080, background = "#ffffff") {
-  const doc = { w: side(w), h: side(h), layers: [] };
+  const doc = { w: side(w), h: side(h), layers: [], groups: {} };
   return background ? addLayer(doc, { kind: "fill", name: "Background", color: background }) : doc;
 }
 
@@ -116,6 +116,8 @@ export function makeLayer(spec = {}) {
     scale: clamp(spec.scale ?? 1, 0.01, 20), rotate: clamp(spec.rotate ?? 0, -360, 360),
     adj: cleanAdj(spec.adj),
     flipX: !!spec.flipX, flipY: !!spec.flipY,
+    group: typeof spec.group === "string" && spec.group ? spec.group : null,
+    style: cleanStyle(spec.style),
     // A layer mask: null for none. Its strokes are in CANVAS coordinates, so moving the
     // layer slides it under the mask, the way Photoshop's unlinked mask behaves.
     // `src` is a picture of the mask (from a selection): its alpha is where the layer shows.
@@ -155,6 +157,19 @@ export function cleanFade(f) {
     angle: clamp(f.angle ?? 90, -360, 360), style: f.style === "radial" ? "radial" : "linear",
   };
 }
+
+/** Layer styles (Photoshop's fx): drop shadow, outer glow, stroke. Null when none is on. */
+export function cleanStyle(st) {
+  if (!st) return null;
+  const sh = st.shadow || {}, gl = st.glow || {}, sk = st.stroke || {};
+  const out = {
+    shadow: { on: !!sh.on, color: sh.color || "#000000", blur: clamp(sh.blur ?? 12, 0, 200), x: clamp(sh.x ?? 8, -500, 500), y: clamp(sh.y ?? 8, -500, 500), opacity: clamp(sh.opacity ?? 60, 0, 100) },
+    glow: { on: !!gl.on, color: gl.color || "#22d3ee", blur: clamp(gl.blur ?? 24, 0, 200), opacity: clamp(gl.opacity ?? 80, 0, 100) },
+    stroke: { on: !!sk.on, color: sk.color || "#ffffff", width: clamp(sk.width ?? 4, 1, 100) },
+  };
+  return out.shadow.on || out.glow.on || out.stroke.on ? out : { ...out, none: true };
+}
+export const hasStyle = (l) => !!(l.style && !l.style.none);
 
 export function cleanAdj(a) {
   const out = { ...ADJ0 };
@@ -222,6 +237,71 @@ export function moveLayerTo(doc, id, to) {
   const [l] = layers.splice(i, 1);
   layers.splice(j, 0, l);
   return { ...doc, layers };
+}
+
+// ── Groups: a folder of layers. A layer names its group; the group carries a name, whether
+// it is shown, an opacity that multiplies its layers', and whether its rows are folded. ──
+
+export const groupOf = (doc, l) => (l.group && doc.groups?.[l.group]) || null;
+
+/** What actually draws: a hidden group hides its layers, and its opacity multiplies theirs. */
+export function effective(doc, l) {
+  const g = groupOf(doc, l);
+  if (!g) return { visible: l.visible, opacity: l.opacity };
+  return { visible: l.visible && g.visible, opacity: Math.round((l.opacity * g.opacity) / 100) };
+}
+
+/** Put layers in a new group and pull them together in the stack, at the topmost one's place. */
+export function groupLayers(doc, ids, name = "Group") {
+  const set = new Set(ids);
+  const members = doc.layers.filter((l) => set.has(l.id) && !(l.kind === "fill" && l === doc.layers.at(-1)));
+  if (!members.length) return doc;
+  const gid = `g${uid()}`;
+  const at = doc.layers.findIndex((l) => l.id === members[0].id);
+  const rest = doc.layers.filter((l) => !members.includes(l));
+  const before = doc.layers.slice(0, at).filter((l) => !members.includes(l)).length;
+  const layers = [...rest];
+  layers.splice(before, 0, ...members.map((l) => ({ ...l, group: gid })));
+  return { ...doc, layers, groups: { ...(doc.groups || {}), [gid]: { name: String(name).slice(0, 60), visible: true, opacity: 100, open: true } } };
+}
+
+export function ungroup(doc, gid) {
+  const { [gid]: _gone, ...groups } = doc.groups || {};
+  void _gone;
+  return { ...doc, groups, layers: doc.layers.map((l) => (l.group === gid ? { ...l, group: null } : l)) };
+}
+
+export function updateGroup(doc, gid, patch) {
+  const g = doc.groups?.[gid];
+  if (!g) return doc;
+  const next = { ...g, ...patch };
+  next.opacity = clamp(next.opacity, 0, 100);
+  next.name = String(next.name || "Group").slice(0, 60);
+  return { ...doc, groups: { ...doc.groups, [gid]: next } };
+}
+
+// ── Snapping: a moving box lands on the canvas's edges and centre and on other layers' edges ──
+
+/** Returns the snapped x/y and the guide lines to draw ({ v: [x…], h: [y…] }). */
+export function snap(doc, movingId, box, threshold) {
+  const vx = [0, doc.w / 2, doc.w], hy = [0, doc.h / 2, doc.h];
+  for (const l of doc.layers) {
+    if (l.id === movingId || !l.visible || l.kind === "fill" || l.kind === "gradient") continue;
+    const b = boxOf(l, doc);
+    if (!b) continue;
+    vx.push(b.x, b.x + b.w / 2, b.x + b.w); hy.push(b.y, b.y + b.h / 2, b.y + b.h);
+  }
+  const best = (edges, targets) => {
+    let pick = null;
+    for (const e of edges) for (const t of targets) {
+      const d = t - e;
+      if (Math.abs(d) <= threshold && (!pick || Math.abs(d) < Math.abs(pick.d))) pick = { d, t };
+    }
+    return pick;
+  };
+  const sx = best([box.x, box.x + box.w / 2, box.x + box.w], vx);
+  const sy = best([box.y, box.y + box.h / 2, box.y + box.h], hy);
+  return { dx: sx ? sx.d : 0, dy: sy ? sy.d : 0, guides: { v: sx ? [sx.t] : [], h: sy ? [sy.t] : [] } };
 }
 
 /** Merge is done by the renderer (it has the pixels); this only says whether there is anything below. */
@@ -357,7 +437,7 @@ export async function toProject(doc, dataOf) {
     if (x.mask?.src) x = { ...x, mask: { ...x.mask, src: await dataOf(x.mask.src) } };
     layers.push(x);
   }
-  return JSON.stringify({ imagez: PROJECT_VERSION, w: doc.w, h: doc.h, layers });
+  return JSON.stringify({ imagez: PROJECT_VERSION, w: doc.w, h: doc.h, layers, groups: doc.groups || {} });
 }
 
 /** Read a project file back. Every layer goes through makeLayer, so a hand-edited file cannot carry junk. */
@@ -365,9 +445,14 @@ export function fromProject(text) {
   let p;
   try { p = JSON.parse(text); } catch { throw new Error("That isn't an ImageZ project file."); }
   if (!p || p.imagez !== PROJECT_VERSION || !Array.isArray(p.layers)) throw new Error("That isn't an ImageZ project file.");
-  const doc = { w: Math.round(clamp(p.w, 1, MAX_SIDE)), h: Math.round(clamp(p.h, 1, MAX_SIDE)), layers: [] };
+  const groups = {};
+  for (const [gid, g] of Object.entries(p.groups && typeof p.groups === "object" ? p.groups : {})) {
+    if (/^g[\w]{1,40}$/.test(gid) && g) groups[gid] = { name: String(g.name || "Group").slice(0, 60), visible: g.visible !== false, opacity: clamp(g.opacity ?? 100, 0, 100), open: g.open !== false };
+  }
+  const doc = { w: Math.round(clamp(p.w, 1, MAX_SIDE)), h: Math.round(clamp(p.h, 1, MAX_SIDE)), layers: [], groups };
   doc.layers = p.layers.map((l) => makeLayer({ ...l, id: uid() }))
     .filter((l) => l.kind !== "image" || /^data:image\//.test(l.src))
+    .map((l) => (l.group && !groups[l.group] ? { ...l, group: null } : l))
     .map((l) => (l.mask?.src && !/^data:image\//.test(l.mask.src) ? { ...l, mask: { ...l.mask, src: null } } : l));
   return doc;
 }

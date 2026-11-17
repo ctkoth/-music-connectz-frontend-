@@ -2202,3 +2202,22 @@ in `skillStart.test.mjs`.
   offline). Cost: if the first send did arrive, it is a second model call and the visitor's second free take.
 - Not explained: "Register screen opened" read 0 beside one signup refused and one account created. The call is in
   `Register.jsx` and the server stores it in a test; no cause found.
+
+## ImageZ: a layered editor on the device, with three things laddered
+
+`src/apps/ImageZ.jsx` is wiring and words; `src/imageedit/` is the model (`layers.js`), the drawing
+(`render.js`), the pixel tools (`pixels.js`, `selection.js`) — all pure and tested except the renderer.
+Everything runs on the member's device; nothing is uploaded until Save to FileZ.
+
+- **Layers and fonts per picture are the tier's** (`imagez_layers`, `imagez_fonts` from `/limits/`:
+  Free 3, Premium 6, StatZ unlimited — Corey's numbers). The model never caps anything, so `null`
+  really is unlimited. StatZ can also type any font installed on their device.
+- **The magic and background erasers are StatZ's** (or the daily sample, `imagez_erasers`). The plain
+  eraser, masks and selections stay free, so nobody loses a way to cut something out.
+- **Pen pressure is Premium's** (Corey left it to me). A pen works at every tier and its eraser end
+  erases; Free draws at full size like a mouse. Premium because the pressure costs us nothing to
+  serve, is a capability on top of one everybody has, and gives Premium a reason of its own in an app
+  where StatZ already holds the erasers — and the people with a Wacom are the members most likely to pay.
+- **AI background removal is StatZ-only** (Corey's call) and is not built: it needs a provider and a price.
+- Driven in headless Chromium: text with a drop shadow, a brush stroke, moving a layer, grouping,
+  a marquee, zoom and history, no console errors. Not checked with a real pen, on a phone or in Safari.
