@@ -387,6 +387,38 @@ export function resizeCanvas(doc, w, h, anchor = "center") {
   return { ...doc, w: W, h: H, layers: doc.layers.map((l) => shiftMask(l.kind === "fill" || l.kind === "gradient" ? l : { ...l, x: l.x + dx, y: l.y + dy }, dx, dy)) };
 }
 
+/** Image size: scale the whole picture by `k` (layers, masks and all), keeping the proportions. */
+export function scaleDoc(doc, k) {
+  k = clamp(k, 0.01, 20);
+  const W = side(doc.w * k), H = side(doc.h * k);
+  const kx = W / doc.w, ky = H / doc.h;
+  const mask = (l) => (!l.mask ? l.mask : { ...l.mask, strokes: l.mask.strokes.map((st) => ({ ...st, size: st.size * kx, points: st.points.map(([x, y, ...r]) => [x * kx, y * ky, ...r]) })) });
+  return {
+    ...doc, w: W, h: H,
+    layers: doc.layers.map((l) => (l.kind === "fill" || l.kind === "gradient"
+      ? { ...l, mask: mask(l) }
+      : { ...l, x: Math.round(l.x * kx), y: Math.round(l.y * ky), scale: l.scale * kx, mask: mask(l) })),
+  };
+}
+
+/** Rotate the whole canvas a quarter turn (dir 1 = clockwise, -1 = anticlockwise); every layer turns with it. */
+export function rotateDoc(doc, dir = 1) {
+  const W = doc.h, H = doc.w;
+  const turn = ([x, y]) => (dir > 0 ? [doc.h - y, x] : [y, doc.w - x]);
+  const mask = (l) => (!l.mask ? l.mask : { ...l.mask, strokes: l.mask.strokes.map((st) => ({ ...st, points: st.points.map(([x, y, ...r]) => [...turn([x, y]), ...r]) })) });
+  const layers = doc.layers.map((l) => {
+    if (l.kind === "fill") return { ...l, mask: mask(l) };
+    if (l.kind === "gradient") return { ...l, angle: l.angle + 90 * dir, mask: mask(l) };
+    const b = boxOf(l, doc);
+    if (!b) return { ...l, mask: mask(l) };
+    // Each layer turns about its own centre (as rotate does), and that centre moves to its turned place.
+    const [cx, cy] = turn([b.x + b.w / 2, b.y + b.h / 2]);
+    const r = ((l.rotate + 90 * dir + 540) % 360) - 180;
+    return { ...l, rotate: r, x: Math.round(l.x + (cx - (b.x + b.w / 2))), y: Math.round(l.y + (cy - (b.y + b.h / 2))), mask: mask(l) };
+  });
+  return { ...doc, w: W, h: H, layers };
+}
+
 /** Fit an image of iw×ih inside the canvas, centred, never enlarged. */
 export function fitImage(doc, iw, ih) {
   const scale = Math.min(1, doc.w / iw, doc.h / ih);

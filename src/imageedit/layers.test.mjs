@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  addMaskStroke, effective, groupLayers, ungroup, updateGroup, snap, hasStyle, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
+  addMaskStroke, scaleDoc, rotateDoc, boxOf, effective, groupLayers, ungroup, updateGroup, snap, hasStyle, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
   ADJ0, MAX_SIDE, canAdd, cleanFont, fontsFor, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
   moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer,
 } from "./layers.js";
@@ -219,4 +219,25 @@ test("styles are cleaned and only count when one is on", () => {
   assert.equal(l.style.shadow.blur, 200);
   assert.equal(hasStyle(l), true);
   assert.equal(hasStyle(addLayer(newDoc(), { kind: "text", style: { shadow: { on: false } } }).layers[0]), false);
+});
+
+test("image size scales the canvas and every layer with it", () => {
+  let d = addLayer(newDoc(1000, 500), { kind: "text", id: "t", x: 100, y: 50, scale: 1 });
+  d = scaleDoc(d, 0.5);
+  assert.deepEqual([d.w, d.h], [500, 250]);
+  assert.equal(d.layers[0].x, 50);
+  assert.equal(d.layers[0].scale, 0.5);
+});
+
+test("a quarter turn swaps the sides and moves a layer's centre to its turned place", () => {
+  let d = addLayer(newDoc(1000, 500), { kind: "image", id: "i", src: "x", w: 100, h: 100, x: 0, y: 0 });
+  d = rotateDoc(d, 1);
+  assert.deepEqual([d.w, d.h], [500, 1000]);
+  const b = boxOf(d.layers[0], d);
+  assert.deepEqual([b.x + b.w / 2, b.y + b.h / 2], [450, 50]);
+  assert.equal(d.layers[0].rotate, 90);
+  const back = rotateDoc(d, -1);
+  const b2 = boxOf(back.layers[0], back);
+  assert.deepEqual([b2.x + b2.w / 2, b2.y + b2.h / 2], [50, 50]);
+  assert.equal(back.layers[0].rotate, 0);
 });
