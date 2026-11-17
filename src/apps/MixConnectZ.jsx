@@ -11,6 +11,9 @@ import { EXPORT_RATES } from "../mastering/resample.js";
 import { MP3_KBPS, MP3_DEFAULT_KBPS, mp3Mb } from "../mastering/mp3.js";
 import { dbToGain } from "../mastering/dsp.js";
 import { decodeFile, run, toAudioBuffer, saveBlob, slug, MAX_SECONDS } from "../mastering/client.js";
+import { guessRole, needsMix, trackRoom } from "../mastering/multitrack.js";
+import { loadLimits } from "../limits.js";
+import TrackMixer from "../components/TrackMixer.jsx";
 
 // Mix ConnectZ — mastering that runs on the member's own device.
 //
@@ -214,6 +217,16 @@ export default function MixConnectZ() {
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(null); // upload progress
   const [saved, setSaved] = useState("");
+  // TrackZ: the song is track 1 (its controls in `songCtl`), stems added beside it in `extra`.
+  // How many tracks is the tier's shared count (`imagez_layers`: Free 3, Premium 6, StatZ unlimited).
+  const [songCtl, setSongCtl] = useState({ role: "beat", gainDb: 0, pan: 0, mute: false, solo: false });
+  const [extra, setExtra] = useState([]);
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const trackCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
+  const nextTrackCap = lim?.tier === "free" ? lim?.tiers?.premium?.imagez_layers : null;
+  const allTracks = useMemo(() => (song ? [{ id: "song", name: song.name, channels: song.channels, sampleRate: song.sampleRate, ...songCtl }, ...extra] : []),
+    [song, songCtl, extra]);
   const fileInput = useRef(null);
   const refInput = useRef(null);
   const vocalInput = useRef(null);
@@ -269,7 +282,7 @@ export default function MixConnectZ() {
   const tierFor = (bits) => (s?.ladder || []).find((t) => (t.wav_bits || 0) >= bits);
   const tierName = (row) => (row ? row.label || TIER_NAME[row.tier] : "");
   // What is actually exported: the member's choice, held to what the tier reaches.
-  const fmt = wavBits >= 16 ? format : "mp3";
+  const outFmt = wavBits >= 16 ? format : "mp3";
   const depth = Math.min(bitDepth, wavBits >= 24 ? 24 : 16);
 
   const set = (k, v) => setSettings((cur) => ({ ...cur, [k]: v }));
@@ -281,6 +294,8 @@ export default function MixConnectZ() {
     try {
       const d = await decodeFile(fileOrBuf);
       setSong({ name, ...d });
+      const g = guessRole(name);
+      setSongCtl({ role: g === "other" ? "beat" : g, gainDb: 0, pan: 0, mute: false, solo: false });
       setTitle(String(name || "Master").replace(/\.[a-z0-9]{2,4}$/i, "").slice(0, 120));
       setBusy("Measuring your mix");
       // Copies go to the worker; the page keeps its own for the A/B player.
@@ -314,6 +329,26 @@ export default function MixConnectZ() {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }
 
+  async function addTracks(files) {
+    setErr("");
+    const list = [...extra];
+    for (const f of files) {
+      if (!trackRoom(1 + list.length, trackCap).ok) { setErr(`${trackCap} tracks is your plan's limit — ${f.name} wasn't added.`); break; }
+      try {
+        setBusy(`Reading ${f.name}`);
+        const d = await decodeFile(f);
+        const t = { id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: f.name, channels: d.channels, sampleRate: d.sampleRate,
+          role: guessRole(f.name), gainDb: 0, pan: 0, mute: false, solo: false };
+        list.push(t);   // so the next file in this batch counts this one against the cap
+        setExtra([...list]);
+      } catch (e) { setErr(`${f.name}: ${e.message}`); }
+    }
+    setBusy("");
+  }
+  const changeTrack = (i, patch) => (i === 0 ? setSongCtl((c) => ({ ...c, ...patch }))
+    : setExtra((xs) => xs.map((t, k) => (k === i - 1 ? { ...t, ...patch } : t))));
+  const applyTracks = (rows) => rows.forEach((r, i) => changeTrack(i, r));
+
   async function doMaster() {
     if (!song) return;
     setErr(""); setSaved(""); setProgress(0); setBusy("Starting");
@@ -331,6 +366,8 @@ export default function MixConnectZ() {
         settings: payload,
         reference: ref ? { bands: ref.analysis.bands, lufs: ref.analysis.lufs } : null,
         vocal: vocalFile ? { channels: vocalFile.channels.map((c) => c.slice()), sampleRate: vocalFile.sampleRate } : null,
+        tracks: needsMix(allTracks) ? allTracks.map((t) => ({ name: t.name, sampleRate: t.sampleRate, gainDb: t.gainDb, pan: t.pan,
+          mute: t.mute, solo: t.solo, channels: t.channels.map((c) => c.slice()) })) : null,
       }, { onProgress: (p, stage) => { setProgress(p); setBusy(stage); } });
       setResult({ ...out, settings: { ...payload, vocalFile: !!vocalFile } });
     } catch (e) { setErr(e.message); } finally { setBusy(""); setProgress(0); }
@@ -338,22 +375,22 @@ export default function MixConnectZ() {
 
   // The rate the export will be at: the file's own unless the member picked one.
   // An MP3 can only be 44.1 or 48 kHz, so a 96 kHz master goes out at 48.
-  const outRate = song ? (rate || (fmt === "mp3" && ![32000, 44100, 48000].includes(song.sampleRate) ? 48000 : song.sampleRate)) : 0;
-  const mime = fmt === "mp3" ? "audio/mpeg" : "audio/wav";
+  const outRate = song ? (rate || (outFmt === "mp3" && ![32000, 44100, 48000].includes(song.sampleRate) ? 48000 : song.sampleRate)) : 0;
+  const mime = outFmt === "mp3" ? "audio/mpeg" : "audio/wav";
   async function encode() {
     setExportNote("");
-    setBusy(outRate !== song.sampleRate ? `Converting to ${outRate / 1000} kHz` : fmt === "mp3" ? "Encoding MP3" : "Writing WAV");
+    setBusy(outRate !== song.sampleRate ? `Converting to ${outRate / 1000} kHz` : outFmt === "mp3" ? "Encoding MP3" : "Writing WAV");
     try {
       const out = await run("export", {
         channels: result.channels.map((c) => c.slice()),
         sampleRate: song.sampleRate,
-        options: { format: fmt, bitDepth: depth, dither: depth === 16 && dither, kbps, rate: outRate },
+        options: { format: outFmt, bitDepth: depth, dither: depth === 16 && dither, kbps, rate: outRate },
       }, { onProgress: (p, stage) => { setProgress(p); setBusy(stage); } });
       if (out.trimDb < -0.01) setExportNote(`Converting the rate raised a peak a hair, so the file was trimmed ${r1(out.trimDb)} dB to stay under −1 dBTP.`);
       return out.bytes;
     } finally { setBusy(""); setProgress(0); }
   }
-  const fileName = () => `${slug(title)}-master-${fmt === "mp3" ? `${kbps}k.mp3` : `${depth}bit${outRate !== song?.sampleRate ? `-${outRate / 1000}k` : ""}.wav`}`;
+  const fileName = () => `${slug(title)}-master-${outFmt === "mp3" ? `${kbps}k.mp3` : `${depth}bit${outRate !== song?.sampleRate ? `-${outRate / 1000}k` : ""}.wav`}`;
 
   async function download() {
     setErr("");
@@ -362,7 +399,7 @@ export default function MixConnectZ() {
   }
 
   const outSeconds = result ? result.channels[0].length / song.sampleRate : 0;
-  const sizeMb = !result ? 0 : fmt === "mp3" ? mp3Mb(outSeconds, kbps)
+  const sizeMb = !result ? 0 : outFmt === "mp3" ? mp3Mb(outSeconds, kbps)
     : (outSeconds * outRate * result.channels.length * (depth / 8)) / (1024 * 1024);
   const tooBig = s?.storage && sizeMb > s.storage.upload_mb;
   const noRoom = s?.storage && sizeMb > s.storage.free_mb;
@@ -386,7 +423,7 @@ export default function MixConnectZ() {
       await api("/api/economy/mixz/", { method: "POST", body: {
         title, upload_id: uploadId,
         settings: { ...result.settings, bitDepth: depth, dither: depth === 16 && dither, reference: !!ref,
-          format: fmt, kbps: fmt === "mp3" ? kbps : undefined, exportRate: outRate },
+          format: outFmt, kbps: outFmt === "mp3" ? kbps : undefined, exportRate: outRate },
         before: pick(result.before), after: pick(result.after),
       } });
       setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage.`);
@@ -420,7 +457,7 @@ export default function MixConnectZ() {
     catch (e) { setErr(e.message); }
   }
 
-  const ab = useAB(song?.channels, result?.channels, song?.sampleRate, result?.before?.lufs, result?.after?.lufs);
+  const ab = useAB(result?.premix || song?.channels, result?.channels, song?.sampleRate, result?.before?.lufs, result?.after?.lufs);
   // In the IntelligenceZ app the screens stay mounted when a member moves to
   // another one, so the A/B preview would keep playing underneath Chat. The shell
   // says when this screen is left; nothing else sends it.
@@ -514,6 +551,10 @@ export default function MixConnectZ() {
               </p>
             )}
           </div>
+
+          <TrackMixer tracks={allTracks} sampleRate={song?.sampleRate || 44100} onChange={changeTrack}
+            onAdd={addTracks} onRemove={(i) => setExtra((xs) => xs.filter((_, k) => k !== i - 1))} onApply={applyTracks}
+            cap={trackCap} nextCap={nextTrackCap} busy={busy} />
 
           {/* VocalZ: a vocal that sits too low. Two honest ways, stated as what they are:
               the lift works on the finished track but cannot tell the voice from
@@ -684,6 +725,7 @@ export default function MixConnectZ() {
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-white/80">What the master did, and why</h3>
             <ul className="space-y-1 text-xs text-white/70">
+              {result.plan.trackMix && <li>• Mixed {result.plan.trackMix.count} tracks before mastering: {result.plan.trackMix.lines.join(" ")}</li>}
               {result.plan.vocalMix && <li>• {result.plan.vocalMix.why}</li>}
               {result.plan.eq.map((m) => <li key={`${m.type}${m.f}${m.why}`}>• {m.why}</li>)}
               {result.plan.vocal && <li>• {result.plan.vocal.why}</li>}
@@ -697,7 +739,7 @@ export default function MixConnectZ() {
 
           <div className="space-y-3 rounded-lg border border-white/10 p-3">
             <h3 className="text-sm font-semibold text-white/80">Export</h3>
-            <Choice label="Format" value={fmt} onChange={setFormat}
+            <Choice label="Format" value={outFmt} onChange={setFormat}
               options={[{ key: "wav", label: "WAV" }, { key: "mp3", label: "MP3" }]}
               locked={wavBits >= 16 ? {} : { wav: tierName(tierFor(16)) || "Not on your plan" }} />
             {wavBits < 24 && (
@@ -709,7 +751,7 @@ export default function MixConnectZ() {
                 </>}
               </p>
             )}
-            {fmt === "mp3" && (
+            {outFmt === "mp3" && (
               <div className="space-y-1">
                 <Choice label="MP3 bitrate" value={String(kbps)} onChange={(v) => setKbps(Number(v))}
                   options={MP3_KBPS.map((k) => ({ key: String(k), label: `${k} kbps` }))} />
@@ -730,7 +772,7 @@ export default function MixConnectZ() {
                     : "Your master stays at the rate your mix was made at — nothing is converted."}
               </p>
             </div>
-            {fmt === "wav" && <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+            {outFmt === "wav" && <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
               <Choice label="Bit depth" value={String(depth)} onChange={(v) => setBitDepth(Number(v))}
                 options={[{ key: "24", label: "24-bit WAV" }, { key: "16", label: "16-bit WAV" }]}
                 locked={wavBits >= 24 ? {} : { 24: tierName(tierFor(24)) || "Not on your plan" }} />
@@ -740,7 +782,7 @@ export default function MixConnectZ() {
                 </label>
               )}
             </div>}
-            {fmt === "wav" && <p className="text-[11px] text-white/45">
+            {outFmt === "wav" && <p className="text-[11px] text-white/45">
               {depth === 24
                 ? "24-bit is what distributors ask for. Its rounding sits around −144 dB, below any playback system, so no dither is added."
                 : dither
@@ -749,7 +791,7 @@ export default function MixConnectZ() {
             </p>}
             <input className="neon-input w-full" maxLength={120} aria-label="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="flex flex-wrap items-center gap-3">
-              <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download {fmt === "mp3" ? "MP3" : "WAV"} · {r1(sizeMb)} MB</button>
+              <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download {outFmt === "mp3" ? "MP3" : "WAV"} · {r1(sizeMb)} MB</button>
               {s?.storage && (
                 <button className="re-btn !w-auto px-4" disabled={!!saving || tooBig || noRoom} onClick={save}>
                   {saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Save to Your masters

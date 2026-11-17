@@ -2246,3 +2246,25 @@ installer. Plugins per track ladder 3 / 6 / unlimited.
   same host. The plugin's own window (Win32) has only ever been compiled, never seen — check it on a PC.
 - **Not yet:** VST instruments (need MIDI in), live playback through a plugin (needs the host to run audio in
   real time), VST2 (Steinberg no longer licenses it). Never use the VST logo without Steinberg's guidelines.
+
+## TrackZ: Mix ConnectZ mixes several tracks before it masters them
+
+`components/TrackMixer.jsx` (in Mix ConnectZ, `data-tour="mixz-tracks"`) takes the song as track 1 plus stems,
+each with gain (−24..+12 dB), pan, mute and solo, heard live while the faders move. `src/mastering/multitrack.js`
+is the engine: `mixTracks` sums them BEFORE the master, and the result lists every track's gain and pan.
+
+- **The pan is the StereoPannerNode's own law** (`panStereo`), applied sample by sample to a stereo copy of every
+  track, because the live preview IS a StereoPannerNode. What was set by ear is what gets mastered. A different pan
+  law in the render would make the two disagree.
+- **Suggest a balance is a starting point with its reasons on screen**, never a verdict. It measures each track's
+  BS.1770 loudness, tonal centre and width and applies `ROLES` (level under the lead, centre or spread, each with its
+  why). Bass, drums, the beat and the lead stay centred; backing vocals and instruments alternate sides, brightest
+  widest. A track already wide in stereo is left centred. A silent one is left alone.
+- **Check the stereo image** reports correlation, low-end correlation, width and which side the LOW END leans to.
+  Correlation alone can't see a bass panned hard: it is "perfectly correlated" with the silence on the other side.
+- **Tracks per mix are the tier's shared count** (`imagez_layers`: Free 3, Premium 6, StatZ unlimited, the song
+  included). Mixing costs the platform nothing and is free at every tier; the tier says how many, never whether.
+- One untouched song skips the mix (`needsMix`), so a plain master is byte-for-byte what it was.
+- The A/B "original" is the mix before mastering (`premix`), not the song alone.
+- **Fixed with it:** since Oct 29 every finished master crashed the screen (`fmt2 is not a function`). The export
+  format was a second `const fmt` shadowing the number formatter. The format is `outFmt` now.

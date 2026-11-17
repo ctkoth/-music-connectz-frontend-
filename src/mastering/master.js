@@ -23,6 +23,7 @@ import {
 } from "./dsp.js";
 import { analyse, integratedLoudness, BANDS } from "./meter.js";
 import { resample } from "./resample.js";
+import { mixTracks, needsMix } from "./multitrack.js";
 
 export const STYLES = {
   warm: { label: "Warm", slope: -0.4, side: 1.0, desc: "Rounder lows, softer top. Tilts the balance down around 1 kHz." },
@@ -715,9 +716,17 @@ export function toStereo(channels) {
   return [channels[0], Float32Array.from(channels[0])];
 }
 
-export function master(inputChannels, fs, settings, reference = null, onProgress, vocal = null) {
+export function master(inputChannels, fs, settings, reference = null, onProgress, vocal = null, tracks = null) {
   let input = toStereo(inputChannels);
   let vocalMix = null;
+  let trackMix = null;
+  // Several tracks (the song is the first): gain and pan each, summed, then mastered as one.
+  if (needsMix(tracks)) {
+    onProgress && onProgress(0.01, "Mixing your tracks");
+    const m = mixTracks(tracks, fs);
+    input = m.channels;
+    trackMix = { lines: m.lines, count: tracks.length };
+  }
   if (vocal && vocal.channels && vocal.channels.length) {
     onProgress && onProgress(0.01, "Mixing in the vocal");
     const level = cleanSettings(settings).vocalLevel;
@@ -741,7 +750,7 @@ export function master(inputChannels, fs, settings, reference = null, onProgress
   if (report.safetyDb < -0.01) {
     outcome.push(`A final ${fmtDb(report.safetyDb)} trim kept the true peak under ${thePlan.loudness.ceiling} dBTP.`);
   }
-  return { plan: { ...thePlan, vocalMix }, before, after, report, outcome, channels };
+  return { plan: { ...thePlan, vocalMix, trackMix }, before, after, report, outcome, channels, premix: trackMix || vocalMix ? input : null };
 }
 
 // Band levels before and after, normalised to the same 1 kHz reference, for
