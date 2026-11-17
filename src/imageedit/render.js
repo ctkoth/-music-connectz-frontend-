@@ -12,53 +12,86 @@ export function loadImage(src) {
   });
 }
 
-let scratch = null;
-function paintCanvas(w, h) {
-  if (!scratch) scratch = document.createElement("canvas");
-  scratch.width = w; scratch.height = h;
-  return scratch;
+const pool = {};
+function scratch(name, w, h) {
+  const c = pool[name] || (pool[name] = document.createElement("canvas"));
+  if (c.width !== w) c.width = w;
+  if (c.height !== h) c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.filter = "none";
+  ctx.clearRect(0, 0, w, h);
+  return [c, ctx];
 }
 
-function drawStrokes(ctx, strokes) {
+/** Strokes as lines; a third number on a point is pen pressure and sets that segment's width. */
+function drawStrokes(ctx, strokes, style) {
   for (const s of strokes) {
     ctx.save();
-    ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
-    ctx.strokeStyle = s.color; ctx.fillStyle = s.color;
+    style(ctx, s);
     ctx.lineWidth = s.size; ctx.lineCap = "round"; ctx.lineJoin = "round";
     if (s.points.length === 1) {
-      ctx.beginPath(); ctx.arc(s.points[0][0], s.points[0][1], s.size / 2, 0, Math.PI * 2); ctx.fill();
+      const [x, y, pr] = s.points[0];
+      ctx.beginPath(); ctx.arc(x, y, (s.size * (pr ?? 1)) / 2, 0, Math.PI * 2); ctx.fill();
     } else if (s.points.some((q) => q.length > 2)) {
-      // Pen pressure: each segment is as wide as the pressure at its end, so a light touch draws thin.
       for (let i = 1; i < s.points.length; i++) {
         const a = s.points[i - 1], b = s.points[i];
         ctx.lineWidth = Math.max(0.5, s.size * (b[2] ?? 1));
         ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
       }
     } else {
-      ctx.beginPath(); ctx.moveTo(...s.points[0]);
-      for (const p of s.points.slice(1)) ctx.lineTo(...p);
+      ctx.beginPath(); ctx.moveTo(s.points[0][0], s.points[0][1]);
+      for (const p of s.points.slice(1)) ctx.lineTo(p[0], p[1]);
       ctx.stroke();
     }
     ctx.restore();
   }
 }
 
-/** One layer, with its own opacity, blend, transform and adjustments. */
-export function drawLayer(ctx, doc, l, images) {
-  if (!l.visible || !l.opacity) return;
-  ctx.save();
-  ctx.globalAlpha = l.opacity / 100;
-  ctx.globalCompositeOperation = l.blend;
-  const f = filterOf(l.adj);
-  if (f) ctx.filter = f;
-  if (l.kind === "fill") {
-    ctx.fillStyle = l.color; ctx.fillRect(0, 0, doc.w, doc.h);
-    ctx.restore(); return;
+const paintStyle = (ctx, s) => {
+  ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
+  ctx.strokeStyle = s.color; ctx.fillStyle = s.color;
+};
+const maskStyle = (ctx, s) => {
+  ctx.globalCompositeOperation = s.hide ? "destination-out" : "source-over";
+  ctx.strokeStyle = "#fff"; ctx.fillStyle = "#fff";
+};
+
+function size(l, images) {
+  if (l.kind === "image") return [l.w, l.h];
+  if (l.kind === "shape") return [l.w, l.h];
+  if (l.kind === "text") {
+    const lines = l.text.split("\n");
+    return [Math.max(...lines.map((s) => s.length)) * l.size * 0.6, lines.length * l.size * 1.2];
+  }
+  void images;
+  return [0, 0];
+}
+
+/** The layer's own pixels, at full strength, into ctx (which is already transformed to canvas space). */
+function body(ctx, doc, l, images) {
+  if (l.kind === "fill") { ctx.fillStyle = l.color; ctx.fillRect(0, 0, doc.w, doc.h); return; }
+  if (l.kind === "gradient") {
+    let g;
+    if (l.style === "radial") {
+      g = ctx.createRadialGradient(doc.w / 2, doc.h / 2, 0, doc.w / 2, doc.h / 2, Math.hypot(doc.w, doc.h) / 2);
+    } else {
+      const r = (l.angle * Math.PI) / 180, cx = doc.w / 2, cy = doc.h / 2;
+      const half = (Math.abs(doc.w * Math.cos(r)) + Math.abs(doc.h * Math.sin(r))) / 2;
+      g = ctx.createLinearGradient(cx - Math.cos(r) * half, cy - Math.sin(r) * half, cx + Math.cos(r) * half, cy + Math.sin(r) * half);
+    }
+    g.addColorStop(0, l.from); g.addColorStop(1, l.to);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, doc.w, doc.h);
+    return;
   }
   ctx.translate(l.x, l.y);
-  if (l.rotate) {
-    const c = centre(l);
-    ctx.translate(c[0], c[1]); ctx.rotate((l.rotate * Math.PI) / 180); ctx.translate(-c[0], -c[1]);
+  const [w, h] = size(l, images);
+  const cx = (w * l.scale) / 2, cy = (h * l.scale) / 2;
+  if (l.rotate || l.flipX || l.flipY) {
+    ctx.translate(cx, cy);
+    if (l.rotate) ctx.rotate((l.rotate * Math.PI) / 180);
+    ctx.scale(l.flipX ? -1 : 1, l.flipY ? -1 : 1);
+    ctx.translate(-cx, -cy);
   }
   ctx.scale(l.scale, l.scale);
   if (l.kind === "image") {
@@ -68,24 +101,66 @@ export function drawLayer(ctx, doc, l, images) {
     ctx.fillStyle = l.color; ctx.textBaseline = "top";
     ctx.font = `${l.bold ? "800 " : ""}${l.size}px ${l.font}`;
     l.text.split("\n").forEach((line, i) => ctx.fillText(line, 0, i * l.size * 1.2));
+  } else if (l.kind === "shape") {
+    ctx.strokeStyle = l.color; ctx.fillStyle = l.color; ctx.lineWidth = l.line; ctx.lineCap = "round";
+    ctx.beginPath();
+    if (l.shape === "line") { ctx.moveTo(0, 0); ctx.lineTo(l.w, l.h); ctx.stroke(); return; }
+    if (l.shape === "ellipse") ctx.ellipse(l.w / 2, l.h / 2, Math.abs(l.w / 2), Math.abs(l.h / 2), 0, 0, Math.PI * 2);
+    else ctx.rect(0, 0, l.w, l.h);
+    if (l.filled) ctx.fill(); else ctx.stroke();
   } else if (l.kind === "paint" && l.strokes.length) {
     // Erasing must only erase this layer, so the strokes are drawn on their own canvas first.
     const pad = 2 * Math.max(doc.w, doc.h);
-    const c = paintCanvas(doc.w + pad, doc.h + pad);
-    const p = c.getContext("2d");
-    p.clearRect(0, 0, c.width, c.height);
+    const [c, p] = scratch("paint", doc.w + pad, doc.h + pad);
     p.translate(pad / 2, pad / 2);
-    drawStrokes(p, l.strokes);
-    p.setTransform(1, 0, 0, 1, 0, 0);
+    drawStrokes(p, l.strokes, paintStyle);
     ctx.drawImage(c, -pad / 2, -pad / 2);
   }
-  ctx.restore();
 }
 
-function centre(l) {
-  if (l.kind === "image") return [(l.w * l.scale) / 2, (l.h * l.scale) / 2];
-  if (l.kind === "text") return [(l.text.length * l.size * 0.3) * l.scale, (l.size * 0.6) * l.scale];
-  return [0, 0];
+/** One layer, with its own opacity, blend, transform, adjustments and mask. */
+export function drawLayer(ctx, doc, l, images) {
+  if (!l.visible || !l.opacity) return;
+  const f = filterOf(l.adj);
+  const masked = l.mask && l.mask.on && (l.mask.strokes.length || l.mask.fade);
+  if (!masked) {
+    ctx.save();
+    ctx.globalAlpha = l.opacity / 100;
+    ctx.globalCompositeOperation = l.blend;
+    if (f) ctx.filter = f;
+    body(ctx, doc, l, images);
+    ctx.restore();
+    return;
+  }
+  // Masked: draw the layer alone, keep only where the mask is white, then composite it.
+  const [lc, lx] = scratch("layer", doc.w, doc.h);
+  if (f) lx.filter = f;
+  lx.save(); body(lx, doc, l, images); lx.restore();
+  const [mc, mx] = scratch("mask", doc.w, doc.h);
+  const fade = l.mask.fade;
+  if (fade) {
+    // A gradient mask: white (shown) at `from`%, fading to `to`%, so the layer melts away.
+    let g;
+    if (fade.style === "radial") g = mx.createRadialGradient(doc.w / 2, doc.h / 2, 0, doc.w / 2, doc.h / 2, Math.hypot(doc.w, doc.h) / 2);
+    else {
+      const r = (fade.angle * Math.PI) / 180, cx = doc.w / 2, cy = doc.h / 2;
+      const half = (Math.abs(doc.w * Math.cos(r)) + Math.abs(doc.h * Math.sin(r))) / 2;
+      g = mx.createLinearGradient(cx - Math.cos(r) * half, cy - Math.sin(r) * half, cx + Math.cos(r) * half, cy + Math.sin(r) * half);
+    }
+    g.addColorStop(0, `rgba(255,255,255,${fade.from / 100})`);
+    g.addColorStop(1, `rgba(255,255,255,${fade.to / 100})`);
+    mx.fillStyle = g;
+  } else mx.fillStyle = "#fff";
+  mx.fillRect(0, 0, doc.w, doc.h);
+  drawStrokes(mx, l.mask.strokes, maskStyle);
+  lx.filter = "none";
+  lx.globalCompositeOperation = "destination-in";
+  lx.drawImage(mc, 0, 0);
+  ctx.save();
+  ctx.globalAlpha = l.opacity / 100;
+  ctx.globalCompositeOperation = l.blend;
+  ctx.drawImage(lc, 0, 0);
+  ctx.restore();
 }
 
 /** The whole stack, bottom first. `only` limits it to a set of layer ids (merge down uses it). */
@@ -111,11 +186,37 @@ export function exportDoc(doc, images, type = "image/png", quality = 0.92, only 
   const c = document.createElement("canvas");
   c.width = doc.w; c.height = doc.h;
   const ctx = c.getContext("2d");
-  if (type === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, doc.w, doc.h); }
   // JPEG has no alpha: a white base is drawn first, then the stack over it.
+  if (type === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, doc.w, doc.h); }
   const tmp = document.createElement("canvas");
   tmp.width = doc.w; tmp.height = doc.h;
   renderDoc(tmp.getContext("2d"), doc, images, { only });
   ctx.drawImage(tmp, 0, 0);
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("The browser couldn't write the file."))), type, quality));
+}
+
+/** One layer alone, as pixels on a canvas the size of the picture — opacity, blend and mask left out. */
+export function rasterize(doc, l, images) {
+  const c = document.createElement("canvas");
+  c.width = doc.w; c.height = doc.h;
+  drawLayer(c.getContext("2d"), doc, { ...l, visible: true, opacity: 100, blend: "source-over", mask: null }, images);
+  return c;
+}
+
+/** The colour under a canvas point, as #rrggbb — what the eyedropper picks up. */
+export function colourAt(canvas, x, y) {
+  const d = canvas.getContext("2d").getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+  return `#${[d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** An image URL as a data: URL, for a project file. */
+export async function dataUrlOf(src) {
+  if (src.startsWith("data:")) return src;
+  const blob = await (await fetch(src)).blob();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(new Error("Couldn't read an image back to save the project."));
+    r.readAsDataURL(blob);
+  });
 }

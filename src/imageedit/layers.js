@@ -47,16 +47,20 @@ export function newDoc(w = 1080, h = 1080, background = "#ffffff") {
 
 /** The fields every layer has, so nothing downstream has to guess. */
 export function makeLayer(spec = {}) {
-  const kind = ["image", "text", "paint", "fill"].includes(spec.kind) ? spec.kind : "paint";
+  const kind = ["image", "text", "paint", "fill", "shape", "gradient"].includes(spec.kind) ? spec.kind : "paint";
   const base = {
     id: spec.id || uid(), kind,
-    name: String(spec.name || { image: "Image", text: "Text", paint: "Paint", fill: "Fill" }[kind]).slice(0, 60),
+    name: String(spec.name || { image: "Image", text: "Text", paint: "Paint", fill: "Fill", shape: "Shape", gradient: "Gradient" }[kind]).slice(0, 60),
     visible: spec.visible !== false, locked: !!spec.locked,
     opacity: clamp(spec.opacity ?? 100, 0, 100),
     blend: BLEND_KEYS.has(spec.blend) ? spec.blend : "source-over",
     x: Math.round(+spec.x || 0), y: Math.round(+spec.y || 0),
     scale: clamp(spec.scale ?? 1, 0.01, 20), rotate: clamp(spec.rotate ?? 0, -360, 360),
     adj: cleanAdj(spec.adj),
+    flipX: !!spec.flipX, flipY: !!spec.flipY,
+    // A layer mask: null for none. Its strokes are in CANVAS coordinates, so moving the
+    // layer slides it under the mask, the way Photoshop's unlinked mask behaves.
+    mask: spec.mask && Array.isArray(spec.mask.strokes) ? { strokes: spec.mask.strokes, on: spec.mask.on !== false, fade: cleanFade(spec.mask.fade) } : null,
   };
   if (kind === "image") return { ...base, src: spec.src || "", w: side(spec.w || 1), h: side(spec.h || 1) };
   if (kind === "text") return {
@@ -64,7 +68,25 @@ export function makeLayer(spec = {}) {
     size: clamp(spec.size ?? 96, 4, 1000), font: spec.font || "Inter, system-ui, sans-serif", bold: spec.bold !== false,
   };
   if (kind === "fill") return { ...base, color: spec.color || "#ffffff" };
+  if (kind === "shape") return {
+    ...base, shape: ["rect", "ellipse", "line"].includes(spec.shape) ? spec.shape : "rect",
+    w: Math.round(clamp(spec.w ?? 200, -MAX_SIDE, MAX_SIDE)), h: Math.round(clamp(spec.h ?? 200, -MAX_SIDE, MAX_SIDE)),
+    color: spec.color || "#22d3ee", filled: spec.filled !== false, line: clamp(spec.line ?? 8, 1, 200),
+  };
+  if (kind === "gradient") return {
+    ...base, from: spec.from || "#000000", to: spec.to || "#ffffff",
+    style: spec.style === "radial" ? "radial" : "linear", angle: clamp(spec.angle ?? 90, -360, 360),
+  };
   return { ...base, strokes: Array.isArray(spec.strokes) ? spec.strokes : [] };
+}
+
+/** A gradient across a mask: the layer goes from `from`% visible to `to`% visible along `angle`. Null for none. */
+export function cleanFade(f) {
+  if (!f) return null;
+  return {
+    from: clamp(f.from ?? 100, 0, 100), to: clamp(f.to ?? 0, 0, 100),
+    angle: clamp(f.angle ?? 90, -360, 360), style: f.style === "radial" ? "radial" : "linear",
+  };
 }
 
 export function cleanAdj(a) {
@@ -124,6 +146,18 @@ export function moveLayer(doc, id, dir) {
   return { ...doc, layers };
 }
 
+/** Put a layer at index `to` in the stack (0 = top) — what dragging a row in the layers panel does. */
+export function moveLayerTo(doc, id, to) {
+  const i = doc.layers.findIndex((l) => l.id === id);
+  if (i < 0) return doc;
+  const j = Math.max(0, Math.min(doc.layers.length - 1, Math.round(to)));
+  if (i === j) return doc;
+  const layers = [...doc.layers];
+  const [l] = layers.splice(i, 1);
+  layers.splice(j, 0, l);
+  return { ...doc, layers };
+}
+
 /** Merge is done by the renderer (it has the pixels); this only says whether there is anything below. */
 export const below = (doc, id) => doc.layers[doc.layers.findIndex((l) => l.id === id) + 1] || null;
 
@@ -142,6 +176,41 @@ export function addStroke(doc, id, stroke) {
   return { ...doc, layers: doc.layers.map((x) => (x.id === id ? { ...x, strokes: [...x.strokes, s] } : x)) };
 }
 
+/**
+ * Graded opacity by stack order: the top layer at `top`%, the bottom at `bottom`%,
+ * evenly between. Background fills are left alone, so the picture keeps its base.
+ */
+export function gradeOpacity(doc, top = 100, bottom = 20) {
+  const t = clamp(top, 0, 100), b = clamp(bottom, 0, 100);
+  const ids = doc.layers.filter((l) => !(l.kind === "fill" && l === doc.layers.at(-1))).map((l) => l.id);
+  if (!ids.length) return doc;
+  const step = ids.length > 1 ? (b - t) / (ids.length - 1) : 0;
+  const at = new Map(ids.map((id, i) => [id, Math.round(t + step * i)]));
+  return { ...doc, layers: doc.layers.map((l) => (at.has(l.id) ? { ...l, opacity: at.get(l.id) } : l)) };
+}
+
+/** Replace a layer by a new one of any kind in the same slot (the pixel erasers turn a layer into a picture). */
+export function replaceLayer(doc, id, spec) {
+  return { ...doc, layers: doc.layers.map((l) => (l.id === id ? makeLayer({ ...spec, id }) : l)) };
+}
+
+/** Paint on a layer's mask: `hide` takes the layer away there, otherwise it brings it back. */
+export function addMaskStroke(doc, id, stroke) {
+  const l = layerOf(doc, id);
+  if (!l || !l.mask || !stroke?.points?.length) return doc;
+  const s = {
+    hide: !!stroke.hide, size: clamp(stroke.size ?? 24, 1, 500),
+    points: stroke.points.map(([px, py, pr]) => (pr == null ? [Math.round(px), Math.round(py)] : [Math.round(px), Math.round(py), Math.round(clamp(pr, 0, 1) * 100) / 100])),
+  };
+  return { ...doc, layers: doc.layers.map((x) => (x.id === id ? { ...x, mask: { ...x.mask, strokes: [...x.mask.strokes, s] } } : x)) };
+}
+
+/** A shape from a drag: its corner and size, with a line keeping its direction. */
+export function shapeFromDrag(a, b, shape) {
+  if (shape === "line") return { x: Math.round(a[0]), y: Math.round(a[1]), w: Math.round(b[0] - a[0]), h: Math.round(b[1] - a[1]) };
+  return { x: Math.round(Math.min(a[0], b[0])), y: Math.round(Math.min(a[1], b[1])), w: Math.round(Math.abs(b[0] - a[0])), h: Math.round(Math.abs(b[1] - a[1])) };
+}
+
 /** Normalise a dragged rectangle and keep it inside the canvas. Null when it has no area. */
 export function cropRect(doc, a, b) {
   const x0 = Math.round(clamp(Math.min(a[0], b[0]), 0, doc.w)), x1 = Math.round(clamp(Math.max(a[0], b[0]), 0, doc.w));
@@ -155,8 +224,13 @@ export function crop(doc, r) {
   if (!r) return doc;
   return {
     ...doc, w: side(r.w), h: side(r.h),
-    layers: doc.layers.map((l) => (l.kind === "fill" ? l : { ...l, x: l.x - r.x, y: l.y - r.y })),
+    layers: doc.layers.map((l) => shiftMask(l.kind === "fill" || l.kind === "gradient" ? l : { ...l, x: l.x - r.x, y: l.y - r.y }, -r.x, -r.y)),
   };
+}
+
+function shiftMask(l, dx, dy) {
+  if (!l.mask || (!dx && !dy)) return l;
+  return { ...l, mask: { ...l.mask, strokes: l.mask.strokes.map((s) => ({ ...s, points: s.points.map(([x, y, ...r]) => [x + dx, y + dy, ...r]) })) } };
 }
 
 /** Change the canvas size; `anchor` "center" keeps content centred, "topleft" leaves it. */
@@ -164,7 +238,7 @@ export function resizeCanvas(doc, w, h, anchor = "center") {
   const W = side(w), H = side(h);
   const dx = anchor === "center" ? Math.round((W - doc.w) / 2) : 0;
   const dy = anchor === "center" ? Math.round((H - doc.h) / 2) : 0;
-  return { ...doc, w: W, h: H, layers: doc.layers.map((l) => (l.kind === "fill" ? l : { ...l, x: l.x + dx, y: l.y + dy })) };
+  return { ...doc, w: W, h: H, layers: doc.layers.map((l) => shiftMask(l.kind === "fill" || l.kind === "gradient" ? l : { ...l, x: l.x + dx, y: l.y + dy }, dx, dy)) };
 }
 
 /** Fit an image of iw×ih inside the canvas, centred, never enlarged. */
@@ -175,7 +249,11 @@ export function fitImage(doc, iw, ih) {
 
 /** Rough box for picking a layer with the move tool (ignores rotation; text width is estimated). */
 export function boxOf(l, doc) {
-  if (l.kind === "fill") return { x: 0, y: 0, w: doc.w, h: doc.h };
+  if (l.kind === "fill" || l.kind === "gradient") return { x: 0, y: 0, w: doc.w, h: doc.h };
+  if (l.kind === "shape") {
+    const x0 = Math.min(0, l.w), y0 = Math.min(0, l.h), pad = l.filled && l.shape !== "line" ? 0 : l.line / 2;
+    return { x: l.x + (x0 - pad) * l.scale, y: l.y + (y0 - pad) * l.scale, w: (Math.abs(l.w) + pad * 2) * l.scale, h: (Math.abs(l.h) + pad * 2) * l.scale };
+  }
   if (l.kind === "image") return { x: l.x, y: l.y, w: l.w * l.scale, h: l.h * l.scale };
   if (l.kind === "text") {
     const lines = l.text.split("\n");
@@ -194,9 +272,30 @@ export function boxOf(l, doc) {
 /** The topmost visible, unlocked layer under a point — what a click with the move tool grabs. */
 export function pick(doc, x, y) {
   for (const l of doc.layers) {
-    if (!l.visible || l.locked || l.kind === "fill") continue;
+    if (!l.visible || l.locked || l.kind === "fill" || l.kind === "gradient") continue;
     const b = boxOf(l, doc);
     if (b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return l.id;
   }
   return null;
+}
+
+// ── a project file: the whole layered document, to reopen later ──
+export const PROJECT_VERSION = 1;
+
+/** The document as JSON, with each image's pixels supplied by `dataOf(src)` (a data: URL). */
+export async function toProject(doc, dataOf) {
+  const layers = [];
+  for (const l of doc.layers) layers.push(l.kind === "image" ? { ...l, src: await dataOf(l.src) } : l);
+  return JSON.stringify({ imagez: PROJECT_VERSION, w: doc.w, h: doc.h, layers });
+}
+
+/** Read a project file back. Every layer goes through makeLayer, so a hand-edited file cannot carry junk. */
+export function fromProject(text) {
+  let p;
+  try { p = JSON.parse(text); } catch { throw new Error("That isn't an ImageZ project file."); }
+  if (!p || p.imagez !== PROJECT_VERSION || !Array.isArray(p.layers)) throw new Error("That isn't an ImageZ project file.");
+  const doc = { w: Math.round(clamp(p.w, 1, MAX_SIDE)), h: Math.round(clamp(p.h, 1, MAX_SIDE)), layers: [] };
+  doc.layers = p.layers.slice(0, MAX_LAYERS).map((l) => makeLayer({ ...l, id: uid() }))
+    .filter((l) => l.kind !== "image" || /^data:image\//.test(l.src));
+  return doc;
 }

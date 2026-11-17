@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  addMaskStroke, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
   ADJ0, MAX_LAYERS, MAX_SIDE, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
   moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer,
 } from "./layers.js";
@@ -108,4 +109,58 @@ test("pen pressure is kept per point, clamped, and a mouse stroke carries none",
   let d = addLayer(newDoc(), { kind: "paint", id: "p" });
   d = addStroke(d, "p", { points: [[1, 1, 0.333], [2, 2, 5]] });
   assert.deepEqual(d.layers[0].strokes[0].points, [[1, 1, 0.33], [2, 2, 1]]);
+});
+
+test("a mask stroke needs a mask, and crop moves the mask with the canvas", () => {
+  let d = addLayer(newDoc(1000, 1000), { kind: "paint", id: "p" });
+  assert.equal(addMaskStroke(d, "p", { hide: true, points: [[10, 10]] }), d);
+  d = updateLayer(d, "p", { mask: { strokes: [] } });
+  d = addMaskStroke(d, "p", { hide: true, size: 30, points: [[110, 120]] });
+  assert.deepEqual(d.layers[0].mask.strokes[0], { hide: true, size: 30, points: [[110, 120]] });
+  d = crop(d, { x: 100, y: 100, w: 500, h: 500 });
+  assert.deepEqual(d.layers[0].mask.strokes[0].points, [[10, 20]]);
+});
+
+test("shapes from a drag: boxes normalise, a line keeps its direction", () => {
+  assert.deepEqual(shapeFromDrag([50, 60], [10, 20], "rect"), { x: 10, y: 20, w: 40, h: 40 });
+  assert.deepEqual(shapeFromDrag([50, 60], [10, 20], "line"), { x: 50, y: 60, w: -40, h: -40 });
+  const d = addLayer(newDoc(), { kind: "shape", shape: "nonsense" });
+  assert.equal(d.layers[0].shape, "rect");
+});
+
+test("a project round-trips, and a file with an outside image address drops that layer", async () => {
+  let d = addLayer(newDoc(300, 200), { kind: "text", text: "hi", flipX: true });
+  d = addLayer(d, { kind: "image", src: "blob:x", w: 10, h: 10 });
+  const text = await toProject(d, async () => "data:image/png;base64,AAAA");
+  const back = fromProject(text);
+  assert.equal(back.w, 300);
+  assert.deepEqual(back.layers.map((l) => l.kind), ["image", "text", "fill"]);
+  assert.equal(back.layers[1].flipX, true);
+  const evil = text.replace("data:image/png;base64,AAAA", "https://example.com/x.png");
+  assert.deepEqual(fromProject(evil).layers.map((l) => l.kind), ["text", "fill"]);
+  assert.throws(() => fromProject("{}"));
+});
+
+test("graded opacity steps down the stack and leaves the background fill", () => {
+  let d = newDoc();
+  for (const id of ["a", "b", "c"]) d = addLayer(d, { kind: "paint", id });
+  d = gradeOpacity(d, 100, 20);
+  assert.deepEqual(d.layers.map((l) => l.opacity), [100, 60, 20, 100]);
+});
+
+test("a mask fade is cleaned, and replace keeps the slot and id", () => {
+  let d = addLayer(newDoc(), { kind: "paint", id: "p", mask: { strokes: [], fade: { from: 500, style: "x" } } });
+  assert.deepEqual(d.layers[0].mask.fade, { from: 100, to: 0, angle: 90, style: "linear" });
+  d = replaceLayer(d, "p", { kind: "image", src: "blob:z", w: 5, h: 5, opacity: 40 });
+  assert.equal(d.layers[0].id, "p");
+  assert.equal(d.layers[0].kind, "image");
+  assert.equal(d.layers[0].opacity, 40);
+});
+
+test("dragging a layer to a slot moves it there and clamps past the ends", () => {
+  let d = newDoc(10, 10, null);
+  for (const id of ["a", "b", "c"]) d = addLayer(d, { id });
+  assert.deepEqual(moveLayerTo(d, "a", 0).layers.map((l) => l.id), ["a", "c", "b"]);
+  assert.deepEqual(moveLayerTo(d, "c", 99).layers.map((l) => l.id), ["b", "a", "c"]);
+  assert.equal(moveLayerTo(d, "c", 0), d);
 });
