@@ -7,7 +7,8 @@
 // pen's eraser end erases.
 //
 // Tiers: the editor is free at every tier. How MANY layers a picture holds is the
-// tier's (`imagez_layers`, served — Free 5, Premium more, StatZ unlimited), and the
+// tier's (`imagez_layers`, served — Free 5, Premium more, StatZ unlimited), so are the
+// fonts (`imagez_fonts` — Premium 6, StatZ every one plus the device's own), and the
 // magic and background erasers are StatZ's (or the free daily sample's). The plain
 // eraser and masks stay free, so nobody loses a way to cut something out.
 //
@@ -26,7 +27,7 @@ import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import {
-  ADJ0, ADJ_RANGE, BLENDS, FONTS, PRESETS, canAdd, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
+  ADJ0, ADJ_RANGE, BLENDS, FONTS, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer,
 } from "../imageedit/layers.js";
@@ -88,6 +89,11 @@ export default function ImageZ() {
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
   const nextCap = lim?.tier === "free" ? lim?.tiers?.premium?.imagez_layers : null;
+  // Fonts ladder the same way (`imagez_fonts`): the first N of the list, every one on StatZ,
+  // where a font installed on the device can be typed by name too. Unknown until /limits/ answers.
+  const fontCap = lim && "imagez_fonts" in lim ? lim.imagez_fonts : undefined;
+  const fonts = fontCap === undefined ? FONTS : fontsFor(fontCap);
+  const [customFont, setCustomFont] = useState("");
   const [grade, setGrade] = useState({ top: 100, bottom: 20 });
   const [lib, setLib] = useState(false);
   const [err, setErr] = useState("");
@@ -640,8 +646,24 @@ export default function ImageZ() {
               {layer.kind === "text" && <>
                 <textarea className="neon-input" rows={2} value={layer.text} onChange={(e) => patch({ text: e.target.value })} />
                 <select className="neon-input" data-nomemo="true" value={layer.font} onChange={(e) => patch({ font: e.target.value })}>
-                  {FONTS.map(([k, label]) => <option key={k} value={k} style={{ fontFamily: k }}>{label}</option>)}
+                  {FONTS.map(([k, label]) => {
+                    const ok = fonts.some(([f]) => f === k) || k === layer.font;
+                    return <option key={k} value={k} disabled={!ok} style={{ fontFamily: k }}>{label}{ok ? "" : " — upgrade"}</option>;
+                  })}
+                  {!FONTS.some(([k]) => k === layer.font) && <option value={layer.font}>{layer.font.split(",")[0]}</option>}
                 </select>
+                {fontCap != null && fontCap < FONTS.length && (
+                  <p className="text-white/50">{fonts.length} of {FONTS.length} fonts on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+                    <button className="re-link" onClick={() => goToSpot("membershipz", "")}>
+                      {lim?.tier === "free" && lim?.tiers?.premium?.imagez_fonts ? `Premium has ${lim.tiers.premium.imagez_fonts}; ` : ""}StatZ has every font, and your device's own
+                    </button></p>
+                )}
+                {fontCap === null && (
+                  <div className="flex gap-1">
+                    <input className="neon-input" placeholder="Any font on your device, by name" value={customFont} onChange={(e) => setCustomFont(e.target.value)} />
+                    <button className="re-btn !w-auto px-2" disabled={!customFont.trim()} onClick={() => patch({ font: customFont.trim() })}>Use</button>
+                  </div>
+                )}
                 <label className="flex items-center gap-2">Size <input type="number" className="neon-input !w-24" value={layer.size} onChange={(e) => patch({ size: +e.target.value })} /> px</label>
                 <div className="flex flex-wrap gap-1">
                   {[["bold", "B", "font-bold"], ["italic", "I", "italic"], ["underline", "U", "underline"]].map(([k, t, cls]) => (

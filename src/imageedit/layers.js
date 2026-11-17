@@ -24,6 +24,13 @@ export const FONTS = [
   ["'Trebuchet MS', sans-serif", "Trebuchet"], ["system-ui, sans-serif", "System"],
 ];
 const FONT_KEYS = new Set(FONTS.map(([k]) => k));
+// A font typed by name (StatZ: any installed on the device). Only letters, digits, spaces,
+// quotes, commas and hyphens — it goes into a CSS font string, so nothing else gets through.
+const SAFE_FONT = /^[\w\s,'"-]{1,80}$/;
+export const cleanFont = (f) => (FONT_KEYS.has(f) ? f : typeof f === "string" && SAFE_FONT.test(f.trim()) ? `${f.trim()}, ${FONTS[0][0]}` .replace(/(, Inter, system-ui, sans-serif)+$/, ", Inter, system-ui, sans-serif") : FONTS[0][0]);
+
+/** The fonts a tier may pick: the first `cap` of FONTS, all of them when cap is null (unlimited). */
+export const fontsFor = (cap) => (cap == null ? FONTS : FONTS.slice(0, Math.max(0, cap)));
 
 export const BLENDS = [
   ["source-over", "Normal"], ["multiply", "Multiply"], ["screen", "Screen"], ["overlay", "Overlay"],
@@ -78,7 +85,7 @@ export function makeLayer(spec = {}) {
   if (kind === "image") return { ...base, src: spec.src || "", w: side(spec.w || 1), h: side(spec.h || 1) };
   if (kind === "text") return {
     ...base, text: String(spec.text ?? "Your text").slice(0, 500), color: spec.color || "#ffffff",
-    size: clamp(spec.size ?? 96, 4, 1000), font: FONT_KEYS.has(spec.font) ? spec.font : FONTS[0][0], bold: spec.bold !== false,
+    size: clamp(spec.size ?? 96, 4, 1000), font: cleanFont(spec.font), bold: spec.bold !== false,
     italic: !!spec.italic, underline: !!spec.underline,
     align: ["left", "center", "right"].includes(spec.align) ? spec.align : "left",
     spacing: clamp(spec.spacing ?? 0, -50, 200), lineHeight: clamp(spec.lineHeight ?? 1.2, 0.6, 4),
