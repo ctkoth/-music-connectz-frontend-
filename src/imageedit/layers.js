@@ -10,7 +10,20 @@
 // work.
 
 export const MAX_SIDE = 4096;       // a canvas this size is ~64 MB of pixels in the tab
-export const MAX_LAYERS = 50;
+// How many layers a picture may hold is the TIER's (`imagez_layers` from /limits/,
+// null = unlimited); the model never caps it, so an unlimited tier is unlimited.
+export const canAdd = (doc, cap) => cap == null || doc.layers.length < cap;
+
+// Fonts every device has or the app already loads; a name the device lacks falls back to its family.
+export const FONTS = [
+  ["Inter, system-ui, sans-serif", "Inter"], ["Arial, Helvetica, sans-serif", "Arial"],
+  ["'Helvetica Neue', Helvetica, sans-serif", "Helvetica"], ["Impact, 'Arial Black', sans-serif", "Impact"],
+  ["Georgia, 'Times New Roman', serif", "Georgia"], ["'Times New Roman', Times, serif", "Times"],
+  ["'Courier New', Courier, monospace", "Courier"], ["'Comic Sans MS', 'Comic Neue', cursive", "Comic"],
+  ["'Brush Script MT', 'Segoe Script', cursive", "Script"], ["Verdana, Geneva, sans-serif", "Verdana"],
+  ["'Trebuchet MS', sans-serif", "Trebuchet"], ["system-ui, sans-serif", "System"],
+];
+const FONT_KEYS = new Set(FONTS.map(([k]) => k));
 
 export const BLENDS = [
   ["source-over", "Normal"], ["multiply", "Multiply"], ["screen", "Screen"], ["overlay", "Overlay"],
@@ -65,7 +78,13 @@ export function makeLayer(spec = {}) {
   if (kind === "image") return { ...base, src: spec.src || "", w: side(spec.w || 1), h: side(spec.h || 1) };
   if (kind === "text") return {
     ...base, text: String(spec.text ?? "Your text").slice(0, 500), color: spec.color || "#ffffff",
-    size: clamp(spec.size ?? 96, 4, 1000), font: spec.font || "Inter, system-ui, sans-serif", bold: spec.bold !== false,
+    size: clamp(spec.size ?? 96, 4, 1000), font: FONT_KEYS.has(spec.font) ? spec.font : FONTS[0][0], bold: spec.bold !== false,
+    italic: !!spec.italic, underline: !!spec.underline,
+    align: ["left", "center", "right"].includes(spec.align) ? spec.align : "left",
+    spacing: clamp(spec.spacing ?? 0, -50, 200), lineHeight: clamp(spec.lineHeight ?? 1.2, 0.6, 4),
+    outline: spec.outline || "#000000", outlineW: clamp(spec.outlineW ?? 0, 0, 100),
+    shadow: spec.shadow || "#000000", shadowBlur: clamp(spec.shadowBlur ?? 0, 0, 100),
+    shadowX: clamp(spec.shadowX ?? 0, -200, 200), shadowY: clamp(spec.shadowY ?? 0, -200, 200),
   };
   if (kind === "fill") return { ...base, color: spec.color || "#ffffff" };
   if (kind === "shape") return {
@@ -110,9 +129,8 @@ export function filterOf(adj) {
   return parts.join(" ");
 }
 
-/** Add on top of `above` (or on top of everything). Refused past MAX_LAYERS, said by the caller. */
+/** Add on top of `above` (or on top of everything). The tier's ceiling is checked by the caller with canAdd. */
 export function addLayer(doc, spec, above = null) {
-  if (doc.layers.length >= MAX_LAYERS) return doc;
   const layer = makeLayer(spec);
   const at = above ? Math.max(0, doc.layers.findIndex((l) => l.id === above)) : 0;
   const layers = [...doc.layers];
@@ -257,8 +275,9 @@ export function boxOf(l, doc) {
   if (l.kind === "image") return { x: l.x, y: l.y, w: l.w * l.scale, h: l.h * l.scale };
   if (l.kind === "text") {
     const lines = l.text.split("\n");
-    const wide = Math.max(...lines.map((s) => s.length)) * l.size * 0.6;
-    return { x: l.x, y: l.y, w: wide * l.scale, h: lines.length * l.size * 1.2 * l.scale };
+    const wide = Math.max(...lines.map((s) => s.length)) * (l.size * 0.6 + l.spacing);
+    const off = l.align === "center" ? wide / 2 : l.align === "right" ? wide : 0;
+    return { x: l.x - off * l.scale, y: l.y, w: wide * l.scale, h: lines.length * l.size * l.lineHeight * l.scale };
   }
   const pts = l.strokes.flatMap((s) => s.points.map(([px, py]) => [px, py, s.size]));
   if (!pts.length) return null;
@@ -295,7 +314,7 @@ export function fromProject(text) {
   try { p = JSON.parse(text); } catch { throw new Error("That isn't an ImageZ project file."); }
   if (!p || p.imagez !== PROJECT_VERSION || !Array.isArray(p.layers)) throw new Error("That isn't an ImageZ project file.");
   const doc = { w: Math.round(clamp(p.w, 1, MAX_SIDE)), h: Math.round(clamp(p.h, 1, MAX_SIDE)), layers: [] };
-  doc.layers = p.layers.slice(0, MAX_LAYERS).map((l) => makeLayer({ ...l, id: uid() }))
+  doc.layers = p.layers.map((l) => makeLayer({ ...l, id: uid() }))
     .filter((l) => l.kind !== "image" || /^data:image\//.test(l.src));
   return doc;
 }

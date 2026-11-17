@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addMaskStroke, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
-  ADJ0, MAX_LAYERS, MAX_SIDE, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
+  ADJ0, MAX_SIDE, canAdd, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
   moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer,
 } from "./layers.js";
 
@@ -27,10 +27,21 @@ test("a new layer goes on top, or directly above the one named", () => {
   assert.deepEqual(d.layers.map((l) => l.id).slice(0, 3), ["b", "c", "a"]);
 });
 
-test("the stack stops at MAX_LAYERS rather than growing without end", () => {
+test("the tier sets the ceiling, and null (StatZ) is unlimited", () => {
   let d = newDoc(10, 10, null);
-  for (let i = 0; i < MAX_LAYERS + 5; i++) d = addLayer(d, { kind: "paint" });
-  assert.equal(d.layers.length, MAX_LAYERS);
+  for (let i = 0; i < 80; i++) d = addLayer(d, { kind: "paint" });
+  assert.equal(d.layers.length, 80);
+  assert.equal(canAdd(d, 5), false);
+  assert.equal(canAdd(d, null), true);
+  assert.equal(canAdd(newDoc(), 5), true);
+});
+
+test("text options are cleaned: an unknown font falls back, sizes are bounded", () => {
+  const l = addLayer(newDoc(), { kind: "text", font: "evil()", align: "middle", outlineW: 999, italic: 1 }).layers[0];
+  assert.equal(l.font, "Inter, system-ui, sans-serif");
+  assert.equal(l.align, "left");
+  assert.equal(l.outlineW, 100);
+  assert.equal(l.italic, true);
 });
 
 test("move up and down swap neighbours and stop at the ends", () => {

@@ -57,6 +57,34 @@ const maskStyle = (ctx, s) => {
   ctx.strokeStyle = "#fff"; ctx.fillStyle = "#fff";
 };
 
+/** Text with its options: font, bold/italic, alignment, letter spacing, line height, outline, shadow, underline. */
+function drawText(ctx, l) {
+  ctx.textBaseline = "top";
+  ctx.textAlign = l.align;
+  ctx.font = `${l.italic ? "italic " : ""}${l.bold ? "800 " : ""}${l.size}px ${l.font}`;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = `${l.spacing}px`;
+  const lines = l.text.split("\n");
+  const step = l.size * l.lineHeight;
+  if (l.shadowBlur || l.shadowX || l.shadowY) {
+    ctx.shadowColor = l.shadow; ctx.shadowBlur = l.shadowBlur; ctx.shadowOffsetX = l.shadowX; ctx.shadowOffsetY = l.shadowY;
+  }
+  if (l.outlineW) {
+    // Outline drawn under the fill, so a thick outline grows outward instead of eating the letters.
+    ctx.strokeStyle = l.outline; ctx.lineWidth = l.outlineW * 2; ctx.lineJoin = "round";
+    lines.forEach((line, i) => ctx.strokeText(line, 0, i * step));
+    ctx.shadowColor = "transparent";
+  }
+  ctx.fillStyle = l.color;
+  lines.forEach((line, i) => {
+    ctx.fillText(line, 0, i * step);
+    if (l.underline && line) {
+      const w = ctx.measureText(line).width;
+      const x0 = l.align === "center" ? -w / 2 : l.align === "right" ? -w : 0;
+      ctx.fillRect(x0, i * step + l.size * 1.02, w, Math.max(1, l.size / 14));
+    }
+  });
+}
+
 function size(l, images) {
   if (l.kind === "image") return [l.w, l.h];
   if (l.kind === "shape") return [l.w, l.h];
@@ -98,9 +126,7 @@ function body(ctx, doc, l, images) {
     const img = images.get(l.src);
     if (img) ctx.drawImage(img, 0, 0, l.w, l.h);
   } else if (l.kind === "text") {
-    ctx.fillStyle = l.color; ctx.textBaseline = "top";
-    ctx.font = `${l.bold ? "800 " : ""}${l.size}px ${l.font}`;
-    l.text.split("\n").forEach((line, i) => ctx.fillText(line, 0, i * l.size * 1.2));
+    drawText(ctx, l);
   } else if (l.kind === "shape") {
     ctx.strokeStyle = l.color; ctx.fillStyle = l.color; ctx.lineWidth = l.line; ctx.lineCap = "round";
     ctx.beginPath();

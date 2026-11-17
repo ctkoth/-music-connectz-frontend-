@@ -6,6 +6,11 @@
 // shortcuts; and a project file that reopens with every layer intact. A pen tablet (Wacom and the like) draws with pressure, and the
 // pen's eraser end erases.
 //
+// Tiers: the editor is free at every tier. How MANY layers a picture holds is the
+// tier's (`imagez_layers`, served — Free 5, Premium more, StatZ unlimited), and the
+// magic and background erasers are StatZ's (or the free daily sample's). The plain
+// eraser and masks stay free, so nobody loses a way to cut something out.
+//
 // The cost/gain line is the whole price: FREE, because nothing leaves the device
 // until Save to FileZ, and Save says the MB it uses before it is pressed.
 //
@@ -21,11 +26,14 @@ import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import {
-  ADJ0, ADJ_RANGE, BLENDS, MAX_LAYERS, PRESETS, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
+  ADJ0, ADJ_RANGE, BLENDS, FONTS, PRESETS, canAdd, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer,
 } from "../imageedit/layers.js";
 import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc } from "../imageedit/render.js";
+import { useStatzTrial, StatzSample } from "../components/StatzSample.jsx";
+import { loadLimits, TIER_LABEL } from "../limits.js";
+import { goToSpot } from "../goto.js";
 import { backgroundDab, dabsAlong, magicErase, sample } from "../imageedit/pixels.js";
 
 const HISTORY = 60;
@@ -72,6 +80,14 @@ export default function ImageZ() {
   const [onMask, setOnMask] = useState(false);
   const [wand, setWand] = useState({ tolerance: 32, contiguous: true });
   const [dragRow, setDragRow] = useState(null);
+  const { s: statz } = useStatzTrial();
+  const erasersAllowed = !!(statz?.is_statz || statz?.active);
+  // The tier's layer ceiling. `undefined` until /limits/ answers: nothing is blocked while
+  // it loads (it all runs on the device and spends nothing of ours), and no number is guessed.
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
+  const nextCap = lim?.tier === "free" ? lim?.tiers?.premium?.imagez_layers : null;
   const [grade, setGrade] = useState({ top: 100, bottom: 20 });
   const [lib, setLib] = useState(false);
   const [err, setErr] = useState("");
@@ -131,6 +147,7 @@ export default function ImageZ() {
 
   const addImageFrom = useCallback(async (src, name) => {
     setErr("");
+    if (!roomFor()) return;
     const img = await loadImage(src);
     images.current.set(src, img);
     commit((d) => {
@@ -143,7 +160,7 @@ export default function ImageZ() {
       setSel(id);
       return addLayer(base, { kind: "image", id, name: (name || "Image").slice(0, 60), src, w: img.naturalWidth, h: img.naturalHeight, ...fit }, sel);
     });
-  }, [commit, past.length, sel]);
+  }, [commit, past.length, sel, cap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openFiles = async (list) => {
     for (const f of Array.from(list || [])) {
@@ -164,10 +181,17 @@ export default function ImageZ() {
     if (p?.url) fromLibrary({ url: p.url, name: p.name || p.title || "Image" });
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Every path that makes a layer asks this first, and a refusal says the ceiling and what lifts it.
+  const roomFor = (d = docRef.current) => {
+    if (cap === undefined || canAdd(d, cap)) return true;
+    setErr(`${TIER_LABEL[lim?.tier] || "Your tier"} holds ${cap} layers in a picture — merge some down, or upgrade for more${nextCap ? ` (Premium holds ${nextCap}; StatZ is unlimited)` : " (StatZ is unlimited)"}.`);
+    return false;
+  };
+
   const layer = sel ? layerOf(doc, sel) : null;
   const patch = (p) => sel && commit((d) => updateLayer(d, sel, p));
   const add = (spec) => {
-    if (doc.layers.length >= MAX_LAYERS) { setErr(`A picture holds up to ${MAX_LAYERS} layers — merge some down first.`); return; }
+    if (!roomFor()) return;
     const id = uid();
     commit((d) => addLayer(d, { ...spec, id }, sel));
     setSel(id);
@@ -206,6 +230,10 @@ export default function ImageZ() {
     const p = at(e);
     // A Wacom's eraser end reports button 5 / buttons bit 32: it erases whatever tool is picked.
     const penEraser = e.pointerType === "pen" && (e.button === 5 || (e.buttons & 32));
+    if ((tool === "magic" || tool === "bgerase") && !erasersAllowed) {
+      setErr("The magic and background erasers are StatZ features — try them free below, or use the plain eraser or a mask.");
+      return;
+    }
     if (tool === "magic") {
       const t = pixelTarget();
       if (!t) return;
@@ -239,6 +267,7 @@ export default function ImageZ() {
       draw(); return;
     }
     if (tool === "shape") {
+      if (!roomFor()) return;
       drag.current = { kind: "shape", a: p, b: p, above: sel, spec: { ...shape, color: brush.color } };
       draw(); return;
     }
@@ -246,6 +275,7 @@ export default function ImageZ() {
       let id = sel;
       if (!layer || layer.kind !== "paint") {
         if (penEraser || tool === "eraser") { setErr("Pick a paint layer to erase on — the eraser only takes back brush work."); return; }
+        if (!roomFor()) return;
         id = uid();
         commit((d) => addLayer(d, { kind: "paint", id }, sel));
         setSel(id);
@@ -433,9 +463,9 @@ export default function ImageZ() {
       {err && <p className="text-sm text-mcz-ember">{err}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[auto_1fr_18rem]">
-        <div className="flex flex-row gap-1 lg:flex-col">
+        <div className="flex flex-row flex-wrap gap-1 lg:flex-col" data-tour="imagez-erasers">
           {tools.map(([k, I, label]) => (
-            <button key={k} title={label} onClick={() => { setTool(k); if (k !== "crop") setCropBox(null); }}
+            <button key={k} title={(k === "magic" || k === "bgerase") && !erasersAllowed ? `${label} — StatZ` : label} onClick={() => { setTool(k); if (k !== "crop") setCropBox(null); }}
               className={`re-btn !w-auto px-2 ${tool === k ? "!border-mcz-cyan text-mcz-cyan" : ""}`}><I size={16} /></button>
           ))}
         </div>
@@ -456,7 +486,13 @@ export default function ImageZ() {
               <span className="text-white/50">Drag on the picture — each shape is its own layer.</span>
             </div>
           )}
-          {(tool === "magic" || tool === "bgerase") && (
+          {(tool === "magic" || tool === "bgerase") && !erasersAllowed && (
+            <div className="space-y-1 text-xs">
+              <p className="text-white/60">{tool === "magic" ? "The magic eraser clears everything like the colour you click" : "The background eraser clears the background around your subject as you paint"}. The plain eraser and masks are free at every tier.</p>
+              <StatzSample what={tool === "magic" ? "The magic eraser" : "The background eraser"} />
+            </div>
+          )}
+          {(tool === "magic" || tool === "bgerase") && erasersAllowed && (
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <label className="flex items-center gap-1">Tolerance <input type="range" min="0" max="100" value={wand.tolerance} onChange={(e) => setWand({ ...wand, tolerance: +e.target.value })} /> {wand.tolerance}%</label>
               {tool === "magic" && <label className="flex items-center gap-1"><input type="checkbox" checked={wand.contiguous} onChange={(e) => setWand({ ...wand, contiguous: e.target.checked })} /> Connected only</label>}
@@ -491,7 +527,7 @@ export default function ImageZ() {
         <aside className="space-y-3">
           <div className="glass-card space-y-2 p-3">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-1 font-semibold"><Layers size={14} /> Layers <span className="text-xs text-white/40">{doc.layers.length}/{MAX_LAYERS}</span></h3>
+              <h3 className="flex items-center gap-1 font-semibold"><Layers size={14} /> Layers <span className="text-xs text-white/40">{cap === undefined ? doc.layers.length : cap === null ? `${doc.layers.length} · unlimited` : `${doc.layers.length}/${cap}`}</span></h3>
               <div className="flex gap-1">
                 <button className="re-btn !w-auto px-2" title="Paint layer" onClick={() => add({ kind: "paint" })}><Plus size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Text layer" onClick={() => add({ kind: "text", x: Math.round(doc.w * 0.1), y: Math.round(doc.h * 0.1), size: Math.round(doc.h / 10) })}><Type size={14} /></button>
@@ -527,6 +563,10 @@ export default function ImageZ() {
                 );
               })}
             </ul>
+            {cap != null && !canAdd(doc, cap) && (
+              <p className="text-xs text-mcz-gold">Full — {cap} layers on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+                <button className="re-link" onClick={() => goToSpot("membershipz", "")}>{nextCap ? `Premium holds ${nextCap}, StatZ unlimited` : "StatZ is unlimited"}</button></p>
+            )}
             <div className="flex flex-wrap items-center gap-1 text-xs text-white/70">
               <Blend size={12} /> Opacity down the stack
               <input type="number" className="neon-input !w-14 !py-0.5" min="0" max="100" value={grade.top} onChange={(e) => setGrade({ ...grade, top: +e.target.value })} />% →
@@ -538,7 +578,7 @@ export default function ImageZ() {
               <div className="flex flex-wrap gap-1">
                 <button className="re-btn !w-auto px-2" title="Up" onClick={() => commit((d) => moveLayer(d, sel, -1))}><ArrowUp size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Down" onClick={() => commit((d) => moveLayer(d, sel, 1))}><ArrowDown size={14} /></button>
-                <button className="re-btn !w-auto px-2" title="Duplicate" onClick={() => commit((d) => duplicateLayer(d, sel))}><Copy size={14} /></button>
+                <button className="re-btn !w-auto px-2" title="Duplicate" onClick={() => roomFor() && commit((d) => duplicateLayer(d, sel))}><Copy size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Flip horizontal" onClick={() => patch({ flipX: !layer.flipX })}><FlipHorizontal size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Flip vertical" onClick={() => patch({ flipY: !layer.flipY })}><FlipVertical size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Merge down" disabled={!below(doc, sel)} onClick={mergeDown}><Merge size={14} /></button>
@@ -599,7 +639,27 @@ export default function ImageZ() {
               {(layer.kind === "fill" || layer.kind === "text") && <label className="flex items-center gap-2">Colour <input type="color" value={layer.color} onChange={(e) => patch({ color: e.target.value })} /></label>}
               {layer.kind === "text" && <>
                 <textarea className="neon-input" rows={2} value={layer.text} onChange={(e) => patch({ text: e.target.value })} />
+                <select className="neon-input" data-nomemo="true" value={layer.font} onChange={(e) => patch({ font: e.target.value })}>
+                  {FONTS.map(([k, label]) => <option key={k} value={k} style={{ fontFamily: k }}>{label}</option>)}
+                </select>
                 <label className="flex items-center gap-2">Size <input type="number" className="neon-input !w-24" value={layer.size} onChange={(e) => patch({ size: +e.target.value })} /> px</label>
+                <div className="flex flex-wrap gap-1">
+                  {[["bold", "B", "font-bold"], ["italic", "I", "italic"], ["underline", "U", "underline"]].map(([k, t, cls]) => (
+                    <button key={k} className={`re-btn !w-auto px-2 ${cls} ${layer[k] ? "!border-mcz-cyan text-mcz-cyan" : ""}`} onClick={() => patch({ [k]: !layer[k] })}>{t}</button>
+                  ))}
+                  {["left", "center", "right"].map((a) => (
+                    <button key={a} className={`re-btn !w-auto px-2 ${layer.align === a ? "!border-mcz-cyan text-mcz-cyan" : ""}`} onClick={() => patch({ align: a })}>{a[0].toUpperCase() + a.slice(1)}</button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2">Letter spacing <input type="range" min="-20" max="100" value={layer.spacing} onChange={(e) => patch({ spacing: +e.target.value })} className="flex-1" /> {layer.spacing}px</label>
+                <label className="flex items-center gap-2">Line height <input type="range" min="60" max="300" value={Math.round(layer.lineHeight * 100)} onChange={(e) => patch({ lineHeight: +e.target.value / 100 })} className="flex-1" /> {layer.lineHeight.toFixed(2)}</label>
+                <label className="flex items-center gap-2">Outline <input type="color" value={layer.outline} onChange={(e) => patch({ outline: e.target.value })} />
+                  <input type="range" min="0" max="40" value={layer.outlineW} onChange={(e) => patch({ outlineW: +e.target.value })} className="flex-1" /> {layer.outlineW}px</label>
+                <label className="flex items-center gap-2">Shadow <input type="color" value={layer.shadow} onChange={(e) => patch({ shadow: e.target.value })} />
+                  <input type="range" min="0" max="60" value={layer.shadowBlur} onChange={(e) => patch({ shadowBlur: +e.target.value })} className="flex-1" title="Blur" /> blur {layer.shadowBlur}</label>
+                <label className="flex items-center gap-2">Shadow offset
+                  <input type="range" min="-60" max="60" value={layer.shadowX} onChange={(e) => patch({ shadowX: +e.target.value })} className="flex-1" title="Across" />
+                  <input type="range" min="-60" max="60" value={layer.shadowY} onChange={(e) => patch({ shadowY: +e.target.value })} className="flex-1" title="Down" /></label>
               </>}
               <details>
                 <summary className="cursor-pointer text-white/70">Adjustments</summary>
