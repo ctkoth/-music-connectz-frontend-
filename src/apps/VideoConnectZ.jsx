@@ -77,7 +77,10 @@ export default function VideoConnectZ() {
   const [work, setWork] = useState(null);
   // A coach's read handed over from a scored take (BossTake's "Coach Review Promo Video").
   const [promo, setPromo] = useState(null);
-  useEffect(() => onHandoff("videoconnectz", (p) => { if (p?.coach_review) setPromo(p.coach_review); }), []);
+  useEffect(() => onHandoff("videoconnectz", (p) => {
+    if (p?.coach_review) setPromo(p.coach_review);
+    if (p?.face_id) setFace(p.face_id);   // FaceZ: "Make a video with this face"
+  }), []);
   const [elapsed, setElapsed] = useState(0);
   const resumed = useRef(false);
 

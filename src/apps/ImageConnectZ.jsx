@@ -2,6 +2,7 @@ import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useState } from "react";
 import { Download, Loader2, UserRound, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
+import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
@@ -92,6 +93,18 @@ export default function ImageConnectZ() {
 
   const load = () => api("/api/economy/gemini/image/").then(setInfo).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
+  // From FaceZ: "Make a picture with this face" arrives with the face, and lands on a picture
+  // type that can carry the member's own likeness (the server only takes their own faces).
+  const [pendingFace, setPendingFace] = useState(null);
+  useEffect(() => onHandoff("imageconnectz", (p) => { if (p?.face_id) setPendingFace(p); }), []);
+  useEffect(() => {
+    if (!pendingFace || !info) return;
+    const likeKind = (info.kinds || []).find((x) => x.key === kind && x.likeness) || (info.kinds || []).find((x) => x.likeness);
+    if (likeKind) setKind(likeKind.key);
+    setFaceId(pendingFace.face_id); setRef(null); setRefMode("me");
+    if (pendingFace.prompt) setPrompt((x) => x || pendingFace.prompt);
+    setPendingFace(null);
+  }, [pendingFace, info]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const kinds = info?.kinds || [];
   const k = kinds.find((x) => x.key === kind);

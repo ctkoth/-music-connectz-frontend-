@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Term from "../components/Term.jsx";
-import { Loader2, Lock, Trash2, Upload } from "lucide-react";
+import { Clapperboard, ImagePlus, Loader2, Lock, Star, Trash2, Upload } from "lucide-react";
+import { handOff } from "../handoff.js";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToTab } from "../goto.js";
@@ -23,6 +24,8 @@ export default function FaceZ() {
   // What happened to the tag on the last upload, when it was not what was asked.
   const [note, setNote] = useState("");
   const [rated, setRated] = useState({});
+  // Corey: a face is rated only if its owner wants it rated — off unless ticked.
+  const [openNew, setOpenNew] = useState(false);
   const { goToProfile } = useMentionHandlers();
 
   const load = () => api("/api/economy/facez/").then(setD).catch((e) => setErr(e.message));
@@ -35,6 +38,7 @@ export default function FaceZ() {
     try {
       const body = new FormData();
       body.append("image", file); body.append("name", name.trim());
+      if (openNew) body.append("open_to_ratings", "1");
       if (tagged.trim()) body.append("tagged", tagged.trim().replace(/^@/, ""));
       const r = await api("/api/economy/facez/", { method: "POST", body });
       // The photo is saved even when the tag is not: a handle nobody holds is
@@ -44,6 +48,13 @@ export default function FaceZ() {
       if (t.state === "unknown") setNote(unknownTagLine(t.handle));
       setName(""); setTagged(""); await load();
     } catch (x) { setErr(x.message); } finally { setBusy(false); }
+  }
+
+  async function setOpen(f, open) {
+    // Flipped at once on screen; a failed save puts it back and says why.
+    setD((x) => ({ ...x, mine: x.mine.map((m) => (m.id === f.id ? { ...m, open_to_ratings: open } : m)) }));
+    try { await api(`/api/economy/facez/${f.id}/`, { method: "PATCH", body: { open_to_ratings: open } }); }
+    catch (x) { setErr(x.message); load(); }
   }
 
   async function remove(id) {
@@ -73,11 +84,16 @@ export default function FaceZ() {
 
       {d && (
         <section className="neon-frame space-y-3 p-4">
-          <h3 className="font-semibold">Your faces <span className="text-white/40">({d.mine.length})</span></h3>
+          <h3 className="font-semibold">Your faces <span className="text-white/40">({d.mine.length}{d.faces_limit != null ? ` of ${d.faces_limit}` : " · unlimited"})</span></h3>
+          {d.faces_full && (
+            <p className="text-xs text-mcz-gold">Full — your tier keeps {d.faces_limit} faces. Delete one, or{" "}
+              <button className="re-link" onClick={() => goToTab("membershipz")}>upgrade (Premium keeps more; StatZ is unlimited)</button>.</p>
+          )}
           <div className="flex flex-wrap gap-2 text-sm">
             <input className="neon-input !w-auto flex-1" maxLength={80} placeholder="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} />
             <input className="neon-input !w-auto flex-1" maxLength={40} placeholder="Tag a member (optional)" value={tagged} onChange={(e) => setTagged(e.target.value)} />
-            <label className="neon-btn-primary !w-auto cursor-pointer px-4">
+            <label className="flex items-center gap-1 text-xs text-white/70"><input type="checkbox" checked={openNew} onChange={(e) => setOpenNew(e.target.checked)} /> Open to ratings</label>
+            <label className={`neon-btn-primary !w-auto cursor-pointer px-4 ${d.faces_full ? "pointer-events-none opacity-50" : ""}`}>
               {busy ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Add a face
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
             </label>
@@ -85,18 +101,19 @@ export default function FaceZ() {
           <p className="text-[11px] text-white/45">Free. Tagging a member tells them. Faces aren't counted toward your storage allowance.</p>
           {/* Before the file is chosen, not after: adding a face is entering the
               feed below, and the only way back out is deleting it. */}
-          <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/65">{FACE_FEED_NOTE}</p>
+          <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/65">{d.ratings_note || FACE_FEED_NOTE}</p>
           {note && <p role="status" className="text-xs text-mcz-gold">{note}</p>}
           {d.mine.length === 0 ? (
             <p className="text-sm text-white/55">No faces yet — add one, then star in a video.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {d.mine.map((f) => (
+              {[...d.mine].sort((a, b) => (b.median ?? -1) - (a.median ?? -1)).map((f, i, all) => (
                 <div key={f.id} className="group overflow-hidden rounded-xl border border-white/10">
                   <div className="relative">
                     <img src={f.url} alt={f.name || "face"} className="aspect-square w-full object-cover" />
                     <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/70 px-1.5 py-1 text-[10px]">
                       <span className="truncate">{f.name || "Untitled"}{f.count ? ` · ${f.median ?? "–"}★ (${f.count})` : ""}</span>
+                      {i === 0 && f.median != null && all.length > 1 && <span className="ml-1 flex items-center gap-0.5 text-mcz-gold" title="Your best-rated face"><Star size={10} /> best</span>}
                       <button onClick={() => remove(f.id)} aria-label="Delete face" className="text-white/60 hover:text-mcz-ember"><Trash2 size={12} /></button>
                     </div>
                   </div>
@@ -104,6 +121,14 @@ export default function FaceZ() {
                       name you cannot see on your own photo is a tag you cannot
                       check or mean to change. Below the picture, not over it:
                       the name and delete control already sit on the image. */}
+                  <div className="flex flex-wrap gap-1 border-t border-white/10 px-1.5 py-1 text-[10px]">
+                    <button className="flex items-center gap-0.5 text-mcz-cyan hover:underline" title="Make an AI picture with this face (Image ConnectZ, priced there)"
+                      onClick={() => handOff("imageconnectz", "", { face_id: f.id })}><ImagePlus size={11} /> Picture</button>
+                    <button className="flex items-center gap-0.5 text-mcz-cyan hover:underline" title="Make an AI video with this face (Video ConnectZ, priced there)"
+                      onClick={() => handOff("videoconnectz", "", { face_id: f.id })}><Clapperboard size={11} /> Video</button>
+                    <label className="ml-auto flex items-center gap-0.5 text-white/60" title="Let adult members rate this face">
+                      <input type="checkbox" checked={!!f.open_to_ratings} onChange={(e) => setOpen(f, e.target.checked)} /> rated</label>
+                  </div>
                   {f.tagged && (
                     <div className="border-t border-white/10 px-1.5 py-1 text-[10px] text-white/50">
                       tagged{" "}
