@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, FolderOpen, Loader2, Magnet, Pause, Play, Plus, Redo2, Save, SkipBack, Square, Type, Undo2, Upload } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
+import { handOff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import { useStatzTrial } from "../components/StatzSample.jsx";
@@ -367,6 +368,11 @@ export default function VideoZ() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <button className="re-btn !w-auto px-3" onClick={() => seek(0)} title="Go to start"><SkipBack size={14} /></button>
+            <button className="re-btn !w-auto px-3 text-xs" title="Open the frame at the playhead in ImageZ — free"
+              onClick={() => {
+                try { handOff("imagez", "", { url: canvasRef.current.toDataURL("image/png"), name: `Frame at ${clock(t)}` }); }
+                catch { setErr("This frame can't be copied out — a clip from another site is in it."); }
+              }}>Frame → ImageZ</button>
             <button className="neon-btn-primary !w-auto px-4" onClick={play} disabled={!length || !!exp} title="Play / pause (Space)">
               {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? "Pause" : "Play"}
             </button>

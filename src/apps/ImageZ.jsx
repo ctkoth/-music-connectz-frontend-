@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
+import { handOff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import {
@@ -1479,6 +1480,8 @@ export default function ImageZ() {
             <button className="neon-btn-primary" disabled={!!busy} onClick={doExport}><Download size={14} /> Export {doc.w * scaleOut}×{doc.h * scaleOut} <span className="text-emerald-300">· free</span></button>
             {result && <>
               <a className="re-btn" href={result.url} download={`imagez.${result.ext}`}><Download size={14} /> Download</a>
+              <button className="re-btn" title="Put this picture on the VideoZ timeline — free"
+                onClick={() => handOff("videoz", "", { url: result.url, name: "ImageZ picture", kind: "image" })}>Use in VideoZ</button>
               {!saved ? (
                 <button className="re-btn" disabled={!!busy} onClick={save}><Save size={14} /> Save to FileZ <span className="text-white/60">· uses {(result.blob.size / 1048576).toFixed(1)} MB of your storage</span></button>
               ) : <>

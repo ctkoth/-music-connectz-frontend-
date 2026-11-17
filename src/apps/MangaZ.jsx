@@ -12,6 +12,7 @@ import { Loader2, PenLine, Brush } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
+import { handOff } from "../handoff.js";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
@@ -63,6 +64,8 @@ function PageEditor({ s, page, chars, onChange }) {
             </div>
           ))}
           {q.image && <img src={q.image} alt={`Panel ${q.n}`} className="w-full rounded-lg" />}
+          {q.image && <button className="re-link text-[11px]" title="Touch this panel up in ImageZ — free"
+            onClick={() => handOff("imagez", "", { url: q.image, name: `${p.title} · panel ${q.n}` })}>Edit panel {q.n} in ImageZ</button>}
           <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={!!busy} onClick={() => draw(q.n)}>
             {busy === `d${q.n}` ? <Loader2 size={12} className="animate-spin" /> : <Brush size={12} />} {q.image ? "Redraw" : "Draw"} panel {q.n}{" "}
             <Price amount={s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />

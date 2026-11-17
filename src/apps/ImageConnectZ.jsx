@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Download, Loader2, UserRound, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
+import { handOff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
@@ -244,6 +245,12 @@ export default function ImageConnectZ() {
             <img src={made.image} alt={k?.label || "Generated"} className="w-full max-w-md rounded-xl" />
             <p className="text-[11px] text-white/45">AI-generated. Kept in Your pictures below and in FileZ.</p>
             <UseIt work={made.work || {}} kinds={kinds} src={made.image} />
+            <div className="flex flex-wrap gap-2 text-xs">
+              <button className="re-btn !w-auto px-3" title="Open it in ImageZ to edit in layers — free"
+                onClick={() => handOff("imagez", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ" })}>Edit in ImageZ</button>
+              <button className="re-btn !w-auto px-3" title="Put it on the VideoZ timeline — free"
+                onClick={() => handOff("videoz", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ", kind: "image" })}>Use in VideoZ</button>
+            </div>
           </div>
         )}
       </div>
