@@ -527,9 +527,10 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // Mini panes (see `minis` in the shell). ANY app can open as one, at EVERY
 // tier — Corey's call. SplitZ stays the Premium+ way to work side by side at
 // full size; a mini is the small version, free to everybody.
-export const MINI_TOOLS = ["metz", "tunerz", "chordz"];
+export const MINI_TOOLS = ["metz", "tunerz", "chordz", "sentenceconnectz"];
 export const canMini = () => true;
-const MAX_MINIS = 3;
+// Four, so a DAW can keep MetZ, TunerZ, ChordZ and Sentence ConnectZ open beside it at once.
+const MAX_MINIS = 4;
 
 export const slugFor = (key) =>
   key.endsWith("z") && key.length > 2 ? key.slice(0, -1) : key;

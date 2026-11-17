@@ -405,6 +405,14 @@ export default function Workspace({ workflow }) {
           <p className="text-sm text-white/60">{workflow.tagline}</p>
         </div>
       </header>
+      {/* The helpers a session needs beside it — each opens as a mini pane next to the DAW, which stays
+          open and keeps playing or recording. Tap again to close. Free at every tier. */}
+      <div className="flex flex-wrap items-center gap-1.5 text-xs" data-tour="daw-helpers">
+        <span className="text-white/45">Keep open beside it:</span>
+        {[["metz", "🎚️ MetZ"], ["tunerz", "🎯 TunerZ"], ["chordz", "🎼 ChordZ"], ["sentenceconnectz", "✍️ Sentence ConnectZ"]].map(([k, label]) => (
+          <button key={k} type="button" className="pill text-[11px]" onClick={() => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}>{label}</button>
+        ))}
+      </div>
 
       <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
         <span className="text-emerald-300">Free.</span> Everything runs on your device: your session is kept in this browser on this device, and nothing is
