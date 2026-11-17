@@ -356,6 +356,9 @@ export function cleanSession(raw) {
         id: String(r.id || uid("r")), src: r.src, name: String(r.name || "").slice(0, 80),
         at: Math.max(0, num(r.at, 0)), in: Math.max(0, num(r.in, 0)), out: Math.max(num(r.in, 0) + MIN_LEN, num(r.out, MIN_LEN)),
         gain: clamp(num(r.gain, 0), GAIN_DB.min, GAIN_DB.max), fadeIn: clamp(num(r.fadeIn, 0), 0, FADE_MAX), fadeOut: clamp(num(r.fadeOut, 0), 0, FADE_MAX),
+        // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
+        // new key is always made from the original and 0 gives the original back exactly.
+        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
       })),
     }));
     return {

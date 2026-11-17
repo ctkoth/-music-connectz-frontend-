@@ -20,6 +20,8 @@ import MixWindow from "./MixWindow.jsx";
 import MidiImport from "./MidiImport.jsx";
 import LoopLibrary from "./LoopLibrary.jsx";
 import KeyActions from "./KeyActions.jsx";
+import { pitchShift, rangeFor } from "./pitch.js";
+import { loadLimits } from "../limits.js";
 import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } from "./keymap.js";
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
@@ -188,6 +190,48 @@ export default function Workspace({ workflow }) {
     if (playing && !recording) startPlay(at);
   };
   const restartIfPlaying = () => { if (playing && !recording) startPlay(headRef.current); };
+
+  // ---- stem transposition: a track up or down in key, its tempo kept (pitch.js) ----
+  // The range is the tier's (Corey's numbers: Free ±3, Premium ±6, StatZ ±12), read from the server.
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const keyRange = rangeFor(lim && "imagez_layers" in lim ? lim.imagez_layers : 12);
+  const transposeTrack = async (trackId, semis) => {
+    const tr = sRef.current.tracks.find((t) => t.id === trackId);
+    if (!tr) return;
+    if (Math.abs(semis) > keyRange) { setErr(`Your tier moves a stem up to ±${keyRange} semitones — Premium ±6, StatZ a full octave.`); return; }
+    const regions = tr.playlists[tr.active]?.regions || [];
+    if (!regions.length) { setErr("There's nothing on that track to transpose yet."); return; }
+    setErr(""); setBusy(`Moving ${tr.name} ${semis > 0 ? "up" : "down"} ${Math.abs(semis)} semitone${Math.abs(semis) === 1 ? "" : "s"}…`);
+    try {
+      const made = new Map();   // original source -> shifted source, so a source shared by regions is shifted once
+      const patches = [];
+      for (const r of regions) {
+        const base = r.orig || r.src;
+        if (!semis) { patches.push([r.id, { src: base, orig: undefined, semis: 0 }]); continue; }
+        if (!made.has(base)) {
+          const buf = daw.buffer(base);
+          if (!buf) throw new Error("A recording on that track isn't loaded — reopen the session and try again.");
+          await new Promise((res) => setTimeout(res, 0));   // let the busy line paint before the work
+          const chans = pitchShift(Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i)), buf.sampleRate, semis);
+          const out = new AudioBuffer({ numberOfChannels: chans.length, length: chans[0].length, sampleRate: buf.sampleRate });
+          chans.forEach((c, i) => out.copyToChannel(c, i));
+          const id = `${base}k${semis < 0 ? "m" : "p"}${Math.abs(semis)}`;
+          daw.adopt(id, out);
+          made.set(base, { id, out, name: `${sRef.current.sources[base]?.name || "Audio"} (${semis > 0 ? "+" : ""}${semis})` });
+        }
+        patches.push([r.id, { src: made.get(base).id, orig: base, semis }]);
+      }
+      commit((s) => {
+        let cur = s;
+        for (const { id, out, name } of made.values()) cur = addSource(cur, { id, name, duration: out.duration, channels: out.numberOfChannels, rate: out.sampleRate });
+        for (const [rid, patch] of patches) cur = updateRegion(cur, rid, patch);
+        return setTrack(cur, trackId, { semis });
+      });
+      for (const { id, out } of made.values()) { try { await putSource(id, daw.toWav(out, 24)); } catch { setStoreErr("The new key is in this session but couldn't be kept on the device — bounce or save before closing the tab."); } }
+      setMsg(semis ? `${tr.name} is now ${semis > 0 ? "+" : ""}${semis} semitone${Math.abs(semis) === 1 ? "" : "s"}, same tempo. Set it back to 0 for the original.` : `${tr.name} is back in its original key.`);
+    } catch (e) { setErr(e.message || "Couldn't transpose that track."); } finally { setBusy(""); }
+  };
 
   // The inputs this device offers (labels appear once the browser has allowed a mic once).
   const [devices, setDevices] = useState([]);
@@ -520,6 +564,7 @@ export default function Workspace({ workflow }) {
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
+          keyRange={keyRange} onTranspose={transposeTrack}
           onAddTrack={() => commit((s) => addTrack(s))}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {

@@ -63,7 +63,7 @@ export function Playhead({ position, zoom, height }) {
 
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
-  onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput,
+  onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
 }) {
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
   const total = Math.max(60, endOfSession(session) + 30);
@@ -156,6 +156,16 @@ export default function EditWindow({
               )}
             </div>
             <div className="flex items-center gap-1">
+              {onTranspose && (
+                // Stem transposition: the track's key, its tempo kept. The range is the tier's.
+                <select className="w-12 shrink-0 rounded bg-white/10 px-0.5 py-0.5 text-[10px] text-white/80" data-nomemo="true"
+                        aria-label={`${t.name} key`} title={`Transpose ${t.name} — up to ±${keyRange} semitones on your tier`} disabled={recording}
+                        value={t.semis || 0} onChange={(e) => onTranspose(t.id, Number(e.target.value))}>
+                  {Array.from({ length: 25 }, (_, i) => i - 12).map((n) => (
+                    <option key={n} value={n} disabled={Math.abs(n) > keyRange}>{n > 0 ? `+${n}` : n === 0 ? "♮ 0" : n}</option>
+                  ))}
+                </select>
+              )}
               <select className="min-w-0 flex-1 rounded bg-white/10 px-1 py-0.5 text-[10px] text-white/80" data-nomemo="true"
                       aria-label={`${t.name} playlist`} value={t.active} disabled={recording}
                       onChange={(e) => onPlaylist(t.id, { type: "switch", index: Number(e.target.value) })}>
