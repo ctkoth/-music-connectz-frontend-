@@ -14,15 +14,53 @@ export const MAX_SIDE = 4096;       // a canvas this size is ~64 MB of pixels in
 // null = unlimited); the model never caps it, so an unlimited tier is unlimited.
 export const canAdd = (doc, cap) => cap == null || doc.layers.length < cap;
 
-// Fonts every device has or the app already loads; a name the device lacks falls back to its family.
+// The fonts, in LADDER order: a tier's `imagez_fonts` is how many from the top it may use
+// (Free the first 3, Premium the first 6, StatZ every one). Most are Google Fonts, loaded by
+// `GOOGLE_FONTS_URL` when ImageZ opens; the rest are on nearly every device already.
 export const FONTS = [
-  ["Inter, system-ui, sans-serif", "Inter"], ["Arial, Helvetica, sans-serif", "Arial"],
-  ["'Helvetica Neue', Helvetica, sans-serif", "Helvetica"], ["Impact, 'Arial Black', sans-serif", "Impact"],
-  ["Georgia, 'Times New Roman', serif", "Georgia"], ["'Times New Roman', Times, serif", "Times"],
-  ["'Courier New', Courier, monospace", "Courier"], ["'Comic Sans MS', 'Comic Neue', cursive", "Comic"],
-  ["'Brush Script MT', 'Segoe Script', cursive", "Script"], ["Verdana, Geneva, sans-serif", "Verdana"],
-  ["'Trebuchet MS', sans-serif", "Trebuchet"], ["system-ui, sans-serif", "System"],
+  ["Inter, system-ui, sans-serif", "Inter"],
+  ["'Bebas Neue', sans-serif", "Bebas Neue"],
+  ["'Montserrat', sans-serif", "Montserrat"],
+  ["'Playfair Display', serif", "Playfair Display"],
+  ["'Permanent Marker', cursive", "Permanent Marker"],
+  ["'Pacifico', cursive", "Pacifico"],
+  ["'Anton', sans-serif", "Anton"],
+  ["'Oswald', sans-serif", "Oswald"],
+  ["'Lobster', cursive", "Lobster"],
+  ["'Bangers', sans-serif", "Bangers"],
+  ["'Righteous', sans-serif", "Righteous"],
+  ["'Abril Fatface', serif", "Abril Fatface"],
+  ["'Dancing Script', cursive", "Dancing Script"],
+  ["'Caveat', cursive", "Caveat"],
+  ["'Rubik Mono One', monospace", "Rubik Mono One"],
+  ["'Press Start 2P', monospace", "Press Start 2P"],
+  ["'Monoton', sans-serif", "Monoton"],
+  ["'Orbitron', sans-serif", "Orbitron"],
+  ["'Russo One', sans-serif", "Russo One"],
+  ["'Black Ops One', sans-serif", "Black Ops One"],
+  ["'Shrikhand', cursive", "Shrikhand"],
+  ["'Rock Salt', cursive", "Rock Salt"],
+  ["'Cinzel', serif", "Cinzel"],
+  ["'Space Grotesk', sans-serif", "Space Grotesk"],
+  ["'Poppins', sans-serif", "Poppins"],
+  ["'Archivo Black', sans-serif", "Archivo Black"],
+  ["'Satisfy', cursive", "Satisfy"],
+  ["'Great Vibes', cursive", "Great Vibes"],
+  ["'Fredoka', sans-serif", "Fredoka"],
+  ["'Kanit', sans-serif", "Kanit"],
+  ["'Teko', sans-serif", "Teko"],
+  ["Arial, Helvetica, sans-serif", "Arial"],
+  ["Impact, 'Arial Black', sans-serif", "Impact"],
+  ["Georgia, 'Times New Roman', serif", "Georgia"],
+  ["'Times New Roman', Times, serif", "Times"],
+  ["'Courier New', Courier, monospace", "Courier"],
+  ["'Comic Sans MS', 'Comic Neue', cursive", "Comic"],
+  ["Verdana, Geneva, sans-serif", "Verdana"],
+  ["'Trebuchet MS', sans-serif", "Trebuchet"],
+  ["system-ui, sans-serif", "System"],
 ];
+export const GOOGLE_FONTS = ["Bebas Neue", "Montserrat", "Playfair Display", "Permanent Marker", "Pacifico", "Anton", "Oswald", "Lobster", "Bangers", "Righteous", "Abril Fatface", "Dancing Script", "Caveat", "Rubik Mono One", "Press Start 2P", "Monoton", "Orbitron", "Russo One", "Black Ops One", "Shrikhand", "Rock Salt", "Cinzel", "Space Grotesk", "Poppins", "Archivo Black", "Satisfy", "Great Vibes", "Fredoka", "Kanit", "Teko"];
+export const GOOGLE_FONTS_URL = `https://fonts.googleapis.com/css2?${GOOGLE_FONTS.map((f) => `family=${f.replace(/ /g, "+")}`).join("&")}&display=swap`;
 const FONT_KEYS = new Set(FONTS.map(([k]) => k));
 // A font typed by name (StatZ: any installed on the device). Only letters, digits, spaces,
 // quotes, commas and hyphens — it goes into a CSS font string, so nothing else gets through.

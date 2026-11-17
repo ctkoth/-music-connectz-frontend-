@@ -27,7 +27,7 @@ import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import {
-  ADJ0, ADJ_RANGE, BLENDS, FONTS, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
+  ADJ0, ADJ_RANGE, BLENDS, FONTS, GOOGLE_FONTS_URL, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer,
 } from "../imageedit/layers.js";
@@ -150,6 +150,22 @@ export default function ImageZ() {
     }
   }, [cropBox]);
   useEffect(() => { draw(doc); }, [doc, draw]);
+  // The Google Fonts, once per page: a canvas draws a font only after it has loaded, so the
+  // picture is redrawn as each one arrives rather than staying in the fallback font.
+  useEffect(() => {
+    if (!document.getElementById("imagez-fonts")) {
+      const link = document.createElement("link");
+      link.id = "imagez-fonts"; link.rel = "stylesheet"; link.href = GOOGLE_FONTS_URL;
+      document.head.appendChild(link);
+    }
+    const again = () => draw();
+    document.fonts?.addEventListener?.("loadingdone", again);
+    return () => document.fonts?.removeEventListener?.("loadingdone", again);
+  }, [draw]);
+  useEffect(() => {
+    // A text layer's font is fetched when it is used, then drawn.
+    for (const l of doc.layers) if (l.kind === "text") document.fonts?.load?.(`${l.size}px ${l.font}`).then(() => draw()).catch(() => {});
+  }, [doc, draw]);
 
   const addImageFrom = useCallback(async (src, name) => {
     setErr("");
