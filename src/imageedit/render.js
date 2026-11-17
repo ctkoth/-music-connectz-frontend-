@@ -24,12 +24,63 @@ function scratch(name, w, h) {
   return [c, ctx];
 }
 
+// A small repeatable random source, so a spray or chalk stroke looks the same on every redraw.
+function seeded(seed) {
+  let x = (seed * 2654435761) >>> 0 || 1;
+  return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+/** Every point along a stroke, `step` apart, with its pressure. */
+function along(points, step) {
+  const out = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const n = Math.max(1, Math.ceil(d / step));
+    for (let k = 1; k <= n; k++) out.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n, b[2]]);
+  }
+  return out;
+}
+
+/** The stamped tips: each one drawn at points along the stroke. */
+function stampStroke(ctx, s) {
+  const rnd = seeded(s.seed || 1);
+  const step = s.tip === "spray" || s.tip === "chalk" ? Math.max(1, s.size / 6) : s.tip === "star" ? s.size * 0.9 : Math.max(1, s.size / 8);
+  for (const [x, y, pr] of along(s.points, step)) {
+    const r = (s.size * (pr ?? 1)) / 2;
+    if (s.tip === "calligraphy") {
+      ctx.beginPath(); ctx.ellipse(x, y, r, Math.max(0.8, r / 4), -Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+    } else if (s.tip === "spray") {
+      for (let k = 0; k < 6; k++) {
+        const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * r;
+        ctx.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d, Math.max(1, r / 12), Math.max(1, r / 12));
+      }
+    } else if (s.tip === "chalk") {
+      for (let k = 0; k < 10; k++) {
+        const ox = (rnd() - 0.5) * 2 * r, oy = (rnd() - 0.5) * 2 * r;
+        if (ox * ox + oy * oy < r * r) ctx.fillRect(x + ox, y + oy, Math.max(1, r / 5), Math.max(1, r / 5));
+      }
+    } else if (s.tip === "star") {
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const a = (k * Math.PI) / 5 - Math.PI / 2, rr = k % 2 ? r * 0.45 : r;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
 /** Strokes as lines; a third number on a point is pen pressure and sets that segment's width. */
 function drawStrokes(ctx, strokes, style) {
   for (const s of strokes) {
     ctx.save();
     style(ctx, s);
-    ctx.lineWidth = s.size; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (["calligraphy", "spray", "chalk", "star"].includes(s.tip)) { stampStroke(ctx, s); ctx.restore(); continue; }
+    if (s.tip === "soft") { ctx.shadowColor = s.color || "#fff"; ctx.shadowBlur = s.size / 2; }
+    if (s.tip === "marker") ctx.globalAlpha *= 0.55;
+    ctx.lineWidth = s.size;
+    ctx.lineCap = s.tip === "square" || s.tip === "marker" ? "square" : "round";
+    ctx.lineJoin = s.tip === "square" ? "miter" : "round";
     if (s.points.length === 1) {
       const [x, y, pr] = s.points[0];
       ctx.beginPath(); ctx.arc(x, y, (s.size * (pr ?? 1)) / 2, 0, Math.PI * 2); ctx.fill();
@@ -73,6 +124,29 @@ function drawText(ctx, l) {
     ctx.strokeStyle = l.outline; ctx.lineWidth = l.outlineW * 2; ctx.lineJoin = "round";
     lines.forEach((line, i) => ctx.strokeText(line, 0, i * step));
     ctx.shadowColor = "transparent";
+  }
+  if (l.arc && lines.length === 1 && lines[0]) {
+    // Text on a curve: each letter placed round a circle whose bend is `arc` (−100 sags, +100 arches).
+    const text = lines[0];
+    const widths = [...text].map((ch) => ctx.measureText(ch).width + l.spacing);
+    const total = widths.reduce((a, b) => a + b, 0) || 1;
+    const span = (l.arc / 100) * Math.PI;
+    const radius = total / Math.abs(span);
+    const cx = l.align === "center" ? 0 : l.align === "right" ? -total / 2 : total / 2;
+    const cy = span > 0 ? radius : -radius + l.size;
+    ctx.textAlign = "center";
+    let a = -span / 2;
+    [...text].forEach((ch, i) => {
+      const mid = a + ((widths[i] / total) * span) / 2;
+      ctx.save();
+      ctx.translate(cx + Math.sin(mid) * radius * Math.sign(span), cy - Math.cos(mid) * radius * Math.sign(span));
+      ctx.rotate(mid);
+      if (l.outlineW) { ctx.strokeStyle = l.outline; ctx.lineWidth = l.outlineW * 2; ctx.strokeText(ch, 0, 0); }
+      ctx.fillStyle = l.color; ctx.fillText(ch, 0, 0);
+      ctx.restore();
+      a += (widths[i] / total) * span;
+    });
+    return;
   }
   ctx.fillStyle = l.color;
   lines.forEach((line, i) => {
@@ -244,16 +318,17 @@ export function renderDoc(ctx, doc, images, { checker = false, only = null } = {
 }
 
 /** Render to a fresh canvas and give back a Blob — PNG keeps transparency, JPEG does not. */
-export function exportDoc(doc, images, type = "image/png", quality = 0.92, only = null) {
+export function exportDoc(doc, images, type = "image/png", quality = 0.92, only = null, scale = 1) {
   const c = document.createElement("canvas");
-  c.width = doc.w; c.height = doc.h;
+  c.width = Math.round(doc.w * scale); c.height = Math.round(doc.h * scale);
   const ctx = c.getContext("2d");
   // JPEG has no alpha: a white base is drawn first, then the stack over it.
-  if (type === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, doc.w, doc.h); }
+  if (type === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height); }
   const tmp = document.createElement("canvas");
   tmp.width = doc.w; tmp.height = doc.h;
   renderDoc(tmp.getContext("2d"), doc, images, { only });
-  ctx.drawImage(tmp, 0, 0);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(tmp, 0, 0, c.width, c.height);
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("The browser couldn't write the file."))), type, quality));
 }
 

@@ -269,3 +269,35 @@ export function smudgeDab(img, carry, x, y, size, strength = 0.6, sel = null) {
     carry.set(key, [d[i], d[i + 1], d[i + 2], d[i + 3]]);
   });
 }
+
+/**
+ * Healing brush: copy texture from the source like the clone stamp, then shift its colour so the
+ * patch matches the average of where it lands — a blemish takes the surrounding skin's tone.
+ */
+export function healDab(img, src, x, y, dx, dy, size, sel = null) {
+  const { width: w, height: h } = img;
+  const rad = Math.max(1, size / 2);
+  const mean = (data, cx, cy) => {
+    const acc = [0, 0, 0]; let n = 0;
+    for (let yy = Math.max(0, Math.floor(cy - rad)); yy <= Math.min(h - 1, Math.ceil(cy + rad)); yy++) {
+      for (let xx = Math.max(0, Math.floor(cx - rad)); xx <= Math.min(w - 1, Math.ceil(cx + rad)); xx++) {
+        const d2 = (xx - cx) ** 2 + (yy - cy) ** 2;
+        if (d2 > rad * rad || d2 < (rad * 0.7) ** 2) continue;   // the ring round the edge
+        const i = (yy * w + xx) * 4;
+        for (let c = 0; c < 3; c++) acc[c] += data[i + c];
+        n++;
+      }
+    }
+    return n ? acc.map((v) => v / n) : null;
+  };
+  const here = mean(img.data, x, y), there = mean(src.data, x + dx, y + dy);
+  const shift = here && there ? here.map((v, c) => v - there[c]) : [0, 0, 0];
+  inCircle(w, h, x, y, size, (xx, yy, edge) => {
+    const sx = Math.round(xx + dx), sy = Math.round(yy + dy);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return;
+    const a = (sel ? sel.data[yy * w + xx] / 255 : 1) * Math.min(1, edge * 3);
+    if (!a) return;
+    const i = (yy * w + xx) * 4, j = (sy * w + sx) * 4;
+    for (let c = 0; c < 3; c++) img.data[i + c] = Math.round(img.data[i + c] + (src.data[j + c] + shift[c] - img.data[i + c]) * a);
+  });
+}

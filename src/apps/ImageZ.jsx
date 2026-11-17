@@ -6,7 +6,8 @@
 // feather; copy, cut, paste, fill, to a mask); Levels and Curves; clone, blur and smudge
 // brushes; layer groups; layer styles (shadow, glow, stroke); free transform with
 // handles; snapping guides; zoom and pan; a history panel; paint bucket; dodge, burn and
-// sponge; a filters menu; image size and canvas rotation; gradient fades on masks; opacity graded down the stack; undo; keyboard
+// sponge; a filters menu; image size and canvas rotation; healing brush; brush tips; text on a
+// curve; 2× and WebP export; Actions; AI background removal and Edit with AI; gradient fades on masks; opacity graded down the stack; undo; keyboard
 // shortcuts; and a project file that reopens with every layer intact. A pen tablet (Wacom and the like) draws with pressure, and the
 // pen's eraser end erases.
 //
@@ -25,26 +26,27 @@ import {
   ArrowDown, ArrowUp, Brush, Copy, Crop, Download, Eraser, Eye, EyeOff, FolderOpen, ImagePlus, Layers, Lock,
   Blend, Contrast, FileDown, FileUp, FlipHorizontal, FlipVertical, Merge, Move, PaintBucket, Palette, Pipette, Plus,
   Redo2, Save, Shapes, Trash2, Type, Undo2, Unlock, Wand, WandSparkles,
-  Droplets, Fingerprint, Lasso, PaintbrushVertical, RotateCcw, RotateCw, SunMoon, Folder, FolderOpen as FolderOpenIcon, History, Maximize, Sparkles, ZoomIn, ZoomOut, MousePointerSquareDashed, Stamp, BoxSelect,
+  Bandage, Bot, Circle, CirclePlay, Droplets, Fingerprint, Lasso, PaintbrushVertical, RotateCcw, RotateCw, SunMoon, Folder, FolderOpen as FolderOpenIcon, History, Maximize, Sparkles, ZoomIn, ZoomOut, MousePointerSquareDashed, Stamp, BoxSelect,
 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import {
-  ADJ0, ADJ_RANGE, BLENDS, FONTS, GOOGLE_FONTS_URL, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
+  ADJ0, ADJ_RANGE, BLENDS, FONTS, GOOGLE_FONTS_URL, PRESETS, TIPS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer, boxOf, scaleDoc, rotateDoc, effective, groupLayers, ungroup, updateGroup, snap,
 } from "../imageedit/layers.js";
 import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc, selCanvas, selOverlay } from "../imageedit/render.js";
 import {
   allSel, applyLUT, blurDab, bounds, clearSelected, cloneDab, combine, curveLUT, ellipseSel, feather, fillSelected,
-  invert, isEmpty, keepSelected, levelsLUT, polygonSel, rectSel, smudgeDab, wandSel,
+  healDab, invert, isEmpty, keepSelected, levelsLUT, polygonSel, rectSel, smudgeDab, wandSel,
 } from "../imageedit/selection.js";
 import { useStatzTrial, StatzSample } from "../components/StatzSample.jsx";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
 import { FILTERS, applyFilter, bucketFill, toneDab } from "../imageedit/filters.js";
+import { describeStep, loadActions, replay, saveActions } from "../imageedit/actions.js";
 import { backgroundDab, dabsAlong, magicErase, sample } from "../imageedit/pixels.js";
 
 const HISTORY = 60;
@@ -128,6 +130,20 @@ export default function ImageZ() {
   const [tone, setTone] = useState("dodge");
   const [filt, setFilt] = useState({ key: "sharpen", amount: 100, radius: 1 });
   const [sizePct, setSizePct] = useState(50);
+  const [tip, setTip] = useState("round");
+  const [scaleOut, setScaleOut] = useState(1);
+  // Actions (StatZ): a recording in progress, and the saved ones on this device.
+  const [recording, setRecording] = useState(null);
+  const [actions, setActions] = useState(() => loadActions());
+  const [actName, setActName] = useState("");
+  // AI: background removal (StatZ) and Edit with AI (priced per run, every tier).
+  const [cutState, setCutState] = useState(null);
+  const [imgState, setImgState] = useState(null);
+  const [edit, setEdit] = useState({ prompt: "", kind: "", ref: "", refName: "", own: false });
+  useEffect(() => {
+    api("/api/economy/imagez/cutout/").then(setCutState).catch(() => setCutState(null));
+    api("/api/economy/gemini/image/").then(setImgState).catch(() => setImgState(null));
+  }, []);
   const { s: statz } = useStatzTrial();
   const erasersAllowed = !!(statz?.is_statz || statz?.active);
   // The tier's layer ceiling. `undefined` until /limits/ answers: nothing is blocked while
@@ -351,6 +367,9 @@ export default function ImageZ() {
   const okFilters = new Set(firstN(Object.keys(FILTERS), listCap));
   const okBlends = new Set(firstN(BLENDS.map(([k]) => k), listCap));
   const okPresets = new Set(firstN(Object.keys(PRESETS), listCap));
+  const okTips = new Set(firstN(TIPS.map(([k]) => k), listCap));
+  const okKinds = new Set(firstN((imgState?.kinds || []).map((k) => k.key), listCap));
+  const actionsOn = !!(statz?.is_statz || statz?.active);
   const upsell = (what) => (
     <p className="text-mcz-gold">{what} — {TIER_LABEL[lim?.tier] || "your tier"} has the first {listCap}.{" "}
       <button className="re-link" onClick={() => goToSpot("membershipz", "")}>{nextCap ? `Premium has ${nextCap}, StatZ all` : "StatZ has all"}</button></p>
@@ -358,6 +377,7 @@ export default function ImageZ() {
   const pressureOf = (e) => (e.pointerType === "pen" && pressureOn ? (e.pressure || 0.01) : undefined);
   // The pixel erasers turn the layer into a picture of itself (opacity, blend and mask kept), then edit pixels.
   const pixelTarget = () => {
+    const doc = docRef.current, layer = sel ? layerOf(doc, sel) : null;
     if (!layer) { setErr("Pick a layer first — that tool works on one layer at a time."); return null; }
     if (layer.locked) { setErr("That layer is locked."); return null; }
     if (layer.kind === "fill") { setErr("A fill layer is one colour all over — delete or hide it instead."); return null; }
@@ -380,6 +400,7 @@ export default function ImageZ() {
   const dab = (g, [x, y], pr) => {
     const size = brush.size * (pr ?? 1), k = retouch / 100;
     if (g.tool === "clone") cloneDab(g.img, g.src, x, y, g.dx, g.dy, size, g.sel);
+    else if (g.tool === "heal") healDab(g.img, g.src, x, y, g.dx, g.dy, size, g.sel);
     else if (g.tool === "blur") blurDab(g.img, x, y, size, k, g.sel);
     else if (g.tool === "tone") toneDab(g.img, x, y, size, g.mode, k * 0.6, g.sel);
     else smudgeDab(g.img, g.carry, x, y, size, k, g.sel);
@@ -461,15 +482,16 @@ export default function ImageZ() {
       t.ctx.putImageData(t.img, 0, 0); setErr(""); finishPixels(t).catch((x) => setErr(x.message));
       return;
     }
-    if (tool === "clone" || tool === "blur" || tool === "smudge" || tool === "tone") {
-      if (tool === "clone" && e.altKey) { cloneFrom.current = p; setCloneSet(true); setErr(""); return; }
-      if (tool === "clone" && !cloneFrom.current) { setErr("Alt-click (Option-click on a Mac) where to copy from first."); return; }
+    if (tool === "heal" && !premiumOn) { setErr("The healing brush is Premium. The clone stamp is free."); return; }
+    if (tool === "clone" || tool === "heal" || tool === "blur" || tool === "smudge" || tool === "tone") {
+      if ((tool === "clone" || tool === "heal") && e.altKey) { cloneFrom.current = p; setCloneSet(true); setErr(""); return; }
+      if ((tool === "clone" || tool === "heal") && !cloneFrom.current) { setErr("Alt-click (Option-click on a Mac) where to copy from first."); return; }
       const t = pixelTarget();
       if (!t) return;
       const key = `work:${t.id}`;
       images.current.set(key, t.c);
       const g = { kind: "pix", ...t, key, last: p, sel: liveSel(), carry: new Map(), tool, mode: tone };
-      if (tool === "clone") { g.src = new ImageData(new Uint8ClampedArray(t.img.data), t.img.width, t.img.height); g.dx = cloneFrom.current[0] - p[0]; g.dy = cloneFrom.current[1] - p[1]; }
+      if (tool === "clone" || tool === "heal") { g.src = new ImageData(new Uint8ClampedArray(t.img.data), t.img.width, t.img.height); g.dx = cloneFrom.current[0] - p[0]; g.dy = cloneFrom.current[1] - p[1]; }
       drag.current = g;
       dab(g, p, pressureOf(e));
       g.ctx.putImageData(g.img, 0, 0);
@@ -499,7 +521,7 @@ export default function ImageZ() {
         commit((d) => addLayer(d, { kind: "paint", id }, sel));
         setSel(id);
       } else if (layer.locked) { setErr("That layer is locked."); return; }
-      drag.current = { kind: "paint", id, stroke: { ...brush, erase: penEraser || tool === "eraser", points: [[...p, pressureOf(e)].filter((v) => v !== undefined)] } };
+      drag.current = { kind: "paint", id, stroke: { ...brush, tip: okTips.has(tip) ? tip : "round", seed: Math.floor(Math.random() * 99999), erase: penEraser || tool === "eraser", points: [[...p, pressureOf(e)].filter((v) => v !== undefined)] } };
     } else if (tool === "crop") {
       drag.current = { kind: "crop", a: p, b: p };
       setCropBox(null);
@@ -698,6 +720,125 @@ export default function ImageZ() {
   };
   const curvePts = [[0, 0], [64, curve.s], [128, curve.m], [192, curve.h], [255, 255]];
 
+  // ── Steps: every whole-picture edit goes through here so Actions can record and replay it ──
+  const tick = () => new Promise((res) => setTimeout(res, 60));
+  const runStep = async (st) => {
+    if (st.kind === "rotate") { setSelection(null); commit((d) => rotateDoc(d, st.dir)); await tick(); return; }
+    if (st.kind === "size") { setSelection(null); commit((d) => scaleDoc(d, st.k)); await tick(); return; }
+    const t = pixelTarget();
+    if (!t) throw new Error("pick a layer first");
+    if (st.kind === "filter") applyFilter(t.img, st.key, st.opts || {}, liveSel());
+    else if (st.kind === "levels") applyLUT(t.img, levelsLUT(st.levels), liveSel());
+    else if (st.kind === "curves") applyLUT(t.img, curveLUT([[0, 0], [64, st.c.s], [128, st.c.m], [192, st.c.h], [255, 255]]), liveSel());
+    else throw new Error("this step isn't available here");
+    t.ctx.putImageData(t.img, 0, 0);
+    await finishPixels(t);
+    await tick();
+  };
+  const doStep = (st) => {
+    if (recording) setRecording((r) => ({ ...r, steps: [...r.steps, st] }));
+    runStep(st).catch((x) => setErr(x.message));
+  };
+  const saveRecording = () => {
+    if (!recording?.steps.length) { setRecording(null); return; }
+    const next = [...actions, { name: (actName.trim() || `Action ${actions.length + 1}`).slice(0, 60), steps: recording.steps }];
+    setActions(next); saveActions(next); setRecording(null); setActName("");
+  };
+  const playAction = async (a) => {
+    if (!actionsOn) { setErr("Actions are StatZ — try them in today's free StatZ minutes."); return; }
+    setBusy(`Playing ${a.name}…`); setErr("");
+    const r = await replay(a, runStep);
+    setBusy("");
+    if (r.failed) setErr(`${a.name} stopped at "${r.failed}": ${r.error}. ${r.done} step${r.done === 1 ? "" : "s"} ran.`);
+  };
+
+  // ── AI ──
+  const canvasToData = (c, max = 1536, type = "image/jpeg") => {
+    const k = Math.min(1, max / Math.max(c.width, c.height));
+    const t = document.createElement("canvas");
+    t.width = Math.round(c.width * k); t.height = Math.round(c.height * k);
+    const x = t.getContext("2d");
+    if (type === "image/jpeg") { x.fillStyle = "#fff"; x.fillRect(0, 0, t.width, t.height); }
+    x.drawImage(c, 0, 0, t.width, t.height);
+    return t.toDataURL(type, 0.9);
+  };
+  const cutout = async () => {
+    const d = docRef.current, l = sel ? layerOf(d, sel) : null;
+    if (!l || l.kind === "fill" || l.kind === "gradient") { setErr("Pick the layer with the subject on it — a picture or paint layer."); return; }
+    setBusy("Finding the subject…"); setErr("");
+    try {
+      const res = await api("/api/economy/imagez/cutout/", { method: "POST", body: { image: canvasToData(rasterize(d, l, images.current)) }, timeoutMs: 120_000 });
+      if (!res.masks?.length) { setErr(res.detail || "No clear subject found — nothing was charged."); return; }
+      const m = document.createElement("canvas"); m.width = d.w; m.height = d.h;
+      const mx = m.getContext("2d");
+      for (const it of res.masks) {
+        const pic = await loadImage(it.mask);
+        const [y0, x0, y1, x1] = it.box;
+        const bx = Math.round((x0 / 1000) * d.w), by = Math.round((y0 / 1000) * d.h);
+        const bw = Math.max(1, Math.round(((x1 - x0) / 1000) * d.w)), bh = Math.max(1, Math.round(((y1 - y0) / 1000) * d.h));
+        const t = document.createElement("canvas"); t.width = bw; t.height = bh;
+        const tx = t.getContext("2d"); tx.drawImage(pic, 0, 0, bw, bh);
+        // The model's mask is a grey picture; brighter than half is the subject.
+        const im = tx.getImageData(0, 0, bw, bh);
+        for (let i = 0; i < im.data.length; i += 4) { const on = im.data[i] > 127; im.data[i] = im.data[i + 1] = im.data[i + 2] = 255; im.data[i + 3] = on ? 255 : 0; }
+        tx.putImageData(im, 0, 0);
+        mx.drawImage(t, bx, by);
+      }
+      const blob = await new Promise((res2) => m.toBlob(res2, "image/png"));
+      const src = URL.createObjectURL(blob);
+      images.current.set(src, await loadImage(src));
+      commit((dd) => updateLayer(dd, l.id, { mask: { strokes: [], on: true, fade: null, src } }));
+      setOnMask(true);
+      setErr("");
+      setBusy(`Cut out ${res.masks.map((x) => x.label).join(", ")} — ${res.cost_cents ? `${res.cost_cents} 🏷️` : "a free daily prompt"}. Paint the mask to fix any edge.`);
+      setTimeout(() => setBusy(""), 6000);
+    } catch (e) { setErr(e.message); setBusy(""); }
+  };
+  const pickRef = async (file) => {
+    if (!file) return;
+    try {
+      if (file.type.startsWith("video/")) {
+        // A frame from the video, grabbed on the device: a second in, or the middle of a short clip.
+        const v = document.createElement("video");
+        v.muted = true; v.src = URL.createObjectURL(file);
+        await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error("That video can't be opened here.")); });
+        v.currentTime = Math.min(1, (v.duration || 2) / 2);
+        await new Promise((res) => { v.onseeked = res; });
+        const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext("2d").drawImage(v, 0, 0);
+        setEdit((x) => ({ ...x, ref: canvasToData(c), refName: `${file.name} (a frame)` }));
+      } else if (file.type.startsWith("image/")) {
+        const img = await loadImage(URL.createObjectURL(file));
+        const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img, 0, 0);
+        setEdit((x) => ({ ...x, ref: canvasToData(c), refName: file.name }));
+      } else setErr("A reference is a picture or a video.");
+    } catch (e) { setErr(e.message); }
+  };
+  const aiEdit = async () => {
+    if (!edit.prompt.trim()) { setErr("Say what to change."); return; }
+    if (!edit.own) { setErr("Tick that the picture is yours to edit."); return; }
+    if (!roomFor()) return;
+    setBusy("Editing with AI…"); setErr("");
+    try {
+      const flat = document.createElement("canvas"); const d = docRef.current;
+      flat.width = d.w; flat.height = d.h;
+      renderDoc(flat.getContext("2d"), d, images.current);
+      const res = await api("/api/economy/gemini/image/", { method: "POST", timeoutMs: 150_000, body: {
+        edit: 1, prompt: edit.prompt.trim(), kind: okKinds.has(edit.kind) ? edit.kind : "", reference: canvasToData(flat, 1536, "image/png"),
+        reference2: edit.ref || undefined, confirm_own: 1,
+      } });
+      if (!res.image) { setErr(res.detail || "No picture came back — nothing was charged."); return; }
+      const img = await loadImage(res.image);
+      images.current.set(res.image, img);
+      const id = uid();
+      commit((dd) => addLayer(dd, { kind: "image", id, name: `AI: ${edit.prompt.trim()}`.slice(0, 60), src: res.image, w: img.naturalWidth, h: img.naturalHeight, ...fitImage(dd, img.naturalWidth, img.naturalHeight), scale: Math.min(dd.w / img.naturalWidth, dd.h / img.naturalHeight) }));
+      setSel(id);
+      setBusy(`Edited — ${res.cost_cents ? `${res.cost_cents} 🏷️` : "free"}. It's a new layer on top; hide it to compare.`);
+      setTimeout(() => setBusy(""), 6000);
+    } catch (e) { setErr(e.message); setBusy(""); }
+  };
+
   // Photoshop's single-key tools, plus undo/redo and delete. Never while typing in a field.
   const keys = useRef({});
   const groupNow = () => {
@@ -732,7 +873,7 @@ export default function ImageZ() {
         return;
       }
       const tools = { v: "move", b: "brush", e: "eraser", c: "crop", i: "eyedropper", u: "shape", y: "magic", g: "bgerase",
-        m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge", k: "bucket", o: "tone" };
+        m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge", k: "bucket", o: "tone", j: "heal" };
       if (tools[e.key.toLowerCase()]) { setTool(tools[e.key.toLowerCase()]); return; }
       if (e.key === " ") { space.current = true; e.preventDefault(); return; }
       if (e.key === "[") setBrush((b) => ({ ...b, size: Math.max(1, Math.round(b.size / 1.25)) }));
@@ -752,8 +893,8 @@ export default function ImageZ() {
   const doExport = async () => {
     setBusy("Exporting…"); setErr("");
     try {
-      const blob = await exportDoc(doc, images.current, fmt);
-      setResult({ blob, url: URL.createObjectURL(blob), ext: fmt === "image/png" ? "png" : "jpg" });
+      const blob = await exportDoc(doc, images.current, fmt, 0.92, null, scaleOut);
+      setResult({ blob, url: URL.createObjectURL(blob), ext: { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[fmt] });
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
   const save = async () => {
@@ -769,7 +910,7 @@ export default function ImageZ() {
 
   const tools = [["move", Move, "Move (V)"], ["brush", Brush, "Brush (B)"], ["eraser", Eraser, "Eraser (E)"], ["marquee", BoxSelect, "Marquee select (M)"], ["lasso", Lasso, "Lasso select (L)"], ["wand", MousePointerSquareDashed, "Magic wand select (W)"],
     ["magic", Wand, "Magic eraser (Y)"], ["bgerase", WandSparkles, "Background eraser (G)"], ["shape", Shapes, "Shapes (U)"],
-    ["eyedropper", Pipette, "Eyedropper (I)"], ["clone", Stamp, "Clone stamp (S)"], ["bucket", PaintbrushVertical, "Paint bucket (K)"], ["tone", SunMoon, "Dodge / burn / sponge (O)"], ["blur", Droplets, "Blur brush (R)"], ["smudge", Fingerprint, "Smudge (N)"], ["crop", Crop, "Crop (C)"]];
+    ["eyedropper", Pipette, "Eyedropper (I)"], ["clone", Stamp, "Clone stamp (S)"], ["heal", Bandage, "Healing brush (J)"], ["bucket", PaintbrushVertical, "Paint bucket (K)"], ["tone", SunMoon, "Dodge / burn / sponge (O)"], ["blur", Droplets, "Blur brush (R)"], ["smudge", Fingerprint, "Smudge (N)"], ["crop", Crop, "Crop (C)"]];
   const icon = { image: ImagePlus, text: Type, paint: Brush, fill: PaintBucket, shape: Shapes, gradient: Palette };
 
   return (
@@ -868,6 +1009,13 @@ export default function ImageZ() {
               <label className="flex items-center gap-1">Strength <input type="range" min="5" max="100" value={retouch} onChange={(e) => setRetouch(+e.target.value)} /> {retouch}%</label>
             </div>
           )}
+          {tool === "heal" && (
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <label className="flex items-center gap-1">Size <input type="range" min="2" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
+              <span className="text-white/50">{cloneSet ? "Source set — paint over the blemish; the patch takes the colour around it." : "Alt-click clean skin or texture to copy from, then paint."}</span>
+              {!premiumOn && <span className="text-mcz-gold">The healing brush is Premium. <button className="re-link" onClick={() => goToSpot("membershipz", "")}>See Premium</button></span>}
+            </div>
+          )}
           {(tool === "clone" || tool === "blur" || tool === "smudge") && (
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <label className="flex items-center gap-1">Size <input type="range" min="2" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
@@ -913,6 +1061,11 @@ export default function ImageZ() {
           {(tool === "brush" || tool === "eraser") && (
             <div className="flex flex-wrap items-center gap-3 text-xs">
               {onMask && layer?.mask && <span className="text-mcz-cyan">Painting the mask: brush shows the layer, eraser hides it.</span>}
+              {tool === "brush" && (
+                <select className="neon-input !w-auto" data-nomemo="true" value={tip} onChange={(e) => setTip(e.target.value)}>
+                  {TIPS.map(([k, label]) => <option key={k} value={k} disabled={!okTips.has(k)}>{label}{okTips.has(k) ? "" : " — upgrade"}</option>)}
+                </select>
+              )}
               {tool === "brush" && <label className="flex items-center gap-1">Colour <input type="color" value={brush.color} onChange={(e) => setBrush({ ...brush, color: e.target.value })} /></label>}
               <label className="flex items-center gap-1">Size <input type="range" min="1" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
               <span className="text-white/50">[ and ] change the size. {pressureOn
@@ -1138,6 +1291,8 @@ export default function ImageZ() {
                   <input type="range" min="0" max="40" value={layer.outlineW} onChange={(e) => patch({ outlineW: +e.target.value })} className="flex-1" /> {layer.outlineW}px</label>
                 <label className="flex items-center gap-2">Shadow <input type="color" value={layer.shadow} onChange={(e) => patch({ shadow: e.target.value })} />
                   <input type="range" min="0" max="60" value={layer.shadowBlur} onChange={(e) => patch({ shadowBlur: +e.target.value })} className="flex-1" title="Blur" /> blur {layer.shadowBlur}</label>
+                <label className="flex items-center gap-2">Curve {premiumOn ? "" : <span className="text-mcz-gold">Premium</span>}
+                  <input type="range" min="-100" max="100" value={layer.arc} disabled={!premiumOn} onChange={(e) => patch({ arc: +e.target.value })} className="flex-1" /> {layer.arc}</label>
                 <label className="flex items-center gap-2">Shadow offset
                   <input type="range" min="-60" max="60" value={layer.shadowX} onChange={(e) => patch({ shadowX: +e.target.value })} className="flex-1" title="Across" />
                   <input type="range" min="-60" max="60" value={layer.shadowY} onChange={(e) => patch({ shadowY: +e.target.value })} className="flex-1" title="Down" /></label>
@@ -1198,6 +1353,57 @@ export default function ImageZ() {
             </div>
           </div>
 
+          <div className="glass-card space-y-2 p-3 text-xs" data-tour="imagez-cutout">
+            <h3 className="flex items-center gap-1 font-semibold"><Bot size={14} /> AI</h3>
+            <div className="space-y-1 rounded-lg border border-white/10 p-2">
+              <p className="font-semibold">Remove background</p>
+              <p className="text-white/50">{cutState?.what_it_does || "Finds the subject and puts it on a layer mask."}</p>
+              {cutState && !cutState.allowed ? <StatzSample what="AI background removal" /> : cutState && (
+                <button className="re-btn" disabled={!!busy || !cutState.configured} onClick={cutout}>
+                  Remove background <span className="text-mcz-ember">−{cutState.cost_min_cents}–{cutState.cost_cents} 🏷️ or a free prompt · −{cutState.energy_cost} ⚡</span>
+                </button>
+              )}
+              {cutState && !cutState.configured && <p className="text-white/50">The AI isn&apos;t switched on yet.</p>}
+              <p className="text-white/40">{cutState?.cost_note} Not charged when no subject is found. StatZ.</p>
+            </div>
+            <div className="space-y-1 rounded-lg border border-white/10 p-2">
+              <p className="font-semibold">Edit with AI</p>
+              <textarea className="neon-input" rows={2} placeholder="What to change — e.g. make the sky purple, add rain, turn it into a painting" value={edit.prompt} onChange={(e) => setEdit({ ...edit, prompt: e.target.value })} />
+              <select className="neon-input" data-nomemo="true" value={edit.kind} onChange={(e) => setEdit({ ...edit, kind: e.target.value })}>
+                <option value="">Picture type: keep as it is</option>
+                {(imgState?.kinds || []).map((k) => <option key={k.key} value={k.key} disabled={!okKinds.has(k.key)}>{k.label}{okKinds.has(k.key) ? "" : " — upgrade"}</option>)}
+              </select>
+              <label className="flex cursor-pointer items-center gap-1 text-white/70"><CirclePlay size={12} /> Reference (optional): a picture, or a video — a frame is taken on your device
+                <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { pickRef(e.target.files?.[0]); e.target.value = ""; }} /></label>
+              {edit.ref && <p className="flex items-center gap-2"><img src={edit.ref} alt="" className="h-8 w-8 rounded object-cover" /> {edit.refName} <button className="re-link" onClick={() => setEdit({ ...edit, ref: "", refName: "" })}>remove</button></p>}
+              <label className="flex items-center gap-1"><input type="checkbox" checked={edit.own} onChange={(e) => setEdit({ ...edit, own: e.target.checked })} /> This picture is mine, or I have the rights to edit it</label>
+              <button className="re-btn" disabled={!!busy || !imgState?.configured} onClick={aiEdit}>
+                Edit with AI <span className="text-mcz-ember">−{imgState?.cost_cents ?? "?"} 🏷️</span>
+              </button>
+              <p className="text-white/40">{imgState?.cost_note} {imgState?.edit_note} The result lands as a new layer.</p>
+            </div>
+          </div>
+
+          <div className="glass-card space-y-2 p-3 text-xs" data-tour="imagez-actions">
+            <h3 className="flex items-center gap-1 font-semibold"><Circle size={12} className={recording ? "fill-red-500 text-red-500" : ""} /> Actions</h3>
+            <p className="text-white/50">Record filters, Levels, Curves, image size and rotation, then replay them on another picture. Saved on this device.</p>
+            {!actionsOn ? <StatzSample what="Actions" /> : !recording ? (
+              <button className="re-btn" onClick={() => setRecording({ steps: [] })}><Circle size={12} /> Record</button>
+            ) : <>
+              <p className="text-mcz-cyan">Recording — {recording.steps.length} step{recording.steps.length === 1 ? "" : "s"}{recording.steps.length ? `: ${recording.steps.map(describeStep).join(", ")}` : ""}</p>
+              <div className="flex gap-1">
+                <input className="neon-input" placeholder="Name it" value={actName} onChange={(e) => setActName(e.target.value)} />
+                <button className="re-btn !w-auto px-2" onClick={saveRecording}>Stop &amp; save</button>
+              </div>
+            </>}
+            {actions.map((a, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <button className="re-btn !w-auto flex-1 px-2 text-left" disabled={!actionsOn || !!busy} onClick={() => playAction(a)} title={a.steps.map(describeStep).join(" → ")}>▶ {a.name} <span className="text-white/40">· {a.steps.length}</span></button>
+                <button className="text-white/40" title="Delete" onClick={() => { const n = actions.filter((_, j) => j !== i); setActions(n); saveActions(n); }}><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+
           <div className="glass-card space-y-2 p-3 text-xs">
             <h3 className="font-semibold">Filters</h3>
             <select className="neon-input" data-nomemo="true" value={filt.key} onChange={(e) => {
@@ -1210,9 +1416,7 @@ export default function ImageZ() {
             {FILTERS[filt.key].radius && <label className="flex items-center gap-2">Radius <input type="range" min={FILTERS[filt.key].radius[0]} max={FILTERS[filt.key].radius[1]} value={filt.radius} onChange={(e) => setFilt({ ...filt, radius: +e.target.value })} className="flex-1" /> {filt.radius}px</label>}
             {okFilters.has(filt.key) ? (
               <button className="re-btn" onClick={() => {
-                const t = pixelTarget(); if (!t) return;
-                applyFilter(t.img, filt.key, filt, liveSel());
-                t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message));
+                doStep({ kind: "filter", key: filt.key, opts: { amount: filt.amount, radius: filt.radius } });
               }}>Apply {FILTERS[filt.key].label}{liveSel() ? " inside the selection" : ""}</button>
             ) : (
               upsell(`${FILTERS[filt.key].label} isn't in your filters`)
@@ -1222,11 +1426,11 @@ export default function ImageZ() {
           <div className="glass-card space-y-2 p-3 text-xs">
             <h3 className="font-semibold">Image</h3>
             <div className="flex flex-wrap items-center gap-1">
-              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° anticlockwise" onClick={() => { setSelection(null); commit((d) => rotateDoc(d, -1)); }}><RotateCcw size={14} /></button>
-              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° clockwise" onClick={() => { setSelection(null); commit((d) => rotateDoc(d, 1)); }}><RotateCw size={14} /></button>
+              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° anticlockwise" onClick={() => doStep({ kind: "rotate", dir: -1 })}><RotateCcw size={14} /></button>
+              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° clockwise" onClick={() => doStep({ kind: "rotate", dir: 1 })}><RotateCw size={14} /></button>
               <span className="ml-2">Image size</span>
               <input type="number" min="1" max="400" value={sizePct} onChange={(e) => setSizePct(+e.target.value)} className="neon-input !w-16 !py-0.5" />%
-              <button className="re-btn !w-auto px-2" onClick={() => { setSelection(null); commit((d) => scaleDoc(d, sizePct / 100)); }}>
+              <button className="re-btn !w-auto px-2" onClick={() => doStep({ kind: "size", k: sizePct / 100 })}>
                 → {Math.round(doc.w * sizePct / 100)}×{Math.round(doc.h * sizePct / 100)}
               </button>
             </div>
@@ -1242,7 +1446,7 @@ export default function ImageZ() {
                   <label key={k} className="flex items-center gap-2"><span className="w-24">{label}</span>
                     <input type="range" min={lo} max={hi} step={st || 1} value={levels[k]} onChange={(e) => setLevels({ ...levels, [k]: +e.target.value })} className="flex-1" /> {levels[k]}</label>
                 ))}
-                <button className="re-btn" onClick={() => adjustPixels(levelsLUT(levels))}>Apply Levels</button>
+                <button className="re-btn" onClick={() => doStep({ kind: "levels", levels })}>Apply Levels</button>
               </div>
             </details>
             <details>
@@ -1256,7 +1460,7 @@ export default function ImageZ() {
                   <label key={k} className="flex items-center gap-2"><span className="w-20">{label}</span>
                     <input type="range" min="0" max="255" value={curve[k]} onChange={(e) => setCurve({ ...curve, [k]: +e.target.value })} className="flex-1" /> {curve[k]}</label>
                 ))}
-                <button className="re-btn" onClick={() => adjustPixels(curveLUT(curvePts))}>Apply Curves</button>
+                <button className="re-btn" onClick={() => doStep({ kind: "curves", c: curve })}>Apply Curves</button>
               </div>
             </details>
           </div>
@@ -1266,8 +1470,13 @@ export default function ImageZ() {
             <select className="neon-input" data-nomemo="true" value={fmt} onChange={(e) => { setFmt(e.target.value); setResult(null); }}>
               <option value="image/png">PNG — keeps transparency</option>
               <option value="image/jpeg">JPG — smaller, white where transparent</option>
+              <option value="image/webp">WebP — smallest, keeps transparency</option>
             </select>
-            <button className="neon-btn-primary" disabled={!!busy} onClick={doExport}><Download size={14} /> Export {doc.w}×{doc.h} <span className="text-emerald-300">· free</span></button>
+            <select className="neon-input" data-nomemo="true" value={scaleOut} onChange={(e) => { setScaleOut(+e.target.value); setResult(null); }}>
+              <option value={1}>1× — {doc.w}×{doc.h}</option>
+              <option value={2}>2× — {doc.w * 2}×{doc.h * 2}</option>
+            </select>
+            <button className="neon-btn-primary" disabled={!!busy} onClick={doExport}><Download size={14} /> Export {doc.w * scaleOut}×{doc.h * scaleOut} <span className="text-emerald-300">· free</span></button>
             {result && <>
               <a className="re-btn" href={result.url} download={`imagez.${result.ext}`}><Download size={14} /> Download</a>
               {!saved ? (

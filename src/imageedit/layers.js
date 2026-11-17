@@ -12,6 +12,11 @@
 export const MAX_SIDE = 4096;       // a canvas this size is ~64 MB of pixels in the tab
 // How many layers a picture may hold is the TIER's (`imagez_layers` from /limits/,
 // null = unlimited); the model never caps it, so an unlimited tier is unlimited.
+// Brush tips, in ladder order: a tier may use the first `imagez_layers` of them (Free 3, Premium 6, StatZ all).
+export const TIPS = [["round", "Round"], ["square", "Square"], ["soft", "Soft"], ["marker", "Marker"],
+  ["calligraphy", "Calligraphy"], ["spray", "Spray"], ["chalk", "Chalk"], ["star", "Star"]];
+const TIP_KEYS = new Set(TIPS.map(([k]) => k));
+
 export const canAdd = (doc, cap) => cap == null || doc.layers.length < cap;
 
 // The fonts, in LADDER order: a tier's `imagez_fonts` is how many from the top it may use
@@ -135,6 +140,7 @@ export function makeLayer(spec = {}) {
     outline: spec.outline || "#000000", outlineW: clamp(spec.outlineW ?? 0, 0, 100),
     shadow: spec.shadow || "#000000", shadowBlur: clamp(spec.shadowBlur ?? 0, 0, 100),
     shadowX: clamp(spec.shadowX ?? 0, -200, 200), shadowY: clamp(spec.shadowY ?? 0, -200, 200),
+    arc: clamp(spec.arc ?? 0, -100, 100),
   };
   if (kind === "fill") return { ...base, color: spec.color || "#ffffff" };
   if (kind === "shape") return {
@@ -313,6 +319,7 @@ export function addStroke(doc, id, stroke) {
   // Stored in the layer's own coordinates, so moving the layer moves the paint.
   const s = {
     color: stroke.color || "#000000", size: clamp(stroke.size ?? 12, 1, 500), erase: !!stroke.erase,
+    tip: TIP_KEYS.has(stroke.tip) ? stroke.tip : "round", seed: Math.floor(Number(stroke.seed) || 0) % 100000,
     // A third number is pen pressure (0..1) from a tablet like a Wacom; a mouse leaves it off.
     points: stroke.points.map(([px, py, pr]) => {
       const pt = [Math.round((px - l.x) * 10) / 10, Math.round((py - l.y) * 10) / 10];
