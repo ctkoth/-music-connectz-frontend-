@@ -102,6 +102,7 @@ const ROLES = [
     ] },
   { key: "designer", label: "Designer", emoji: "🎨",
     predicates: [
+      { label: "Make it", desc: "Edit images in layers — ImageZ, free", tab: "imagez", target: "" },
       { label: "Write", desc: "A resume, bio or cover letter", tab: "sentenceconnectz", target: "sentencez-write" },
       { label: "Prove my SkillZ", desc: "Show your work", tab: "profilez", target: "portfolio-links" },
       { label: "Collab", desc: "Start a deal with someone", tab: "collabz", target: "collabz-partner" },

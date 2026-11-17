@@ -55,6 +55,7 @@ const EMOJI = {
 // DirectZ (and VoiceZ StyleZ under MangaZ's group), because a character is
 // drawn in one place and directed in another. Same key, same app — listing it
 // twice is a second door, never a second copy.
+const IMAGEZ = { key: 'imagez', label: 'ImageZ', color: 'cyan', desc: 'Layered image editor like Photoshop — layers, blend modes, adjustments, brush & crop, pen pressure for Wacom; free' };
 const CHARACTERZ = { key: 'characterz', label: 'CharacterZ', color: 'cyan', desc: 'FaceZ with PersonalitieZ, and a voice' };
 const VOICEZ_STYLEZ = { key: 'voicezstylez', label: 'VoiceZ StyleZ', color: 'magenta', desc: 'Voices for your CharacterZ', soon: true };
 
@@ -169,7 +170,7 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
         { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
-        { key: 'imagez', label: 'ImageZ', color: 'cyan', desc: 'Layered image editor like Photoshop — layers, blend modes, adjustments, brush & crop, pen pressure for Wacom; free' },
+        IMAGEZ,
         { key: 'arsenal', label: 'Arsenal', color: 'yellow', desc: 'Multitrack DAW like Pro Tools — record takes, playlists, edit, mix with built-in effects, bounce a WAV; free' },
         { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW we are building — open one, vote for the next' },
       ]
@@ -279,6 +280,7 @@ const TOOLZ_MENU = {
     {
       group: 'Draw & create',
       apps: [
+        IMAGEZ,
         { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
