@@ -3,6 +3,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(mcz_vsthost CXX)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(VST3_SDK "" CACHE PATH "Steinberg VST3 SDK checkout (MIT licence)")
 if(NOT VST3_SDK)
   message(FATAL_ERROR "Set -DVST3_SDK=<path to vst3sdk>")
@@ -12,6 +13,9 @@ set(SMTG_ENABLE_VST3_PLUGIN_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SMTG_RUN_VST_VALIDATOR OFF CACHE BOOL "" FORCE)
 set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "" FORCE)
+# One C runtime everywhere: the SDK libraries and the host both use the static one (/MT), so the
+# .exe needs no Visual C++ redistributable on the member's PC. Mixing them fails to link (LNK2038).
+set(SMTG_USE_STATIC_CRT ON CACHE BOOL "" FORCE)
 add_subdirectory(${VST3_SDK} vst3sdk EXCLUDE_FROM_ALL)
 # The SDK's own hosting library (module loading, PlugProvider, process data, parameter changes, IIDs).
 set(HOST ${VST3_SDK}/public.sdk/source/vst/hosting)
@@ -31,5 +35,4 @@ if(UNIX AND NOT APPLE)
 endif()
 if(MSVC)
   target_compile_options(mcz-vsthost PRIVATE /utf-8)
-  set_property(TARGET mcz-vsthost PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
 endif()
