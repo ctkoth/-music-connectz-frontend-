@@ -126,8 +126,8 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
         {tracks.map((t, i) => (
           <div key={t.id} className="space-y-1 rounded-md bg-white/5 p-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-white">{t.name}{i === 0 && <span className="ml-1 font-normal text-white/40">(your song)</span>}</span>
-              <select className="neon-input !w-auto !py-1 text-xs" aria-label={`What ${t.name} is`} data-nomemo="true" value={t.role}
+              <span className="w-full min-w-0 truncate text-xs font-semibold text-white sm:w-auto sm:flex-1">{t.name}{i === 0 && <span className="ml-1 font-normal text-white/40">(your song)</span>}</span>
+              <select className="neon-input !w-auto min-w-0 flex-1 !py-1 text-xs sm:flex-none" aria-label={`What ${t.name} is`} data-nomemo="true" value={t.role}
                 onChange={(e) => onChange(i, { role: e.target.value })}>
                 {Object.entries(ROLES).map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
               </select>
@@ -136,19 +136,20 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
               {i > 0 && <button className="re-btn !w-auto px-2" aria-label={`Remove ${t.name}`} onClick={() => onRemove(i)}><Trash2 size={13} /></button>}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <label className="flex items-center gap-2 text-[11px] text-white/60">
-                <span className="w-9">Gain</span>
-                <input type="range" className="flex-1" min={GAIN_MIN} max={GAIN_MAX} step={0.5} value={t.gainDb}
+              <label className="block min-w-0 text-[11px] text-white/60">
+                <span className="flex justify-between"><span>Gain</span>
+                  <span className="tabular-nums text-white/80">{t.gainDb > 0 ? "+" : ""}{Number(t.gainDb).toFixed(1)} dB</span></span>
+                <input type="range" className="w-full" min={GAIN_MIN} max={GAIN_MAX} step={0.5} value={t.gainDb}
                   aria-label={`${t.name} gain`} onChange={(e) => onChange(i, { gainDb: Number(e.target.value) })}
                   onDoubleClick={() => onChange(i, { gainDb: 0 })} />
-                <span className="w-14 text-right tabular-nums text-white/80">{t.gainDb > 0 ? "+" : ""}{Number(t.gainDb).toFixed(1)} dB</span>
               </label>
-              <label className="flex items-center gap-2 text-[11px] text-white/60">
-                <span className="w-9">Pan</span>
-                <input type="range" className="flex-1" min={-1} max={1} step={0.05} value={t.pan}
-                  aria-label={`${t.name} pan`} onChange={(e) => onChange(i, { pan: Number(e.target.value) })}
+              <label className="block min-w-0 text-[11px] text-white/60">
+                <span className="flex justify-between"><span>Pan</span>
+                  <span className="tabular-nums text-white/80">{panLabel(Number(t.pan) || 0)}</span></span>
+                <input type="range" className="w-full" min={-1} max={1} step={0.05} value={t.pan}
+                  aria-label={`${t.name} pan`} aria-valuetext={panLabel(Number(t.pan) || 0)}
+                  onChange={(e) => onChange(i, { pan: Number(e.target.value) })}
                   onDoubleClick={() => onChange(i, { pan: 0 })} />
-                <span className="w-14 text-right tabular-nums text-white/80">{panLabel(Number(t.pan) || 0)}</span>
               </label>
             </div>
             {why?.[t.id] && <p className="text-[11px] text-emerald-300/80">{why[t.id]}</p>}

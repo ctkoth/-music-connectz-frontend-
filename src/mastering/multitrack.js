@@ -22,7 +22,16 @@ const dbToGain = (db) => Math.pow(10, db / 20);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const r1 = (v) => Math.round(v * 10) / 10;
 const fmtDb = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(r1(v)).toFixed(1)} dB`;
-export const panLabel = (p) => (Math.abs(p) < 0.005 ? "C" : `${p < 0 ? "L" : "R"}${Math.round(Math.abs(p) * 100)}`);
+// How much of the track goes to each side, as percentages that add to 100: centre is 50/50, hard
+// left 100/0. It is the knob's position, which is how people read a pan, not a loudness measurement.
+export const panSplit = (p) => {
+  const right = Math.round(((clamp(Number(p) || 0, -1, 1) + 1) / 2) * 100);
+  return { left: 100 - right, right };
+};
+export const panLabel = (p) => {
+  const { left, right } = panSplit(p);
+  return `${left === right ? "Centre · " : ""}L ${left}% · R ${right}%`;
+};
 
 // What a track is, so the suggestion knows where it usually sits. Level is relative to the
 // lead vocal (or, with no lead, the loudest track); `centre` keeps it in the middle.

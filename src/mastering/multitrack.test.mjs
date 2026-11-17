@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { panStereo, mixTracks, needsMix, audible, suggestMix, measureTrack, stereoReport, trackRoom, guessRole } from "./multitrack.js";
+import { panLabel, panSplit, panStereo, mixTracks, needsMix, audible, suggestMix, measureTrack, stereoReport, trackRoom, guessRole } from "./multitrack.js";
 
 const fs = 44100;
 const tone = (f, amp = 0.3, secs = 1) => { const x = new Float32Array(fs * secs); for (let i = 0; i < x.length; i++) x[i] = amp * Math.sin(2 * Math.PI * f * i / fs); return x; };
@@ -98,4 +98,11 @@ test("roles are guessed from file names", () => {
   assert.equal(guessRole("808.wav"), "bass");
   assert.equal(guessRole("backing vocals 2.wav"), "backing");
   assert.equal(guessRole("Beat (instrumental).mp3"), "beat");
+});
+
+test("the pan reads as a percentage to each side, always adding to 100", () => {
+  assert.equal(panLabel(0), "Centre · L 50% · R 50%");
+  assert.equal(panLabel(-1), "L 100% · R 0%");
+  assert.equal(panLabel(0.4), "L 30% · R 70%");
+  for (const p of [-0.83, -0.05, 0.35, 0.999]) { const s = panSplit(p); assert.equal(s.left + s.right, 100); }
 });
