@@ -17,6 +17,7 @@ import { createDaw } from "./engine.js";
 import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
+import MidiImport from "./MidiImport.jsx";
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
@@ -32,7 +33,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
-const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter" };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -271,7 +272,12 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message); setBusy(""); }
   };
   // A track handed over from another app (a post, a take, a master) arrives as a URL.
-  useEffect(() => onHandoff(workflow.app, (p) => { if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" }); }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // A MIDI file handed over (Instrumental ConnectZ's .mid) opens in the MIDI window; anything else is audio.
+  const [midiIn, setMidiIn] = useState(null);
+  useEffect(() => onHandoff(workflow.app, (p) => {
+    if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid" }); setView("midi"); return; }
+    if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" });
+  }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- region edits ----
   const sel = selected ? findRegion(session, selected) : null;
@@ -403,7 +409,7 @@ export default function Workspace({ workflow }) {
       {/* Edit tools */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <div className="flex overflow-hidden rounded-lg border border-white/15" role="tablist" aria-label="Window">
-          {(workflow.windows || ["edit", "mix"]).map((w) => (
+          {[...(workflow.windows || ["edit", "mix"]), "midi"].map((w) => (
             <button key={w} type="button" role="tab" aria-selected={view === w} onClick={() => setView(w)}
                     className={`px-3 py-1.5 ${view === w ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{workflow.windowNames?.[w] || WINDOW_NAME[w] || w}</button>
           ))}
@@ -431,7 +437,11 @@ export default function Workspace({ workflow }) {
         )}
       </div>
 
-      {view === "rack" ? (
+      {view === "midi" ? (
+        <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}
+                    onBpm={(v) => { if (!recording) commit((s) => setSession(s, { bpm: v })); }}
+                    onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />
+      ) : view === "rack" ? (
         <ChannelRack app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on the Playlist at the playhead, on its own track.`); }} />
       ) : view === "song" ? (

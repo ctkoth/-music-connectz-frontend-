@@ -2,7 +2,6 @@ import InspirationRef from "../components/InspirationRef.jsx";
 import { genreLabel, GENRES, GENRE_GROUPS } from "../genres.js";
 import PriorityDials from "../components/PriorityDials.jsx";
 import { useEffect, useRef, useState } from "react";
-import { encodeWav } from "../mastering/wav.js";
 import { handOff, onHandoff } from "../handoff.js";
 import { playSound } from "../sound.js";
 import { Download, Loader2, Music, Play, Search, Square } from "lucide-react";
@@ -73,21 +72,6 @@ function playLoop(work, repeats = 2) {
   return { ctx, ends };
 }
 
-/**
- * The same preview sound, rendered offline to a WAV — so a loop can go onto an Arsenal track as audio
- * (Arsenal has no MIDI yet). It is the preview's simple voices, said on the button; the .mid stays the
- * way to real instruments.
- */
-async function renderLoopWav(work, repeats = 4) {
-  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!Off) throw new Error("This browser can't render audio — download the .mid instead.");
-  const rate = 44100, secs = (work.bars * 4 * 60 / work.bpm) * repeats + 1;
-  const ctx = new Off(2, Math.ceil(secs * rate), rate);
-  scheduleLoop(ctx, work, repeats, 0);
-  const buf = await ctx.startRendering();
-  return new Blob([encodeWav([buf.getChannelData(0), buf.getChannelData(1)], rate, { bitDepth: 16 })], { type: "audio/wav" });
-}
-
 function scheduleLoop(ctx, work, repeats, t0) {
   const master = ctx.createGain();
   master.gain.value = 0.25;
@@ -153,10 +137,10 @@ export default function InstrumentalConnectZ() {
   })), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [toDaw, setToDaw] = useState("");
   async function openInArsenal() {
-    setToDaw("Rendering the loop…");
+    setToDaw("Opening the MIDI in Arsenal…");
     try {
-      const blob = await renderLoopWav(work);
-      handOff("arsenal", "", { url: URL.createObjectURL(blob), name: `${work.genre || "Instrumental"} ${work.bpm} BPM` });
+      const blob = await apiBlob(`/api/economy/instrumentalz/${work.id}/midi/`);
+      handOff("arsenal", "", { midi: URL.createObjectURL(blob), name: midiName(work) });
       setToDaw("");
     } catch (e) { setToDaw(e.message); }
   }
@@ -389,8 +373,8 @@ export default function InstrumentalConnectZ() {
               : <button className="re-btn !w-auto px-4" onClick={play}><Play size={14} /> Preview</button>}
             <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download .mid</button>
             {!IN_SHELL && <button className="re-btn !w-auto px-4" onClick={openInArsenal}
-              title="Renders the loop with the preview's simple sounds (4 times round) and puts it on an Arsenal track to record over — free">
-              Record over it in Arsenal <span className="text-emerald-300">free</span></button>}
+              title="Opens the .mid in Arsenal's MIDI window: pick an instrument per part, then record over it — free">
+              Open in Arsenal <span className="text-emerald-300">free</span></button>}
           </div>
           {toDaw && <p className="text-xs text-white/60">{toDaw}</p>}
           <p className="text-[11px] text-white/40">The preview uses simple built-in sounds. Load the .mid into your DAW for the real instruments.</p>
