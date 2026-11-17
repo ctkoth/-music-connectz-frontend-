@@ -15,6 +15,7 @@
 // in one press — the server copies it, so deleting the file later does not blank the
 // avatar.
 import Doors from "../components/Doors.jsx";
+import ShareIt from "../components/ShareIt.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileAudio, FileVideo, Image as ImageIcon, File as FileIcon, Loader2, Search, Send, Trash2, UserCircle2 } from "lucide-react";
@@ -55,6 +56,9 @@ export default function FileZ() {
   const [err, setErr] = useState("");
   const [kind, setKind] = useState("all");
   const [busy, setBusy] = useState(null);
+  // Which of my files are shared (one call for the whole list), for each row's Share control.
+  const [sharedUp, setSharedUp] = useState(null);
+  useEffect(() => { api("/api/economy/sharez/?kind=upload").then(setSharedUp).catch(() => setSharedUp(null)); }, []);
   const [msg, setMsg] = useState("");
   // Files whose player errored on this device. A hint only — "it would not play" is
   // not "it is not there" — so it offers the check and never marks anything itself.
@@ -250,6 +254,7 @@ export default function FileZ() {
                 <Doors noPost item={{ title: String(u.name || "").replace(/\.[a-z0-9]+$/i, ""), url: u.url,
                                       kind: k, uploadId: u.id, postId: u.post?.id }} />
               )}
+              {u.url && !isGone(u) && sharedUp && <ShareIt kind="upload" refId={u.id} known={sharedUp.shared[String(u.id)] || ""} who={sharedUp.who} />}
             </div>
           );
         })}

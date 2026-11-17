@@ -7,6 +7,7 @@ import { Copy, Download, Flag, Loader2, PenLine, Star } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
+import ShareIt from "../components/ShareIt.jsx";
 import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
@@ -509,6 +510,7 @@ export default function SentenceConnectZ() {
           </div>
           {!IN_SHELL && royalty && <UseIn source="sentence" sourceId={work.id} pct={royalty.royalty_pct} text={draft} />}
           <ReportOutput work={work} />
+          {!IN_SHELL && <ShareIt kind="sentence" refId={work.id} />}
         </div>
       )}
 

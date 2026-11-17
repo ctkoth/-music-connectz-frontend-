@@ -1,6 +1,7 @@
 import InspirationRef from "../components/InspirationRef.jsx";
 import PriorityDials from "../components/PriorityDials.jsx";
 import Doors from "../components/Doors.jsx";
+import ShareIt from "../components/ShareIt.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Download, Loader2 } from "lucide-react";
 import { useCharLimit } from "../limits.js";
@@ -311,6 +312,7 @@ export default function VideoConnectZ() {
               <Doors item={{ title: work.title || "My video", url: work.video_url, kind: "video",
                 onEdit: () => handOff("videoz", "videoz-timeline", { url: work.video_url, name: work.title || work.label, kind: "video" }) }} />
               {pct != null && <UseIn source="video" sourceId={work.id} pct={pct} />}
+              <ShareIt kind="video" refId={work.id} />
             </>
           )}
         </div>

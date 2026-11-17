@@ -4,6 +4,7 @@ import { Download, Loader2, UserRound, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
 import { handOff } from "../handoff.js";
+import ShareIt from "../components/ShareIt.jsx";
 import { IconImg } from "../App.jsx";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
@@ -251,6 +252,7 @@ export default function ImageConnectZ() {
               <button className="re-btn !w-auto px-3" title="Put it on the VideoZ timeline — free"
                 onClick={() => handOff("videoz", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ", kind: "image" })}>Use in VideoZ</button>
             </div>
+            {made.work?.id && <ShareIt kind="image" refId={made.work.id} />}
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
 import { handOff } from "../handoff.js";
+import ShareIt from "../components/ShareIt.jsx";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
@@ -79,6 +80,7 @@ function PageEditor({ s, page, chars, onChange }) {
         </button>
         <Cost s={s} drawing />
       </div>
+      <ShareIt kind="manga" refId={p.id} />
       <p className="text-[11px] text-white/40">Panel by panel keeps your characters' looks consistent and lets you redraw one; the whole page is one charge but drifts more.</p>
       {p.page_image && (
         <>

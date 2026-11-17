@@ -127,6 +127,7 @@ const RateInvite = lazy(lazyRoute(() => import("./apps/RateInvite.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
 const PublicPlaylist = lazy(lazyRoute(() => import("./apps/PublicPlaylist.jsx")));
+const PublicShared = lazy(lazyRoute(() => import("./apps/PublicShared.jsx")));
 const PlaylistZ = lazy(lazyRoute(() => import("./apps/PlaylistZ.jsx")));
 const MemberProfile = lazy(lazyRoute(() => import("./apps/MemberProfile.jsx")));
 const LogZ = lazy(lazyRoute(() => import("./apps/LogZ.jsx")));
@@ -1664,6 +1665,7 @@ export default function App() {
              pitch="In tune and ready? Play a take and an AI coach scores it — what's working and what to fix. Free, no account."
              cta="Get your take scored" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
+      <Route path="/x/:token" element={<PublicShared />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a
           catch-all so an unknown path still falls through to the redirect
