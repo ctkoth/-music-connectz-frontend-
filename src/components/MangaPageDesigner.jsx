@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, LayoutTemplate, Save, Volume2 } from "lucide-react";
 import { api } from "../api.js";
+import { handOff } from "../handoff.js";
 import { goToSpot } from "../goto.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { LAYOUTS, defaultBubble, layoutFor, moveBox, resizeBox } from "../mangaLayouts.js";
@@ -253,6 +254,14 @@ export default function MangaPageDesigner({ page, chars, onSaved }) {
           <div className="flex flex-wrap gap-2">
             <a className="re-btn !w-auto px-3" href={out.url} download={`manga-${page.id}.png`}><Download size={14} /> Download</a>
             <button className="re-btn !w-auto px-3" disabled={!!busy} onClick={saveToFileZ}><Save size={14} /> Save to FileZ <span className="text-white/60">· uses {(out.blob.size / 1048576).toFixed(1)} MB of your storage</span></button>
+            <button className="re-btn !w-auto px-3" title="Open the page in ImageZ to touch it up — free"
+              onClick={() => handOff("imagez", "", { url: out.url, name: page.title || "Manga page" })}>Touch up in ImageZ</button>
+            <button className="re-btn !w-auto px-3" title="Each drawn panel becomes a clip in VideoZ, in reading order — free"
+              onClick={() => {
+                const drawn = [...panels].sort((a, b) => a.box[1] - b.box[1] || a.box[0] - b.box[0]).filter((q) => q.image);
+                const items = drawn.length ? drawn.map((q) => ({ url: q.image, name: `Panel ${q.n}`, kind: "image" })) : [{ url: out.url, name: page.title || "Manga page", kind: "image" }];
+                handOff("videoz", "", { items });
+              }}>Motion comic in VideoZ</button>
           </div>
         </div>
       )}

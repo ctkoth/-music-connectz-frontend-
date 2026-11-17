@@ -29,7 +29,19 @@ export const ASPECTS = {
 };
 export const FPS = 30;
 export const MAX_CLIPS = 80;
-export const MAX_TRACKS = 8;
+// The tab's own bound on tracks; how many a member may ADD is their tier's (`videoz_tracks`,
+// Free 3, Premium 6, StatZ up to this), checked by the screen with canAddTrack.
+export const MAX_TRACKS = 32;
+export const canAddTrack = (p, cap) => p.tracks.length < Math.min(MAX_TRACKS, cap ?? MAX_TRACKS);
+
+// How the incoming clip arrives where it overlaps the one before it on its track. Ladder order:
+// a tier may use the first N (Free 3, Premium 6, StatZ all), so the everyday ones come first.
+export const TRANSITIONS = [
+  ["crossfade", "Crossfade"], ["dipblack", "Dip to black"], ["wipe", "Wipe"],
+  ["slide", "Slide"], ["zoom", "Zoom"], ["circle", "Circle reveal"],
+  ["dipwhite", "Dip to white"], ["wipeup", "Wipe up"],
+];
+const TRANSITION_KEYS = new Set(TRANSITIONS.map(([k]) => k));
 // Export runs at playback speed, so the ceiling is how long somebody will keep
 // a tab on screen — said beside the button, not discovered.
 export const MAX_SECONDS = 15 * 60;
@@ -91,6 +103,7 @@ export function cleanClip(c) {
     width: num(c?.width, 0), height: num(c?.height, 0),
     // Only a photo can be lip-synced: a video's mouth already moves.
     lip: kind === "image" ? cleanLip(c?.lip) : cleanLip(null),
+    transition: TRANSITION_KEYS.has(c?.transition) ? c.transition : "crossfade",
   };
   if (isMedia(kind)) {
     const dur = Math.max(0, num(c?.duration, 0));
@@ -161,10 +174,14 @@ export function activeAt(p, t) {
       const into = t - c.at, left = endOf(c) - t;
       // A crossfade raises the incoming clip over the outgoing one, which stays
       // solid beneath it: fading both would dip the frame toward black.
-      const fi = Math.max(c.fadeIn, overlapIn(p, c));
+      const ov = overlapIn(p, c);
+      // Any transition but the crossfade draws the incoming clip at full strength and shapes HOW
+      // it arrives instead (`trans`, drawn by the renderer); the crossfade is the alpha ramp itself.
+      const shaped = ov > 0 && into < ov && c.transition !== "crossfade";
+      const fi = shaped ? c.fadeIn : Math.max(c.fadeIn, ov);
       const a = Math.min(ramp(into, fi), ramp(left, c.fadeOut)) * (c.opacity / 100) * (track.level / 100);
       const media = c.in + into * c.speed;
-      video.push({ clip: c, into, media, alpha: clamp(a, 0, 1) });
+      video.push({ clip: c, into, media, alpha: clamp(a, 0, 1), ...(shaped ? { trans: { style: c.transition, k: clamp(into / ov, 0, 1) } } : {}) });
       if (c.kind === "video") {
         const g = Math.min(ramp(into, fi), ramp(left, Math.max(c.fadeOut, overlapOut(p, c)))) * (c.volume / 100);
         audio.push({ clip: c, media, gain: clamp(g, 0, 2) });

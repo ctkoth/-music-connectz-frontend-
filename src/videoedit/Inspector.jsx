@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Scissors, Trash2 } from "lucide-react";
 import { ADJUST, FILTERS, MOTIONS, TEXT_MAX, TEXT_SPOTS } from "./look.js";
+import { TRANSITIONS } from "./project.js";
 import { FADE_MAX, SPEEDS, STILL_SECONDS, endOf, lenOf, trackName } from "./project.js";
 import { DEFAULT_BOX, NOTE as LIP_NOTE, cleanBox, onVoices, voices } from "./lipsync.js";
 import { StatzSample } from "../components/StatzSample.jsx";
@@ -61,7 +62,7 @@ function useVoices() {
   return voices;
 }
 
-export default function Inspector({ project, clip: c, t, lipAllowed, onChange, onLive, onSplit, onDuplicate, onDelete }) {
+export default function Inspector({ project, clip: c, t, lipAllowed, count = null, tierName = "your tier", onChange, onLive, onSplit, onDuplicate, onDelete }) {
   const v = useVoices();
   if (!c) {
     return <p className="text-xs text-white/45">Select a clip on the timeline to trim it, give it a look, add FX, make it picture-in-picture or put words on it.</p>;
@@ -103,16 +104,29 @@ export default function Inspector({ project, clip: c, t, lipAllowed, onChange, o
         )}
         <Slider label="Fade in" value={c.fadeIn} min={0} max={FADE_MAX} step={0.1} unit="s" onChange={(x) => set({ fadeIn: x })} />
         <Slider label="Fade out" value={c.fadeOut} min={0} max={FADE_MAX} step={0.1} unit="s" onChange={(x) => set({ fadeOut: x })} />
-        <p className="text-[11px] text-white/40">Crossfade: drag a clip onto the end of the one before it on the same track — the overlap dissolves.</p>
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          <span className="w-24 text-white/60">Transition in</span>
+          {TRANSITIONS.map(([k, label], i) => {
+            const ok = count == null || i < count;
+            return (
+              <button key={k} disabled={!ok} onClick={() => set({ transition: k })} title={ok ? "" : `Not on ${tierName} — Premium has 6, StatZ all`}
+                className={`rounded-full border px-2 py-0.5 ${c.transition === k ? "border-mcz-cyan bg-mcz-cyan/15" : "border-white/15 text-white/60"} ${ok ? "" : "opacity-40"}`}>{label}</button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-white/40">A transition plays where this clip overlaps the one before it on the same track — drag it onto that clip&apos;s end.</p>
       </Section>
 
       {visual && c.kind !== "text" && (
         <Section title="Look — filters and FX">
           <div className="flex flex-wrap gap-1">
-            {Object.entries(FILTERS).map(([k, f]) => (
-              <button key={k} onClick={() => set({ filter: k, adj: {} })}
-                className={`rounded-full border px-2 py-0.5 text-xs ${c.filter === k ? "border-mcz-cyan bg-mcz-cyan/15" : "border-white/15 text-white/60"}`}>{f.label}</button>
-            ))}
+            {Object.entries(FILTERS).map(([k, f], i) => {
+              const ok = count == null || i < count;
+              return (
+                <button key={k} disabled={!ok} onClick={() => set({ filter: k, adj: {} })} title={ok ? "" : `Not on ${tierName} — Premium has 6, StatZ all`}
+                  className={`rounded-full border px-2 py-0.5 text-xs ${c.filter === k ? "border-mcz-cyan bg-mcz-cyan/15" : "border-white/15 text-white/60"} ${ok ? "" : "opacity-40"}`}>{f.label}</button>
+              );
+            })}
           </div>
           {Object.entries(ADJUST).map(([k, a]) => (
             <Slider key={k} label={a.label} value={look[k] || 0} min={a.min} max={a.max} unit={a.unit} onChange={(x) => adj(k, x)} />

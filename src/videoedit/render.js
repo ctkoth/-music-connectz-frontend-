@@ -80,6 +80,28 @@ export async function fetchAsLocal(url) {
   return { src: URL.createObjectURL(blob), type: blob.type, size: blob.size };
 }
 
+/** The incoming layer, part-way (k from 0 to 1) through its transition, over what is already drawn. */
+export function drawTransition(ctx, lc, { style, k }, W, H) {
+  ctx.save();
+  if (style === "wipe") { ctx.beginPath(); ctx.rect(0, 0, W * k, H); ctx.clip(); ctx.drawImage(lc, 0, 0); }
+  else if (style === "wipeup") { ctx.beginPath(); ctx.rect(0, H * (1 - k), W, H * k); ctx.clip(); ctx.drawImage(lc, 0, 0); }
+  else if (style === "slide") ctx.drawImage(lc, W * (1 - k), 0);
+  else if (style === "zoom") {
+    const z = 0.4 + 0.6 * k;
+    ctx.globalAlpha *= k;
+    ctx.drawImage(lc, (W * (1 - z)) / 2, (H * (1 - z)) / 2, W * z, H * z);
+  } else if (style === "circle") {
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, (Math.hypot(W, H) / 2) * k, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(lc, 0, 0);
+  } else if (style === "dipblack" || style === "dipwhite") {
+    // The outgoing fades to a colour, then the incoming rises out of it.
+    if (k >= 0.5) ctx.drawImage(lc, 0, 0);
+    ctx.globalAlpha = 1 - Math.abs(2 * k - 1);
+    ctx.fillStyle = style === "dipblack" ? "#000" : "#fff";
+    ctx.fillRect(0, 0, W, H);
+  } else ctx.drawImage(lc, 0, 0);
+  ctx.restore();
+}
+
 function vignette(ctx, r, amount) {
   if (!amount) return;
   const g = ctx.createRadialGradient(r.x + r.w / 2, r.y + r.h / 2, Math.min(r.w, r.h) * 0.35, r.x + r.w / 2, r.y + r.h / 2, Math.hypot(r.w, r.h) / 2);
@@ -222,6 +244,9 @@ export function createEngine(canvas) {
   function setProject(p) {
     project = p;
     ({ w: W, h: H } = ASPECTS[p.aspect] || ASPECTS["16:9"]);
+    // An export at 2× (Premium) renders the same project on a canvas twice the size.
+    const k = p.exportScale === 2 ? 2 : 1;
+    W *= k; H *= k;
     if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
     const keep = new Set(p.clips.map((c) => c.id));
     [...items.keys()].forEach((id) => { if (!keep.has(id)) drop(id); });
@@ -273,7 +298,8 @@ export function createEngine(canvas) {
       }
       caption(lx, W, H, c);
       ctx.globalAlpha = L.alpha * state.master;
-      ctx.drawImage(lc, 0, 0);
+      if (L.trans) drawTransition(ctx, lc, L.trans, W, H);
+      else ctx.drawImage(lc, 0, 0);
       ctx.globalAlpha = 1;
     });
   }

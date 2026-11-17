@@ -239,3 +239,29 @@ test("the mouth box stays inside the photo, and lip-sync is off until switched o
   assert.equal(cleanLip({ on: true }).source, "mix");
   assert.equal(cleanClip({ kind: "video", lip: { on: true } }).lip.on, false);
 });
+
+import { TRANSITIONS, canAddTrack, MAX_TRACKS as MT } from "./project.js";
+
+test("a shaped transition arrives at full strength and says how far through it is", async () => {
+  const { newProject, addClips, activeAt } = await import("./project.js");
+  let p = newProject();
+  const track = p.tracks.find((t) => t.kind === "video").id;
+  p = addClips(p, [{ id: "a", kind: "image", seconds: 4 }], { track, at: 0 });
+  p = addClips(p, [{ id: "b", kind: "image", seconds: 4, transition: "wipe" }], { track, at: 3 });
+  const b = p.clips.find((c) => c.id === "b");
+  const mid = b.at + (4 - b.at) / 2;
+  const L = activeAt(p, mid).video.find((x) => x.clip.id === "b");
+  assert.equal(L.alpha, 1);
+  assert.equal(L.trans.style, "wipe");
+  assert.ok(L.trans.k > 0.4 && L.trans.k < 0.6);
+  const cross = addClips(newProject(), [], {});
+  void cross;
+  assert.ok(TRANSITIONS.length > 6);
+});
+
+test("the tier decides how many tracks may be added; the tab bound still holds", () => {
+  const p = { tracks: [{}, {}, {}] };
+  assert.equal(canAddTrack(p, 3), false);
+  assert.equal(canAddTrack(p, 6), true);
+  assert.equal(canAddTrack({ tracks: Array(MT).fill({}) }, null), false);
+});

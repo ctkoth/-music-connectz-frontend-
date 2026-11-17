@@ -18,10 +18,12 @@ import { onHandoff } from "../handoff.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
 import { useStatzTrial } from "../components/StatzSample.jsx";
+import { loadLimits, TIER_LABEL } from "../limits.js";
+import { goToSpot } from "../goto.js";
 import Timeline from "../videoedit/Timeline.jsx";
 import Inspector from "../videoedit/Inspector.jsx";
 import {
-  ASPECTS, MAX_SECONDS, addClips, addTrack, blockedReason, clipsOn, clock, closeGaps, defaultTrack, duplicateClip,
+  ASPECTS, MAX_SECONDS, addClips, addTrack, canAddTrack, blockedReason, clipsOn, clock, closeGaps, defaultTrack, duplicateClip,
   kindOfFile, lengthOf, moveClip, moveTrack, newProject, orderByTaken, removeClip, removeTrack, setTrack,
   splitClip, trackName, trimClip, uid, updateClip,
 } from "../videoedit/project.js";
@@ -113,6 +115,18 @@ export default function VideoZ() {
   const engine = useRef(null);
   const tRef = useRef(0);
   const { s: statz } = useStatzTrial();
+  // Corey's numbers for every list: tracks, filters and transitions — Free 3, Premium 6, StatZ all.
+  // Read from the server (the same served count ImageZ uses); unknown while it loads, nothing guessed.
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const count = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
+  const premiumOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
+  const [scaleOut, setScaleOut] = useState(1);
+  const tierName = TIER_LABEL[lim?.tier] || "your tier";
+  const addTrackChecked = (kind) => {
+    if (!canAddTrack(project, count)) { setErr(`${tierName} edits with ${count} tracks — upgrade for more (Premium 6, StatZ every one).`); return; }
+    commit((p) => addTrack(p, kind));
+  };
   const lipAllowed = !!(statz?.is_statz || statz?.active);
 
   // ---- history: every committed edit is one undo step ----
@@ -232,6 +246,11 @@ export default function VideoZ() {
   };
   // A finished video handed over from Video ConnectZ (or anywhere with an "Edit in VideoZ").
   useEffect(() => onHandoff("videoz", (p) => {
+    // MangaZ hands over a page's drawn panels in reading order (a motion comic); others hand one file.
+    if (Array.isArray(p?.items) && p.items.length) {
+      addFromLibrary(p.items.filter((x) => x?.url).map((x) => ({ url: x.url, name: x.name || "Panel", kind: x.kind || "image" }))).catch((e) => setErr(e.message));
+      return;
+    }
     if (!p?.url) return;
     addFromLibrary([{ url: p.url, name: p.name || "Video", kind: p.kind || "video" }]).catch((e) => setErr(e.message));
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -281,6 +300,8 @@ export default function VideoZ() {
     setSaved(null); setErr("");
     setExp({ t: 0, total: length });
     engine.current.setMonitor(!muteExport);
+    const k = scaleOut === 2 && premiumOn ? 2 : 1;
+    if (k === 2) engine.current.setProject({ ...project, exportScale: 2 });
     let last = 0;
     try {
       const out = await engine.current.play({
@@ -290,6 +311,7 @@ export default function VideoZ() {
       if (out) setResult({ ...out, url: URL.createObjectURL(out.blob) });
     } catch (e) { setErr(e.message); }
     engine.current.setMonitor(true);
+    if (k === 2) engine.current.setProject(project);
     setExp(null);
     redraw();
   };
@@ -333,8 +355,8 @@ export default function VideoZ() {
         </label>
         <button className="re-btn !w-auto px-3" onClick={() => setLib(true)}><FolderOpen size={14} /> From FileZ / Video ConnectZ</button>
         <button className="re-btn !w-auto px-3" onClick={addTitle}><Type size={14} /> Title at playhead</button>
-        <button className="re-btn !w-auto px-3" onClick={() => commit((p) => addTrack(p, "video"))}>+ Video track</button>
-        <button className="re-btn !w-auto px-3" onClick={() => commit((p) => addTrack(p, "audio"))}>+ Audio track</button>
+        <button className="re-btn !w-auto px-3" onClick={() => addTrackChecked("video")}>+ Video track</button>
+        <button className="re-btn !w-auto px-3" onClick={() => addTrackChecked("audio")}>+ Audio track</button>
         {busy && <span className="text-xs text-white/55"><Loader2 size={12} className="mr-1 inline animate-spin" />{busy}</span>}
       </div>
 
@@ -376,7 +398,7 @@ export default function VideoZ() {
           </div>
         </div>
         <div className="neon-frame max-h-[70vh] overflow-y-auto p-3">
-          <Inspector project={project} clip={sel} t={t} lipAllowed={lipAllowed}
+          <Inspector project={project} clip={sel} t={t} lipAllowed={lipAllowed} count={count} tierName={tierName}
             onChange={(patch) => commit((p) => updateClip(p, sel.id, patch))}
             onLive={(patch, done) => (done ? settle(true) : live((p) => updateClip(p, sel.id, patch)))}
             onSplit={split} onDuplicate={() => commit((p) => duplicateClip(p, sel.id))} onDelete={del} />
@@ -403,9 +425,17 @@ export default function VideoZ() {
           </button>
           {exp && <button className="re-btn !w-auto px-3" onClick={() => engine.current.stop(false)}><Square size={12} /> Cancel</button>}
           <span className="text-xs text-white/60">
-            {blocked || <>Free · makes {type.startsWith("video/mp4") ? "an MP4" : "a WebM"} at {W}×{H} · takes as long as the video ({clock(length)}) — keep this tab on screen while it runs</>}
+            {blocked || <>Free · makes {type.startsWith("video/mp4") ? "an MP4" : "a WebM"} at {W * (scaleOut === 2 && premiumOn ? 2 : 1)}×{H * (scaleOut === 2 && premiumOn ? 2 : 1)} · takes as long as the video ({clock(length)}) — keep this tab on screen while it runs</>}
           </span>
         </div>
+        <label className="flex items-center gap-2 text-xs text-white/60">
+          Size
+          <select className="neon-input !w-auto !py-1 text-xs" data-nomemo="true" value={scaleOut} onChange={(e) => setScaleOut(+e.target.value)}>
+            <option value={1}>1× — {W}×{H}</option>
+            <option value={2} disabled={!premiumOn}>2× — {W * 2}×{H * 2}{premiumOn ? "" : " — Premium"}</option>
+          </select>
+          {!premiumOn && <button className="re-link" onClick={() => goToSpot("membershipz", "")}>2× is Premium</button>}
+        </label>
         <label className="flex items-center gap-2 text-xs text-white/60">
           <input type="checkbox" checked={muteExport} onChange={(e) => setMuteExport(e.target.checked)} /> Silence my speakers while it exports (the file keeps its sound)
         </label>
@@ -440,7 +470,7 @@ export default function VideoZ() {
           </div>
         )}
         {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
-        <p className="text-[11px] text-white/40">Up to {clock(MAX_SECONDS)} per export. Filters, FX, titles and the timeline are free at every tier; lip-sync is StatZ.</p>
+        <p className="text-[11px] text-white/40">Up to {clock(MAX_SECONDS)} per export. The editor is free at every tier. Tracks, filters and transitions: the first {count ?? "…"} on {tierName} (Premium 6, StatZ all); 2× export is Premium; lip-sync is StatZ.</p>
       </div>
 
       {lib && <Library onAdd={addFromLibrary} onClose={() => setLib(false)} />}
