@@ -5,7 +5,8 @@
 // eyedropper and crop; selections (marquee, lasso, magic wand; add, subtract, invert,
 // feather; copy, cut, paste, fill, to a mask); Levels and Curves; clone, blur and smudge
 // brushes; layer groups; layer styles (shadow, glow, stroke); free transform with
-// handles; snapping guides; zoom and pan; a history panel; gradient fades on masks; opacity graded down the stack; undo; keyboard
+// handles; snapping guides; zoom and pan; a history panel; paint bucket; dodge, burn and
+// sponge; a filters menu; image size and canvas rotation; gradient fades on masks; opacity graded down the stack; undo; keyboard
 // shortcuts; and a project file that reopens with every layer intact. A pen tablet (Wacom and the like) draws with pressure, and the
 // pen's eraser end erases.
 //
@@ -24,7 +25,7 @@ import {
   ArrowDown, ArrowUp, Brush, Copy, Crop, Download, Eraser, Eye, EyeOff, FolderOpen, ImagePlus, Layers, Lock,
   Blend, Contrast, FileDown, FileUp, FlipHorizontal, FlipVertical, Merge, Move, PaintBucket, Palette, Pipette, Plus,
   Redo2, Save, Shapes, Trash2, Type, Undo2, Unlock, Wand, WandSparkles,
-  Droplets, Fingerprint, Lasso, Folder, FolderOpen as FolderOpenIcon, History, Maximize, Sparkles, ZoomIn, ZoomOut, MousePointerSquareDashed, Stamp, BoxSelect,
+  Droplets, Fingerprint, Lasso, PaintbrushVertical, RotateCcw, RotateCw, SunMoon, Folder, FolderOpen as FolderOpenIcon, History, Maximize, Sparkles, ZoomIn, ZoomOut, MousePointerSquareDashed, Stamp, BoxSelect,
 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
@@ -33,7 +34,7 @@ import Doors from "../components/Doors.jsx";
 import {
   ADJ0, ADJ_RANGE, BLENDS, FONTS, GOOGLE_FONTS_URL, PRESETS, canAdd, fontsFor, addLayer, addMaskStroke, addStroke, below, crop, cropRect,
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
-  shapeFromDrag, toProject, uid, updateLayer, boxOf, effective, groupLayers, ungroup, updateGroup, snap,
+  shapeFromDrag, toProject, uid, updateLayer, boxOf, scaleDoc, rotateDoc, effective, groupLayers, ungroup, updateGroup, snap,
 } from "../imageedit/layers.js";
 import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc, selCanvas, selOverlay } from "../imageedit/render.js";
 import {
@@ -43,9 +44,12 @@ import {
 import { useStatzTrial, StatzSample } from "../components/StatzSample.jsx";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
+import { FILTERS, applyFilter, bucketFill, toneDab } from "../imageedit/filters.js";
 import { backgroundDab, dabsAlong, magicErase, sample } from "../imageedit/pixels.js";
 
 const HISTORY = 60;
+// Filters that fix a picture are every tier's; the rest are Premium's creative ones.
+const CORRECTIVE = new Set(["sharpen", "blur"]);
 
 /** A history row's words, worked out from what changed — so no edit needs to remember to name itself. */
 function describe(a, b) {
@@ -119,6 +123,9 @@ export default function ImageZ() {
   const [levels, setLevels] = useState({ inBlack: 0, inWhite: 255, gamma: 1, outBlack: 0, outWhite: 255 });
   const [curve, setCurve] = useState({ s: 64, m: 128, h: 192 });
   const [retouch, setRetouch] = useState(50);
+  const [tone, setTone] = useState("dodge");
+  const [filt, setFilt] = useState({ key: "sharpen", amount: 100, radius: 1 });
+  const [sizePct, setSizePct] = useState(50);
   const { s: statz } = useStatzTrial();
   const erasersAllowed = !!(statz?.is_statz || statz?.active);
   // The tier's layer ceiling. `undefined` until /limits/ answers: nothing is blocked while
@@ -332,7 +339,10 @@ export default function ImageZ() {
   };
   // Pen pressure is Premium's (Corey asked; Premium is the pick — see CLAUDE.md). A pen still draws
   // and still erases with its eraser end at every tier; Free draws at full size, like a mouse.
-  const pressureOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
+  // Premium's part of ImageZ: pen pressure, layer styles and the creative filters — decoration and
+  // finesse. Fixing a picture (sharpen, blur, levels, dodge and burn, the bucket) is every tier's.
+  const premiumOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
+  const pressureOn = premiumOn;
   const pressureOf = (e) => (e.pointerType === "pen" && pressureOn ? (e.pressure || 0.01) : undefined);
   // The pixel erasers turn the layer into a picture of itself (opacity, blend and mask kept), then edit pixels.
   const pixelTarget = () => {
@@ -359,6 +369,7 @@ export default function ImageZ() {
     const size = brush.size * (pr ?? 1), k = retouch / 100;
     if (g.tool === "clone") cloneDab(g.img, g.src, x, y, g.dx, g.dy, size, g.sel);
     else if (g.tool === "blur") blurDab(g.img, x, y, size, k, g.sel);
+    else if (g.tool === "tone") toneDab(g.img, x, y, size, g.mode, k * 0.6, g.sel);
     else smudgeDab(g.img, g.carry, x, y, size, k, g.sel);
   };
 
@@ -426,14 +437,25 @@ export default function ImageZ() {
       setSelection(wandSel(im, p[0], p[1], wand), modeOf(e));
       return;
     }
-    if (tool === "clone" || tool === "blur" || tool === "smudge") {
+    if (tool === "bucket") {
+      // On a fill layer with no selection, the bucket simply recolours it.
+      if (layer?.kind === "fill" && !liveSel() && !layer.locked) { patch({ color: brush.color }); setErr(""); return; }
+      const t = pixelTarget();
+      if (!t) return;
+      const hex = brush.color.replace("#", "");
+      const n = bucketFill(t.img, p[0], p[1], [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)), { ...wand, sel: liveSel() });
+      if (!n) { setErr("Nothing to fill there."); return; }
+      t.ctx.putImageData(t.img, 0, 0); setErr(""); finishPixels(t).catch((x) => setErr(x.message));
+      return;
+    }
+    if (tool === "clone" || tool === "blur" || tool === "smudge" || tool === "tone") {
       if (tool === "clone" && e.altKey) { cloneFrom.current = p; setCloneSet(true); setErr(""); return; }
       if (tool === "clone" && !cloneFrom.current) { setErr("Alt-click (Option-click on a Mac) where to copy from first."); return; }
       const t = pixelTarget();
       if (!t) return;
       const key = `work:${t.id}`;
       images.current.set(key, t.c);
-      const g = { kind: "pix", ...t, key, last: p, sel: liveSel(), carry: new Map(), tool };
+      const g = { kind: "pix", ...t, key, last: p, sel: liveSel(), carry: new Map(), tool, mode: tone };
       if (tool === "clone") { g.src = new ImageData(new Uint8ClampedArray(t.img.data), t.img.width, t.img.height); g.dx = cloneFrom.current[0] - p[0]; g.dy = cloneFrom.current[1] - p[1]; }
       drag.current = g;
       dab(g, p, pressureOf(e));
@@ -697,7 +719,7 @@ export default function ImageZ() {
         return;
       }
       const tools = { v: "move", b: "brush", e: "eraser", c: "crop", i: "eyedropper", u: "shape", y: "magic", g: "bgerase",
-        m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge" };
+        m: "marquee", l: "lasso", w: "wand", s: "clone", r: "blur", n: "smudge", k: "bucket", o: "tone" };
       if (tools[e.key.toLowerCase()]) { setTool(tools[e.key.toLowerCase()]); return; }
       if (e.key === " ") { space.current = true; e.preventDefault(); return; }
       if (e.key === "[") setBrush((b) => ({ ...b, size: Math.max(1, Math.round(b.size / 1.25)) }));
@@ -734,7 +756,7 @@ export default function ImageZ() {
 
   const tools = [["move", Move, "Move (V)"], ["brush", Brush, "Brush (B)"], ["eraser", Eraser, "Eraser (E)"], ["marquee", BoxSelect, "Marquee select (M)"], ["lasso", Lasso, "Lasso select (L)"], ["wand", MousePointerSquareDashed, "Magic wand select (W)"],
     ["magic", Wand, "Magic eraser (Y)"], ["bgerase", WandSparkles, "Background eraser (G)"], ["shape", Shapes, "Shapes (U)"],
-    ["eyedropper", Pipette, "Eyedropper (I)"], ["clone", Stamp, "Clone stamp (S)"], ["blur", Droplets, "Blur brush (R)"], ["smudge", Fingerprint, "Smudge (N)"], ["crop", Crop, "Crop (C)"]];
+    ["eyedropper", Pipette, "Eyedropper (I)"], ["clone", Stamp, "Clone stamp (S)"], ["bucket", PaintbrushVertical, "Paint bucket (K)"], ["tone", SunMoon, "Dodge / burn / sponge (O)"], ["blur", Droplets, "Blur brush (R)"], ["smudge", Fingerprint, "Smudge (N)"], ["crop", Crop, "Crop (C)"]];
   const icon = { image: ImagePlus, text: Type, paint: Brush, fill: PaintBucket, shape: Shapes, gradient: Palette };
 
   return (
@@ -813,6 +835,23 @@ export default function ImageZ() {
                 <label className="flex items-center gap-1"><input type="checkbox" checked={wand.contiguous} onChange={(e) => setWand({ ...wand, contiguous: e.target.checked })} /> Connected only</label>
                 <span className="text-white/50">Samples the selected layer, or the whole picture when none is picked.</span>
               </>}
+            </div>
+          )}
+          {tool === "bucket" && (
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <label className="flex items-center gap-1">Colour <input type="color" value={brush.color} onChange={(e) => setBrush({ ...brush, color: e.target.value })} /></label>
+              <label className="flex items-center gap-1">Tolerance <input type="range" min="0" max="100" value={wand.tolerance} onChange={(e) => setWand({ ...wand, tolerance: +e.target.value })} /> {wand.tolerance}%</label>
+              <label className="flex items-center gap-1"><input type="checkbox" checked={wand.contiguous} onChange={(e) => setWand({ ...wand, contiguous: e.target.checked })} /> Connected only</label>
+              <span className="text-white/50">Click to fill the area like that spot on the selected layer.</span>
+            </div>
+          )}
+          {tool === "tone" && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {[["dodge", "Dodge — lighten"], ["burn", "Burn — darken"], ["sponge", "Sponge — desaturate"]].map(([k, label]) => (
+                <button key={k} className={`re-btn !w-auto px-2 ${tone === k ? "!border-mcz-cyan text-mcz-cyan" : ""}`} onClick={() => setTone(k)}>{label}</button>
+              ))}
+              <label className="flex items-center gap-1">Size <input type="range" min="2" max="300" value={brush.size} onChange={(e) => setBrush({ ...brush, size: +e.target.value })} /> {brush.size}px</label>
+              <label className="flex items-center gap-1">Strength <input type="range" min="5" max="100" value={retouch} onChange={(e) => setRetouch(+e.target.value)} /> {retouch}%</label>
             </div>
           )}
           {(tool === "clone" || tool === "blur" || tool === "smudge") && (
@@ -1009,8 +1048,11 @@ export default function ImageZ() {
               </>}
               {layer.kind !== "fill" && (
                 <details>
-                  <summary className="cursor-pointer text-white/70"><Sparkles size={12} className="inline" /> Layer styles</summary>
-                  <div className="mt-1 space-y-2">
+                  <summary className="cursor-pointer text-white/70"><Sparkles size={12} className="inline" /> Layer styles{premiumOn ? "" : " — Premium"}</summary>
+                  {!premiumOn ? (
+                    <p className="mt-1 text-mcz-gold">Drop shadow, glow and stroke are Premium. A style already on a layer keeps showing.{" "}
+                      <button className="re-link" onClick={() => goToSpot("membershipz", "")}>See Premium</button></p>
+                  ) : <div className="mt-1 space-y-2">
                     {(() => {
                       const st = layer.style || {};
                       const set = (k, v) => patch({ style: { ...st, [k]: { ...(st[k] || {}), ...v } } });
@@ -1038,7 +1080,7 @@ export default function ImageZ() {
                         </div>
                       </>;
                     })()}
-                  </div>
+                  </div>}
                 </details>
               )}
               {layer.kind !== "fill" && layer.kind !== "gradient" && <>
@@ -1139,6 +1181,41 @@ export default function ImageZ() {
               <button className="re-btn !w-auto px-2" title="Delete" disabled={!liveSel()} onClick={clearSel}>Clear</button>
               <button className="re-btn !w-auto px-2" disabled={!liveSel()} onClick={fillSel}>Fill <span className="ml-1 inline-block h-3 w-3 rounded" style={{ background: brush.color }} /></button>
               <button className="re-btn !w-auto px-2" disabled={!liveSel() || !layer} onClick={selToMask}>To mask</button>
+            </div>
+          </div>
+
+          <div className="glass-card space-y-2 p-3 text-xs">
+            <h3 className="font-semibold">Filters</h3>
+            <select className="neon-input" data-nomemo="true" value={filt.key} onChange={(e) => {
+              const f = FILTERS[e.target.value];
+              setFilt({ key: e.target.value, amount: f.amount?.[2] ?? 50, radius: f.radius?.[2] ?? 4 });
+            }}>
+              {Object.entries(FILTERS).map(([k, f]) => <option key={k} value={k}>{f.label}{CORRECTIVE.has(k) || premiumOn ? "" : " — Premium"}</option>)}
+            </select>
+            {FILTERS[filt.key].amount && <label className="flex items-center gap-2">Amount <input type="range" min={FILTERS[filt.key].amount[0]} max={FILTERS[filt.key].amount[1]} value={filt.amount} onChange={(e) => setFilt({ ...filt, amount: +e.target.value })} className="flex-1" /> {filt.amount}</label>}
+            {FILTERS[filt.key].radius && <label className="flex items-center gap-2">Radius <input type="range" min={FILTERS[filt.key].radius[0]} max={FILTERS[filt.key].radius[1]} value={filt.radius} onChange={(e) => setFilt({ ...filt, radius: +e.target.value })} className="flex-1" /> {filt.radius}px</label>}
+            {CORRECTIVE.has(filt.key) || premiumOn ? (
+              <button className="re-btn" onClick={() => {
+                const t = pixelTarget(); if (!t) return;
+                applyFilter(t.img, filt.key, filt, liveSel());
+                t.ctx.putImageData(t.img, 0, 0); finishPixels(t).catch((x) => setErr(x.message));
+              }}>Apply {FILTERS[filt.key].label}{liveSel() ? " inside the selection" : ""}</button>
+            ) : (
+              <p className="text-mcz-gold">{FILTERS[filt.key].label} is a Premium filter — sharpen and blur are free at every tier.{" "}
+                <button className="re-link" onClick={() => goToSpot("membershipz", "")}>See Premium</button></p>
+            )}
+          </div>
+
+          <div className="glass-card space-y-2 p-3 text-xs">
+            <h3 className="font-semibold">Image</h3>
+            <div className="flex flex-wrap items-center gap-1">
+              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° anticlockwise" onClick={() => { setSelection(null); commit((d) => rotateDoc(d, -1)); }}><RotateCcw size={14} /></button>
+              <button className="re-btn !w-auto px-2" title="Rotate the canvas 90° clockwise" onClick={() => { setSelection(null); commit((d) => rotateDoc(d, 1)); }}><RotateCw size={14} /></button>
+              <span className="ml-2">Image size</span>
+              <input type="number" min="1" max="400" value={sizePct} onChange={(e) => setSizePct(+e.target.value)} className="neon-input !w-16 !py-0.5" />%
+              <button className="re-btn !w-auto px-2" onClick={() => { setSelection(null); commit((d) => scaleDoc(d, sizePct / 100)); }}>
+                → {Math.round(doc.w * sizePct / 100)}×{Math.round(doc.h * sizePct / 100)}
+              </button>
             </div>
           </div>
 
