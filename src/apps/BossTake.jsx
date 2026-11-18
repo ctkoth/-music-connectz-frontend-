@@ -7,6 +7,7 @@
 import SocialBar from "../components/SocialBar.jsx";
 import SendTo from "../components/SendTo.jsx";
 import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
+import EnginePick from "../components/EnginePick.jsx";
 import { ENERGY } from "../resources.js";
 import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
@@ -129,6 +130,20 @@ function Cost({ price, trial }) {
     );
   }
   const fromPromptz = price.promptz >= price.cost_cents;
+  // Free prompts left, and still not free: the engine that writes the answer is dearer than a free prompt is priced
+  // for (Fable). Say that, and the way to use a free one, instead of claiming the prompts are used up.
+  const engine = price.think?.configured ? price.think?.engine : null;
+  if (price.daily_remaining > 0 && engine) {
+    return (
+      <span className="text-[11px] text-mcz-ember">
+        −{price.cost_cents} 🏷️{" "}
+        <span className="text-white/35">
+          from your {fromPromptz ? `${price.promptz} PromptZ` : "balance"} — today's free prompts don't cover {engine.name};
+          pick a lower engine below to use one of your {price.daily_remaining}
+        </span>
+      </span>
+    );
+  }
   // In a shell nothing is for sale, so "balance" would be a door to nowhere: say
   // what is true — the free prompts renew tomorrow — and the price of a take from
   // PromptZ the member already holds, and nothing else.
@@ -167,7 +182,8 @@ function OutOfTakes({ price }) {
     return () => { on = false; };
   }, []);
   const ladder = price?.allowance_ladder;
-  if (!ladder?.length || price.free_today) return null;
+  // Prompts left but not free means the ENGINE isn't covered (the price line says so), not that the member is out.
+  if (!ladder?.length || price.free_today || price.daily_remaining > 0) return null;
   const at = ladder.findIndex((r) => r.tier === price.tier);
   const mine = ladder[at];
   const next = at >= 0 ? ladder[at + 1] : null;
@@ -485,6 +501,10 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   // that it is the real one.
   const coachCeiling = price?.coach_budget_seconds || 0;
 
+  // Re-asked after the member switches the engine that writes the answer, so the price beside the button is the
+  // price of the engine shown, never the one before.
+  const [priceAsk, setPriceAsk] = useState(0);
+  const reloadPrice = () => new Promise((done) => { setPriceAsk((n) => n + 1); setTimeout(done, 0); });
   useEffect(() => {
     // The trial's "one free take each" is counted per BROWSER now, not per IP
     // address — a carrier's shared CGNAT address meant one stranger spent the
@@ -499,7 +519,9 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       .catch(() => {
         onReady?.();
       });
-  }, [path, trial, onReady]);
+  }, [path, trial, onReady, priceAsk]);
+  // The engine the ⚡ is priced on: the Claude that will write the answer, when there is a second pass at all.
+  const answerEngine = price?.think?.configured ? price?.think?.engine?.key || null : null;
 
   // A post arriving from PostZ. The trial door is for people with no account
   // and therefore no posts, so it never listens.
@@ -1428,7 +1450,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 {busy ? <Loader2 className="animate-spin" size={15} /> : <Play size={15} />}
                 {busy ? "Coaching it…" : fromPost.radar ? "Get the Radar read" : fromPost.kind === "post" ? "Send this post to the coach" : "Send it to the coach"}
               </button>
-              <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
+              <Cost price={price} trial={trial} />{!trial && price && <AiEnergy engine={fromPost.radar ? null : answerEngine} className="text-[11px]" />}{!trial && price && <XpGain />}
+              {!trial && !IN_SHELL_COACH && !fromPost.radar && <EnginePick think={price?.think} onChanged={reloadPrice} />}
               {/* The ⚡ half of the price, before the press. A post costs Energy on
                   top of the prompt; a freshly recorded take does not. */}
               {!trial && price?.post_energy_cost > 0 && fromPost?.kind === "post" && (
@@ -1667,7 +1690,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {busy ? (refMode ? "Listening…" : "Coaching your take…")
                 : refMode ? "Listen to this track" : "Send it to the coach"}
             </button>
-            <Cost price={price} trial={trial} />{!trial && price && <AiEnergy className="text-[11px]" />}{!trial && price && <XpGain />}
+            <Cost price={price} trial={trial} />{!trial && price && <AiEnergy engine={refMode ? null : answerEngine} className="text-[11px]" />}{!trial && price && <XpGain />}
+            {!trial && !IN_SHELL_COACH && !refMode && <EnginePick think={price?.think} onChanged={reloadPrice} />}
             {/* The ⚡ half for a freshly recorded take: small, and it takes what you
                 hold rather than refusing, so the coach is never gated by Energy. */}
             {!trial && !refMode && price?.take_energy_cost > 0 && (

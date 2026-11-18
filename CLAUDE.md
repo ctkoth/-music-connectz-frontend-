@@ -2531,3 +2531,15 @@ a flow there.
 
 `overflow-x: clip` on the page was considered and rejected. It would hide the overflow instead of fixing it, and a
 button cut off at the edge is worse than one you can scroll to.
+
+## The coach says which Claude answers, and the member picks it
+
+`EnginePick.jsx`, beside every "Send it to the coach": "Answered by 🎹 Opus ▾". Gemini listens; Claude writes the answer, on the
+member's own engine, capped by their plan (Free: Haiku or Sonnet; Premium: up to Opus; StatZ: up to Fable). The list, the
+member's engine, the locked rows and their plans, and the sentence are the server's (`think` on GET `/api/<key>/coach/`).
+Higher engines are shown locked with the plan that has them. A change saves the same choice the OCC picker uses
+(`PATCH /api/economy/ai/models/`) and asks the coach again, so the price beside the button is the price of the engine shown:
+the ⚡ (`<AiEnergy engine=…>`) and whether a free prompt covers it. **A free prompt left but the take not free means the
+engine isn't covered (Fable)**: the price line says so and how to use a free one, and the out-of-takes upsell does not show.
+Radar reads, reference listens, the trial and the standalone shells get no picker and are priced without an engine, because
+no Claude pass runs for them. Driven in a browser at Free, Premium and StatZ (default engine, locked rows, switch re-prices).
