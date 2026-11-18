@@ -2,7 +2,7 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   setSessionHold, seedSessionHold, setRest, clearSessionHold, getSessionHold, subscribeSession, resetSessionHold,
-  restNow, restLineText, clockText, floatPrice,
+  restNow, restLineText, clockText, floatPrice, againLabelFor, lastLogged,
 } from "./sessionHold.js";
 
 beforeEach(() => resetSessionHold());
@@ -117,4 +117,41 @@ test("on the top plan a refusal does not point at a plan above it", () => {
 test("with no state there is no price, never an invented one", () => {
   assert.equal(floatPrice(null), null);
   assert.equal(floatPrice(undefined), null);
+});
+
+const kg = (n) => `${n} kg`;
+
+test("the bar names the exact set it would repeat, before it is pressed", () => {
+  assert.equal(againLabelFor({ exercise_name: "Bench Press", reps: 10, weight_kg: 60 }, kg), "Bench Press · 10 × 60 kg");
+  assert.equal(againLabelFor({ exercise_name: "Dumbbell Fly", reps: 12, weight_kg: 16, one_sided: "left" }, kg),
+    "Dumbbell Fly · 12 × 16 kg (left)");
+  assert.equal(againLabelFor({ exercise_name: "Push-up", reps: 20, weight_kg: null }, kg), "Push-up · 20 × bodyweight");
+});
+
+test("with nothing logged yet there is nothing to repeat, and no button", () => {
+  assert.equal(againLabelFor(null, kg), "");
+  assert.equal(againLabelFor({ exercise_name: "Row", reps: 0 }, kg), "");
+});
+
+test("the set repeated is the one logged last, not the last in the list", () => {
+  const sets = [
+    { id: 1, created_at: "2026-11-18T10:00:00Z" },
+    { id: 3, created_at: "2026-11-18T10:05:00Z" },
+    { id: 2, created_at: "2026-11-18T10:02:00Z" },       // dragged to the end of the list
+  ];
+  assert.equal(lastLogged(sets).id, 3);
+  assert.equal(lastLogged([]), null);
+  assert.equal(lastLogged(undefined), null);
+});
+
+test("the repeat and its label ride the hold, and a new label is an update", () => {
+  const again = () => {};
+  setSessionHold({ tab: "bodiez", sessionId: 1, again, againLabel: "Row · 8 × 50 kg" });
+  assert.equal(getSessionHold().againLabel, "Row · 8 × 50 kg");
+  let n = 0;
+  subscribeSession(() => { n++; });
+  setSessionHold({ tab: "bodiez", sessionId: 1, again, againLabel: "Row · 8 × 50 kg" });
+  assert.equal(n, 0);
+  setSessionHold({ tab: "bodiez", sessionId: 1, again, againLabel: "Curl · 10 × 12 kg" });
+  assert.equal(n, 1);
 });

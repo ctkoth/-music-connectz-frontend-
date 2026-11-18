@@ -16,7 +16,7 @@ import { restClock } from "./restBeep.js";
 // `base` is what BodieZ says about the session; `rest` is what its rest timer says. They are kept apart because
 // the timer is a CHILD of BodieZ, so its effect runs first — a rest published before the hold exists must not be
 // dropped. `hold` is the merged snapshot readers get, the same object until something changes.
-let base = null;               // { tab, sessionId, title, since, off, seeded }
+let base = null;               // { tab, sessionId, title, since, off, again, againLabel, undo, seeded }
 let rest = null;               // { startMs, target, exercise, next }
 let hold = null;
 const listeners = new Set();
@@ -29,19 +29,26 @@ function emit() {
 export const getSessionHold = () => hold;
 export function subscribeSession(fn) { listeners.add(fn); return () => { listeners.delete(fn); }; }
 
-/** The session BodieZ is running. */
-export function setSessionHold({ tab, sessionId, title = "", since = null, off = null }) {
+/**
+ * The session BodieZ is running.
+ *
+ *   again / againLabel — repeat the last set exactly, from the bar, and what that set is ("Bench Press · 10 × 60 kg").
+ *                        No label means there is nothing to repeat yet, and the bar offers nothing.
+ *   undo               — take a set back by id, for the bar's own Undo.
+ */
+export function setSessionHold({ tab, sessionId, title = "", since = null, off = null, again = null, againLabel = "", undo = null }) {
   if (!tab || !sessionId) return;
-  if (base && !base.seeded && base.tab === tab && base.sessionId === sessionId
-      && base.title === title && base.since === since && base.off === off) return;
-  base = { tab, sessionId, title, since, off, seeded: false };
+  if (base && !base.seeded && base.tab === tab && base.sessionId === sessionId && base.title === title
+      && base.since === since && base.off === off && base.again === again && base.againLabel === againLabel
+      && base.undo === undo) return;
+  base = { tab, sessionId, title, since, off, again, againLabel, undo, seeded: false };
   emit();
 }
 
 /** Before BodieZ has loaded (a reload with a kept session): keep the tab mounted so it can load and take over. */
 export function seedSessionHold(tab, sessionId) {
   if (base || !tab || !sessionId) return;
-  base = { tab, sessionId, title: "", since: null, off: null, seeded: true };
+  base = { tab, sessionId, title: "", since: null, off: null, again: null, againLabel: "", undo: null, seeded: true };
   emit();
 }
 
@@ -111,4 +118,19 @@ export function floatPrice(st) {
   }
   return { cost: `−1 of today's ${st.limit}`, after: left - 1, blocked: null, free,
     text: `${left - 1} left after this one` };
+}
+
+/** "Bench Press · 10 × 60 kg (left)" — the set the bar would repeat, named before it is pressed. Empty when there is none. */
+export function againLabelFor(set, fmtWeight) {
+  if (!set || !set.exercise_name || !(set.reps > 0)) return "";
+  const w = set.weight_kg != null ? fmtWeight(set.weight_kg) : "bodyweight";
+  const side = set.one_sided ? ` (${set.one_sided})` : "";
+  return `${set.exercise_name} · ${set.reps} × ${w}${side}`;
+}
+
+/** The set most recently logged, by the server's own clock. */
+export function lastLogged(sets) {
+  let last = null;
+  for (const s of Array.isArray(sets) ? sets : []) if (s?.created_at && (!last || s.created_at > last.created_at)) last = s;
+  return last;
 }

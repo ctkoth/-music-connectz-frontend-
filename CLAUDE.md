@@ -2482,7 +2482,17 @@ and how long the session has run, with **Back to BodieZ** and ✕ to stop keepin
   over. `useSessionHold` never clears a seed, and waits for `settled` before clearing anything — React's dev double-mount ran the
   cleanup straight after mount and wiped it (found by reloading in a real browser, not by reading).
 - **Only inside a shell tab.** Minis, SplitZ panes and every standalone shell have no tab slot, so the control is not offered there.
-- Driven in a browser: press → leave to PostZ → bar with a counting-down rest → reload → bar returns → ✕ removes it.
+- **Same again, from the bar.** The last set logged (`lastLogged`, by the server's clock, not list order) is repeated exactly
+  — lift, reps, weight sent in kg as stored so no unit round trip moves it, and side — and the button NAMES it before it is
+  pressed ("Same again: Bench Press · 10 × 60 kg · free"); logging pays and costs nothing. After it: "✓ Logged …" with
+  **Wrong? Undo**, which is BodieZ's own single-set delete. The label wraps rather than truncates, because the weight is
+  the part to check. Only the last set: a different lift still means going back to BodieZ.
+- **The rest clock runs on every BodieZ sub-tab.** Today's logger stays MOUNTED, hidden, while a session is open
+  (`hidden={tab !== "today"}`), so the one `RestTimer` keeps its beep and keeps publishing to the bar from SessionZ,
+  RoutineZ or anywhere else. Not a second timer: two clocks would disagree. Anything typed into the logger survives too.
+- Driven in a browser: press → leave to PostZ → bar with a counting-down rest → reload → bar returns → ✕ removes it; and
+  BodieZ on SessionZ → PostZ → the rest counts → Same again (1 → 2 sets on the server) → Undo (2 → 1). The bar first
+  shipped cut off at 390px (its buttons could not wrap) — the audit's own lesson; it fits at 320, 360 @125% and 390 now.
   Not checked on a phone. A locked phone still pauses the page; this does not change that.
 
 ## Nothing scrolls sideways on a phone — and when it does, check the browser's desktop switch first
@@ -2511,6 +2521,13 @@ fixed globally in `index.css`; check for the fifth when adding a screen:
   which breaks the word only when it cannot fit, and lets the column shrink.
 - **A row of buttons or pills without `flex-wrap`**, or a `flex-1` text column without `min-w-0`. These are per screen
   (ViewZ's tabs, VideoZ's export size, ChallengeZ's header, OnboardZ's steps, the PersonalitieZ toggles).
+
+**The audit reaches past the first screen now.** `width-audit.mjs` opens every closed `<details>` and presses every
+disclosure (`aria-expanded`), tab (`role="tab"`) and reveal-worded button ("More", "Show…", "What…", "Details"…), never
+one whose words read like delete, send, pay, post, log, save or start, and undoes any tap that navigates; each line says
+how many things it revealed. `width-flows.mjs` makes the screens only an action makes — BodieZ's routine "Session ended"
+card and every sub-tab — and WRITES as `corey` locally to get there. A new screen that only appears after an action gets
+a flow there.
 
 `overflow-x: clip` on the page was considered and rejected. It would hide the overflow instead of fixing it, and a
 button cut off at the edge is worse than one you can scroll to.

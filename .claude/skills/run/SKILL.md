@@ -36,8 +36,14 @@ node .claude/skills/run/width-audit.mjs                       # every tab at 320
 WIDTHS=360 FONT=125 node .claude/skills/run/width-audit.mjs   # a phone with its text size turned up
 ```
 
-It names the element that ESCAPES its parent past the edge, which is the one to fix. It only sees each tab's first
-screen. A card that appears after an action (BodieZ's "Session ended") needs a flow of its own.
+It names the element that ESCAPES its parent past the edge, which is the one to fix. It measures each tab's first
+screen and again after every reveal-only tap (closed sections, disclosures, tabs, "More"/"Show…" buttons), never a
+control that could change data. A screen that only an action makes is in `width-flows.mjs` (BodieZ's routine
+"Session ended" card and every sub-tab; it writes as `corey` to get there):
+
+```bash
+WIDTHS=360 FONT=125 node .claude/skills/run/width-flows.mjs
+```
 
 ## Traps
 

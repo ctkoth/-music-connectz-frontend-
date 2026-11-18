@@ -74,7 +74,7 @@ import { PROMPTZ } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
 import KeepOnScreen from "../components/KeepOnScreen.jsx";
 import { useSessionHold } from "../useSessionHold.js";
-import { setRest } from "../sessionHold.js";
+import { againLabelFor, lastLogged, setRest } from "../sessionHold.js";
 import { AICoachView, AskAI, BodieZAIProvider } from "../components/BodieZAI.jsx";
 
 const UnitCtx = createContext("kg");
@@ -219,12 +219,30 @@ export default function BodieZ() {
     try { if (on) sessionStorage.removeItem(floatKey); else sessionStorage.setItem(floatKey, "1"); } catch { /* blocked */ }
     bumpFloat((n) => n + 1);
   };
+  // "Same again" from the bar: the last set logged, repeated exactly — same lift, reps, weight (sent in kg as stored, so
+  // no unit round trip moves it) and side. Named on the bar before it is pressed; the bar offers Undo after.
+  const lastSet = session ? lastLogged(session.sets) : null;
+  const repeatLast = async () => {
+    if (!session || !lastSet) return null;
+    try {
+      const s = await api(`/api/economy/bodiez/sessions/${session.id}/sets/`, {
+        method: "POST",
+        body: { exercise_id: lastSet.exercise_id, reps: lastSet.reps, weight_kg: lastSet.weight_kg, one_sided: lastSet.one_sided || "" },
+      });
+      serverSkewMs = clockSkew(new Date(s.created_at).getTime(), Date.now());
+      setSession((cur) => (cur ? { ...cur, sets: [...cur.sets, s] } : cur));
+      return s;
+    } catch (e) { setErr(e.message); throw e; }
+  };
   const inShellTab = useSessionHold({
     on: !!session && !!session.floated_at && !floatOff && !IN_SHELL,
     sessionId: session?.id,
     title: session?.routine_title || "Ad-hoc session",
     since: session ? new Date(session.started_at).getTime() : null,
     off: () => setFloatOn(false),
+    again: repeatLast,
+    againLabel: againLabelFor(lastSet, (kg) => fmtWeight(kg, unit)),
+    undo: (id) => undoSet(id),
     settled: board !== null,
   });
   const keepOnScreen = inShellTab && !IN_SHELL && session
@@ -690,6 +708,13 @@ export default function BodieZ() {
                              routinePlan={routines.find((r) => r.id === summary.routine_id)?.plan} onImprove={jumpToImprove}
                              onUpdateRoutine={(rid) => updateRoutineFromSession(summary.session_id, rid)} />
             )}
+            </>
+          )}
+          {/* Today's logger stays MOUNTED (hidden) on every other sub-tab while a session is open, so its rest clock,
+              the beep and the session bar's countdown keep running from SessionZ, RoutineZ or anywhere else. It is the
+              one timer, not a second copy of it; anything typed into the logger is still there on the way back. */}
+          {(tab === "today" || session) && (
+            <div hidden={tab !== "today"}>
             <TodayView
               keepOnScreen={keepOnScreen}
               session={session} routines={routines} exercises={exercises} pickable={usable}
@@ -697,6 +722,10 @@ export default function BodieZ() {
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
+            </div>
+          )}
+          {tab === "today" && (
+            <>
             <PastWorkout exercises={exercises} pickable={usable} routines={routines}
                          onSaved={(sm) => { setSummary(sm); load(); }}
                          initialRoutineId={prefillPastRoutine} onInitialRoutineConsumed={() => setPrefillPastRoutine(null)} />
