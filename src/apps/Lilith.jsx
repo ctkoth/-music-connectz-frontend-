@@ -30,6 +30,7 @@ import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
 import { BuildCTA, MoveMenu, RoutineList, Starters, Suggested, TrashedRoutines } from "../components/LilithCTA.jsx";
+import LilithAuto from "../components/LilithAuto.jsx";
 
 // All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
 // here, so those two tabs drew nothing while their neighbours had art.
@@ -394,6 +395,7 @@ export default function Lilith() {
                     one average price would be a price nobody can check. */}
                 {!t.done_at && <Gain {...asDict(t.pays)} />}
                 {t.source === "platform" && <span className="text-white/30">pays where you do it</span>}
+                {t.source === "auto" && <span className="text-emerald-300/70" title={t.note}>🤖 Lilith added this</span>}
                 {!t.done_at && t.cost_cents > 0 && <span className="text-mcz-ember">−${(t.cost_cents / 100).toFixed(2)}</span>}
               </div>
             </div>
@@ -520,6 +522,7 @@ export default function Lilith() {
         </div>
       )}
 
+      <LilithAuto auto={board?.auto} onChanged={load} />
       <Suggested items={asList(board?.suggested)} add={addStarter} busyKey={addingKey} />
 
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">

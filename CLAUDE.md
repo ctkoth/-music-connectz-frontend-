@@ -2339,3 +2339,10 @@ Anything that acts FOR the member is StatZ (or the daily sample): DAW automation
 and BattleZ challenge auto-accept (`auto_accept_allowed`, read when a challenge arrives; a lapsed member's setting is
 kept and rests, and they can still save their other filters). Lilith's auto-schedule and automation rules are
 StatZ-only in the server's limits and are not on the screen at all until they are built.
+
+## LilithAuto: the switch, and what she added
+
+`components/LilithAuto.jsx` sits above "Lilith suggests": on StatZ, the 🤖 on/off switch, the server's sentence
+(`auto.what`) and everything she added in the last 24 hours with its reason (`auto.added`, read from the rows so it
+shows on any open — the board loads twice on mount and a one-request announcement was never seen). Below StatZ,
+`StatzSample` and the server's `locked` sentence. A task she added carries "🤖 Lilith added this" on its row.
