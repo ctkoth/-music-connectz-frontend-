@@ -2268,3 +2268,26 @@ is the engine: `mixTracks` sums them BEFORE the master, and the result lists eve
 - The A/B "original" is the mix before mastering (`premix`), not the song alone.
 - **Fixed with it:** since Oct 29 every finished master crashed the screen (`fmt2 is not a function`). The export
   format was a second `const fmt` shadowing the number formatter. The format is `outFmt` now.
+
+## Automation in every DAW, and stems out to Mix ConnectZ
+
+`src/daw/automation.js` gives every DawZ workflow volume and pan automation at once (one engine, so the six DAWs
+gain it evenly). A lane is points `{t, v}` plus Read on/off; while it reads and has points it IS the fader or pan
+knob, and the static value is used only when it is off or empty — the Pro Tools / Logic / Reaper rule.
+
+- **Drawn = heard = bounced.** The engine lays a lane as `linearRampToValueAtTime` steps (`schedule`) and the screen
+  draws it with `valueAt`, which interpolates volume in linear GAIN, exactly as a GainNode ramps. The bounce is the
+  same graph on an OfflineAudioContext. Measured: a fade drawn −60 dB at 1 s → −6 dB at 3 s bounced as silence
+  before 1 s, quarter gain at 2 s and −6 dB after 3 s, to three decimals.
+- **Draw it in Tracks** (`AutoLane.jsx`): a track's lane view is Clips, Volume or Pan. Tap adds a point and drags it
+  straight away, drag moves one (it cannot pass a neighbour), double-tap removes one; Read and Clear sit in the header.
+- **Write it in Mix** (latch): with ✍️ Write automation on, a fader or pan moved while playing is recorded at the
+  playhead, that param follows the hand (not its lane) until Stop, and the pass replaces the lane under it
+  (`writePass`, thinned to the points the line needs). Start and Stop both commit any pass, so a seek never loses one.
+- **Lanes with points are the tier's shared count** (`imagez_layers`: 3 / 6 / unlimited across the session). A lane
+  you already have is never locked; a move past the cap is heard and not written, and the screen says so.
+- **Stems** (`sendStems`, beside Bounce): every audible track with clips is rendered solo, exactly as it sounds in the
+  mix (effects, fader, pan, automation), so summed at 0 dB and centre the stems ARE the bounce. They hand over to Mix
+  ConnectZ as blob addresses: the first becomes the song, the rest TrackZ tracks, up to the same tier count (said on
+  the button before it is pressed). A tab that reloaded in between has lost the blobs, and Mix ConnectZ says to send again.
+- Not yet: automating effect parameters, and touch mode (the hand lets go and the lane takes over mid-pass).

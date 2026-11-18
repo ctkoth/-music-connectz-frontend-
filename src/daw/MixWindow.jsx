@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Power, X } from "lucide-react";
 import { GAIN_DB } from "./session.js";
 import { MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
+import { reads } from "./automation.js";
 
 const fmtDb = (v) => (v <= GAIN_DB.min ? "−∞" : `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
 
@@ -55,7 +56,7 @@ function InsertEditor({ insert, onChange, onClose }) {
   );
 }
 
-function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master }) {
+function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {} }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
@@ -90,6 +91,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
             </select>
           )}
           <label className="mt-1 block text-white/60">
+            {auto.pan && <span className="mr-1 rounded bg-emerald-500/20 px-1 text-emerald-300" title="Pan follows its automation lane">auto</span>}
             Pan {pan === 0 ? "C" : pan < 0 ? `L${Math.round(-pan * 100)}` : `R${Math.round(pan * 100)}`}
             <input type="range" min={-1} max={1} step={0.01} value={pan} className="w-full" onDoubleClick={() => onTrack({ pan: 0 })}
                    onChange={(e) => onTrack({ pan: Number(e.target.value) })} aria-label={`${name} pan`} />
@@ -103,6 +105,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
         <Meter db={meter} />
       </div>
       <p className="text-center tabular-nums text-white/80">{fmtDb(gain)} dB</p>
+      {auto.volume && <p className="text-center text-emerald-300" title="While it plays, the level follows the track's volume lane; the fader is used when the lane is off">follows its lane</p>}
       {!master && (
         <div className="flex justify-center gap-1 font-bold">
           <button type="button" aria-pressed={solo} className={`rounded px-2 py-0.5 ${solo ? "bg-yellow-400 text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ solo: !solo })}>S</button>
@@ -113,14 +116,32 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
   );
 }
 
-export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster }) {
+export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoCap, lanesUsed = 0 }) {
   const meters = useMeters(daw, playing);
   return (
     <div className="space-y-2">
+      {onWriteAuto && (
+        <div className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-1.5 text-[11px] ${writeAuto ? "border-red-500/60 bg-red-500/10" : "border-white/10"}`}
+             data-tour="daw-automation">
+          <button type="button" aria-pressed={!!writeAuto} onClick={() => onWriteAuto(!writeAuto)}
+                  className={`rounded px-2 py-0.5 font-bold ${writeAuto ? "bg-red-600 text-white" : "bg-white/10 text-white/70"}`}>
+            ✍️ Write automation {writeAuto ? "on" : "off"}
+          </button>
+          <span className="text-white/60">
+            {writeAuto
+              ? "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass."
+              : "Turn on, press play and ride the faders — every move becomes a line you can edit in Tracks."}
+          </span>
+          <span className="ml-auto text-white/45">
+            {autoCap === null ? `${lanesUsed} lanes · unlimited on your plan` : autoCap !== undefined ? `${lanesUsed} of ${autoCap} lanes` : `${lanesUsed} lanes`} · free
+          </span>
+        </div>
+      )}
       <p className="text-[11px] text-white/50">Faders and pans move while it plays. Double-tap a fader or pan to reset it. Every effect is built in and free.</p>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {session.tracks.map((t) => (
           <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} inserts={t.inserts}
+                 auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }}
                  meter={meters[t.id]} onTrack={(patch) => onTrack(t.id, patch)} onInserts={(list) => onInserts(t.id, list)} />
         ))}
         <Strip master name="Master" color="#ffffff" gain={session.master} pan={0} inserts={[]} meter={meters.master}

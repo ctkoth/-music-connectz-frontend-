@@ -8,6 +8,8 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
 import { beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
+import { PARAMS, laneOf, laneRoom } from "./automation.js";
+import AutoLane from "./AutoLane.jsx";
 
 const HEADER_W = 168;
 const LANE_H = 76;
@@ -64,7 +66,10 @@ export function Playhead({ position, zoom, height }) {
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
+  onAuto, autoCap, onAutoLocked,
 }) {
+  // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
+  const [views, setViews] = useState({});
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
   const total = Math.max(60, endOfSession(session) + 30);
   const width = total * zoom;
@@ -140,6 +145,26 @@ export default function EditWindow({
                       onClick={() => onTrack(t.id, { solo: !t.solo })}>S</button>
               <button type="button" aria-pressed={t.mute} className={`rounded px-1.5 py-0.5 ${t.mute ? "bg-sky-500 text-black" : "bg-white/10 text-white/60"}`}
                       onClick={() => onTrack(t.id, { mute: !t.mute })}>M</button>
+              {onAuto && !t.armed && (
+                // Clips, or a lane of automation drawn over them. A lane with points is marked ●.
+                <select className="min-w-0 flex-1 rounded bg-white/10 px-1 py-0.5 text-[10px] font-normal text-white/80" data-nomemo="true"
+                        aria-label={`${t.name} lane view`} title="Show the clips, or draw volume or pan automation"
+                        value={views[t.id] || ""} onChange={(e) => setViews((v) => ({ ...v, [t.id]: e.target.value }))}>
+                  <option value="">Clips</option>
+                  {Object.entries(PARAMS).map(([k, p]) => <option key={k} value={k}>{p.label}{t.auto?.[k]?.points?.length ? " ●" : ""}</option>)}
+                </select>
+              )}
+              {onAuto && views[t.id] && laneOf(t, views[t.id]).points.length > 0 && (
+                <>
+                  <button type="button" aria-pressed={laneOf(t, views[t.id]).on !== false} title="Read: the track follows this lane. Off: the fader is used."
+                          className={`rounded px-1 py-0.5 ${laneOf(t, views[t.id]).on !== false ? "bg-emerald-500 text-black" : "bg-white/10 text-white/60"}`}
+                          onClick={() => { const l = laneOf(t, views[t.id]); onAuto(t.id, views[t.id], { ...l, on: l.on === false }); }}>Read</button>
+                  <button type="button" className="text-white/40 hover:text-mcz-ember" title="Clear this lane" aria-label={`Clear ${t.name} ${views[t.id]} automation`}
+                          onClick={() => { if (window.confirm(`Clear the ${PARAMS[views[t.id]].label.toLowerCase()} automation on ${t.name}?`)) onAuto(t.id, views[t.id], { on: true, points: [] }); }}>
+                    <Trash2 size={11} />
+                  </button>
+                </>
+              )}
               {t.armed && onInput && (
                 // Which input this armed track records: a device, and both channels or one of them —
                 // so a stereo interface's two inputs can be two tracks recorded at once.
@@ -190,6 +215,12 @@ export default function EditWindow({
                    className={`relative border-b border-white/10 ${drag?.overTrack === t.id && drag.track !== t.id ? "bg-white/5" : ""}`}
                    style={{ height: LANE_H }}
                    onPointerDown={(e) => { if (e.target === e.currentTarget) { onSelect(null); onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom); } }}>
+                {onAuto && views[t.id] && (
+                  <AutoLane param={views[t.id]} lane={laneOf(t, views[t.id])} fallback={views[t.id] === "volume" ? t.gain : t.pan}
+                            zoom={zoom} width={width} height={LANE_H - 1} color={t.color}
+                            locked={!laneRoom(session, t, views[t.id], autoCap).ok} onLocked={onAutoLocked}
+                            onChange={(lane) => onAuto(t.id, views[t.id], lane)} />
+                )}
                 {regionsOf(t).map((r0) => {
                   const r = shown(r0);
                   const src = session.sources[r.src];

@@ -15,6 +15,7 @@
 import { audible, beatSeconds, lengthOf, playlistOf } from "./session.js";
 import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
+import { laneOf, reads, schedule } from "./automation.js";
 
 const CAPTURE_WORKLET = `
 class Capture extends AudioWorkletProcessor {
@@ -75,9 +76,12 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       tail = node.output;
     }
     const fader = ctx.createGain();
-    fader.gain.value = heard.has(t.id) ? dbToGain(t.gain) : 0;
     const pan = ctx.createStereoPanner();
-    pan.pan.value = t.pan;
+    // A lane that is on and has points IS the fader / pan knob; otherwise the static value.
+    if (reads(t, "volume")) schedule(fader.gain, "volume", laneOf(t, "volume"), from, t0, heard.has(t.id) ? 1 : 0);
+    else fader.gain.value = heard.has(t.id) ? dbToGain(t.gain) : 0;
+    if (reads(t, "pan")) schedule(pan.pan, "pan", laneOf(t, "pan"), from, t0);
+    else pan.pan.value = t.pan;
     tail.connect(fader).connect(pan);
     let meter = null;
     if (live) {
@@ -123,6 +127,14 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
     }
   }
   return { master, tracks, sources };
+}
+
+/** Stop whatever a param was scheduled to do and keep it where it is now (no jump when a lane is switched off). */
+function hold(param, now) {
+  if (param.cancelAndHoldAtTime) { param.cancelAndHoldAtTime(now); return; }
+  const v = param.value;
+  param.cancelScheduledValues(0);
+  param.setValueAtTime(v, now);
 }
 
 /** RMS of an analyser right now, in dBFS (−Infinity for silence). */
@@ -232,8 +244,13 @@ export function createDaw() {
     for (const t of session.tracks) {
       const n = graph.tracks[t.id];
       if (!n) continue;
-      n.fader.gain.setTargetAtTime(heard.has(t.id) ? dbToGain(t.gain) : 0, ctx.currentTime, 0.01);
-      n.pan.pan.setTargetAtTime(t.pan, ctx.currentTime, 0.01);
+      // An automated param is re-laid from where playback is now, so a point drawn or a lane
+      // switched off while it plays is heard at once; the rest glide to their static value.
+      const now = ctx.currentTime, pos = position() ?? 0;
+      if (reads(t, "volume")) schedule(n.fader.gain, "volume", laneOf(t, "volume"), pos, now, heard.has(t.id) ? 1 : 0);
+      else { hold(n.fader.gain, now); n.fader.gain.setTargetAtTime(heard.has(t.id) ? dbToGain(t.gain) : 0, now, 0.01); }
+      if (reads(t, "pan")) schedule(n.pan.pan, "pan", laneOf(t, "pan"), pos, now);
+      else { hold(n.pan.pan, now); n.pan.pan.setTargetAtTime(t.pan, now, 0.01); }
     }
   }
 

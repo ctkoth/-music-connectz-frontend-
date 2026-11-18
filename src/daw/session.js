@@ -21,6 +21,7 @@
 //             deleting one closes the gap.
 // (Spot — typing an exact start — is the region editor's field, available in every mode.)
 
+import { PARAMS, cleanAuto, cleanLane } from "./automation.js";
 export const MAX_TRACKS = 32;
 export const MAX_REGIONS = 400;
 export const MAX_PLAYLISTS = 8;
@@ -42,7 +43,7 @@ export const uid = (p = "x") => `${p}${Date.now().toString(36)}${(seq++).toStrin
 export function newTrack(n = 1, name) {
   return {
     id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length],
-    gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [],
+    gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [], auto: {},
     input: { device: "", channel: "both" },
     playlists: [{ id: uid("p"), name: "Take 1", regions: [] }], active: 0,
   };
@@ -148,6 +149,12 @@ export function moveTrack(s, id, dir) {
   const tracks = [...s.tracks];
   [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
   return { ...s, tracks };
+}
+
+/** Replace one automation lane of a track (see automation.js for how a lane is made and edited). */
+export function setAuto(s, id, param, lane) {
+  if (!PARAMS[param]) return s;
+  return mapTrack(s, id, (t) => ({ ...t, auto: { ...(t.auto || {}), [param]: cleanLane(param, lane) } }));
 }
 
 export function setTrack(s, id, patch) {
@@ -365,7 +372,7 @@ export function cleanSession(raw) {
       ...d, ...t, id: String(t?.id || d.id), name: String(t?.name || d.name).slice(0, 40),
       gain: clamp(num(t?.gain, 0), GAIN_DB.min, GAIN_DB.max), pan: clamp(num(t?.pan, 0), -1, 1),
       mute: !!t?.mute, solo: !!t?.solo, armed: false, inserts: Array.isArray(t?.inserts) ? t.inserts : [],
-      input: cleanInput(t?.input),
+      input: cleanInput(t?.input), auto: cleanAuto(t?.auto),
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });

@@ -221,6 +221,7 @@ export default function MixConnectZ() {
   // How many tracks is the tier's shared count (`imagez_layers`: Free 3, Premium 6, StatZ unlimited).
   const [songCtl, setSongCtl] = useState({ role: "beat", gainDb: 0, pan: 0, mute: false, solo: false });
   const [extra, setExtra] = useState([]);
+  const [stemNote, setStemNote] = useState("");
   const [lim, setLim] = useState(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const trackCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
@@ -239,6 +240,35 @@ export default function MixConnectZ() {
   // song to sound like as `reference`, which becomes the Match reference target exactly as if it had been
   // picked here. Each half reports its own failure: a reference that won't load must not hide the song.
   useEffect(() => onHandoff("mixconnectz", async (p) => {
+    // Stems from a DAW: the first is the song (track 1), the rest arrive as TrackZ tracks at 0 dB and
+    // centre — exactly how they sounded in the DAW — up to the tier's track count.
+    if (p?.stems?.length) {
+      try {
+        setErr(""); setStemNote("");
+        const l = await loadLimits().catch(() => null);
+        const cap = l && "imagez_layers" in l ? l.imagez_layers : null;
+        const list = cap == null ? p.stems : p.stems.slice(0, cap);
+        const get = async (st) => {
+          const r = await fetch(st.url);
+          if (!r.ok) throw new Error(`${st.title} couldn't be read (${r.status}).`);
+          return r.arrayBuffer();
+        };
+        await open(await get(list[0]), list[0].title);
+        const rest = [];
+        for (const st of list.slice(1)) {
+          setBusy(`Reading ${st.title}`);
+          const d = await decodeFile(await get(st));
+          rest.push({ id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: st.title, channels: d.channels, sampleRate: d.sampleRate,
+            role: guessRole(st.title), gainDb: 0, pan: 0, mute: false, solo: false });
+        }
+        setExtra(rest);
+        const total = p.of || p.stems.length;
+        setStemNote(`${list.length} stems from ${p.title || "your session"}, each at 0 dB and centre — together they are exactly your DAW mix. Rebalance them below, then master.${list.length < total ? ` Your plan mixes ${cap} tracks, so ${total - list.length} stayed in the DAW.` : ""}`);
+      } catch (e) {
+        setErr(/fetch|Failed/i.test(e.message) ? "The stems were made in a tab that has since reloaded, so they're gone — send them again from the DAW." : e.message);
+      } finally { setBusy(""); }
+      return;
+    }
     if (p?.url) {
       try {
         setBusy("Fetching the track"); setErr("");
@@ -289,7 +319,7 @@ export default function MixConnectZ() {
   const setTrim = (k, v) => setSettings((cur) => ({ ...cur, trims: { ...cur.trims, [k]: v } }));
 
   async function open(fileOrBuf, name) {
-    setErr(""); setResult(null); setSaved(""); setBefore(null); setRate(0); setExportNote("");
+    setErr(""); setResult(null); setSaved(""); setBefore(null); setRate(0); setExportNote(""); setStemNote("");
     setBusy("Reading the file"); setProgress(0.02);
     try {
       const d = await decodeFile(fileOrBuf);
@@ -552,6 +582,7 @@ export default function MixConnectZ() {
             )}
           </div>
 
+          {stemNote && <p className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">{stemNote}</p>}
           <TrackMixer tracks={allTracks} sampleRate={song?.sampleRate || 44100} onChange={changeTrack}
             onAdd={addTracks} onRemove={(i) => setExtra((xs) => xs.filter((_, k) => k !== i - 1))} onApply={applyTracks}
             cap={trackCap} nextCap={nextTrackCap} busy={busy} />

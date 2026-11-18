@@ -29,9 +29,10 @@ import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
-  removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid,
+  removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
+import { laneCount, laneOf, writePass } from "./automation.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
 const MODE_LABEL = {
@@ -158,8 +159,61 @@ export default function Workspace({ workflow }) {
     return () => clearTimeout(t);
   }, [session, sessionId, workflow.app, refreshList]);
 
-  // Faders and pans reach a playing session without a restart.
-  useEffect(() => { daw.setLive(session); }, [daw, session]);
+  // ---- automation writing (latch): while it plays with Write on, a fader or pan the member moves
+  // is recorded at the playhead; that param follows the hand, not its lane, until playback stops,
+  // and then the pass is written into the lane (automation.js writePass). ----
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const [writeAuto, setWriteAuto] = useState(false);
+  const writeBuf = useRef({});                    // "trackId|param" -> [{ t, v }]
+  const autoCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
+  const liveView = (s) => {
+    const keys = Object.keys(writeBuf.current);
+    if (!keys.length) return s;
+    return { ...s, tracks: s.tracks.map((t) => {
+      const mine = keys.filter((k) => k.startsWith(`${t.id}|`)).map((k) => k.split("|")[1]);
+      if (!mine.length) return t;
+      const auto = { ...(t.auto || {}) };
+      for (const p of mine) auto[p] = { ...laneOf(t, p), on: false };
+      return { ...t, auto };
+    }) };
+  };
+  const flushWrites = () => {
+    const buf = writeBuf.current;
+    writeBuf.current = {};
+    const keys = Object.keys(buf).filter((k) => buf[k].length);
+    if (!keys.length) return;
+    commit((s) => keys.reduce((acc, k) => {
+      const [id, param] = k.split("|");
+      const tr = acc.tracks.find((t) => t.id === id);
+      return tr ? setAuto(acc, id, param, writePass(param, laneOf(tr, param), buf[k])) : acc;
+    }, s));
+    setMsg(`Wrote ${keys.length === 1 ? "an automation pass" : `${keys.length} automation passes`}. In Tracks, set a track's lane to Volume or Pan to see the line and move its points.`);
+  };
+  const recordWrite = (id, patch) => {
+    if (!writeAuto || recording) return;
+    const pos = daw.position();
+    if (pos == null) return;
+    for (const [key, param] of [["gain", "volume"], ["pan", "pan"]]) {
+      if (!(key in patch)) continue;
+      const k = `${id}|${param}`;
+      if (!writeBuf.current[k]) {
+        const s = sRef.current;
+        const tr = s.tracks.find((t) => t.id === id);
+        const isNew = !tr?.auto?.[param]?.points?.length;
+        const pendingNew = Object.keys(writeBuf.current).filter((x) => { const [i2, p2] = x.split("|"); return !s.tracks.find((t) => t.id === i2)?.auto?.[p2]?.points?.length; }).length;
+        if (isNew && autoCap != null && laneCount(s) + pendingNew >= autoCap) {
+          setMsg(`${autoCap} automation lanes is your plan's limit${lim?.tier === "free" ? ` — Premium has ${lim?.tiers?.premium?.imagez_layers ?? 6}, StatZ unlimited` : " — StatZ has unlimited"}. That move was heard, not written.`);
+          continue;
+        }
+        writeBuf.current[k] = [];
+      }
+      writeBuf.current[k].push({ t: pos, v: Number(patch[key]) });
+    }
+  };
+
+  // Faders and pans reach a playing session without a restart (automation included).
+  useEffect(() => { daw.setLive(liveView(session)); }, [daw, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The playhead while playing.
   useEffect(() => {
@@ -178,11 +232,13 @@ export default function Workspace({ workflow }) {
   // ---- transport ----
   const startPlay = async (from = playhead) => {
     setErr("");
+    flushWrites();
     try { await daw.play(sRef.current, from, { click }); setPlaying(true); } catch (e) { setErr(e.message); }
   };
   const stopPlay = () => {
     const p = daw.stop();
     setPlaying(false);
+    flushWrites();
     if (p != null) setPlayhead(p);
   };
   const seek = (t) => {
@@ -194,8 +250,6 @@ export default function Workspace({ workflow }) {
 
   // ---- stem transposition: a track up or down in key, its tempo kept (pitch.js) ----
   // The range is the tier's (Corey's numbers: Free ±3, Premium ±6, StatZ ±12), read from the server.
-  const [lim, setLim] = useState(null);
-  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const keyRange = rangeFor(lim && "imagez_layers" in lim ? lim.imagez_layers : 12);
   const transposeTrack = async (trackId, semis) => {
     const tr = sRef.current.tracks.find((t) => t.id === trackId);
@@ -398,6 +452,30 @@ export default function Workspace({ workflow }) {
   });
 
   // ---- out ----
+  // Stems: every track you can hear, rendered on its own exactly as it sounds in this mix (its
+  // effects, fader, pan and automation), so the stems summed at 0 dB and centre ARE the bounce.
+  // Mix ConnectZ takes them as TrackZ tracks to rebalance and master. Its track count is the tier's.
+  const stemTracks = useMemo(() => {
+    const heard = new Set(audible(session).map((t) => t.id));
+    return session.tracks.filter((t) => heard.has(t.id) && playlistOf(t).regions.length);
+  }, [session]);
+  const stemCap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
+  const sendStems = async () => {
+    setErr("");
+    const list = stemCap == null ? stemTracks : stemTracks.slice(0, stemCap);
+    const stems = [];
+    try {
+      for (const [i, t] of list.entries()) {
+        setBusy(`Rendering stem ${i + 1} of ${list.length}: ${t.name}…`);
+        const cur = sRef.current;
+        const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute })) };
+        const buf = await daw.bounce(solo);
+        stems.push({ url: URL.createObjectURL(daw.toWav(buf, 24)), title: `${t.name}.wav` });
+      }
+      handOff("mixconnectz", "mixz-tracks", { stems, title: session.name, of: stemTracks.length });
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  };
+
   const bounce = async () => {
     setErr(""); setUpload(null);
     setBusy("Bouncing the mix…");
@@ -581,6 +659,8 @@ export default function Workspace({ workflow }) {
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
           keyRange={keyRange} onTranspose={transposeTrack}
+          onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoCap={autoCap}
+          onAutoLocked={() => setMsg(`${autoCap} automation lanes is your plan's limit${lim?.tier === "free" ? ` — Premium has ${lim?.tiers?.premium?.imagez_layers ?? 6}, StatZ unlimited` : " — StatZ has unlimited"}. Clear a lane to draw on another.`)}
           onAddTrack={() => commit((s) => addTrack(s))}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {
@@ -593,7 +673,9 @@ export default function Workspace({ workflow }) {
       ) : (
         <MixWindow
           session={session} daw={daw} playing={playing}
-          onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
+          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
+          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
+          autoCap={autoCap} lanesUsed={laneCount(session)}
           onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />
@@ -652,6 +734,17 @@ export default function Workspace({ workflow }) {
           <button type="button" className="neon-btn-primary !w-auto px-4" disabled={!len || !!busy || recording} onClick={bounce}><Wand2 size={14} /> Bounce the mix</button>
           <span className="text-white/55"><span className="text-emerald-300">Free</span> · a 24-bit WAV of everything you can hear, made on your device ({minSec(len, false)} plus a 2-second tail for reverb and delay).</span>
         </div>
+        {stemTracks.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className="re-btn !w-auto px-3" disabled={!!busy || recording} onClick={sendStems} data-tour="daw-stems">
+              🎚️ Send {stemCap != null && stemTracks.length > stemCap ? `${stemCap} of ${stemTracks.length}` : stemTracks.length} tracks to Mix ConnectZ as stems
+            </button>
+            <span className="text-white/55">
+              <span className="text-emerald-300">Free</span> · each track on its own, as it sounds here, becomes a fader in Mix ConnectZ to rebalance, pan and master. Nothing is uploaded.
+              {stemCap != null && stemTracks.length > stemCap && <span className="text-mcz-gold"> Your plan mixes {stemCap} tracks there, so the first {stemCap} go — Premium mixes {lim?.tiers?.premium?.imagez_layers ?? 6}, StatZ unlimited.</span>}
+            </span>
+          </div>
+        )}
         {bounced && (
           <div className="space-y-2">
             <audio src={bounced.url} controls className="w-full" />
