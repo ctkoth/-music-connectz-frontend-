@@ -2464,3 +2464,23 @@ replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). 
 The voice form lists, under the PersonalitieZ toggles, what each picked letter makes the voice do (`letter_styles` from
 `/api/economy/voicez/`, never typed here). Lilith and Leemy are built-in character voices served in `presets` and on
 every surface's options; nothing about them is typed into this repo.
+
+## A live BodieZ session stays on screen over other apps
+
+`KeepOnScreen.jsx` (on Today's session card) → `sessionHold.js` / `useSessionHold.js` → `SessionBar.jsx` in the shell. It is
+`recordingHold` for a workout: while a session the member chose to keep is running, the shell keeps BodieZ **mounted, hidden**
+when another app is in front (so the rest clock and the beep keep running), and a sticky bar shows the rest left, the next lift
+and how long the session has run, with **Back to BodieZ** and ✕ to stop keeping it.
+
+- **The price is on the control before it is pressed**: "−1 of today's 3 · 2 left after this one · Costs no ⚡ 🍥 🏷️". The number
+  (Free 3, Premium 6, StatZ unlimited a day), the refusal sentence and the next plan's number are the server's
+  (`/economy/bodiez/float/`); `floatPrice` only words them. A tier buys how OFTEN — a refused press leaves the session running
+  and says nothing was charged. Turning it off and on again for the same session is free and not counted twice.
+- **The timer publishes its own clock** (`setRest` from `RestTimer`), kept apart from the hold because the timer is a CHILD and
+  its effect runs first. Where BodieZ is on a sub-tab with no timer the bar says only "Session running." — never an invented clock.
+- **A reload keeps it**: Home reads `float/` once and, for a kept session, *seeds* the hold so BodieZ mounts hidden, loads and takes
+  over. `useSessionHold` never clears a seed, and waits for `settled` before clearing anything — React's dev double-mount ran the
+  cleanup straight after mount and wiped it (found by reloading in a real browser, not by reading).
+- **Only inside a shell tab.** Minis, SplitZ panes and every standalone shell have no tab slot, so the control is not offered there.
+- Driven in a browser: press → leave to PostZ → bar with a counting-down rest → reload → bar returns → ✕ removes it.
+  Not checked on a phone. A locked phone still pauses the page; this does not change that.

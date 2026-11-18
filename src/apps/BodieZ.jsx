@@ -72,6 +72,9 @@ import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
+import KeepOnScreen from "../components/KeepOnScreen.jsx";
+import { useSessionHold } from "../useSessionHold.js";
+import { setRest } from "../sessionHold.js";
 import { AICoachView, AskAI, BodieZAIProvider } from "../components/BodieZAI.jsx";
 
 const UnitCtx = createContext("kg");
@@ -206,6 +209,27 @@ export default function BodieZ() {
   }, []);
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
+  // Keep a live session on screen over other apps (the server's `bodiez_float`: Free 3, Premium 6, StatZ unlimited a
+  // day). Pressing it marks the session on the server (`floated_at`, counted once); turning it off and on again is
+  // this device's, per session, and free. The shell keeps this app mounted while the hold stands.
+  const [, bumpFloat] = useState(0);
+  const floatKey = session ? `mcz_bodiez_float_off_${session.id}` : "";
+  const floatOff = floatKey ? (() => { try { return sessionStorage.getItem(floatKey) === "1"; } catch { return false; } })() : false;
+  const setFloatOn = (on) => {
+    try { if (on) sessionStorage.removeItem(floatKey); else sessionStorage.setItem(floatKey, "1"); } catch { /* blocked */ }
+    bumpFloat((n) => n + 1);
+  };
+  const inShellTab = useSessionHold({
+    on: !!session && !!session.floated_at && !floatOff && !IN_SHELL,
+    sessionId: session?.id,
+    title: session?.routine_title || "Ad-hoc session",
+    since: session ? new Date(session.started_at).getTime() : null,
+    off: () => setFloatOn(false),
+    settled: board !== null,
+  });
+  const keepOnScreen = inShellTab && !IN_SHELL && session
+    ? { on: !floatOff, setOn: setFloatOn, onKept: (at) => setSession((s) => (s ? { ...s, floated_at: at } : s)) }
+    : null;
   // Finished workouts, newest first — RoutineZ lists them so a logged one can
   // be edited or turned into a routine rather than only read back as records.
   const [history, setHistory] = useState([]);
@@ -667,6 +691,7 @@ export default function BodieZ() {
                              onUpdateRoutine={(rid) => updateRoutineFromSession(summary.session_id, rid)} />
             )}
             <TodayView
+              keepOnScreen={keepOnScreen}
               session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet} onUndoSet={undoSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
               goals={coach?.goals}
@@ -1352,6 +1377,15 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     if (alerts?.notify) fireRestNotification(nextName);
   }, [done, alerted, last]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Tell the shell's session bar how the rest stands, so it can count down while another app is in front. The
+  // start is kept on THIS device's clock (the same skew-corrected elapsed this timer uses), and it is cleared when
+  // the timer goes — a bar must never count a rest nobody is running.
+  const published = last ? { startMs: Date.now() - elapsed * 1000, target, exercise: last.exercise_name || "", next: nextName } : null;
+  useEffect(() => {
+    setRest(published);
+  }, [lastId, lastAt, target, nextName]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => setRest(null), []);
+
   if (!last) return null;
   const save = (k, v) => { try { localStorage.setItem(k, v); } catch { /* blocked */ } };
   const pickGoal = (k) => { setGoalKey(k); save(REST_GOAL_KEY, k); };
@@ -1562,7 +1596,7 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
   );
 }
 
-function TodayView({ session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
+function TodayView({ keepOnScreen = null, session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1729,6 +1763,10 @@ function TodayView({ session, routines, exercises, pickable, onStart, onFinish, 
           <Square size={13} /> End session
         </button>
       </div>
+
+      {keepOnScreen && (
+        <KeepOnScreen session={session} on={keepOnScreen.on} onChange={keepOnScreen.setOn} onKept={keepOnScreen.onKept} />
+      )}
 
       <RestTimer key={session.id} sets={asList(session.sets)} goals={goals} routineGoal={session.routine_goal}
                  hold={holdFor(planned, setsByExercise, lastLogged?.exercise_id)?.name || ""}

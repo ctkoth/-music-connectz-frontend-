@@ -12,6 +12,9 @@ import { goToSpot, openMember } from "./goto.js";
 import { heldTabs, stableSlots, stopAll } from "./recordingHold.js";
 import { TabSlotContext, useHolds } from "./useRecordingHold.js";
 import RecordingBar from "./components/RecordingBar.jsx";
+import SessionBar from "./components/SessionBar.jsx";
+import { useSessionHoldState } from "./useSessionHold.js";
+import { clearSessionHold, seedSessionHold } from "./sessionHold.js";
 import LangPicker from "./components/LangPicker.jsx";
 import { protectNames } from "./autoTranslate.js";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -1078,10 +1081,25 @@ function TabSlot({ tab, active, children }) {
 function Home() {
   const { user, logout: signOut } = useAuth();
   // A recorder left running would outlive the session it belongs to.
-  const logout = () => { stopAll(); signOut(); };
+  const logout = () => { stopAll(); clearSessionHold(); signOut(); };
   // Reminders and quiet hours run on the member's own clock; until the
   // browser has said which, the server assumes US Eastern.
   useEffect(() => { if (user) reportTimezone(); }, [user]);
+  // A kept session survives a reload: if the member's open session was chosen to stay on screen, mount BodieZ
+  // (hidden) so its bar and rest clock come back without them opening it. BodieZ loads, takes the hold over and
+  // clears it if the session turns out to be over or switched off. Costs one small read per page load.
+  useEffect(() => {
+    if (!user) return undefined;
+    let live = true;
+    api("/api/economy/bodiez/float/").then((d) => {
+      const s = d?.session;
+      if (!live || !s?.floated) return;
+      let off = false;
+      try { off = sessionStorage.getItem(`mcz_bodiez_float_off_${s.id}`) === "1"; } catch { /* blocked */ }
+      if (!off) seedSessionHold("bodiez", s.id);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [user]);
   const navigate = useNavigate();
   // Read the slug off the path rather than from useParams: the tab routes are
   // listed explicitly (so an unknown address still redirects) and an explicit
@@ -1128,8 +1146,10 @@ function Home() {
   // keeps its position (stableSlots) because a moved node loses focus and
   // restarts its animation.
   const holds = useHolds();
+  // A live BodieZ session the member chose to keep on screen holds its app mounted the same way (sessionHold.js).
+  const sessionHold = useSessionHoldState();
   const slotOrder = useRef([]);
-  slotOrder.current = stableSlots(slotOrder.current, [...heldTabs(holds), tab]);
+  slotOrder.current = stableSlots(slotOrder.current, [...heldTabs(holds), sessionHold?.tab, tab]);
   const slots = slotOrder.current;
   const idx = Math.max(0, TABS.findIndex((t) => t.key === tab));
   const active = TABS[idx];
@@ -1348,6 +1368,8 @@ function Home() {
         <StorageWarning />
         <RecordingBar holds={holds} activeTab={tab} onOpen={openTab}
                       labelOf={(k) => TABS.find((t) => t.key === k)?.label} />
+        <SessionBar hold={sessionHold} activeTab={tab} onOpen={openTab}
+                    labelOf={(k) => TABS.find((t) => t.key === k)?.label} />
         {/* keyed by tab so switching apps clears a previous app's crash.
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
