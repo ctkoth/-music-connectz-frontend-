@@ -240,6 +240,12 @@ export default function VideoConnectZ() {
           ) : (
             <p className="text-xs text-white/50">No FaceZ photos yet — add a clear, front-facing one below.</p>
           )}
+          {face != null && (() => { const f = s.faces.find((x) => x.id === face); return f ? (
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <button className="re-btn !w-auto px-3 text-xs" onClick={() => handOff("videoz", "videoz-timeline", { url: f.url, name: "Your FaceZ photo", kind: "image", lip: true })}>
+                👄 Lip-sync this face to your track</button>
+              <span className="text-white/45">StatZ (or the daily free sample), free to use, in VideoZ: the mouth follows your track's sound, not its words. A rendered video can't be re-lip-synced; this uses the photo.</span>
+            </div>) : null; })()}
           {/* Said BEFORE a file is chosen: this posts to the same endpoint as
               FaceZ, so a photo added here is a FaceZ face with everything that
               means — not a private input to one video. */}

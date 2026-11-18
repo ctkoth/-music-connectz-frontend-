@@ -2441,3 +2441,20 @@ the album's before → after, and how far apart the loudness ended with the trim
 **Saved channel strips** (`StripPresets` in `TrackMixer.jsx`): every TrackZ EQ panel has "Use a saved strip…" and "Save this
 strip" — kind `strip` on `/api/economy/tonez/`, its own 3 / 6 / unlimited room beside tones, FX and masters. Applying one
 replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). Driven in a browser: saved, reset, applied.
+
+## Mix ConnectZ AI mastering, songs per album +5, Premium voices, and lip-sync doors (Corey, Nov 2026)
+
+- **`components/MixAI.jsx`** (top of the settings panel, `data-tour="mixz-ai"`): "Let the AI listen and set it" makes a
+  90-second MP3 from the MIDDLE of the song on the device (`run("export")`), posts it to `/api/economy/mixz/ai/`, and puts
+  the answer on the controls through `applyPreset` with the genre, what it heard and every move with its reason. The price
+  (daily prompt or −🏷️, plus the ⚡) is beside the button and "not charged if it can't hear it". The **genre presets** under
+  it are free and come from the same GET. An intensity the plan lacks is said ("the master uses Medium"), never silently
+  swapped. Nothing is mastered until Master it. Driven in a browser: Drill preset → multiband on with its reason.
+- **Songs per album** are the server's `album_songs`, now Free 8, Premium 11, StatZ unlimited (Corey: the tier numbers + 5).
+- **VoiceZ**: Premium can write in its own voices (6), StatZ unlimited; the copy reads the server's `premium_voices` /
+  `statz_voices`, and `voices: null` prints "unlimited".
+- **Lip-sync from Image ConnectZ and Video ConnectZ**: "👄 Lip-sync it to your track" on any picture of you (likeness
+  kinds) and "👄 Lip-sync this face to your track" on a picked FaceZ photo hand the picture to VideoZ with `lip: true`;
+  VideoZ adds it with lip-sync on (mouth box at `DEFAULT_BOX`, following everything audible) and says what to do next, or
+  that it is StatZ's / the sample's. It follows the SOUND, not the words — there is no AI lip-matching provider, and the
+  doors say so. A rendered video is not re-lip-synced; the photo is.

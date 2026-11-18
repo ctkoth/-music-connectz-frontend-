@@ -17,6 +17,7 @@ import TrackMixer from "../components/TrackMixer.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
 import MasterPresets from "../components/MasterPresets.jsx";
 import AlbumMaster from "../components/AlbumMaster.jsx";
+import MixAI from "../components/MixAI.jsx";
 
 // Mix ConnectZ — mastering that runs on the member's own device.
 //
@@ -568,6 +569,8 @@ export default function MixConnectZ() {
 
       {before && (
         <div className="neon-frame space-y-4 p-4" data-tour="mixz-settings">
+          <MixAI song={song} settings={settings} onApply={applyPreset} allowedIntensities={allowedIntensities}
+            intensityLabel={(k) => INTENSITY[k]?.label || k} />
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-white/80">Style</h3>
             <Choice label="Style" options={styleOpts} value={settings.style} onChange={(v) => set("style", v)} />

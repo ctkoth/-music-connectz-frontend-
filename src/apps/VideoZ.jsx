@@ -29,7 +29,7 @@ import {
   splitClip, trackName, trimClip, uid, updateClip,
 } from "../videoedit/project.js";
 import { canRecord, createEngine, fetchAsLocal, probeMedia, recordType } from "../videoedit/render.js";
-import { loadVoice, onVoices } from "../videoedit/lipsync.js";
+import { DEFAULT_BOX, loadVoice, onVoices } from "../videoedit/lipsync.js";
 
 const HISTORY = 100;
 
@@ -106,6 +106,7 @@ export default function VideoZ() {
   const [playing, setPlaying] = useState(false);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");          // what a hand-off left on the timeline, said once
   const [lib, setLib] = useState(false);
   const [exp, setExp] = useState(null);        // { t, total } while exporting
   const [result, setResult] = useState(null);  // { url, blob, ext, hiddenSeconds }
@@ -129,6 +130,8 @@ export default function VideoZ() {
     commit((p) => addTrack(p, kind));
   };
   const lipAllowed = !!(statz?.is_statz || statz?.active);
+  const lipAllowedRef = useRef(lipAllowed);
+  lipAllowedRef.current = lipAllowed;
 
   // ---- history: every committed edit is one undo step ----
   // The project lives in a ref as well as state, so an edit never runs inside a
@@ -242,7 +245,8 @@ export default function VideoZ() {
         const f = await fetchAsLocal(r.url);
         // AnimeZ hands its scenes over with their timing, camera move and subtitle already decided.
         local.push({ kind: r.kind, name: r.name, src: f.src, taken: r.taken || 0,
-          ...(r.seconds ? { seconds: r.seconds } : {}), ...(r.motion ? { motion: r.motion } : {}), ...(r.text ? { text: r.text, textAt: "bottom" } : {}) });
+          ...(r.seconds ? { seconds: r.seconds } : {}), ...(r.motion ? { motion: r.motion } : {}), ...(r.text ? { text: r.text, textAt: "bottom" } : {}),
+          ...(r.lip ? { lip: { on: true, source: "mix", box: DEFAULT_BOX } } : {}) });
       }
       await addLocal(local);
     } finally { setBusy(""); }
@@ -256,6 +260,17 @@ export default function VideoZ() {
       return;
     }
     if (!p?.url) return;
+    // A FaceZ picture from Image ConnectZ or Video ConnectZ, to lip-sync (StatZ): the photo goes in with its mouth
+    // following everything audible, and the track goes under it when one was handed over too.
+    if (p.lip) {
+      const rows = [{ url: p.url, name: p.name || "Your picture", kind: "image", lip: true, seconds: p.seconds || 30 }];
+      if (p.audio?.url) rows.push({ url: p.audio.url, name: p.audio.name || "Your track", kind: p.audio.kind || "audio" });
+      addFromLibrary(rows).then(() => setNote(lipAllowedRef.current
+        ? "Lip-sync is on for your picture. Select it and drag the box onto the closed lips, then add your track if it isn't here yet — the mouth follows the sound."
+        : "Your picture is in. Lip-sync is StatZ's (or the free sample): start the sample on the picture's Lip-sync section to switch it on."))
+        .catch((e) => setErr(e.message));
+      return;
+    }
     addFromLibrary([{ url: p.url, name: p.name || "Video", kind: p.kind || "video" }]).catch((e) => setErr(e.message));
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -479,6 +494,7 @@ export default function VideoZ() {
           </div>
         )}
         {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
+        {note && <p role="status" className="text-sm text-emerald-300">{note} <button className="re-link" onClick={() => setNote("")}>OK</button></p>}
         <p className="text-[11px] text-white/40">Up to {clock(MAX_SECONDS)} per export. The editor is free at every tier. Tracks, filters and transitions: the first {count ?? "…"} on {tierName} (Premium 6, StatZ all); 2× export is Premium; lip-sync is StatZ.</p>
       </div>
 

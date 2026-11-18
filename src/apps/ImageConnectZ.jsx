@@ -251,7 +251,13 @@ export default function ImageConnectZ() {
                 onClick={() => handOff("imagez", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ" })}>Edit in ImageZ</button>
               <button className="re-btn !w-auto px-3" title="Put it on the VideoZ timeline — free"
                 onClick={() => handOff("videoz", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ", kind: "image" })}>Use in VideoZ</button>
+              {k?.likeness && (
+                <button className="re-btn !w-auto px-3" title="Its mouth follows your track in VideoZ — StatZ, or the free sample"
+                  onClick={() => handOff("videoz", "", { url: made.work?.url || made.image, name: k?.label || "Image ConnectZ", kind: "image", lip: true })}>
+                  👄 Lip-sync it to your track</button>
+              )}
             </div>
+            {k?.likeness && <p className="text-[11px] text-white/45">Lip-sync is StatZ's (or the daily free sample) and free to use: in VideoZ the mouth follows the loudness and tone of your track — the sound, not the words. Export it and it's a video you can post or open in Video ConnectZ's library.</p>}
             {made.work?.id && <ShareIt kind="image" refId={made.work.id} />}
           </div>
         )}

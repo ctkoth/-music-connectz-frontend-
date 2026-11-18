@@ -119,7 +119,7 @@ export default function VoiceZ() {
       </section>
 
       <section className="neon-frame space-y-3 p-4">
-        <h3 className="font-semibold">Your voices ({d.limits.used} / {d.limits.voices})</h3>
+        <h3 className="font-semibold">Your voices ({d.limits.used} / {d.limits.voices == null ? "unlimited" : d.limits.voices})</h3>
         {d.custom_paused && <p className="text-sm text-mcz-gold">Your {d.voices.length} voice{d.voices.length === 1 ? " is" : "s are"} paused, not deleted.</p>}
         {!d.voices.length && <p className="text-xs text-white/50">None yet. Make one below.</p>}
         {d.voices.map((v) => (
@@ -146,8 +146,9 @@ export default function VoiceZ() {
         <h3 className="font-semibold">Make a voice</h3>
         {readOnly && (
           <p className="text-sm text-white/70">
-            Making your own voices is StatZ's: describe who is talking, set the dials, paste something you wrote, then point the coach, the writer or OCC at it (up to {d.limits.statz_voices}).{" "}
-            {!IN_SHELL && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See StatZ</button>}
+            Writing in a voice other than Corey's is Premium's and StatZ's: describe who is talking, set the dials, paste something you wrote, then point the coach, the writer or OCC at it
+            (Premium keeps {d.limits.premium_voices ?? 6}, StatZ {d.limits.statz_voices == null ? "unlimited" : d.limits.statz_voices}). Corey's voice and the built-in voices stay yours.{" "}
+            {!IN_SHELL && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>}
           </p>
         )}
         {!form && !readOnly && <button className="re-btn !w-auto px-4" disabled={!d.limits.can_make}
