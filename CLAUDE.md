@@ -2499,9 +2499,10 @@ replaces) and names the switch. It is shown on the main site and in every standa
 The audit did find real overflows on small phones and with large text, and they came from five shapes. The first four are
 fixed globally in `index.css`; check for the fifth when adding a screen:
 
-- **An `<input>` in a flex row** will not shrink below its built-in ~20 characters. `.neon-input` now has a floor of
-  `min(100%, 8rem)` and `max-w-full`. It is not `min-w-0`: that version fit the screen but squeezed FaceZ's Name box to three
-  letters, because the row shrank it before it wrapped. A hand-styled input needs the same floor.
+- **An `<input>` in a flex row** will not shrink below its built-in ~20 characters. `.neon-input` is `min-w-0 max-w-full`,
+  and a STRETCHING one (`.neon-input.flex-1`) has a floor of `min(100%, 8rem)`, so a wrapping row wraps before squeezing it
+  (with no floor, FaceZ's Name box went to three letters). The floor is not on every input: a min-width beats a box's own
+  width, and putting it there forced RapZ's 5rem number field out to 8rem.
 - **A grid with no base column size** (`grid gap-3 sm:grid-cols-2`, 99 of them) gets one `auto` column that grows to its
   widest item. `.grid` defaults to `minmax(0, 1fr)`; every `grid-cols-*` utility still wins, because utilities are emitted
   after components (checked in the built CSS).

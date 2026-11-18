@@ -55,10 +55,12 @@ body {
      `!w-auto flex-1` beside a button pushed FaceZ, AnimeZ, PlaylistZ, OCC and BudgetZ past the edge of a 320-360px
      phone. With no floor at all (min-w-0) the first fix squeezed FaceZ's Name and Tag boxes to three letters instead,
      because the row shrank them before it wrapped. 8rem is the floor: a wrapping row wraps before going under it, and
-     8rem beside a button still fits the smallest phone. min() so a box narrower than 8rem is never overflowed. */
+     8rem beside a button still fits the smallest phone. min() so a box narrower than 8rem is never overflowed.
+     The floor is ONLY for a box that stretches to fill a row (flex-1): on every input, it beat a box's own width and
+     forced RapZ's 5rem number field (and every w-16/w-20 box) out to 8rem — the audit caught that too. */
+  .neon-input.flex-1 { min-width: min(100%, 8rem); }
   .neon-input {
-    min-width: min(100%, 8rem);
-    @apply max-w-full w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm
+    @apply min-w-0 max-w-full w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm
            text-white placeholder-white/35 outline-none transition
            focus:border-mcz-cyan/70 focus:ring-2 focus:ring-mcz-cyan/30;
   }
