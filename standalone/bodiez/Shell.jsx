@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Loader2, LogOut } from "lucide-react";
 import { useAuth } from "../../src/auth/AuthContext.jsx";
+import DesktopSiteHint from "../../src/components/DesktopSiteHint.jsx";
 import { slugFor } from "../../src/App.jsx";
 import Login from "../../src/auth/Login.jsx";
 import Register from "../../src/auth/Register.jsx";
@@ -47,6 +48,7 @@ function Home() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-4">
       <h1 className="sr-only">BodieZ</h1>
+      <DesktopSiteHint />
       <div className="mb-3 flex items-center justify-between text-xs text-white/50">
         <span>Signed in as {user.username}</span>
         <button className="inline-flex items-center gap-1 hover:text-white" onClick={logout}>

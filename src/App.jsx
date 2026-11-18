@@ -13,6 +13,7 @@ import { heldTabs, stableSlots, stopAll } from "./recordingHold.js";
 import { TabSlotContext, useHolds } from "./useRecordingHold.js";
 import RecordingBar from "./components/RecordingBar.jsx";
 import SessionBar from "./components/SessionBar.jsx";
+import DesktopSiteHint from "./components/DesktopSiteHint.jsx";
 import { useSessionHoldState } from "./useSessionHold.js";
 import { clearSessionHold, seedSessionHold } from "./sessionHold.js";
 import LangPicker from "./components/LangPicker.jsx";
@@ -1363,6 +1364,7 @@ function Home() {
         <p className="mb-4 text-xs text-white/45">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
+        <DesktopSiteHint />
         <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
         <StorageWarning />

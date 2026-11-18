@@ -14,20 +14,51 @@ body,
 
 body {
   margin: 0;
+  /* A long unbroken word — a pasted link, a handle, "aaaaaaaa" — breaks at the edge instead of pushing the page wider
+     than a phone. break-word (not anywhere) leaves min-content widths alone, so flex rows size as before. */
+  overflow-wrap: break-word;
   background: radial-gradient(circle at 50% -10%, #160f2e 0%, #07060d 55%);
   color: #f4f2ff;
   font-family: "Poppins", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Things with their own intrinsic width never get wider than the box they are in. Images and video already have
+   this from Tailwind's preflight; a file input's width comes from its font (the AI coach's measured 415px on a
+   360px phone with large text), and an embed's from its width attribute. */
+@layer base {
+  iframe, embed, object, input[type="file"] { max-width: 100%; }
+  /* A <fieldset> defaults to min-inline-size: min-content — it refuses to be narrower than its widest child, so one
+     wide row inside VoiceZ's voice form pushed the page past a phone with large text. */
+  fieldset { min-inline-size: 0; }
+  pre { max-width: 100%; overflow-x: auto; }
+  /* An app's title is one long word ("IntelligenceZ", "Instrumental") at text-3xl beside a 64px icon, in a flex row
+     whose text column has no min-w-0 — 28 headers have that shape. `anywhere` lets the word break ONLY when it cannot
+     fit on its own line, and (unlike break-word) it also lowers the min-content width, so the column can shrink to the
+     screen instead of pushing the page sideways. On every screen wide enough for the word it changes nothing. */
+  h1.font-display, h2.font-display, h3.font-display { overflow-wrap: anywhere; }
+}
+
 @layer components {
+  /* A grid with no column size at the base width (`grid gap-3 sm:grid-cols-2` — 99 of them) gets ONE implicit `auto`
+     column on a phone, and an auto column grows to fit its widest item rather than the screen: the loop library, the
+     PersonalitieZ axes. One column that may shrink is what every such grid meant. Any grid-cols-* utility still wins
+     (utilities come after components), and nothing here uses column auto-flow, which this would change. */
+  .grid { grid-template-columns: minmax(0, 1fr); }
+
   .neon-frame {
     @apply rounded-2xl border border-white/10 bg-mcz-panel/80 backdrop-blur;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04),
       0 0 22px rgba(168, 85, 247, 0.18);
   }
+  /* An <input> in a flex row will not shrink below its built-in width (about 20 characters) unless told it may, so
+     `!w-auto flex-1` beside a button pushed FaceZ, AnimeZ, PlaylistZ, OCC and BudgetZ past the edge of a 320-360px
+     phone. With no floor at all (min-w-0) the first fix squeezed FaceZ's Name and Tag boxes to three letters instead,
+     because the row shrank them before it wrapped. 8rem is the floor: a wrapping row wraps before going under it, and
+     8rem beside a button still fits the smallest phone. min() so a box narrower than 8rem is never overflowed. */
   .neon-input {
-    @apply w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm
+    min-width: min(100%, 8rem);
+    @apply max-w-full w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm
            text-white placeholder-white/35 outline-none transition
            focus:border-mcz-cyan/70 focus:ring-2 focus:ring-mcz-cyan/30;
   }

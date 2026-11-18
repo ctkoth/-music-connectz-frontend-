@@ -51,7 +51,7 @@ function SystemCard() {
     <div className="re-card">
       <button className="flex w-full items-start gap-3 text-left" onClick={() => setOpen((v) => !v)}>
         <Swords size={18} className="mt-0.5 shrink-0 text-mcz-ember" />
-        <span className="flex-1">
+        <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold text-white">
             Level up and connect
           </span>
@@ -212,7 +212,7 @@ export default function OnboardZ() {
     <div className="space-y-5">
       <header className="flex items-center gap-3">
         <IconImg icon="onboardz.png" alt="OnboardZ" className="h-11 w-11 rounded-xl" />
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-extrabold">OnboardZ</h2>
           <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
@@ -267,8 +267,8 @@ export default function OnboardZ() {
                 s.done ? "bg-mcz-ember/20 text-mcz-ember" : "bg-white/[0.06] text-white/70"}`}>
                 {s.done ? <Check size={18} /> : s.icon}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 text-sm font-bold text-white">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-white">
                   {s.title}
                   {s.refer && (
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-mcz-pink">
@@ -342,10 +342,10 @@ export default function OnboardZ() {
                 {s.bday && (
                   <div data-tour="birthday">
                     {!s.done ? (
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <input type="date" value={bday} max={new Date().toISOString().slice(0, 10)}
                           onChange={(e) => setBday(e.target.value)}
-                          className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
+                          className="min-w-0 max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-xs text-white/80 outline-none" />
                         <button className="re-btn !w-auto px-3" onClick={saveBday} disabled={!bday || savingBday}>
                           {savingBday ? "…" : "Save"}
                         </button>

@@ -73,12 +73,12 @@ export default function LoopLibrary({ daw, bpm, busy: working, onSend }) {
           <button key={f} className={`pill text-[11px] ${fam === f ? "!border-mcz-cyan !text-mcz-cyan" : ""}`} onClick={() => setFam(f)}>{f}</button>
         ))}
       </div>
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {LOOPS.filter((l) => l.family === fam).map((l) => {
           const allowed = ok.has(l.id);
           return (
             <div key={l.id} className={`flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-xs ${allowed ? "" : "opacity-50"}`}>
-              <span className="flex-1 truncate">{l.label}{allowed ? "" : " — upgrade"}</span>
+              <span className="min-w-0 flex-1 truncate">{l.label}{allowed ? "" : " — upgrade"}</span>
               {playing === l.id
                 ? <button className="re-btn !w-auto px-2" onClick={stop}><Square size={12} /></button>
                 : <button className="re-btn !w-auto px-2" disabled={!allowed} onClick={() => hear(l)} aria-label={`Hear ${l.label}`}><Play size={12} /></button>}

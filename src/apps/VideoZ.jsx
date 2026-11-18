@@ -452,7 +452,7 @@ export default function VideoZ() {
             {blocked || <>Free · makes {type.startsWith("video/mp4") ? "an MP4" : "a WebM"} at {W * (scaleOut === 2 && premiumOn ? 2 : 1)}×{H * (scaleOut === 2 && premiumOn ? 2 : 1)} · takes as long as the video ({clock(length)}) — keep this tab on screen while it runs</>}
           </span>
         </div>
-        <label className="flex items-center gap-2 text-xs text-white/60">
+        <label className="flex flex-wrap items-center gap-2 text-xs text-white/60">
           Size
           <select className="neon-input !w-auto !py-1 text-xs" data-nomemo="true" value={scaleOut} onChange={(e) => setScaleOut(+e.target.value)}>
             <option value={1}>1× — {W}×{H}</option>

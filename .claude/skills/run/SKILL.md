@@ -29,6 +29,16 @@ not a pass.
 To drive something the skeleton doesn't do — clicking through a flow — copy it
 and edit. The login and the browser wiring are the parts worth not rewriting.
 
+Does anything make a phone scroll sideways?
+
+```bash
+node .claude/skills/run/width-audit.mjs                       # every tab at 320, 360, 412, 740, 768
+WIDTHS=360 FONT=125 node .claude/skills/run/width-audit.mjs   # a phone with its text size turned up
+```
+
+It names the element that ESCAPES its parent past the edge, which is the one to fix. It only sees each tab's first
+screen. A card that appears after an action (BodieZ's "Session ended") needs a flow of its own.
+
 ## Traps
 
 **`VITE_API_BASE=""` points your local frontend at PRODUCTION.** `api.js` says

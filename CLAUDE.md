@@ -2484,3 +2484,32 @@ and how long the session has run, with **Back to BodieZ** and ✕ to stop keepin
 - **Only inside a shell tab.** Minis, SplitZ panes and every standalone shell have no tab slot, so the control is not offered there.
 - Driven in a browser: press → leave to PostZ → bar with a counting-down rest → reload → bar returns → ✕ removes it.
   Not checked on a phone. A locked phone still pauses the page; this does not change that.
+
+## Nothing scrolls sideways on a phone — and when it does, check the browser's desktop switch first
+
+A member sent BodieZ screenshots cut off on the right, panned sideways. The width audit
+(`.claude/skills/run/width-audit.mjs`, every tab at 320 / 360 / 412 / 740 / 768 / 1280, plus 125% and 150% text) found
+that card fitting at every size. The screenshots showed the header's ‹ › arrows, which only render at 640px and up. Their
+browser had laid the page out at desktop width ("Desktop version" in Samsung Internet, "Desktop site" in Chrome) and they
+had zoomed in on a slice. An overflowing element never does that: it widens what scrolls but never flips a breakpoint
+(measured). That switch ignores our viewport tag and no page can override it, so `DesktopSiteHint.jsx` notices it
+(`screenFit.js`: a touch pointer, a phone-sized screen, a layout 1.5 screens wide; never the user agent, which desktop mode
+replaces) and names the switch. It is shown on the main site and in every standalone shell, and stays closed once closed.
+
+The audit did find real overflows on small phones and with large text, and they came from five shapes. The first four are
+fixed globally in `index.css`; check for the fifth when adding a screen:
+
+- **An `<input>` in a flex row** will not shrink below its built-in ~20 characters. `.neon-input` now has a floor of
+  `min(100%, 8rem)` and `max-w-full`. It is not `min-w-0`: that version fit the screen but squeezed FaceZ's Name box to three
+  letters, because the row shrank it before it wrapped. A hand-styled input needs the same floor.
+- **A grid with no base column size** (`grid gap-3 sm:grid-cols-2`, 99 of them) gets one `auto` column that grows to its
+  widest item. `.grid` defaults to `minmax(0, 1fr)`; every `grid-cols-*` utility still wins, because utilities are emitted
+  after components (checked in the built CSS).
+- **A `<fieldset>`** defaults to `min-inline-size: min-content`. Reset to 0.
+- **A one-word app title** at `text-3xl` beside a 64px icon (28 headers). Display headings get `overflow-wrap: anywhere`,
+  which breaks the word only when it cannot fit, and lets the column shrink.
+- **A row of buttons or pills without `flex-wrap`**, or a `flex-1` text column without `min-w-0`. These are per screen
+  (ViewZ's tabs, VideoZ's export size, ChallengeZ's header, OnboardZ's steps, the PersonalitieZ toggles).
+
+`overflow-x: clip` on the page was considered and rejected. It would hide the overflow instead of fixing it, and a
+button cut off at the edge is worse than one you can scroll to.

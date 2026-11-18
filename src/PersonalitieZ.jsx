@@ -66,7 +66,7 @@ function Axis({ axis, value, onChange, size = "md" }) {
             <button key={s.code} type="button"
               onClick={() => onChange(on ? "" : s.code)}
               title={s.blurb}
-              className={`flex-1 rounded-full border transition ${pad} ${
+              className={`min-w-0 flex-1 rounded-full border transition ${pad} ${
                 on ? "border-mcz-cyan/70 bg-mcz-cyan/10 text-white shadow-neon"
                    : "border-white/10 bg-black/30 text-white/60 hover:bg-white/5"}`}>
               <span className="mr-1.5 font-bold">{s.code}</span>{s.label}

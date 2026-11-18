@@ -209,7 +209,7 @@ export default function ChallengeZ({ onOpen }) {
 
   return (
     <section className="space-y-3" data-tour="challengez">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-display text-lg font-extrabold">ChallengeZ</h3>
         <button className={`pill ${tab === "incoming" ? "pill-on" : ""}`} onClick={() => setTab("incoming")}>
           Incoming{d.incoming.length ? ` (${d.incoming.length})` : ""}

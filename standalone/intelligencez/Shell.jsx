@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Home, Loader2, LogOut, MessageSquare, Music, PenLine, SlidersHorizontal } from "lucide-react";
 import { useAuth } from "../../src/auth/AuthContext.jsx";
+import DesktopSiteHint from "../../src/components/DesktopSiteHint.jsx";
 import { lazyRoute } from "../../src/chunkError.js";
 import Login from "../../src/auth/Login.jsx";
 import Register from "../../src/auth/Register.jsx";
@@ -142,6 +143,7 @@ function Signed() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-28 pt-4">
       <h1 className="sr-only">IntelligenceZ</h1>
+      <DesktopSiteHint />
       <div className="mb-3 flex items-center justify-between text-xs text-white/50">
         <span>Signed in as {user.username}</span>
         <button className="inline-flex items-center gap-1 hover:text-white" onClick={logout}>

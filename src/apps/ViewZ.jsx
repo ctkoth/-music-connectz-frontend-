@@ -417,7 +417,7 @@ export default function ViewZ() {
           <p className="text-sm text-white/60">How your posts, profile and share links are being looked at — live, and over time.</p>
         </div>
       </header>
-      <div className="flex gap-2" role="tablist">
+      <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setOpen(null); }}
             className={`rounded-full border px-3 py-1 text-sm ${tab === k ? "border-mcz-cyan bg-mcz-cyan/15" : "border-white/15 text-white/60"}`}>{l}</button>
