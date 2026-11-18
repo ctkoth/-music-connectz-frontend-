@@ -6,7 +6,7 @@ art. 122 distinct supplied files: **84 live** (committed, now the default),
 **3 duplicates**, 3 already used as backup art. The lists below also
 show committed dotted files the tree picked up from public/icons.
 
-## Live — custom art is the default now (96)
+## Live — custom art is the default now (98)
 | File | Registry key | Note |
 |---|---|---|
 | `battlez.1v1.png` | `battlez.1v1.png` | replaces the generated glyph /icons/battlez.1v1-neon.svg |
@@ -93,12 +93,14 @@ show committed dotted files the tree picked up from public/icons.
 | `intelligence.mixconz.png` | `mixconnectz.png` |  |
 | `viewz.png` | `viewz.png` |  |
 | `inventoriez.jpg` | `inventoriez.png` |  |
+| `designz.animez.jpg` | `animez.png` |  |
 | `designz.characterz.jpg` | `characterz.png` |  |
 | `designz.mangaz.jpg` | `mangaz.png` |  |
 | `directz.episodez.jpg` | `episodez.png` |  |
 | `directz.moviez.jpg` | `moviez.png` |  |
 | `directz.reelz.jpg` | `reelz.png` |  |
 | `directz.voicezstylez.jpg` | `voicezstylez.png` |  |
+| `intelligencez.animeconnectz.jpg` | `animeconnectz.png` |  |
 | `personaz.designer.jpg` | `personaz_designer.png` |  |
 | `profilez.substancez.jpg` | `substancez.png` |  |
 | `profilez.voicez.jpg` | `voicez.png` |  |
@@ -280,5 +282,5 @@ Still what something draws today; custom art takes over where a default exists.
 - `videoz.png` → /icons/toolz.videoz.png
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 115 of 212 (most are the
+Registry keys with no supplied file: 115 of 214 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).

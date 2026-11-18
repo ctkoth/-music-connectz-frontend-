@@ -32,7 +32,7 @@ const ICON_KEY = {
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
-  mangaz: "mangaz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
+  mangaz: "mangaz.png", animez: "animez.png", animeconnectz: "animeconnectz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
   sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
@@ -47,7 +47,7 @@ const EMOJI = {
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", witchcraft: "🔮", azrael: "☠️", dawz: "🎛️",
+  mangaz: "📚", animez: "🌸", animeconnectz: "🌸", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", witchcraft: "🔮", azrael: "☠️", dawz: "🎛️",
   filez: "🗂️",
 };
 
@@ -236,6 +236,7 @@ const TOOLZ_MENU = {
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
+        { key: 'animeconnectz', label: 'Anime ConnectZ', color: 'magenta', desc: 'AI anime from your CharacterZ: PromptZ, ReelZ, EpisodeZ chapters and MovieZ scenes' },
         { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
       ]
     },
@@ -282,6 +283,7 @@ const TOOLZ_MENU = {
       apps: [
         IMAGEZ,
         { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
+        { key: 'animez', label: 'AnimeZ', color: 'cyan', desc: 'Episodes from your manga pages and anime pieces — subtitles, camera moves, cut in VideoZ' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
       ]

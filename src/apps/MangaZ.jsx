@@ -90,6 +90,10 @@ function PageEditor({ s, page, chars, onChange }) {
         <button className="re-btn !w-auto px-3" title="Opens Instrumental ConnectZ with this page's mood as the brief — priced there, before you press Compose"
           onClick={() => handOff("instrumentalconnectz", "", { brief: `A beat for a ${p.style || "manga"} scene: ${p.title}. ${p.panels.map((q) => q.action).filter(Boolean).slice(0, 4).join(" ")}`.slice(0, 600) })}>
           🎹 Make the beat</button>
+        <button className="re-btn !w-auto px-3" title="Every drawn panel becomes a subtitled beat in AnimeZ — free, on your device"
+          onClick={() => handOff("animez", "", { page: p })}>🌸 Make it a motion comic in AnimeZ</button>
+        <button className="re-btn !w-auto px-3" title="Opens Anime ConnectZ with this page's idea and cast — the plan is priced there, before you press it"
+          onClick={() => handOff("animeconnectz", "", { idea: `${p.title}: ${p.idea || p.panels.map((q) => q.action).filter(Boolean).join(" ")}`.slice(0, 2000), character_ids: p.character_ids })}>🎬 Animate it with AI</button>
       </div>
       <p className="text-[11px] text-white/40">Panel by panel keeps your characters' looks consistent and lets you redraw one; the whole page is one charge but drifts more.</p>
       {p.page_image && (

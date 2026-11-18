@@ -2346,3 +2346,28 @@ StatZ-only in the server's limits and are not on the screen at all until they ar
 (`auto.what`) and everything she added in the last 24 hours with its reason (`auto.added`, read from the rows so it
 shows on any open — the board loads twice on mount and a one-request announcement was never seen). Below StatZ,
 `StatzSample` and the server's `locked` sentence. A task she added carries "🤖 Lilith added this" on its row.
+
+## AnimeZ and Anime ConnectZ: the studio and the AI, and lengths that are honest
+
+Corey's art: `public/icons/designz.animez.jpg` (AnimeZ, under DesignZ beside MangaZ) and
+`public/icons/intelligencez.animeconnectz.jpg` (Anime ConnectZ, under IntelligenceZ beside Video ConnectZ), mapped in
+`tools/build-icon-manifest.mjs`.
+
+- **Anime ConnectZ** (`apps/AnimeConnectZ.jsx`, `/api/economy/animez/`): PLAN then RENDER, each priced on its button.
+  The writer turns the idea and the member's CharacterZ cast into shots (camera, setting, action, lines in each
+  character's voice), all editable; then every shot renders as a Video ConnectZ clip of kind "anime" at the clip price,
+  a few at a time, and the server joins them with the dialogue the model voiced. A failed shot is refunded and said.
+- **Lengths carry DirectZ's names, honestly** (the server's `formats`): PromptZ 1 shot, ReelZ up to ~1 min, an EpisodeZ
+  CHAPTER up to ~3 min, a MovieZ SCENE up to 8 min — one AI render is one ~8 s shot. Full episodes and films are made by
+  joining pieces in AnimeZ; nothing claims a 30-minute render. Shots per piece are the tier's (`anime_shots`, 3 / 6 /
+  unlimited), so a format below the tier's minimum is shown locked with the reason, never hidden.
+- **AnimeZ** (`apps/AnimeZ.jsx`, `src/anime/scenes.js`): free, on the device (localStorage). A MangaZ page becomes one
+  subtitled beat per line (VideoZ draws one caption per clip, 80 characters, so two lines are two beats on the same
+  picture), alternating slow zooms, timed to be readable; Anime ConnectZ pieces join as scenes. "Make the episode in
+  VideoZ" hands the scenes over with timing, move and subtitle (VideoZ's hand-off now carries `seconds`, `motion`,
+  `text`), up to VideoZ's 80 clips, and VideoZ cuts and exports — one engine, so what is approved is the file.
+- **Doors**: MangaZ → "Make it a motion comic in AnimeZ" and "Animate it with AI" (Anime ConnectZ with the page's idea
+  and cast); Anime ConnectZ → "Open in AnimeZ" / "Edit in VideoZ" / Doors; Video ConnectZ gained an "Anime" kind.
+- Driven in a browser: formats locked for a Free member with the reason; a MangaZ page to 3 beats in AnimeZ; VideoZ
+  received them with the subtitle on the frame. **Not run against Veo** (no key here): the plan and render paths are
+  pinned by tests with stubs, like the rest of Video ConnectZ.

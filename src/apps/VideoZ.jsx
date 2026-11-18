@@ -240,7 +240,9 @@ export default function VideoZ() {
       const local = [];
       for (const r of rows) {
         const f = await fetchAsLocal(r.url);
-        local.push({ kind: r.kind, name: r.name, src: f.src, taken: r.taken || 0 });
+        // AnimeZ hands its scenes over with their timing, camera move and subtitle already decided.
+        local.push({ kind: r.kind, name: r.name, src: f.src, taken: r.taken || 0,
+          ...(r.seconds ? { seconds: r.seconds } : {}), ...(r.motion ? { motion: r.motion } : {}), ...(r.text ? { text: r.text, textAt: "bottom" } : {}) });
       }
       await addLocal(local);
     } finally { setBusy(""); }
@@ -249,7 +251,8 @@ export default function VideoZ() {
   useEffect(() => onHandoff("videoz", (p) => {
     // MangaZ hands over a page's drawn panels in reading order (a motion comic); others hand one file.
     if (Array.isArray(p?.items) && p.items.length) {
-      addFromLibrary(p.items.filter((x) => x?.url).map((x) => ({ url: x.url, name: x.name || "Panel", kind: x.kind || "image" }))).catch((e) => setErr(e.message));
+      addFromLibrary(p.items.filter((x) => x?.url).map((x) => ({ url: x.url, name: x.name || "Panel", kind: x.kind || "image",
+        seconds: x.seconds, motion: x.motion, text: x.text }))).catch((e) => setErr(e.message));
       return;
     }
     if (!p?.url) return;

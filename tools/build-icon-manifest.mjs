@@ -159,6 +159,8 @@ const KEYS = {
   "directz.moviez.jpg": "moviez.png",
   "directz.voicezstylez.jpg": "voicezstylez.png",
   "designz.mangaz.jpg": "mangaz.png",
+  "designz.animez.jpg": "animez.png",
+  "intelligencez.animeconnectz.jpg": "animeconnectz.png",
   "designz.characterz.jpg": "characterz.png",
   "personaz.designer.jpg": "personaz_designer.png",
   // BadgeZ art Corey is drawing: drop badgez.<name>.jpg into public/icons and

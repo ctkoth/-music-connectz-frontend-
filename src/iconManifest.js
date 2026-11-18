@@ -85,12 +85,14 @@ export const ICON_DEFAULTS = {
   "mixconnectz.png": "/icons/intelligence.mixconz.png",
   "viewz.png": "/icons/viewz.png",
   "inventoriez.png": "/icons/inventoriez.jpg",
+  "animez.png": "/icons/designz.animez.jpg",
   "characterz.png": "/icons/designz.characterz.jpg",
   "mangaz.png": "/icons/designz.mangaz.jpg",
   "episodez.png": "/icons/directz.episodez.jpg",
   "moviez.png": "/icons/directz.moviez.jpg",
   "reelz.png": "/icons/directz.reelz.jpg",
   "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
+  "animeconnectz.png": "/icons/intelligencez.animeconnectz.jpg",
   "personaz_designer.png": "/icons/personaz.designer.jpg",
   "substancez.png": "/icons/profilez.substancez.jpg",
   "voicez.png": "/icons/profilez.voicez.jpg",
@@ -708,6 +710,16 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "animez",
+        "label": "AnimeZ",
+        "file": "designz.animez.jpg",
+        "art": "/icons/designz.animez.jpg",
+        "key": "animez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "characterz",
         "label": "CharacterZ",
         "file": "designz.characterz.jpg",
@@ -922,6 +934,16 @@ export const ICON_TREE = [
     },
     "extra": [],
     "children": [
+      {
+        "child": "animeconnectz",
+        "label": "AnimeconnectZ",
+        "file": "intelligencez.animeconnectz.jpg",
+        "art": "/icons/intelligencez.animeconnectz.jpg",
+        "key": "animeconnectz.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      },
       {
         "child": "imageconz",
         "label": "Image ConnectZ",

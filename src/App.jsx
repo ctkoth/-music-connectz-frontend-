@@ -137,6 +137,8 @@ const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
 const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
 const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
 const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
+const AnimeZ = lazy(lazyRoute(() => import("./apps/AnimeZ.jsx")));
+const AnimeConnectZ = lazy(lazyRoute(() => import("./apps/AnimeConnectZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
 const CallZ = lazy(lazyRoute(() => import("./apps/CallZ.jsx")));
 const GameZ = lazy(lazyRoute(() => import("./apps/GameZ.jsx")));
@@ -429,6 +431,8 @@ export const CUSTOM_ICONS = {
   "moviez.png": "/icons/directz.moviez.jpg",
   "voicezstylez.png": "/icons/directz.voicezstylez.jpg",
   "mangaz.png": "/icons/designz.mangaz.jpg",
+  "animez.png": "/icons/designz.animez.jpg",
+  "animeconnectz.png": "/icons/intelligencez.animeconnectz.jpg",
   "characterz.png": "/icons/designz.characterz.jpg",
   // BadgeZ artwork — each badge that has real art names it; the rest carry
   // their emoji. Registered so the fallback is the emoji, not a logo.
@@ -637,6 +641,8 @@ const TABS = [
   { key: "sentencez", label: "SentenceZ", icon: "sentencez_editor.png", el: <SentenceZ /> },
   { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
   { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
+  { key: "animez", label: "AnimeZ", icon: "animez.png", el: <AnimeZ /> },
+  { key: "animeconnectz", label: "Anime ConnectZ", icon: "animeconnectz.png", el: <AnimeConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
   { key: "mixconnectz", label: "Mix ConnectZ", icon: "mixconnectz.png", el: <MixConnectZ /> },
   { key: "imageconnectz", label: "Image ConnectZ", icon: "imageconnectz.png", el: <ImageConnectZ /> },
@@ -1016,6 +1022,8 @@ const TAB_ABOUT = {
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
   mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
+  animez: "🌸 AnimeZ — put an episode together from your manga pages and anime pieces, with subtitles and camera moves, and cut it in VideoZ. Free, on your device.",
+  animeconnectz: "🌸 Anime ConnectZ — your characters and idea animated by AI: plan the shots, edit them, then render a PromptZ, ReelZ, EpisodeZ chapter or MovieZ scene.",
   sentencez: "✍️ SentenceZ, the text editor — write, and the writing coach scores your lyrics on rhyme, punchlines, story, imagery and freshness, with the reason and the fix — anything under 6 opens the writer for it.",
   filez: "🗂️ Every file you've uploaded. Post one to get likes, ratings, comments and shares on it, make an image your profile picture, or delete what you don't need to free storage.",
   profilez: "🎭 Your public identity — pick every PersonaZ you play, set ZodiacZ from your birthday, and choose the NationalitieZ that represent your ancestry.",
