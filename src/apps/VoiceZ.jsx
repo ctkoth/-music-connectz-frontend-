@@ -163,6 +163,12 @@ export default function VoiceZ() {
                 <span className="block text-[11px] text-white/45">A character, or you. Never a real person you aren't.</span>
                 <textarea className="neon-input mt-1 min-h-20 w-full" value={f.bio} onChange={(e) => set("bio", e.target.value)} /></label>
               <PersonalitieZ value={f.personality} onChange={(c) => set("personality", c)} />
+              {d.letter_styles && /[A-Z]/.test(f.personality || "") && (
+                <ul className="space-y-0.5 text-[11px] text-white/60" aria-label="What these letters make the voice do">
+                  <li className="text-white/45">The letters drive how this voice writes:</li>
+                  {[...String(f.personality)].filter((x) => d.letter_styles[x]).map((x) => <li key={x}>• {d.letter_styles[x]}</li>)}
+                </ul>
+              )}
               {d.dials.map((dl) => <Chips key={dl.key} dial={dl} value={f.spec[dl.key] ?? dl.default} onChange={(v) => setSpec(dl.key, v)} disabled={readOnly} />)}
               <label className="block text-sm">Signature phrases (one per line, up to {d.caps.phrases})
                 <span className="block text-[11px] text-white/45">Used at most once per reply, never forced.</span>

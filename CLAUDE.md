@@ -2458,3 +2458,9 @@ replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). 
   VideoZ adds it with lip-sync on (mouth box at `DEFAULT_BOX`, following everything audible) and says what to do next, or
   that it is StatZ's / the sample's. It follows the SOUND, not the words — there is no AI lip-matching provider, and the
   doors say so. A rendered video is not re-lip-synced; the photo is.
+
+## VoiceZ shows what the four letters do
+
+The voice form lists, under the PersonalitieZ toggles, what each picked letter makes the voice do (`letter_styles` from
+`/api/economy/voicez/`, never typed here). Lilith and Leemy are built-in character voices served in `presets` and on
+every surface's options; nothing about them is typed into this repo.
