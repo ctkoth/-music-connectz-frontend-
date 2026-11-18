@@ -2324,3 +2324,18 @@ Every DAW opens at every tier; a tier buys how MUCH of a feature, never the DAW.
 per track, stems sent to Mix ConnectZ and tone presets are Free 3 / Premium 6 / StatZ unlimited; automation is
 StatZ's. Releases a month in DistributeZ are the same numbers (server `releasez.PER_MONTH`; `QuotaLine` reads
 `next_unlimited` so Premium is told StatZ has no cap). LabelGrid is the planned distributor API.
+
+## Presets: each kind has its own 3 / 6 / unlimited (Corey's rule)
+
+`/api/economy/tonez/` keeps presets by KIND — `tone` and `fx` (a DAW track's effect chain, saved from the strip's
+"Save as a preset" with a Track tone / Track FX choice) and `master` (Mix ConnectZ's settings, `MasterPresets.jsx`).
+Each kind counts on its own against the tier's `tone_presets`, so saving FX never uses up room for tones; the save
+panel says "1 of 3 saved — each kind has its own room". A preset keeps its kind (the server refuses a kind change, so
+nobody dodges a ceiling by relabelling). A mastering preset keeps the SOUND, never the export choices.
+
+## Automations are StatZ's, on every app (Corey's rule — as OCC suggestions are Premium's)
+
+Anything that acts FOR the member is StatZ (or the daily sample): DAW automation, ImageZ Actions, OCC AutomationZ,
+and BattleZ challenge auto-accept (`auto_accept_allowed`, read when a challenge arrives; a lapsed member's setting is
+kept and rests, and they can still save their other filters). Lilith's auto-schedule and automation rules are
+StatZ-only in the server's limits and are not on the screen at all until they are built.

@@ -28,8 +28,10 @@ test("a stored value out of range is pulled back in, and junk is dropped", () =>
   assert.equal(back[0].params.ratio, 20);
 });
 
-test("the ceiling reads in a unit you can check", () => {
-  assert.deepEqual(presetRoom({ count: 2, limit: 3 }), { ok: true, line: "2 of 3 saved" });
-  assert.equal(presetRoom({ count: 3, limit: 3 }).ok, false);
-  assert.equal(presetRoom({ count: 40, limit: null }).ok, true);
+test("each kind's ceiling reads on its own, in a unit you can check", () => {
+  const st = { limit: 3, kinds: { tone: { count: 3 }, fx: { count: 1 } } };
+  assert.deepEqual(presetRoom(st, "fx"), { ok: true, line: "1 of 3 saved" });
+  assert.equal(presetRoom(st, "tone").ok, false);
+  assert.deepEqual(presetRoom(st, "master"), { ok: true, line: "0 of 3 saved" });
+  assert.equal(presetRoom({ limit: null, kinds: { tone: { count: 40 } } }, "tone").ok, true);
 });

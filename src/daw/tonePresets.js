@@ -45,10 +45,13 @@ export function insertsToChain(inserts) {
   return cleanInserts(inserts).map(({ type, on, params }) => ({ type, on, params }));
 }
 
-/** How the ceiling reads beside the save button. */
-export function presetRoom(state) {
+/** How one kind's ceiling reads beside its save button. Each kind (tone, fx, master) counts on its own. */
+export function presetRoom(state, kind = "tone") {
   if (!state) return { ok: true, line: "" };
-  const { count = 0, limit } = state;
+  const count = state.kinds?.[kind]?.count ?? 0;
+  const { limit } = state;
   if (limit === null || limit === undefined) return { ok: true, line: `${count} saved · unlimited on your plan` };
   return { ok: count < limit, line: `${count} of ${limit} saved` };
 }
+
+export const KIND_LABEL = { tone: "Track tone", fx: "Track FX", master: "Mastering" };

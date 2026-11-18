@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { goToSpot } from "./goto.js";
 import RangeGates from "./RangeGates.jsx";
+import { StatzSample } from "./components/StatzSample.jsx";
 import { ENERGY } from "./resources.js";
 
 const BASE = "/api/economy/battlez";
@@ -130,10 +131,14 @@ function Filters({ filters, onSaved }) {
       <RangeGates title="Challengers must be in these ranges" value={f.gates || {}} onChange={(g) => setF({ ...f, gates: g })} />
       <input className="neon-input !py-2 text-xs" placeholder="Muted usernames, comma separated"
         value={f.mutedText} onChange={(e) => setF({ ...f, mutedText: e.target.value })} />
-      <label className="flex items-start gap-2 text-xs text-white/80">
-        <input type="checkbox" className="mt-0.5" checked={!!f.auto_accept} onChange={(e) => setF({ ...f, auto_accept: e.target.checked })} />
-        <span>Auto-accept anything that clears these filters — it opens straight away, and accepting costs you nothing.</span>
+      {/* Auto-accept is an automation, and automations are StatZ's (the server decides: auto_accept_allowed). */}
+      <label className={`flex items-start gap-2 text-xs ${f.auto_accept_allowed === false ? "text-white/40" : "text-white/80"}`} data-tour="challengez-filters">
+        <input type="checkbox" className="mt-0.5" checked={!!f.auto_accept} disabled={f.auto_accept_allowed === false && !f.auto_accept}
+               onChange={(e) => setF({ ...f, auto_accept: e.target.checked })} />
+        <span>Auto-accept anything that clears these filters — it opens straight away, and accepting costs you nothing.
+          {f.auto_accept_allowed === false && f.auto_accept && " It's switched on but resting: it works again on StatZ."}</span>
       </label>
+      {f.auto_accept_allowed === false && <StatzSample what="Auto-accept" />}
       <p className="text-[11px] text-white/45">
         A challenge outside your filters never reaches you, and the challenger is told before they are charged.
       </p>

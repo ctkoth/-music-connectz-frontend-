@@ -552,15 +552,11 @@ export default function Lilith() {
       <Starters starters={board?.starters} add={addStarter} busyKey={addingKey} />
       <BuildCTA actions={asList(board?.actions)} onMake={makeCTA} />
 
-      {/* What the tiers buy here is AUTOMATION, never access — said plainly,
+      {/* What the tiers buy here is HOW MANY, never access — said plainly,
           because a free member has a working task manager and should be told
           that is not the thing being sold. */}
       <p className="text-[11px] text-white/35">
-        Your tier: {board?.tier}. Auto-schedule plans{" "}
-        {limits.auto_schedule_days} day{limits.auto_schedule_days === 1 ? "" : "s"}{" "}
-        ahead, {limits.automation_rules} automation rule
-        {limits.automation_rules === 1 ? "" : "s"} and {limits.recurring_quests}{" "}
-        quest chain{limits.recurring_quests === 1 ? "" : "s"} —{" "}
+        Your tier: {board?.tier}. {limits.routines != null ? `${limits.routines} routines, ` : ""}{limits.active_tasks} open tasks —{" "}
         <button type="button" onClick={() => goToSpot("membershipz")} className="underline">
           a tier up raises each
         </button>. Everything here works at every tier.

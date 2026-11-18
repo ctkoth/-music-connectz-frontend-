@@ -6,14 +6,16 @@ import { useCallback, useEffect, useState } from "react";
 import { Save, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
-import { STARTERS, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
+import { KIND_LABEL, STARTERS, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
 
 export function useTonePresets() {
   const [state, setState] = useState(null);     // GET /tonez/: { presets, count, limit, full, ladder, who }
   const [failed, setFailed] = useState(false);
   useEffect(() => { api("/api/economy/tonez/").then(setState).catch(() => setFailed(true)); }, []);
-  const save = useCallback(async (name, inserts, id) => {
-    const d = await api("/api/economy/tonez/", { method: "POST", body: { name, chain: insertsToChain(inserts), ...(id ? { id } : {}) } });
+  // `value` is a DAW insert list for "tone" / "fx", or Mix ConnectZ's settings for "master".
+  const save = useCallback(async (name, value, id, kind = "tone") => {
+    const chain = kind === "master" ? value : insertsToChain(value);
+    const d = await api("/api/economy/tonez/", { method: "POST", body: { kind, name, chain, ...(id ? { id } : {}) } });
     setState(d);
     return d.preset;
   }, []);
@@ -25,10 +27,12 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
   const { state, failed, save, remove } = tones;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
+  const [kind, setKind] = useState("tone");      // save as a track TONE or a track FX chain — each has its own ceiling
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-  const room = presetRoom(state);
-  const mine = state?.presets || [];
+  const room = presetRoom(state, kind);
+  const all = (state?.presets || []).filter((p) => p.kind === "tone" || p.kind === "fx");
+  const mine = all.filter((p) => p.kind === kind);
   const same = mine.find((p) => p.name.toLowerCase() === name.trim().toLowerCase());
 
   const pick = (value) => {
@@ -38,15 +42,15 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
       const s = STARTERS.find((x) => x.key === key);
       if (s) { onApply(chainToInserts(s.chain())); setMsg(`${s.name}: ${s.what} It replaced this track's effects (Undo brings them back).`); }
     } else if (kind === "m") {
-      const p = mine.find((x) => String(x.id) === key);
+      const p = all.find((x) => String(x.id) === key);
       if (p) { onApply(chainToInserts(p.chain)); setMsg(`${p.name} is on ${trackName}, in place of its effects (Undo brings them back).`); }
     }
   };
   const doSave = async () => {
     setErr(""); setMsg("");
     try {
-      const p = await save(name.trim(), inserts, same?.id);
-      setMsg(`Saved "${p.name}". It's in the Tone menu of every track, in every DAW.`);
+      const p = await save(name.trim(), inserts, same?.id, kind);
+      setMsg(`Saved "${p.name}" as a ${KIND_LABEL[kind].toLowerCase()} preset. It's in the Tone menu of every track, in every DAW.`);
       setSaving(false); setName("");
     } catch (e) { setErr(e.message); }
   };
@@ -56,17 +60,25 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
       <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80" data-nomemo="true" value=""
               aria-label={`Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
         <option value="">🎛️ Tone…</option>
-        {mine.length > 0 && (
-          <optgroup label="Your presets">
-            {mine.map((p) => <option key={p.id} value={`m:${p.id}`}>{p.name}</option>)}
+        {["tone", "fx"].map((k) => all.some((p) => p.kind === k) && (
+          <optgroup key={k} label={`Your ${KIND_LABEL[k].toLowerCase()} presets`}>
+            {all.filter((p) => p.kind === k).map((p) => <option key={p.id} value={`m:${p.id}`}>{p.name}</option>)}
           </optgroup>
-        )}
+        ))}
         <optgroup label="Voice starters (built in)">
           {STARTERS.map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}</option>)}
         </optgroup>
       </select>
       {!failed && (saving ? (
         <div className="space-y-1 rounded bg-black/40 p-1">
+          <div className="flex gap-1" role="radiogroup" aria-label="Save as">
+            {["tone", "fx"].map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={kind === k}
+                      className={`flex-1 rounded px-1 py-0.5 ${kind === k ? "bg-mcz-cyan/30 text-white" : "bg-white/5 text-white/60"}`}
+                      onClick={() => setKind(k)}>{KIND_LABEL[k]}</button>
+            ))}
+          </div>
+          <p className="text-white/45">{presetRoom(state, kind).line} — each kind has its own room.</p>
           <input className="w-full rounded bg-white/10 px-1 py-0.5 text-white" placeholder="Name, e.g. My vocal" maxLength={60} autoFocus
                  value={name} onChange={(e) => setName(e.target.value)} aria-label="Preset name"
                  onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) doSave(); if (e.key === "Escape") setSaving(false); }} />
@@ -81,12 +93,12 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
       ) : (
         <button type="button" className="flex w-full items-center gap-1 rounded bg-white/5 px-1 py-0.5 text-white/70 hover:text-white disabled:opacity-40"
                 disabled={!inserts.length} title={inserts.length ? "" : "Add an effect first"} onClick={() => { setSaving(true); setMsg(""); setErr(""); }}>
-          <Save size={10} /> Save this tone <span className="ml-auto text-white/40">{room.line}</span>
+          <Save size={10} /> Save as a preset
         </button>
       ))}
-      {!room.ok && !saving && state && (
+      {!room.ok && saving && state && !same && (
         <p className="text-mcz-gold">
-          Your plan keeps {state.limit} — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
+          Your plan keeps {state.limit} {KIND_LABEL[kind].toLowerCase()} presets — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
           <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button>
         </p>
       )}
