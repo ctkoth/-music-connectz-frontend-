@@ -18,13 +18,11 @@ export const TIER_BLURB = {
 };
 
 // [label, free, premium, statz] — a dash means the tier does not have it.
-// GATES only. Every NUMBER on the ladder (characters, prompts, Energy,
-// uploads, storage) comes from /api/economy/tiers/ — this table used to type
-// them and had drifted on four of five ("1 free prompt", "40 MB", "Unlimited").
+// GATES only, and only the few the server's list (/api/economy/ladders/, drawn by LadderTable) does not
+// carry yet. Every NUMBER comes from the server — this table used to type them and drifted twice
+// ("1 free prompt", "40 MB", and DistributeZ "1 / month" after it moved to 3 / 6 / unlimited).
 export const TIER_MATRIX = [
-  ["Edit window on anything you post", "4 min", "40 min", "4 hours"],
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
-  ["DistributeZ releases", "1 / month", "Unlimited", "Unlimited"],
   ["LabelZ — create and run a label", "—", "Yes", "Yes"],
   // Placing is StatZ. ANSWERING is every tier — see the CallZ row below.
   ["CallZ — place a call", "—", "—", "Yes"],
@@ -49,15 +47,15 @@ export const APP_BENEFITS = [
   },
   {
     app: "SingZ · RapZ", icon: "singz.png",
-    free: "The full drill sets, XP, levels, streaks and badges. Nothing about training is paywalled.",
-    premium: "Expanded content and higher daily limits on every drill.",
-    statz: "The AI layer: vocal coach feedback on why a note failed, advanced range mapping, auto weekly plans, smart song breakdown, and fine-grain accuracy analytics.",
+    free: "The coach scores every take with the reason and the fix, and your free AI prompts each day cover it. Drills, XP, levels, streaks and badges too — nothing about training is paywalled.",
+    premium: "More free AI prompts a day, so more scored takes (the number is in the table above).",
+    statz: "The most free AI prompts a day, and every StatZ feature in the table above — who viewed your posts as tracks, automation, and more. The daily StatZ sample lets you try them first.",
   },
   {
     app: "DistributeZ", icon: "distributez.png",
-    free: "One submission a month.",
-    premium: "Unlimited submissions.",
-    statz: "Unlimited, same as Premium.",
+    free: "Release your tracks every month — how many is in the table above.",
+    premium: "Twice as many releases a month as Free.",
+    statz: "Release as many as you make.",
   },
   {
     app: "LabelZ", icon: "labelz.png",
@@ -78,7 +76,7 @@ export const APP_BENEFITS = [
     app: "SpecZ", icon: "specz.png",
     free: "—",
     premium: "—",
-    statz: "The whole marketplace — audience demographics, engagement heatmaps, genre intelligence, collab compatibility.",
+    statz: "Write label-and-value notes and attach them to any app, priced in 🍥 on the button. (The analytics products once listed here were never built, so they are no longer sold.)",
   },
   // Lilith was listed here and sold at all three tiers — "auto-schedule,
   // PersonaZ automation…, AI breakdown of big goals, smart priority scoring,

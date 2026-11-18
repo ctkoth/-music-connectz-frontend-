@@ -8,6 +8,7 @@ import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { IconImg } from "../App.jsx";
 import PromptzDoor from "../PromptzDoor.jsx";
+import LadderTable from "../components/LadderTable.jsx";
 import { APP_BENEFITS, TIER_BLURB, TIER_MATRIX, TIER_ORDER } from "../tierBenefits.js";
 
 const money = (cents) => `$${((cents || 0) / 100).toFixed(2).replace(/\.00$/, "")}`;
@@ -202,6 +203,8 @@ export default function MembershipZ() {
         </table>
       </div>
 
+
+      <div className="re-card"><LadderTable /></div>
 
       {/* What each tier actually buys, app by app. Blueprint-sourced. */}
       <div className="space-y-3">

@@ -2371,3 +2371,12 @@ Corey's art: `public/icons/designz.animez.jpg` (AnimeZ, under DesignZ beside Man
 - Driven in a browser: formats locked for a Free member with the reason; a MangaZ page to 3 beats in AnimeZ; VideoZ
   received them with the subtitle on the frame. **Not run against Veo** (no key here): the plan and render paths are
   pinned by tests with stubs, like the rest of Video ConnectZ.
+
+## What each plan holds is the server's list (`LadderTable.jsx`)
+
+MembershipZ draws `/api/economy/ladders/` (backend `ladders.py`): every gate, read off the constant that gates it,
+grouped, searchable, the member's column marked, and each row opening the app it gates. It replaced the typed rows of
+`TIER_MATRIX` that the server covers — that table still said DistributeZ was "1 / month" a day after it became
+3 / 6 / unlimited. Two sold claims went with it: SingZ / RapZ's StatZ line promised "auto weekly plans, smart song
+breakdown, fine-grain accuracy analytics" (never built), and SpecZ's StatZ line still sold the analytics catalogue the
+backend removed because nothing produced it. **A benefit line is a claim about the code; check it like one.**
