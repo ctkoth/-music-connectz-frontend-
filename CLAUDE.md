@@ -2380,3 +2380,8 @@ grouped, searchable, the member's column marked, and each row opening the app it
 3 / 6 / unlimited. Two sold claims went with it: SingZ / RapZ's StatZ line promised "auto weekly plans, smart song
 breakdown, fine-grain accuracy analytics" (never built), and SpecZ's StatZ line still sold the analytics catalogue the
 backend removed because nothing produced it. **A benefit line is a claim about the code; check it like one.**
+
+## Sonday boards and Lilith routines are 3 / 6 / unlimited
+
+Sonday's `QuotaLine` reads the server's `per_tier`, `next_tier` and `next_per_tier` (never typed here) and tells a
+member over the count that every board stays. Lilith already renders `limits.routines` and treats null as unlimited.

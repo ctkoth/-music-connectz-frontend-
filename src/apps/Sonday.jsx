@@ -46,12 +46,14 @@ function openCard(o) {
 
 function QuotaLine({ q }) {
   if (!q) return null;
-  if (q.left == null) return <span className="text-emerald-300">Unlimited boards on your tier.</span>;
+  if (q.per_tier == null) return <span className="text-emerald-300">Unlimited boards on your plan.</span>;
+  const label = { free: "Free", premium: "Premium", statz: "StatZ" };
+  const next = q.next_tier && `${label[q.next_tier] || q.next_tier} keeps ${q.next_per_tier == null ? "as many as you like" : q.next_per_tier}`;
   return (
     <span>
-      <span className={q.left ? "text-emerald-300" : "text-mcz-ember"}>{q.used} of {q.per_tier}</span> board
-      {q.per_tier === 1 ? "" : "s"} used on Free.{" "}
-      <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Premium keeps as many as you like</button>
+      <span className={q.left ? "text-emerald-300" : "text-mcz-ember"}>{q.used} of {q.per_tier}</span> boards used on{" "}
+      {label[q.tier] || q.tier}.{q.used > q.per_tier ? " Every board you have stays; a new one waits until you're under." : ""}{" "}
+      {next && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>{next}</button>}
     </span>
   );
 }
