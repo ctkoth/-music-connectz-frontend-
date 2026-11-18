@@ -62,7 +62,7 @@ export default function DawZ() {
             <IconImg
               icon={d.icon}
               alt={d.name}
-              className="h-16 w-16 shrink-0 rounded-xl object-cover"
+              className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-16 sm:w-16"
               fallback={<span className="text-4xl">{d.emoji}</span>}
             />
             <div className="min-w-0 flex-1">

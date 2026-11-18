@@ -78,12 +78,12 @@ export default function Songwriter({ app, daw, bpm, busy, onSend, onBpm }) {
                     className={`px-3 py-1.5 ${song.mode === k ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{m.label}</button>
           ))}
         </div>
-        <label className="flex items-center gap-1 text-white/70">Progression
+        <label className="flex min-w-0 max-w-full flex-wrap items-center gap-1 text-white/70">Progression
           <select className="neon-input !w-auto !py-1.5" data-nomemo="true" value={song.prog} onChange={(e) => setSong((s) => ({ ...s, prog: e.target.value }))}>
             {Object.entries(PROGRESSIONS).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
           </select>
         </label>
-        <label className="flex items-center gap-1 text-white/70">Beats a chord
+        <label className="flex min-w-0 max-w-full flex-wrap items-center gap-1 text-white/70">Beats a chord
           <select className="neon-input !w-auto !py-1.5" data-nomemo="true" value={song.beats} onChange={(e) => setSong((s) => ({ ...s, beats: Number(e.target.value) }))}>
             {[2, 4, 8].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
