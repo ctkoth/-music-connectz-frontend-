@@ -59,4 +59,4 @@ export function presetRoom(state, kind = "tone") {
   return { ok: count < limit, line: `${count} of ${limit} saved` };
 }
 
-export const KIND_LABEL = { tone: "Track tone", fx: "Track FX", master: "Mastering" };
+export const KIND_LABEL = { tone: "Track tone", fx: "Track FX", master: "Mastering", strip: "Channel strip" };

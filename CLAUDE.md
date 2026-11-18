@@ -1584,7 +1584,7 @@ styles, intensity, width and EQ trims. What it lacked is in now, all on the memb
 - **The WAV ladder** (Corey's call): StatZ exports 24-bit WAV, Premium 16-bit, Free MP3. It is `wav_bits` on
   `catalog.MASTERING`, served in `allowed` / `ladder`; the screen clamps what it exports (`fmt`, `depth`) to it and
   locks the rest with the tier that has it. No ladder (a failed fetch) offers MP3 only, never a guess upward.
-- Not done: album mastering (several songs to one loudness and tone). It is the next eMastered/LANDR parity item.
+- Album mastering is done — see "Album mastering" below.
 
 ## The weight box opens on the last weight entered
 
@@ -2417,3 +2417,27 @@ never counts. A strip or DAW EQ saved before bands opens as the three bands it w
 the voice starters are three bands each, and a saved tone keeps all its bands (server `tonez.clean_bands`).
 Driven in a browser: Free locked at 3 of 3 and freed a slot on remove; Premium reached 6 in TrackZ and in Arsenal's EQ;
 the master's result named the band moved.
+
+## Album mastering and saved channel strips: Mix ConnectZ against eMastered
+
+**Album mastering** (`components/AlbumMaster.jsx`, `data-tour="mixz-album"`; the work is `src/mastering/album.js`, tested):
+several songs to ONE loudness and ONE tone, with the settings above. Every song is measured; the album's tone is the mean of
+their band SHAPES (each level-matched over 100 Hz–8 kHz first, so a loud song does not outvote a quiet one), or the
+Inspiration track's when the member ticks that; it goes to each master as the reference, so the EQ moves through the
+master's own reference matching rather than a second EQ. Every song gets the same loudness plus its own trim (0 to −6 dB,
+"sits 3 dB under the rest"). The result says, from the mastered audio, each song's LUFS and peak, how far its tone sits from
+the album's before → after, and how far apart the loudness ended with the trims taken back out.
+
+- **How many songs is the plan's** (`album_songs` from /limits/: Free 3, Premium 6, StatZ unlimited, to `MAX_ALBUM` 40),
+  applied where a song is added. Mastering one song at a time stays every plan's. Free, on the device.
+- **One song in memory at a time.** Each is decoded to measure and dropped, decoded again to master, and only the finished
+  file (a Blob) is kept. A twelve-song album must not hold twelve songs of float audio.
+- **Files follow the plan's WAV ladder**, picked in the album's own row (the single master's export controls live in its
+  result). Download one, download all (numbered `01-…`), or Save to Your masters (uploads + `/mixz/`, storage stated).
+- With no single song loaded the settings panel is hidden, so the album says it uses the defaults and names them.
+- Driven in a browser: two songs, one trimmed −3 dB, mastered to −14 / −17 LUFS, both moved toward the album's tone, a file
+  downloaded. Not checked on a phone or with a real album's worth of songs.
+
+**Saved channel strips** (`StripPresets` in `TrackMixer.jsx`): every TrackZ EQ panel has "Use a saved strip…" and "Save this
+strip" — kind `strip` on `/api/economy/tonez/`, its own 3 / 6 / unlimited room beside tones, FX and masters. Applying one
+replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). Driven in a browser: saved, reset, applied.

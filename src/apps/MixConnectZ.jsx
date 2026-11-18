@@ -16,6 +16,7 @@ import { loadLimits } from "../limits.js";
 import TrackMixer from "../components/TrackMixer.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
 import MasterPresets from "../components/MasterPresets.jsx";
+import AlbumMaster from "../components/AlbumMaster.jsx";
 
 // Mix ConnectZ — mastering that runs on the member's own device.
 //
@@ -381,16 +382,21 @@ export default function MixConnectZ() {
     : setExtra((xs) => xs.map((t, k) => (k === i - 1 ? { ...t, ...patch } : t))));
   const applyTracks = (rows) => rows.forEach((r, i) => changeTrack(i, r));
 
-  async function doMaster() {
-    if (!song) return;
-    setErr(""); setSaved(""); setProgress(0); setBusy("Starting");
+  // The settings a master is made with, clamped to the plan: one builder for a single song and the album.
+  function buildPayload() {
     const intensity = allowedIntensities.includes(settings.intensity) ? settings.intensity : allowedIntensities[allowedIntensities.length - 1];
-    const payload = {
+    return {
       ...settings,
       intensity,
       glueDb: manualGlue && !autoGlue ? Math.min(glueMax, settings.glueDb ?? INTENSITY[intensity].glueGr) : null,
       target: settings.target === "reference" && !ref ? "streaming" : settings.target,
     };
+  }
+
+  async function doMaster() {
+    if (!song) return;
+    setErr(""); setSaved(""); setProgress(0); setBusy("Starting");
+    const payload = buildPayload();
     try {
       const out = await run("master", {
         channels: song.channels.map((c) => c.slice()),
@@ -856,6 +862,13 @@ export default function MixConnectZ() {
           </div>
         </div>
       )}
+
+      <AlbumMaster getSettings={buildPayload} inspiration={ref ? { bands: ref.analysis.bands, lufs: ref.analysis.lufs, name: ref.name } : null}
+        exportOpts={{ format: outFmt, depth, dither, kbps, rate: 0 }} onSaved={load}
+        exportCtl={{ wavBits, setFormat, setBitDepth, setKbps, kbpsList: MP3_KBPS, wavTier: tierName(tierFor(16)), wav24Tier: tierName(tierFor(24)) }}
+        cap={lim && "album_songs" in lim ? lim.album_songs : undefined}
+        nextCap={lim?.tier === "free" ? lim?.tiers?.premium?.album_songs ?? null : null}
+        defaultsNote={before ? "" : `With no song loaded above, the album uses the default settings (${STYLES[settings.style]?.label || settings.style}, ${INTENSITY[settings.intensity]?.label || settings.intensity}, ${TARGETS[settings.target]?.label || "your loudness"}). Load one song to see and change them.`} />
 
       <div className="space-y-2" data-tour="mixz-recent">
         <h3 className="text-sm font-semibold text-white/70">Your masters</h3>

@@ -12,9 +12,10 @@ export function useTonePresets() {
   const [state, setState] = useState(null);     // GET /tonez/: { presets, count, limit, full, ladder, who }
   const [failed, setFailed] = useState(false);
   useEffect(() => { api("/api/economy/tonez/").then(setState).catch(() => setFailed(true)); }, []);
-  // `value` is a DAW insert list for "tone" / "fx", or Mix ConnectZ's settings for "master".
+  // `value` is a DAW insert list for "tone" / "fx", or the object itself for "master" (Mix ConnectZ's
+  // settings) and "strip" (a TrackZ channel strip).
   const save = useCallback(async (name, value, id, kind = "tone") => {
-    const chain = kind === "master" ? value : insertsToChain(value);
+    const chain = kind === "master" || kind === "strip" ? value : insertsToChain(value);
     const d = await api("/api/economy/tonez/", { method: "POST", body: { kind, name, chain, ...(id ? { id } : {}) } });
     setState(d);
     return d.preset;

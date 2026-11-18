@@ -6,6 +6,8 @@ import { toAudioBuffer, run } from "../mastering/client.js";
 import { GAIN_MIN, GAIN_MAX, ROLES, audible, panLabel, suggestMix, trackRoom } from "../mastering/multitrack.js";
 import { COMP, EQ_MAX, FLAT, HP, SPEEDS, cleanStrip, stripIsFlat, stripKey, stripWords } from "../mastering/strip.js";
 import EqBands from "./EqBands.jsx";
+import { useTonePresets } from "../daw/TonePresets.jsx";
+import { presetRoom } from "../daw/tonePresets.js";
 
 // Mix ConnectZ's multitrack section: every track's gain and pan, mute and solo, heard live while
 // they move, and "Suggest a balance", which measures the tracks and proposes a starting mix with a
@@ -159,6 +161,60 @@ const fhz = (f) => (f >= 1000 ? `${(f / 1000).toFixed(1)} kHz` : `${Math.round(f
 const toLog = (f, lo, hi) => Math.log(f / lo) / Math.log(hi / lo);
 const fromLog = (x, lo, hi) => Math.round(lo * Math.pow(hi / lo, x));
 
+// A channel strip saved under a name ("My vocal strip") and put back on any track, in Mix ConnectZ on any
+// device: /api/economy/tonez/ kind "strip", its own 3 / 6 / unlimited room beside tones, FX and masters.
+// Applying one replaces this track's low cut, EQ and compressor; nothing is mastered until Master it.
+function StripPresets({ strip, onApply, name }) {
+  const { state, failed, save, remove } = useTonePresets();
+  const [saving, setSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  if (failed) return null;
+  const mine = (state?.presets || []).filter((p) => p.kind === "strip");
+  const room = presetRoom(state, "strip");
+  const same = mine.find((p) => p.name.toLowerCase() === title.trim().toLowerCase());
+  const doSave = async () => {
+    setErr(""); setMsg("");
+    try { const p = await save(title.trim(), cleanStrip(strip), same?.id, "strip"); setMsg(`Saved "${p.name}" — on every track, on every device.`); setSaving(false); setTitle(""); }
+    catch (e) { setErr(e.message); }
+  };
+  return (
+    <div className="space-y-1 border-t border-white/10 pt-2 text-[11px]">
+      <div className="flex flex-wrap items-center gap-2">
+        <select className="neon-input !w-auto !py-0.5 text-xs" data-nomemo="true" value="" disabled={!mine.length}
+          aria-label={`Put a saved strip on ${name}`}
+          onChange={(e) => { const p = mine.find((x) => String(x.id) === e.target.value); if (p) { onApply(cleanStrip(p.chain)); setMsg(`"${p.name}" is on ${name}.`); } }}>
+          <option value="">{mine.length ? "Use a saved strip…" : "No saved strips yet"}</option>
+          {mine.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {!saving && <button className="re-link" onClick={() => { setSaving(true); setMsg(""); setErr(""); }}>Save this strip</button>}
+        <span className="text-white/40">{room.line}</span>
+        <span className="text-emerald-300">free</span>
+      </div>
+      {saving && (
+        <div className="flex flex-wrap items-center gap-2">
+          <input className="neon-input !w-44 !py-0.5 text-xs" placeholder="Name, e.g. Vocal strip" maxLength={60} autoFocus value={title}
+            aria-label="Strip preset name" onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) doSave(); if (e.key === "Escape") setSaving(false); }} />
+          <button className="re-btn !w-auto px-2 text-xs" disabled={!title.trim() || (!same && !room.ok)} onClick={doSave}>{same ? "Update it" : "Save"}</button>
+          <button className="re-link" onClick={() => setSaving(false)}>Cancel</button>
+          {!same && !room.ok && state && <span className="text-mcz-gold">Your plan keeps {state.limit} strips — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.</span>}
+          {mine.map((p) => (
+            <span key={p.id} className="flex items-center gap-1 rounded bg-white/5 px-1.5 text-white/70">
+              <button title="Update this one" onClick={() => setTitle(p.name)}>{p.name}</button>
+              <button aria-label={`Delete strip ${p.name}`} className="text-white/30 hover:text-mcz-ember"
+                onClick={() => { if (window.confirm(`Delete your "${p.name}" strip?`)) remove(p.id).catch((e) => setErr(e.message)); }}><Trash2 size={10} /></button>
+            </span>
+          ))}
+        </div>
+      )}
+      {msg && <p className="text-emerald-300">{msg}</p>}
+      {err && <p className="text-mcz-ember">{err}</p>}
+    </div>
+  );
+}
+
 function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
   const s = cleanStrip(t.strip);
   const set = (patch) => onChange(i, { strip: { ...s, ...patch } });
@@ -206,6 +262,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
           </div>
         )}
       </div>
+      <StripPresets strip={s} name={name} onApply={(strip) => onChange(i, { strip })} />
       <div className="flex flex-wrap items-center gap-2 text-[11px]">
         {pending ? <span className="text-white/50">Updating what you hear…</span>
           : !stripIsFlat(s) ? <span className="text-white/45">{stripWords(s)}.</span> : <span className="text-white/40">Flat — the track as loaded.</span>}
