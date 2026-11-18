@@ -66,7 +66,7 @@ export function Playhead({ position, zoom, height }) {
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
-  onAuto, autoCap, onAutoLocked,
+  onAuto, autoCap, onAutoLocked, trackLabel = "",
 }) {
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
@@ -124,7 +124,7 @@ export default function EditWindow({
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
         <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/40">
-          Tracks
+          <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title="Add a track" aria-label="Add a track"><Plus size={14} /></button>
         </div>
         {session.tracks.map((t) => (

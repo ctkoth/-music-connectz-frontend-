@@ -22,7 +22,9 @@
 // (Spot — typing an exact start — is the region editor's field, available in every mode.)
 
 import { PARAMS, cleanAuto, cleanLane } from "./automation.js";
-export const MAX_TRACKS = 32;
+// The engine's own bound on one session, not a tier: how many tracks a member may have is the tier's
+// (`addTrack`'s `cap`, Free 3 / Premium 6 / StatZ unlimited), and StatZ's "unlimited" runs up to this.
+export const MAX_TRACKS = 128;
 export const MAX_REGIONS = 400;
 export const MAX_PLAYLISTS = 8;
 export const MIN_LEN = 0.02;            // a region shorter than 20 ms is a click, not audio
@@ -132,8 +134,9 @@ export function setSession(s, patch) {
   return out;
 }
 
-export function addTrack(s, name) {
-  if (s.tracks.length >= MAX_TRACKS) return s;
+/** Add a track — unless the session already holds `cap` (the tier's count; null/undefined = no tier ceiling). */
+export function addTrack(s, name, cap) {
+  if (s.tracks.length >= Math.min(MAX_TRACKS, cap ?? MAX_TRACKS)) return s;
   return { ...s, tracks: [...s.tracks, newTrack(s.tracks.length + 1, name)] };
 }
 

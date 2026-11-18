@@ -245,3 +245,17 @@ test("several tracks can be armed, and two on the same input are named as a clas
   assert.deepEqual(armedTs(s).map((t) => t.id), [b]);
   void c;
 });
+
+test("tracks stop at the tier's count (3 / 6 / unlimited), and a session over it keeps every track", async () => {
+  const { addTrack, newSession, cleanSession, MAX_TRACKS } = await import("./session.js");
+  let s = newSession();
+  for (let i = 0; i < 5; i++) s = addTrack(s, undefined, 3);
+  assert.equal(s.tracks.length, 3);
+  for (let i = 0; i < 5; i++) s = addTrack(s, undefined, 6);
+  assert.equal(s.tracks.length, 6);
+  for (let i = 0; i < 20; i++) s = addTrack(s, undefined, null);
+  assert.equal(s.tracks.length, 26);
+  assert.equal(cleanSession(JSON.parse(JSON.stringify(s))).tracks.length, 26);   // over a lower cap: nothing is dropped
+  assert.equal(addTrack(s, undefined, 3), s);
+  assert.ok(MAX_TRACKS >= 100);
+});

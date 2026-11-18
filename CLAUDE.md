@@ -2308,3 +2308,11 @@ updates it.
 - **The server keeps the SHAPE** (known effect, on/off, finite numbers under that effect's own names); the RANGES
   stay with the effects (`cleanInserts` clamps as a preset is applied), so there is one copy of each range.
 - Free: nothing is rendered or charged. Not yet: sharing a preset with another member.
+
+## Tracks per DAW session are the tier's (Corey: Free 3, Premium 6, StatZ unlimited)
+
+`addTrack(s, name, cap)` is the one way a track is made, so the add button, the keyboard shortcut and every import
+(files, the drummer, songwriter, rack and loop sends) all stop at the same count (`imagez_layers` from `/limits/`).
+The Tracks header says "2 of 3". At the count, an import goes onto an empty track if there is one, else the last
+track, and the screen says where it went. A session already over the count keeps every track. `MAX_TRACKS` (128)
+is the engine's own bound, which is what StatZ's "unlimited" runs to.

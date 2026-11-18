@@ -164,6 +164,13 @@ export default function Workspace({ workflow }) {
   // and then the pass is written into the lane (automation.js writePass). ----
   const [lim, setLim] = useState(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  // Tracks per session are the tier's (Corey: Free 3, Premium 6, StatZ unlimited — the shared count).
+  // A session already over it keeps every track; only adding is refused, and the screen says so.
+  const trackCapLine = (lead = "") => `${lead ? `${lead} ` : ""}${autoCap} tracks is your plan's limit${lim?.tier === "free" ? ` — Premium has ${lim?.tiers?.premium?.imagez_layers ?? 6}, StatZ unlimited` : " — StatZ is unlimited"}.`;
+  const addOneTrack = () => {
+    if (autoCap != null && sRef.current.tracks.length >= autoCap) { setMsg(trackCapLine("Couldn't add a track:")); return; }
+    commit((s) => addTrack(s, undefined, autoCap));
+  };
   const [writeAuto, setWriteAuto] = useState(false);
   const writeBuf = useRef({});                    // "trackId|param" -> [{ t, v }]
   const autoCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
@@ -387,7 +394,16 @@ export default function Workspace({ workflow }) {
         commit((s) => {
           let next = addSource(s, meta);
           let track = items.length === 1 && !own ? targetTrack(next) : null;
-          if (!track) { next = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40)); track = next.tracks.at(-1).id; }
+          if (!track) {
+            const more = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40), autoCap);
+            if (more !== next) { next = more; track = next.tracks.at(-1).id; }
+            else {
+              // At the tier's track count: it goes on an empty track if there is one, else the last track.
+              track = next.tracks.find((t) => !regionsOf(t).length)?.id || next.tracks.at(-1).id;
+              const tn = next.tracks.find((t) => t.id === track)?.name;
+              setTimeout(() => setMsg(trackCapLine(`"${it.name}" went onto ${tn} instead of a new track.`)), 0);
+            }
+          }
           return addRegion(next, track, { src: meta.id, at, name: it.name });
         });
       } catch {
@@ -444,7 +460,7 @@ export default function Workspace({ workflow }) {
       else if (act === "delete" && selected) { e.preventDefault(); del(); }
       else if (act === "split" && selected) split();
       else if (act === "home") seek(0);
-      else if (act === "addtrack") commit((s) => addTrack(s));
+      else if (act === "addtrack") addOneTrack();
       else if (act === "bounce") { e.preventDefault(); bounce(); }
     };
     window.addEventListener("keydown", onKey);
@@ -661,7 +677,8 @@ export default function Workspace({ workflow }) {
           keyRange={keyRange} onTranspose={transposeTrack}
           onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoCap={autoCap}
           onAutoLocked={() => setMsg(`${autoCap} automation lanes is your plan's limit${lim?.tier === "free" ? ` — Premium has ${lim?.tiers?.premium?.imagez_layers ?? 6}, StatZ unlimited` : " — StatZ has unlimited"}. Clear a lane to draw on another.`)}
-          onAddTrack={() => commit((s) => addTrack(s))}
+          onAddTrack={addOneTrack}
+          trackLabel={autoCap == null ? "" : `${session.tracks.length} of ${autoCap}`}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {
             if (op.type === "switch") commit((s) => switchPlaylist(s, id, op.index));
