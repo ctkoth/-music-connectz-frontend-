@@ -7,6 +7,7 @@ import { Power, X } from "lucide-react";
 import { GAIN_DB } from "./session.js";
 import { MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
 import { reads } from "./automation.js";
+import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 
 const fmtDb = (v) => (v <= GAIN_DB.min ? "−∞" : `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
 
@@ -56,7 +57,7 @@ function InsertEditor({ insert, onChange, onClose }) {
   );
 }
 
-function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {} }) {
+function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {}, tones }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
@@ -68,6 +69,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
       </div>
       {!master && (
         <>
+          {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} />}
           <p className="uppercase tracking-wider text-white/40">Inserts</p>
           {inserts.map((ins) => (
             <div key={ins.id}>
@@ -118,6 +120,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
 
 export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoCap, lanesUsed = 0 }) {
   const meters = useMeters(daw, playing);
+  const tones = useTonePresets();
   return (
     <div className="space-y-2">
       {onWriteAuto && (
@@ -141,7 +144,7 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
       <div className="flex gap-2 overflow-x-auto pb-2">
         {session.tracks.map((t) => (
           <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} inserts={t.inserts}
-                 auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }}
+                 auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }} tones={tones}
                  meter={meters[t.id]} onTrack={(patch) => onTrack(t.id, patch)} onInserts={(list) => onInserts(t.id, list)} />
         ))}
         <Strip master name="Master" color="#ffffff" gain={session.master} pan={0} inserts={[]} meter={meters.master}

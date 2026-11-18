@@ -2291,3 +2291,20 @@ knob, and the static value is used only when it is off or empty — the Pro Tool
   ConnectZ as blob addresses: the first becomes the song, the rest TrackZ tracks, up to the same tier count (said on
   the button before it is pressed). A tab that reloaded in between has lost the blobs, and Mix ConnectZ says to send again.
 - Not yet: automating effect parameters, and touch mode (the hand lets go and the lane takes over mid-pass).
+
+## ToneZ: a member's own tone presets, on every channel strip
+
+Every DAW's Mix window strip has a **🎛️ Tone…** menu and **Save this tone** (`src/daw/TonePresets.jsx`). A preset is
+the track's effect chain under a name ("My vocal"), saved to `/api/economy/tonez/`, so it is in every DAW on every
+device. Applying one replaces the track's effects (Undo brings them back); saving under a name you already have
+updates it.
+
+- **How many is the tier's** (`tone_presets`: Free 3, Premium 6, StatZ unlimited), shown as "2 of 3 saved" beside
+  the button before it is pressed, refused by the server with its own sentence past the ceiling. Nobody loses one
+  when it moves: over the ceiling every preset stays usable, updatable and deletable; only a NEW one is refused.
+- **Five voice starters are built in** (`STARTERS` in `tonePresets.js`: clean, rap upfront, warm R&B, radio/phone,
+  ad-libs wide and far), free and not counted, each with what it does. They are made of the built-in effects only,
+  and a test holds every value inside its effect's range.
+- **The server keeps the SHAPE** (known effect, on/off, finite numbers under that effect's own names); the RANGES
+  stay with the effects (`cleanInserts` clamps as a preset is applied), so there is one copy of each range.
+- Free: nothing is rendered or charged. Not yet: sharing a preset with another member.
