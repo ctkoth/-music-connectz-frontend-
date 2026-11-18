@@ -10,18 +10,19 @@
 // running inside this page with the member's sign-in — so outside plugins wait for the Windows app,
 // where they can run apart from it. The server says this to the member (`plugin_note` on /dawz/).
 
+import { bandOn, cleanBands, defaultBands } from "../eqbands.js";
+
 export const MAX_INSERTS = 8;
 
 const P = (label, min, max, def, unit = "", step) => ({ label, min, max, default: def, unit, step: step ?? (max - min > 50 ? 1 : 0.1) });
 
 export const PLUGINS = {
+  // The EQ holds a list of bands (src/eqbands.js), not fixed params: how many is the tier's (`eq_bands`,
+  // Free 3 / Premium 6 / StatZ unlimited), the same model as TrackZ's channel strip. An EQ saved before
+  // bands existed (lowGain / midFreq / …) opens as the three bands it always was.
   eq: {
-    label: "EQ", emoji: "🎚️", what: "Three bands: shelve the lows and highs, push or cut one middle frequency.",
-    params: {
-      lowGain: P("Low", -18, 18, 0, "dB"), lowFreq: P("Low freq", 30, 400, 100, "Hz"),
-      midGain: P("Mid", -18, 18, 0, "dB"), midFreq: P("Mid freq", 200, 8000, 1000, "Hz"), midQ: P("Mid width (Q)", 0.3, 8, 1, ""),
-      highGain: P("High", -18, 18, 0, "dB"), highFreq: P("High freq", 2000, 16000, 8000, "Hz"),
-    },
+    label: "EQ", emoji: "🎚️", what: "Shelve the lows and highs and push or cut any frequency in between — as many bands as your plan holds.",
+    params: {},
   },
   comp: {
     label: "Compressor", emoji: "🗜️", what: "Turns loud moments down so the track sits evenly; make-up gain brings the level back.",
@@ -56,10 +57,20 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
 let seq = 0;
 
+export const EQ_GAIN = 18;
+// An EQ from before bands: low shelf, one bell, high shelf, at the frequencies it was saved with.
+const legacyEqBands = (p = {}) => [
+  { type: "lowshelf", f: num(p.lowFreq, 100), gain: num(p.lowGain, 0), q: 1 },
+  { type: "peaking", f: num(p.midFreq, 1000), gain: num(p.midGain, 0), q: num(p.midQ, 1) },
+  { type: "highshelf", f: num(p.highFreq, 8000), gain: num(p.highGain, 0), q: 1 },
+];
+
 export function newInsert(type) {
   const spec = PLUGINS[type];
   if (!spec) return null;
-  return { id: `i${Date.now().toString(36)}${(seq++).toString(36)}`, type, on: true, params: Object.fromEntries(Object.entries(spec.params).map(([k, p]) => [k, p.default])) };
+  const ins = { id: `i${Date.now().toString(36)}${(seq++).toString(36)}`, type, on: true, params: Object.fromEntries(Object.entries(spec.params).map(([k, p]) => [k, p.default])) };
+  if (type === "eq") ins.bands = defaultBands();
+  return ins;
 }
 
 /** An insert with every param present and in range; an unknown type is dropped (null). */
@@ -67,7 +78,9 @@ export function cleanInsert(raw) {
   const spec = PLUGINS[raw?.type];
   if (!spec) return null;
   const params = Object.fromEntries(Object.entries(spec.params).map(([k, p]) => [k, clamp(num(raw.params?.[k], p.default), p.min, p.max)]));
-  return { id: String(raw.id || newInsert(raw.type).id), type: raw.type, on: raw.on !== false, params };
+  const out = { id: String(raw.id || newInsert(raw.type).id), type: raw.type, on: raw.on !== false, params };
+  if (raw.type === "eq") out.bands = cleanBands(Array.isArray(raw.bands) ? raw.bands : legacyEqBands(raw.params), { gain: EQ_GAIN });
+  return out;
 }
 
 export const cleanInserts = (list) => (Array.isArray(list) ? list : []).map(cleanInsert).filter(Boolean).slice(0, MAX_INSERTS);
@@ -111,17 +124,18 @@ export function buildInsert(ctx, insert, { bpm = 120 } = {}) {
   const p = insert.params;
   switch (insert.type) {
     case "eq": {
-      const lo = ctx.createBiquadFilter(); lo.type = "lowshelf";
-      const mid = ctx.createBiquadFilter(); mid.type = "peaking";
-      const hi = ctx.createBiquadFilter(); hi.type = "highshelf";
-      input.connect(lo).connect(mid).connect(hi).connect(output);
-      const update = (q) => {
-        lo.frequency.value = q.lowFreq; lo.gain.value = q.lowGain;
-        mid.frequency.value = q.midFreq; mid.gain.value = q.midGain; mid.Q.value = q.midQ;
-        hi.frequency.value = q.highFreq; hi.gain.value = q.highGain;
-      };
-      update(p);
-      return { input, output, update };
+      // One BiquadFilterNode per band that moves anything, in order. A change to the bands rebuilds
+      // the graph (Workspace restarts playback on every insert change), so `update` has nothing to do.
+      const nyq = ctx.sampleRate * 0.45;
+      let at = input;
+      for (const b of cleanBands(insert.bands ?? legacyEqBands(p), { gain: EQ_GAIN }).filter(bandOn)) {
+        const f = ctx.createBiquadFilter();
+        f.type = b.type; f.frequency.value = Math.min(b.f, nyq); f.gain.value = b.gain;
+        if (b.type === "peaking") f.Q.value = b.q;
+        at.connect(f); at = f;
+      }
+      at.connect(output);
+      return { input, output, update() {} };
     }
     case "comp": {
       const c = ctx.createDynamicsCompressor(); const mk = ctx.createGain();

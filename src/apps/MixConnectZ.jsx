@@ -14,6 +14,7 @@ import { decodeFile, run, toAudioBuffer, saveBlob, slug, MAX_SECONDS } from "../
 import { guessRole, needsMix, trackRoom } from "../mastering/multitrack.js";
 import { loadLimits } from "../limits.js";
 import TrackMixer from "../components/TrackMixer.jsx";
+import { bandCap, nextBandCap } from "../eqbands.js";
 import MasterPresets from "../components/MasterPresets.jsx";
 
 // Mix ConnectZ — mastering that runs on the member's own device.
@@ -594,6 +595,7 @@ export default function MixConnectZ() {
           {stemNote && <p className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">{stemNote}</p>}
           <MasterPresets settings={{ ...settings, glueDb: manualGlue && !autoGlue ? settings.glueDb : null }} onApply={applyPreset} />
           <TrackMixer tracks={allTracks} sampleRate={song?.sampleRate || 44100} onChange={changeTrack}
+            bandCap={bandCap(lim)} nextBandCap={nextBandCap(lim)}
             onAdd={addTracks} onRemove={(i) => setExtra((xs) => xs.filter((_, k) => k !== i - 1))} onApply={applyTracks}
             cap={trackCap} nextCap={nextTrackCap} busy={busy} />
 

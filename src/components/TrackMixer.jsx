@@ -4,7 +4,8 @@ import { goToSpot } from "../goto.js";
 import { IN_SHELL } from "../standalone.js";
 import { toAudioBuffer, run } from "../mastering/client.js";
 import { GAIN_MIN, GAIN_MAX, ROLES, audible, panLabel, suggestMix, trackRoom } from "../mastering/multitrack.js";
-import { COMP, EQ_MAX, EQ_MIN, FLAT, HIGH_HZ, HP, LOW_HZ, MID, SPEEDS, cleanStrip, stripIsFlat, stripKey, stripWords } from "../mastering/strip.js";
+import { COMP, EQ_MAX, FLAT, HP, SPEEDS, cleanStrip, stripIsFlat, stripKey, stripWords } from "../mastering/strip.js";
+import EqBands from "./EqBands.jsx";
 
 // Mix ConnectZ's multitrack section: every track's gain and pan, mute and solo, heard live while
 // they move, and "Suggest a balance", which measures the tracks and proposes a starting mix with a
@@ -158,7 +159,7 @@ const fhz = (f) => (f >= 1000 ? `${(f / 1000).toFixed(1)} kHz` : `${Math.round(f
 const toLog = (f, lo, hi) => Math.log(f / lo) / Math.log(hi / lo);
 const fromLog = (x, lo, hi) => Math.round(lo * Math.pow(hi / lo, x));
 
-function StripPanel({ t, i, onChange, pending, gr }) {
+function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
   const s = cleanStrip(t.strip);
   const set = (patch) => onChange(i, { strip: { ...s, ...patch } });
   const setComp = (patch) => set({ comp: { ...s.comp, ...patch } });
@@ -174,19 +175,9 @@ function StripPanel({ t, i, onChange, pending, gr }) {
             onChange={(e) => { const x = Number(e.target.value); set({ hp: x < 0.05 ? 0 : fromLog((x - 0.05) / 0.95, HP.min, HP.max) }); }}
             onDoubleClick={() => set({ hp: 0 })} />
         </label>
-        <Slider label={`Lows (${LOW_HZ} Hz shelf)`} value={s.low} shown={sdb(s.low)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
-          aria={`${name} lows`} onChange={(v) => set({ low: v })} />
-        <Slider label={`Mids at ${fhz(s.midHz)}`} value={s.mid} shown={sdb(s.mid)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
-          aria={`${name} mids`} onChange={(v) => set({ mid: v })} />
-        <label className="block min-w-0 text-[11px] text-white/60">
-          <span className="flex justify-between"><span>Mid frequency</span><span className="tabular-nums text-white/80">{fhz(s.midHz)}</span></span>
-          <input type="range" className="w-full" min={0} max={1} step={0.005} aria-label={`${name} mid frequency`}
-            value={toLog(s.midHz, MID.min, MID.max)} onChange={(e) => set({ midHz: fromLog(Number(e.target.value), MID.min, MID.max) })}
-            onDoubleClick={() => set({ midHz: 1000 })} />
-        </label>
-        <Slider label={`Highs (${HIGH_HZ / 1000} kHz shelf)`} value={s.high} shown={sdb(s.high)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
-          aria={`${name} highs`} onChange={(v) => set({ high: v })} />
       </div>
+      <EqBands bands={s.bands} onChange={(bands) => set({ bands })} gainMax={EQ_MAX} cap={bandCap} nextCap={nextBandCap} name={name}
+        note="The low cut above is a filter, not a band — it never counts." />
       <div className="space-y-1 border-t border-white/10 pt-2">
         <label className="flex items-center gap-2 text-[11px] text-white/70">
           <input type="checkbox" checked={s.comp.on} onChange={(e) => setComp({ on: e.target.checked })} aria-label={`${name} compressor`} />
@@ -224,7 +215,7 @@ function StripPanel({ t, i, onChange, pending, gr }) {
   );
 }
 
-export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemove, onApply, cap, nextCap, busy }) {
+export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemove, onApply, cap, nextCap, bandCap, nextBandCap, busy }) {
   const input = useRef(null);
   const stripped = useStripped(tracks, sampleRate);
   const live = useLiveMix(tracks, stripped.sources, sampleRate);
@@ -303,7 +294,7 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
                   onDoubleClick={() => onChange(i, { pan: 0 })} />
               </label>
             </div>
-            {open[t.id] && <StripPanel t={t} i={i} onChange={onChange} pending={!!stripped.pending[t.id]}
+            {open[t.id] && <StripPanel t={t} i={i} onChange={onChange} pending={!!stripped.pending[t.id]} bandCap={bandCap} nextBandCap={nextBandCap}
               gr={stripped.sources[i]?.gr || null} />}
             {why?.[t.id] && <p className="text-[11px] text-emerald-300/80">{why[t.id]}</p>}
           </div>

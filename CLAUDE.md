@@ -2404,3 +2404,16 @@ whole thing, pure and tested (`strip.test.mjs`); `mixTracks` runs it before each
 - **Free on every plan**; the tier still sets only how many tracks. The strip is not saved with a master (tracks are not).
 - Driven in a browser: beat + vocal, −6 dB at 1.3 kHz and a 3:1 compressor on the vocal (took off 10.7 dB), the suggestion's
   90 Hz cut, and the master's result naming every move.
+
+## EQ bands are the tier numbers, in TrackZ and every DAW's EQ (Corey, Nov 2026)
+
+`src/eqbands.js` is the one band model (low shelf / bell / high shelf, frequency, gain, width) and
+`components/EqBands.jsx` the one editor, used by TrackZ's channel strip and the DAW EQ effect (`compact` in a Mix
+window strip, which widens while its EQ is open). How many is `eq_bands` from /limits/ — Free 3, Premium 6, StatZ
+unlimited (to `MAX_BANDS`, 32) — applied where a band is ADDED: the button says "(N left)", and at the count it locks
+with the next plan's number. An EQ over the count keeps playing every band and can still change or remove them.
+Every EQ starts as three bands (lows, one bell, highs), so Free has a whole EQ. TrackZ's low cut is a filter and
+never counts. A strip or DAW EQ saved before bands opens as the three bands it was (`legacyBands`, `legacyEqBands`),
+the voice starters are three bands each, and a saved tone keeps all its bands (server `tonez.clean_bands`).
+Driven in a browser: Free locked at 3 of 3 and freed a slot on remove; Premium reached 6 in TrackZ and in Arsenal's EQ;
+the master's result named the band moved.

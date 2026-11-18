@@ -5,7 +5,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Power, X } from "lucide-react";
 import { GAIN_DB } from "./session.js";
-import { MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
+import { EQ_GAIN, MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
+import EqBands from "../components/EqBands.jsx";
 import { reads } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
@@ -38,7 +39,7 @@ function Meter({ db }) {
   );
 }
 
-function InsertEditor({ insert, onChange, onClose }) {
+function InsertEditor({ insert, onChange, onClose, bands }) {
   const spec = PLUGINS[insert.type];
   return (
     <div className="mt-1 space-y-1 rounded-lg border border-white/15 bg-black/60 p-2 text-[10px]">
@@ -47,6 +48,10 @@ function InsertEditor({ insert, onChange, onClose }) {
         <button type="button" onClick={onClose} aria-label="Close"><X size={12} /></button>
       </div>
       <p className="text-white/50">{spec.what}</p>
+      {insert.type === "eq" && (
+        <EqBands compact bands={insert.bands || []} gainMax={EQ_GAIN} cap={bands?.cap} nextCap={bands?.next} name="EQ"
+          onChange={(list) => onChange({ ...insert, bands: list })} />
+      )}
       {Object.entries(spec.params).map(([k, p]) => (
         <label key={k} className="block">
           <span className="flex justify-between text-white/70"><span>{p.label}</span><span className="tabular-nums">{insert.params[k]}{p.unit && ` ${p.unit}`}</span></span>
@@ -58,12 +63,13 @@ function InsertEditor({ insert, onChange, onClose }) {
   );
 }
 
-function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {}, tones }) {
+function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
   return (
-    <div className="flex w-36 shrink-0 flex-col gap-1.5 rounded-xl border border-white/10 bg-black/40 p-2 text-[10px]">
+    // A strip widens while its EQ is open: band rows need room for "2.8 kHz" and "−6.0 dB".
+    <div className={`flex ${inserts.some((x) => x.id === open && x.type === "eq") ? "w-64" : "w-36"} shrink-0 flex-col gap-1.5 rounded-xl border border-white/10 bg-black/40 p-2 text-[10px]`}>
       <div className="flex items-center gap-1">
         <span className="h-3 w-1.5 rounded" style={{ background: color }} />
         <span className="truncate font-semibold text-white">{name}</span>
@@ -83,7 +89,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
                 <button type="button" aria-label={`Remove ${PLUGINS[ins.type].label}`} className="text-white/40 hover:text-mcz-ember"
                         onClick={() => onInserts(inserts.filter((x) => x.id !== ins.id))}><X size={11} /></button>
               </div>
-              {open === ins.id && <InsertEditor insert={ins} onChange={setInsert} onClose={() => setOpen(null)} />}
+              {open === ins.id && <InsertEditor insert={ins} onChange={setInsert} onClose={() => setOpen(null)} bands={bands} />}
             </div>
           ))}
           {inserts.length < MAX_INSERTS && (
@@ -119,7 +125,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
   );
 }
 
-export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoAllowed = false }) {
+export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoAllowed = false, bands }) {
   const meters = useMeters(daw, playing);
   const tones = useTonePresets();
   return (
@@ -147,7 +153,7 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
       <div className="flex gap-2 overflow-x-auto pb-2">
         {session.tracks.map((t) => (
           <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} inserts={t.inserts}
-                 auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }} tones={tones}
+                 auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }} tones={tones} bands={bands}
                  meter={meters[t.id]} onTrack={(patch) => onTrack(t.id, patch)} onInserts={(list) => onInserts(t.id, list)} />
         ))}
         <Strip master name="Master" color="#ffffff" gain={session.master} pan={0} inserts={[]} meter={meters.master}

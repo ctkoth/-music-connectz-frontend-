@@ -17,6 +17,7 @@ import { createDaw } from "./engine.js";
 import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import MixWindow from "./MixWindow.jsx";
+import { bandCap, nextBandCap } from "../eqbands.js";
 import MidiImport from "./MidiImport.jsx";
 import LoopLibrary from "./LoopLibrary.jsx";
 import KeyActions from "./KeyActions.jsx";
@@ -688,7 +689,7 @@ export default function Workspace({ workflow }) {
           session={session} daw={daw} playing={playing}
           onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
           writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
-          autoAllowed={autoAllowed}
+          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
           onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />

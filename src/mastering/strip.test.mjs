@@ -13,7 +13,8 @@ test("a flat strip is flat, and junk cleans to flat", () => {
   assert.ok(stripIsFlat({ low: "x", mid: NaN, comp: { on: true, ratio: 1 } }));
   assert.equal(stripKey(undefined), "");
   const c = cleanStrip({ low: 40, hp: 5, midHz: 99999, comp: { ratio: 99, speed: "warp" } });
-  assert.equal(c.low, 12); assert.equal(c.hp, 0); assert.equal(c.midHz, 8000); assert.equal(c.comp.ratio, 10); assert.equal(c.comp.speed, "medium");
+  assert.equal(c.bands[0].gain, 12); assert.equal(c.hp, 0); assert.equal(c.bands[1].f, 20000); assert.equal(c.comp.ratio, 10); assert.equal(c.comp.speed, "medium");
+  assert.equal(cleanStrip(undefined).bands.length, 3, "every plan starts with three bands");
 });
 
 test("each EQ band moves its own frequencies by what it says", () => {
@@ -69,6 +70,16 @@ test("the suggestion cuts lows by role, keeps bass weight, and never lowers a cu
 
 test("words describe what was set", () => {
   assert.equal(stripWords(FLAT), "");
-  assert.equal(stripWords({ hp: 90, high: 2 }), "high-pass at 90 Hz, highs +2 dB");
+  assert.equal(stripWords({ hp: 90, high: 2 }), "high-pass at 90 Hz, highs +2 dB at 8 kHz");
+  assert.equal(stripWords({ bands: [{ type: "peaking", f: 300, gain: -4, q: 2 }, { type: "peaking", f: 5000, gain: 3, q: 1 }] }),
+    "−4 dB at 300 Hz, +3 dB at 5 kHz");
   assert.match(stripWords({ comp: { on: true, thresholdDb: -20, ratio: 3, speed: "slow" } }, { maxGrDb: 0, avgGrDb: 0 }), /never reached the threshold/);
+});
+
+test("any number of bands runs, each where it says", () => {
+  const bands = [200, 400, 800, 1600, 3200, 6400, 12000].map((f) => ({ type: "peaking", f, gain: -6, q: 4 }));
+  for (const b of bands) assert.ok(Math.abs(eqAt({ bands }, fs, b.f) + 6) < 0.6, `${b.f} Hz`);
+  const x = tone(800);
+  const out = applyStrip([x, x], fs, { bands });
+  assert.ok(Math.abs(rmsDb(out.channels[0]) - rmsDb(x) - eqAt({ bands }, fs, 800)) < 0.15);
 });

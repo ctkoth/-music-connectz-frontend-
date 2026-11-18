@@ -1,19 +1,18 @@
-// A channel strip for one TrackZ track: a high-pass, three bands of EQ and a compressor, run BEFORE
+// A channel strip for one TrackZ track: a high-pass, an EQ of N bands and a compressor, run BEFORE
 // the track's gain and pan. Pure functions over Float32Arrays, so the worker, the tests and the live
 // preview all run the same code: the preview plays a buffer this file made, not a Web Audio stand-in
 // with its own idea of a compressor, so what is set by ear is exactly what is mixed and mastered.
 //
-// Free at every tier — it runs on the member's device and costs the platform nothing. The tier
-// already says how many tracks (TrackZ's shared 3 / 6 / unlimited); it never says whether a track
-// may have an EQ.
+// Free at every tier — it runs on the member's device and costs the platform nothing. The tier says how
+// many tracks and how many EQ BANDS (both Free 3 / Premium 6 / StatZ unlimited, the band count applied
+// where a band is added — src/eqbands.js); it never says whether a track may have an EQ. The low cut is
+// a filter, not a band, and is not counted.
 import { dbToGain, highPass, lowShelf, highShelf, peaking, biquadInPlace, responseDb } from "./dsp.js";
+import { bandOn, bandWords, cleanBands, defaultBands } from "../eqbands.js";
 
 export const EQ_MIN = -12;
 export const EQ_MAX = 12;
 export const HP = { off: 0, min: 20, max: 400 };
-export const LOW_HZ = 100;           // low shelf corner
-export const HIGH_HZ = 8000;         // high shelf corner
-export const MID = { min: 200, max: 8000, q: 1 };
 export const COMP = {
   threshold: { min: -60, max: 0 },
   ratio: { min: 1, max: 10 },
@@ -27,7 +26,7 @@ export const SPEEDS = {
   slow: { label: "Slow", attackMs: 40, releaseMs: 300, why: "lets the start of each note through, then holds the sustain" },
 };
 
-export const FLAT = Object.freeze({ hp: 0, low: 0, mid: 0, midHz: 1000, high: 0,
+export const FLAT = Object.freeze({ hp: 0, bands: Object.freeze(defaultBands()),
   comp: Object.freeze({ on: false, thresholdDb: -18, ratio: 3, speed: "medium", makeupDb: 0 }) });
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -36,6 +35,13 @@ const r1 = (v) => Math.round(v * 10) / 10;
 const sdb = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(r1(v))} dB`;
 const hz = (f) => (f >= 1000 ? `${r1(f / 1000)} kHz` : `${Math.round(f)} Hz`);
 
+// A strip saved before bands existed had a fixed low shelf (100 Hz), one bell and a high shelf (8 kHz).
+const legacyBands = (s) => [
+  { type: "lowshelf", f: 100, gain: num(s.low, 0), q: 1 },
+  { type: "peaking", f: num(s.midHz, 1000), gain: num(s.mid, 0), q: 1 },
+  { type: "highshelf", f: 8000, gain: num(s.high, 0), q: 1 },
+];
+
 /** A strip as stored: every number inside its range, junk replaced by flat. */
 export function cleanStrip(raw) {
   const s = raw || {};
@@ -43,10 +49,7 @@ export function cleanStrip(raw) {
   const hpv = num(s.hp, 0);
   return {
     hp: hpv < HP.min ? 0 : clamp(Math.round(hpv), HP.min, HP.max),
-    low: clamp(num(s.low, 0), EQ_MIN, EQ_MAX),
-    mid: clamp(num(s.mid, 0), EQ_MIN, EQ_MAX),
-    midHz: clamp(num(s.midHz, FLAT.midHz), MID.min, MID.max),
-    high: clamp(num(s.high, 0), EQ_MIN, EQ_MAX),
+    bands: cleanBands(Array.isArray(s.bands) ? s.bands : legacyBands(s), { gain: EQ_MAX }),
     comp: {
       on: !!c.on,
       thresholdDb: clamp(num(c.thresholdDb, FLAT.comp.thresholdDb), COMP.threshold.min, COMP.threshold.max),
@@ -57,19 +60,21 @@ export function cleanStrip(raw) {
   };
 }
 
-const eqOn = (s) => s.hp > 0 || Math.abs(s.low) > 0.01 || Math.abs(s.mid) > 0.01 || Math.abs(s.high) > 0.01;
+const eqOn = (s) => s.hp > 0 || s.bands.some(bandOn);
 const compOn = (s) => s.comp.on && (s.comp.ratio > 1.001 || s.comp.makeupDb > 0.01);
 /** True when the strip changes nothing, so the track is used exactly as loaded. */
 export const stripIsFlat = (raw) => { const s = cleanStrip(raw); return !eqOn(s) && !compOn(s); };
 
-/** The EQ as biquads, in the order they run. A 12 dB/oct high-pass is two of them. */
+/** The EQ as biquads, in the order they run: the low cut (12 dB/oct), then every band that moves anything. */
 export function eqCascade(raw, fs) {
   const s = cleanStrip(raw);
   const out = [];
   if (s.hp > 0) out.push(highPass(fs, s.hp));
-  if (Math.abs(s.low) > 0.01) out.push(lowShelf(fs, LOW_HZ, s.low, 1));
-  if (Math.abs(s.mid) > 0.01) out.push(peaking(fs, Math.min(s.midHz, fs * 0.45), s.mid, MID.q));
-  if (Math.abs(s.high) > 0.01) out.push(highShelf(fs, Math.min(HIGH_HZ, fs * 0.45), s.high, 1));
+  for (const b of s.bands) {
+    if (!bandOn(b)) continue;
+    const f = Math.min(b.f, fs * 0.45);
+    out.push(b.type === "lowshelf" ? lowShelf(fs, f, b.gain, 1) : b.type === "highshelf" ? highShelf(fs, f, b.gain, 1) : peaking(fs, f, b.gain, b.q));
+  }
   return out;
 }
 
@@ -117,9 +122,7 @@ export function stripWords(raw, res = null) {
   const s = cleanStrip(raw);
   const parts = [];
   if (s.hp > 0) parts.push(`high-pass at ${hz(s.hp)}`);
-  if (Math.abs(s.low) > 0.01) parts.push(`lows ${sdb(s.low)}`);
-  if (Math.abs(s.mid) > 0.01) parts.push(`${sdb(s.mid)} at ${hz(s.midHz)}`);
-  if (Math.abs(s.high) > 0.01) parts.push(`highs ${sdb(s.high)}`);
+  for (const b of s.bands) if (bandOn(b)) parts.push(bandWords(b));
   if (compOn(s)) {
     const took = res && res.maxGrDb > 0 ? `, took off up to ${r1(res.maxGrDb)} dB (${r1(res.avgGrDb)} dB on average)` : res ? ", never reached the threshold" : "";
     parts.push(`compressed ${r1(s.comp.ratio)}:1 over ${s.comp.thresholdDb < 0 ? "−" : ""}${Math.abs(r1(s.comp.thresholdDb))} dB, ${SPEEDS[s.comp.speed].label.toLowerCase()}${s.comp.makeupDb > 0 ? `, ${sdb(s.comp.makeupDb)} make-up` : ""}${took}`);
