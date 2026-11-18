@@ -10,6 +10,7 @@ import { master, toStereo, balanceChart } from "./master.js";
 import { encodeWav } from "./wav.js";
 import { exportMaster } from "./export.js";
 import { measureTrack, mixTracks, stereoReport } from "./multitrack.js";
+import { applyStrip } from "./strip.js";
 
 self.onmessage = (e) => {
   const { id, op } = e.data || {};
@@ -40,6 +41,11 @@ self.onmessage = (e) => {
       const { tracks, sampleRate } = e.data;
       const m = mixTracks(tracks, sampleRate);
       self.postMessage({ id, ok: true, result: stereoReport(m.channels, sampleRate) });
+    } else if (op === "strip") {
+      // One track through its EQ and compressor, for the live preview: the same function the mix runs.
+      const { channels, sampleRate, strip } = e.data;
+      const result = applyStrip(channels, sampleRate, strip);
+      self.postMessage({ id, ok: true, result }, result.channels.map((c) => c.buffer));
     } else if (op === "encode") {
       const { channels, sampleRate, bitDepth, dither } = e.data;
       const result = encodeWav(channels, sampleRate, { bitDepth, dither });

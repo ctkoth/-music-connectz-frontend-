@@ -2385,3 +2385,22 @@ backend removed because nothing produced it. **A benefit line is a claim about t
 
 Sonday's `QuotaLine` reads the server's `per_tier`, `next_tier` and `next_per_tier` (never typed here) and tells a
 member over the count that every board stays. Lilith already renders `limits.routines` and treats null as unlimited.
+
+## TrackZ channel strips: EQ and a compressor on every track, and the preview IS the render
+
+Every TrackZ track has an **EQ** button (`StripPanel` in `TrackMixer.jsx`): a high-pass (20–400 Hz, off by default), a
+100 Hz low shelf, a sweepable mid bell (200 Hz–8 kHz) and an 8 kHz high shelf (±12 dB each), then a stereo-linked
+compressor (threshold, ratio, make-up, and Fast / Medium / Slow with what each does). `src/mastering/strip.js` is the
+whole thing, pure and tested (`strip.test.mjs`); `mixTracks` runs it before each track's gain and pan.
+
+- **The live preview plays strip.js's own output** (worker op `strip`, 250 ms after the last move), not BiquadFilter /
+  DynamicsCompressor nodes: the browser's compressor is its own algorithm, so a node-based preview would be a different
+  sound from the mix. Until the render lands the previous sound keeps playing and the panel says "Updating what you hear".
+  Only the current buffer per track is kept (a four-minute stereo buffer is ~85 MB). The cache key includes the audio
+  itself, because the song keeps the id "song" when a new file replaces it.
+- **The compressor says what it did**: "took off up to N dB", or "never reached the threshold — lower it", never silence.
+- **Suggest a balance adds a low cut by role** (`HP_BY_ROLE`: lead 90, backing 150, instrument 100, other 80; bass, drums
+  and a beat keep their lows), with the reason, and never lowers a cut the member already set higher.
+- **Free on every plan**; the tier still sets only how many tracks. The strip is not saved with a master (tracks are not).
+- Driven in a browser: beat + vocal, −6 dB at 1.3 kHz and a 3:1 compressor on the vocal (took off 10.7 dB), the suggestion's
+  90 Hz cut, and the master's result naming every move.

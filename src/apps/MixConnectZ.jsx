@@ -398,7 +398,7 @@ export default function MixConnectZ() {
         reference: ref ? { bands: ref.analysis.bands, lufs: ref.analysis.lufs } : null,
         vocal: vocalFile ? { channels: vocalFile.channels.map((c) => c.slice()), sampleRate: vocalFile.sampleRate } : null,
         tracks: needsMix(allTracks) ? allTracks.map((t) => ({ name: t.name, sampleRate: t.sampleRate, gainDb: t.gainDb, pan: t.pan,
-          mute: t.mute, solo: t.solo, channels: t.channels.map((c) => c.slice()) })) : null,
+          mute: t.mute, solo: t.solo, strip: t.strip, channels: t.channels.map((c) => c.slice()) })) : null,
       }, { onProgress: (p, stage) => { setProgress(p); setBusy(stage); } });
       setResult({ ...out, settings: { ...payload, vocalFile: !!vocalFile } });
     } catch (e) { setErr(e.message); } finally { setBusy(""); setProgress(0); }

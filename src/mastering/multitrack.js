@@ -13,6 +13,7 @@
 import { integratedLoudness, bandSpectrum, sideToMidDb, correlation, lowEndCorrelation } from "./meter.js";
 import { resample } from "./resample.js";
 import { lowPass, biquadInto, biquadInPlace } from "./dsp.js";
+import { applyStrip, stripIsFlat, stripWords, HP_BY_ROLE, cleanStrip } from "./strip.js";
 
 export const GAIN_MIN = -24;
 export const GAIN_MAX = 12;
@@ -90,11 +91,12 @@ export function needsMix(tracks) {
   if (!tracks || !tracks.length) return false;
   if (tracks.length > 1) return true;
   const t = tracks[0];
-  return Math.abs(Number(t.gainDb) || 0) > 0.001 || Math.abs(Number(t.pan) || 0) > 0.001 || !!t.mute;
+  return Math.abs(Number(t.gainDb) || 0) > 0.001 || Math.abs(Number(t.pan) || 0) > 0.001 || !!t.mute || !stripIsFlat(t.strip);
 }
 
 /**
- * Mix the tracks to one stereo pair at `fs`. Each: { channels, sampleRate, gainDb, pan, mute, solo, name }.
+ * Mix the tracks to one stereo pair at `fs`. Each: { channels, sampleRate, gainDb, pan, mute, solo, name, strip }.
+ * The strip (EQ and compressor, strip.js) runs first, then the gain, then the pan — a channel strip's order.
  * Returns { channels, lines } — `lines` says what was done, one per track, for the result's list.
  */
 export function mixTracks(tracks, fs) {
@@ -104,7 +106,9 @@ export function mixTracks(tracks, fs) {
     let ch = toStereo(t.channels);
     const rate = t.sampleRate || fs;
     if (rate !== fs) ch = resample([ch[0], ch[1]], rate, fs);
-    return { t, ch, resampled: rate !== fs };
+    let strip = null;
+    if (!stripIsFlat(t.strip)) { strip = applyStrip(ch, fs, t.strip); ch = strip.channels; }
+    return { t, ch, resampled: rate !== fs, strip };
   });
   const n = Math.max(1, ...prepared.filter(Boolean).map((p) => p.ch[0].length));
   const out = [new Float32Array(n), new Float32Array(n)];
@@ -116,7 +120,8 @@ export function mixTracks(tracks, fs) {
     const g = dbToGain(clamp(Number(t.gainDb) || 0, GAIN_MIN, GAIN_MAX));
     const [L, R] = panStereo(p.ch[0], p.ch[1], t.pan);
     for (let k = 0; k < L.length; k++) { out[0][k] += g * L[k]; out[1][k] += g * R[k]; }
-    lines.push(`${name}: ${fmtDb(Number(t.gainDb) || 0)}, pan ${panLabel(Number(t.pan) || 0)}${p.resampled ? `, converted from ${r1((t.sampleRate || fs) / 1000)} kHz` : ""}.`);
+    const eq = p.strip ? stripWords(t.strip, p.strip) : "";
+    lines.push(`${name}: ${eq ? `${eq}; ` : ""}${fmtDb(Number(t.gainDb) || 0)}, pan ${panLabel(Number(t.pan) || 0)}${p.resampled ? `, converted from ${r1((t.sampleRate || fs) / 1000)} kHz` : ""}.`);
   });
   return { channels: out, lines };
 }
@@ -150,11 +155,13 @@ const SPREAD = [0.35, 0.55, 0.7];       // successive off-centre pairs go wider,
 
 /**
  * Suggest gains and pans from measurements. tracks: [{ role, m: measureTrack(...) , name }].
- * Returns [{ gainDb, pan, why }] in the same order. Silent tracks are left alone.
+ * Returns [{ gainDb, pan, hp, why }] in the same order. Silent tracks are left alone. `hp` is the
+ * high-pass the part's role usually wants (strip.js HP_BY_ROLE), or 0 where the weight lives in the lows;
+ * a cut the member already set higher is kept, never lowered.
  */
 export function suggestMix(tracks) {
   const live = tracks.map((t) => t.m && Number.isFinite(t.m.lufs));
-  if (!live.some(Boolean)) return tracks.map(() => ({ gainDb: 0, pan: 0, why: "Silent — nothing to set." }));
+  if (!live.some(Boolean)) return tracks.map((t) => ({ gainDb: 0, pan: 0, hp: cleanStrip(t.strip).hp, why: "Silent — nothing to set." }));
   const leadIdx = tracks.findIndex((t, i) => live[i] && t.role === "lead");
   // Anchor: the lead at 0 dB, or (no lead) the loudest track at 0 dB.
   let anchor = leadIdx;
@@ -174,7 +181,7 @@ export function suggestMix(tracks) {
   if (spread.length === 1) pans.set(spread[0].i, -0.2);
 
   return tracks.map((t, i) => {
-    if (!live[i]) return { gainDb: 0, pan: 0, why: "Silent — nothing to set." };
+    if (!live[i]) return { gainDb: 0, pan: 0, hp: cleanStrip(t.strip).hp, why: "Silent — nothing to set." };
     const role = ROLES[t.role] || ROLES.other;
     const gainDb = r1(clamp(ref + role.level - t.m.lufs, GAIN_MIN, GAIN_MAX));
     const pan = pans.has(i) ? pans.get(i) : 0;
@@ -184,7 +191,11 @@ export function suggestMix(tracks) {
     const where = role.centre ? "centre"
       : t.m.widthDb > ALREADY_WIDE_DB ? "centre, because it is already a wide stereo track"
         : `${panLabel(pan)}`;
-    return { gainDb, pan, why: `${fmtDb(gainDb)} to sit ${level}; ${where} — ${role.why}.` };
+    const had = cleanStrip(t.strip).hp;
+    const cut = HP_BY_ROLE[t.role];
+    const hp = cut && cut.hz > had ? cut.hz : had;
+    const hpWhy = cut && cut.hz > had ? ` High-pass at ${cut.hz} Hz: ${cut.why}.` : "";
+    return { gainDb, pan, hp, why: `${fmtDb(gainDb)} to sit ${level}; ${where} — ${role.why}.${hpWhy}` };
   });
 }
 

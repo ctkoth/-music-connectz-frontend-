@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Lock, Pause, Play, Plus, Trash2, Wand2 } from "lucide-react";
+import { Lock, Pause, Play, Plus, SlidersHorizontal, Trash2, Wand2 } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { IN_SHELL } from "../standalone.js";
 import { toAudioBuffer, run } from "../mastering/client.js";
 import { GAIN_MIN, GAIN_MAX, ROLES, audible, panLabel, suggestMix, trackRoom } from "../mastering/multitrack.js";
+import { COMP, EQ_MAX, EQ_MIN, FLAT, HIGH_HZ, HP, LOW_HZ, MID, SPEEDS, cleanStrip, stripIsFlat, stripKey, stripWords } from "../mastering/strip.js";
 
 // Mix ConnectZ's multitrack section: every track's gain and pan, mute and solo, heard live while
 // they move, and "Suggest a balance", which measures the tracks and proposes a starting mix with a
@@ -17,12 +18,73 @@ const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart
 const stereo = (ch) => (ch.length >= 2 ? [ch[0], ch[1]] : [ch[0], ch[0]]);
 const dbToGain = (db) => Math.pow(10, db / 20);
 
-function useLiveMix(tracks, sampleRate) {
-  const ref = useRef({ ctx: null, nodes: [], srcs: [], startAt: 0, offset: 0, bufs: new Map() });
+// Each track's strip (EQ + compressor) rendered by strip.js in the worker — the same function the
+// mix runs — so the preview plays that output rather than a Web Audio approximation of it. A strip
+// moved re-renders that one track after a short pause; until it lands the previous sound keeps playing.
+// The audio itself is part of the key: the song keeps the id "song" when a new file replaces it.
+const audioIds = new WeakMap();
+let audioSeq = 0;
+const audioId = (ch) => { if (!audioIds.has(ch)) audioIds.set(ch, ++audioSeq); return audioIds.get(ch); };
+const keyOf = (t) => { const k = stripKey(t.strip); return k ? `${audioId(t.channels)}:${k}` : ""; };
+
+function useStripped(tracks, sampleRate) {
+  const [done, setDone] = useState({});          // id -> { key, channels }
+  const [pending, setPending] = useState({});    // id -> true while a render is out
+  const want = tracks.map((t) => [t.id, keyOf(t)]);
+  const sig = want.map(([id, k]) => `${id}:${k}`).join("|");
+  useEffect(() => {
+    const timers = [];
+    for (const t of tracks) {
+      const key = keyOf(t);
+      if (!key || done[t.id]?.key === key) continue;
+      timers.push(setTimeout(async () => {
+        setPending((p) => ({ ...p, [t.id]: true }));
+        try {
+          const out = await run("strip", { channels: t.channels.map((c) => c.slice()), sampleRate: t.sampleRate || sampleRate, strip: t.strip });
+          setDone((d) => ({ ...d, [t.id]: { key, channels: out.channels, maxGrDb: out.maxGrDb, avgGrDb: out.avgGrDb } }));
+        } catch { /* the preview keeps the last sound; the mix itself runs the strip regardless */ }
+        finally { setPending((p) => { const n = { ...p }; delete n[t.id]; return n; }); }
+      }, 250));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  // What each track sounds like right now: its rendered strip if current, else as loaded.
+  const sources = tracks.map((t) => {
+    const key = keyOf(t);
+    const d = done[t.id];
+    const raw = `${audioId(t.channels)}:`;
+    if (key && d?.key === key) return { id: t.id, key, channels: d.channels, sampleRate: t.sampleRate || sampleRate, gr: d };
+    // Still rendering: keep playing the last rendered version of THIS audio, else the track as loaded.
+    if (key && d && d.key.startsWith(raw)) return { id: t.id, key: d.key, channels: d.channels, sampleRate: t.sampleRate || sampleRate };
+    return { id: t.id, key: raw, channels: t.channels, sampleRate: t.sampleRate || sampleRate };
+  });
+  return { sources, pending, done };
+}
+
+function useLiveMix(tracks, sources, sampleRate) {
+  const ref = useRef({ ctx: null, nodes: [], startAt: 0, offset: 0, bufs: new Map() });
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(0);
   const total = tracks.length ? Math.max(...tracks.map((t) => t.channels[0].length / (t.sampleRate || sampleRate))) : 0;
 
+  // One buffer per track: the current sound only. A four-minute stereo track is ~85 MB as a buffer,
+  // so every strip setting a member tried must not stay in memory.
+  const bufferFor = (src) => {
+    const s = ref.current;
+    const hit = s.bufs.get(src.id);
+    if (hit && hit.key === src.key) return hit.buf;
+    const buf = toAudioBuffer(s.ctx, stereo(src.channels), src.sampleRate);
+    s.bufs.set(src.id, { key: src.key, buf });
+    return buf;
+  };
+  const startSource = (node, src, when, offset) => {
+    const s = ref.current;
+    const buf = bufferFor(src);
+    const b = s.ctx.createBufferSource(); b.buffer = buf;
+    b.connect(node.gain);
+    if (offset < buf.duration) b.start(when, offset);
+    node.src = b; node.key = src.key;
+  };
   const apply = () => {
     const s = ref.current;
     if (!s.ctx) return;
@@ -32,13 +94,19 @@ function useLiveMix(tracks, sampleRate) {
       if (!n || !tracks[i]) return;
       n.gain.gain.setTargetAtTime(on[i] ? dbToGain(Number(tracks[i].gainDb) || 0) : 0, t0, 0.02);
       n.pan.pan.setTargetAtTime(Number(tracks[i].pan) || 0, t0, 0.02);
+      // A strip that finished rendering swaps in at the same moment of the song.
+      if (sources[i] && n.key !== sources[i].key) {
+        const old = n.src;
+        startSource(n, sources[i], t0, s.offset + Math.max(0, t0 - s.startAt));
+        try { old?.stop(); } catch { /* already stopped */ }
+      }
     });
   };
   const stop = (keep = true) => {
     const s = ref.current;
     if (s.ctx && keep) s.offset = Math.min(total, s.offset + (s.ctx.currentTime - s.startAt));
-    s.srcs.forEach((x) => { try { x.stop(); } catch { /* already stopped */ } });
-    s.srcs = []; s.nodes = [];
+    s.nodes.forEach((n) => { try { n?.src?.stop(); } catch { /* already stopped */ } });
+    s.nodes = [];
     setPlaying(false);
   };
   const play = () => {
@@ -48,21 +116,18 @@ function useLiveMix(tracks, sampleRate) {
     if (!s.ctx) s.ctx = new Ctx({ sampleRate });
     if (s.offset >= total - 0.05) s.offset = 0;
     s.startAt = s.ctx.currentTime + 0.05;
-    s.nodes = tracks.map((t) => {
-      let buf = s.bufs.get(t.id);
-      if (!buf) { buf = toAudioBuffer(s.ctx, stereo(t.channels), t.sampleRate || sampleRate); s.bufs.set(t.id, buf); }
-      const src = s.ctx.createBufferSource(); src.buffer = buf;
+    s.nodes = tracks.map((t, i) => {
       const gain = s.ctx.createGain(); gain.gain.value = 0;
       const pan = s.ctx.createStereoPanner();
-      src.connect(gain).connect(pan).connect(s.ctx.destination);
-      if (s.offset < buf.duration) src.start(s.startAt, s.offset);
-      s.srcs.push(src);
-      return { gain, pan };
+      gain.connect(pan).connect(s.ctx.destination);
+      const node = { gain, pan, src: null, key: null };
+      startSource(node, sources[i], s.startAt, s.offset);
+      return node;
     });
     setPlaying(true);
     apply();
   };
-  useEffect(() => { apply(); }); // every render: a fader moved, a mute pressed
+  useEffect(() => { apply(); }); // every render: a fader moved, a mute pressed, a strip rendered
   useEffect(() => {
     if (!playing) return undefined;
     const iv = setInterval(() => {
@@ -80,9 +145,90 @@ function useLiveMix(tracks, sampleRate) {
   return { playing, play, stop: () => stop(true), pos, total };
 }
 
+const Slider = ({ label, value, shown, min, max, step, onChange, reset, aria }) => (
+  <label className="block min-w-0 text-[11px] text-white/60">
+    <span className="flex justify-between"><span>{label}</span><span className="tabular-nums text-white/80">{shown}</span></span>
+    <input type="range" className="w-full" min={min} max={max} step={step} value={value} aria-label={aria}
+      onChange={(e) => onChange(Number(e.target.value))} onDoubleClick={() => onChange(reset)} />
+  </label>
+);
+const sdb = (v) => `${v > 0 ? "+" : ""}${Number(v).toFixed(1)} dB`;
+const fhz = (f) => (f >= 1000 ? `${(f / 1000).toFixed(1)} kHz` : `${Math.round(f)} Hz`);
+// Frequency sliders move on a log scale (a slider's middle should be ~1 kHz, not 4 kHz).
+const toLog = (f, lo, hi) => Math.log(f / lo) / Math.log(hi / lo);
+const fromLog = (x, lo, hi) => Math.round(lo * Math.pow(hi / lo, x));
+
+function StripPanel({ t, i, onChange, pending, gr }) {
+  const s = cleanStrip(t.strip);
+  const set = (patch) => onChange(i, { strip: { ...s, ...patch } });
+  const setComp = (patch) => set({ comp: { ...s.comp, ...patch } });
+  const name = t.name;
+  return (
+    <div className="space-y-2 rounded-md border border-white/10 p-2">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="block min-w-0 text-[11px] text-white/60">
+          <span className="flex justify-between"><span>High-pass (cut lows)</span>
+            <span className="tabular-nums text-white/80">{s.hp ? fhz(s.hp) : "Off"}</span></span>
+          <input type="range" className="w-full" min={0} max={1} step={0.01} aria-label={`${name} high-pass`}
+            value={s.hp ? 0.05 + 0.95 * toLog(s.hp, HP.min, HP.max) : 0}
+            onChange={(e) => { const x = Number(e.target.value); set({ hp: x < 0.05 ? 0 : fromLog((x - 0.05) / 0.95, HP.min, HP.max) }); }}
+            onDoubleClick={() => set({ hp: 0 })} />
+        </label>
+        <Slider label={`Lows (${LOW_HZ} Hz shelf)`} value={s.low} shown={sdb(s.low)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
+          aria={`${name} lows`} onChange={(v) => set({ low: v })} />
+        <Slider label={`Mids at ${fhz(s.midHz)}`} value={s.mid} shown={sdb(s.mid)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
+          aria={`${name} mids`} onChange={(v) => set({ mid: v })} />
+        <label className="block min-w-0 text-[11px] text-white/60">
+          <span className="flex justify-between"><span>Mid frequency</span><span className="tabular-nums text-white/80">{fhz(s.midHz)}</span></span>
+          <input type="range" className="w-full" min={0} max={1} step={0.005} aria-label={`${name} mid frequency`}
+            value={toLog(s.midHz, MID.min, MID.max)} onChange={(e) => set({ midHz: fromLog(Number(e.target.value), MID.min, MID.max) })}
+            onDoubleClick={() => set({ midHz: 1000 })} />
+        </label>
+        <Slider label={`Highs (${HIGH_HZ / 1000} kHz shelf)`} value={s.high} shown={sdb(s.high)} min={EQ_MIN} max={EQ_MAX} step={0.5} reset={0}
+          aria={`${name} highs`} onChange={(v) => set({ high: v })} />
+      </div>
+      <div className="space-y-1 border-t border-white/10 pt-2">
+        <label className="flex items-center gap-2 text-[11px] text-white/70">
+          <input type="checkbox" checked={s.comp.on} onChange={(e) => setComp({ on: e.target.checked })} aria-label={`${name} compressor`} />
+          Compressor
+          {s.comp.on && gr && <span className="text-white/45">· took off up to {gr.maxGrDb} dB ({gr.avgGrDb} dB on average)</span>}
+          {s.comp.on && gr && gr.maxGrDb === 0 && <span className="text-mcz-gold">· never reached the threshold — lower it to hear it work</span>}
+        </label>
+        {s.comp.on && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Slider label="Threshold" value={s.comp.thresholdDb} shown={`${s.comp.thresholdDb < 0 ? "−" : ""}${Math.abs(s.comp.thresholdDb)} dB`} min={COMP.threshold.min} max={COMP.threshold.max} step={1}
+              reset={FLAT.comp.thresholdDb} aria={`${name} threshold`} onChange={(v) => setComp({ thresholdDb: v })} />
+            <Slider label="Ratio" value={s.comp.ratio} shown={`${s.comp.ratio}:1`} min={COMP.ratio.min} max={COMP.ratio.max} step={0.5}
+              reset={FLAT.comp.ratio} aria={`${name} ratio`} onChange={(v) => setComp({ ratio: v })} />
+            <Slider label="Make-up gain" value={s.comp.makeupDb} shown={sdb(s.comp.makeupDb)} min={COMP.makeup.min} max={COMP.makeup.max} step={0.5}
+              reset={0} aria={`${name} make-up gain`} onChange={(v) => setComp({ makeupDb: v })} />
+            <div className="text-[11px] text-white/60">
+              <span>Speed</span>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {Object.entries(SPEEDS).map(([k, sp]) => (
+                  <button key={k} className={`pill text-[11px] ${s.comp.speed === k ? "!bg-white/20" : ""}`} aria-pressed={s.comp.speed === k}
+                    onClick={() => setComp({ speed: k })}>{sp.label}</button>
+                ))}
+              </div>
+              <p className="mt-1 text-white/40">{SPEEDS[s.comp.speed].why}.</p>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        {pending ? <span className="text-white/50">Updating what you hear…</span>
+          : !stripIsFlat(s) ? <span className="text-white/45">{stripWords(s)}.</span> : <span className="text-white/40">Flat — the track as loaded.</span>}
+        {!stripIsFlat(s) && <button className="re-link ml-auto" onClick={() => onChange(i, { strip: FLAT })}>Reset</button>}
+      </div>
+    </div>
+  );
+}
+
 export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemove, onApply, cap, nextCap, busy }) {
   const input = useRef(null);
-  const live = useLiveMix(tracks, sampleRate);
+  const stripped = useStripped(tracks, sampleRate);
+  const live = useLiveMix(tracks, stripped.sources, sampleRate);
+  const [open, setOpen] = useState({});      // which tracks have their strip open
   const [why, setWhy] = useState(null);       // reasons from the last suggestion, by track id
   const [image, setImage] = useState(null);   // stereo report of the mix as set
   const [working, setWorking] = useState("");
@@ -90,14 +236,14 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
   const room = trackRoom(tracks.length, cap);
 
   const payload = () => tracks.map((t) => ({ channels: t.channels, sampleRate: t.sampleRate || sampleRate,
-    gainDb: t.gainDb, pan: t.pan, mute: t.mute, solo: t.solo, name: t.name }));
+    gainDb: t.gainDb, pan: t.pan, mute: t.mute, solo: t.solo, name: t.name, strip: t.strip }));
 
   async function suggest() {
     setErr(""); setWorking("Measuring each track");
     try {
       const m = await run("measure", { tracks: tracks.map((t) => ({ channels: t.channels.map((c) => c.slice()), sampleRate: t.sampleRate || sampleRate })) });
-      const out = suggestMix(tracks.map((t, i) => ({ role: t.role, m: m[i], name: t.name })));
-      onApply(out.map((o) => ({ gainDb: o.gainDb, pan: o.pan })));
+      const out = suggestMix(tracks.map((t, i) => ({ role: t.role, m: m[i], name: t.name, strip: t.strip })));
+      onApply(out.map((o, i) => ({ gainDb: o.gainDb, pan: o.pan, strip: { ...cleanStrip(tracks[i].strip), hp: o.hp } })));
       setWhy(Object.fromEntries(tracks.map((t, i) => [t.id, out[i].why])));
       setImage(null);
     } catch (e) { setErr(e.message); } finally { setWorking(""); }
@@ -118,8 +264,9 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
         </span>
       </div>
       <p className="text-[11px] text-white/45">
-        Add your stems — vocal, beat, bass, backing vocals — and set each one's level and place in the stereo field. They are
-        mixed on your device, then mastered as one. Free: nothing is uploaded and nothing is charged.
+        Add your stems — vocal, beat, bass, backing vocals — and set each one's level, place in the stereo field, EQ and
+        compression. They are mixed on your device, then mastered as one. Free on every plan: nothing is uploaded and nothing
+        is charged — your plan only sets how many tracks.
       </p>
 
       <div className="space-y-2">
@@ -133,6 +280,10 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
               </select>
               <button className={`re-btn !w-auto px-2 text-xs ${t.mute ? "!bg-mcz-ember/30" : ""}`} aria-pressed={!!t.mute} onClick={() => onChange(i, { mute: !t.mute })}>M</button>
               <button className={`re-btn !w-auto px-2 text-xs ${t.solo ? "!bg-mcz-gold/30" : ""}`} aria-pressed={!!t.solo} onClick={() => onChange(i, { solo: !t.solo })}>S</button>
+              <button className={`re-btn !w-auto px-2 text-xs ${!stripIsFlat(t.strip) ? "!bg-emerald-400/20" : ""}`} aria-expanded={!!open[t.id]}
+                aria-label={`EQ and compressor for ${t.name}`} onClick={() => setOpen((o) => ({ ...o, [t.id]: !o[t.id] }))}>
+                <SlidersHorizontal size={13} /> EQ{!stripIsFlat(t.strip) ? " on" : ""}
+              </button>
               {i > 0 && <button className="re-btn !w-auto px-2" aria-label={`Remove ${t.name}`} onClick={() => onRemove(i)}><Trash2 size={13} /></button>}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -152,6 +303,8 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
                   onDoubleClick={() => onChange(i, { pan: 0 })} />
               </label>
             </div>
+            {open[t.id] && <StripPanel t={t} i={i} onChange={onChange} pending={!!stripped.pending[t.id]}
+              gr={stripped.sources[i]?.gr || null} />}
             {why?.[t.id] && <p className="text-[11px] text-emerald-300/80">{why[t.id]}</p>}
           </div>
         ))}
@@ -187,8 +340,8 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
             {working && <span className="text-[11px] text-white/50">{working}…</span>}
           </div>
           <p className="text-[11px] text-white/40">
-            The suggestion measures each track's loudness, tone and width and sets a starting point from what each one is — the
-            reason is under every track. It is a starting point, not a verdict: move anything, by ear.
+            The suggestion measures each track's loudness, tone and width and sets a starting point from what each one is —
+            level, pan, and a low cut on parts that don't need lows — with the reason under every track. It is a starting point, not a verdict: move anything, by ear.
           </p>
         </div>
       )}
