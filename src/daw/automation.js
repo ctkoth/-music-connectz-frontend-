@@ -127,10 +127,3 @@ export function schedule(audioParam, param, lane, from, t0, scale = 1) {
     audioParam.linearRampToValueAtTime(toRaw(param, p.v) * scale, t0 + (p.t - from));
   }
 }
-
-/** What the tier allows: lanes with points, the shared Free 3 / Premium 6 / StatZ unlimited count. */
-export function laneRoom(session, track, param, cap) {
-  if (cap === undefined || cap === null) return { ok: true };
-  if (track?.auto?.[param]?.points?.length) return { ok: true };   // drawing on a lane you already have
-  return { ok: laneCount(session) < cap };
-}

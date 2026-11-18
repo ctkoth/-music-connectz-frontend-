@@ -7,6 +7,7 @@ import { Power, X } from "lucide-react";
 import { GAIN_DB } from "./session.js";
 import { MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
 import { reads } from "./automation.js";
+import { StatzSample } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 
 const fmtDb = (v) => (v <= GAIN_DB.min ? "−∞" : `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
@@ -118,12 +119,17 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
   );
 }
 
-export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoCap, lanesUsed = 0 }) {
+export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoAllowed = false }) {
   const meters = useMeters(daw, playing);
   const tones = useTonePresets();
   return (
     <div className="space-y-2">
-      {onWriteAuto && (
+      {onWriteAuto && !autoAllowed && (
+        <div className="rounded-lg border border-white/10 p-2 text-[11px]" data-tour="daw-automation">
+          <StatzSample what="Writing automation (ride a fader and keep the move)" />
+        </div>
+      )}
+      {onWriteAuto && autoAllowed && (
         <div className={`flex flex-wrap items-center gap-2 rounded-lg border px-2 py-1.5 text-[11px] ${writeAuto ? "border-red-500/60 bg-red-500/10" : "border-white/10"}`}
              data-tour="daw-automation">
           <button type="button" aria-pressed={!!writeAuto} onClick={() => onWriteAuto(!writeAuto)}
@@ -134,9 +140,6 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
             {writeAuto
               ? "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass."
               : "Turn on, press play and ride the faders — every move becomes a line you can edit in Tracks."}
-          </span>
-          <span className="ml-auto text-white/45">
-            {autoCap === null ? `${lanesUsed} lanes · unlimited on your plan` : autoCap !== undefined ? `${lanesUsed} of ${autoCap} lanes` : `${lanesUsed} lanes`} · free
           </span>
         </div>
       )}

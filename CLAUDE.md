@@ -2284,8 +2284,9 @@ knob, and the static value is used only when it is off or empty — the Pro Tool
 - **Write it in Mix** (latch): with ✍️ Write automation on, a fader or pan moved while playing is recorded at the
   playhead, that param follows the hand (not its lane) until Stop, and the pass replaces the lane under it
   (`writePass`, thinned to the points the line needs). Start and Stop both commit any pass, so a seek never loses one.
-- **Lanes with points are the tier's shared count** (`imagez_layers`: 3 / 6 / unlimited across the session). A lane
-  you already have is never locked; a move past the cap is heard and not written, and the screen says so.
+- **Automation is StatZ's** (Corey's call; `statz_trial` feature `daw_automation`, so the daily sample opens it too).
+  Without it, choosing a Volume/Pan lane shows `StatzSample` and the Mix window's Write control is replaced by it. A
+  lane drawn while it was allowed keeps playing and bouncing after a lapse; only drawing and writing lock.
 - **Stems** (`sendStems`, beside Bounce): every audible track with clips is rendered solo, exactly as it sounds in the
   mix (effects, fader, pan, automation), so summed at 0 dB and centre the stems ARE the bounce. They hand over to Mix
   ConnectZ as blob addresses: the first becomes the song, the rest TrackZ tracks, up to the same tier count (said on
@@ -2316,3 +2317,10 @@ updates it.
 The Tracks header says "2 of 3". At the count, an import goes onto an empty track if there is one, else the last
 track, and the screen says where it went. A session already over the count keeps every track. `MAX_TRACKS` (128)
 is the engine's own bound, which is what StatZ's "unlimited" runs to.
+
+## The DAWs are free; their features ladder (Corey's rule)
+
+Every DAW opens at every tier; a tier buys how MUCH of a feature, never the DAW. Tracks per session, VST effects
+per track, stems sent to Mix ConnectZ and tone presets are Free 3 / Premium 6 / StatZ unlimited; automation is
+StatZ's. Releases a month in DistributeZ are the same numbers (server `releasez.PER_MONTH`; `QuotaLine` reads
+`next_unlimited` so Premium is told StatZ has no cap). LabelGrid is the planned distributor API.

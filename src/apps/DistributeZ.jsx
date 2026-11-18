@@ -27,13 +27,15 @@ const STATUS = {
 
 function QuotaLine({ q }) {
   if (!q) return null;
-  if (q.per_month == null) return <span className="text-emerald-300">Unlimited releases on your tier.</span>;
+  if (q.per_month == null) return <span className="text-emerald-300">Unlimited tracks a month on your plan.</span>;
   return (
     <span>
-      <span className={q.left ? "text-emerald-300" : "text-mcz-ember"}>{q.left} of {q.per_month}</span> release
-      {q.per_month === 1 ? "" : "s"} left this month.{" "}
-      {q.next_per_month ? (
-        <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>The next plan sends {q.next_per_month} a month</button>
+      <span className={q.left ? "text-emerald-300" : "text-mcz-ember"}>{q.left} of {q.per_month}</span> track
+      {q.per_month === 1 ? "" : "s"} left to release this month.{" "}
+      {q.next_per_month || q.next_unlimited ? (
+        <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>
+          {q.next_unlimited ? "StatZ releases as many as you like" : `The next plan releases ${q.next_per_month} a month`}
+        </button>
       ) : null}
     </span>
   );

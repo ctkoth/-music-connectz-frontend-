@@ -8,7 +8,8 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
 import { beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
-import { PARAMS, laneOf, laneRoom } from "./automation.js";
+import { PARAMS, laneOf } from "./automation.js";
+import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
 
 const HEADER_W = 168;
@@ -66,7 +67,7 @@ export function Playhead({ position, zoom, height }) {
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
-  onAuto, autoCap, onAutoLocked, trackLabel = "",
+  onAuto, autoAllowed = false, trackLabel = "",
 }) {
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
@@ -119,7 +120,15 @@ export default function EditWindow({
     return { ...r, out: Math.max(r.in + 0.02, r.out + dt) };
   };
 
+  const showingLane = onAuto && session.tracks.some((t) => views[t.id]);
   return (
+    <>
+    {showingLane && !autoAllowed && (
+      <div className="mb-2 rounded-xl border border-white/10 bg-black/40 p-2 text-xs">
+        <StatzSample what="Drawing automation" />
+        <p className="mt-1 text-white/50">Lines already drawn keep playing and bouncing; drawing and writing new ones is StatZ's.</p>
+      </div>
+    )}
     <div className="flex overflow-hidden rounded-xl border border-white/10 bg-black/30">
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
@@ -218,7 +227,7 @@ export default function EditWindow({
                 {onAuto && views[t.id] && (
                   <AutoLane param={views[t.id]} lane={laneOf(t, views[t.id])} fallback={views[t.id] === "volume" ? t.gain : t.pan}
                             zoom={zoom} width={width} height={LANE_H - 1} color={t.color}
-                            locked={!laneRoom(session, t, views[t.id], autoCap).ok} onLocked={onAutoLocked}
+                            locked={!autoAllowed}
                             onChange={(lane) => onAuto(t.id, views[t.id], lane)} />
                 )}
                 {regionsOf(t).map((r0) => {
@@ -245,6 +254,7 @@ export default function EditWindow({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

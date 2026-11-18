@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addPoint, cleanAuto, laneCount, laneRoom, movePoint, removePoint, schedule, thin, valueAt, writePass, reads } from "./automation.js";
+import { addPoint, cleanAuto, laneCount, movePoint, removePoint, schedule, thin, valueAt, writePass, reads } from "./automation.js";
 import { newSession, setAuto, cleanSession, addTrack } from "./session.js";
 
 const near = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≈ ${b}`);
@@ -66,16 +66,12 @@ test("a session keeps its lanes through a save and a reload, and repairs junk", 
   assert.deepEqual(cleanAuto(null), {});
 });
 
-test("the tier counts lanes with points: 3, 6 or unlimited", () => {
+test("lanes with points are counted", () => {
   let s = newSession();
-  s = addTrack(s); s = addTrack(s);
+  s = addTrack(s);
   const [a, b] = s.tracks;
   s = setAuto(s, a.id, "volume", { points: [{ t: 0, v: 0 }] });
   s = setAuto(s, a.id, "pan", { points: [{ t: 0, v: 0 }] });
-  s = setAuto(s, b.id, "volume", { points: [{ t: 0, v: 0 }] });
-  assert.equal(laneCount(s), 3);
-  assert.equal(laneRoom(s, s.tracks[2], "volume", 3).ok, false);
-  assert.equal(laneRoom(s, s.tracks[0], "volume", 3).ok, true);   // a lane you already have is never locked
-  assert.equal(laneRoom(s, s.tracks[2], "volume", 6).ok, true);
-  assert.equal(laneRoom(s, s.tracks[2], "volume", null).ok, true);
+  s = setAuto(s, b.id, "volume", { points: [] });
+  assert.equal(laneCount(s), 2);
 });
