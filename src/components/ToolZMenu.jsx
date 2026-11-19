@@ -333,7 +333,7 @@ const FOCUS_LABEL = {
   drumz: 'DrumZ', producez: 'ProduceZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
-  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ',
+  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ',
 };
 
 function FocusTile({ appKey, onOpen, big }) {
