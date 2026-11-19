@@ -4,7 +4,7 @@ import { Loader2, UserCircle2 } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { useAuth } from "./AuthContext.jsx";
 import OAuthButtons from "./OAuthButtons.jsx";
-import { AuthShell } from "./Register.jsx";
+import { AuthShell } from "./AuthShell.jsx";
 import { track } from "../track.js";
 import { api } from "../api.js";
 import { readReturn } from "./returnTo.js";

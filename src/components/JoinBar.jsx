@@ -2,10 +2,11 @@
 // bottom; tapping it opens the same OAuthButtons the sign-up screen leads with, right here, so a visitor
 // joins without leaving the post, profile or take they were looking at. Hidden on the auth screens (they
 // already lead with it), in the standalone shells (no OAuth there), and once closed for this visit.
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
-import OAuthButtons from "../auth/OAuthButtons.jsx";
+// Loaded only when the bar is opened, so the sign-in code is not in every visitor's first download.
+const OAuthButtons = lazy(() => import("../auth/OAuthButtons.jsx"));
 
 const AUTH_PATHS = ["/login", "/register", "/forgot", "/reset-password", "/oauth/callback"];
 const KEY = "mcz_joinbar_closed";
@@ -32,7 +33,7 @@ export default function JoinBar() {
         ) : (
           <div className="w-full space-y-2 py-1">
             <p className="text-sm font-semibold text-white">Join free👾 in one tap — then post📤, get coached🎤, collab🤝 and battle⚔️</p>
-            <OAuthButtons first onSuccess={() => navigate(pathname === "/" ? "/" : pathname, { replace: true })} onError={setErr} />
+            <Suspense fallback={<p className="text-xs text-white/50">Loading sign-in…</p>}><OAuthButtons first onSuccess={() => navigate(pathname === "/" ? "/" : pathname, { replace: true })} onError={setErr} /></Suspense>
             {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}
             <button type="button" className="text-xs text-white/50 underline" onClick={() => navigate("/register")}>Or sign up with email</button>
           </div>

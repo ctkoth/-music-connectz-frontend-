@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "./AuthContext.jsx";
 import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
-import { AuthShell } from "./Register.jsx";
+import { AuthShell } from "./AuthShell.jsx";
 import { finishImport, importPending } from "../SoundCloudImport.jsx";
 import { finishConnect, connectPending } from "../connectOAuth.js";
 import { REDIRECT } from "../oauthProviders.jsx";

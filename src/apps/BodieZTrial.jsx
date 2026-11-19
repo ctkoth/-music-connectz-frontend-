@@ -19,7 +19,7 @@ import { MONEY } from "../resources.js";
 import { pickForDay } from "../bodiezPick.js";
 import EquipmentPicker, { toggleEquipment } from "./EquipmentPicker.jsx";
 
-const TRIAL_SPLIT_KEY = "mcz_trial_split";
+import { TRIAL_SPLIT_KEY } from "../trialSplit.js";
 
 // The trial's Change control. Same button and equipment chips as the member app's
 // ExerciseSwap, but a plain list of the SAME muscle's exercises instead of the full
@@ -60,22 +60,7 @@ function TrialSwapRow({ ex, exercises, taken, swapped, onPick }) {
   );
 }
 
-export function storedTrialSplit() {
-  try {
-    const raw = localStorage.getItem(TRIAL_SPLIT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearTrialSplit() {
-  try {
-    localStorage.removeItem(TRIAL_SPLIT_KEY);
-  } catch {
-    /* private-mode browsers throw on storage; losing the draft is survivable */
-  }
-}
+export { storedTrialSplit, clearTrialSplit } from "../trialSplit.js";
 
 const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 

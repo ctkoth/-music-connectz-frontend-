@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import PasswordField from "./PasswordField.jsx";
 import { api, tokenStore } from "../api.js";
 import { useAuth } from "./AuthContext.jsx";
-import { AuthShell } from "./Register.jsx";
+import { AuthShell } from "./AuthShell.jsx";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, UserCircle2 } from "lucide-react";
 import { api } from "../api.js";
-import { AuthShell } from "./Register.jsx";
+import { AuthShell } from "./AuthShell.jsx";
 
 export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState("");
