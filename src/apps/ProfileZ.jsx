@@ -6,6 +6,7 @@ import { api, tokenStore } from "../api.js";
 import PersonalitieZ from "../PersonalitieZ.jsx";
 import ReligionZ from "../ReligionZ.jsx";
 import LanguageZ from "../LanguageZ.jsx";
+import GlowColor from "../components/GlowColor.jsx";
 import { ProfileFieldsEditor, deviceTimezone } from "../components/ProfileFieldz.jsx";
 import { IconImg } from "../App.jsx";
 import { isPremiumTier } from "../PickConnectZ.jsx";
@@ -942,6 +943,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             make one. */}
         <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
+          <GlowColor />
         </div>
         {/* What they play, wear and work with — rated by members piece by piece and in total. */}
         <div className="border-t border-white/10 pt-3">

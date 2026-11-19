@@ -8,6 +8,7 @@ import { initAdMob } from "./admob.js";
 import { listenForAppReturn } from "./externalAuth.js";
 import { startAutoMemo } from "./autoMemo.js";
 import { startAutoTranslate } from "./autoTranslate.js";
+import { apply as applyGlow, load as loadGlow, PALETTE as GLOW_PALETTE } from "./glow.js";
 import "./index.css";
 
 // Wire native rewarded ads (no-op on web).
@@ -16,6 +17,8 @@ initAdMob();
 listenForAppReturn();
 startAutoMemo();
 startAutoTranslate();
+// The saved glow shows at once; GlowColor re-checks it against the plan once the limits arrive.
+applyGlow(GLOW_PALETTE.find((c) => c.key === loadGlow()) || null);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

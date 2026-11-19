@@ -93,7 +93,8 @@ body {
      icon are all the same light. Hierarchy is carried by GLOW and SIZE now,
      not by a different construction. */
   .neon-btn-primary {
-    @apply re-btn !text-mcz-pink;
+    @apply re-btn;
+    color: var(--mcz-glow, #ff2bd1) !important;
     box-shadow: 0 0 5px currentColor, 0 0 22px -1px currentColor,
       inset 0 0 14px -8px currentColor, 0 8px 22px rgba(0, 0, 0, 0.6);
   }
@@ -149,7 +150,7 @@ body {
   .re-btn {
     @apply inline-flex w-full items-center justify-center gap-2 rounded-2xl
            border-2 border-current bg-black/30 px-5 py-3 text-sm font-bold
-           text-mcz-ember backdrop-blur-sm transition hover:brightness-125
+           backdrop-blur-sm transition hover:brightness-125
            active:translate-y-0 active:scale-[0.99]
            disabled:opacity-40 disabled:hover:brightness-100;
     /* Floating, not flat: the neon ring, an outward glow, an inner bloom
@@ -160,6 +161,9 @@ body {
        behind it; a real tube has a tight hot ring right at the glass AND a
        wide soft halo thrown onto the wall. That is the whole difference
        between "outlined button" and "neon sign". */
+    /* The glow colour is the member's choice (GlowColor.jsx sets --mcz-glow; the plan decides how many
+       colours they may pick from). Unset it is the brand ember, so nothing changes until they pick. */
+    color: var(--mcz-glow, #ff5500);
     box-shadow: 0 0 4px currentColor, 0 0 18px -2px currentColor,
       inset 0 0 12px -8px currentColor, 0 6px 18px rgba(0, 0, 0, 0.55);
   }
