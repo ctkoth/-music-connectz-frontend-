@@ -69,6 +69,7 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
   const sources = [];
   for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
     const sum = ctx.createGain();
+    sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
     let tail = sum;
     for (const ins of t.inserts || []) {
       const node = buildInsert(ctx, ins, { bpm: session.bpm });
@@ -90,7 +91,7 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       pan.connect(meter);
     }
     pan.connect(master);
-    tracks[t.id] = { fader, pan, meter };
+    tracks[t.id] = { fader, pan, meter, sum };
     for (const r of playlistOf(t).regions) {
       const buf = buffers.get(r.src);
       if (!buf) continue;
@@ -249,6 +250,7 @@ export function createDaw() {
       const now = ctx.currentTime, pos = position() ?? 0;
       if (reads(t, "volume")) schedule(n.fader.gain, "volume", laneOf(t, "volume"), pos, now, heard.has(t.id) ? 1 : 0);
       else { hold(n.fader.gain, now); n.fader.gain.setTargetAtTime(heard.has(t.id) ? dbToGain(t.gain) : 0, now, 0.01); }
+      if (n.sum) n.sum.gain.setValueAtTime(t.invert ? -1 : 1, now);
       if (reads(t, "pan")) schedule(n.pan.pan, "pan", laneOf(t, "pan"), pos, now);
       else { hold(n.pan.pan, now); n.pan.pan.setTargetAtTime(t.pan, now, 0.01); }
     }

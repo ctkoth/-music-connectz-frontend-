@@ -38,6 +38,8 @@ import { useStatzTrial } from "../components/StatzSample.jsx";
 const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft" };
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
+import TimingPanel from "./TimingPanel.jsx";
+import { shiftTrack } from "./align.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
 const MODE_LABEL = {
@@ -493,6 +495,14 @@ export default function Workspace({ workflow }) {
     return session.tracks.filter((t) => heard.has(t.id) && playlistOf(t).regions.length);
   }, [session]);
   const stemCap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
+  // One track alone, pre-fader (0 dB, centre, no automation; its polarity as set): what the timing and gain
+  // panels measure, so their answers are about the audio itself rather than the current settings.
+  const measureTrackAudio = async (t) => {
+    const cur = sRef.current;
+    const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
+    const buf = await daw.bounce(solo, { tail: 0 });
+    return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
+  };
   const sendStems = async () => {
     setErr("");
     const list = stemCap == null ? stemTracks : stemTracks.slice(0, stemCap);
@@ -778,13 +788,15 @@ export default function Workspace({ workflow }) {
           <span className="text-white/55"><span className="text-emerald-300">Free</span> · a 24-bit WAV of everything you can hear, made on your device ({minSec(len, false)} plus a 2-second tail for reverb and delay).</span>
         </div>
         {stemTracks.length > 1 && (
-          <StagePanel tracks={stemTracks} measure={async (t) => {
-            const cur = sRef.current;
-            // Pre-fader: the track alone, at 0 dB and centre, so the suggestion is the fader setting itself.
-            const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
-            const buf = await daw.bounce(solo, { tail: 0 });
-            return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
-          }} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
+          <TimingPanel tracks={stemTracks} measure={measureTrackAudio} busy={!!busy || recording}
+            apply={(fixes) => commit((s) => fixes.reduce((acc, f) => {
+              let next = f.move ? shiftTrack(acc, f.id, f.move) : acc;
+              if (f.flip) next = setTrack(next, f.id, { invert: !next.tracks.find((t) => t.id === f.id)?.invert });
+              return next;
+            }, s))} />
+        )}
+        {stemTracks.length > 1 && (
+          <StagePanel tracks={stemTracks} measure={measureTrackAudio} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
              busy={!!busy || recording} />
         )}
         {stemTracks.length > 1 && (

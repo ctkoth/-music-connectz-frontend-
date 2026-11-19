@@ -63,7 +63,7 @@ function InsertEditor({ insert, onChange, onClose, bands }) {
   );
 }
 
-function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
+function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
@@ -118,6 +118,8 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
       {!master && (
         <div className="flex justify-center gap-1 font-bold">
           <button type="button" aria-pressed={solo} className={`rounded px-2 py-0.5 ${solo ? "bg-yellow-400 text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ solo: !solo })}>S</button>
+          {!master && <button type="button" aria-pressed={!!invert} title="Flip polarity (the same sound upside down)" aria-label="Flip polarity"
+                  className={`rounded px-2 py-0.5 ${invert ? "bg-mcz-cyan text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ invert: !invert })}>Ø</button>}
           <button type="button" aria-pressed={mute} className={`rounded px-2 py-0.5 ${mute ? "bg-sky-500 text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ mute: !mute })}>M</button>
         </div>
       )}
@@ -152,7 +154,7 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
       <p className="text-[11px] text-white/50">Faders and pans move while it plays. Double-tap a fader or pan to reset it. Every effect is built in and free.</p>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {session.tracks.map((t) => (
-          <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} inserts={t.inserts}
+          <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} invert={t.invert} inserts={t.inserts}
                  auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }} tones={tones} bands={bands}
                  meter={meters[t.id]} onTrack={(patch) => onTrack(t.id, patch)} onInserts={(list) => onInserts(t.id, list)} />
         ))}
