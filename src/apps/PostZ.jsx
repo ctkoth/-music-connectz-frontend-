@@ -329,14 +329,14 @@ export default function PostZ() {
         <div className="re-label">Create a PostZ</div>
         <input
           data-tour="composer"
-          className="w-full rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+          className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
           placeholder="Title — the track, the bars, the call"
           maxLength={160}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <textarea
-          className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+          className="w-full resize-none rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
           rows={3}
           maxLength={charLimit ?? undefined}
           placeholder="Say more about it…"
@@ -374,7 +374,7 @@ export default function PostZ() {
             🆓 Freestyle
           </button>
           {derived && (
-            <div className="w-full rounded-lg border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
+            <div className="w-full rounded-xl border border-mcz-cyan/30 bg-black/30 p-2 text-[11px] text-white/70">
               {derived.kind === "cover" ? "🫴🏼 Cover" : "🔄 Remix"} of "{derived.title}" — credited to the original on your post.
               {derivedTerms?.text || ""}{" "}
               <button type="button" className="text-mcz-cyan hover:underline" onClick={() => setDerived(null)}>Post as new work instead</button>
@@ -443,7 +443,7 @@ export default function PostZ() {
 
         {/* Preview of where this post can go once created */}
         {(work.audio || work.video || work.image || description.trim()) && (
-          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
+          <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
             <p className="text-[11px] font-semibold text-emerald-300">Once posted, this can go to:</p>
             <div className="space-y-1 text-[10px] text-white/60">
               {work.audio && (
@@ -478,7 +478,7 @@ export default function PostZ() {
           {rewardLine() && <> Raters earn <span className="text-emerald-300">{rewardLine()}</span>.</>}
         </p>
         {visibility === "public" && (
-          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 text-[11px] leading-relaxed text-emerald-300/90">
+          <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-3 text-[11px] leading-relaxed text-emerald-300/90">
             📊 <strong>Public visibility bonus:</strong> You'll earn <span className="text-emerald-300">+25% 🍥</span> on all
             rewards from this post and appear on the leaderboards for real earnings proof.
           </div>
@@ -511,7 +511,7 @@ export default function PostZ() {
       )}
 
       {posts?.length === 0 && !loadErr && (
-        <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-center space-y-3">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center space-y-3">
           <p className="text-sm text-white/75">Welcome to your feed!</p>
           <p className="text-xs text-white/50">Follow members you want to hear from, or explore SkillZ drills to build your voice.</p>
           <div className="flex gap-2 justify-center pt-2">
@@ -908,7 +908,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
       </div>
 
       {editing ? (
-        <div className="mt-1 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3">
+        <div className="mt-1 space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
             {post.mine ? "Editing your post" : `Editing @${post.author}'s post as owner`}
           </p>
@@ -919,11 +919,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             </p>
           )}
           <input value={eTitle} onChange={(e) => setETitle(e.target.value)} maxLength={160}
-                 className="w-full rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                 className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
                  placeholder="Title" />
           <textarea value={eDesc} onChange={(e) => setEDesc(e.target.value)} rows={4}
                     maxLength={charLimit ?? undefined}
-                    className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                    className="w-full resize-none rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
                     placeholder="Say more about it…" />
           {/* `cl` lives in the composer's scope, not this card's — the card
               is handed the resolved limit, so it counts against that. */}
@@ -1007,7 +1007,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             )}
             {m.image && <img src={m.image} alt="" className="mt-3 w-full rounded-lg" />}
             {m.text && (
-              <p className="mt-3 whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-black/20 p-3 text-[13px] leading-relaxed text-white/70">
+              <p className="mt-3 whitespace-pre-wrap rounded-xl border border-white/[0.06] bg-black/20 p-3 text-[13px] leading-relaxed text-white/70">
                 {m.text}
               </p>
             )}

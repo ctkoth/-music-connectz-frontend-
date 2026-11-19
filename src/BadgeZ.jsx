@@ -80,7 +80,7 @@ export default function BadgeZ({ username, onWear }) {
       ) : (
         <ul className="space-y-2">
           {held.map((b) => (
-            <li key={b.key} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <li key={b.key} className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <Medal badge={b} />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-white/85">

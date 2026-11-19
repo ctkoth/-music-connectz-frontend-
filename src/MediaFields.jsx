@@ -170,7 +170,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
   const mmss = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{label}</p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -215,7 +215,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
         <div key={slot} className="space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-widest text-white/35">{slot}</span>
-            <button type="button" className="text-white/30 hover:text-red-300"
+            <button type="button" className="text-white/30 hover:text-mcz-ember"
                     onClick={() => discardSlot(slot)} title={`Remove the ${slot}`}>
               <Trash2 size={12} />
             </button>

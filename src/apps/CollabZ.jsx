@@ -147,7 +147,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
       </div>
 
       {editing && (
-        <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-black/30 p-3">
+        <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-black/30 p-3">
           <input className="neon-input" placeholder="Title" value={draft.title}
                  onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
           <textarea className="neon-input" rows={2} placeholder="Brief" value={draft.description}
@@ -189,7 +189,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
 
       {/* The work. A deal you can't hear is a settlement about nothing. */}
       {(deal.media_url || deal.image_url || deal.description || deal.lyrics) && (
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2">
           {deal.description && <p className="text-[12px] text-white/70"><MentionText text={deal.description} /></p>}
           {deal.media_url && (
             deal.media_type === "video"
@@ -234,7 +234,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
       )}
 
       {deal.i_am_participant && !deal.mine && ["draft", "funded", "delivered", "disputed"].includes(deal.status) && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/60">
           {me.accepted_at ? (
             <>
               You've accepted this collab, so you can message the others on it (and call, when you are both on StatZ).
@@ -299,7 +299,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
           </button>
         )}
         {["funded", "delivered"].includes(deal.status) && deal.i_am_payer && (
-          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-mcz-ember"
                   onClick={() => act("dispute")} disabled={busy}>
             <X size={13} /> Dispute
           </button>
@@ -312,13 +312,13 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
             draft nobody has responded to (they may not be a payer at all —
             they could be the one getting paid). */}
         {deal.status === "draft" && (deal.mine || me.pays_cents > 0) && (
-          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-mcz-ember"
                   onClick={() => act("refund")} disabled={busy}>
             <X size={13} /> Withdraw this deal
           </button>
         )}
         {["funded", "disputed"].includes(deal.status) && me.pays_cents > 0 && (
-          <button className="re-btn !w-auto px-3 py-2 text-xs !text-red-300"
+          <button className="re-btn !w-auto px-3 py-2 text-xs !text-mcz-ember"
                   onClick={() => act("refund")} disabled={busy}>
             <X size={13} /> Cancel — refund what's held
           </button>

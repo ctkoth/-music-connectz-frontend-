@@ -51,7 +51,7 @@ export default function Refused({ err, title = "" }) {
   return (
     // Not a neon-frame: this renders INSIDE the panel holding the button that
     // was refused, and a frame inside a frame reads as a second thing.
-    <div className="space-y-3 rounded-lg border border-mcz-ember/30 bg-mcz-ember/[0.04] p-3">
+    <div className="space-y-3 rounded-xl border border-mcz-ember/30 bg-mcz-ember/[0.04] p-3">
       <p className="flex items-start gap-2 text-[13px] text-white/85">
         <AlertCircle size={15} className="mt-0.5 shrink-0 text-mcz-ember" />
         <span>{title || d.detail}</span>

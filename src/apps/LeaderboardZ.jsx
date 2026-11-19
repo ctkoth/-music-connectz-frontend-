@@ -109,7 +109,7 @@ export default function LeaderboardZ({ period = "week" }) {
           newcomer nobody is here. Boards with entries render; the rest are
           one sentence with the door that puts somebody on them. */}
       {!anyEntries && (
-        <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60 space-y-2">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60 space-y-2">
           <p>Nobody is on the {periodLabel.toLowerCase()} boards yet — the first scored take puts you at #1.</p>
           <button onClick={() => goToSpot("singz", "singz-drills")}
                   className="rounded-lg border border-mcz-cyan/40 px-3 py-1 text-xs text-mcz-cyan transition hover:bg-mcz-cyan/10">
@@ -170,7 +170,7 @@ export default function LeaderboardZ({ period = "week" }) {
 
 function LeaderboardCard({ title, icon, rows, metric, suffix }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
       <h3 className="text-sm font-semibold text-white flex items-center gap-2">
         <span className="text-lg">{icon}</span> {title}
       </h3>
@@ -223,7 +223,7 @@ export function InstrumentLeaderboardCard({ appKey, limit = 5 }) {
   const appName = appNames[appKey] || appKey;
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
       <h3 className="text-sm font-semibold text-white flex items-center gap-2">
         <Trophy size={16} className="text-mcz-gold" /> {appName} Masters
       </h3>

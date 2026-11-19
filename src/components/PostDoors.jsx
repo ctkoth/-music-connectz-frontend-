@@ -49,7 +49,7 @@ export function OpenIn({ post, busy, onGo }) {
   const dests = asList(post.destinations);
   if (!dests.length) return null;
   return (
-    <div className="mt-3 space-y-2 rounded-lg border border-white/[0.06] bg-black/20 p-3"
+    <div className="mt-3 space-y-2 rounded-xl border border-white/[0.06] bg-black/20 p-3"
          data-tour="postz-open-in">
       <p className="text-[11px] uppercase tracking-widest text-white/45">
         Open this post in
@@ -60,7 +60,7 @@ export function OpenIn({ post, busy, onGo }) {
       </p>
       {dests.map((d) => (
         <div key={d.app + d.label}
-             className={`rounded-lg border p-2.5 ${d.available
+             className={`rounded-xl border p-2.5 ${d.available
                ? "border-white/[0.08] bg-white/[0.03]"
                : "border-white/[0.05] bg-white/[0.01]"}`}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -52,7 +52,7 @@ function ProfileSkills({ value = [], onChange, label = "Skills used" }) {
   const open = data?.open_in;
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3" data-tour="skills-used">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3" data-tour="skills-used">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{label}</p>
 
       {chosen.size > 0 && (
@@ -60,7 +60,7 @@ function ProfileSkills({ value = [], onChange, label = "Skills used" }) {
           {[...chosen].map((k) => (
             <li key={k} className="pill flex items-center gap-1 !text-mcz-cyan">
               {labelForSkill(k)}
-              <button onClick={() => toggle(k)} className="text-white/30 hover:text-red-300"
+              <button onClick={() => toggle(k)} className="text-white/30 hover:text-mcz-ember"
                       title="Remove" type="button"><X size={10} /></button>
             </li>
           ))}
@@ -166,7 +166,7 @@ function CatalogueSkills({ value = [], onChange, label = "Skills used" }) {
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
         {label}
       </p>
@@ -176,7 +176,7 @@ function CatalogueSkills({ value = [], onChange, label = "Skills used" }) {
           {[...chosen].map((k) => (
             <li key={k} className="pill flex items-center gap-1 !text-mcz-cyan">
               {labelForSkill(k)}
-              <button onClick={() => toggle(k)} className="text-white/30 hover:text-red-300"
+              <button onClick={() => toggle(k)} className="text-white/30 hover:text-mcz-ember"
                       title="Remove" type="button">
                 <X size={10} />
               </button>

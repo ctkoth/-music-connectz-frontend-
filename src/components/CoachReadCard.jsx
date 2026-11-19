@@ -68,7 +68,7 @@ function GetYours({ coach, author, join }) {
 function Locked({ coach, author }) {
   const join = useJoinReward(true);
   return (
-    <div className="mt-3 rounded-lg border border-white/[0.1] bg-black/30 p-3" data-testid="coach-locked">
+    <div className="mt-3 rounded-xl border border-white/[0.1] bg-black/30 p-3" data-testid="coach-locked">
       <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-white/55">
         <Lock size={12} /> {coach.label ? `The ${coach.label} coach's read` : "The coach's read"}
       </p>
@@ -89,7 +89,7 @@ function Locked({ coach, author }) {
 function List({ title, items }) {
   if (!items?.length) return null;
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+    <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
       <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">{title}</p>
       <ul className="space-y-1 text-[12px] leading-relaxed text-white/75">
         {items.map((x, i) => <li key={i}>• {x}</li>)}
@@ -101,7 +101,7 @@ function List({ title, items }) {
 function Note({ title, text }) {
   if (!text) return null;
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+    <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
       <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">{title}</p>
       <p className="text-[12px] leading-relaxed text-white/75">{text}</p>
     </div>
@@ -118,7 +118,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
   const given = givenOn(read.coached_at);
   const lead = firstSentence(read.verdict);
   return (
-    <div className="mt-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3" data-testid="coach-shown">
+    <div className="mt-3 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3" data-testid="coach-shown">
       <div className="flex items-start gap-3">
         <span className="flex flex-col items-start gap-1">
           <RatingNumber size="xl" outOf value={read.score} exact={read.score_exact} />
@@ -167,7 +167,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           )}
           {read.verdict && <p className="text-[13px] leading-relaxed text-white/85">{read.verdict}</p>}
           {read.song_score != null && read.labels?.song_score && (
-            <div className="rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-3">
               <p className="text-[10px] uppercase tracking-widest text-amber-300/80">
                 {read.labels.song_score} · the song, separate from the performance score
               </p>
@@ -285,7 +285,7 @@ export function CoachReadSetting({ post, onChanged, onFlash }) {
         <span className="ml-1 text-emerald-300/80">Free</span>
       </button>
       {open && (
-        <div className="mt-2 space-y-2 rounded-lg border border-white/[0.08] bg-black/25 p-3">
+        <div className="mt-2 space-y-2 rounded-xl border border-white/[0.08] bg-black/25 p-3">
           <p className="text-[11px] text-white/45">
             Who sees the coach's read on this song. It is separate from who can open the post.
           </p>
@@ -294,7 +294,7 @@ export function CoachReadSetting({ post, onChanged, onFlash }) {
             return (
               <button key={c.value || "same"} type="button" disabled={!!busy} onClick={() => choose(c.value)}
                       aria-pressed={on}
-                      className={`block w-full rounded-lg border p-2.5 text-left transition ${
+                      className={`block w-full rounded-xl border p-2.5 text-left transition ${
                         on ? "border-mcz-cyan/60 bg-mcz-cyan/[0.07]" : "border-white/[0.08] hover:border-white/25"}`}>
                 <span className={`text-[13px] font-semibold ${on ? "text-mcz-cyan" : "text-white"}`}>
                   {c.label}{on ? " · now" : ""}

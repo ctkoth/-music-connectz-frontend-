@@ -43,7 +43,7 @@ export function RatingNumber({ value, exact, size = "lg", outOf = false, classNa
  *  wider than a phone screen (found by measuring at 360px, not by reading the code). */
 export function RatingRow({ value, exact, label, detail, size = "md", outOf = false, className = "" }) {
   return (
-    <div className={`min-w-0 rounded-lg border border-white/10 bg-white/[0.04] p-2.5 ${className}`}>
+    <div className={`min-w-0 rounded-xl border border-white/10 bg-white/[0.04] p-2.5 ${className}`}>
       <div className="flex items-start gap-2.5">
         <RatingNumber value={value} exact={exact} size={size} outOf={outOf} />
         <span className="min-w-0">

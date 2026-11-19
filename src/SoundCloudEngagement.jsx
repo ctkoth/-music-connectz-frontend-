@@ -92,7 +92,7 @@ export default function SoundCloudEngagement() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
         <div className="flex items-center gap-2 mb-3">
           <Music size={16} className="text-mcz-gold" />
           <h3 className="font-display text-sm font-semibold text-white/90">
@@ -220,7 +220,7 @@ export default function SoundCloudEngagement() {
 
       {/* Recent Engagements */}
       {state.recent_engagements?.length > 0 && (
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
           <p className="text-xs uppercase tracking-widest text-white/40 mb-2">
             Recent Engagements
           </p>

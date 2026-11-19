@@ -79,7 +79,7 @@ export default function PublicBattle() {
           <Media type={b.media_type} url={b.media_url} image={b.image_url} />
 
           {b.winner && (
-            <div className="rounded-lg border border-mcz-gold/25 bg-mcz-gold/10 p-3 text-center">
+            <div className="rounded-xl border border-mcz-gold/25 bg-mcz-gold/10 p-3 text-center">
               <p className="flex items-center justify-center gap-1 text-xs text-white/60"><Trophy size={13} /> Winner</p>
               <Link to={`/u/${b.winner}`} className="font-display text-lg font-extrabold text-mcz-gold">@{b.winner}</Link>
             </div>

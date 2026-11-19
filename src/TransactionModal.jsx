@@ -80,7 +80,7 @@ export default function TransactionModal() {
           )}
 
           {totals.length > 0 && (
-            <div className="rounded-lg bg-white/5 p-3 border border-white/10">
+            <div className="rounded-xl bg-white/5 p-3 border border-white/10">
               <p className="text-xs text-white/50 mb-2">Net movement</p>
               <div className="flex flex-wrap gap-2">
                 {totals.map((t) => (

@@ -42,7 +42,7 @@ function Meter({ db }) {
 function InsertEditor({ insert, onChange, onClose, bands }) {
   const spec = PLUGINS[insert.type];
   return (
-    <div className="mt-1 space-y-1 rounded-lg border border-white/15 bg-black/60 p-2 text-[10px]">
+    <div className="mt-1 space-y-1 rounded-xl border border-white/15 bg-black/60 p-2 text-[10px]">
       <div className="flex items-center justify-between">
         <span className="font-semibold text-white">{spec.emoji} {spec.label}</span>
         <button type="button" onClick={onClose} aria-label="Close"><X size={12} /></button>

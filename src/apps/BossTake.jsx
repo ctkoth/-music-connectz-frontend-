@@ -1324,7 +1324,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           <Inspiration appKey={appKey} genre={genre} hostBlob={blob} hostName={takeName} />
         )}
         {refMode && (
-          <div className="mt-2 space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
+          <div className="mt-2 space-y-1 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-[11px] leading-relaxed text-white/70">
             <p>
               Upload a track by another artist and hear what the coach hears in it - to get a feel for what
               you know and like. {price.reference.notice}
@@ -1393,7 +1393,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           and nothing to upload, so the recorder steps aside and the only thing
           left is the price and the button that spends it. */}
       {fromPost && !recording && !refMode && (
-        <div className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
+        <div className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3">
           <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">
             {fromPost.kind === "journal" ? "📔 From your journal" : fromPost.kind === "upload" ? "🗂️ From your FileZ"
               : fromPost.radar ? "📡 Radar read — somebody else's post" : "🎧 From PostZ"}
@@ -1541,7 +1541,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         )}
         {blob && !recording && (
-          <button className="re-btn !w-auto px-3 !text-red-300" onClick={discard} disabled={busy}>
+          <button className="re-btn !w-auto px-3 !text-mcz-ember" onClick={discard} disabled={busy}>
             <Trash2 size={14} />
           </button>
         )}
@@ -1828,7 +1828,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           * run before the server gives up and says so. "0:42 of up to 1:40" is
           * a wait somebody can sit through; "853s" is one they abandon. */}
       {busy && !result && (
-        <div className="space-y-3 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/5 p-4">
+        <div className="space-y-3 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/5 p-4">
           <div className="flex items-center justify-center gap-2">
             <Loader2 className="animate-spin text-mcz-cyan" size={18} />
             <span className="text-sm text-white/75">
@@ -1886,7 +1886,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           So: no number, no dimension chips, and the next move instead. */}
       {result?.unscorable ? (
         <div className="space-y-3 border-t border-white/10 pt-3">
-          <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-3">
+          <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-3">
             <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/70">
               🎧 {result.reference ? "Nothing to read in that file" : "Nothing to score yet"}
             </p>
@@ -1921,7 +1921,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {result.part?.label && (() => {
             const { mine, others } = splitParts(result.parts);
             return (
-              <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3" data-testid="coach-parts">
+              <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3" data-testid="coach-parts">
                 <p className="text-[11px] text-white/70">
                   The score above is for <b className="text-white">your parts</b>: {result.part.label}. The song has its own score below.
                 </p>
@@ -2096,7 +2096,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               confusion this card exists to end. Absent (not 0) when the take
               was a warm-up or exercise with no actual song to react to. */}
           {result.song_score != null && (
-            <div className="flex items-center gap-3 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3">
+            <div className="flex items-center gap-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-3">
               <span className={`font-display text-2xl font-extrabold ${scoreColor(result.song_score)}`}>
                 🎶 {result.song_score}<span className="text-sm text-white/30">/10</span>
               </span>
@@ -2115,7 +2115,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               (it is one more strength-weighted part, `hook_counted`). Absent, never 0,
               when the take has no chorus or hook to judge. */}
           {result.hook_score != null && (
-            <div className="flex items-center gap-3 rounded-lg border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-3">
+            <div className="flex items-center gap-3 rounded-xl border border-fuchsia-400/30 bg-fuchsia-400/[0.06] p-3">
               <span className={`font-display text-2xl font-extrabold ${scoreColor(result.hook_score)}`}>
                 🪝 HookZ {result.hook_score}<span className="text-sm text-white/30">/10</span>
               </span>
@@ -2135,7 +2135,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               card — and real listeners' ratings (the line under the score) sit beside it
               as the check. Absent, never 0, for an exercise with nothing to feel. */}
           {result.feelz_score != null && (
-            <div className="flex items-center gap-3 rounded-lg border border-rose-400/30 bg-rose-400/[0.06] p-3">
+            <div className="flex items-center gap-3 rounded-xl border border-rose-400/30 bg-rose-400/[0.06] p-3">
               <span className={`font-display text-2xl font-extrabold ${scoreColor(result.feelz_score)}`}>
                 💗 FeelZ {result.feelz_score}<span className="text-sm text-white/30">/10</span>
               </span>
@@ -2163,7 +2163,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {(result.now || result.goal) && (
             <div className="grid gap-2 sm:grid-cols-2">
               {result.now && (
-                <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+                <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
                     {result.reference ? "What this track is" : "Where you're at"}
                   </p>
@@ -2171,7 +2171,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 </div>
               )}
               {result.goal && (
-                <div className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
+                <div className="rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3">
                   <p className="mb-1 text-[10px] uppercase tracking-widest text-mcz-cyan/80">
                     {result.reference ? "What it's going for" : "What you're aiming at"}
                   </p>
@@ -2182,7 +2182,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           )}
 
           {result.range_profile && (
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
                 📏 {result.reference ? "Its range" : "Your range"}
               </p>
@@ -2191,7 +2191,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           )}
 
           {result.style_fit && (
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3">
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
               <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">
                 🎯 {style || genre}
               </p>
@@ -2205,7 +2205,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               listening to the right words, and this is the one field on the
               screen where a confident wrong answer is hardest to spot. */}
           {(result.lyrics_note || result.lyrics_read) && (
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
               <p className="text-[10px] uppercase tracking-widest text-white/40">📝 Your words</p>
               {result.lyrics_read && (
                 <p className="whitespace-pre-wrap text-[12px] italic leading-relaxed text-white/55">
@@ -2222,7 +2222,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               whole claim the toggle makes: production is scored in its own box
               or not at all. */}
           {result.mix_note && (
-            <div className="rounded-lg border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3 space-y-1.5">
               <p className="text-[10px] uppercase tracking-widest text-white/40">🎚️ Your mix</p>
               <p className="text-[12px] leading-relaxed text-white/75">{result.mix_note}</p>
             </div>
@@ -2247,7 +2247,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               and takes you back to it. When the post is yours the coaching is
               kept ON it, so it is there next time without paying twice. */}
           {result.reference && (
-            <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
               <p className="text-[11px] text-white/60">
                 Not saved to your progress. This read of someone else's track isn't posted,
                 isn't on your profile and doesn't count toward your skills.

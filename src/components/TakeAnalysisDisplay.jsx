@@ -53,7 +53,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
   });
 
   return (
-    <div className="mt-3 rounded-lg border border-white/[0.06] bg-black/20 p-3">
+    <div className="mt-3 rounded-xl border border-white/[0.06] bg-black/20 p-3">
       <p className="text-[11px] uppercase tracking-widest text-white/45">
         Read off this take
       </p>

@@ -44,7 +44,7 @@ function AccountCard({ a, right = null, dim = false }) {
   // provider confirmed is not a reason to show a stranger either.
   if (a.redacted) {
     return (
-      <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${dim ? "opacity-60" : ""}`}>
+      <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 ${dim ? "opacity-60" : ""}`}>
         <p className="truncate text-[13px] font-semibold text-white/90">@{a.username}</p>
         <p className="mt-0.5 text-[11px] text-white/45">
           Not confirmed as yours yet. You prove it by signing in to it.
@@ -54,7 +54,7 @@ function AccountCard({ a, right = null, dim = false }) {
   }
   const cash = (a.money_cents || 0) + (a.royalties_cents || 0);
   return (
-    <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${dim ? "opacity-60" : ""}`}>
+    <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 ${dim ? "opacity-60" : ""}`}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-white/90">

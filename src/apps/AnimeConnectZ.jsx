@@ -181,7 +181,7 @@ export default function AnimeConnectZ() {
             {s.formats.map((x) => (
               <button key={x.key} type="button" role="radio" aria-checked={fmt === x.key} disabled={!x.allowed}
                       onClick={() => pickFmt(x)}
-                      className={`rounded-lg border p-2 text-left text-[11px] ${fmt === x.key ? "border-mcz-cyan bg-mcz-cyan/10" : "border-white/10"} disabled:opacity-45`}>
+                      className={`rounded-xl border p-2 text-left text-[11px] ${fmt === x.key ? "border-mcz-cyan bg-mcz-cyan/10" : "border-white/10"} disabled:opacity-45`}>
                 <span className="block text-sm font-semibold text-white">{x.emoji} {x.label}</span>
                 <span className="text-white/55">{x.what}</span>
                 {!x.allowed && <span className="mt-1 block text-mcz-gold">{x.locked}</span>}

@@ -92,7 +92,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             <p>Set your habit now, and you're ready to track progress from day one.</p>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <p className="text-[11px] uppercase tracking-widest text-white/40 mb-2">Your first habit</p>
             <input
               type="text"
@@ -147,7 +147,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             Every time you complete it, you earn <span className="text-emerald-300">+⚡</span> and <span className="text-mcz-gold">+⭐</span>
           </p>
 
-          <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
+          <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-3 space-y-2">
             <p className="text-[11px] uppercase tracking-widest text-emerald-300/60">Daily reward</p>
             <div className="flex justify-center gap-4 text-lg font-bold">
               <span className="text-emerald-300">⚡ +2</span>
@@ -155,7 +155,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 space-y-2">
+          <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 space-y-2">
             <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/60">Keep the streak going</p>
             <div className="text-xs text-white/75 space-y-1">
               <p><span className="text-emerald-300">Free:</span> Daily reminders + 1 habit tracked</p>
@@ -196,7 +196,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Bell size={16} className="text-mcz-cyan" />
@@ -216,7 +216,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               <p className="text-[11px] text-white/50">Get reminders to check in daily</p>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Globe size={16} className="text-mcz-cyan" />
@@ -238,7 +238,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               <p className="text-[11px] text-white/50">Choose your preferred language</p>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Volume2 size={16} className="text-mcz-cyan" />
@@ -259,7 +259,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
             </div>
           </div>
 
-          <div className="rounded-lg border border-mcz-gold/20 bg-mcz-gold/5 p-4 space-y-3">
+          <div className="rounded-xl border border-mcz-gold/20 bg-mcz-gold/5 p-4 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-mcz-gold">Ready for more?</p>
             {premium && (
               <p className="text-xs text-white/75">

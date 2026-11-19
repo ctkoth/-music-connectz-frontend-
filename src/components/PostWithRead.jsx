@@ -53,7 +53,7 @@ function ReadChoices({ value, onChange, postVisibility, disabled }) {
         return (
           <button key={c.value || "same"} type="button" role="radio" aria-checked={on}
                   disabled={disabled} onClick={() => onChange(c.value)}
-                  className={`block w-full rounded-lg border p-2.5 text-left transition ${
+                  className={`block w-full rounded-xl border p-2.5 text-left transition ${
                     on ? "border-mcz-cyan/60 bg-mcz-cyan/[0.07]" : "border-white/[0.08] hover:border-white/25"}`}>
             <span className={`text-[13px] font-semibold ${on ? "text-mcz-cyan" : "text-white"}`}>{c.label}</span>
             <span className="mt-0.5 block text-[11px] leading-relaxed text-white/55">
@@ -69,7 +69,7 @@ function ReadChoices({ value, onChange, postVisibility, disabled }) {
 /** The two lines that are always on screen and change with the choices. */
 function Preview({ postVisibility, readVisibility, score }) {
   return (
-    <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/[0.04] p-3 text-[12px] leading-relaxed text-white/75"
+    <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/[0.04] p-3 text-[12px] leading-relaxed text-white/75"
          data-testid="stranger-preview">
       <p><span className="font-semibold text-emerald-300">What a stranger will see:</span>{" "}
         {strangerSees(postVisibility, readVisibility, score)}</p>
@@ -107,7 +107,7 @@ function OnExistingPost({ result }) {
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3" data-tour="post-with-read">
+    <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3" data-tour="post-with-read">
       <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
         This read is on your post "{result.post_title}"
       </p>
@@ -214,7 +214,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
     const cardUrl = `/api/economy/scores/${encodeURIComponent(token)}/card.png`;
     const widely = postVis === "public" && readVis === "";
     return (
-      <div className="space-y-2 rounded-lg border border-emerald-300/30 bg-emerald-300/[0.05] p-3" data-tour="post-with-read">
+      <div className="space-y-2 rounded-xl border border-emerald-300/30 bg-emerald-300/[0.05] p-3" data-tour="post-with-read">
         <p className="text-[13px] font-semibold text-emerald-300">Posted — "{done.title}" is on PostZ with the coach's read.</p>
         <Preview postVisibility={done.visibility} readVisibility={done.coach?.visibility ?? readVis} score={result.score} />
         {postVis === "public" ? (
@@ -257,7 +257,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
 
   const canPost = !busy && title.trim() && !storageBlocks && !slotsOut;
   return (
-    <div className="space-y-3 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3" data-tour="post-with-read">
+    <div className="space-y-3 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3" data-tour="post-with-read">
       <div>
         <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">Post this take with the coach's read</p>
         <p className="mt-0.5 text-[11px] leading-relaxed text-white/50">
@@ -268,7 +268,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
       <label className="block">
         <span className="text-[11px] text-white/55">Title</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} disabled={!!busy}
-               className="mt-1 w-full rounded-lg border border-white/[0.08] bg-black/40 p-2.5 text-sm text-white outline-none focus:border-mcz-ember/60" />
+               className="mt-1 w-full rounded-xl border border-white/[0.08] bg-black/40 p-2.5 text-sm text-white outline-none focus:border-mcz-ember/60" />
       </label>
 
       <div>
@@ -279,7 +279,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
             return (
               <button key={c.value} type="button" role="radio" aria-checked={on} disabled={!!busy}
                       onClick={() => setPostVis(c.value)}
-                      className={`block w-full rounded-lg border p-2.5 text-left transition ${
+                      className={`block w-full rounded-xl border p-2.5 text-left transition ${
                         on ? "border-mcz-cyan/60 bg-mcz-cyan/[0.07]" : "border-white/[0.08] hover:border-white/25"}`}>
                 <span className={`text-[13px] font-semibold ${on ? "text-mcz-cyan" : "text-white"}`}>{c.label}</span>
                 <span className="mt-0.5 block text-[11px] leading-relaxed text-white/55">{c.tip}</span>

@@ -51,10 +51,10 @@ export default function TrialToUpgradePrompt({ info, previous, takesLeft, onAgai
   const free = by.free, premium = by.premium, statz = by.statz;
   const sample = info?.statz_sample;
   return (
-    <div className="space-y-4 rounded-lg border border-mcz-cyan/30 bg-black/40 p-4" data-tour="trial-value">
+    <div className="space-y-4 rounded-xl border border-mcz-cyan/30 bg-black/40 p-4" data-tour="trial-value">
       <Change previous={previous} />
       {takesLeft > 0 && !previous && (
-        <div className="rounded-lg border border-emerald-300/30 bg-emerald-300/5 p-3 text-center">
+        <div className="rounded-xl border border-emerald-300/30 bg-emerald-300/5 p-3 text-center">
           <p className="text-sm text-white/85">
             You have <span className="font-semibold text-emerald-300">{takesLeft} more free take</span> today. Run the drill, then
             send it again — and see your number move.

@@ -148,7 +148,7 @@ export default function PortfolioLinks() {
       <ul className="space-y-2">
         {rows.map((r, i) => (
           <li key={i} {...dnd.row(i)}
-              className={`flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2${dnd.rowClass(i)}`}>
+              className={`flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2${dnd.rowClass(i)}`}>
             <DragGrip label={`Drag link ${i + 1}`} {...dnd.grip(i)} />
             <input className="neon-input !py-1.5 min-w-0 flex-1 basis-32 text-sm" aria-label={`Link ${i + 1} label`}
                    maxLength={80} value={r.label} onChange={(e) => edit(i, { label: e.target.value })} />

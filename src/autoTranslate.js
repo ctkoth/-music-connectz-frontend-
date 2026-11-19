@@ -44,6 +44,16 @@ const attrOriginals = new WeakMap(); // element → { attr: {english, shown} }
 const asked = new Map();
 const looked = new Set();           // templates already looked up this session
 const listeners = new Set();
+const statusListeners = new Set();
+let status = { pending: 0, stuck: 0, capped: false };
+/** Is the screen fully translated? pending = strings on their way, stuck = gave up this session. */
+export const translateStatus = () => status;
+export function onTranslateStatus(fn) { statusListeners.add(fn); return () => statusListeners.delete(fn); }
+function setStatus(next) {
+  if (next.pending === status.pending && next.stuck === status.stuck && next.capped === status.capped) return;
+  status = next;
+  statusListeners.forEach((fn) => fn(status));
+}
 const names = new Set();            // the signed-in member's own name: never sent, wherever a screen prints it
 
 /** Words that are somebody's name, not the app's text. The shell passes the signed-in member's. */
@@ -117,6 +127,7 @@ async function pass() {
   if (!choice) return;
   const dict = cache[choice.code] || {};
   const want = new Set();
+  const stuck = new Set();
   for (const node of textNodes()) {
     if (skip(node)) continue;
     const now = node.nodeValue || "";
@@ -134,6 +145,7 @@ async function pass() {
         setText(node, shown);
       }
     } else if (mayAsk(`${choice.code}\n${template}`)) want.add(template);
+    else stuck.add(template);
   }
   // Placeholders, tooltips and screen-reader labels are the app's words too; leaving them
   // English is the "Search languages" box in the middle of a Portuguese screen.
@@ -149,7 +161,9 @@ async function pass() {
       const done = fromTemplate(hit, nums);
       if (done != null) { rec[a] = { english: now, shown: done }; attrOriginals.set(el, rec); setAttr(el, a, done); }
     } else if (mayAsk(`${choice.code}\n${template}`)) want.add(template);
+    else stuck.add(template);
   }
+  setStatus({ pending: want.size, stuck: stuck.size, capped });
   if (busy || !want.size || Date.now() < backoffUntil) return;
   if (capped && Date.now() - cappedAt > CAP_RETRY_MS) capped = false;
   const code = choice.code;
@@ -202,7 +216,7 @@ export function setUiLang(next) {
   if (cleaned) write(LANG_KEY, cleaned); else { try { localStorage.removeItem(LANG_KEY); } catch { /* blocked */ } }
   document.documentElement.lang = cleaned ? cleaned.code : "en";
   listeners.forEach((fn) => fn(choice));
-  if (!cleaned) { observer?.disconnect(); observer = null; return; }
+  if (!cleaned) { observer?.disconnect(); observer = null; setStatus({ pending: 0, stuck: 0, capped: false }); return; }
   if (!observer) observer = new MutationObserver(schedule);
   observe();
   schedule();

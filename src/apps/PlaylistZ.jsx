@@ -105,7 +105,7 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared, dragRow = {}, d
         {/* The server decides this, not the client: the owner may remove
             anything, a collaborator only what they put in. */}
         {item.can_remove && (
-          <button onClick={onRemove} className="text-white/25 hover:text-red-300" title="Remove"><Trash2 size={13} /></button>
+          <button onClick={onRemove} className="text-white/25 hover:text-mcz-ember" title="Remove"><Trash2 size={13} /></button>
         )}
       </span>
     </li>
@@ -145,7 +145,7 @@ function AddTrack({ playlistId, onAdded }) {
   const ready = mode === "post" ? !!postId : /^https?:\/\//.test(url.trim());
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <div className="flex gap-2">
         <button className={`pill ${mode === "link" ? "!text-mcz-gold" : ""}`} onClick={() => setMode("link")}>
           <Link2 size={11} className="inline" /> Outside link
@@ -215,7 +215,7 @@ function Collaborators({ pl, onChanged }) {
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
         <Users size={12} /> You're a collaborator here — add tracks, and{" "}
         <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button> sets the order.
-        <button className="pill !text-red-300" onClick={() => remove("")}>
+        <button className="pill !text-mcz-ember" onClick={() => remove("")}>
           <LogOut size={11} className="inline" /> Leave
         </button>
       </div>
@@ -223,7 +223,7 @@ function Collaborators({ pl, onChanged }) {
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
         <Users size={12} /> Collaborators
       </p>
@@ -236,7 +236,7 @@ function Collaborators({ pl, onChanged }) {
           {mates.map((u) => (
             <li key={u} className="pill flex items-center gap-1">
               <button className="hover:underline" onClick={() => openMember(u)}>@{u}</button>
-              <button onClick={() => remove(u)} className="text-white/30 hover:text-red-300" title="Remove collaborator">
+              <button onClick={() => remove(u)} className="text-white/30 hover:text-mcz-ember" title="Remove collaborator">
                 <X size={10} />
               </button>
             </li>
@@ -352,7 +352,7 @@ function Detail({ id, onBack, onChanged }) {
       <button className="re-btn !w-auto px-3 text-xs" onClick={onBack}>← All playlists</button>
 
       {pl.mine && editingMeta ? (
-        <div className="space-y-2 rounded-lg border border-white/[0.08] bg-black/20 p-3">
+        <div className="space-y-2 rounded-xl border border-white/[0.08] bg-black/20 p-3">
           <input className="neon-input" aria-label="Playlist title" value={metaDraft.title}
                  onChange={(e) => setMetaDraft({ ...metaDraft, title: e.target.value })} />
           <textarea rows={3} aria-label="Playlist description"
@@ -509,7 +509,7 @@ function Appearances({ onOpen }) {
             {r.allow_in_playlists ? <Eye size={10} className="inline" /> : <EyeOff size={10} className="inline" />}
             {r.allow_in_playlists ? " open" : " closed"}
           </button>
-          <button className="shrink-0 text-white/25 hover:text-red-300"
+          <button className="shrink-0 text-white/25 hover:text-mcz-ember"
                   onClick={() => pull(r)} disabled={busy === `i${r.item_id}`}
                   title="Take it out of this playlist">
             {busy === `i${r.item_id}` ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />}

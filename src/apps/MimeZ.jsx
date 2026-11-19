@@ -39,7 +39,7 @@ function Bar({ done, target }) {
 function Quest({ q, onClaim, busy }) {
   const done = q.done >= q.target;
   return (
-    <div className={`rounded-lg border p-3 ${q.claimed
+    <div className={`rounded-xl border p-3 ${q.claimed
       ? "border-emerald-400/25 bg-emerald-400/[0.04]"
       : done ? "border-mcz-gold/40 bg-mcz-gold/[0.05]"
              : "border-white/[0.08] bg-white/[0.02]"}`}>

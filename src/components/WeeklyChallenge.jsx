@@ -17,7 +17,7 @@ export default function WeeklyChallenge({ appKey, challenge, onSetup }) {
   }, [appKey, challenge?.week]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!challenge) return null;
   return (
-    <div className="space-y-1.5 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.06] p-3 text-[12px]" data-tour={`${appKey}-challenge`}>
+    <div className="space-y-1.5 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.06] p-3 text-[12px]" data-tour={`${appKey}-challenge`}>
       <p className="text-[10px] uppercase tracking-widest text-mcz-gold/90">🏁 This week's challenge · {challenge.week}</p>
       <p className="text-sm font-semibold text-white">{challenge.title} · {challenge.difficulty}</p>
       <p className="text-white/60">{challenge.rule}</p>

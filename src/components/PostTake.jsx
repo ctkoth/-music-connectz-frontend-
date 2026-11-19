@@ -37,7 +37,7 @@ export default function PostTake({ appKey, take, onClose }) {
   if (!info) return null;
   if (done) {
     return (
-      <div className="basis-full space-y-1.5 rounded-lg border border-emerald-400/25 bg-emerald-400/[0.04] p-2.5">
+      <div className="basis-full space-y-1.5 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-2.5">
         <p className="text-[12px] font-semibold text-emerald-300">Posted.{done.playable ? " Anyone with the link can play it." : ""}</p>
         <p className="text-[11px] text-white/60">
           In it: {[done.included.score && "the score", done.included.feedback && "the feedback", done.included.card && "the coach's read card", done.included.recording && "the recording"].filter(Boolean).join(", ") || "the title"}.
@@ -53,7 +53,7 @@ export default function PostTake({ appKey, take, onClose }) {
   }
   const s = info.submissions || {};
   return (
-    <div className="basis-full space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+    <div className="basis-full space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
       <p className="text-[11px] font-semibold text-white/80">{info.title}</p>
       <label className="flex items-center gap-2 text-[12px] text-white/75"><input type="checkbox" checked={score} onChange={(e) => setScore(e.target.checked)} /> The score</label>
       <label className="flex items-center gap-2 text-[12px] text-white/75"><input type="checkbox" checked={feedback} onChange={(e) => setFeedback(e.target.checked)} /> The coach's feedback</label>

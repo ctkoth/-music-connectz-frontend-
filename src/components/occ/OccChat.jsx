@@ -164,7 +164,7 @@ function ReplyCard({ m, onChoose, onKept }) {
   };
 
   return (
-    <li className="space-y-2 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
+    <li className="space-y-2 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
       <Reply text={m.text} onChoose={onChoose} />
       <p className="text-[10px] text-white/35">
         {m.meta.engine_emoji} {m.meta.engine_name}
@@ -377,11 +377,11 @@ export default function OccChat({ onKept }) {
       {messages.length > 0 && (
         <ol className="max-h-[32rem] space-y-2 overflow-y-auto pr-1" aria-live="polite" aria-label="Conversation">
           {messages.map((m) => (m.role === "user" ? (
-            <li key={m.id} className="ml-6 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-[13px]">
+            <li key={m.id} className="ml-6 rounded-xl border border-white/10 bg-white/[0.04] p-3 text-[13px]">
               <p className="whitespace-pre-wrap text-white/80">{m.text}</p>
             </li>
           ) : m.role === "routed" ? (
-            <li key={m.id} className="space-y-2 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3 text-[13px]">
+            <li key={m.id} className="space-y-2 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.05] p-3 text-[13px]">
               <p className="text-white/80">{m.text}</p>
               <div className="flex flex-wrap items-center gap-3 text-[12px]">
                 <button type="button" className="neon-btn-primary !w-auto px-4 py-1.5" onClick={() => goToSpot(m.routed.tab, "")}>
@@ -399,7 +399,7 @@ export default function OccChat({ onKept }) {
       )}
 
       {err && (
-        <div role="alert" className="space-y-1 rounded-lg border border-mcz-ember/30 bg-mcz-ember/[0.06] p-3 text-[12px] text-white/80">
+        <div role="alert" className="space-y-1 rounded-xl border border-mcz-ember/30 bg-mcz-ember/[0.06] p-3 text-[12px] text-white/80">
           <p>{err.text}</p>
           {err.kind === "payment" && (
             <p className="flex flex-wrap items-center gap-3 text-[11px]">

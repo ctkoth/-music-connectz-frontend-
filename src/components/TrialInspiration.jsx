@@ -55,7 +55,7 @@ export default function TrialInspiration({ appKey, take, takeName, onSpent }) {
   };
 
   return (
-    <section className="mt-4 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
+    <section className="mt-4 space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
       <h3 className="text-sm font-semibold text-white">✨ {info.feature}</h3>
       <p>Record or attach your take above, then pick a song you want to sound like. The coach tells you what separates them — in the score, the EQ and the how-to.</p>
       <p className="text-white/50">{info.notice}</p>
@@ -76,7 +76,7 @@ export default function TrialInspiration({ appKey, take, takeName, onSpent }) {
       </div>
       <p className="text-white/50">{info.note}</p>
       {left === 0 && !res && <p className="text-amber-200">Your free takes are used. An account gets the coach whenever you want it.</p>}
-      {err && <p role="alert" className="text-red-300">{err}</p>}
+      {err && <p role="alert" className="text-mcz-ember">{err}</p>}
       {res && (
         <>
           <InspirationResult res={res} scores={info.scores} trial />

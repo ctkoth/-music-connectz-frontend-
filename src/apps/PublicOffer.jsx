@@ -61,7 +61,7 @@ export default function PublicOffer() {
           )}
 
           {offer.terms && (
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
               <p className="text-xs text-white/60 uppercase tracking-wider mb-2">Terms</p>
               <div className="text-sm text-white/75 leading-relaxed">
                 <MentionText text={offer.terms} />
@@ -70,7 +70,7 @@ export default function PublicOffer() {
           )}
 
           {offer.advance != null && (
-            <div className="bg-mcz-gold/10 border border-mcz-gold/20 rounded-lg p-4">
+            <div className="bg-mcz-gold/10 border border-mcz-gold/20 rounded-xl p-4">
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-mcz-gold" />
                 <div>

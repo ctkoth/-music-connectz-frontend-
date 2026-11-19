@@ -73,7 +73,7 @@ export default function CoachZ() {
         </div>
 
         {/* Students List */}
-        <div className="rounded-lg border border-white/10 bg-white/5 p-6 mb-6">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <Users size={20} />
             Your Students
@@ -106,7 +106,7 @@ export default function CoachZ() {
         </div>
 
         {/* Recent Ratings */}
-        <div className="rounded-lg border border-white/10 bg-white/5 p-6">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <Star size={20} />
             Recent Ratings
@@ -160,7 +160,7 @@ export default function CoachZ() {
         </div>
 
         {/* Info Section */}
-        <div className="mt-6 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-4">
+        <div className="mt-6 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-4">
           <p className="text-sm text-mcz-cyan font-semibold mb-2">💡 Coaching Tips</p>
           <ul className="text-xs text-white/60 space-y-1">
             <li>✓ Rate on real dimensions: pitch accuracy, timing, tone quality</li>
@@ -187,7 +187,7 @@ export default function CoachZ() {
 
 function Card({ label, value }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
       <p className="text-xs text-white/50 mb-1">{label}</p>
       <p className="text-2xl font-bold text-white">{value}</p>
     </div>
@@ -221,7 +221,7 @@ function AddStudentModal({ onClose, onAdded }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="rounded-lg border border-white/20 bg-slate-900 p-6 max-w-md w-full space-y-4">
+      <div className="rounded-xl border border-white/20 bg-slate-900 p-6 max-w-md w-full space-y-4">
         <h2 className="text-xl font-bold text-white">👥 Invite Student</h2>
 
         <div>

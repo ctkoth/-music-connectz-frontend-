@@ -75,7 +75,7 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free",
   };
 
   return (
-    <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/5 p-4 space-y-3">
+    <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/5 p-4 space-y-3">
       <div>
         <p className="text-sm font-medium text-white mb-1">You've hit your {limitLabel[limit]} limit</p>
         <p className="text-xs text-white/60">Upgrade to keep going</p>
@@ -85,7 +85,7 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free",
         {tiers.map((tier) => (
           <div
             key={tier.key}
-            className={`rounded-lg border p-2 text-center transition ${
+            className={`rounded-xl border p-2 text-center transition ${
               tier.current ? tier.borderColor + " " + tier.bgColor : "border-white/10 bg-white/5"
             }`}
           >

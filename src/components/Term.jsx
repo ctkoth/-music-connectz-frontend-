@@ -15,7 +15,7 @@ export default function Term({ k, children }) {
         {children ?? g.word}
       </button>
       {open && (
-        <span role="note" className="my-1 block rounded-lg border border-mcz-cyan/30 bg-black/40 p-2 text-[12px] font-normal leading-relaxed text-white/80">
+        <span role="note" className="my-1 block rounded-xl border border-mcz-cyan/30 bg-black/40 p-2 text-[12px] font-normal leading-relaxed text-white/80">
           <strong className="text-white">{g.word}:</strong> {g.means}
         </span>
       )}

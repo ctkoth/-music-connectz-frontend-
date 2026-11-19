@@ -243,7 +243,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
 
       {/* The actions sit ABOVE the list: after Select all they are right here, not under a hundred rows. */}
       {ids.length > 0 && (
-        <div ref={actions} className="rounded-lg border border-mcz-cyan/30 bg-black/20 p-3 space-y-2">
+        <div ref={actions} className="rounded-xl border border-mcz-cyan/30 bg-black/20 p-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="text-white/70">Set {ids.length} selected to:</span>
             {VISIBILITIES.map((v) => (

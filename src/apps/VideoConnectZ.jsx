@@ -275,7 +275,7 @@ export default function VideoConnectZ() {
           <p className="text-xs text-white/55">One render at a time here — wait for the one below to finish before starting another.</p>
         )}
         {s && s.configured && !s.can_afford && (
-          <div role="status" className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white/70">
+          <div role="status" className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
             <p>
               A video costs <span className="text-mcz-ember">−{s.price_cents} {PROMPTZ}</span> ({money(s.price_cents)}; {PROMPTZ} are used
               first, then your balance). You hold {s.promptz} {PROMPTZ} and {money(s.money_cents)} {MONEY} — not enough.

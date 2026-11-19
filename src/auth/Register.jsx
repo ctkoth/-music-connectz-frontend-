@@ -270,7 +270,7 @@ export default function Register() {
         <div className="grid gap-3 sm:grid-cols-2">
           {(tiers || []).filter((t) => t.key === "free" || t.key === "premium").map((t) => (
             <div key={t.key}
-                 className={`rounded-lg border p-3 ${t.key === "free"
+                 className={`rounded-xl border p-3 ${t.key === "free"
                    ? "border-emerald-300/20 bg-emerald-300/5"
                    : "border-mcz-gold/30 bg-mcz-gold/5"}`}>
               <p className={`mb-2 font-semibold ${t.key === "free" ? "text-emerald-300" : "text-mcz-gold"}`}>
@@ -332,7 +332,7 @@ export function AuthShell({ title, subtitle, children }) {
         href={build.href}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
+        className="mt-4 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
       >
         <Download size={15} className="shrink-0 text-mcz-cyan" />
         <div>

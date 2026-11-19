@@ -436,7 +436,7 @@ export default function Lilith() {
               </div>
 
               {/* Task details */}
-              <div className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3 text-[12px]">
+              <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-[12px]">
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   <span className="text-white/60">
                     Kind: <span className="text-white">{kinds.find((k) => k.key === expandedTask.kind)?.label || expandedTask.kind}</span>
@@ -483,7 +483,7 @@ export default function Lilith() {
               </div>
 
               {/* Add tag form */}
-              <form onSubmit={addTag} className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
+              <form onSubmit={addTag} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
                 <h4 className="text-[13px] font-semibold text-white">Add a tag</h4>
                 <input
                   type="text" placeholder="App key (e.g., 'postz', 'battlez')" value={tagDraft.to_app_key}

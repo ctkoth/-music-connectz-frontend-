@@ -325,7 +325,7 @@ export default function CallZ() {
             const perMin = picked ? picked.per_min_cents : quote.rate_cents_per_min;
             const minutes = perMin ? Math.floor((quote.your_money_cents || 0) / perMin) : null;
             return (
-            <div className="space-y-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+            <div className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
               {(quote.skills || []).length > 1 && (
                 <div className="space-y-1">
                   <p className="text-[11px] text-white/45">Call about (each skill they price by the hour):</p>

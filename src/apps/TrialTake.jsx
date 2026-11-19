@@ -300,7 +300,7 @@ export default function TrialTake() {
       )}
 
       {!scored && (
-        <p className="mt-4 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 text-[13px] text-white/75">
+        <p className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-[13px] text-white/75">
           {/* The SHAPE of an answer, not somebody's real take. */}
           <span className="font-semibold text-cyan-300">What comes back: </span>
           a score out of 10, what cost you the rest, and one drill to run next — e.g.
@@ -364,7 +364,7 @@ export default function TrialTake() {
         * it nothing renders at all — "3 takes scored" is worse than silence,
         * which is the same rule the funnel's own `pct: null` follows. */}
       {stats?.enough && (
-        <div className="mb-6 rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-4">
+        <div className="mb-6 rounded-xl border border-emerald-300/20 bg-emerald-300/5 p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
             Already happening here
           </p>
@@ -403,7 +403,7 @@ export default function TrialTake() {
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
             {tiers.map((tier) => (
-              <div key={tier.key} className={`rounded-lg border p-3 ${
+              <div key={tier.key} className={`rounded-xl border p-3 ${
                 tier.key === "statz"
                   ? "border-mcz-gold/30 bg-mcz-gold/5 statz-glow"
                   : tier.key === "premium"

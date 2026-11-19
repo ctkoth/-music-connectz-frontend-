@@ -110,7 +110,7 @@ export function HoroscopeLayer() {
           </select>
         </div>
         {d?.compatibility && (
-          <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 text-xs">
+          <div className="mt-2 rounded-xl border border-white/10 bg-black/30 p-2 text-xs">
             <p className="font-semibold text-mcz-gold">{d.compatibility.a} ({d.compatibility.element_a}) + {d.compatibility.b} ({d.compatibility.element_b}) · {d.compatibility.score}/{d.compatibility.out_of}</p>
             <p className="mt-0.5 text-white/70">{d.compatibility.note}</p>
           </div>

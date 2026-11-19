@@ -132,7 +132,7 @@ export default function SpecZ() {
         <div className="grid gap-2 sm:grid-cols-2">
           {BUILDS.map((b) => (
             <a key={b.key} href={b.href} target="_blank" rel="noreferrer"
-               className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2.5 transition hover:border-mcz-cyan/50">
+               className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-2.5 transition hover:border-mcz-cyan/50">
               <p className="text-[13px] font-semibold text-white">{b.emoji} {b.label}</p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{b.note}</p>
             </a>
@@ -224,7 +224,7 @@ export default function SpecZ() {
             )}
           </>
         ) : (
-          <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-sm">
+          <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-sm">
             <p className="mb-1 flex items-center gap-2 font-bold text-mcz-ember">
               <Lock size={14} /> SpecZ is a StatZ perk
             </p>

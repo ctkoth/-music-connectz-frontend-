@@ -113,7 +113,7 @@ export default function SoundzPanel({ isOpen, onClose }) {
           ) : (
             <>
               {/* Sound Toggle */}
-              <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Volume2 size={18} className="text-mcz-cyan" />
@@ -144,7 +144,7 @@ export default function SoundzPanel({ isOpen, onClose }) {
 
               {/* Volume Control */}
               {soundEnabled && (
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
                   <div>
                     <p className="text-sm font-medium text-white mb-2">Volume</p>
                     <input
@@ -182,7 +182,7 @@ export default function SoundzPanel({ isOpen, onClose }) {
                             }
                           }}
                           disabled={saving || isLocked}
-                          className={`w-full text-left rounded-lg border p-3 transition ${
+                          className={`w-full text-left rounded-xl border p-3 transition ${
                             isLocked
                               ? "border-white/5 bg-white/5 opacity-50 cursor-not-allowed"
                               : selectedPack === pack.id

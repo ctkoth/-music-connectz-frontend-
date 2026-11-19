@@ -947,7 +947,7 @@ function AICoachRead({ sessionId }) {
       </div>
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
       {text && (
-        <div className="rounded-lg border border-white/10 bg-black/30 p-3 space-y-2">
+        <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-2">
           <p className="re-label"><Term k="ai_coach">AI coach</Term></p>
           <p className="whitespace-pre-wrap text-sm text-white/85">{text}</p>
           <CoachVoice text={text} />
@@ -1088,7 +1088,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
         <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
       )}
       {sm.routine_id != null && sm.sets > 0 && onImprove && improveCta(routinePlan) && (
-        <div className="space-y-1.5 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2.5 text-xs" data-testid="improve-routine">
+        <div className="space-y-1.5 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2.5 text-xs" data-testid="improve-routine">
           <p className="text-white/70">
             <b className="text-white">{sm.routine_title}</b> — {improveCta(routinePlan).line}
           </p>

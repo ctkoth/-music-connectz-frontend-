@@ -16,7 +16,7 @@ function Wwh({ x }) {
 export function FeelzTips({ tips, onGear, cause }) {
   if (!tips?.length) return null;
   return (
-    <div className="space-y-2 rounded-lg border border-rose-400/20 bg-rose-400/[0.03] p-2.5">
+    <div className="space-y-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.03] p-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-rose-300/80">To bring more feeling</p>
       {cause && <p className="text-[11px] text-white/60">What the coach hears holding it back: <span className="font-semibold text-white/85">{cause}</span>. Delivery comes first — it is the biggest lever.</p>}
       {tips.map((t, i) => (
@@ -35,7 +35,7 @@ export function FeelzTips({ tips, onGear, cause }) {
 export function MixTips({ tips }) {
   if (!tips?.length) return null;
   return (
-    <div className="space-y-2 rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.03] p-2.5">
+    <div className="space-y-2 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.03] p-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">Mix suggestions — so the vocal can be heard</p>
       {tips.map((t, i) => (
         <div key={i} className="space-y-0.5">

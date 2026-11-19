@@ -80,7 +80,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3 text-xs text-white/75" data-testid="equipment-fit">
+    <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3 text-xs text-white/75" data-testid="equipment-fit">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-white">Fit “{routine.title}” to my equipment</p>
         {onClose && <button type="button" className="text-white/40 hover:text-white" onClick={onClose} aria-label="Close">✕</button>}

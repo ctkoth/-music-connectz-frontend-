@@ -394,7 +394,7 @@ function OfferRow({ offer, onChanged }) {
   }
 
   return (
-    <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${!offer.is_active ? "opacity-60" : ""}`}>
+    <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 ${!offer.is_active ? "opacity-60" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium text-sm">
@@ -494,7 +494,7 @@ function PostRow({ post, onChanged }) {
   }
 
   return (
-    <div className={`rounded-lg border border-white/10 bg-white/[0.03] p-3 ${!post.is_active ? "opacity-60" : ""}`}>
+    <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 ${!post.is_active ? "opacity-60" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-medium text-sm">

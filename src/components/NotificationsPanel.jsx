@@ -120,7 +120,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
             notifications.map((notif) => (
               <div
                 key={notif.id}
-                className={`rounded-lg border p-3 transition ${
+                className={`rounded-xl border p-3 transition ${
                   notif.read
                     ? "border-white/10 bg-white/5"
                     : "border-emerald-300/30 bg-emerald-300/10"

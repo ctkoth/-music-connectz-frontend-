@@ -80,7 +80,7 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
         </details>
       )}
       {p && (
-        <div className="space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2 text-[11px] text-white/70" data-testid="plan-proposal">
+        <div className="space-y-1 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2 text-[11px] text-white/70" data-testid="plan-proposal">
           <p className="font-semibold text-white">Plan {moveText(p.compare)} if the Planner {mode ? "pairs and fixes" : "fixes"} it</p>
           <PairMode value={mode} onChange={(m) => { setMode(m); propose(m); }} disabled={busy} />
           {p.pair?.blocked && <p className="text-amber-200">{p.pair.detail}</p>}

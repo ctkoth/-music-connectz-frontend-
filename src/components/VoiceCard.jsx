@@ -45,7 +45,7 @@ export default function VoiceCard() {
             type="button"
             disabled={locked || busy === key}
             onClick={() => set(key, !on)}
-            className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
+            className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition ${
               locked ? "cursor-not-allowed border-white/[0.06] opacity-50"
                      : on ? "border-mcz-cyan/50 bg-mcz-cyan/[0.06]" : "border-white/10 hover:border-white/25"
             }`}

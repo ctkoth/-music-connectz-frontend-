@@ -173,7 +173,7 @@ function FixPicker({ factors, picked, notes, onChange, disabled }) {
 // What a revision changed, line by line, and how much of the song is untouched — the server's count.
 function RevisionChanges({ r, note }) {
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
       <p className="text-white/80">
         Kept <b>{r.kept_lines} of {r.total_lines}</b> of your lines word for word · {r.changes?.length || 0} fixed
       </p>
@@ -457,7 +457,7 @@ export default function SentenceConnectZ() {
                 <SelectAllBar all={items.map((i) => i.idx)} picked={picked} onChange={pickLines} allLabel="Use every line" />
               )}
               {!hidden && items.map((it) => (
-                <div key={it.idx} className="space-y-1 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+                <div key={it.idx} className="space-y-1 rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
                   <label className="flex items-start gap-2">
                     <input type="checkbox" className="mt-1" checked={picked.includes(it.idx)} onChange={() => toggle(it.idx)}
                            aria-label={`Use: ${it.line}`} />

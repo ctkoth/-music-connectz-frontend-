@@ -71,7 +71,7 @@ const worst = (p) => {
 
 function Row({ name, file, art, status, keyName, note, also = [] }) {
   return (
-    <li className="flex gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+    <li className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
       <Art art={art} name={name} />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-white/90">

@@ -336,7 +336,7 @@ export default function Landing() {
         href={build.href}
         target="_blank"
         rel="noreferrer"
-        className="mt-6 flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
+        className="mt-6 flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-sm transition hover:border-mcz-cyan/50"
       >
         <Download size={15} className="shrink-0 text-mcz-cyan" />
         <div>

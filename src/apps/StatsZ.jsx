@@ -93,7 +93,7 @@ export default function StatsZ() {
       </header>
 
       {msg && (
-        <div className="rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 p-3 text-sm text-mcz-ember">
+        <div className="rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-3 text-sm text-mcz-ember">
           {msg}
         </div>
       )}

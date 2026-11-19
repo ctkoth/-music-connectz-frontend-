@@ -599,7 +599,7 @@ export default function Workspace({ workflow }) {
           ? <button type="button" className="neon-btn-primary !w-auto px-3" onClick={stopPlay}><Square size={14} /> Stop</button>
           : <button type="button" className="neon-btn-primary !w-auto px-3" onClick={() => startPlay()} disabled={recording}><Play size={14} /> Play</button>}
         <button type="button" onClick={record} disabled={!!busy && !recording}
-                className={`!w-auto rounded-full px-3 py-1.5 font-semibold ${recording ? "animate-pulse bg-red-600 text-white" : "border border-red-500/60 text-red-300"}`}
+                className={`!w-auto rounded-full px-3 py-1.5 font-semibold ${recording ? "animate-pulse bg-red-600 text-white" : "border border-red-500/60 text-mcz-ember"}`}
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
           <Circle size={12} className="mr-1 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>

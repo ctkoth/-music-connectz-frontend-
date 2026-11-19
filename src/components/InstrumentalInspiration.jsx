@@ -30,7 +30,7 @@ export default function InstrumentalInspiration({ info, onApply }) {
   };
 
   return (
-    <details className="rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
+    <details className="rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
       <summary className="cursor-pointer text-sm font-semibold text-white">✨ Inspiration — make it feel like a song</summary>
       <div className="mt-2 space-y-2">
         <p>{info.inspiration_note}</p>
@@ -50,7 +50,7 @@ export default function InstrumentalInspiration({ info, onApply }) {
           <span className="text-mcz-ember">{info.free_today ? "Free today — uses 1 free prompt" : `−${info.cost_cents} ${PROMPTZ}`}</span>
           <span className="text-white/40">Not charged if it fails · then Compose is priced separately</span>
         </div>
-        {err && <p className="text-red-300">{err}</p>}
+        {err && <p className="text-mcz-ember">{err}</p>}
         {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}
         {res && !res.unscorable && (
           <div className="space-y-1">

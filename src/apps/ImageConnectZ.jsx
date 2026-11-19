@@ -193,7 +193,7 @@ export default function ImageConnectZ() {
           </div>
         </details>
 
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
           <p className="font-semibold text-white">4 · Start from a picture (optional)</p>
           <div className="flex flex-wrap gap-1.5">
             <button type="button" className={`pill text-[11px] ${!refMode ? "!border-mcz-cyan !text-mcz-cyan" : ""}`} onClick={() => { setRefMode(""); setRef(null); }}>None</button>

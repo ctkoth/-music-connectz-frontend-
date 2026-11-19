@@ -4,8 +4,8 @@
 // (machine translation of the app's own screens) before it is chosen.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { currentLang, onLangChange, setUiLang } from "../autoTranslate.js";
-import { langMatches } from "../uiLang.js";
+import { currentLang, onLangChange, onTranslateStatus, setUiLang, translateStatus } from "../autoTranslate.js";
+import { langMatches, statusLine } from "../uiLang.js";
 
 export default function LangPicker({ corner = false }) {
   const [open, setOpen] = useState(false);
@@ -14,7 +14,10 @@ export default function LangPicker({ corner = false }) {
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState(false);
   const [q, setQ] = useState("");
+  const [stat, setStat] = useState(translateStatus);
   useEffect(() => onLangChange(setLang), []);
+  useEffect(() => onTranslateStatus(setStat), []);
+  const line = lang ? statusLine(stat) : "";
   useEffect(() => {
     if (!open || list) return;
     setFailed(false); // a failure from an earlier open must not sit over a list that loaded
@@ -30,6 +33,9 @@ export default function LangPicker({ corner = false }) {
               className={`rounded-lg p-1.5 text-base leading-none hover:bg-white/10 ${corner ? "border border-white/15 bg-black/70" : ""}`}>
         <span aria-hidden="true">{lang ? lang.flag : "🌐"}</span>
       </button>
+      {line && !open && (
+        <p role="status" className={`${corner ? "absolute bottom-0 left-11" : "absolute right-0 top-9"} z-50 w-56 rounded-lg border border-white/15 bg-black/80 px-2 py-1 text-[11px] text-white/70`}>{line}</p>
+      )}
       {open && (
         <div className={`absolute z-[60] w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/15 bg-mcz-bg p-2 shadow-2xl ${corner ? "bottom-10 left-0" : "right-0 top-10"}`}>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search languages"

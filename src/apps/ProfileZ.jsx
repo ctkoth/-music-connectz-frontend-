@@ -280,7 +280,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                             {rows.length > 1 && (
                               <button title="Remove this stretch"
                                 onClick={() => setPeriods(label, rows.filter((_, j) => j !== i))}
-                                className="text-[10px] text-red-300/60 hover:text-red-300">×</button>
+                                className="text-[10px] text-mcz-ember/60 hover:text-mcz-ember">×</button>
                             )}
                           </div>
                         ))}
@@ -498,7 +498,7 @@ function AvatarCard() {
               </>
             )}
             {url && !preview && (
-              <button className="re-btn !w-auto px-3 !text-red-300" onClick={remove} disabled={busy}>
+              <button className="re-btn !w-auto px-3 !text-mcz-ember" onClick={remove} disabled={busy}>
                 <Trash2 size={14} /> Remove
               </button>
             )}
@@ -1273,7 +1273,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
       {/* Danger zone — permanent account deletion */}
       <div className="mt-8 rounded-2xl border border-red-500/25 bg-red-500/5 p-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-300/80">Danger zone</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-mcz-ember/80">Danger zone</p>
         <p className="mb-3 text-xs text-white/50">
           Permanently delete your account and all your data (posts, referrals, messages, SpinaZ). This can't be undone.
         </p>
@@ -1282,7 +1282,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           paid period. If it can't be cancelled, your account is not deleted and you're told.
         </p>
         <button
-          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+          className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-mcz-ember transition hover:bg-red-500/20 disabled:opacity-50"
           disabled={deleting}
           onClick={deleteAccount}
         >

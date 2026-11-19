@@ -155,7 +155,7 @@ export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "wee
       <button onClick={() => setOpen((o) => !o)} title="Move"
               className="shrink-0 text-[11px] text-white/40 hover:text-white/70">⇄ Move</button>
       {open && (
-        <span className="absolute right-0 z-20 mt-1 flex w-56 flex-wrap gap-1 rounded-lg border border-white/10 bg-[#120a1d] p-2 shadow-neon">
+        <span className="absolute right-0 z-20 mt-1 flex w-56 flex-wrap gap-1 rounded-xl border border-white/10 bg-[#120a1d] p-2 shadow-neon">
           {kind === "task" && buckets.filter((b) => b.key !== "logbook" && b.key !== entry.bucket).map((b) => (
             <button key={b.key} onClick={() => go(b.key)}
                     className="rounded-md bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10">{BUCKET_EMOJI[b.key] || ""} {b.label.replace(/\s*\S+$/, "") || b.label}</button>

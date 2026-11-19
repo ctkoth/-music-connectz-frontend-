@@ -226,7 +226,7 @@ export default function KeyConnectZ() {
                 <ImageIcon size={14} /> {skin.wallpaper_url ? "Change it" : "Upload one"}
               </button>
               {skin.wallpaper_url && (
-                <button className="re-btn !w-auto px-3 !text-red-300" onClick={clearWallpaper}>
+                <button className="re-btn !w-auto px-3 !text-mcz-ember" onClick={clearWallpaper}>
                   <Trash2 size={13} /> Remove
                 </button>
               )}

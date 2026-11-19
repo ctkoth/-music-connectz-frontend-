@@ -294,7 +294,7 @@ function Board({ id, onBack, onGone }) {
             </div>
             {cardsIn(col.id).map((card) => (
               <div key={card.id} draggable={canEdit} onDragStart={() => setDrag(card)}
-                className="cursor-pointer rounded-lg border border-white/10 bg-black/40 p-2 text-sm hover:border-mcz-cyan/50"
+                className="cursor-pointer rounded-xl border border-white/10 bg-black/40 p-2 text-sm hover:border-mcz-cyan/50"
                 onClick={() => setOpen(card)}>
                 <div className="flex items-start gap-1.5">
                   {canEdit && cols.length > 1 && (

@@ -58,7 +58,7 @@ const STATUS_LABEL = {
 
 function Toggle({ toggle, on, allowed, onChange }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <div className="min-w-0">
         <p className="text-[13px] font-semibold text-white/85">
           {toggle.emoji} {toggle.name}
@@ -99,7 +99,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
   const ticked = choices.filter((c) => !unticked.has(c.id));
   const flip = (id) => setUnticked((cur) => { const n = new Set(cur); n.has(id) ? n.delete(id) : n.add(id); return n; });
   return (
-    <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <li className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-[13px] text-white/85">{task.title}</p>
@@ -140,7 +140,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
             </button>
           )}
           {open && (
-            <button onClick={() => onCancel(task)} className="text-white/30 hover:text-red-300"
+            <button onClick={() => onCancel(task)} className="text-white/30 hover:text-mcz-ember"
                     title={task.status === "suggested" ? "Dismiss" : "Remove from the list"}>
               <Trash2 size={13} />
             </button>
@@ -157,7 +157,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
       {/* A suggestion has to say what, why and how. The server refuses one
           missing any of the three, so if it rendered, all three are here. */}
       {task.status === "suggested" && (
-        <div className="space-y-1 rounded-lg border border-mcz-gold/25 bg-mcz-gold/5 p-2 text-[11px]">
+        <div className="space-y-1 rounded-xl border border-mcz-gold/25 bg-mcz-gold/5 p-2 text-[11px]">
           <p><span className="text-mcz-gold">What · </span><span className="text-white/70">{task.what}</span></p>
           <p><span className="text-mcz-gold">Why · </span><span className="text-white/70">{task.why}</span></p>
           <p><span className="text-mcz-gold">How · </span><span className="text-white/70">{task.how}</span></p>
@@ -217,7 +217,7 @@ function Work({ work, onShare, onUnshare, onDelete, onDoor, busy }) {
   const [open, setOpen] = useState(false);
   const doors = doorsFor(work.send_to, { inShell: IN_SHELL });
   return (
-    <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <li className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <div className="flex items-start justify-between gap-2">
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(!open)}>
           <p className="truncate text-[13px] text-white/85">{work.title}</p>
@@ -246,7 +246,7 @@ function Work({ work, onShare, onUnshare, onDelete, onDoor, busy }) {
               <Undo2 size={13} />
             </button>
           ))}
-          <button className="text-white/30 hover:text-red-300" onClick={() => onDelete(work)} title="Delete">
+          <button className="text-white/30 hover:text-mcz-ember" onClick={() => onDelete(work)} title="Delete">
             <Trash2 size={13} />
           </button>
         </div>
@@ -690,7 +690,7 @@ export default function OCC() {
             : "Text and attachments in, work out. Save a chat reply here, post it and it's rated, liked, disliked and commented on like anything else — or take it straight into another app."}
         </p>
 
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
           {fromPost && (
             <p className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.05] px-3 py-2 text-[11px] text-white/70">
               {fromPost.kind === "journal" ? (
@@ -781,7 +781,7 @@ export default function OCC() {
             <>
               <ul className="space-y-2">
                 {sugg.suggestions.map((x) => (
-                  <li key={x.key} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <li key={x.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                     <p className="text-[13px] text-white/85">
                       {x.title}
                       {x.auto_safe ? (
@@ -896,7 +896,7 @@ export default function OCC() {
           <div className="re-label">🎮 Games OCC builds for you</div>
           {asList(spec.game_levels).map((lv) => (
             <div key={lv.key}
-                 className={`rounded-lg border p-2 ${lv.key === spec.game_level
+                 className={`rounded-xl border p-2 ${lv.key === spec.game_level
                    ? "border-mcz-cyan/50 bg-mcz-cyan/5" : "border-white/10"} ${lv.allowed ? "" : "opacity-60"}`}>
               <div className="flex items-center gap-1.5 text-[12px] font-semibold text-white/85">
                 {!lv.allowed && <Lock size={10} />}

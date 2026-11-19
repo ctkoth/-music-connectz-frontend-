@@ -49,3 +49,12 @@ test("the picker's search reads either name or the code", () => {
   for (const q of ["", "span", "ESPA", "es"]) assert.ok(langMatches(es, q), q);
   assert.ok(!langMatches(es, "german"));
 });
+
+test("statusLine says why a screen is half English, and nothing when it is whole", async () => {
+  const { statusLine } = await import("./uiLang.js");
+  assert.equal(statusLine({}), "");
+  assert.match(statusLine({ pending: 3 }), /Translating/);
+  assert.match(statusLine({ stuck: 2 }), /stay in English/);
+  assert.match(statusLine({ pending: 1, capped: true }), /limit/);
+  assert.equal(statusLine({ capped: true }), "", "a cap with nothing left to translate is not worth a message");
+});

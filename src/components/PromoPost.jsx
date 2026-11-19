@@ -24,7 +24,7 @@ export default function PromoPost({ promo, onClose, title, note }) {
     setMsg(ok ? "Copied — paste it anywhere." : "Select the text and copy it — this browser wouldn't let us.");
   }
   return (
-    <div className="basis-full space-y-1.5 rounded-lg border border-mcz-cyan/25 bg-black/30 p-2" data-promo-window>
+    <div className="basis-full space-y-1.5 rounded-xl border border-mcz-cyan/25 bg-black/30 p-2" data-promo-window>
       <p className="text-[10px] uppercase tracking-widest text-mcz-cyan/80">
         {title || (promo.kind === "caption" ? "Your caption" : "Your post")} — edit it, then copy
       </p>

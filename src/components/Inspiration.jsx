@@ -500,7 +500,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
   };
 
   return (
-    <section className="mt-3 space-y-2 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
+    <section className="mt-3 space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-3 text-xs text-white/75">
       <h3 className="text-sm font-semibold text-white">✨ Inspiration</h3>
       <p>Pick a song you want to sound like and your own take. The coach rates both, says where yours is better and where it's behind, gives drills to close the gap, and can send a lyric direction to Sentence ConnectZ.</p>
       <p className="text-white/50">{info.notice}</p>
@@ -522,7 +522,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
         <span className="text-white/40">Not charged if it fails · nothing saved</span>
       </div>
       {needsEnergy && <p className="text-white/45">{info.post_note}</p>}
-      {err && <p className="text-red-300">{err}</p>}
+      {err && <p className="text-mcz-ember">{err}</p>}
       {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}
       {res && !res.unscorable && <InspirationResult res={res} scores={info.scores} genre={genre} />}
     </section>

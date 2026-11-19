@@ -56,7 +56,7 @@ function Gate({ gate, children = null }) {
   if (!gate) return children;
   const d = asDict(gate);
   return (
-    <div className="rounded-lg border border-mcz-gold/25 bg-mcz-gold/[0.06] p-3">
+    <div className="rounded-xl border border-mcz-gold/25 bg-mcz-gold/[0.06] p-3">
       <p className="flex items-center gap-2 text-[13px] font-bold text-mcz-gold">
         <Lock size={13} /> {d.detail}
       </p>
@@ -82,7 +82,7 @@ function OpenIn({ entry, busy, onGo }) {
   const dests = asList(entry.destinations);
   if (!dests.length) return null;
   return (
-    <div className="mt-2 space-y-1.5 rounded-lg border border-white/[0.06] bg-black/20 p-2.5"
+    <div className="mt-2 space-y-1.5 rounded-xl border border-white/[0.06] bg-black/20 p-2.5"
          data-tour="journalz-open-in">
       <p className="text-[10px] uppercase tracking-widest text-white/40">Take this entry to</p>
       {dests.map((d) => (
@@ -414,7 +414,7 @@ export default function JournalZ() {
             has no time window on the server, costs nothing, and is never
             refused for age; what it can touch elsewhere is said here. */}
         {editing && (
-          <div className="space-y-1 rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-2.5 text-[11px] leading-relaxed text-white/70">
+          <div className="space-y-1 rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] p-2.5 text-[11px] leading-relaxed text-white/70">
             <p className="font-semibold text-mcz-cyan">Editing the entry for {editing.day}</p>
             <p>Saving changes it in place, for free. Anyone newly tagged on a shared entry is told once; nobody already tagged is told again.</p>
             {asList(editing.items).length > 0 && (
@@ -460,11 +460,11 @@ export default function JournalZ() {
           )}
         </div>
 
-        <input className="w-full rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+        <input className="w-full rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
                placeholder="What the day was — a line, or nothing at all"
                maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} />
         <textarea rows={5}
-                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
+                  className="w-full resize-none rounded-xl border border-white/[0.08] bg-black/40 p-3 text-sm text-white placeholder-white/30 outline-none focus:border-mcz-ember/60"
                   placeholder="Write it down…"
                   maxLength={cl.unlimited ? undefined : cl.limit}
                   value={body} onChange={(e) => setBody(cl.clamp(e.target.value))} />

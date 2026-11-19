@@ -256,7 +256,7 @@ function AskPanel({ venue, onDone, onFlash }) {
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <div>
         <label className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
           How long
@@ -279,7 +279,7 @@ function AskPanel({ venue, onDone, onFlash }) {
             + "your own rates. Skills you haven't priced cost nothing."}
       </p>
 
-      <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-2.5">
+      <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
         <Quote q={quote?.quote} mine={false} host={venue.host} />
         <p className="text-[12px]">
           {energy?.cost > 0 ? (
@@ -343,7 +343,7 @@ function EscrowLine({ b }) {
 function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
   const happened = new Date(venue.starts_at) <= new Date();
   return (
-    <li className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
+    <li className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-2.5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <MemberName username={b.visitor} className="text-[13px]" />
@@ -543,7 +543,7 @@ function Venue({ v, onChanged, onFlash }) {
           leaves a member working out which of them is the real one, and the
           speculative one is never the answer. */}
       {!asking && !v.my_booking && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
           <Quote q={v.quote} mine={v.mine} host={v.host} />
         </div>
       )}
@@ -603,7 +603,7 @@ function Venue({ v, onChanged, onFlash }) {
             )}
           </div>
           {editing && (
-            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <input className="neon-input !py-2 text-xs" placeholder="What is it?"
                      value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
               <textarea className="neon-input !py-2 text-xs" placeholder="Description"

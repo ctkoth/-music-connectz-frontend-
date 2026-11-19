@@ -100,7 +100,7 @@ export function ReligionFilter({ value = [], onChange }) {
       </p>
       <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
              placeholder="Search the list…" className="neon-input !py-1.5 text-xs" />
-      <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-2">
+      <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-2">
         {shownGroups.map((g) => (
           <div key={g.key}>
             <p className="mb-1 text-[10px] uppercase tracking-widest text-white/30">{g.label}</p>

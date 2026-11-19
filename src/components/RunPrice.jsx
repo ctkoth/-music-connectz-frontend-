@@ -69,7 +69,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
     return <span className="text-[11px] text-white/55">No free {noun} left today. They renew tomorrow.</span>;
   }
   return (
-    <div role="status" className="w-full space-y-2 rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white/70">
+    <div role="status" className="w-full space-y-2 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/70">
       <p>
         {v.freeLeft ? "Your free prompts don't cover a run this size" : "No free prompts left today"}
         {", and you don't have enough to pay for this one: it costs "}

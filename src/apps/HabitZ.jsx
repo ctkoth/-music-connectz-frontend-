@@ -101,7 +101,7 @@ export default function HabitZ() {
           </p>
         </div>
         <button onClick={() => setWatching(!active?.watching)}
-          className={active?.watching ? "re-btn !w-auto px-4 !text-red-300" : "neon-btn-primary !w-auto px-4"}>
+          className={active?.watching ? "re-btn !w-auto px-4 !text-mcz-ember" : "neon-btn-primary !w-auto px-4"}>
           {active?.watching ? "Stop watching" : "Start watching"}
         </button>
       </div>
@@ -115,7 +115,7 @@ export default function HabitZ() {
             <span className="text-white/35">
               {data?.significant || 0} worth noting · {data?.threshold}+ repeats counts
             </span>
-            <button onClick={forgetAll} className="ml-auto flex items-center gap-1 text-red-300/70 hover:text-red-300">
+            <button onClick={forgetAll} className="ml-auto flex items-center gap-1 text-mcz-ember/70 hover:text-mcz-ember">
               <Trash2 size={12} /> Forget everything
             </button>
           </div>

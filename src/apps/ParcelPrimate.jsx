@@ -131,7 +131,7 @@ export default function ParcelPrimate() {
           </div>
 
           {/* The size of the send, before the send. */}
-          <div className="space-y-0.5 rounded-lg border border-white/10 bg-black/30 p-2 text-xs text-white/70">
+          <div className="space-y-0.5 rounded-xl border border-white/10 bg-black/30 p-2 text-xs text-white/70">
             {doors.includes("post") && <p>1 public post in the feed.</p>}
             {doors.includes("message") && <p>{reach?.people ?? 0} DM{reach?.people === 1 ? "" : "s"}.</p>}
             {doors.includes("email") && (

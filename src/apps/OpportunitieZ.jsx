@@ -49,7 +49,7 @@ export default function OpportunitieZ() {
       </header>
 
       {msg && (
-        <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center text-sm text-white/60">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center text-sm text-white/60">
           {msg}
         </div>
       )}

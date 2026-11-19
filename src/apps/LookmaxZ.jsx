@@ -48,7 +48,7 @@ function Shelf({ items, note }) {
   return (
     <ul className="space-y-2">
       {items.map((p) => (
-        <li key={p.key} className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+        <li key={p.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
           <p className="text-[13px] font-semibold text-white/90">
             {p.label}
             {p.score != null && <span className="ml-1.5 text-[11px] font-normal text-white/45">for {p.factor_label} · {p.score}/10</span>}
@@ -75,7 +75,7 @@ function Shelf({ items, note }) {
 // shown before any photo is sent: a number with no description is a broken feature.
 function HowItsRated({ meta }) {
   return (
-    <details className="rounded-lg border border-white/10 bg-white/[0.02] p-2.5">
+    <details className="rounded-xl border border-white/10 bg-white/[0.02] p-2.5">
       <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-widest text-white/45">What, why and how — every factor</summary>
       <dl className="mt-2 space-y-2">
         {Object.entries(meta.factor_info || {}).map(([f, i]) => (
@@ -303,7 +303,7 @@ function AskForReading({ d }) {
   return (
     <section className="neon-frame space-y-3 p-4" data-tour="lookmax-ask">
       {waiting.map((r) => (
-        <div key={r.id} className="space-y-2 rounded-lg border border-mcz-gold/40 bg-mcz-gold/[0.05] p-3">
+        <div key={r.id} className="space-y-2 rounded-xl border border-mcz-gold/40 bg-mcz-gold/[0.05] p-3">
           <p className="text-[12px] font-semibold text-mcz-gold">@{r.requester} asked to have a photo of you read</p>
           <p className="text-[11px] leading-snug text-white/65">{r.approve_note}</p>
           {photos[r.id] ? <img src={photos[r.id]} alt={`The photo @${r.requester} sent`} className="max-h-64 rounded" />
@@ -470,7 +470,7 @@ export default function LookmaxZ() {
         <>
           <SharesPanel look={look} />
           {inviter && !res && (
-            <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-[12px] text-white/75">
+            <p className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 text-[12px] text-white/75">
               @{inviter} invited you to get your own reading. It's yours: after it, you choose whether they see it.
             </p>
           )}
@@ -487,7 +487,7 @@ export default function LookmaxZ() {
               ))}
             </div>
             {optIns.map((k) => (
-              <div key={k} className="space-y-1.5 rounded-lg border border-mcz-gold/30 bg-mcz-gold/[0.04] p-2.5">
+              <div key={k} className="space-y-1.5 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.04] p-2.5">
                 <p className="text-[11px] font-semibold text-mcz-gold">{meta[k].emoji} {meta[k].label} — read this first</p>
                 <p className="text-[11px] leading-snug text-white/70">{k === "proportions" ? d.proportions_disclaimer : d.physique_disclaimer}</p>
                 {k === "proportions" && <p className="text-[10px] leading-snug text-white/45">{d.proportions_rule}</p>}

@@ -66,3 +66,15 @@ export function langMatches(lang, q) {
   const s = String(q || "").trim().toLowerCase();
   return !s || [lang.name, lang.own, lang.code].some((v) => String(v || "").toLowerCase().includes(s));
 }
+
+/**
+ * One honest sentence about a half-translated screen, or "" when it is whole. The translator is
+ * machine translation that arrives in batches, so a screen is English in places for a while; saying
+ * so beats leaving the member to wonder whether the app is broken.
+ */
+export function statusLine({ pending = 0, stuck = 0, capped = false } = {}) {
+  if (capped && (pending || stuck)) return "Today's translation limit is reached, so some text stays in English.";
+  if (pending) return "Translating the rest of this screen…";
+  if (stuck) return "A few lines couldn't be translated and stay in English.";
+  return "";
+}

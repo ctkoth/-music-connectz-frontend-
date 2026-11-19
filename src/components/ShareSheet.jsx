@@ -59,7 +59,7 @@ export default function ShareSheet({ item, onClose }) {
   function toPost() { record(); onClose?.(); handOff("postz", "composer", { title: item.title, description: [item.text, url].filter(Boolean).join("\n\n") }); }
 
   return (
-    <div className="mcz-reveal mt-3 space-y-2 rounded-lg border border-mcz-cyan/30 bg-black/40 p-3">
+    <div className="mcz-reveal mt-3 space-y-2 rounded-xl border border-mcz-cyan/30 bg-black/40 p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-bold uppercase tracking-widest text-white/50">
           <Share2 size={12} className="mr-1 inline" /> Share {item.kind === "post" ? "this post" : "this"}

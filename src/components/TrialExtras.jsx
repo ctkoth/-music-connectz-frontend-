@@ -19,11 +19,12 @@ import { storedTrialToken } from "../trialToken.js";
 
 export function ExampleCard({ example, open: startOpen = false, title }) {
   const [open, setOpen] = useState(startOpen);
+  const [gone, setGone] = useState(false);       // the recording could not be loaded
   if (!example) return null;
   const shown = example.shown || example.score;
   const who = example.username ? `@${example.username}'s` : "A";
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left">
       <button type="button" className="flex w-full items-center justify-between gap-2 text-[12px] text-white/70"
               onClick={() => setOpen(!open)} aria-expanded={open}>
         <span>{title || (example.audio ? "🎧 Hear a real take and what it scored" : "👀 See a real scored take first")}</span>
@@ -34,9 +35,14 @@ export function ExampleCard({ example, open: startOpen = false, title }) {
           <p className="text-[11px] text-white/45">{who} own take, scored by this same coach. Yours gets the same read.</p>
           {/* The real recording that earned the number, when it was kept — hear it, then
               read what the coach said about it. Never a stand-in: no recording, no player. */}
-          {example.audio && (example.audio_kind === "video"
-            ? <video src={example.audio} controls playsInline preload="metadata" className="w-full max-h-56 rounded" />
-            : <audio src={example.audio} controls preload="metadata" className="w-full" />)}
+          {example.audio && !gone && (example.audio_kind === "video"
+            ? <video src={example.audio} controls playsInline preload="metadata" onError={() => setGone(true)} className="w-full max-h-56 rounded" />
+            : <audio src={example.audio} controls preload="metadata" onError={() => setGone(true)} className="w-full" />)}
+          {example.audio && gone && (
+            <p className="rounded bg-white/5 px-2 py-1.5 text-[11px] text-white/60" role="status">
+              This recording isn't available right now, so there's nothing to play. The score and the coach's read below are real.
+            </p>
+          )}
           <div className="flex items-baseline gap-3">
             <span className="font-display text-3xl font-extrabold text-mcz-cyan">{shown}<span className="text-sm text-white/30">/10</span></span>
             <p className="flex-1 text-[12px] text-white/75">{example.verdict}</p>
@@ -103,7 +109,7 @@ function useBeat() {
 export function PracticeBeat({ vocal }) {
   const beat = useBeat();
   return (
-    <div className="space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div className="space-y-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <p className="text-[12px] text-white/75">
         Not sure what to do? {vocal ? "Rap or sing four bars over this beat" : "Play four bars along to this beat"} — that's enough for a score.
       </p>

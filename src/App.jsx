@@ -994,7 +994,7 @@ function CommunityBar({ onOpenMembership, onOpenBirthday }) {
                   // from a list of people — say something — is beside it now.
                   <div
                     key={i}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm transition hover:border-mcz-cyan/40 hover:bg-mcz-cyan/10"
                   >
                     <MemberName
                       username={username}

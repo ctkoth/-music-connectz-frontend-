@@ -282,7 +282,7 @@ function AddEmbedForm({ postId, onAdded, onCancel }) {
   };
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
       <input
         type="text"
         placeholder="Paste a track, video or playlist link"

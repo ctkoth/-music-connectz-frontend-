@@ -55,7 +55,7 @@ export default function StorageWarning() {
   return (
     <div className="space-y-3">
       <div
-        className={`rounded-lg border p-4 space-y-2 ${
+        className={`rounded-xl border p-4 space-y-2 ${
           isNeeds
             ? "border-mcz-ember/50 bg-mcz-ember/10"
             : "border-mcz-gold/30 bg-mcz-gold/5"

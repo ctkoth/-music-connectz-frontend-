@@ -58,7 +58,7 @@ export default function CollabFiles({ dealId, onFlash }) {
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <button className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-white/45"
               onClick={() => setOpen(!open)}>
         <span>The work {files?.length ? `· ${files.length} version${files.length === 1 ? "" : "s"}` : ""}</span>
@@ -92,7 +92,7 @@ export default function CollabFiles({ dealId, onFlash }) {
                     <Download size={13} />
                   </a>
                   {f.mine && (
-                    <button className="shrink-0 text-white/30 hover:text-red-300"
+                    <button className="shrink-0 text-white/30 hover:text-mcz-ember"
                             onClick={() => remove(f)} title="Take this version back">
                       <Trash2 size={12} />
                     </button>

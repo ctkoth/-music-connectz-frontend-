@@ -153,7 +153,7 @@ function MetZ() {
 
         {/* Coach Context */}
         {urlBpm && (
-          <div className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+          <div className="mb-8 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
             <div className="text-center">
               <div className="text-sm text-slate-400 mb-2">Coach recommended practicing at:</div>
               <div className="text-2xl font-bold text-cyan-400">{urlBpm} BPM</div>

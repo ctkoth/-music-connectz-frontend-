@@ -23,7 +23,7 @@ export default function SoundCloudEngagementZ() {
         <div className="grid gap-4">
           <SoundCloudEngagement />
 
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
             <h2 className="font-display text-sm font-semibold text-white/90">
               How it works
             </h2>
@@ -52,7 +52,7 @@ export default function SoundCloudEngagementZ() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-4">
+          <div className="rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-4">
             <p className="text-sm text-mcz-cyan font-semibold mb-2">
               💡 Pro Tip
             </p>

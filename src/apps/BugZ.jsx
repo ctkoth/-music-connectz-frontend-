@@ -125,7 +125,7 @@ export default function BugZ() {
               <span className="text-[11px] text-white/45">
                 {shot.name} · {(shot.size / 1024 / 1024).toFixed(1)}MB
               </span>
-              <button type="button" className="re-btn !w-auto px-3 !text-red-300"
+              <button type="button" className="re-btn !w-auto px-3 !text-mcz-ember"
                       onClick={dropShot} disabled={busy}>
                 <Trash2 size={14} />
               </button>

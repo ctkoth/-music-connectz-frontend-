@@ -93,7 +93,7 @@ export function ReadResult({ row }) {
   return (
     <div className="space-y-2">
       {r.thorough?.rating != null && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-white/10 bg-white/[0.04] p-2.5">
+        <div className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.04] p-2.5">
           <RatingNumber value={r.thorough.rating} size="md" outOf />
           <span className="text-[11px] text-white/60"><span className="block text-[12px] font-semibold text-white/90">Thorough</span>{r.thorough.why}</span>
         </div>
@@ -157,7 +157,7 @@ export function AskAI({ scope, id, disabled = false }) {
       {!state.affordable && <p className="text-[11px] text-mcz-ember">Today's free prompts are spent and a read costs more than you hold.</p>}
       {msg && <p role="alert" className="text-[11px] text-mcz-ember">{msg}</p>}
       {row && (
-        <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-white/[0.03] p-3">
+        <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-white/[0.03] p-3">
           <ReadResult row={row} />
           <Actions row={row} onDeleted={() => { setRow(null); reload(); }} />
           <p className="text-[10px] text-white/40">Kept in the AI coach tab.</p>
@@ -229,7 +229,7 @@ export function FormCheck({ exercises }) {
       {!state.configured && <p className="text-[11px] text-mcz-gold">The AI coach isn't switched on yet.</p>}
       {msg && <p role="alert" className="text-[12px] text-mcz-ember">{msg}</p>}
       {row && (
-        <div className="space-y-2 rounded-lg border border-mcz-cyan/25 bg-white/[0.03] p-3">
+        <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-white/[0.03] p-3">
           <ReadResult row={row} />
           <Actions row={row} onDeleted={() => { setRow(null); reload(); }} />
         </div>

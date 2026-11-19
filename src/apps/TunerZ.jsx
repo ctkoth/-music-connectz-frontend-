@@ -338,7 +338,7 @@ function TunerZ() {
         {/* Drill Context */}
         {isDrillMode && (
           <div data-tour="tunerz-drill"
-               className="mb-8 rounded-lg bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
+               className="mb-8 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 border border-cyan-500/50 p-6">
             <div className="text-center">
               <div className="text-sm text-slate-400 mb-2">Coach said you were:</div>
               <div className="text-3xl font-bold text-cyan-400 mb-3">{drillNote} {drillCentsOff && `(${Math.abs(drillCentsOff)}¢ ${drillCentsOff < 0 ? 'flat' : 'sharp'})`}</div>
